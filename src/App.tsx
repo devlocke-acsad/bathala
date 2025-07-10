@@ -312,6 +312,18 @@ const App: React.FC = () => {
           showPileModal={showPileModal}
           setShowPileModal={setShowPileModal}
           log={log}
+          onNewRun={() => {
+            setMap(generateFirstLevelMap());
+            setScreen("game");
+            setCombat(null);
+            setPlayed(null);
+            setDeck([]);
+            setDiscardPile([]);
+            setPlayedPile([]);
+            setLog([]);
+            setShowPile(null);
+            setShowPileModal(null);
+          }}
         />
       )}
       {showPileModal && (

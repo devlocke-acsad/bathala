@@ -24,6 +24,7 @@ interface CombatScreenProps {
   showPileModal?: "deck" | "discard" | "played" | null;
   setShowPileModal?: (pile: "deck" | "discard" | "played" | null) => void;
   log: string[];
+  onNewRun?: () => void;
 }
 
 const CombatScreen: React.FC<CombatScreenProps> = ({
@@ -46,6 +47,7 @@ const CombatScreen: React.FC<CombatScreenProps> = ({
   showPileModal,
   setShowPileModal,
   log,
+  onNewRun,
 }) => {
   const logEndRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -54,7 +56,11 @@ const CombatScreen: React.FC<CombatScreenProps> = ({
     }
   }, [log]);
   return (
-    <div className="flex flex-col w-full h-screen bg-background text-text">
+    <div className="flex flex-col w-full h-screen bg-background text-text relative">
+      {/* New Run Button */}
+      <button className="absolute top-4 right-8 button z-20" onClick={onNewRun}>
+        New Run
+      </button>
       {/* Pile Buttons at Top */}
       <div className="flex flex-row gap-4 justify-center items-center w-full p-8">
         <button
