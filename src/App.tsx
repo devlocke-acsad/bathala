@@ -41,6 +41,14 @@ const App: React.FC = () => {
   const [phase, setPhase] = useState<"player" | "enemy" | "end" | "waiting">(
     "player"
   );
+  const [showDefeatModal, setShowDefeatModal] = useState(false);
+  const [defeatChoice, setDefeatChoice] = useState<null | "kill" | "spare">(
+    null
+  );
+  const [defeatDialogue, setDefeatDialogue] = useState("");
+  const [showHonorModal, setShowHonorModal] = useState(false);
+  const [honorMessage, setHonorMessage] = useState("");
+  const [honorImage, setHonorImage] = useState("");
 
   function generateFirstLevelMap(): GameMap {
     // 5 layers: Start, 1st, 2nd, 3rd, Boss
@@ -253,6 +261,13 @@ const App: React.FC = () => {
         if (!prev) return prev;
         let newEnemy = { ...prev.enemy };
         newEnemy.health = Math.max(0, newEnemy.health - dmg);
+        // If enemy defeated, trigger modal
+        if (newEnemy.health === 0) {
+          setShowDefeatModal(true);
+          setDefeatDialogue(
+            'The Dwende falls to its knees, clutching its wounds. "Mercy, traveler... I only wished to protect my home..."'
+          );
+        }
         return { ...prev, enemy: newEnemy };
       };
     } else if (type === "defend") {
@@ -301,6 +316,48 @@ const App: React.FC = () => {
       setLog((prevLog) => [...prevLog, `--- Turn ${turn + 1} ---`]);
     }, 800);
   }
+  function handleDefeatChoice(choice: "kill" | "spare") {
+    setDefeatChoice(choice);
+    setShowDefeatModal(false);
+    // Placeholder reward logic
+    if (choice === "kill") {
+      setHonorMessage(
+        "A shadow passes over your spirit as the forest grows silent..."
+      );
+      setHonorImage(
+        "https://static0.gamerantimages.com/wordpress/wp-content/uploads/2020/03/arthur-morgan-grave.jpg"
+      );
+      setLog((prev) => [
+        ...prev,
+        "You finish off the Dwende. You gain 20 gold and a mysterious relic.",
+      ]);
+    } else {
+      setHonorMessage(
+        "A gentle warmth settles in your heart as the woods whisper their approval."
+      );
+      setHonorImage("https://media.tenor.com/5nSKlBlwdkIAAAAj/cat.gif");
+      setLog((prev) => [
+        ...prev,
+        "You spare the Dwende. It blesses you with a healing charm.",
+      ]);
+      setCombat((prev) =>
+        prev
+          ? {
+              ...prev,
+              player: {
+                ...prev.player,
+                health: Math.min(
+                  prev.player.maxHealth,
+                  prev.player.health + 15
+                ),
+              },
+            }
+          : prev
+      );
+    }
+    setShowHonorModal(true);
+  }
+
   function handleDiscard() {
     setCombat((prev) => {
       if (!prev || prev.discardsLeft <= 0) return prev;
@@ -358,62 +415,119 @@ const App: React.FC = () => {
         </div>
       )}
       {screen === "combat" && combat && (
-        <CombatScreen
-          player={combat.player}
-          enemy={combat.enemy}
-          hand={combat.hand} // always show the real hand (unplayed cards)
-          selected={combat.selected}
-          discardsLeft={combat.discardsLeft}
-          onSelectCard={played ? () => {} : handleSelectCard}
-          onPlay={played ? undefined : handlePlay}
-          onDiscard={played ? undefined : handleDiscard}
-          onSort={played ? undefined : handleSort}
-          played={played}
-          onAction={handleAction}
-          deck={deck}
-          discardPile={discardPile}
-          playedPile={playedPile}
-          onShowPile={setShowPile}
-          showPile={showPile}
-          showPileModal={showPileModal}
-          setShowPileModal={setShowPileModal}
-          log={log}
-          turn={turn}
-          phase={phase}
-          onNextTurn={() => {
-            setTurn((t) => t + 1);
-            setPhase("player");
-            setCombat((prev) => {
-              if (!prev) return prev;
-              const {
-                hand: newHand,
-                deck: newDeck,
-                discard: newDiscard,
-              } = refillHandState([], deck, discardPile);
-              setDeck(newDeck);
-              setDiscardPile(newDiscard);
-              return {
-                ...prev,
-                hand: newHand,
-                discardsLeft: 3,
-                selected: [],
-              };
-            });
-            setLog((prevLog) => [...prevLog, `--- Turn ${turn + 1} ---`]);
-          }}
-          onNewRun={() => {
-            setMap(generateFirstLevelMap());
-            setScreen("game");
-            setCombat(null);
-            setPlayed(null);
-            setDeck([]);
-            setDiscardPile([]);
-            setPlayedPile([]);
-            setLog([]);
-            setShowPile(null);
-            setShowPileModal(null);
-          }}
-        />
+        <>
+          <CombatScreen
+            player={combat.player}
+            enemy={combat.enemy}
+            hand={combat.hand} // always show the real hand (unplayed cards)
+            selected={combat.selected}
+            discardsLeft={combat.discardsLeft}
+            onSelectCard={played ? () => {} : handleSelectCard}
+            onPlay={played ? undefined : handlePlay}
+            onDiscard={played ? undefined : handleDiscard}
+            onSort={played ? undefined : handleSort}
+            played={played}
+            onAction={handleAction}
+            deck={deck}
+            discardPile={discardPile}
+            playedPile={playedPile}
+            onShowPile={setShowPile}
+            showPile={showPile}
+            showPileModal={showPileModal}
+            setShowPileModal={setShowPileModal}
+            log={log}
+            turn={turn}
+            phase={phase}
+            onNextTurn={() => {
+              setTurn((t) => t + 1);
+              setPhase("player");
+              setCombat((prev) => {
+                if (!prev) return prev;
+                const {
+                  hand: newHand,
+                  deck: newDeck,
+                  discard: newDiscard,
+                } = refillHandState([], deck, discardPile);
+                setDeck(newDeck);
+                setDiscardPile(newDiscard);
+                return {
+                  ...prev,
+                  hand: newHand,
+                  discardsLeft: 3,
+                  selected: [],
+                };
+              });
+              setLog((prevLog) => [...prevLog, `--- Turn ${turn + 1} ---`]);
+            }}
+            onNewRun={() => {
+              setMap(generateFirstLevelMap());
+              setScreen("game");
+              setCombat(null);
+              setPlayed(null);
+              setDeck([]);
+              setDiscardPile([]);
+              setPlayedPile([]);
+              setLog([]);
+              setShowPile(null);
+              setShowPileModal(null);
+            }}
+          />
+          {showDefeatModal && (
+            <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-70">
+              <div className="bg-background rounded-lg shadow-lg p-8 max-w-md w-full flex flex-col items-center">
+                <img
+                  src="https://c.tenor.com/tOZbj3IX_VkAAAAC/tenor.gif"
+                  alt="Dwende"
+                  className="w-32 h-32 object-cover rounded-full mb-4 border-4 border-secondary"
+                />
+                <div className="text-xl font-heading mb-4 text-center">
+                  Enemy Defeated!
+                </div>
+                <div className="mb-4 text-base text-center">
+                  {defeatDialogue}
+                </div>
+                <div className="flex flex-row gap-4 mt-2">
+                  <button
+                    className="button bg-red-600 hover:bg-red-700"
+                    onClick={() => handleDefeatChoice("kill")}
+                  >
+                    Kill
+                  </button>
+                  <button
+                    className="button bg-green-600 hover:bg-green-700"
+                    onClick={() => handleDefeatChoice("spare")}
+                  >
+                    Spare
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {showHonorModal && (
+            <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-80">
+              <div className="bg-background rounded-lg shadow-lg p-8 max-w-md w-full flex flex-col items-center">
+                <img
+                  src={honorImage}
+                  alt="Honor Result"
+                  className="w-40 h-40 object-cover rounded-full mb-4 border-4 border-secondary"
+                />
+                <div className="text-lg font-heading mb-4 text-center">
+                  Honor
+                </div>
+                <div className="mb-4 text-base text-center">{honorMessage}</div>
+                <button
+                  className="button mt-2"
+                  onClick={() => {
+                    setShowHonorModal(false);
+                    setScreen("game");
+                  }}
+                >
+                  Proceed
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
       {showPileModal && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-60">
