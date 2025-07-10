@@ -37,6 +37,10 @@ const App: React.FC = () => {
     "deck" | "discard" | "played" | null
   >(null);
   const [log, setLog] = useState<string[]>([]);
+  const [turn, setTurn] = useState(1);
+  const [phase, setPhase] = useState<"player" | "enemy" | "end" | "waiting">(
+    "player"
+  );
 
   function generateFirstLevelMap(): GameMap {
     // 5 layers: Start, 1st, 2nd, 3rd, Boss
@@ -95,6 +99,8 @@ const App: React.FC = () => {
     setDeck(newDeck);
     setDiscardPile([]);
     setPlayedPile([]);
+    setTurn(1);
+    setPhase("player");
     setCombat({
       player: { name: "Player", health: 80, maxHealth: 80 },
       enemy: { name: "Slime", health: 40, maxHealth: 40 },
@@ -102,6 +108,7 @@ const App: React.FC = () => {
       selected: [],
       discardsLeft: 3,
     });
+    setLog([`--- Turn 1 ---`]);
   }
 
   function createDeck() {
@@ -130,10 +137,28 @@ const App: React.FC = () => {
   function drawFromDeck(count: number) {
     let drawn: import("./components/CardComponent").Card[] = [];
     setDeck((prev) => {
-      drawn = prev.slice(0, count);
-      return prev.slice(count);
+      if (prev.length >= count) {
+        drawn = prev.slice(0, count);
+        return prev.slice(count);
+      } else {
+        // Not enough cards, shuffle discard into deck
+        const needed = count - prev.length;
+        const newDeck = [...discardPile].sort(() => Math.random() - 0.5);
+        setDiscardPile([]);
+        drawn = [...prev, ...newDeck.slice(0, needed)];
+        return newDeck.slice(needed);
+      }
     });
     return drawn;
+  }
+
+  function refillHand(
+    currentHand: import("./components/CardComponent").Card[]
+  ) {
+    const needed = 8 - currentHand.length;
+    if (needed <= 0) return currentHand;
+    const drawn = drawFromDeck(needed);
+    return [...currentHand, ...drawn];
   }
 
   function handleNodeClick(nodeId: string) {
@@ -174,9 +199,9 @@ const App: React.FC = () => {
     setCombat((prev) => {
       if (!prev) return prev;
       const playedCards = prev.hand.filter((c) => prev.selected.includes(c.id));
-      if (playedCards.length !== 5) return prev;
+      if (playedCards.length === 0 || playedCards.length > 5) return prev;
       setPlayed({ cards: playedCards, result: evaluatePokerHand(playedCards) });
-      // Remove played cards from hand, keep unplayed for next turn
+      // Remove played cards from hand
       const newHand = prev.hand.filter((c) => !prev.selected.includes(c.id));
       return {
         ...prev,
@@ -184,6 +209,7 @@ const App: React.FC = () => {
         selected: [],
       };
     });
+    setPhase("enemy");
   }
   function handleAction(type: "attack" | "defend" | "special") {
     if (!played) return;
@@ -205,26 +231,15 @@ const App: React.FC = () => {
       logEntry = `Player uses special (${played.result.handType}, ${played.result.dominantSuit})!`;
     }
     const playedCards = played.cards;
-    // Update log and played pile ONCE per action
     setLog((prevLog) => {
-      const entries = [...prevLog, logEntry];
-      if (combat && combat.player.health > 0 && combat.enemy.health > 0) {
-        entries.push("Enemy attacks for 7 damage!");
-      }
+      const entries = [...prevLog, logEntry, `Enemy attacks for 7 damage!`];
       return entries;
     });
     setPlayedPile((pile) => [...pile, ...playedCards]);
     setCombat((prev) => {
       if (!prev) return prev;
-      const needed = 8 - prev.hand.length;
-      let newHand = [...prev.hand];
-      if (needed > 0) {
-        const drawn = drawFromDeck(needed);
-        newHand = [...newHand, ...drawn];
-      }
       return effect({
         ...prev,
-        hand: newHand,
         selected: [],
       });
     });
@@ -237,9 +252,14 @@ const App: React.FC = () => {
             ...prev2.player,
             health: Math.max(0, prev2.player.health - 7),
           },
+          hand: refillHand([]), // Empty hand, refill to 8 for next turn
+          discardsLeft: 3,
         };
       });
       setPlayed(null);
+      setTurn((t) => t + 1);
+      setPhase("player");
+      setLog((prevLog) => [...prevLog, `--- Turn ${turn + 1} ---`]);
     }, 800);
   }
   function handleDiscard() {
@@ -249,10 +269,10 @@ const App: React.FC = () => {
       const discarded = prev.hand.filter((c) => toDiscard.includes(c.id));
       setDiscardPile((pile) => [...pile, ...discarded]);
       const remainingHand = prev.hand.filter((c) => !toDiscard.includes(c.id));
-      const drawn = drawFromDeck(toDiscard.length);
+      const newHand = refillHand(remainingHand);
       return {
         ...prev,
-        hand: [...remainingHand, ...drawn],
+        hand: newHand,
         selected: [],
         discardsLeft: prev.discardsLeft - 1,
       };
@@ -312,6 +332,22 @@ const App: React.FC = () => {
           showPileModal={showPileModal}
           setShowPileModal={setShowPileModal}
           log={log}
+          turn={turn}
+          phase={phase}
+          onNextTurn={() => {
+            setTurn((t) => t + 1);
+            setPhase("player");
+            setCombat((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                hand: refillHand([]),
+                discardsLeft: 3,
+                selected: [],
+              };
+            });
+            setLog((prevLog) => [...prevLog, `--- Turn ${turn + 1} ---`]);
+          }}
           onNewRun={() => {
             setMap(generateFirstLevelMap());
             setScreen("game");

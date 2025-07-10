@@ -25,6 +25,9 @@ interface CombatScreenProps {
   setShowPileModal?: (pile: "deck" | "discard" | "played" | null) => void;
   log: string[];
   onNewRun?: () => void;
+  turn?: number;
+  phase?: string;
+  onNextTurn?: () => void;
 }
 
 const CombatScreen: React.FC<CombatScreenProps> = ({
@@ -48,6 +51,9 @@ const CombatScreen: React.FC<CombatScreenProps> = ({
   setShowPileModal,
   log,
   onNewRun,
+  turn,
+  phase,
+  onNextTurn,
 }) => {
   const logEndRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -91,6 +97,10 @@ const CombatScreen: React.FC<CombatScreenProps> = ({
         <button className="button" onClick={onNewRun}>
           New Run
         </button>
+      </div>
+      {/* Turn Number */}
+      <div className="flex justify-center items-center w-full mt-2 mb-2">
+        <span className="text-lg font-heading text-secondary">Turn {turn}</span>
       </div>
       <div className="flex flex-row flex-1 w-full h-full">
         {/* Player Side */}
@@ -197,6 +207,14 @@ const CombatScreen: React.FC<CombatScreenProps> = ({
           />
         </div>
       </div>
+      {/* Next Turn Button (show if phase is waiting/end) */}
+      {onNextTurn && (phase === "waiting" || phase === "end") && (
+        <div className="flex justify-center mt-4">
+          <button className="button" onClick={onNextTurn}>
+            Next Turn
+          </button>
+        </div>
+      )}
     </div>
   );
 };
