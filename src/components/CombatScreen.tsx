@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import Combatant from "./Combatant";
 import PlayerHand from "./PlayerHand";
 import type { Card } from "./CardComponent";
@@ -23,6 +23,7 @@ interface CombatScreenProps {
   showPile: "deck" | "discard" | "played" | null;
   showPileModal?: "deck" | "discard" | "played" | null;
   setShowPileModal?: (pile: "deck" | "discard" | "played" | null) => void;
+  log: string[];
 }
 
 const CombatScreen: React.FC<CombatScreenProps> = ({
@@ -44,7 +45,14 @@ const CombatScreen: React.FC<CombatScreenProps> = ({
   showPile,
   showPileModal,
   setShowPileModal,
+  log,
 }) => {
+  const logEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [log]);
   return (
     <div className="flex flex-col w-full h-screen bg-background text-text">
       {/* Pile Buttons at Top */}
@@ -80,9 +88,34 @@ const CombatScreen: React.FC<CombatScreenProps> = ({
         </div>
         {/* Center Area */}
         <div className="flex flex-col items-center justify-end w-2/4 h-full pb-8">
+          {/* Action Log */}
+          <div className="flex flex-col items-center justify-center mb-4 w-full">
+            <div className="bg-secondary bg-opacity-80 rounded-lg px-4 py-2 max-h-32 overflow-y-auto w-96 text-center text-base font-body">
+              {log && log.length > 0 ? (
+                log.map((entry, i) => (
+                  <div key={i} className="mb-1 last:mb-0">
+                    {entry}
+                  </div>
+                ))
+              ) : (
+                <span className="text-gray-400">No actions yet.</span>
+              )}
+              <div ref={logEndRef} />
+            </div>
+          </div>
           <div className="mb-2 text-lg font-heading">
             {played ? "Played Hand" : "Your Hand"}
           </div>
+          {/* Show played cards above action buttons if a hand was played */}
+          {played && (
+            <div className="flex flex-row gap-2 mb-4">
+              {played.cards.map((card) => (
+                <div key={card.id}>
+                  <PlayerHand hand={[card]} selected={[]} onSelect={() => {}} />
+                </div>
+              ))}
+            </div>
+          )}
           <PlayerHand hand={hand} selected={selected} onSelect={onSelectCard} />
           {!played ? (
             <div className="flex flex-row gap-2 mt-2">

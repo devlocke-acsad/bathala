@@ -36,6 +36,7 @@ const App: React.FC = () => {
   const [showPileModal, setShowPileModal] = useState<
     "deck" | "discard" | "played" | null
   >(null);
+  const [log, setLog] = useState<string[]>([]);
 
   function generateFirstLevelMap(): GameMap {
     // 5 layers: Start, 1st, 2nd, 3rd, Boss
@@ -175,8 +176,7 @@ const App: React.FC = () => {
       const playedCards = prev.hand.filter((c) => prev.selected.includes(c.id));
       if (playedCards.length !== 5) return prev;
       setPlayed({ cards: playedCards, result: evaluatePokerHand(playedCards) });
-      setPlayedPile((pile) => [...pile, ...playedCards]); // Only add here
-      // Remove played cards from hand, keep unplayed
+      // Remove played cards from hand, keep unplayed for next turn
       const newHand = prev.hand.filter((c) => !prev.selected.includes(c.id));
       return {
         ...prev,
@@ -186,26 +186,61 @@ const App: React.FC = () => {
     });
   }
   function handleAction(type: "attack" | "defend" | "special") {
-    setCombat((prev) => {
-      if (!prev || !played) return prev;
-      let newEnemy = { ...prev.enemy };
-      if (type === "attack") {
-        newEnemy.health = Math.max(
-          0,
-          newEnemy.health - played.result.power * 5
-        );
-      }
-      // Draw only as many as needed to refill hand to 8
-      const needed = 8 - prev.hand.length;
-      const drawn = drawFromDeck(needed);
-      setPlayed(null);
-      return {
-        ...prev,
-        enemy: newEnemy,
-        hand: [...prev.hand, ...drawn],
-        selected: [],
+    if (!played) return;
+    let logEntry = "";
+    let effect = (prev: typeof combat) => prev;
+    if (type === "attack") {
+      const dmg = played.result.power * 5;
+      logEntry = `Player attacks for ${dmg} damage (${played.result.handType})!`;
+      effect = (prev) => {
+        if (!prev) return prev;
+        let newEnemy = { ...prev.enemy };
+        newEnemy.health = Math.max(0, newEnemy.health - dmg);
+        return { ...prev, enemy: newEnemy };
       };
+    } else if (type === "defend") {
+      const block = played.result.power * 3;
+      logEntry = `Player defends for ${block} block (${played.result.handType})!`;
+    } else if (type === "special") {
+      logEntry = `Player uses special (${played.result.handType}, ${played.result.dominantSuit})!`;
+    }
+    const playedCards = played.cards;
+    // Update log and played pile ONCE per action
+    setLog((prevLog) => {
+      const entries = [...prevLog, logEntry];
+      if (combat && combat.player.health > 0 && combat.enemy.health > 0) {
+        entries.push("Enemy attacks for 7 damage!");
+      }
+      return entries;
     });
+    setPlayedPile((pile) => [...pile, ...playedCards]);
+    setCombat((prev) => {
+      if (!prev) return prev;
+      const needed = 8 - prev.hand.length;
+      let newHand = [...prev.hand];
+      if (needed > 0) {
+        const drawn = drawFromDeck(needed);
+        newHand = [...newHand, ...drawn];
+      }
+      return effect({
+        ...prev,
+        hand: newHand,
+        selected: [],
+      });
+    });
+    setTimeout(() => {
+      setCombat((prev2) => {
+        if (!prev2) return prev2;
+        return {
+          ...prev2,
+          player: {
+            ...prev2.player,
+            health: Math.max(0, prev2.player.health - 7),
+          },
+        };
+      });
+      setPlayed(null);
+    }, 800);
   }
   function handleDiscard() {
     setCombat((prev) => {
@@ -260,7 +295,7 @@ const App: React.FC = () => {
         <CombatScreen
           player={combat.player}
           enemy={combat.enemy}
-          hand={played ? played.cards : combat.hand}
+          hand={combat.hand} // always show the real hand (unplayed cards)
           selected={combat.selected}
           discardsLeft={combat.discardsLeft}
           onSelectCard={played ? () => {} : handleSelectCard}
@@ -276,6 +311,7 @@ const App: React.FC = () => {
           showPile={showPile}
           showPileModal={showPileModal}
           setShowPileModal={setShowPileModal}
+          log={log}
         />
       )}
       {showPileModal && (
