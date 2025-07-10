@@ -20,6 +20,9 @@ const App: React.FC = () => {
     cards: import("./components/CardComponent").Card[];
     result: ReturnType<typeof evaluatePokerHand>;
   } | null>(null);
+  const [deck, setDeck] = useState<import("./components/CardComponent").Card[]>(
+    []
+  );
 
   function generateFirstLevelMap(): GameMap {
     // 5 layers: Start, 1st, 2nd, 3rd, Boss
@@ -73,34 +76,19 @@ const App: React.FC = () => {
     return { nodes };
   }
 
-  function handleNodeClick(nodeId: string) {
-    const node = map?.nodes.find((n) => n.id === nodeId);
-    if (node && node.type === "Combat") {
-      // Start combat with dummy data
-      setCombat({
-        player: { name: "Player", health: 80, maxHealth: 80 },
-        enemy: { name: "Slime", health: 40, maxHealth: 40 },
-        hand: drawHand(),
-        selected: [],
-        discardsLeft: 3,
-      });
-      setScreen("combat");
-    } else {
-      setMap((prev) => {
-        if (!prev) return prev;
-        return {
-          nodes: prev.nodes.map((n) =>
-            n.id === nodeId
-              ? { ...n, isCurrent: true, visited: true }
-              : { ...n, isCurrent: false }
-          ),
-        };
-      });
-    }
+  function startCombat() {
+    const newDeck = createDeck();
+    setDeck(newDeck);
+    setCombat({
+      player: { name: "Player", health: 80, maxHealth: 80 },
+      enemy: { name: "Slime", health: 40, maxHealth: 40 },
+      hand: drawFromDeck(newDeck, 8),
+      selected: [],
+      discardsLeft: 3,
+    });
   }
 
-  function drawHand() {
-    // Return 8 random cards from a standard 52-card deck
+  function createDeck() {
     const suits = ["♠", "♥", "♦", "♣"];
     const ranks = [
       "A",
@@ -120,7 +108,33 @@ const App: React.FC = () => {
     const deck: import("./components/CardComponent").Card[] = [];
     for (const suit of suits)
       for (const rank of ranks) deck.push({ id: `${rank}${suit}`, rank, suit });
-    return deck.sort(() => Math.random() - 0.5).slice(0, 8);
+    return deck.sort(() => Math.random() - 0.5);
+  }
+
+  function drawFromDeck(
+    deck: import("./components/CardComponent").Card[],
+    count: number
+  ) {
+    return deck.slice(0, count);
+  }
+
+  function handleNodeClick(nodeId: string) {
+    const node = map?.nodes.find((n) => n.id === nodeId);
+    if (node && node.type === "Combat") {
+      startCombat();
+      setScreen("combat");
+    } else {
+      setMap((prev) => {
+        if (!prev) return prev;
+        return {
+          nodes: prev.nodes.map((n) =>
+            n.id === nodeId
+              ? { ...n, isCurrent: true, visited: true }
+              : { ...n, isCurrent: false }
+          ),
+        };
+      });
+    }
   }
 
   function handleSelectCard(id: string) {
@@ -141,8 +155,13 @@ const App: React.FC = () => {
     setCombat((prev) => {
       if (!prev) return prev;
       const playedCards = prev.hand.filter((c) => prev.selected.includes(c.id));
-      if (playedCards.length !== 5) return prev; // Only allow 5-card hands
+      if (playedCards.length !== 5) return prev;
       setPlayed({ cards: playedCards, result: evaluatePokerHand(playedCards) });
+      // Remove played cards from hand, draw up to 8
+      const newDeck = deck.filter(
+        (c) => !prev.hand.map((hc) => hc.id).includes(c.id)
+      );
+      setDeck(newDeck);
       return {
         ...prev,
         hand: prev.hand.filter((c) => !prev.selected.includes(c.id)),
@@ -150,19 +169,43 @@ const App: React.FC = () => {
       };
     });
   }
+  function handleAction(type: "attack" | "defend" | "special") {
+    setCombat((prev) => {
+      if (!prev || !played) return prev;
+      let newEnemy = { ...prev.enemy };
+      if (type === "attack") {
+        newEnemy.health = Math.max(
+          0,
+          newEnemy.health - played.result.power * 5
+        );
+      }
+      // TODO: implement defend/special
+      // Draw new hand up to 8
+      const newHand = [...prev.hand, ...deck.slice(0, 8 - prev.hand.length)];
+      setDeck(deck.slice(8 - prev.hand.length));
+      setPlayed(null);
+      return {
+        ...prev,
+        enemy: newEnemy,
+        hand: newHand,
+        selected: [],
+      };
+    });
+  }
   function handleDiscard() {
-    setCombat((prev) =>
-      prev && prev.discardsLeft > 0
-        ? {
-            ...prev,
-            hand: prev.hand
-              .filter((c) => !prev.selected.includes(c.id))
-              .concat(drawHand().slice(0, prev.selected.length)),
-            selected: [],
-            discardsLeft: prev.discardsLeft - 1,
-          }
-        : prev
-    );
+    setCombat((prev) => {
+      if (!prev || prev.discardsLeft <= 0) return prev;
+      const toDiscard = prev.selected;
+      const remainingHand = prev.hand.filter((c) => !toDiscard.includes(c.id));
+      const drawn = deck.slice(0, toDiscard.length);
+      setDeck(deck.slice(toDiscard.length));
+      return {
+        ...prev,
+        hand: [...remainingHand, ...drawn],
+        selected: [],
+        discardsLeft: prev.discardsLeft - 1,
+      };
+    });
   }
   function handleSort(type: "rank" | "suit") {
     setCombat((prev) =>
@@ -177,11 +220,6 @@ const App: React.FC = () => {
           }
         : prev
     );
-  }
-  function handleAction(type: "attack" | "defend" | "special") {
-    // TODO: Implement action logic based on played.result
-    setPlayed(null); // Reset for next turn
-    // For now, just go back to hand phase
   }
 
   return (
