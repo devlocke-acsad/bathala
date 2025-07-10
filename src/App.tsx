@@ -94,6 +94,35 @@ const App: React.FC = () => {
     return { nodes };
   }
 
+  // Utility to draw cards synchronously and update deck/discard
+  function drawCards(
+    deck: import("./components/CardComponent").Card[],
+    discard: import("./components/CardComponent").Card[],
+    count: number
+  ) {
+    let drawn: import("./components/CardComponent").Card[] = [];
+    let newDeck = [...deck];
+    let newDiscard = [...discard];
+    while (drawn.length < count) {
+      if (newDeck.length === 0) {
+        if (newDiscard.length === 0) break;
+        newDeck = newDiscard.sort(() => Math.random() - 0.5);
+        newDiscard = [];
+      }
+      if (newDeck.length > 0) {
+        drawn.push(newDeck.shift()!);
+      }
+    }
+    return { drawn, newDeck, newDiscard };
+  }
+
+  function refillHandState(hand, deck, discard) {
+    const needed = 8 - hand.length;
+    if (needed <= 0) return { hand, deck, discard };
+    const { drawn, newDeck, newDiscard } = drawCards(deck, discard, needed);
+    return { hand: [...hand, ...drawn], deck: newDeck, discard: newDiscard };
+  }
+
   function startCombat() {
     const newDeck = createDeck();
     setDeck(newDeck);
@@ -101,10 +130,12 @@ const App: React.FC = () => {
     setPlayedPile([]);
     setTurn(1);
     setPhase("player");
+    const { drawn, newDeck: afterDeck } = drawCards(newDeck, [], 8);
+    setDeck(afterDeck);
     setCombat({
       player: { name: "Player", health: 80, maxHealth: 80 },
       enemy: { name: "Slime", health: 40, maxHealth: 40 },
-      hand: newDeck.slice(0, 8),
+      hand: drawn,
       selected: [],
       discardsLeft: 3,
     });
@@ -246,13 +277,21 @@ const App: React.FC = () => {
     setTimeout(() => {
       setCombat((prev2) => {
         if (!prev2) return prev2;
+        // refill hand to 8, update deck/discard synchronously
+        const {
+          hand: newHand,
+          deck: newDeck,
+          discard: newDiscard,
+        } = refillHandState([], deck, discardPile);
+        setDeck(newDeck);
+        setDiscardPile(newDiscard);
         return {
           ...prev2,
           player: {
             ...prev2.player,
             health: Math.max(0, prev2.player.health - 7),
           },
-          hand: refillHand([]), // Empty hand, refill to 8 for next turn
+          hand: newHand,
           discardsLeft: 3,
         };
       });
@@ -267,9 +306,16 @@ const App: React.FC = () => {
       if (!prev || prev.discardsLeft <= 0) return prev;
       const toDiscard = prev.selected;
       const discarded = prev.hand.filter((c) => toDiscard.includes(c.id));
-      setDiscardPile((pile) => [...pile, ...discarded]);
+      // Remove from hand, add to discard
       const remainingHand = prev.hand.filter((c) => !toDiscard.includes(c.id));
-      const newHand = refillHand(remainingHand);
+      // Draw up to 8, update deck/discard synchronously
+      const {
+        hand: newHand,
+        deck: newDeck,
+        discard: newDiscard,
+      } = refillHandState(remainingHand, deck, [...discardPile, ...discarded]);
+      setDeck(newDeck);
+      setDiscardPile(newDiscard);
       return {
         ...prev,
         hand: newHand,
@@ -339,9 +385,16 @@ const App: React.FC = () => {
             setPhase("player");
             setCombat((prev) => {
               if (!prev) return prev;
+              const {
+                hand: newHand,
+                deck: newDeck,
+                discard: newDiscard,
+              } = refillHandState([], deck, discardPile);
+              setDeck(newDeck);
+              setDiscardPile(newDiscard);
               return {
                 ...prev,
-                hand: refillHand([]),
+                hand: newHand,
                 discardsLeft: 3,
                 selected: [],
               };
