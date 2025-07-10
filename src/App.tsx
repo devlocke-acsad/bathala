@@ -30,9 +30,6 @@ const App: React.FC = () => {
   const [playedPile, setPlayedPile] = useState<
     import("./components/CardComponent").Card[]
   >([]);
-  const [showPile, setShowPile] = useState<
-    "deck" | "discard" | "played" | null
-  >(null);
   const [showPileModal, setShowPileModal] = useState<
     "deck" | "discard" | "played" | null
   >(null);
@@ -437,7 +434,6 @@ const App: React.FC = () => {
               setDiscardPile([]);
               setPlayedPile([]);
               setLog([]);
-              setShowPile(null);
               setShowPileModal(null);
             }}
           />
