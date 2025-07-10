@@ -19,9 +19,6 @@ interface CombatScreenProps {
   deck: Card[];
   discardPile: Card[];
   playedPile: Card[];
-  onShowPile: (pile: "deck" | "discard" | "played" | null) => void;
-  showPile: "deck" | "discard" | "played" | null;
-  showPileModal?: "deck" | "discard" | "played" | null;
   setShowPileModal?: (pile: "deck" | "discard" | "played" | null) => void;
   log: string[];
   onNewRun?: () => void;
@@ -45,9 +42,6 @@ const CombatScreen: React.FC<CombatScreenProps> = ({
   deck,
   discardPile,
   playedPile,
-  onShowPile,
-  showPile,
-  showPileModal,
   setShowPileModal,
   log,
   onNewRun,

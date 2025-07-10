@@ -42,9 +42,6 @@ const App: React.FC = () => {
     "player"
   );
   const [showDefeatModal, setShowDefeatModal] = useState(false);
-  const [defeatChoice, setDefeatChoice] = useState<null | "kill" | "spare">(
-    null
-  );
   const [defeatDialogue, setDefeatDialogue] = useState("");
   const [showHonorModal, setShowHonorModal] = useState(false);
   const [honorMessage, setHonorMessage] = useState("");
@@ -124,7 +121,11 @@ const App: React.FC = () => {
     return { drawn, newDeck, newDiscard };
   }
 
-  function refillHandState(hand, deck, discard) {
+  function refillHandState(
+    hand: import("./components/CardComponent").Card[],
+    deck: import("./components/CardComponent").Card[],
+    discard: import("./components/CardComponent").Card[]
+  ) {
     const needed = 8 - hand.length;
     if (needed <= 0) return { hand, deck, discard };
     const { drawn, newDeck, newDiscard } = drawCards(deck, discard, needed);
@@ -171,33 +172,6 @@ const App: React.FC = () => {
     for (const suit of suits)
       for (const rank of ranks) deck.push({ id: `${rank}${suit}`, rank, suit });
     return deck.sort(() => Math.random() - 0.5);
-  }
-
-  function drawFromDeck(count: number) {
-    let drawn: import("./components/CardComponent").Card[] = [];
-    setDeck((prev) => {
-      if (prev.length >= count) {
-        drawn = prev.slice(0, count);
-        return prev.slice(count);
-      } else {
-        // Not enough cards, shuffle discard into deck
-        const needed = count - prev.length;
-        const newDeck = [...discardPile].sort(() => Math.random() - 0.5);
-        setDiscardPile([]);
-        drawn = [...prev, ...newDeck.slice(0, needed)];
-        return newDeck.slice(needed);
-      }
-    });
-    return drawn;
-  }
-
-  function refillHand(
-    currentHand: import("./components/CardComponent").Card[]
-  ) {
-    const needed = 8 - currentHand.length;
-    if (needed <= 0) return currentHand;
-    const drawn = drawFromDeck(needed);
-    return [...currentHand, ...drawn];
   }
 
   function handleNodeClick(nodeId: string) {
@@ -317,7 +291,6 @@ const App: React.FC = () => {
     }, 800);
   }
   function handleDefeatChoice(choice: "kill" | "spare") {
-    setDefeatChoice(choice);
     setShowDefeatModal(false);
     // Placeholder reward logic
     if (choice === "kill") {
@@ -419,7 +392,7 @@ const App: React.FC = () => {
           <CombatScreen
             player={combat.player}
             enemy={combat.enemy}
-            hand={combat.hand} // always show the real hand (unplayed cards)
+            hand={combat.hand}
             selected={combat.selected}
             discardsLeft={combat.discardsLeft}
             onSelectCard={played ? () => {} : handleSelectCard}
@@ -431,10 +404,6 @@ const App: React.FC = () => {
             deck={deck}
             discardPile={discardPile}
             playedPile={playedPile}
-            onShowPile={setShowPile}
-            showPile={showPile}
-            showPileModal={showPileModal}
-            setShowPileModal={setShowPileModal}
             log={log}
             turn={turn}
             phase={phase}
@@ -512,7 +481,7 @@ const App: React.FC = () => {
                   className="w-40 h-40 object-cover rounded-full mb-4 border-4 border-secondary"
                 />
                 <div className="text-lg font-heading mb-4 text-center">
-                  Honor
+                  {/* Honor */}
                 </div>
                 <div className="mb-4 text-base text-center">{honorMessage}</div>
                 <button
