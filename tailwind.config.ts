@@ -5,15 +5,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        text: "#e2e5ee",
-        background: "#0d0f17",
-        primary: "#afb5d0",
-        secondary: "#53406d",
-        accent: "#9c7bb2",
+        text: "rgb(var(--color-text) / <alpha-value>)",
+        background: "rgb(var(--color-background) / <alpha-value>)",
+        primary: "rgb(var(--color-primary) / <alpha-value>)",
+        secondary: "rgb(var(--color-secondary) / <alpha-value>)",
+        accent: "rgb(var(--color-accent) / <alpha-value>)",
       },
       fontFamily: {
-        heading: ["Centrion-Regular", "serif"],
-        body: ["Chivo", "Arial", "sans-serif"],
+        heading: ["var(--font-display)", "serif"],
+        body: ["var(--font-body)", "sans-serif"],
       },
     },
   },

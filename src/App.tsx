@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import TitleScreen from "./components/TitleScreen";
-import "./styles/game.css";
 import "./index.css";
 
 const App: React.FC = () => {
