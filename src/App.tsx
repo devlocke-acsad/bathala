@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import TitleScreen from "./components/TitleScreen";
 import MapScreen from "./components/MapScreen";
 import CombatScreen from "./components/CombatScreen";
+import { evaluatePokerHand } from "./logic/poker";
 import type { GameMap, MapNodeType } from "./components/MapScreen";
 import "./index.css";
 
@@ -15,6 +16,10 @@ const App: React.FC = () => {
     selected: string[];
     discardsLeft: number;
   }>(null);
+  const [played, setPlayed] = useState<{
+    cards: import("./components/CardComponent").Card[];
+    result: ReturnType<typeof evaluatePokerHand>;
+  } | null>(null);
 
   function generateFirstLevelMap(): GameMap {
     // 5 layers: Start, 1st, 2nd, 3rd, Boss
@@ -133,7 +138,17 @@ const App: React.FC = () => {
     );
   }
   function handlePlay() {
-    /* TODO: Implement play logic */
+    setCombat((prev) => {
+      if (!prev) return prev;
+      const playedCards = prev.hand.filter((c) => prev.selected.includes(c.id));
+      if (playedCards.length !== 5) return prev; // Only allow 5-card hands
+      setPlayed({ cards: playedCards, result: evaluatePokerHand(playedCards) });
+      return {
+        ...prev,
+        hand: prev.hand.filter((c) => !prev.selected.includes(c.id)),
+        selected: [],
+      };
+    });
   }
   function handleDiscard() {
     setCombat((prev) =>
@@ -163,6 +178,11 @@ const App: React.FC = () => {
         : prev
     );
   }
+  function handleAction(type: "attack" | "defend" | "special") {
+    // TODO: Implement action logic based on played.result
+    setPlayed(null); // Reset for next turn
+    // For now, just go back to hand phase
+  }
 
   return (
     <div className="min-h-screen">
@@ -186,13 +206,15 @@ const App: React.FC = () => {
         <CombatScreen
           player={combat.player}
           enemy={combat.enemy}
-          hand={combat.hand}
+          hand={played ? played.cards : combat.hand}
           selected={combat.selected}
           discardsLeft={combat.discardsLeft}
-          onSelectCard={handleSelectCard}
-          onPlay={handlePlay}
-          onDiscard={handleDiscard}
-          onSort={handleSort}
+          onSelectCard={played ? () => {} : handleSelectCard}
+          onPlay={played ? undefined : handlePlay}
+          onDiscard={played ? undefined : handleDiscard}
+          onSort={played ? undefined : handleSort}
+          played={played}
+          onAction={handleAction}
         />
       )}
     </div>
