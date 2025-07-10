@@ -140,7 +140,7 @@ const App: React.FC = () => {
     setDeck(afterDeck);
     setCombat({
       player: { name: "Player", health: 80, maxHealth: 80 },
-      enemy: { name: "Slime", health: 40, maxHealth: 40 },
+      enemy: { name: "Duwende", health: 40, maxHealth: 40 },
       hand: drawn,
       selected: [],
       discardsLeft: 3,
