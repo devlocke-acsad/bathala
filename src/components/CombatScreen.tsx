@@ -57,29 +57,39 @@ const CombatScreen: React.FC<CombatScreenProps> = ({
   }, [log]);
   return (
     <div className="flex flex-col w-full h-screen bg-background text-text relative">
-      {/* New Run Button */}
-      <button className="absolute top-4 right-8 button z-20" onClick={onNewRun}>
-        New Run
-      </button>
-      {/* Pile Buttons at Top */}
-      <div className="flex flex-row gap-4 justify-center items-center w-full p-8">
-        <button
-          className="button"
-          onClick={() => setShowPileModal && setShowPileModal("deck")}
-        >
-          Deck ({deck.length})
-        </button>
-        <button
-          className="button"
-          onClick={() => setShowPileModal && setShowPileModal("discard")}
-        >
-          Discard ({discardPile.length})
-        </button>
-        <button
-          className="button"
-          onClick={() => setShowPileModal && setShowPileModal("played")}
-        >
-          Played ({playedPile.length})
+      {/* Top Bar: Avatar (left), Pile Buttons (center), New Run (right) */}
+      <div className="flex flex-row items-center justify-between w-full p-8 pt-4 pb-4">
+        {/* Player Avatar */}
+        <div className="flex items-center">
+          <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center text-2xl font-heading text-white shadow-md border-2 border-secondary">
+            {/* Replace with player image if available */}
+            <span>{player.name?.[0] ?? "P"}</span>
+          </div>
+        </div>
+        {/* Pile Buttons */}
+        <div className="flex flex-row gap-4 justify-center items-center">
+          <button
+            className="button"
+            onClick={() => setShowPileModal && setShowPileModal("deck")}
+          >
+            Deck ({deck.length})
+          </button>
+          <button
+            className="button"
+            onClick={() => setShowPileModal && setShowPileModal("discard")}
+          >
+            Discard ({discardPile.length})
+          </button>
+          <button
+            className="button"
+            onClick={() => setShowPileModal && setShowPileModal("played")}
+          >
+            Played ({playedPile.length})
+          </button>
+        </div>
+        {/* New Run Button */}
+        <button className="button" onClick={onNewRun}>
+          New Run
         </button>
       </div>
       <div className="flex flex-row flex-1 w-full h-full">
