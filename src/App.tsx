@@ -5,6 +5,7 @@ import CombatScreen from "./components/CombatScreen";
 import { evaluatePokerHand } from "./logic/poker";
 import type { GameMap, MapNodeType } from "./components/MapScreen";
 import "./index.css";
+import CardComponent from "./components/CardComponent";
 
 const App: React.FC = () => {
   const [screen, setScreen] = useState<"title" | "game" | "combat">("title");
@@ -23,6 +24,18 @@ const App: React.FC = () => {
   const [deck, setDeck] = useState<import("./components/CardComponent").Card[]>(
     []
   );
+  const [discardPile, setDiscardPile] = useState<
+    import("./components/CardComponent").Card[]
+  >([]);
+  const [playedPile, setPlayedPile] = useState<
+    import("./components/CardComponent").Card[]
+  >([]);
+  const [showPile, setShowPile] = useState<
+    "deck" | "discard" | "played" | null
+  >(null);
+  const [showPileModal, setShowPileModal] = useState<
+    "deck" | "discard" | "played" | null
+  >(null);
 
   function generateFirstLevelMap(): GameMap {
     // 5 layers: Start, 1st, 2nd, 3rd, Boss
@@ -79,10 +92,12 @@ const App: React.FC = () => {
   function startCombat() {
     const newDeck = createDeck();
     setDeck(newDeck);
+    setDiscardPile([]);
+    setPlayedPile([]);
     setCombat({
       player: { name: "Player", health: 80, maxHealth: 80 },
       enemy: { name: "Slime", health: 40, maxHealth: 40 },
-      hand: drawFromDeck(newDeck, 8),
+      hand: newDeck.slice(0, 8),
       selected: [],
       discardsLeft: 3,
     });
@@ -111,11 +126,13 @@ const App: React.FC = () => {
     return deck.sort(() => Math.random() - 0.5);
   }
 
-  function drawFromDeck(
-    deck: import("./components/CardComponent").Card[],
-    count: number
-  ) {
-    return deck.slice(0, count);
+  function drawFromDeck(count: number) {
+    let drawn: import("./components/CardComponent").Card[] = [];
+    setDeck((prev) => {
+      drawn = prev.slice(0, count);
+      return prev.slice(count);
+    });
+    return drawn;
   }
 
   function handleNodeClick(nodeId: string) {
@@ -151,20 +168,19 @@ const App: React.FC = () => {
         : prev
     );
   }
+  // Fix played pile logic: only add played cards once per play, not again on action
   function handlePlay() {
     setCombat((prev) => {
       if (!prev) return prev;
       const playedCards = prev.hand.filter((c) => prev.selected.includes(c.id));
       if (playedCards.length !== 5) return prev;
       setPlayed({ cards: playedCards, result: evaluatePokerHand(playedCards) });
-      // Remove played cards from hand, draw up to 8
-      const newDeck = deck.filter(
-        (c) => !prev.hand.map((hc) => hc.id).includes(c.id)
-      );
-      setDeck(newDeck);
+      setPlayedPile((pile) => [...pile, ...playedCards]); // Only add here
+      // Remove played cards from hand, keep unplayed
+      const newHand = prev.hand.filter((c) => !prev.selected.includes(c.id));
       return {
         ...prev,
-        hand: prev.hand.filter((c) => !prev.selected.includes(c.id)),
+        hand: newHand,
         selected: [],
       };
     });
@@ -179,15 +195,14 @@ const App: React.FC = () => {
           newEnemy.health - played.result.power * 5
         );
       }
-      // TODO: implement defend/special
-      // Draw new hand up to 8
-      const newHand = [...prev.hand, ...deck.slice(0, 8 - prev.hand.length)];
-      setDeck(deck.slice(8 - prev.hand.length));
+      // Draw only as many as needed to refill hand to 8
+      const needed = 8 - prev.hand.length;
+      const drawn = drawFromDeck(needed);
       setPlayed(null);
       return {
         ...prev,
         enemy: newEnemy,
-        hand: newHand,
+        hand: [...prev.hand, ...drawn],
         selected: [],
       };
     });
@@ -196,9 +211,10 @@ const App: React.FC = () => {
     setCombat((prev) => {
       if (!prev || prev.discardsLeft <= 0) return prev;
       const toDiscard = prev.selected;
+      const discarded = prev.hand.filter((c) => toDiscard.includes(c.id));
+      setDiscardPile((pile) => [...pile, ...discarded]);
       const remainingHand = prev.hand.filter((c) => !toDiscard.includes(c.id));
-      const drawn = deck.slice(0, toDiscard.length);
-      setDeck(deck.slice(toDiscard.length));
+      const drawn = drawFromDeck(toDiscard.length);
       return {
         ...prev,
         hand: [...remainingHand, ...drawn],
@@ -253,7 +269,42 @@ const App: React.FC = () => {
           onSort={played ? undefined : handleSort}
           played={played}
           onAction={handleAction}
+          deck={deck}
+          discardPile={discardPile}
+          playedPile={playedPile}
+          onShowPile={setShowPile}
+          showPile={showPile}
+          showPileModal={showPileModal}
+          setShowPileModal={setShowPileModal}
         />
+      )}
+      {showPileModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-60">
+          <div className="bg-background p-6 rounded-lg shadow-lg max-w-2xl w-full flex flex-col items-center">
+            <div className="font-heading text-2xl mb-4">
+              {showPileModal.charAt(0).toUpperCase() + showPileModal.slice(1)}{" "}
+              Pile
+            </div>
+            <div className="flex flex-wrap gap-2 justify-center mb-4">
+              {(showPileModal === "deck"
+                ? deck
+                : showPileModal === "discard"
+                ? discardPile
+                : playedPile
+              ).map((card) => (
+                <div key={card.id}>
+                  <CardComponent card={card} />
+                </div>
+              ))}
+            </div>
+            <button
+              className="button w-32"
+              onClick={() => setShowPileModal(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
