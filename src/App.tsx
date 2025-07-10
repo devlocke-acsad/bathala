@@ -1,12 +1,20 @@
 import React, { useState } from "react";
 import TitleScreen from "./components/TitleScreen";
 import MapScreen from "./components/MapScreen";
+import CombatScreen from "./components/CombatScreen";
 import type { GameMap, MapNodeType } from "./components/MapScreen";
 import "./index.css";
 
 const App: React.FC = () => {
-  const [screen, setScreen] = useState<"title" | "game">("title");
+  const [screen, setScreen] = useState<"title" | "game" | "combat">("title");
   const [map, setMap] = useState<GameMap | null>(null);
+  const [combat, setCombat] = useState<null | {
+    player: { name: string; health: number; maxHealth: number };
+    enemy: { name: string; health: number; maxHealth: number };
+    hand: import("./components/CardComponent").Card[];
+    selected: string[];
+    discardsLeft: number;
+  }>(null);
 
   function generateFirstLevelMap(): GameMap {
     // 5 layers: Start, 1st, 2nd, 3rd, Boss
@@ -61,16 +69,99 @@ const App: React.FC = () => {
   }
 
   function handleNodeClick(nodeId: string) {
-    setMap((prev: GameMap | null) => {
-      if (!prev) return prev;
-      return {
-        nodes: prev.nodes.map((n) =>
-          n.id === nodeId
-            ? { ...n, isCurrent: true, visited: true }
-            : { ...n, isCurrent: false }
-        ),
-      };
-    });
+    const node = map?.nodes.find((n) => n.id === nodeId);
+    if (node && node.type === "Combat") {
+      // Start combat with dummy data
+      setCombat({
+        player: { name: "Player", health: 80, maxHealth: 80 },
+        enemy: { name: "Slime", health: 40, maxHealth: 40 },
+        hand: drawHand(),
+        selected: [],
+        discardsLeft: 3,
+      });
+      setScreen("combat");
+    } else {
+      setMap((prev) => {
+        if (!prev) return prev;
+        return {
+          nodes: prev.nodes.map((n) =>
+            n.id === nodeId
+              ? { ...n, isCurrent: true, visited: true }
+              : { ...n, isCurrent: false }
+          ),
+        };
+      });
+    }
+  }
+
+  function drawHand() {
+    // Return 8 random cards from a standard 52-card deck
+    const suits = ["♠", "♥", "♦", "♣"];
+    const ranks = [
+      "A",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "J",
+      "Q",
+      "K",
+    ];
+    const deck: import("./components/CardComponent").Card[] = [];
+    for (const suit of suits)
+      for (const rank of ranks) deck.push({ id: `${rank}${suit}`, rank, suit });
+    return deck.sort(() => Math.random() - 0.5).slice(0, 8);
+  }
+
+  function handleSelectCard(id: string) {
+    setCombat((prev) =>
+      prev
+        ? {
+            ...prev,
+            selected: prev.selected.includes(id)
+              ? prev.selected.filter((cid) => cid !== id)
+              : prev.selected.length < 5
+              ? [...prev.selected, id]
+              : prev.selected,
+          }
+        : prev
+    );
+  }
+  function handlePlay() {
+    /* TODO: Implement play logic */
+  }
+  function handleDiscard() {
+    setCombat((prev) =>
+      prev && prev.discardsLeft > 0
+        ? {
+            ...prev,
+            hand: prev.hand
+              .filter((c) => !prev.selected.includes(c.id))
+              .concat(drawHand().slice(0, prev.selected.length)),
+            selected: [],
+            discardsLeft: prev.discardsLeft - 1,
+          }
+        : prev
+    );
+  }
+  function handleSort(type: "rank" | "suit") {
+    setCombat((prev) =>
+      prev
+        ? {
+            ...prev,
+            hand: [...prev.hand].sort((a, b) =>
+              type === "rank"
+                ? a.rank.localeCompare(b.rank)
+                : a.suit.localeCompare(b.suit)
+            ),
+          }
+        : prev
+    );
   }
 
   return (
@@ -90,6 +181,19 @@ const App: React.FC = () => {
         <div className="flex items-center justify-center h-screen">
           <h2 className="text-3xl font-heading">Loading map...</h2>
         </div>
+      )}
+      {screen === "combat" && combat && (
+        <CombatScreen
+          player={combat.player}
+          enemy={combat.enemy}
+          hand={combat.hand}
+          selected={combat.selected}
+          discardsLeft={combat.discardsLeft}
+          onSelectCard={handleSelectCard}
+          onPlay={handlePlay}
+          onDiscard={handleDiscard}
+          onSort={handleSort}
+        />
       )}
     </div>
   );
