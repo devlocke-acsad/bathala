@@ -4,6 +4,7 @@ import {
   Player,
   Enemy,
   PlayingCard,
+  Suit,
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
@@ -20,11 +21,12 @@ export class Combat extends Scene {
   private enemyBlockText!: Phaser.GameObjects.Text;
   private enemyIntentText!: Phaser.GameObjects.Text;
   private handContainer!: Phaser.GameObjects.Container;
+  private playedHandContainer!: Phaser.GameObjects.Container;
   private cardSprites: Phaser.GameObjects.Container[] = [];
+  private playedCardSprites: Phaser.GameObjects.Container[] = [];
   private selectedCards: PlayingCard[] = [];
   private actionButtons!: Phaser.GameObjects.Container;
   private turnText!: Phaser.GameObjects.Text;
-  private energyText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "Combat" });
@@ -60,12 +62,11 @@ export class Combat extends Scene {
       currentHealth: 80,
       block: 0,
       statusEffects: [],
-      energy: 3,
-      maxEnergy: 3,
       hand: drawnCards,
       deck: remainingDeck,
       discardPile: [],
       drawPile: remainingDeck,
+      playedHand: [],
     };
 
     const enemy: Enemy = {
@@ -119,10 +120,13 @@ export class Combat extends Scene {
     // Card hand area (bottom)
     this.createHandUI();
 
+    // Played hand area (center)
+    this.createPlayedHandUI();
+
     // Action buttons
     this.createActionButtons();
 
-    // Turn and energy display
+    // Turn display
     this.createTurnUI();
   }
 
@@ -239,59 +243,91 @@ export class Combat extends Scene {
   }
 
   /**
+   * Create played hand UI container
+   */
+  private createPlayedHandUI(): void {
+    this.playedHandContainer = this.add.container(512, 400);
+  }
+
+  /**
    * Create action buttons
    */
   private createActionButtons(): void {
     this.actionButtons = this.add.container(512, 520);
-
-    // Play Hand button
-    const playButton = this.createButton(-120, 0, "Play Hand", () => {
-      this.playSelectedCards();
-    });
-
-    // Sort by Rank button
-    const sortRankButton = this.createButton(0, 0, "Sort: Rank", () => {
-      this.sortHand("rank");
-    });
-
-    // Sort by Suit button
-    const sortSuitButton = this.createButton(120, 0, "Sort: Suit", () => {
-      this.sortHand("suit");
-    });
-
-    // Discard button
-    const discardButton = this.createButton(-60, 30, "Discard", () => {
-      this.discardSelectedCards();
-    });
-
-    // End Turn button
-    const endTurnButton = this.createButton(60, 30, "End Turn", () => {
-      this.endPlayerTurn();
-    });
-
-    this.actionButtons.add([
-      playButton,
-      sortRankButton,
-      sortSuitButton,
-      discardButton,
-      endTurnButton,
-    ]);
+    this.updateActionButtons();
   }
 
   /**
-   * Create turn and energy UI
+   * Update action buttons based on current phase
+   */
+  private updateActionButtons(): void {
+    // Clear existing buttons
+    this.actionButtons.removeAll(true);
+
+    if (this.combatState.phase === "player_turn") {
+      // Card selection phase
+      const playButton = this.createButton(-120, 0, "Play Hand", () => {
+        this.playSelectedCards();
+      });
+
+      const sortRankButton = this.createButton(0, 0, "Sort: Rank", () => {
+        this.sortHand("rank");
+      });
+
+      const sortSuitButton = this.createButton(120, 0, "Sort: Suit", () => {
+        this.sortHand("suit");
+      });
+
+      const discardButton = this.createButton(-60, 30, "Discard", () => {
+        this.discardSelectedCards();
+      });
+
+      const endTurnButton = this.createButton(60, 30, "End Turn", () => {
+        this.endPlayerTurn();
+      });
+
+      this.actionButtons.add([
+        playButton,
+        sortRankButton,
+        sortSuitButton,
+        discardButton,
+        endTurnButton,
+      ]);
+    } else if (this.combatState.phase === "action_selection") {
+      // Action selection phase - Attack/Defend/Special based on dominant suit
+      const dominantSuit = this.getDominantSuit(
+        this.combatState.player.playedHand
+      );
+
+      const attackButton = this.createButton(-80, 0, "Attack", () => {
+        this.executeAction("attack");
+      });
+
+      const defendButton = this.createButton(0, 0, "Defend", () => {
+        this.executeAction("defend");
+      });
+
+      const specialButton = this.createButton(
+        80,
+        0,
+        this.getSpecialActionName(dominantSuit),
+        () => {
+          this.executeAction("special");
+        }
+      );
+
+      this.actionButtons.add([attackButton, defendButton, specialButton]);
+    }
+  }
+
+  /**
+   * Create turn UI
    */
   private createTurnUI(): void {
     this.turnText = this.add.text(50, 100, "", {
       fontFamily: "Centrion",
       fontSize: 16,
       color: "#e8eced",
-    });
-
-    this.energyText = this.add.text(50, 130, "", {
-      fontFamily: "Centrion",
-      fontSize: 16,
-      color: "#ffd93d",
     });
 
     this.updateTurnUI();
@@ -369,7 +405,8 @@ export class Combat extends Scene {
   private createCardSprite(
     card: PlayingCard,
     x: number,
-    y: number
+    y: number,
+    interactive: boolean = true
   ): Phaser.GameObjects.Container {
     const cardContainer = this.add.container(x, y);
 
@@ -409,12 +446,14 @@ export class Combat extends Scene {
 
     cardContainer.add([bg, rankText, suitText, elementText]);
 
-    // Make interactive
-    cardContainer.setInteractive(
-      new Phaser.Geom.Rectangle(-25, -35, 50, 70),
-      Phaser.Geom.Rectangle.Contains
-    );
-    cardContainer.on("pointerdown", () => this.selectCard(card));
+    // Make interactive only for hand cards
+    if (interactive) {
+      cardContainer.setInteractive(
+        new Phaser.Geom.Rectangle(-25, -35, 50, 70),
+        Phaser.Geom.Rectangle.Contains
+      );
+      cardContainer.on("pointerdown", () => this.selectCard(card));
+    }
 
     return cardContainer;
   }
@@ -440,29 +479,25 @@ export class Combat extends Scene {
   private playSelectedCards(): void {
     if (this.selectedCards.length === 0) return;
 
-    const evaluation = HandEvaluator.evaluateHand(this.selectedCards);
-
-    // Apply damage to enemy
-    this.damageEnemy(evaluation.totalValue);
+    // Move selected cards to played hand
+    this.combatState.player.playedHand = [...this.selectedCards];
 
     // Remove played cards from hand
     this.combatState.player.hand = this.combatState.player.hand.filter(
       (card) => !this.selectedCards.includes(card)
     );
 
-    // Add to discard pile
-    this.combatState.player.discardPile.push(...this.selectedCards);
-
     // Clear selection
     this.selectedCards = [];
     this.combatState.selectedCards = [];
 
-    // Show combat result
-    this.showCombatResult(evaluation);
+    // Enter action selection phase
+    this.combatState.phase = "action_selection";
 
     // Update displays
     this.updateHandDisplay();
-    this.updateEnemyUI();
+    this.updatePlayedHandDisplay();
+    this.updateActionButtons();
   }
 
   /**
@@ -533,9 +568,6 @@ export class Combat extends Scene {
   private startPlayerTurn(): void {
     this.combatState.phase = "player_turn";
     this.combatState.turn++;
-
-    // Reset energy
-    this.combatState.player.energy = this.combatState.player.maxEnergy;
 
     // Draw cards if hand is small
     if (this.combatState.player.hand.length < 5) {
@@ -635,33 +667,6 @@ export class Combat extends Scene {
   }
 
   /**
-   * Show combat result
-   */
-  private showCombatResult(evaluation: any): void {
-    const resultText = this.add
-      .text(
-        512,
-        300,
-        `${evaluation.description}\nDamage: ${evaluation.totalValue}`,
-        {
-          fontFamily: "Centrion",
-          fontSize: 18,
-          color: "#ffd93d",
-          align: "center",
-        }
-      )
-      .setOrigin(0.5);
-
-    // Fade out after 2 seconds
-    this.tweens.add({
-      targets: resultText,
-      alpha: 0,
-      duration: 2000,
-      onComplete: () => resultText.destroy(),
-    });
-  }
-
-  /**
    * Update player UI elements
    */
   private updatePlayerUI(): void {
@@ -691,9 +696,6 @@ export class Combat extends Scene {
    */
   private updateTurnUI(): void {
     this.turnText.setText(`Turn: ${this.combatState.turn}`);
-    this.energyText.setText(
-      `⚡ Energy: ${this.combatState.player.energy}/${this.combatState.player.maxEnergy}`
-    );
   }
 
   /**
@@ -716,5 +718,200 @@ export class Combat extends Scene {
     setTimeout(() => {
       this.scene.start("Map");
     }, 3000);
+  }
+
+  /**
+   * Update played hand display
+   */
+  private updatePlayedHandDisplay(): void {
+    // Clear existing played card sprites
+    this.playedCardSprites.forEach((sprite) => sprite.destroy());
+    this.playedCardSprites = [];
+
+    const playedHand = this.combatState.player.playedHand;
+    if (playedHand.length === 0) return;
+
+    const cardWidth = 70;
+    const startX = -(playedHand.length * cardWidth) / 2 + cardWidth / 2;
+
+    playedHand.forEach((card, index) => {
+      const cardSprite = this.createCardSprite(
+        card,
+        startX + index * cardWidth,
+        0,
+        false
+      );
+      this.playedHandContainer.add(cardSprite);
+      this.playedCardSprites.push(cardSprite);
+    });
+
+    // Show hand evaluation
+    const evaluation = HandEvaluator.evaluateHand(playedHand);
+    const evalText = this.add
+      .text(
+        512,
+        450,
+        `${evaluation.description} - Value: ${evaluation.totalValue}`,
+        {
+          fontFamily: "Centrion",
+          fontSize: 16,
+          color: "#ffd93d",
+          align: "center",
+        }
+      )
+      .setOrigin(0.5);
+
+    // Store eval text to destroy later
+    this.playedHandContainer.add(evalText);
+  }
+
+  /**
+   * Get dominant suit from played hand
+   */
+  private getDominantSuit(cards: PlayingCard[]): Suit {
+    if (cards.length === 0) return "hearts";
+
+    const suitCounts = cards.reduce((counts, card) => {
+      counts[card.suit] = (counts[card.suit] || 0) + 1;
+      return counts;
+    }, {} as Record<Suit, number>);
+
+    return Object.entries(suitCounts).sort(
+      ([, a], [, b]) => b - a
+    )[0][0] as Suit;
+  }
+
+  /**
+   * Get special action name based on dominant suit
+   */
+  private getSpecialActionName(suit: Suit): string {
+    const specialActions: Record<Suit, string> = {
+      hearts: "Heal", // Fire element
+      diamonds: "Shield", // Earth element
+      clubs: "Drain", // Water element
+      spades: "Swift", // Air element
+    };
+    return specialActions[suit];
+  }
+
+  /**
+   * Execute chosen action
+   */
+  private executeAction(actionType: "attack" | "defend" | "special"): void {
+    const evaluation = HandEvaluator.evaluateHand(
+      this.combatState.player.playedHand
+    );
+    const dominantSuit = this.getDominantSuit(
+      this.combatState.player.playedHand
+    );
+
+    switch (actionType) {
+      case "attack":
+        // Deal damage to enemy
+        this.damageEnemy(evaluation.totalValue);
+        this.showActionResult(`Attacked for ${evaluation.totalValue} damage!`);
+        break;
+
+      case "defend":
+        // Gain block
+        const blockAmount = Math.floor(evaluation.totalValue * 0.8);
+        this.combatState.player.block += blockAmount;
+        this.updatePlayerUI();
+        this.showActionResult(`Gained ${blockAmount} block!`);
+        break;
+
+      case "special":
+        this.executeSpecialAction(dominantSuit, evaluation.totalValue);
+        break;
+    }
+
+    // Move played cards to discard pile
+    this.combatState.player.discardPile.push(
+      ...this.combatState.player.playedHand
+    );
+    this.combatState.player.playedHand = [];
+
+    // Return to player turn phase
+    this.combatState.phase = "player_turn";
+
+    // Update displays
+    this.updatePlayedHandDisplay();
+    this.updateActionButtons();
+
+    // Check if enemy is defeated
+    if (this.combatState.enemy.currentHealth <= 0) {
+      this.endCombat(true);
+      return;
+    }
+
+    // End player turn after action
+    setTimeout(() => {
+      this.endPlayerTurn();
+    }, 1500);
+  }
+
+  /**
+   * Execute special action based on dominant suit
+   */
+  private executeSpecialAction(suit: Suit, value: number): void {
+    switch (suit) {
+      case "hearts": // Fire - Heal
+        const healAmount = Math.floor(value * 0.3);
+        this.combatState.player.currentHealth = Math.min(
+          this.combatState.player.maxHealth,
+          this.combatState.player.currentHealth + healAmount
+        );
+        this.updatePlayerUI();
+        this.showActionResult(`Healed for ${healAmount} health!`);
+        break;
+
+      case "diamonds": // Earth - Shield
+        const shieldAmount = Math.floor(value * 1.2);
+        this.combatState.player.block += shieldAmount;
+        this.updatePlayerUI();
+        this.showActionResult(`Gained ${shieldAmount} block!`);
+        break;
+
+      case "clubs": // Water - Drain
+        const drainAmount = Math.floor(value * 0.6);
+        this.damageEnemy(drainAmount);
+        this.combatState.player.currentHealth = Math.min(
+          this.combatState.player.maxHealth,
+          this.combatState.player.currentHealth + Math.floor(drainAmount * 0.5)
+        );
+        this.updatePlayerUI();
+        this.showActionResult(`Drained ${drainAmount} damage and healed!`);
+        break;
+
+      case "spades": // Air - Swift
+        this.damageEnemy(value);
+        // Draw an extra card
+        this.drawCards(1);
+        this.updateHandDisplay();
+        this.showActionResult(`Swift attack for ${value} damage! Drew a card!`);
+        break;
+    }
+  }
+
+  /**
+   * Show action result message
+   */
+  private showActionResult(message: string): void {
+    const resultText = this.add
+      .text(512, 350, message, {
+        fontFamily: "Centrion",
+        fontSize: 18,
+        color: "#2ed573",
+        align: "center",
+      })
+      .setOrigin(0.5);
+
+    // Fade out after 2 seconds
+    this.tweens.add({
+      targets: resultText,
+      alpha: 0,
+      duration: 2000,
+      onComplete: () => resultText.destroy(),
+    });
   }
 }

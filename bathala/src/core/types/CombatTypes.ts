@@ -59,12 +59,11 @@ export interface CombatEntity {
 }
 
 export interface Player extends CombatEntity {
-  energy: number;
-  maxEnergy: number;
   hand: PlayingCard[];
   deck: PlayingCard[];
   discardPile: PlayingCard[];
   drawPile: PlayingCard[];
+  playedHand: PlayingCard[];
 }
 
 export interface Enemy extends CombatEntity {
@@ -90,14 +89,16 @@ export interface StatusEffect {
   description: string;
 }
 
+export type CombatActionType = "attack" | "defend" | "special";
+
 export interface CombatAction {
-  type: "play_hand" | "discard" | "end_turn";
+  type: "play_hand" | "discard" | "end_turn" | CombatActionType;
   cards?: PlayingCard[];
   target?: string;
 }
 
 export interface CombatState {
-  phase: "player_turn" | "enemy_turn" | "game_over";
+  phase: "player_turn" | "enemy_turn" | "game_over" | "action_selection";
   turn: number;
   player: Player;
   enemy: Enemy;
