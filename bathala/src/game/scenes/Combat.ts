@@ -27,6 +27,9 @@ export class Combat extends Scene {
   private selectedCards: PlayingCard[] = [];
   private actionButtons!: Phaser.GameObjects.Container;
   private turnText!: Phaser.GameObjects.Text;
+  private discardsUsedThisTurn: number = 0;
+  private maxDiscardsPerTurn: number = 3;
+  private actionsText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "Combat" });
@@ -53,7 +56,7 @@ export class Combat extends Scene {
    */
   private initializeCombat(): void {
     const deck = DeckManager.createStarterDeck();
-    const { drawnCards, remainingDeck } = DeckManager.drawCards(deck, 7); // Draw 7 cards
+    const { drawnCards, remainingDeck } = DeckManager.drawCards(deck, 8); // Draw 8 cards
 
     const player: Player = {
       id: "player",
@@ -266,24 +269,20 @@ export class Combat extends Scene {
 
     if (this.combatState.phase === "player_turn") {
       // Card selection phase
-      const playButton = this.createButton(-120, 0, "Play Hand", () => {
+      const playButton = this.createButton(-80, 0, "Play Hand", () => {
         this.playSelectedCards();
       });
 
-      const sortRankButton = this.createButton(0, 0, "Sort: Rank", () => {
+      const sortRankButton = this.createButton(80, 0, "Sort: Rank", () => {
         this.sortHand("rank");
       });
 
-      const sortSuitButton = this.createButton(120, 0, "Sort: Suit", () => {
+      const sortSuitButton = this.createButton(-80, 30, "Sort: Suit", () => {
         this.sortHand("suit");
       });
 
-      const discardButton = this.createButton(-60, 30, "Discard", () => {
+      const discardButton = this.createButton(80, 30, "Discard", () => {
         this.discardSelectedCards();
-      });
-
-      const endTurnButton = this.createButton(60, 30, "End Turn", () => {
-        this.endPlayerTurn();
       });
 
       this.actionButtons.add([
@@ -291,7 +290,6 @@ export class Combat extends Scene {
         sortRankButton,
         sortSuitButton,
         discardButton,
-        endTurnButton,
       ]);
     } else if (this.combatState.phase === "action_selection") {
       // Action selection phase - Attack/Defend/Special based on dominant suit
@@ -328,6 +326,12 @@ export class Combat extends Scene {
       fontFamily: "Centrion",
       fontSize: 16,
       color: "#e8eced",
+    });
+
+    this.actionsText = this.add.text(50, 130, "", {
+      fontFamily: "Centrion",
+      fontSize: 14,
+      color: "#ffd93d",
     });
 
     this.updateTurnUI();
@@ -474,10 +478,14 @@ export class Combat extends Scene {
   }
 
   /**
-   * Play selected cards
+   * Play selected cards (Balatro style - one hand per turn)
    */
   private playSelectedCards(): void {
     if (this.selectedCards.length === 0) return;
+    if (this.selectedCards.length > 5) {
+      this.showActionResult("Cannot play more than 5 cards in a hand!");
+      return;
+    }
 
     // Move selected cards to played hand
     this.combatState.player.playedHand = [...this.selectedCards];
@@ -517,6 +525,20 @@ export class Combat extends Scene {
   private discardSelectedCards(): void {
     if (this.selectedCards.length === 0) return;
 
+    // Check if we can still discard (max 3 discards per turn)
+    if (this.discardsUsedThisTurn >= this.maxDiscardsPerTurn) {
+      this.showActionResult(`Cannot discard more than ${this.maxDiscardsPerTurn} times per turn!`);
+      return;
+    }
+
+    // Check if trying to discard too many cards at once
+    if (this.selectedCards.length > 5) {
+      this.showActionResult("Cannot discard more than 5 cards at once!");
+      return;
+    }
+
+    const discardCount = this.selectedCards.length;
+
     // Move selected cards to discard pile
     this.combatState.player.discardPile.push(...this.selectedCards);
 
@@ -525,10 +547,17 @@ export class Combat extends Scene {
       (card) => !this.selectedCards.includes(card)
     );
 
+    // Draw the same number of cards as discarded
+    this.drawCards(discardCount);
+
+    // Increment discard counter
+    this.discardsUsedThisTurn++;
+
     // Clear selection
     this.selectedCards = [];
 
     this.updateHandDisplay();
+    this.updateTurnUI();
   }
 
   /**
@@ -563,15 +592,20 @@ export class Combat extends Scene {
   }
 
   /**
-   * Start player turn
+   * Start player turn (Balatro style)
    */
   private startPlayerTurn(): void {
     this.combatState.phase = "player_turn";
     this.combatState.turn++;
 
-    // Draw cards if hand is small
-    if (this.combatState.player.hand.length < 5) {
-      this.drawCards(2);
+    // Reset discard counter (only 3 discards per turn)
+    this.discardsUsedThisTurn = 0;
+
+    // Draw cards to ensure player has 8 cards at start of turn
+    const targetHandSize = 8;
+    const cardsNeeded = targetHandSize - this.combatState.player.hand.length;
+    if (cardsNeeded > 0) {
+      this.drawCards(cardsNeeded);
     }
 
     this.updateTurnUI();
@@ -696,6 +730,9 @@ export class Combat extends Scene {
    */
   private updateTurnUI(): void {
     this.turnText.setText(`Turn: ${this.combatState.turn}`);
+    this.actionsText.setText(
+      `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Hand: ${this.combatState.player.hand.length}/8`
+    );
   }
 
   /**
@@ -831,12 +868,8 @@ export class Combat extends Scene {
     );
     this.combatState.player.playedHand = [];
 
-    // Return to player turn phase
-    this.combatState.phase = "player_turn";
-
     // Update displays
     this.updatePlayedHandDisplay();
-    this.updateActionButtons();
 
     // Check if enemy is defeated
     if (this.combatState.enemy.currentHealth <= 0) {
@@ -844,7 +877,7 @@ export class Combat extends Scene {
       return;
     }
 
-    // End player turn after action
+    // In Balatro style, turn ends immediately after playing one hand
     setTimeout(() => {
       this.endPlayerTurn();
     }, 1500);
