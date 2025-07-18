@@ -1,8 +1,25 @@
+:root {
+    --text: #e8eced;
+    --background: #0e1112;
+    --primary: #abb6bd;
+    --secondary: #574d62;
+    --accent: #9d89a2;
+}
+
+@font-face {
+    font-family: 'Centrion';
+    src: url('./assets/fonts/centrion/Centrion-Regular.otf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+
 body {
+    font-family: 'Centrion', Arial, sans-serif;
     margin: 0;
     padding: 0;
     color: rgba(255, 255, 255, 0.87);
-    background-color: #0f0f0f;
+    background-color: var(--secondary);
 }
 
 #app {
