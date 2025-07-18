@@ -5,6 +5,9 @@ import {
   Enemy,
   PlayingCard,
   Suit,
+  HonorRange,
+  CreatureDialogue,
+  PostCombatReward,
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
@@ -30,6 +33,27 @@ export class Combat extends Scene {
   private discardsUsedThisTurn: number = 0;
   private maxDiscardsPerTurn: number = 3;
   private actionsText!: Phaser.GameObjects.Text;
+
+  // Post-combat dialogue system
+  private creatureDialogues: Record<string, CreatureDialogue> = {
+    goblin: {
+      name: "Forest Goblin",
+      spareDialogue: "The goblin bows gratefully. 'You show mercy, warrior. The forest spirits will remember your kindness.'",
+      killDialogue: "The goblin's eyes dim as it whispers, 'The darkness... grows stronger...' Its essence fades into shadow.",
+      spareReward: {
+        ginto: 50,
+        baubles: 0,
+        healthHealing: 10,
+        bonusEffect: "Forest spirits may aid you later"
+      },
+      killReward: {
+        ginto: 75,
+        baubles: 1,
+        healthHealing: 0,
+        bonusEffect: "Gained dark essence"
+      }
+    }
+  };
 
   constructor() {
     super({ key: "Combat" });
@@ -70,6 +94,9 @@ export class Combat extends Scene {
       discardPile: [],
       drawPile: remainingDeck,
       playedHand: [],
+      honor: 50, // Start with neutral honor
+      ginto: 100, // Starting currency
+      baubles: 0, // Premium currency
     };
 
     const enemy: Enemy = {
@@ -745,22 +772,332 @@ export class Combat extends Scene {
    * End combat with result
    */
   private endCombat(victory: boolean): void {
-    const resultText = victory ? "Victory!" : "Defeat!";
-    const color = victory ? "#2ed573" : "#ff4757";
+    if (!victory) {
+      // Player defeated - show game over
+      const resultText = "Defeat!";
+      const color = "#ff4757";
 
+      this.add
+        .text(512, 384, resultText, {
+          fontFamily: "Centrion",
+          fontSize: 48,
+          color: color,
+          align: "center",
+        })
+        .setOrigin(0.5);
+
+      // Return to map after 3 seconds
+      setTimeout(() => {
+        this.scene.start("Map");
+      }, 3000);
+      return;
+    }
+
+    // Victory - show post-combat dialogue
+    this.combatState.phase = "post_combat";
+    this.showPostCombatDialogue();
+  }
+
+  /**
+   * Show post-combat dialogue with honor choices
+   */
+  private showPostCombatDialogue(): void {
+    // Clear combat UI
+    this.clearCombatUI();
+
+    const enemyId = this.combatState.enemy.id;
+    const dialogue = this.creatureDialogues[enemyId] || this.creatureDialogues.goblin;
+
+    // Background overlay
+    this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.8);
+
+    // Dialogue box
+    const dialogueBox = this.add.rectangle(512, 400, 800, 400, 0x2f3542);
+    dialogueBox.setStrokeStyle(3, 0x57606f);
+
+    // Enemy portrait (placeholder)
+    this.add.text(512, 250, "👹", { fontSize: 60 }).setOrigin(0.5);
+
+    // Enemy name
     this.add
-      .text(512, 384, resultText, {
+      .text(512, 200, dialogue.name, {
         fontFamily: "Centrion",
-        fontSize: 48,
+        fontSize: 24,
+        color: "#e8eced",
+        align: "center",
+      })
+      .setOrigin(0.5);
+
+    // Main dialogue text
+    this.add
+      .text(512, 320, "You have defeated this creature. What do you choose?", {
+        fontFamily: "Centrion",
+        fontSize: 18,
+        color: "#e8eced",
+        align: "center",
+        wordWrap: { width: 700 },
+      })
+      .setOrigin(0.5);
+
+    // Honor choice buttons
+    this.createDialogueButton(
+      350, 480, "Spare (+15 Honor)", "#2ed573",
+      () => this.makeHonorChoice("spare", dialogue)
+    );
+
+    this.createDialogueButton(
+      674, 480, "Kill (-10 Honor)", "#ff4757",
+      () => this.makeHonorChoice("kill", dialogue)
+    );
+
+    // Current honor display
+    const honorRange = this.getHonorRange(this.combatState.player.honor);
+    const honorColor = this.getHonorColor(honorRange);
+    
+    this.add
+      .text(512, 550, `Current Honor: ${this.combatState.player.honor}/100 (${honorRange.toUpperCase()})`, {
+        fontFamily: "Centrion",
+        fontSize: 16,
+        color: honorColor,
+        align: "center",
+      })
+      .setOrigin(0.5);
+  }
+
+  /**
+   * Create dialogue button
+   */
+  private createDialogueButton(
+    x: number, y: number, text: string, color: string,
+    callback: () => void
+  ): Phaser.GameObjects.Container {
+    const button = this.add.container(x, y);
+
+    const bg = this.add.rectangle(0, 0, 200, 40, 0x2f3542);
+    bg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(color).color);
+
+    const buttonText = this.add
+      .text(0, 0, text, {
+        fontFamily: "Centrion",
+        fontSize: 14,
         color: color,
         align: "center",
       })
       .setOrigin(0.5);
 
-    // Return to map after 3 seconds
+    button.add([bg, buttonText]);
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-100, -20, 200, 40),
+      Phaser.Geom.Rectangle.Contains
+    );
+    button.on("pointerdown", callback);
+    button.on("pointerover", () => {
+      bg.setFillStyle(Phaser.Display.Color.HexStringToColor(color).color);
+      buttonText.setColor("#000000");
+    });
+    button.on("pointerout", () => {
+      bg.setFillStyle(0x2f3542);
+      buttonText.setColor(color);
+    });
+
+    return button;
+  }
+
+  /**
+   * Make honor choice and show rewards
+   */
+  private makeHonorChoice(choice: "spare" | "kill", dialogue: CreatureDialogue): void {
+    const isSpare = choice === "spare";
+    const honorChange = isSpare ? 15 : -10;
+    const reward = isSpare ? dialogue.spareReward : dialogue.killReward;
+    const choiceDialogue = isSpare ? dialogue.spareDialogue : dialogue.killDialogue;
+
+    // Update honor
+    this.combatState.player.honor = Math.max(0, Math.min(100, 
+      this.combatState.player.honor + honorChange));
+
+    // Apply rewards
+    this.combatState.player.ginto += reward.ginto;
+    this.combatState.player.baubles += reward.baubles;
+    
+    if (reward.healthHealing > 0) {
+      this.combatState.player.currentHealth = Math.min(
+        this.combatState.player.maxHealth,
+        this.combatState.player.currentHealth + reward.healthHealing
+      );
+    }
+
+    // Clear dialogue and show results
+    this.children.removeAll();
+    this.cameras.main.setBackgroundColor(0x0e1112);
+
+    this.showRewardsScreen(choice, choiceDialogue, reward, honorChange);
+  }
+
+  /**
+   * Show rewards screen
+   */
+  private showRewardsScreen(
+    choice: "spare" | "kill", 
+    dialogue: string, 
+    reward: PostCombatReward, 
+    honorChange: number
+  ): void {
+    const choiceColor = choice === "spare" ? "#2ed573" : "#ff4757";
+    const honorChangeText = honorChange > 0 ? `+${honorChange}` : `${honorChange}`;
+
+    // Title
+    this.add
+      .text(512, 100, choice === "spare" ? "Mercy Shown" : "Victory Through Force", {
+        fontFamily: "Centrion",
+        fontSize: 32,
+        color: choiceColor,
+        align: "center",
+      })
+      .setOrigin(0.5);
+
+    // Dialogue
+    this.add
+      .text(512, 200, dialogue, {
+        fontFamily: "Centrion",
+        fontSize: 16,
+        color: "#e8eced",
+        align: "center",
+        wordWrap: { width: 700 },
+      })
+      .setOrigin(0.5);
+
+    // Rewards box
+    const rewardsBox = this.add.rectangle(512, 400, 600, 250, 0x2f3542);
+    rewardsBox.setStrokeStyle(2, 0x57606f);
+
+    this.add
+      .text(512, 320, "Rewards", {
+        fontFamily: "Centrion",
+        fontSize: 24,
+        color: "#ffd93d",
+        align: "center",
+      })
+      .setOrigin(0.5);
+
+    let rewardY = 360;
+
+    // Ginto reward
+    if (reward.ginto > 0) {
+      this.add
+        .text(512, rewardY, `💰 ${reward.ginto} Ginto`, {
+          fontFamily: "Centrion",
+          fontSize: 16,
+          color: "#e8eced",
+          align: "center",
+        })
+        .setOrigin(0.5);
+      rewardY += 25;
+    }
+
+    // Baubles reward
+    if (reward.baubles > 0) {
+      this.add
+        .text(512, rewardY, `💎 ${reward.baubles} Bathala Baubles`, {
+          fontFamily: "Centrion",
+          fontSize: 16,
+          color: "#4ecdc4",
+          align: "center",
+        })
+        .setOrigin(0.5);
+      rewardY += 25;
+    }
+
+    // Health healing
+    if (reward.healthHealing > 0) {
+      this.add
+        .text(512, rewardY, `❤️ Healed ${reward.healthHealing} HP`, {
+          fontFamily: "Centrion",
+          fontSize: 16,
+          color: "#ff6b6b",
+          align: "center",
+        })
+        .setOrigin(0.5);
+      rewardY += 25;
+    }
+
+    // Honor change
+    this.add
+      .text(512, rewardY, `⚖️ Honor ${honorChangeText}`, {
+        fontFamily: "Centrion",
+        fontSize: 16,
+        color: honorChange > 0 ? "#2ed573" : "#ff4757",
+        align: "center",
+      })
+      .setOrigin(0.5);
+    rewardY += 25;
+
+    // Bonus effect
+    if (reward.bonusEffect) {
+      this.add
+        .text(512, rewardY, `✨ ${reward.bonusEffect}`, {
+          fontFamily: "Centrion",
+          fontSize: 14,
+          color: "#ffd93d",
+          align: "center",
+        })
+        .setOrigin(0.5);
+    }
+
+    // Current honor status
+    const honorRange = this.getHonorRange(this.combatState.player.honor);
+    const honorColor = this.getHonorColor(honorRange);
+    
+    this.add
+      .text(512, 520, `Honor: ${this.combatState.player.honor}/100 (${honorRange.toUpperCase()} HONOR)`, {
+        fontFamily: "Centrion",
+        fontSize: 18,
+        color: honorColor,
+        align: "center",
+      })
+      .setOrigin(0.5);
+
+    // Continue button
+    this.createDialogueButton(
+      512, 600, "Continue", "#4ecdc4",
+      () => {
+        this.scene.start("Map");
+      }
+    );
+
+    // Auto-continue after 8 seconds
     setTimeout(() => {
       this.scene.start("Map");
-    }, 3000);
+    }, 8000);
+  }
+
+  /**
+   * Clear combat UI elements
+   */
+  private clearCombatUI(): void {
+    this.handContainer.destroy();
+    this.playedHandContainer.destroy();
+    this.actionButtons.destroy();
+  }
+
+  /**
+   * Get honor range from honor value
+   */
+  private getHonorRange(honor: number): HonorRange {
+    if (honor >= 75) return "high";
+    if (honor >= 25) return "neutral";
+    return "low";
+  }
+
+  /**
+   * Get color for honor range
+   */
+  private getHonorColor(range: HonorRange): string {
+    switch (range) {
+      case "high": return "#2ed573";
+      case "neutral": return "#ffd93d";
+      case "low": return "#ff4757";
+    }
   }
 
   /**

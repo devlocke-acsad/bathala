@@ -64,6 +64,9 @@ export interface Player extends CombatEntity {
   discardPile: PlayingCard[];
   drawPile: PlayingCard[];
   playedHand: PlayingCard[];
+  honor: number; // Honor system (0-100)
+  ginto: number; // Currency for basic items
+  baubles: number; // Premium currency for rare items
 }
 
 export interface Enemy extends CombatEntity {
@@ -98,10 +101,27 @@ export interface CombatAction {
 }
 
 export interface CombatState {
-  phase: "player_turn" | "enemy_turn" | "game_over" | "action_selection";
+  phase: "player_turn" | "enemy_turn" | "game_over" | "action_selection" | "post_combat";
   turn: number;
   player: Player;
   enemy: Enemy;
   selectedCards: PlayingCard[];
   lastAction: CombatAction | null;
+}
+
+export type HonorRange = "high" | "neutral" | "low";
+
+export interface PostCombatReward {
+  ginto: number;
+  baubles: number;
+  healthHealing: number;
+  bonusEffect?: string;
+}
+
+export interface CreatureDialogue {
+  name: string;
+  spareDialogue: string;
+  killDialogue: string;
+  spareReward: PostCombatReward;
+  killReward: PostCombatReward;
 }
