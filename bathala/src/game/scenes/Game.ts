@@ -22,7 +22,7 @@ export class Game extends Scene {
     this.msg_text = this.add.text(
       512,
       384,
-      "Make something fun!\nand share it with us:\nsupport@phaser.io",
+      "Welcome to Bathala!\nClick to enter the map\nand begin your journey",
       {
         fontFamily: "Centrion", // Custom font loaded via CSS
         fontSize: 38,
@@ -34,7 +34,7 @@ export class Game extends Scene {
     this.msg_text.setOrigin(0.5);
 
     this.input.once("pointerdown", () => {
-      this.scene.start("GameOver");
+      this.scene.start("Map");
     });
   }
 }
