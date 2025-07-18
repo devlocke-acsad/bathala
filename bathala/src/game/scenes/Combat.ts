@@ -527,7 +527,9 @@ export class Combat extends Scene {
 
     // Check if we can still discard (max 3 discards per turn)
     if (this.discardsUsedThisTurn >= this.maxDiscardsPerTurn) {
-      this.showActionResult(`Cannot discard more than ${this.maxDiscardsPerTurn} times per turn!`);
+      this.showActionResult(
+        `Cannot discard more than ${this.maxDiscardsPerTurn} times per turn!`
+      );
       return;
     }
 
@@ -601,6 +603,9 @@ export class Combat extends Scene {
     // Reset discard counter (only 3 discards per turn)
     this.discardsUsedThisTurn = 0;
 
+    // Clear any selected cards from previous turn
+    this.selectedCards = [];
+
     // Draw cards to ensure player has 8 cards at start of turn
     const targetHandSize = 8;
     const cardsNeeded = targetHandSize - this.combatState.player.hand.length;
@@ -610,6 +615,7 @@ export class Combat extends Scene {
 
     this.updateTurnUI();
     this.updateHandDisplay();
+    this.updateActionButtons(); // Reset to card selection buttons
   }
 
   /**
@@ -867,6 +873,9 @@ export class Combat extends Scene {
       ...this.combatState.player.playedHand
     );
     this.combatState.player.playedHand = [];
+
+    // Clear selected cards
+    this.selectedCards = [];
 
     // Update displays
     this.updatePlayedHandDisplay();
