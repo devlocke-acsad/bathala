@@ -274,12 +274,12 @@ export class Map extends Scene {
     switch (node.type) {
       case "combat":
       case "elite":
-        // For prototype, go to Game scene (will be Combat scene later)
-        this.scene.start("Game");
+        // Navigate to Combat scene
+        this.scene.start("Combat");
         break;
       case "boss":
         // Boss fight scene
-        this.scene.start("Game");
+        this.scene.start("Combat");
         break;
       case "shop":
         // Shop scene (to be implemented)
