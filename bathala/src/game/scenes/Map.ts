@@ -1,6 +1,7 @@
 import { Scene } from "phaser";
 import { GameMap, MapNode, MapConfig } from "../../core/types/MapTypes";
 import { MapGenerator } from "../../utils/MapGenerator";
+import { GameState } from "../../core/managers/GameState";
 
 /**
  * Map Scene - Slay the Spire style navigation
@@ -36,8 +37,18 @@ export class Map extends Scene {
   create(): void {
     this.cameras.main.setBackgroundColor(0x0e1112);
 
-    // Generate the map for Act 1
-    this.gameMap = MapGenerator.generateMap(1);
+    const gameState = GameState.getInstance();
+
+    // Check if we're returning from combat
+    if (gameState.isReturningFromCombat()) {
+      // Restore the map from game state
+      this.gameMap = gameState.currentMap!;
+      gameState.clearCombatReturn();
+    } else {
+      // Generate new map for Act 1
+      this.gameMap = MapGenerator.generateMap(1);
+      gameState.setCurrentMap(this.gameMap);
+    }
 
     // Create title
     this.add
@@ -182,13 +193,11 @@ export class Map extends Scene {
   private onNodeClick(node: MapNode): void {
     if (!node.available || node.visited) return;
 
-    // Mark node as visited
-    node.visited = true;
-    node.completed = true;
-    this.gameMap.currentNode = node.id;
+    const gameState = GameState.getInstance();
 
-    // Update node availability
-    this.updateNodeAvailability(node);
+    // Set current node but don't mark as visited yet
+    this.gameMap.currentNode = node.id;
+    gameState.setCurrentNode(node.id);
 
     // Navigate to appropriate scene based on node type
     this.navigateToNodeScene(node);

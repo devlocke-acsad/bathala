@@ -162,23 +162,11 @@ export const BAKUNAWA: Omit<Enemy, "id"> = {
 };
 
 // Enemy pools for encounters
-export const ACT1_COMMON_ENEMIES = [
-  TIKBALANG,
-  DWENDE,
-  KAPRE,
-  SIGBIN,
-  TIYANAK,
-];
+export const ACT1_COMMON_ENEMIES = [TIKBALANG, DWENDE, KAPRE, SIGBIN, TIYANAK];
 
-export const ACT1_ELITE_ENEMIES = [
-  MANANANGGAL,
-  ASWANG,
-  DUWENDE_CHIEF,
-];
+export const ACT1_ELITE_ENEMIES = [MANANANGGAL, ASWANG, DUWENDE_CHIEF];
 
-export const ACT1_BOSS_ENEMIES = [
-  BAKUNAWA,
-];
+export const ACT1_BOSS_ENEMIES = [BAKUNAWA];
 
 /**
  * Get a random common enemy for Act 1

@@ -77,7 +77,7 @@ export class MapGenerator {
 
     // Other layers: Ensure each column gets required nodes
     const nodeTypes: NodeType[] = [];
-    
+
     // Column distribution to ensure variety
     if (row === 1) {
       nodeTypes.push("combat", "event", "combat");
@@ -107,16 +107,16 @@ export class MapGenerator {
       currentLayer.nodes.forEach((currentNode: MapNode, colIndex: number) => {
         // Each node can connect to adjacent columns in the next layer
         const possibleConnections = [];
-        
+
         // Connect to same column
         possibleConnections.push(colIndex);
-        
+
         // Connect to adjacent columns
         if (colIndex > 0) possibleConnections.push(colIndex - 1);
         if (colIndex < 2) possibleConnections.push(colIndex + 1);
 
         // Connect to all possible nodes in next layer
-        possibleConnections.forEach(targetCol => {
+        possibleConnections.forEach((targetCol) => {
           if (nextLayer.nodes[targetCol]) {
             const targetNodeId = nextLayer.nodes[targetCol].id;
             if (!currentNode.connections.includes(targetNodeId)) {

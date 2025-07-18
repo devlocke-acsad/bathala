@@ -12,11 +12,12 @@ import {
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
-import { 
-  getRandomCommonEnemy, 
-  getRandomEliteEnemy, 
-  getBossEnemy 
+import {
+  getRandomCommonEnemy,
+  getRandomEliteEnemy,
+  getBossEnemy,
 } from "../../data/enemies/Act1Enemies";
+import { GameState } from "../../core/managers/GameState";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -70,8 +71,18 @@ export class Combat extends Scene {
         "The Tikbalang nods with ancient wisdom. 'You understand the old ways, traveler. I shall lead others astray from your path.'",
       killDialogue:
         "The Tikbalang's wild laughter echoes as it fades. 'Even in death, I shall mislead your enemies...'",
-      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Tikbalang's protection" },
-      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Confusion immunity" },
+      spareReward: {
+        ginto: 45,
+        baubles: 0,
+        healthHealing: 8,
+        bonusEffect: "Tikbalang's protection",
+      },
+      killReward: {
+        ginto: 70,
+        baubles: 1,
+        healthHealing: 0,
+        bonusEffect: "Confusion immunity",
+      },
     },
     dwende: {
       name: "Dwende",
@@ -79,8 +90,18 @@ export class Combat extends Scene {
         "The tiny Dwende grins mischievously. 'Kind human! I will hide treasures for you to find!'",
       killDialogue:
         "The Dwende's last prank turns serious. 'You... you have no joy in your heart...'",
-      spareReward: { ginto: 40, baubles: 0, healthHealing: 5, bonusEffect: "Hidden treasures await" },
-      killReward: { ginto: 60, baubles: 1, healthHealing: 0, bonusEffect: "Mischief mastery" },
+      spareReward: {
+        ginto: 40,
+        baubles: 0,
+        healthHealing: 5,
+        bonusEffect: "Hidden treasures await",
+      },
+      killReward: {
+        ginto: 60,
+        baubles: 1,
+        healthHealing: 0,
+        bonusEffect: "Mischief mastery",
+      },
     },
     kapre: {
       name: "Kapre",
@@ -88,8 +109,18 @@ export class Combat extends Scene {
         "The Kapre blows a ring of smoke that forms into a blessing. 'Respect the forest, and it respects you.'",
       killDialogue:
         "The Kapre's pipe falls silent forever. 'The trees... will remember this...'",
-      spareReward: { ginto: 50, baubles: 0, healthHealing: 12, bonusEffect: "Forest harmony" },
-      killReward: { ginto: 75, baubles: 1, healthHealing: 0, bonusEffect: "Smoke mastery" },
+      spareReward: {
+        ginto: 50,
+        baubles: 0,
+        healthHealing: 12,
+        bonusEffect: "Forest harmony",
+      },
+      killReward: {
+        ginto: 75,
+        baubles: 1,
+        healthHealing: 0,
+        bonusEffect: "Smoke mastery",
+      },
     },
     sigbin: {
       name: "Sigbin",
@@ -97,8 +128,18 @@ export class Combat extends Scene {
         "The Sigbin becomes visible and bows. 'You see past illusions to truth. This is rare wisdom.'",
       killDialogue:
         "The Sigbin flickers between visible and invisible as it dies. 'Even shadows... have hearts...'",
-      spareReward: { ginto: 55, baubles: 0, healthHealing: 7, bonusEffect: "Shadow sight" },
-      killReward: { ginto: 80, baubles: 1, healthHealing: 0, bonusEffect: "Invisibility tactics" },
+      spareReward: {
+        ginto: 55,
+        baubles: 0,
+        healthHealing: 7,
+        bonusEffect: "Shadow sight",
+      },
+      killReward: {
+        ginto: 80,
+        baubles: 1,
+        healthHealing: 0,
+        bonusEffect: "Invisibility tactics",
+      },
     },
     tiyanak: {
       name: "Tiyanak",
@@ -106,8 +147,18 @@ export class Combat extends Scene {
         "The Tiyanak's false innocent form melts away, revealing gratitude. 'You showed mercy to a deceiver. Your honor shines bright.'",
       killDialogue:
         "The Tiyanak's cries turn real at the end. 'I was... once... innocent too...'",
-      spareReward: { ginto: 35, baubles: 0, healthHealing: 15, bonusEffect: "Pure heart blessing" },
-      killReward: { ginto: 55, baubles: 1, healthHealing: 0, bonusEffect: "Deception mastery" },
+      spareReward: {
+        ginto: 35,
+        baubles: 0,
+        healthHealing: 15,
+        bonusEffect: "Pure heart blessing",
+      },
+      killReward: {
+        ginto: 55,
+        baubles: 1,
+        healthHealing: 0,
+        bonusEffect: "Deception mastery",
+      },
     },
     // Act 1 Elite Enemies
     manananggal: {
@@ -116,8 +167,18 @@ export class Combat extends Scene {
         "The Manananggal's severed body reunites. 'You could have ended my curse, yet chose mercy. I am... grateful.'",
       killDialogue:
         "The Manananggal's halves scatter to the wind. 'Finally... no more hunger... no more... pain...'",
-      spareReward: { ginto: 80, baubles: 1, healthHealing: 20, bonusEffect: "Flight blessing" },
-      killReward: { ginto: 120, baubles: 2, healthHealing: 0, bonusEffect: "Vampiric strength" },
+      spareReward: {
+        ginto: 80,
+        baubles: 1,
+        healthHealing: 20,
+        bonusEffect: "Flight blessing",
+      },
+      killReward: {
+        ginto: 120,
+        baubles: 2,
+        healthHealing: 0,
+        bonusEffect: "Vampiric strength",
+      },
     },
     aswang: {
       name: "Aswang",
@@ -125,8 +186,18 @@ export class Combat extends Scene {
         "The Aswang shifts to its true form. 'You see all my shapes, yet still show kindness. Perhaps there is hope for creatures like me.'",
       killDialogue:
         "The Aswang's many forms flicker rapidly before going still. 'I never... found my true self...'",
-      spareReward: { ginto: 90, baubles: 1, healthHealing: 18, bonusEffect: "Shapeshifter's wisdom" },
-      killReward: { ginto: 130, baubles: 2, healthHealing: 0, bonusEffect: "Form mastery" },
+      spareReward: {
+        ginto: 90,
+        baubles: 1,
+        healthHealing: 18,
+        bonusEffect: "Shapeshifter's wisdom",
+      },
+      killReward: {
+        ginto: 130,
+        baubles: 2,
+        healthHealing: 0,
+        bonusEffect: "Form mastery",
+      },
     },
     duwende_chief: {
       name: "Duwende Chief",
@@ -134,8 +205,18 @@ export class Combat extends Scene {
         "The Duwende Chief raises his tiny staff in salute. 'Honor to you, great warrior! My people shall sing of your mercy!'",
       killDialogue:
         "The Duwende Chief's final command echoes sadly. 'Tell my people... to remember... the old ways...'",
-      spareReward: { ginto: 85, baubles: 1, healthHealing: 16, bonusEffect: "Duwende alliance" },
-      killReward: { ginto: 125, baubles: 2, healthHealing: 0, bonusEffect: "Command authority" },
+      spareReward: {
+        ginto: 85,
+        baubles: 1,
+        healthHealing: 16,
+        bonusEffect: "Duwende alliance",
+      },
+      killReward: {
+        ginto: 125,
+        baubles: 2,
+        healthHealing: 0,
+        bonusEffect: "Command authority",
+      },
     },
     // Act 1 Boss
     bakunawa: {
@@ -144,8 +225,18 @@ export class Combat extends Scene {
         "The great dragon's eyes soften. 'You spare the devourer of moons? Your compassion illuminates even the darkest void. I shall remember this light.'",
       killDialogue:
         "Bakunawa's roar shakes the heavens as darkness spreads. 'The eclipse comes... eternal night... awaits...'",
-      spareReward: { ginto: 150, baubles: 3, healthHealing: 30, bonusEffect: "Dragon's blessing - Moonlight protection" },
-      killReward: { ginto: 200, baubles: 5, healthHealing: 0, bonusEffect: "Eclipse power - Darkness control" },
+      spareReward: {
+        ginto: 150,
+        baubles: 3,
+        healthHealing: 30,
+        bonusEffect: "Dragon's blessing - Moonlight protection",
+      },
+      killReward: {
+        ginto: 200,
+        baubles: 5,
+        healthHealing: 0,
+        bonusEffect: "Eclipse power - Darkness control",
+      },
     },
   };
 
@@ -193,8 +284,11 @@ export class Combat extends Scene {
       baubles: 0, // Premium currency
     };
 
-    // Get enemy based on node type (for now, default to common enemy)
-    const enemyData = this.getEnemyForNodeType("combat");
+    // Get enemy based on node type from GameState
+    const gameState = GameState.getInstance();
+    const currentNode = gameState.getCurrentNode();
+    const nodeType = currentNode?.type || "combat";
+    const enemyData = this.getEnemyForNodeType(nodeType);
     const enemy: Enemy = {
       ...enemyData,
       id: this.generateEnemyId(enemyData.name),
@@ -219,6 +313,7 @@ export class Combat extends Scene {
         return getRandomEliteEnemy();
       case "boss":
         return getBossEnemy();
+      case "common":
       case "combat":
       default:
         return getRandomCommonEnemy();
@@ -958,7 +1053,9 @@ export class Combat extends Scene {
     this.clearCombatUI();
 
     // Convert enemy name to dialogue key
-    const enemyKey = this.combatState.enemy.name.toLowerCase().replace(/\s+/g, "_");
+    const enemyKey = this.combatState.enemy.name
+      .toLowerCase()
+      .replace(/\s+/g, "_");
     const dialogue =
       this.creatureDialogues[enemyKey] || this.creatureDialogues.goblin;
 
@@ -1241,11 +1338,17 @@ export class Combat extends Scene {
 
     // Continue button
     this.createDialogueButton(512, 600, "Continue", "#4ecdc4", () => {
+      // Mark the current node as completed in GameState
+      const gameState = GameState.getInstance();
+      gameState.completeCurrentNode();
       this.scene.start("Map");
     });
 
     // Auto-continue after 8 seconds
     setTimeout(() => {
+      // Mark the current node as completed in GameState
+      const gameState = GameState.getInstance();
+      gameState.completeCurrentNode();
       this.scene.start("Map");
     }, 8000);
   }
