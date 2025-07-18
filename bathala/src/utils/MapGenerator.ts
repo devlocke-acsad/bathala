@@ -2,13 +2,11 @@ import { GameMap, MapNode, MapLayer, NodeType } from "../core/types/MapTypes";
 
 /**
  * MapGenerator - Creates procedural map layouts for Bathala
- * Following Slay the Spire's structure with branching paths
+ * 7 layers with 3 columns for cleaner progression
  */
 export class MapGenerator {
-  private static readonly NODES_PER_LAYER = [
-    1, 3, 4, 3, 4, 3, 4, 2, 3, 2, 3, 2, 1,
-  ]; // Typical StS pattern
-  private static readonly LAYER_COUNT = 13;
+  private static readonly LAYER_COUNT = 7;
+  private static readonly NODES_PER_LAYER = 3; // Always 3 columns
 
   /**
    * Generates a complete map for an act
@@ -17,8 +15,7 @@ export class MapGenerator {
     const layers: MapLayer[] = [];
 
     for (let row = 0; row < this.LAYER_COUNT; row++) {
-      const nodeCount = this.NODES_PER_LAYER[row] || 3;
-      const nodes = this.generateNodesForLayer(row, nodeCount, act);
+      const nodes = this.generateNodesForLayer(row, act);
       layers.push({ row, nodes });
     }
 
@@ -34,23 +31,18 @@ export class MapGenerator {
   }
 
   /**
-   * Generate nodes for a specific layer
+   * Generate nodes for a specific layer (always 3 columns)
    */
-  private static generateNodesForLayer(
-    row: number,
-    nodeCount: number,
-    act: number
-  ): MapNode[] {
+  private static generateNodesForLayer(row: number, _act: number): MapNode[] {
     const nodes: MapNode[] = [];
-    const spacing = 800 / (nodeCount + 1); // Distribute across screen width
+    const nodeTypes = this.determineLayerNodeTypes(row);
 
-    for (let i = 0; i < nodeCount; i++) {
-      const nodeType = this.determineNodeType(row, act);
+    for (let col = 0; col < this.NODES_PER_LAYER; col++) {
       const node: MapNode = {
-        id: `${row}-${i}`,
-        type: nodeType,
-        x: 200 + spacing * (i + 1), // Start at x=200, distribute evenly
-        y: 100 + row * 60, // Vertical spacing
+        id: `${row}-${col}`,
+        type: nodeTypes[col],
+        x: 300 + col * 200, // Evenly spaced columns: 300, 500, 700
+        y: 100 + row * 80, // Vertical spacing
         row,
         connections: [],
         visited: false,
@@ -64,74 +56,74 @@ export class MapGenerator {
   }
 
   /**
-   * Determine node type based on position and act
+   * Determine node types for each column in a layer
+   * Ensures each column has required node types over the course of the map
    */
-  private static determineNodeType(row: number, _act: number): NodeType {
-    // Boss is always the last row
-    if (row === this.LAYER_COUNT - 1) {
-      return "boss";
+  private static determineLayerNodeTypes(row: number): NodeType[] {
+    // Layer 7 (final): Boss only
+    if (row === 6) {
+      return ["boss", "boss", "boss"];
     }
 
-    // First row is always combat
+    // Layer 1 (start): All combat
     if (row === 0) {
-      return "combat";
+      return ["combat", "combat", "combat"];
     }
 
-    // Elite encounters in specific rows
-    if (row === 4 || row === 8) {
-      return Math.random() < 0.7 ? "elite" : "combat";
+    // Layer 6 (pre-boss): Elite encounters
+    if (row === 5) {
+      return ["elite", "elite", "elite"];
     }
 
-    // Shops and campfires in mid-game
-    if (row === 6 || row === 10) {
-      const rand = Math.random();
-      if (rand < 0.3) return "shop";
-      if (rand < 0.6) return "campfire";
-      return "combat";
+    // Other layers: Ensure each column gets required nodes
+    const nodeTypes: NodeType[] = [];
+    
+    // Column distribution to ensure variety
+    if (row === 1) {
+      nodeTypes.push("combat", "event", "combat");
+    } else if (row === 2) {
+      nodeTypes.push("treasure", "combat", "campfire");
+    } else if (row === 3) {
+      nodeTypes.push("combat", "shop", "event");
+    } else if (row === 4) {
+      nodeTypes.push("campfire", "combat", "treasure");
+    } else {
+      // Default mix for other rows
+      const types: NodeType[] = ["combat", "event", "campfire"];
+      nodeTypes.push(...types);
     }
 
-    // Events scattered throughout
-    if (Math.random() < 0.15) {
-      return "event";
-    }
-
-    // Treasure rooms occasionally
-    if (Math.random() < 0.05) {
-      return "treasure";
-    }
-
-    // Default to combat
-    return "combat";
+    return nodeTypes;
   }
 
   /**
-   * Connect nodes between adjacent layers
+   * Connect nodes between adjacent layers (3x3 grid connections)
    */
   private static connectLayers(layers: MapLayer[]): void {
     for (let i = 0; i < layers.length - 1; i++) {
       const currentLayer = layers[i];
       const nextLayer = layers[i + 1];
 
-      currentLayer.nodes.forEach((currentNode: MapNode) => {
-        // Each node connects to 1-3 nodes in the next layer
-        const connectionCount = Math.min(
-          nextLayer.nodes.length,
-          Math.floor(Math.random() * 3) + 1
-        );
+      currentLayer.nodes.forEach((currentNode: MapNode, colIndex: number) => {
+        // Each node can connect to adjacent columns in the next layer
+        const possibleConnections = [];
+        
+        // Connect to same column
+        possibleConnections.push(colIndex);
+        
+        // Connect to adjacent columns
+        if (colIndex > 0) possibleConnections.push(colIndex - 1);
+        if (colIndex < 2) possibleConnections.push(colIndex + 1);
 
-        // Find closest nodes in next layer
-        const sortedNextNodes = [...nextLayer.nodes].sort(
-          (a, b) =>
-            Math.abs(a.x - currentNode.x) - Math.abs(b.x - currentNode.x)
-        );
-
-        // Connect to the closest nodes
-        for (let j = 0; j < connectionCount; j++) {
-          const targetNode = sortedNextNodes[j];
-          if (targetNode && !currentNode.connections.includes(targetNode.id)) {
-            currentNode.connections.push(targetNode.id);
+        // Connect to all possible nodes in next layer
+        possibleConnections.forEach(targetCol => {
+          if (nextLayer.nodes[targetCol]) {
+            const targetNodeId = nextLayer.nodes[targetCol].id;
+            if (!currentNode.connections.includes(targetNodeId)) {
+              currentNode.connections.push(targetNodeId);
+            }
           }
-        }
+        });
       });
     }
   }

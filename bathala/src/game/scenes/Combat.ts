@@ -12,6 +12,11 @@ import {
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
+import { 
+  getRandomCommonEnemy, 
+  getRandomEliteEnemy, 
+  getBossEnemy 
+} from "../../data/enemies/Act1Enemies";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -38,6 +43,7 @@ export class Combat extends Scene {
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
+    // Default fallback
     goblin: {
       name: "Forest Goblin",
       spareDialogue:
@@ -56,6 +62,90 @@ export class Combat extends Scene {
         healthHealing: 0,
         bonusEffect: "Gained dark essence",
       },
+    },
+    // Act 1 Common Enemies
+    tikbalang: {
+      name: "Tikbalang",
+      spareDialogue:
+        "The Tikbalang nods with ancient wisdom. 'You understand the old ways, traveler. I shall lead others astray from your path.'",
+      killDialogue:
+        "The Tikbalang's wild laughter echoes as it fades. 'Even in death, I shall mislead your enemies...'",
+      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Tikbalang's protection" },
+      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Confusion immunity" },
+    },
+    dwende: {
+      name: "Dwende",
+      spareDialogue:
+        "The tiny Dwende grins mischievously. 'Kind human! I will hide treasures for you to find!'",
+      killDialogue:
+        "The Dwende's last prank turns serious. 'You... you have no joy in your heart...'",
+      spareReward: { ginto: 40, baubles: 0, healthHealing: 5, bonusEffect: "Hidden treasures await" },
+      killReward: { ginto: 60, baubles: 1, healthHealing: 0, bonusEffect: "Mischief mastery" },
+    },
+    kapre: {
+      name: "Kapre",
+      spareDialogue:
+        "The Kapre blows a ring of smoke that forms into a blessing. 'Respect the forest, and it respects you.'",
+      killDialogue:
+        "The Kapre's pipe falls silent forever. 'The trees... will remember this...'",
+      spareReward: { ginto: 50, baubles: 0, healthHealing: 12, bonusEffect: "Forest harmony" },
+      killReward: { ginto: 75, baubles: 1, healthHealing: 0, bonusEffect: "Smoke mastery" },
+    },
+    sigbin: {
+      name: "Sigbin",
+      spareDialogue:
+        "The Sigbin becomes visible and bows. 'You see past illusions to truth. This is rare wisdom.'",
+      killDialogue:
+        "The Sigbin flickers between visible and invisible as it dies. 'Even shadows... have hearts...'",
+      spareReward: { ginto: 55, baubles: 0, healthHealing: 7, bonusEffect: "Shadow sight" },
+      killReward: { ginto: 80, baubles: 1, healthHealing: 0, bonusEffect: "Invisibility tactics" },
+    },
+    tiyanak: {
+      name: "Tiyanak",
+      spareDialogue:
+        "The Tiyanak's false innocent form melts away, revealing gratitude. 'You showed mercy to a deceiver. Your honor shines bright.'",
+      killDialogue:
+        "The Tiyanak's cries turn real at the end. 'I was... once... innocent too...'",
+      spareReward: { ginto: 35, baubles: 0, healthHealing: 15, bonusEffect: "Pure heart blessing" },
+      killReward: { ginto: 55, baubles: 1, healthHealing: 0, bonusEffect: "Deception mastery" },
+    },
+    // Act 1 Elite Enemies
+    manananggal: {
+      name: "Manananggal",
+      spareDialogue:
+        "The Manananggal's severed body reunites. 'You could have ended my curse, yet chose mercy. I am... grateful.'",
+      killDialogue:
+        "The Manananggal's halves scatter to the wind. 'Finally... no more hunger... no more... pain...'",
+      spareReward: { ginto: 80, baubles: 1, healthHealing: 20, bonusEffect: "Flight blessing" },
+      killReward: { ginto: 120, baubles: 2, healthHealing: 0, bonusEffect: "Vampiric strength" },
+    },
+    aswang: {
+      name: "Aswang",
+      spareDialogue:
+        "The Aswang shifts to its true form. 'You see all my shapes, yet still show kindness. Perhaps there is hope for creatures like me.'",
+      killDialogue:
+        "The Aswang's many forms flicker rapidly before going still. 'I never... found my true self...'",
+      spareReward: { ginto: 90, baubles: 1, healthHealing: 18, bonusEffect: "Shapeshifter's wisdom" },
+      killReward: { ginto: 130, baubles: 2, healthHealing: 0, bonusEffect: "Form mastery" },
+    },
+    duwende_chief: {
+      name: "Duwende Chief",
+      spareDialogue:
+        "The Duwende Chief raises his tiny staff in salute. 'Honor to you, great warrior! My people shall sing of your mercy!'",
+      killDialogue:
+        "The Duwende Chief's final command echoes sadly. 'Tell my people... to remember... the old ways...'",
+      spareReward: { ginto: 85, baubles: 1, healthHealing: 16, bonusEffect: "Duwende alliance" },
+      killReward: { ginto: 125, baubles: 2, healthHealing: 0, bonusEffect: "Command authority" },
+    },
+    // Act 1 Boss
+    bakunawa: {
+      name: "Bakunawa",
+      spareDialogue:
+        "The great dragon's eyes soften. 'You spare the devourer of moons? Your compassion illuminates even the darkest void. I shall remember this light.'",
+      killDialogue:
+        "Bakunawa's roar shakes the heavens as darkness spreads. 'The eclipse comes... eternal night... awaits...'",
+      spareReward: { ginto: 150, baubles: 3, healthHealing: 30, bonusEffect: "Dragon's blessing - Moonlight protection" },
+      killReward: { ginto: 200, baubles: 5, healthHealing: 0, bonusEffect: "Eclipse power - Darkness control" },
     },
   };
 
@@ -103,22 +193,11 @@ export class Combat extends Scene {
       baubles: 0, // Premium currency
     };
 
+    // Get enemy based on node type (for now, default to common enemy)
+    const enemyData = this.getEnemyForNodeType("combat");
     const enemy: Enemy = {
-      id: "goblin",
-      name: "Forest Goblin",
-      maxHealth: 40,
-      currentHealth: 40,
-      block: 0,
-      statusEffects: [],
-      intent: {
-        type: "attack",
-        value: 8,
-        description: "Attacks for 8 damage",
-        icon: "⚔️",
-      },
-      damage: 8,
-      attackPattern: ["attack", "defend", "attack"],
-      currentPatternIndex: 0,
+      ...enemyData,
+      id: this.generateEnemyId(enemyData.name),
     };
 
     this.combatState = {
@@ -129,6 +208,28 @@ export class Combat extends Scene {
       selectedCards: [],
       lastAction: null,
     };
+  }
+
+  /**
+   * Get enemy based on node type
+   */
+  private getEnemyForNodeType(nodeType: string): Omit<Enemy, "id"> {
+    switch (nodeType) {
+      case "elite":
+        return getRandomEliteEnemy();
+      case "boss":
+        return getBossEnemy();
+      case "combat":
+      default:
+        return getRandomCommonEnemy();
+    }
+  }
+
+  /**
+   * Generate unique enemy ID
+   */
+  private generateEnemyId(enemyName: string): string {
+    return enemyName.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now();
   }
 
   /**
@@ -856,9 +957,10 @@ export class Combat extends Scene {
     // Clear combat UI
     this.clearCombatUI();
 
-    const enemyId = this.combatState.enemy.id;
+    // Convert enemy name to dialogue key
+    const enemyKey = this.combatState.enemy.name.toLowerCase().replace(/\s+/g, "_");
     const dialogue =
-      this.creatureDialogues[enemyId] || this.creatureDialogues.goblin;
+      this.creatureDialogues[enemyKey] || this.creatureDialogues.goblin;
 
     // Background overlay
     this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.8);
