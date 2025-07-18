@@ -101,7 +101,12 @@ export interface CombatAction {
 }
 
 export interface CombatState {
-  phase: "player_turn" | "enemy_turn" | "game_over" | "action_selection" | "post_combat";
+  phase:
+    | "player_turn"
+    | "enemy_turn"
+    | "game_over"
+    | "action_selection"
+    | "post_combat";
   turn: number;
   player: Player;
   enemy: Enemy;

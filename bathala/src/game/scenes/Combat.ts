@@ -8,6 +8,7 @@ import {
   HonorRange,
   CreatureDialogue,
   PostCombatReward,
+  HandType,
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
@@ -33,26 +34,29 @@ export class Combat extends Scene {
   private discardsUsedThisTurn: number = 0;
   private maxDiscardsPerTurn: number = 3;
   private actionsText!: Phaser.GameObjects.Text;
+  private handIndicatorText!: Phaser.GameObjects.Text;
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
     goblin: {
       name: "Forest Goblin",
-      spareDialogue: "The goblin bows gratefully. 'You show mercy, warrior. The forest spirits will remember your kindness.'",
-      killDialogue: "The goblin's eyes dim as it whispers, 'The darkness... grows stronger...' Its essence fades into shadow.",
+      spareDialogue:
+        "The goblin bows gratefully. 'You show mercy, warrior. The forest spirits will remember your kindness.'",
+      killDialogue:
+        "The goblin's eyes dim as it whispers, 'The darkness... grows stronger...' Its essence fades into shadow.",
       spareReward: {
         ginto: 50,
         baubles: 0,
         healthHealing: 10,
-        bonusEffect: "Forest spirits may aid you later"
+        bonusEffect: "Forest spirits may aid you later",
       },
       killReward: {
         ginto: 75,
         baubles: 1,
         healthHealing: 0,
-        bonusEffect: "Gained dark essence"
-      }
-    }
+        bonusEffect: "Gained dark essence",
+      },
+    },
   };
 
   constructor() {
@@ -361,6 +365,13 @@ export class Combat extends Scene {
       color: "#ffd93d",
     });
 
+    // Hand indicator text - shows current selected hand type
+    this.handIndicatorText = this.add.text(50, 160, "", {
+      fontFamily: "Centrion",
+      fontSize: 14,
+      color: "#4ecdc4",
+    });
+
     this.updateTurnUI();
   }
 
@@ -502,6 +513,7 @@ export class Combat extends Scene {
     }
 
     this.updateHandDisplay();
+    this.updateHandIndicator(); // Update hand indicator when selection changes
   }
 
   /**
@@ -587,6 +599,7 @@ export class Combat extends Scene {
 
     this.updateHandDisplay();
     this.updateTurnUI();
+    this.updateHandIndicator(); // Update hand indicator after discarding
   }
 
   /**
@@ -766,6 +779,44 @@ export class Combat extends Scene {
     this.actionsText.setText(
       `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Hand: ${this.combatState.player.hand.length}/8`
     );
+    this.updateHandIndicator();
+  }
+
+  /**
+   * Update hand indicator to show current selected hand type
+   */
+  private updateHandIndicator(): void {
+    if (this.selectedCards.length === 0) {
+      this.handIndicatorText.setText("");
+      return;
+    }
+
+    // Evaluate the currently selected cards
+    const evaluation = HandEvaluator.evaluateHand(this.selectedCards);
+    const handTypeText = this.getHandTypeDisplayText(evaluation.type);
+    const valueText =
+      evaluation.totalValue > 0 ? ` (${evaluation.totalValue} value)` : "";
+
+    this.handIndicatorText.setText(`Selected: ${handTypeText}${valueText}`);
+  }
+
+  /**
+   * Get display text for hand types
+   */
+  private getHandTypeDisplayText(handType: HandType): string {
+    const handNames: Record<HandType, string> = {
+      high_card: "High Card",
+      pair: "Pair",
+      two_pair: "Two Pair",
+      three_of_a_kind: "Three of a Kind",
+      straight: "Straight",
+      flush: "Flush",
+      full_house: "Full House",
+      four_of_a_kind: "Four of a Kind",
+      straight_flush: "Straight Flush",
+      royal_flush: "Royal Flush",
+    };
+    return handNames[handType];
   }
 
   /**
@@ -806,7 +857,8 @@ export class Combat extends Scene {
     this.clearCombatUI();
 
     const enemyId = this.combatState.enemy.id;
-    const dialogue = this.creatureDialogues[enemyId] || this.creatureDialogues.goblin;
+    const dialogue =
+      this.creatureDialogues[enemyId] || this.creatureDialogues.goblin;
 
     // Background overlay
     this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.8);
@@ -840,27 +892,32 @@ export class Combat extends Scene {
       .setOrigin(0.5);
 
     // Honor choice buttons
-    this.createDialogueButton(
-      350, 480, "Spare (+15 Honor)", "#2ed573",
-      () => this.makeHonorChoice("spare", dialogue)
+    this.createDialogueButton(350, 480, "Spare (+15 Honor)", "#2ed573", () =>
+      this.makeHonorChoice("spare", dialogue)
     );
 
-    this.createDialogueButton(
-      674, 480, "Kill (-10 Honor)", "#ff4757",
-      () => this.makeHonorChoice("kill", dialogue)
+    this.createDialogueButton(674, 480, "Kill (-10 Honor)", "#ff4757", () =>
+      this.makeHonorChoice("kill", dialogue)
     );
 
     // Current honor display
     const honorRange = this.getHonorRange(this.combatState.player.honor);
     const honorColor = this.getHonorColor(honorRange);
-    
+
     this.add
-      .text(512, 550, `Current Honor: ${this.combatState.player.honor}/100 (${honorRange.toUpperCase()})`, {
-        fontFamily: "Centrion",
-        fontSize: 16,
-        color: honorColor,
-        align: "center",
-      })
+      .text(
+        512,
+        550,
+        `Current Honor: ${
+          this.combatState.player.honor
+        }/100 (${honorRange.toUpperCase()})`,
+        {
+          fontFamily: "Centrion",
+          fontSize: 16,
+          color: honorColor,
+          align: "center",
+        }
+      )
       .setOrigin(0.5);
   }
 
@@ -868,7 +925,10 @@ export class Combat extends Scene {
    * Create dialogue button
    */
   private createDialogueButton(
-    x: number, y: number, text: string, color: string,
+    x: number,
+    y: number,
+    text: string,
+    color: string,
     callback: () => void
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
@@ -906,20 +966,27 @@ export class Combat extends Scene {
   /**
    * Make honor choice and show rewards
    */
-  private makeHonorChoice(choice: "spare" | "kill", dialogue: CreatureDialogue): void {
+  private makeHonorChoice(
+    choice: "spare" | "kill",
+    dialogue: CreatureDialogue
+  ): void {
     const isSpare = choice === "spare";
     const honorChange = isSpare ? 15 : -10;
     const reward = isSpare ? dialogue.spareReward : dialogue.killReward;
-    const choiceDialogue = isSpare ? dialogue.spareDialogue : dialogue.killDialogue;
+    const choiceDialogue = isSpare
+      ? dialogue.spareDialogue
+      : dialogue.killDialogue;
 
     // Update honor
-    this.combatState.player.honor = Math.max(0, Math.min(100, 
-      this.combatState.player.honor + honorChange));
+    this.combatState.player.honor = Math.max(
+      0,
+      Math.min(100, this.combatState.player.honor + honorChange)
+    );
 
     // Apply rewards
     this.combatState.player.ginto += reward.ginto;
     this.combatState.player.baubles += reward.baubles;
-    
+
     if (reward.healthHealing > 0) {
       this.combatState.player.currentHealth = Math.min(
         this.combatState.player.maxHealth,
@@ -938,22 +1005,28 @@ export class Combat extends Scene {
    * Show rewards screen
    */
   private showRewardsScreen(
-    choice: "spare" | "kill", 
-    dialogue: string, 
-    reward: PostCombatReward, 
+    choice: "spare" | "kill",
+    dialogue: string,
+    reward: PostCombatReward,
     honorChange: number
   ): void {
     const choiceColor = choice === "spare" ? "#2ed573" : "#ff4757";
-    const honorChangeText = honorChange > 0 ? `+${honorChange}` : `${honorChange}`;
+    const honorChangeText =
+      honorChange > 0 ? `+${honorChange}` : `${honorChange}`;
 
     // Title
     this.add
-      .text(512, 100, choice === "spare" ? "Mercy Shown" : "Victory Through Force", {
-        fontFamily: "Centrion",
-        fontSize: 32,
-        color: choiceColor,
-        align: "center",
-      })
+      .text(
+        512,
+        100,
+        choice === "spare" ? "Mercy Shown" : "Victory Through Force",
+        {
+          fontFamily: "Centrion",
+          fontSize: 32,
+          color: choiceColor,
+          align: "center",
+        }
+      )
       .setOrigin(0.5);
 
     // Dialogue
@@ -1047,23 +1120,27 @@ export class Combat extends Scene {
     // Current honor status
     const honorRange = this.getHonorRange(this.combatState.player.honor);
     const honorColor = this.getHonorColor(honorRange);
-    
+
     this.add
-      .text(512, 520, `Honor: ${this.combatState.player.honor}/100 (${honorRange.toUpperCase()} HONOR)`, {
-        fontFamily: "Centrion",
-        fontSize: 18,
-        color: honorColor,
-        align: "center",
-      })
+      .text(
+        512,
+        520,
+        `Honor: ${
+          this.combatState.player.honor
+        }/100 (${honorRange.toUpperCase()} HONOR)`,
+        {
+          fontFamily: "Centrion",
+          fontSize: 18,
+          color: honorColor,
+          align: "center",
+        }
+      )
       .setOrigin(0.5);
 
     // Continue button
-    this.createDialogueButton(
-      512, 600, "Continue", "#4ecdc4",
-      () => {
-        this.scene.start("Map");
-      }
-    );
+    this.createDialogueButton(512, 600, "Continue", "#4ecdc4", () => {
+      this.scene.start("Map");
+    });
 
     // Auto-continue after 8 seconds
     setTimeout(() => {
@@ -1094,9 +1171,12 @@ export class Combat extends Scene {
    */
   private getHonorColor(range: HonorRange): string {
     switch (range) {
-      case "high": return "#2ed573";
-      case "neutral": return "#ffd93d";
-      case "low": return "#ff4757";
+      case "high":
+        return "#2ed573";
+      case "neutral":
+        return "#ffd93d";
+      case "low":
+        return "#ff4757";
     }
   }
 
