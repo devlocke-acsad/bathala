@@ -16,6 +16,17 @@ const config: Phaser.Types.Core.GameConfig = {
   parent: "game-container",
   backgroundColor: "#028af8",
   scene: [Boot, Preloader, MainMenu, Map, Combat, MainGame, GameOver],
+
+  // Keep antialias off for crisp rendering, but don't force pixelArt globally
+  render: {
+    antialias: false,
+  },
+
+  // Scale settings for proper display
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
 };
 
 const StartGame = (parent: string) => {

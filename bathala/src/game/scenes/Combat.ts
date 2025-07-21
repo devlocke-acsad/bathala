@@ -374,15 +374,14 @@ export class Combat extends Scene {
     // Player sprite with idle animation
     this.playerSprite = this.add.sprite(playerX, playerY, "player");
     this.playerSprite.setScale(2); // Scale up from 48x48 to 96x96
+    this.playerSprite.setFlipX(true); // Flip to face right (toward enemy)
 
     // Try to play animation, fallback if it fails
     try {
       this.playerSprite.play("player_idle");
     } catch (error) {
       console.warn("Player idle animation not found, using static sprite");
-    }
-
-    // Player name
+    } // Player name
     this.add
       .text(playerX, playerY - 120, this.combatState.player.name, {
         fontFamily: "Centrion",
@@ -1652,5 +1651,19 @@ export class Combat extends Scene {
         this.playerSprite.setX(originalX);
       },
     });
+  }
+
+  /**
+   * Flip player sprite horizontally
+   */
+  private flipPlayerSprite(flip: boolean): void {
+    this.playerSprite.setFlipX(flip);
+  }
+
+  /**
+   * Flip enemy sprite horizontally
+   */
+  private flipEnemySprite(flip: boolean): void {
+    this.enemySprite.setFlipX(flip);
   }
 }

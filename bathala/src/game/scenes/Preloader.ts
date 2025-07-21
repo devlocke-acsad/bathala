@@ -44,6 +44,10 @@ export class Preloader extends Scene {
   }
 
   create() {
+    // Set pixel-perfect rendering for sprite textures
+    this.textures.get("player").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    this.textures.get("enemy").setFilter(Phaser.Textures.FilterMode.NEAREST);
+
     //  Create animations for the sprites
     try {
       this.createPlayerAnimations();
