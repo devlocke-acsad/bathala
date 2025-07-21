@@ -48,16 +48,19 @@ export class Preloader extends Scene {
     this.textures.get("player").setFilter(Phaser.Textures.FilterMode.NEAREST);
     this.textures.get("enemy").setFilter(Phaser.Textures.FilterMode.NEAREST);
 
-    //  Create animations for the sprites
-    try {
-      this.createPlayerAnimations();
-      this.createEnemyAnimations();
-    } catch (error) {
-      console.warn("Could not create sprite animations:", error);
-    }
+    // Ensure fonts are loaded before proceeding
+    this.waitForFontsToLoad().then(() => {
+      //  Create animations for the sprites
+      try {
+        this.createPlayerAnimations();
+        this.createEnemyAnimations();
+      } catch (error) {
+        console.warn("Could not create sprite animations:", error);
+      }
 
-    //  Move to the MainMenu
-    this.scene.start("MainMenu");
+      //  Move to the MainMenu
+      this.scene.start("MainMenu");
+    });
   }
 
   /**
@@ -83,6 +86,27 @@ export class Preloader extends Scene {
       frames: this.anims.generateFrameNumbers("enemy", { start: 0, end: 3 }),
       frameRate: 8,
       repeat: -1,
+    });
+  }
+
+  /**
+   * Wait for fonts to load from CSS/Google Fonts
+   */
+  private async waitForFontsToLoad(): Promise<void> {
+    return new Promise((resolve) => {
+      // Check if fonts are loaded using FontFaceSet API
+      if ("fonts" in document) {
+        document.fonts.ready.then(() => {
+          console.log("Fonts loaded successfully");
+          resolve();
+        });
+      } else {
+        // Fallback for browsers without FontFaceSet API
+        setTimeout(() => {
+          console.log("Font loading fallback timeout");
+          resolve();
+        }, 1000);
+      }
     });
   }
 }

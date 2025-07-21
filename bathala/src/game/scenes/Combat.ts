@@ -338,7 +338,7 @@ export class Combat extends Scene {
     // Title
     this.add
       .text(512, 30, "Combat - Forest Encounter", {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 24,
         color: "#e8eced",
         align: "center",
@@ -384,7 +384,7 @@ export class Combat extends Scene {
     } // Player name
     this.add
       .text(playerX, playerY - 120, this.combatState.player.name, {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 20,
         color: "#e8eced",
         align: "center",
@@ -394,7 +394,7 @@ export class Combat extends Scene {
     // Health display
     this.playerHealthText = this.add
       .text(playerX, playerY + 80, "", {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 18,
         color: "#ff6b6b",
         align: "center",
@@ -404,7 +404,7 @@ export class Combat extends Scene {
     // Block display
     this.playerBlockText = this.add
       .text(playerX, playerY + 105, "", {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 16,
         color: "#4ecdc4",
         align: "center",
@@ -435,7 +435,7 @@ export class Combat extends Scene {
     // Enemy name
     this.add
       .text(enemyX, enemyY - 120, this.combatState.enemy.name, {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 20,
         color: "#e8eced",
         align: "center",
@@ -445,7 +445,7 @@ export class Combat extends Scene {
     // Health display
     this.enemyHealthText = this.add
       .text(enemyX, enemyY + 80, "", {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 18,
         color: "#ff6b6b",
         align: "center",
@@ -455,7 +455,7 @@ export class Combat extends Scene {
     // Block display
     this.enemyBlockText = this.add
       .text(enemyX, enemyY + 105, "", {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 16,
         color: "#4ecdc4",
         align: "center",
@@ -465,7 +465,7 @@ export class Combat extends Scene {
     // Intent display
     this.enemyIntentText = this.add
       .text(enemyX, enemyY - 80, "", {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 16,
         color: "#ffd93d",
         align: "center",
@@ -561,20 +561,20 @@ export class Combat extends Scene {
    */
   private createTurnUI(): void {
     this.turnText = this.add.text(50, 100, "", {
-      fontFamily: "Centrion",
+      fontFamily: "Chivo",
       fontSize: 16,
       color: "#e8eced",
     });
 
     this.actionsText = this.add.text(50, 130, "", {
-      fontFamily: "Centrion",
+      fontFamily: "Chivo",
       fontSize: 14,
       color: "#ffd93d",
     });
 
     // Hand indicator text - shows current selected hand type
     this.handIndicatorText = this.add.text(50, 160, "", {
-      fontFamily: "Centrion",
+      fontFamily: "Chivo",
       fontSize: 14,
       color: "#4ecdc4",
     });
@@ -598,7 +598,7 @@ export class Combat extends Scene {
 
     const buttonText = this.add
       .text(0, 0, text, {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 12,
         color: "#e8eced",
         align: "center",
@@ -1043,7 +1043,7 @@ export class Combat extends Scene {
 
       this.add
         .text(512, 384, resultText, {
-          fontFamily: "Centrion",
+          fontFamily: "Chivo",
           fontSize: 48,
           color: color,
           align: "center",
@@ -1097,7 +1097,7 @@ export class Combat extends Scene {
     // Enemy name
     this.add
       .text(512, 200, dialogue.name, {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 24,
         color: "#e8eced",
         align: "center",
@@ -1107,7 +1107,7 @@ export class Combat extends Scene {
     // Main dialogue text
     this.add
       .text(512, 320, "You have defeated this creature. What do you choose?", {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 18,
         color: "#e8eced",
         align: "center",
@@ -1136,7 +1136,7 @@ export class Combat extends Scene {
           this.combatState.player.honor
         }/100 (${honorRange.toUpperCase()})`,
         {
-          fontFamily: "Centrion",
+          fontFamily: "Chivo",
           fontSize: 16,
           color: honorColor,
           align: "center",
@@ -1162,7 +1162,7 @@ export class Combat extends Scene {
 
     const buttonText = this.add
       .text(0, 0, text, {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 14,
         color: color,
         align: "center",
@@ -1245,7 +1245,7 @@ export class Combat extends Scene {
         100,
         choice === "spare" ? "Mercy Shown" : "Victory Through Force",
         {
-          fontFamily: "Centrion",
+          fontFamily: "Chivo",
           fontSize: 32,
           color: choiceColor,
           align: "center",
@@ -1256,7 +1256,7 @@ export class Combat extends Scene {
     // Dialogue
     this.add
       .text(512, 200, dialogue, {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 16,
         color: "#e8eced",
         align: "center",
@@ -1270,7 +1270,7 @@ export class Combat extends Scene {
 
     this.add
       .text(512, 320, "Rewards", {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 24,
         color: "#ffd93d",
         align: "center",
@@ -1283,7 +1283,7 @@ export class Combat extends Scene {
     if (reward.ginto > 0) {
       this.add
         .text(512, rewardY, `💰 ${reward.ginto} Ginto`, {
-          fontFamily: "Centrion",
+          fontFamily: "Chivo",
           fontSize: 16,
           color: "#e8eced",
           align: "center",
@@ -1296,7 +1296,7 @@ export class Combat extends Scene {
     if (reward.baubles > 0) {
       this.add
         .text(512, rewardY, `💎 ${reward.baubles} Bathala Baubles`, {
-          fontFamily: "Centrion",
+          fontFamily: "Chivo",
           fontSize: 16,
           color: "#4ecdc4",
           align: "center",
@@ -1309,7 +1309,7 @@ export class Combat extends Scene {
     if (reward.healthHealing > 0) {
       this.add
         .text(512, rewardY, `❤️ Healed ${reward.healthHealing} HP`, {
-          fontFamily: "Centrion",
+          fontFamily: "Chivo",
           fontSize: 16,
           color: "#ff6b6b",
           align: "center",
@@ -1321,7 +1321,7 @@ export class Combat extends Scene {
     // Honor change
     this.add
       .text(512, rewardY, `⚖️ Honor ${honorChangeText}`, {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 16,
         color: honorChange > 0 ? "#2ed573" : "#ff4757",
         align: "center",
@@ -1333,7 +1333,7 @@ export class Combat extends Scene {
     if (reward.bonusEffect) {
       this.add
         .text(512, rewardY, `✨ ${reward.bonusEffect}`, {
-          fontFamily: "Centrion",
+          fontFamily: "Chivo",
           fontSize: 14,
           color: "#ffd93d",
           align: "center",
@@ -1353,7 +1353,7 @@ export class Combat extends Scene {
           this.combatState.player.honor
         }/100 (${honorRange.toUpperCase()} HONOR)`,
         {
-          fontFamily: "Centrion",
+          fontFamily: "Chivo",
           fontSize: 18,
           color: honorColor,
           align: "center",
@@ -1443,7 +1443,7 @@ export class Combat extends Scene {
         450,
         `${evaluation.description} - Value: ${evaluation.totalValue}`,
         {
-          fontFamily: "Centrion",
+          fontFamily: "Chivo",
           fontSize: 16,
           color: "#ffd93d",
           align: "center",
@@ -1590,7 +1590,7 @@ export class Combat extends Scene {
   private showActionResult(message: string): void {
     const resultText = this.add
       .text(512, 350, message, {
-        fontFamily: "Centrion",
+        fontFamily: "Chivo",
         fontSize: 18,
         color: "#2ed573",
         align: "center",

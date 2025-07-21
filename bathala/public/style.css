@@ -1,9 +1,9 @@
 :root {
-    --text: #e8eced;
-    --background: #0e1112;
-    --primary: #abb6bd;
-    --secondary: #574d62;
-    --accent: #9d89a2;
+    --text: #f1f1f0;
+    --background: #0e0e0d;
+    --primary: #bfbbae;
+    --secondary: #5f5845;
+    --accent: #a69a78;
 }
 
 @font-face {
@@ -12,6 +12,15 @@
     font-weight: normal;
     font-style: normal;
 }
+
+@font-face {
+    font-family: 'Chivo';
+    src: url('./assets/fonts/chivo/Chivo-Medium.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* Chivo is now loaded from Google Fonts in the HTML head */
 
 
 body {
