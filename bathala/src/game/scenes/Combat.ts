@@ -42,6 +42,10 @@ export class Combat extends Scene {
   private actionsText!: Phaser.GameObjects.Text;
   private handIndicatorText!: Phaser.GameObjects.Text;
 
+  // Sprite references for animations
+  private playerSprite!: Phaser.GameObjects.Sprite;
+  private enemySprite!: Phaser.GameObjects.Sprite;
+
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
     // Default fallback
@@ -367,12 +371,16 @@ export class Combat extends Scene {
     const playerX = 200;
     const playerY = 300;
 
-    // Player avatar (emoji placeholder)
-    this.add
-      .text(playerX, playerY, "🧙‍♂️", {
-        fontSize: 80,
-      })
-      .setOrigin(0.5);
+    // Player sprite with idle animation
+    this.playerSprite = this.add.sprite(playerX, playerY, "player");
+    this.playerSprite.setScale(2); // Scale up from 48x48 to 96x96
+
+    // Try to play animation, fallback if it fails
+    try {
+      this.playerSprite.play("player_idle");
+    } catch (error) {
+      console.warn("Player idle animation not found, using static sprite");
+    }
 
     // Player name
     this.add
@@ -414,12 +422,16 @@ export class Combat extends Scene {
     const enemyX = 824;
     const enemyY = 300;
 
-    // Enemy avatar (emoji placeholder)
-    this.add
-      .text(enemyX, enemyY, "👹", {
-        fontSize: 80,
-      })
-      .setOrigin(0.5);
+    // Enemy sprite with idle animation
+    this.enemySprite = this.add.sprite(enemyX, enemyY, "enemy");
+    this.enemySprite.setScale(3); // Scale up from 32x32 to 96x96
+
+    // Try to play animation, fallback if it fails
+    try {
+      this.enemySprite.play("enemy_idle");
+    } catch (error) {
+      console.warn("Enemy idle animation not found, using static sprite");
+    }
 
     // Enemy name
     this.add
@@ -889,6 +901,9 @@ export class Combat extends Scene {
       this.combatState.enemy.block - damage
     );
 
+    // Add visual feedback for enemy taking damage
+    this.animateSpriteDamage(this.enemySprite);
+
     if (this.combatState.enemy.currentHealth <= 0) {
       this.endCombat(true);
     }
@@ -904,6 +919,9 @@ export class Combat extends Scene {
       0,
       this.combatState.player.block - damage
     );
+
+    // Add visual feedback for player taking damage
+    this.animateSpriteDamage(this.playerSprite);
 
     this.updatePlayerUI();
 
@@ -1066,8 +1084,16 @@ export class Combat extends Scene {
     const dialogueBox = this.add.rectangle(512, 400, 800, 400, 0x2f3542);
     dialogueBox.setStrokeStyle(3, 0x57606f);
 
-    // Enemy portrait (placeholder)
-    this.add.text(512, 250, "👹", { fontSize: 60 }).setOrigin(0.5);
+    // Enemy portrait (sprite instead of emoji)
+    const enemyPortrait = this.add.sprite(512, 250, "enemy");
+    enemyPortrait.setScale(2);
+
+    // Try to play animation, fallback if it fails
+    try {
+      enemyPortrait.play("enemy_idle");
+    } catch (error) {
+      console.warn("Enemy portrait animation not found, using static sprite");
+    }
 
     // Enemy name
     this.add
@@ -1472,6 +1498,8 @@ export class Combat extends Scene {
 
     switch (actionType) {
       case "attack":
+        // Animate player attack
+        this.animatePlayerAttack();
         // Deal damage to enemy
         this.damageEnemy(evaluation.totalValue);
         this.showActionResult(`Attacked for ${evaluation.totalValue} damage!`);
@@ -1576,6 +1604,53 @@ export class Combat extends Scene {
       alpha: 0,
       duration: 2000,
       onComplete: () => resultText.destroy(),
+    });
+  }
+
+  /**
+   * Animate sprite taking damage (flash red and shake)
+   */
+  private animateSpriteDamage(sprite: Phaser.GameObjects.Sprite): void {
+    // Flash red
+    this.tweens.add({
+      targets: sprite,
+      tint: 0xff0000,
+      duration: 100,
+      yoyo: true,
+      repeat: 2,
+      onComplete: () => {
+        sprite.clearTint();
+      },
+    });
+
+    // Shake effect
+    const originalX = sprite.x;
+    this.tweens.add({
+      targets: sprite,
+      x: originalX + 5,
+      duration: 50,
+      yoyo: true,
+      repeat: 5,
+      onComplete: () => {
+        sprite.setX(originalX);
+      },
+    });
+  }
+
+  /**
+   * Animate player attack (move forward and back)
+   */
+  private animatePlayerAttack(): void {
+    const originalX = this.playerSprite.x;
+    this.tweens.add({
+      targets: this.playerSprite,
+      x: originalX + 50,
+      duration: 200,
+      yoyo: true,
+      ease: "Power2",
+      onComplete: () => {
+        this.playerSprite.setX(originalX);
+      },
     });
   }
 }

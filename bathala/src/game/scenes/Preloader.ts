@@ -31,13 +31,13 @@ export class Preloader extends Scene {
     this.load.image("bg", "bg.png");
 
     // Player sprite sheet - 3 frames, 48x48 each (192x48 total)
-    this.load.spritesheet("player", "sprites/characters/player.png", {
-      frameWidth: 48,
+    this.load.spritesheet("player", "sprites/player.png", {
+      frameWidth: 64,
       frameHeight: 48,
     });
 
     // Enemy sprite sheet - 4 frames, 32x32 each (128x32 total)
-    this.load.spritesheet("enemy", "sprites/characters/enemy.png", {
+    this.load.spritesheet("enemy", "sprites/enemy.png", {
       frameWidth: 32,
       frameHeight: 32,
     });
@@ -45,8 +45,12 @@ export class Preloader extends Scene {
 
   create() {
     //  Create animations for the sprites
-    this.createPlayerAnimations();
-    this.createEnemyAnimations();
+    try {
+      this.createPlayerAnimations();
+      this.createEnemyAnimations();
+    } catch (error) {
+      console.warn("Could not create sprite animations:", error);
+    }
 
     //  Move to the MainMenu
     this.scene.start("MainMenu");
@@ -56,7 +60,7 @@ export class Preloader extends Scene {
    * Create player animations
    */
   private createPlayerAnimations(): void {
-    // Player idle animation (assuming frames 0-2 are available)
+    // Player idle animation (frames 0-2 for 3 total frames)
     this.anims.create({
       key: "player_idle",
       frames: this.anims.generateFrameNumbers("player", { start: 0, end: 2 }),
