@@ -12,10 +12,9 @@ import {
  */
 export class HandEvaluator {
   private static readonly RANK_VALUES: Record<Rank, number> = {
-    A: 14,
-    K: 13,
-    Q: 12,
-    J: 11,
+    Datu: 13,
+    Babaylan: 12,
+    Mandirigma: 11,
     "10": 10,
     "9": 9,
     "8": 8,
@@ -25,25 +24,27 @@ export class HandEvaluator {
     "4": 4,
     "3": 3,
     "2": 2,
+    "1": 1,
   };
 
-  private static readonly HAND_BASE_VALUES: Record<HandType, number> = {
-    high_card: 5,
-    pair: 10,
-    two_pair: 20,
-    three_of_a_kind: 30,
-    straight: 40,
-    flush: 50,
-    full_house: 70,
-    four_of_a_kind: 100,
-    straight_flush: 150,
-    royal_flush: 200,
+  private static readonly HAND_BONUSES: Record<HandType, { attack: number; defense: number; special: number }> = {
+    high_card: { attack: 0, defense: 0, special: 0 },
+    pair: { attack: 2, defense: 2, special: 1 },
+    two_pair: { attack: 4, defense: 4, special: 2 },
+    three_of_a_kind: { attack: 7, defense: 7, special: 3 },
+    straight: { attack: 10, defense: 10, special: 4 },
+    flush: { attack: 14, defense: 14, special: 5 },
+    full_house: { attack: 18, defense: 18, special: 6 },
+    four_of_a_kind: { attack: 22, defense: 22, special: 7 },
+    straight_flush: { attack: 35, defense: 35, special: 15 },
+    five_of_a_kind: { attack: 30, defense: 30, special: 12 },
+    royal_flush: { attack: 35, defense: 35, special: 15 }, // Same as straight flush
   };
 
   /**
    * Evaluate a hand of cards and return damage value
    */
-  static evaluateHand(cards: PlayingCard[]): HandEvaluation {
+  static evaluateHand(cards: PlayingCard[], action: "attack" | "defend" | "special"): HandEvaluation {
     if (cards.length === 0) {
       return {
         type: "high_card",
@@ -55,14 +56,13 @@ export class HandEvaluator {
     }
 
     const handType = this.determineHandType(cards);
-    const baseValue = this.HAND_BASE_VALUES[handType];
-    const elementalBonus = this.calculateElementalBonus(cards, handType);
-    const totalValue = baseValue + elementalBonus;
+    const baseValue = this.HAND_BONUSES[handType][action];
+    const totalValue = baseValue; // Elemental bonus is now handled in Combat.ts
 
     return {
       type: handType,
       baseValue,
-      elementalBonus,
+      elementalBonus: 0, // No longer calculated here
       totalValue,
       description: this.getHandDescription(handType, cards),
     };
@@ -88,6 +88,7 @@ export class HandEvaluator {
 
     const counts = Object.values(rankCounts).sort((a, b) => b - a);
 
+    if (counts[0] === 5) return "five_of_a_kind";
     if (counts[0] === 4) return "four_of_a_kind";
     if (counts[0] === 3 && counts[1] === 2) return "full_house";
     if (isFlush) return "flush";
@@ -97,35 +98,6 @@ export class HandEvaluator {
     if (counts[0] === 2) return "pair";
 
     return "high_card";
-  }
-
-  /**
-   * Calculate elemental bonuses based on card elements
-   */
-  private static calculateElementalBonus(
-    cards: PlayingCard[],
-    handType: HandType
-  ): number {
-    const elementCounts = this.countElements(cards);
-    let bonus = 0;
-
-    // Fire: +2 damage per fire card
-    bonus += (elementCounts.fire || 0) * 2;
-
-    // Water: +1 block per water card (defensive)
-    // Note: Block is handled separately in combat logic
-
-    // Earth: +1 damage per earth card, +2 if 3+ earth cards
-    const earthCount = elementCounts.earth || 0;
-    bonus += earthCount;
-    if (earthCount >= 3) bonus += 2;
-
-    // Air: Double damage if all cards are air
-    if (elementCounts.air === cards.length && cards.length > 1) {
-      bonus += this.HAND_BASE_VALUES[handType]; // Double the base value
-    }
-
-    return bonus;
   }
 
   /**
@@ -160,14 +132,14 @@ export class HandEvaluator {
    * Check if all cards are the same suit
    */
   private static isFlush(suits: string[]): boolean {
-    return suits.length > 1 && suits.every((suit) => suit === suits[0]);
+    return suits.length === 5 && suits.every((suit) => suit === suits[0]);
   }
 
   /**
    * Check if cards form a straight
    */
   private static isStraight(ranks: Rank[]): boolean {
-    if (ranks.length < 5) return false;
+    if (ranks.length !== 5) return false;
 
     const values = ranks
       .map((rank) => this.RANK_VALUES[rank])
@@ -185,7 +157,7 @@ export class HandEvaluator {
    * Check if hand is a royal flush (A, K, Q, J, 10)
    */
   private static isRoyalFlush(ranks: Rank[]): boolean {
-    const royalRanks = ["A", "K", "Q", "J", "10"];
+    const royalRanks = ["Datu", "Babaylan", "Mandirigma", "10", "9"];
     return (
       ranks.length === 5 && ranks.every((rank) => royalRanks.includes(rank))
     );
@@ -215,6 +187,7 @@ export class HandEvaluator {
       four_of_a_kind: "Four of a Kind",
       straight_flush: "Straight Flush",
       royal_flush: "Royal Flush",
+      five_of_a_kind: "Five of a Kind",
     };
 
     return `${handNames[handType]} (${dominantElement})`;

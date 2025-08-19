@@ -9,6 +9,7 @@ import {
   CreatureDialogue,
   PostCombatReward,
   HandType,
+  StatusEffect,
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
@@ -38,9 +39,12 @@ export class Combat extends Scene {
   private actionButtons!: Phaser.GameObjects.Container;
   private turnText!: Phaser.GameObjects.Text;
   private discardsUsedThisTurn: number = 0;
-  private maxDiscardsPerTurn: number = 3;
+  private maxDiscardsPerTurn: number = 1;
   private actionsText!: Phaser.GameObjects.Text;
   private handIndicatorText!: Phaser.GameObjects.Text;
+  private relicsContainer!: Phaser.GameObjects.Container;
+  private playerStatusContainer!: Phaser.GameObjects.Container;
+  private enemyStatusContainer!: Phaser.GameObjects.Container;
 
   // Sprite references for animations
   private playerSprite!: Phaser.GameObjects.Sprite;
@@ -268,7 +272,7 @@ export class Combat extends Scene {
    * Initialize combat state with player and enemy
    */
   private initializeCombat(): void {
-    const deck = DeckManager.createStarterDeck();
+    const deck = DeckManager.createFullDeck();
     const { drawnCards, remainingDeck } = DeckManager.drawCards(deck, 8); // Draw 8 cards
 
     const player: Player = {
@@ -283,9 +287,17 @@ export class Combat extends Scene {
       discardPile: [],
       drawPile: remainingDeck,
       playedHand: [],
-      honor: 50, // Start with neutral honor
+      landasScore: 0, // Start with neutral landas
       ginto: 100, // Starting currency
       baubles: 0, // Premium currency
+      relics: [
+        {
+          id: "placeholder_relic",
+          name: "Placeholder Relic",
+          description: "This is a placeholder relic.",
+          emoji: "⚙️",
+        },
+      ],
     };
 
     // Get enemy based on node type from GameState
@@ -362,6 +374,9 @@ export class Combat extends Scene {
 
     // Turn display
     this.createTurnUI();
+
+    // Relics display
+    this.createRelicsUI();
   }
 
   /**
@@ -410,6 +425,8 @@ export class Combat extends Scene {
         align: "center",
       })
       .setOrigin(0.5);
+
+    this.playerStatusContainer = this.add.container(playerX, playerY + 130);
 
     this.updatePlayerUI();
   }
@@ -470,7 +487,30 @@ export class Combat extends Scene {
         color: "#ffd93d",
         align: "center",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setInteractive();
+
+    const intentTooltip = this.add
+      .text(enemyX, enemyY - 50, "", {
+        fontFamily: "Chivo",
+        fontSize: 12,
+        color: "#ffffff",
+        backgroundColor: "#000000",
+        padding: { x: 5, y: 5 },
+      })
+      .setOrigin(0.5)
+      .setVisible(false);
+
+    this.enemyIntentText.on("pointerover", () => {
+      intentTooltip.setText(this.combatState.enemy.intent.description);
+      intentTooltip.setVisible(true);
+    });
+
+    this.enemyIntentText.on("pointerout", () => {
+      intentTooltip.setVisible(false);
+    });
+
+    this.enemyStatusContainer = this.add.container(enemyX, enemyY + 130);
 
     this.updateEnemyUI();
   }
@@ -546,13 +586,32 @@ export class Combat extends Scene {
       const specialButton = this.createButton(
         80,
         0,
-        this.getSpecialActionName(dominantSuit),
+        "Special",
         () => {
           this.executeAction("special");
         }
       );
 
-      this.actionButtons.add([attackButton, defendButton, specialButton]);
+      const specialTooltip = this.add
+        .text(80, 30, this.getSpecialActionName(dominantSuit), {
+          fontFamily: "Chivo",
+          fontSize: 12,
+          color: "#ffffff",
+          backgroundColor: "#000000",
+          padding: { x: 5, y: 5 },
+        })
+        .setOrigin(0.5)
+        .setVisible(false);
+
+      specialButton.on("pointerover", () => {
+        specialTooltip.setVisible(true);
+      });
+
+      specialButton.on("pointerout", () => {
+        specialTooltip.setVisible(false);
+      });
+
+      this.actionButtons.add([attackButton, defendButton, specialButton, specialTooltip]);
     }
   }
 
@@ -580,6 +639,51 @@ export class Combat extends Scene {
     });
 
     this.updateTurnUI();
+  }
+
+  /**
+   * Create relics UI container
+   */
+  private createRelicsUI(): void {
+    this.relicsContainer = this.add.container(100, 50);
+    this.updateRelicsUI();
+  }
+
+  /**
+   * Update relics UI display
+   */
+  private updateRelicsUI(): void {
+    this.relicsContainer.removeAll(true);
+
+    const relics = this.combatState.player.relics;
+    let x = 0;
+
+    relics.forEach((relic) => {
+      const relicText = this.add
+        .text(x, 0, relic.emoji, {
+          fontSize: 24,
+        })
+        .setInteractive();
+
+      const tooltip = this.add
+        .text(x, 30, relic.name + "\n" + relic.description, {
+          fontSize: 12,
+          backgroundColor: "#000",
+          padding: { x: 5, y: 5 },
+        })
+        .setVisible(false);
+
+      relicText.on("pointerover", () => {
+        tooltip.setVisible(true);
+      });
+
+      relicText.on("pointerout", () => {
+        tooltip.setVisible(false);
+      });
+
+      this.relicsContainer.add([relicText, tooltip]);
+      x += 30;
+    });
   }
 
   /**
@@ -824,11 +928,17 @@ export class Combat extends Scene {
    * Execute enemy turn
    */
   private executeEnemyTurn(): void {
+    this.applyStatusEffects(this.combatState.enemy);
+
     const enemy = this.combatState.enemy;
 
     // Apply enemy action based on intent
     if (enemy.intent.type === "attack") {
-      this.damagePlayer(enemy.intent.value);
+      let damage = enemy.intent.value;
+      if (enemy.statusEffects.some((e) => e.name === "Weak")) {
+        damage *= 0.5;
+      }
+      this.damagePlayer(damage);
     }
 
     // Update enemy intent for next turn
@@ -844,6 +954,8 @@ export class Combat extends Scene {
    * Start player turn (Balatro style)
    */
   private startPlayerTurn(): void {
+    this.applyStatusEffects(this.combatState.player);
+
     this.combatState.phase = "player_turn";
     this.combatState.turn++;
 
@@ -893,11 +1005,15 @@ export class Combat extends Scene {
    * Apply damage to enemy
    */
   private damageEnemy(damage: number): void {
-    const actualDamage = Math.max(0, damage - this.combatState.enemy.block);
+    let finalDamage = damage;
+    if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
+      finalDamage *= 1.5;
+    }
+    const actualDamage = Math.max(0, finalDamage - this.combatState.enemy.block);
     this.combatState.enemy.currentHealth -= actualDamage;
     this.combatState.enemy.block = Math.max(
       0,
-      this.combatState.enemy.block - damage
+      this.combatState.enemy.block - finalDamage
     );
 
     // Add visual feedback for enemy taking damage
@@ -912,11 +1028,15 @@ export class Combat extends Scene {
    * Apply damage to player
    */
   private damagePlayer(damage: number): void {
-    const actualDamage = Math.max(0, damage - this.combatState.player.block);
+    let finalDamage = damage;
+    if (this.combatState.player.statusEffects.some((e) => e.name === "Vulnerable")) {
+      finalDamage *= 1.5;
+    }
+    const actualDamage = Math.max(0, finalDamage - this.combatState.player.block);
     this.combatState.player.currentHealth -= actualDamage;
     this.combatState.player.block = Math.max(
       0,
-      this.combatState.player.block - damage
+      this.combatState.player.block - finalDamage
     );
 
     // Add visual feedback for player taking damage
@@ -1005,7 +1125,7 @@ export class Combat extends Scene {
     }
 
     // Evaluate the currently selected cards
-    const evaluation = HandEvaluator.evaluateHand(this.selectedCards);
+    const evaluation = HandEvaluator.evaluateHand(this.selectedCards, "attack");
     const handTypeText = this.getHandTypeDisplayText(evaluation.type);
     const valueText =
       evaluation.totalValue > 0 ? ` (${evaluation.totalValue} value)` : "";
@@ -1028,6 +1148,7 @@ export class Combat extends Scene {
       four_of_a_kind: "Four of a Kind",
       straight_flush: "Straight Flush",
       royal_flush: "Royal Flush",
+      five_of_a_kind: "Five of a Kind",
     };
     return handNames[handType];
   }
@@ -1036,6 +1157,20 @@ export class Combat extends Scene {
    * End combat with result
    */
   private endCombat(victory: boolean): void {
+    if (victory) {
+      const gameState = GameState.getInstance();
+      const currentNode = gameState.getCurrentNode();
+      if (currentNode?.type === "elite") {
+        this.combatState.player.relics.push({
+          id: "elite_relic",
+          name: "Elite Relic",
+          description: "You defeated an elite enemy!",
+          emoji: "🏆",
+        });
+        this.updateRelicsUI();
+      }
+    }
+
     if (!victory) {
       // Player defeated - show game over
       const resultText = "Defeat!";
@@ -1115,30 +1250,30 @@ export class Combat extends Scene {
       })
       .setOrigin(0.5);
 
-    // Honor choice buttons
-    this.createDialogueButton(350, 480, "Spare (+15 Honor)", "#2ed573", () =>
-      this.makeHonorChoice("spare", dialogue)
+    // Landas choice buttons
+    this.createDialogueButton(350, 480, "Spare", "#2ed573", () =>
+      this.makeLandasChoice("spare", dialogue)
     );
 
-    this.createDialogueButton(674, 480, "Kill (-10 Honor)", "#ff4757", () =>
-      this.makeHonorChoice("kill", dialogue)
+    this.createDialogueButton(674, 480, "Slay", "#ff4757", () =>
+      this.makeLandasChoice("kill", dialogue)
     );
 
-    // Current honor display
-    const honorRange = this.getHonorRange(this.combatState.player.honor);
-    const honorColor = this.getHonorColor(honorRange);
+    // Current landas display
+    const landasTier = this.getLandasTier(this.combatState.player.landasScore);
+    const landasColor = this.getLandasColor(landasTier);
 
     this.add
       .text(
         512,
         550,
-        `Current Honor: ${
-          this.combatState.player.honor
-        }/100 (${honorRange.toUpperCase()})`,
+        `Current Landas: ${
+          this.combatState.player.landasScore
+        } (${landasTier.toUpperCase()})`,
         {
           fontFamily: "Chivo",
           fontSize: 16,
-          color: honorColor,
+          color: landasColor,
           align: "center",
         }
       )
@@ -1190,22 +1325,19 @@ export class Combat extends Scene {
   /**
    * Make honor choice and show rewards
    */
-  private makeHonorChoice(
+  private makeLandasChoice(
     choice: "spare" | "kill",
     dialogue: CreatureDialogue
   ): void {
     const isSpare = choice === "spare";
-    const honorChange = isSpare ? 15 : -10;
+    const landasChange = isSpare ? 1 : -1;
     const reward = isSpare ? dialogue.spareReward : dialogue.killReward;
     const choiceDialogue = isSpare
       ? dialogue.spareDialogue
       : dialogue.killDialogue;
 
-    // Update honor
-    this.combatState.player.honor = Math.max(
-      0,
-      Math.min(100, this.combatState.player.honor + honorChange)
-    );
+    // Update landas score
+    this.combatState.player.landasScore += landasChange;
 
     // Apply rewards
     this.combatState.player.ginto += reward.ginto;
@@ -1222,7 +1354,7 @@ export class Combat extends Scene {
     this.children.removeAll();
     this.cameras.main.setBackgroundColor(0x0e1112);
 
-    this.showRewardsScreen(choice, choiceDialogue, reward, honorChange);
+    this.showRewardsScreen(choice, choiceDialogue, reward, landasChange);
   }
 
   /**
@@ -1232,11 +1364,11 @@ export class Combat extends Scene {
     choice: "spare" | "kill",
     dialogue: string,
     reward: PostCombatReward,
-    honorChange: number
+    landasChange: number
   ): void {
     const choiceColor = choice === "spare" ? "#2ed573" : "#ff4757";
-    const honorChangeText =
-      honorChange > 0 ? `+${honorChange}` : `${honorChange}`;
+    const landasChangeText =
+      landasChange > 0 ? `+${landasChange}` : `${landasChange}`;
 
     // Title
     this.add
@@ -1318,12 +1450,12 @@ export class Combat extends Scene {
       rewardY += 25;
     }
 
-    // Honor change
+    // Landas change
     this.add
-      .text(512, rewardY, `⚖️ Honor ${honorChangeText}`, {
+      .text(512, rewardY, `✨ Landas ${landasChangeText}`, {
         fontFamily: "Chivo",
         fontSize: 16,
-        color: honorChange > 0 ? "#2ed573" : "#ff4757",
+        color: landasChange > 0 ? "#2ed573" : "#ff4757",
         align: "center",
       })
       .setOrigin(0.5);
@@ -1341,21 +1473,21 @@ export class Combat extends Scene {
         .setOrigin(0.5);
     }
 
-    // Current honor status
-    const honorRange = this.getHonorRange(this.combatState.player.honor);
-    const honorColor = this.getHonorColor(honorRange);
+    // Current landas status
+    const landasTier = this.getLandasTier(this.combatState.player.landasScore);
+    const landasColor = this.getLandasColor(landasTier);
 
     this.add
       .text(
         512,
         520,
-        `Honor: ${
-          this.combatState.player.honor
-        }/100 (${honorRange.toUpperCase()} HONOR)`,
+        `Landas: ${
+          this.combatState.player.landasScore
+        } (${landasTier.toUpperCase()})`,
         {
           fontFamily: "Chivo",
           fontSize: 18,
-          color: honorColor,
+          color: landasColor,
           align: "center",
         }
       )
@@ -1390,23 +1522,23 @@ export class Combat extends Scene {
   /**
    * Get honor range from honor value
    */
-  private getHonorRange(honor: number): HonorRange {
-    if (honor >= 75) return "high";
-    if (honor >= 25) return "neutral";
-    return "low";
+  private getLandasTier(landasScore: number): Landas {
+    if (landasScore <= -5) return "Conquest";
+    if (landasScore >= 5) return "Mercy";
+    return "Balance";
   }
 
   /**
-   * Get color for honor range
+   * Get color for landas tier
    */
-  private getHonorColor(range: HonorRange): string {
-    switch (range) {
-      case "high":
-        return "#2ed573";
-      case "neutral":
-        return "#ffd93d";
-      case "low":
+  private getLandasColor(tier: Landas): string {
+    switch (tier) {
+      case "Conquest":
         return "#ff4757";
+      case "Mercy":
+        return "#2ed573";
+      case "Balance":
+        return "#ffd93d";
     }
   }
 
@@ -1436,7 +1568,7 @@ export class Combat extends Scene {
     });
 
     // Show hand evaluation
-    const evaluation = HandEvaluator.evaluateHand(playedHand);
+    const evaluation = HandEvaluator.evaluateHand(playedHand, "attack");
     const evalText = this.add
       .text(
         512,
@@ -1459,7 +1591,7 @@ export class Combat extends Scene {
    * Get dominant suit from played hand
    */
   private getDominantSuit(cards: PlayingCard[]): Suit {
-    if (cards.length === 0) return "hearts";
+    if (cards.length === 0) return "Apoy";
 
     const suitCounts = cards.reduce((counts, card) => {
       counts[card.suit] = (counts[card.suit] || 0) + 1;
@@ -1471,50 +1603,65 @@ export class Combat extends Scene {
     )[0][0] as Suit;
   }
 
-  /**
-   * Get special action name based on dominant suit
-   */
   private getSpecialActionName(suit: Suit): string {
     const specialActions: Record<Suit, string> = {
-      hearts: "Heal", // Fire element
-      diamonds: "Shield", // Earth element
-      clubs: "Drain", // Water element
-      spades: "Swift", // Air element
+      Apoy: "AoE Damage + Burn",
+      Tubig: "Heal + Cleanse",
+      Lupa: "Apply Vulnerable",
+      Hangin: "Draw Cards + Weak",
     };
     return specialActions[suit];
   }
 
   /**
-   * Execute chosen action
+   * Get special action name based on dominant suit
    */
   private executeAction(actionType: "attack" | "defend" | "special"): void {
     const evaluation = HandEvaluator.evaluateHand(
-      this.combatState.player.playedHand
+      this.combatState.player.playedHand,
+      actionType
     );
     const dominantSuit = this.getDominantSuit(
       this.combatState.player.playedHand
     );
 
+    let damage = 0;
+    let block = 0;
+
+    // Apply hand bonus
     switch (actionType) {
       case "attack":
-        // Animate player attack
-        this.animatePlayerAttack();
-        // Deal damage to enemy
-        this.damageEnemy(evaluation.totalValue);
-        this.showActionResult(`Attacked for ${evaluation.totalValue} damage!`);
+        damage += evaluation.totalValue;
+        const strength = this.combatState.player.statusEffects.find((e) => e.name === "Strength");
+        if (strength) {
+          damage += strength.value;
+        }
         break;
-
       case "defend":
-        // Gain block
-        const blockAmount = Math.floor(evaluation.totalValue * 0.8);
-        this.combatState.player.block += blockAmount;
-        this.updatePlayerUI();
-        this.showActionResult(`Gained ${blockAmount} block!`);
+        block += evaluation.totalValue;
+        const dexterity = this.combatState.player.statusEffects.find((e) => e.name === "Dexterity");
+        if (dexterity) {
+          block += dexterity.value;
+        }
         break;
-
       case "special":
-        this.executeSpecialAction(dominantSuit, evaluation.totalValue);
+        this.showActionResult(this.getSpecialActionName(dominantSuit));
+        // Special actions have unique effects based on suit
         break;
+    }
+
+    // Apply elemental effects
+    this.applyElementalEffects(actionType, dominantSuit, evaluation.totalValue);
+
+    if (damage > 0) {
+      this.damageEnemy(damage);
+      this.showActionResult(`Attacked for ${damage} damage!`);
+    }
+
+    if (block > 0) {
+      this.combatState.player.block += block;
+      this.updatePlayerUI();
+      this.showActionResult(`Gained ${block} block!`);
     }
 
     // Move played cards to discard pile
@@ -1541,45 +1688,121 @@ export class Combat extends Scene {
     }, 1500);
   }
 
-  /**
-   * Execute special action based on dominant suit
-   */
-  private executeSpecialAction(suit: Suit, value: number): void {
+  private applyElementalEffects(
+    actionType: "attack" | "defend" | "special",
+    suit: Suit,
+    value: number
+  ): void {
     switch (suit) {
-      case "hearts": // Fire - Heal
-        const healAmount = Math.floor(value * 0.3);
-        this.combatState.player.currentHealth = Math.min(
-          this.combatState.player.maxHealth,
-          this.combatState.player.currentHealth + healAmount
-        );
-        this.updatePlayerUI();
-        this.showActionResult(`Healed for ${healAmount} health!`);
+      case "Apoy": // Fire
+        if (actionType === "attack") {
+          this.damageEnemy(2); // +2 damage
+          this.addStatusEffect(this.combatState.enemy, {
+            id: "burn",
+            name: "Burn",
+            type: "debuff",
+            duration: 2,
+            value: 2,
+            description: "Takes 2 damage at the start of the turn.",
+            emoji: "🔥",
+          });
+        } else if (actionType === "defend") {
+          this.addStatusEffect(this.combatState.player, {
+            id: "strength",
+            name: "Strength",
+            type: "buff",
+            duration: 999,
+            value: 1,
+            description: "Deal +1 additional damage per stack with Attack actions.",
+            emoji: "💪",
+          });
+        } else {
+          // AoE Damage + Burn
+          this.damageEnemy(Math.floor(value * 0.5));
+          this.addStatusEffect(this.combatState.enemy, {
+            id: "burn",
+            name: "Burn",
+            type: "debuff",
+            duration: 2,
+            value: 2,
+            description: "Takes 2 damage at the start of the turn.",
+            emoji: "🔥",
+          });
+        }
         break;
-
-      case "diamonds": // Earth - Shield
-        const shieldAmount = Math.floor(value * 1.2);
-        this.combatState.player.block += shieldAmount;
-        this.updatePlayerUI();
-        this.showActionResult(`Gained ${shieldAmount} block!`);
+      case "Tubig": // Water
+        if (actionType === "attack") {
+          // Ignores 50% of enemy block
+          const enemy = this.combatState.enemy;
+          const damage = value;
+          const damageToBlock = Math.min(enemy.block, damage);
+          const damageThroughBlock = damage - damageToBlock;
+          const damageToHealth = damageThroughBlock + damageToBlock * 0.5;
+          this.damageEnemy(damageToHealth);
+        } else if (actionType === "defend") {
+          this.combatState.player.currentHealth = Math.min(
+            this.combatState.player.maxHealth,
+            this.combatState.player.currentHealth + 2
+          );
+          this.updatePlayerUI();
+        } else {
+          // Heal + Cleanse Debuff
+          this.combatState.player.currentHealth = Math.min(
+            this.combatState.player.maxHealth,
+            this.combatState.player.currentHealth + Math.floor(value * 0.5)
+          );
+          // TODO: Cleanse Debuff
+          this.updatePlayerUI();
+        }
         break;
-
-      case "clubs": // Water - Drain
-        const drainAmount = Math.floor(value * 0.6);
-        this.damageEnemy(drainAmount);
-        this.combatState.player.currentHealth = Math.min(
-          this.combatState.player.maxHealth,
-          this.combatState.player.currentHealth + Math.floor(drainAmount * 0.5)
-        );
-        this.updatePlayerUI();
-        this.showActionResult(`Drained ${drainAmount} damage and healed!`);
+      case "Lupa": // Earth
+        if (actionType === "attack") {
+          const lupaCards = this.combatState.player.playedHand.filter(
+            (card) => card.suit === "Lupa"
+          ).length;
+          this.damageEnemy(lupaCards);
+        } else if (actionType === "defend") {
+          // 50% of unspent block carries over
+          // This needs to be handled at the end of the turn
+        } else {
+          this.addStatusEffect(this.combatState.enemy, {
+            id: "vulnerable",
+            name: "Vulnerable",
+            type: "debuff",
+            duration: 2,
+            value: 1.5,
+            description: "Take +50% damage from all incoming attacks.",
+            emoji: "💥",
+          });
+        }
         break;
-
-      case "spades": // Air - Swift
-        this.damageEnemy(value);
-        // Draw an extra card
-        this.drawCards(1);
-        this.updateHandDisplay();
-        this.showActionResult(`Swift attack for ${value} damage! Drew a card!`);
+      case "Hangin": // Air
+        if (actionType === "attack") {
+          // Hits all enemies for 75% damage
+          this.damageEnemy(Math.floor(value * 0.75));
+        } else if (actionType === "defend") {
+          this.addStatusEffect(this.combatState.player, {
+            id: "dexterity",
+            name: "Dexterity",
+            type: "buff",
+            duration: 999,
+            value: 1,
+            description: "Gain +1 additional block per stack with Defend actions.",
+            emoji: "🤸",
+          });
+        } else {
+          // Draw cards + Apply Weak
+          this.drawCards(2);
+          this.addStatusEffect(this.combatState.enemy, {
+            id: "weak",
+            name: "Weak",
+            type: "debuff",
+            duration: 2,
+            value: 0.5,
+            description: "Deal -50% damage with Attack actions.",
+            emoji: "😞",
+          });
+        }
         break;
     }
   }
@@ -1665,5 +1888,86 @@ export class Combat extends Scene {
    */
   private flipEnemySprite(flip: boolean): void {
     this.enemySprite.setFlipX(flip);
+  }
+
+  private addStatusEffect(entity: Player | Enemy, effect: StatusEffect): void {
+    entity.statusEffects.push(effect);
+    this.updateStatusEffectUI(entity);
+  }
+
+  private removeStatusEffect(entity: Player | Enemy, effectId: string): void {
+    entity.statusEffects = entity.statusEffects.filter(
+      (effect) => effect.id !== effectId
+    );
+    this.updateStatusEffectUI(entity);
+  }
+
+  private applyStatusEffects(entity: Player | Enemy): void {
+    entity.statusEffects.forEach((effect) => {
+      switch (effect.name) {
+        case "Burn":
+          this.damage(entity, effect.value);
+          effect.duration--;
+          break;
+        case "Regeneration":
+          this.heal(entity, effect.value);
+          effect.duration--;
+          break;
+      }
+    });
+
+    entity.statusEffects = entity.statusEffects.filter(
+      (effect) => effect.duration > 0
+    );
+
+    this.updateStatusEffectUI(entity);
+  }
+
+  private updateStatusEffectUI(entity: Player | Enemy): void {
+    const statusContainer = entity.id === "player" ? this.playerStatusContainer : this.enemyStatusContainer;
+    statusContainer.removeAll(true);
+
+    let x = 0;
+    entity.statusEffects.forEach((effect) => {
+      const effectText = this.add.text(x, 0, `${effect.emoji}${effect.duration}`, {
+        fontSize: 16,
+      }).setInteractive();
+
+      const tooltip = this.add
+        .text(x, 20, effect.description, {
+          fontSize: 12,
+          backgroundColor: "#000",
+          padding: { x: 5, y: 5 },
+        })
+        .setVisible(false);
+
+      effectText.on("pointerover", () => {
+        tooltip.setVisible(true);
+      });
+
+      effectText.on("pointerout", () => {
+        tooltip.setVisible(false);
+      });
+
+      statusContainer.add([effectText, tooltip]);
+      x += 30;
+    });
+  }
+
+  private damage(entity: Player | Enemy, amount: number): void {
+    if (entity.id === "player") {
+      this.damagePlayer(amount);
+    } else {
+      this.damageEnemy(amount);
+    }
+  }
+
+  private heal(entity: Player | Enemy, amount: number): void {
+    entity.currentHealth = Math.min(entity.maxHealth, entity.currentHealth + amount);
+    if (entity.id === "player") {
+      this.updatePlayerUI();
+    } else {
+      this.updateEnemyUI();
+    }
   }
 }

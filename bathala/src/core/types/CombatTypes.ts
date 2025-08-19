@@ -3,9 +3,9 @@
  * Based on poker hands with elemental modifications
  */
 
-export type Suit = "hearts" | "diamonds" | "clubs" | "spades";
+export type Suit = "Apoy" | "Tubig" | "Lupa" | "Hangin";
 export type Rank =
-  | "A"
+  | "1"
   | "2"
   | "3"
   | "4"
@@ -15,9 +15,9 @@ export type Rank =
   | "8"
   | "9"
   | "10"
-  | "J"
-  | "Q"
-  | "K";
+  | "Mandirigma"
+  | "Babaylan"
+  | "Datu";
 export type Element = "fire" | "water" | "earth" | "air" | "neutral";
 
 export interface PlayingCard {
@@ -39,7 +39,8 @@ export type HandType =
   | "full_house"
   | "four_of_a_kind"
   | "straight_flush"
-  | "royal_flush";
+  | "royal_flush"
+  | "five_of_a_kind";
 
 export interface HandEvaluation {
   type: HandType;
@@ -64,9 +65,10 @@ export interface Player extends CombatEntity {
   discardPile: PlayingCard[];
   drawPile: PlayingCard[];
   playedHand: PlayingCard[];
-  honor: number; // Honor system (0-100)
+  landasScore: number; // Landas system (Conquest, Balance, Mercy)
   ginto: number; // Currency for basic items
   baubles: number; // Premium currency for rare items
+  relics: Relic[];
 }
 
 export interface Enemy extends CombatEntity {
@@ -74,6 +76,13 @@ export interface Enemy extends CombatEntity {
   damage: number;
   attackPattern: string[];
   currentPatternIndex: number;
+}
+
+export interface Relic {
+  id: string;
+  name: string;
+  description: string;
+  emoji: string;
 }
 
 export interface EnemyIntent {
@@ -90,6 +99,7 @@ export interface StatusEffect {
   duration: number;
   value: number;
   description: string;
+  emoji: string;
 }
 
 export type CombatActionType = "attack" | "defend" | "special";
@@ -114,7 +124,7 @@ export interface CombatState {
   lastAction: CombatAction | null;
 }
 
-export type HonorRange = "high" | "neutral" | "low";
+export type Landas = "Conquest" | "Balance" | "Mercy";
 
 export interface PostCombatReward {
   ginto: number;

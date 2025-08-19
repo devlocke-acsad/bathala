@@ -5,13 +5,13 @@ import { PlayingCard, Suit, Rank, Element } from "../core/types/CombatTypes";
  */
 export class DeckManager {
   private static readonly SUITS: Suit[] = [
-    "hearts",
-    "diamonds",
-    "clubs",
-    "spades",
+    "Apoy",
+    "Tubig",
+    "Lupa",
+    "Hangin",
   ];
   private static readonly RANKS: Rank[] = [
-    "A",
+    "1",
     "2",
     "3",
     "4",
@@ -21,23 +21,23 @@ export class DeckManager {
     "8",
     "9",
     "10",
-    "J",
-    "Q",
-    "K",
+    "Mandirigma",
+    "Babaylan",
+    "Datu",
   ];
 
   // Element mapping for suits (can be customized later)
   private static readonly SUIT_ELEMENTS: Record<Suit, Element> = {
-    hearts: "fire", // Red suits = Fire
-    diamonds: "earth", // Red suits = Earth
-    clubs: "water", // Black suits = Water
-    spades: "air", // Black suits = Air
+    Apoy: "fire",
+    Lupa: "earth",
+    Tubig: "water",
+    Hangin: "air",
   };
 
   /**
    * Create a standard deck of 52 cards with elemental attributes
    */
-  static createStandardDeck(): PlayingCard[] {
+  static createFullDeck(): PlayingCard[] {
     const deck: PlayingCard[] = [];
 
     this.SUITS.forEach((suit) => {
@@ -54,42 +54,6 @@ export class DeckManager {
     });
 
     return this.shuffleDeck(deck);
-  }
-
-  /**
-   * Create a starter deck (smaller, balanced deck for combat)
-   */
-  static createStarterDeck(): PlayingCard[] {
-    const starterCards: PlayingCard[] = [];
-
-    // Add specific cards for balanced starter deck
-    const starterRanks: Rank[] = [
-      "A",
-      "2",
-      "3",
-      "4",
-      "5",
-      "6",
-      "7",
-      "8",
-      "9",
-      "10",
-    ];
-
-    this.SUITS.forEach((suit) => {
-      starterRanks.forEach((rank) => {
-        starterCards.push({
-          id: `${rank}-${suit}`,
-          rank,
-          suit,
-          element: this.SUIT_ELEMENTS[suit],
-          selected: false,
-          playable: true,
-        });
-      });
-    });
-
-    return this.shuffleDeck(starterCards);
   }
 
   /**
@@ -128,17 +92,17 @@ export class DeckManager {
     elementSymbol: string;
   } {
     const suitSymbols: Record<Suit, string> = {
-      hearts: "♥",
-      diamonds: "♦",
-      clubs: "♣",
-      spades: "♠",
+      Apoy: "🔥",
+      Tubig: "💧",
+      Lupa: "🌍",
+      Hangin: "💨",
     };
 
     const suitColors: Record<Suit, string> = {
-      hearts: "#ff4757",
-      diamonds: "#ff4757",
-      clubs: "#2f3542",
-      spades: "#2f3542",
+      Apoy: "#ff4757",
+      Lupa: "#ff4757",
+      Tubig: "#2f3542",
+      Hangin: "#2f3542",
     };
 
     const elementSymbols: Record<Element, string> = {
@@ -164,7 +128,7 @@ export class DeckManager {
     sortBy: "rank" | "suit"
   ): PlayingCard[] {
     const rankOrder: Record<Rank, number> = {
-      A: 1,
+      "1": 1,
       "2": 2,
       "3": 3,
       "4": 4,
@@ -174,16 +138,16 @@ export class DeckManager {
       "8": 8,
       "9": 9,
       "10": 10,
-      J: 11,
-      Q: 12,
-      K: 13,
+      Mandirigma: 11,
+      Babaylan: 12,
+      Datu: 13,
     };
 
     const suitOrder: Record<Suit, number> = {
-      clubs: 1,
-      diamonds: 2,
-      hearts: 3,
-      spades: 4,
+      Apoy: 1,
+      Lupa: 2,
+      Tubig: 3,
+      Hangin: 4,
     };
 
     return [...cards].sort((a, b) => {
