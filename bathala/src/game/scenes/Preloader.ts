@@ -7,7 +7,7 @@ export class Preloader extends Scene {
 
   init() {
     //  We loaded this image in our Boot Scene, so we can display it here
-    this.add.image(512, 384, "background");
+    this.add.image(512, 384, "bg");
 
     //  A simple progress bar. This is the outline of the bar.
     this.add.rectangle(512, 384, 468, 32).setStrokeStyle(1, 0xffffff);
@@ -47,6 +47,11 @@ export class Preloader extends Scene {
       frameWidth: 32,
       frameHeight: 32,
     });
+    
+    // Debug: Log when assets are loaded
+    this.load.on('filecomplete', (key: string, type: string) => {
+      console.log(`Loaded asset: ${key} (${type})`);
+    });
   }
 
   create() {
@@ -81,6 +86,8 @@ export class Preloader extends Scene {
    * Create player animations
    */
   private createPlayerAnimations(): void {
+    console.log("Creating player animations");
+    
     // Player idle animation (first frame)
     this.anims.create({
       key: "player_idle",
@@ -88,6 +95,7 @@ export class Preloader extends Scene {
       frameRate: 1,
       repeat: -1,
     });
+    console.log("Created player_idle animation");
 
     // Player idle down animation (first frame)
     this.anims.create({
@@ -96,6 +104,7 @@ export class Preloader extends Scene {
       frameRate: 1,
       repeat: -1,
     });
+    console.log("Created player_idle_down animation");
 
     // Player walk animation (frames 0-3)
     this.anims.create({
@@ -104,12 +113,15 @@ export class Preloader extends Scene {
       frameRate: 8,
       repeat: -1,
     });
+    console.log("Created player_walk animation");
   }
 
   /**
    * Create avatar animations for Overworld
    */
   private createAvatarAnimations(): void {
+    console.log("Creating avatar animations");
+    
     // Avatar idle down animation (middle frame of bottom row)
     this.anims.create({
       key: "avatar_idle_down",
@@ -117,6 +129,7 @@ export class Preloader extends Scene {
       frameRate: 1,
       repeat: -1,
     });
+    console.log("Created avatar_idle_down animation");
 
     // Avatar walk down animation (bottom row: frames 0,1,2)
     this.anims.create({
@@ -125,6 +138,7 @@ export class Preloader extends Scene {
       frameRate: 6,
       repeat: -1,
     });
+    console.log("Created avatar_walk_down animation");
 
     // Avatar walk left animation (middle row: frames 3,4,5)
     this.anims.create({
@@ -133,6 +147,7 @@ export class Preloader extends Scene {
       frameRate: 6,
       repeat: -1,
     });
+    console.log("Created avatar_walk_left animation");
 
     // Avatar walk right animation (top row: frames 6,7,8)
     this.anims.create({
@@ -141,6 +156,7 @@ export class Preloader extends Scene {
       frameRate: 6,
       repeat: -1,
     });
+    console.log("Created avatar_walk_right animation");
   }
 
   /**
