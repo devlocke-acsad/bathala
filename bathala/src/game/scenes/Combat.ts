@@ -252,11 +252,11 @@ export class Combat extends Scene {
     super({ key: "Combat" });
   }
 
-  create(): void {
+  create(data: { nodeType: string }): void {
     this.cameras.main.setBackgroundColor(0x0e1112);
 
     // Initialize combat state
-    this.initializeCombat();
+    this.initializeCombat(data.nodeType);
 
     // Create UI elements
     this.createCombatUI();
@@ -271,7 +271,7 @@ export class Combat extends Scene {
   /**
    * Initialize combat state with player and enemy
    */
-  private initializeCombat(): void {
+  private initializeCombat(nodeType: string): void {
     const deck = DeckManager.createFullDeck();
     const { drawnCards, remainingDeck } = DeckManager.drawCards(deck, 8); // Draw 8 cards
 
@@ -300,10 +300,7 @@ export class Combat extends Scene {
       ],
     };
 
-    // Get enemy based on node type from GameState
-    const gameState = GameState.getInstance();
-    const currentNode = gameState.getCurrentNode();
-    const nodeType = currentNode?.type || "combat";
+    // Get enemy based on node type from the data passed to the scene
     const enemyData = this.getEnemyForNodeType(nodeType);
     const enemy: Enemy = {
       ...enemyData,
@@ -1185,8 +1182,11 @@ export class Combat extends Scene {
         })
         .setOrigin(0.5);
 
-      // Return to map after 3 seconds
+      // Return to overworld after 3 seconds
       setTimeout(() => {
+        // Update game state before returning
+        const gameState = GameState.getInstance();
+        gameState.completeCurrentNode(false); // Mark as completed (defeat)
         this.scene.start("Map");
       }, 3000);
       return;
@@ -1495,18 +1495,12 @@ export class Combat extends Scene {
 
     // Continue button
     this.createDialogueButton(512, 600, "Continue", "#4ecdc4", () => {
-      // Mark the current node as completed in GameState
-      const gameState = GameState.getInstance();
-      gameState.completeCurrentNode();
-      this.scene.start("Map");
+      this.scene.start("Overworld");
     });
 
     // Auto-continue after 8 seconds
     setTimeout(() => {
-      // Mark the current node as completed in GameState
-      const gameState = GameState.getInstance();
-      gameState.completeCurrentNode();
-      this.scene.start("Map");
+      this.scene.start("Overworld");
     }, 8000);
   }
 

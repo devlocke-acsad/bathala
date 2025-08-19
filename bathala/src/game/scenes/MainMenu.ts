@@ -41,7 +41,7 @@ export class MainMenu extends Scene {
         menuText
           .setInteractive({ useHandCursor: true })
           .on("pointerdown", () => {
-            this.scene.start("Game");
+            this.scene.start("Overworld");
           });
       }
     });

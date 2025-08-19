@@ -44,6 +44,13 @@ export class Map extends Scene {
       // Restore the map from game state
       this.gameMap = gameState.currentMap!;
       gameState.clearCombatReturn();
+      // Mark the last completed node as visited
+      if (gameState.lastCompletedNodeId) {
+        const completedNode = this.findNodeById(gameState.lastCompletedNodeId);
+        if (completedNode) {
+          completedNode.visited = true;
+        }
+      }
     } else {
       // Generate new map for Act 1
       this.gameMap = MapGenerator.generateMap(1);
@@ -90,6 +97,7 @@ export class Map extends Scene {
         node.connections.forEach((connectionId) => {
           const targetNode = this.findNodeById(connectionId);
           if (targetNode) {
+            // Draw line from center of node to center of target node
             graphics.moveTo(node.x, node.y);
             graphics.lineTo(targetNode.x, targetNode.y);
           }
@@ -199,6 +207,9 @@ export class Map extends Scene {
     this.gameMap.currentNode = node.id;
     gameState.setCurrentNode(node.id);
 
+    // Mark node as visited
+    node.visited = true;
+
     // Navigate to appropriate scene based on node type
     this.navigateToNodeScene(node);
   }
@@ -280,15 +291,19 @@ export class Map extends Scene {
    * Navigate to the appropriate scene based on node type
    */
   private navigateToNodeScene(node: MapNode): void {
+    // Save the current map state before transitioning
+    const gameState = GameState.getInstance();
+    gameState.setCurrentMap(this.gameMap);
+    
     switch (node.type) {
       case "combat":
       case "elite":
-        // Navigate to Combat scene
-        this.scene.start("Combat");
+        // Navigate to Combat scene with node type
+        this.scene.start("Combat", { nodeType: node.type });
         break;
       case "boss":
         // Boss fight scene
-        this.scene.start("Combat");
+        this.scene.start("Combat", { nodeType: "boss" });
         break;
       case "shop":
         // Shop scene (to be implemented)

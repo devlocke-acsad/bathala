@@ -37,12 +37,26 @@ export class MapGenerator {
     const nodes: MapNode[] = [];
     const nodeTypes = this.determineLayerNodeTypes(row);
 
+    // Calculate canvas dimensions
+    const canvasWidth = 1024;
+    const canvasHeight = 768;
+    
+    // Position nodes evenly across the canvas
+    const startX = 200;
+    const endX = canvasWidth - 200;
+    const startY = 150;
+    const endY = canvasHeight - 150;
+    
+    // Calculate spacing
+    const xSpacing = (endX - startX) / (this.NODES_PER_LAYER - 1);
+    const yPosition = startY + (row * (endY - startY) / (this.LAYER_COUNT - 1));
+
     for (let col = 0; col < this.NODES_PER_LAYER; col++) {
       const node: MapNode = {
         id: `${row}-${col}`,
         type: nodeTypes[col],
-        x: 300 + col * 200, // Evenly spaced columns: 300, 500, 700
-        y: 100 + row * 80, // Vertical spacing
+        x: startX + col * xSpacing,
+        y: yPosition,
         row,
         connections: [],
         visited: false,
@@ -111,13 +125,13 @@ export class MapGenerator {
         // Connect to same column
         possibleConnections.push(colIndex);
 
-        // Connect to adjacent columns
+        // Connect to adjacent columns (with bounds checking)
         if (colIndex > 0) possibleConnections.push(colIndex - 1);
-        if (colIndex < 2) possibleConnections.push(colIndex + 1);
+        if (colIndex < this.NODES_PER_LAYER - 1) possibleConnections.push(colIndex + 1);
 
         // Connect to all possible nodes in next layer
         possibleConnections.forEach((targetCol) => {
-          if (nextLayer.nodes[targetCol]) {
+          if (targetCol >= 0 && targetCol < nextLayer.nodes.length) {
             const targetNodeId = nextLayer.nodes[targetCol].id;
             if (!currentNode.connections.includes(targetNodeId)) {
               currentNode.connections.push(targetNodeId);

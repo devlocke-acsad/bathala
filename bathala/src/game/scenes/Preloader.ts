@@ -30,10 +30,16 @@ export class Preloader extends Scene {
     this.load.image("logo", "logo.png");
     this.load.image("bg", "bg.png");
 
-    // Player sprite sheet - 3 frames, 48x48 each (192x48 total)
+    // Player sprite sheet for Combat - 4 frames, 32x32 each (128x32 total)
     this.load.spritesheet("player", "sprites/player.png", {
-      frameWidth: 64,
-      frameHeight: 48,
+      frameWidth: 32,
+      frameHeight: 32,
+    });
+
+    // Avatar sprite sheet for Overworld - 3x3 grid, 16x16 each (48x48 total)
+    this.load.spritesheet("avatar", "sprites/avatar/avatar-test.png", {
+      frameWidth: 16,
+      frameHeight: 16,
     });
 
     // Enemy sprite sheet - 4 frames, 32x32 each (128x32 total)
@@ -45,8 +51,15 @@ export class Preloader extends Scene {
 
   create() {
     // Set pixel-perfect rendering for sprite textures
-    this.textures.get("player").setFilter(Phaser.Textures.FilterMode.NEAREST);
-    this.textures.get("enemy").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    if (this.textures.exists("player")) {
+      this.textures.get("player").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("enemy")) {
+      this.textures.get("enemy").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("avatar")) {
+      this.textures.get("avatar").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
 
     // Ensure fonts are loaded before proceeding
     this.waitForFontsToLoad().then(() => {
@@ -54,12 +67,13 @@ export class Preloader extends Scene {
       try {
         this.createPlayerAnimations();
         this.createEnemyAnimations();
+        this.createAvatarAnimations();
       } catch (error) {
         console.warn("Could not create sprite animations:", error);
       }
 
-      //  Move to the MainMenu
-      this.scene.start("MainMenu");
+      //  Move to the Overworld
+      this.scene.start("Overworld");
     });
   }
 
@@ -67,10 +81,63 @@ export class Preloader extends Scene {
    * Create player animations
    */
   private createPlayerAnimations(): void {
-    // Player idle animation (frames 0-2 for 3 total frames)
+    // Player idle animation (first frame)
     this.anims.create({
       key: "player_idle",
-      frames: this.anims.generateFrameNumbers("player", { start: 0, end: 2 }),
+      frames: [{ key: "player", frame: 0 }],
+      frameRate: 1,
+      repeat: -1,
+    });
+
+    // Player idle down animation (first frame)
+    this.anims.create({
+      key: "player_idle_down",
+      frames: [{ key: "player", frame: 0 }],
+      frameRate: 1,
+      repeat: -1,
+    });
+
+    // Player walk animation (frames 0-3)
+    this.anims.create({
+      key: "player_walk",
+      frames: this.anims.generateFrameNumbers("player", { start: 0, end: 3 }),
+      frameRate: 8,
+      repeat: -1,
+    });
+  }
+
+  /**
+   * Create avatar animations for Overworld
+   */
+  private createAvatarAnimations(): void {
+    // Avatar idle down animation (middle frame of bottom row)
+    this.anims.create({
+      key: "avatar_idle_down",
+      frames: [{ key: "avatar", frame: 1 }],
+      frameRate: 1,
+      repeat: -1,
+    });
+
+    // Avatar walk down animation (bottom row: frames 0,1,2)
+    this.anims.create({
+      key: "avatar_walk_down",
+      frames: this.anims.generateFrameNumbers("avatar", { start: 0, end: 2 }),
+      frameRate: 6,
+      repeat: -1,
+    });
+
+    // Avatar walk left animation (middle row: frames 3,4,5)
+    this.anims.create({
+      key: "avatar_walk_left",
+      frames: this.anims.generateFrameNumbers("avatar", { start: 3, end: 5 }),
+      frameRate: 6,
+      repeat: -1,
+    });
+
+    // Avatar walk right animation (top row: frames 6,7,8)
+    this.anims.create({
+      key: "avatar_walk_right",
+      frames: this.anims.generateFrameNumbers("avatar", { start: 6, end: 8 }),
       frameRate: 6,
       repeat: -1,
     });

@@ -2,7 +2,7 @@ import { Boot } from "./scenes/Boot";
 import { GameOver } from "./scenes/GameOver";
 import { Game as MainGame } from "./scenes/Game";
 import { MainMenu } from "./scenes/MainMenu";
-import { Map } from "./scenes/Map";
+import { Overworld } from "./scenes/Overworld";
 import { Combat } from "./scenes/Combat";
 import { AUTO, Game } from "phaser";
 import { Preloader } from "./scenes/Preloader";
@@ -15,7 +15,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: 768,
   parent: "game-container",
   backgroundColor: "#028af8",
-  scene: [Boot, Preloader, MainMenu, Map, Combat, MainGame, GameOver],
+  scene: [Boot, Preloader, MainMenu, Overworld, Combat, MainGame, GameOver],
 
   // Keep antialias off for crisp rendering, but don't force pixelArt globally
   // render: {
