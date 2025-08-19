@@ -385,7 +385,7 @@ export class Combat extends Scene {
 
     // Player sprite with idle animation
     this.playerSprite = this.add.sprite(playerX, playerY, "combat_player");
-    this.playerSprite.setScale(1); // 32x64 sprites, no additional scaling needed
+    this.playerSprite.setScale(2); // Scale up from 32x64 to 64x128
     this.playerSprite.setFlipX(true); // Flip to face right (toward enemy)
 
     // Try to play animation, fallback if it fails
@@ -464,7 +464,7 @@ export class Combat extends Scene {
 
     // Enemy sprite with idle animation
     this.enemySprite = this.add.sprite(enemyX, enemyY, enemySpriteKey);
-    this.enemySprite.setScale(1); // 75x100 sprites, no additional scaling needed
+    this.enemySprite.setScale(2.5); // Scale up from 75x100 to 187x250 (bigger than player)
 
     // Try to play animation, fallback if it fails
     try {
@@ -473,69 +473,48 @@ export class Combat extends Scene {
       console.warn(`Enemy idle animation ${enemyAnimationKey} not found, using static sprite`);
     }
 
-    // Enemy name
+    // Enemy name (positioned further from enemy due to larger sprite)
     this.add
-      .text(enemyX, enemyY - 120, this.combatState.enemy.name, {
+      .text(enemyX, enemyY - 170, this.combatState.enemy.name, {
         fontFamily: "Chivo",
-        fontSize: 20,
+        fontSize: 24, // Larger font size
         color: "#e8eced",
         align: "center",
       })
       .setOrigin(0.5);
 
-    // Health display
+    // Health display (positioned further from enemy due to larger sprite)
     this.enemyHealthText = this.add
-      .text(enemyX, enemyY + 80, "", {
+      .text(enemyX, enemyY - 140, "", {
         fontFamily: "Chivo",
-        fontSize: 18,
+        fontSize: 20, // Larger font size
         color: "#ff6b6b",
         align: "center",
       })
       .setOrigin(0.5);
 
-    // Block display
+    // Block display (positioned further from enemy due to larger sprite)
     this.enemyBlockText = this.add
-      .text(enemyX, enemyY + 105, "", {
+      .text(enemyX, enemyY - 110, "", {
         fontFamily: "Chivo",
-        fontSize: 16,
+        fontSize: 18,
         color: "#4ecdc4",
         align: "center",
       })
       .setOrigin(0.5);
 
-    // Intent display
+    // Intent display (positioned further from enemy due to larger sprite)
     this.enemyIntentText = this.add
-      .text(enemyX, enemyY - 80, "", {
+      .text(enemyX, enemyY + 170, "", {
         fontFamily: "Chivo",
-        fontSize: 16,
-        color: "#ffd93d",
+        fontSize: 18,
+        color: "#feca57",
         align: "center",
+        wordWrap: { width: 200 },
       })
-      .setOrigin(0.5)
-      .setInteractive();
+      .setOrigin(0.5);
 
-    const intentTooltip = this.add
-      .text(enemyX, enemyY - 50, "", {
-        fontFamily: "Chivo",
-        fontSize: 12,
-        color: "#ffffff",
-        backgroundColor: "#000000",
-        padding: { x: 5, y: 5 },
-      })
-      .setOrigin(0.5)
-      .setVisible(false);
-
-    this.enemyIntentText.on("pointerover", () => {
-      intentTooltip.setText(this.combatState.enemy.intent.description);
-      intentTooltip.setVisible(true);
-    });
-
-    this.enemyIntentText.on("pointerout", () => {
-      intentTooltip.setVisible(false);
-    });
-
-    this.enemyStatusContainer = this.add.container(enemyX, enemyY + 130);
-
+    // Update the health and block text
     this.updateEnemyUI();
   }
 
@@ -1265,7 +1244,7 @@ export class Combat extends Scene {
     }
     
     const enemyPortrait = this.add.sprite(512, 250, enemySpriteKey);
-    enemyPortrait.setScale(1);
+    enemyPortrait.setScale(3);
 
     // Try to play animation, fallback if it fails
     try {
