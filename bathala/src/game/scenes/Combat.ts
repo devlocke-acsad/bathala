@@ -1253,24 +1253,24 @@ export class Combat extends Scene {
       console.warn("Enemy portrait animation not found, using static sprite");
     }
 
-    // Enemy name
+    // Enemy name (larger font and positioned further from portrait due to larger sprite)
     this.add
-      .text(512, 200, dialogue.name, {
+      .text(512, 150, dialogue.name, {
         fontFamily: "Chivo",
-        fontSize: 24,
+        fontSize: 28, // Larger font size
         color: "#e8eced",
         align: "center",
       })
       .setOrigin(0.5);
 
-    // Main dialogue text
+    // Main dialogue text (positioned further down due to larger portrait)
     this.add
-      .text(512, 320, "You have defeated this creature. What do you choose?", {
+      .text(512, 370, "You have defeated this creature. What do you choose?", {
         fontFamily: "Chivo",
         fontSize: 18,
         color: "#e8eced",
         align: "center",
-        wordWrap: { width: 700 },
+        wordWrap: { width: 700 }, // Wider word wrap for better readability
       })
       .setOrigin(0.5);
 
