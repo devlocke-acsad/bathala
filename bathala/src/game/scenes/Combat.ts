@@ -45,6 +45,7 @@ export class Combat extends Scene {
   private relicsContainer!: Phaser.GameObjects.Container;
   private playerStatusContainer!: Phaser.GameObjects.Container;
   private enemyStatusContainer!: Phaser.GameObjects.Container;
+  private isActionProcessing: boolean = false; // Add this to prevent action spamming
 
   // Sprite references for animations
   private playerSprite!: Phaser.GameObjects.Sprite;
@@ -514,6 +515,9 @@ export class Combat extends Scene {
       })
       .setOrigin(0.5);
 
+    // Status effects container
+    this.enemyStatusContainer = this.add.container(enemyX, enemyY + 200);
+
     // Update the health and block text
     this.updateEnemyUI();
   }
@@ -717,7 +721,14 @@ export class Combat extends Scene {
       new Phaser.Geom.Rectangle(-50, -12.5, 100, 25),
       Phaser.Geom.Rectangle.Contains
     );
-    button.on("pointerdown", callback);
+    button.on("pointerdown", () => {
+      // Check if action processing is active
+      if (this.isActionProcessing) {
+        console.log("Action processing, ignoring button click");
+        return;
+      }
+      callback();
+    });
     button.on("pointerover", () => bg.setFillStyle(0x3d4454));
     button.on("pointerout", () => bg.setFillStyle(0x2f3542));
 
@@ -941,6 +952,7 @@ export class Combat extends Scene {
       if (enemy.statusEffects.some((e) => e.name === "Weak")) {
         damage *= 0.5;
       }
+      this.animateEnemyAttack(); // Add animation when enemy attacks
       this.damagePlayer(damage);
     }
 
@@ -948,9 +960,9 @@ export class Combat extends Scene {
     this.updateEnemyIntent();
 
     // Start new player turn
-    setTimeout(() => {
+    this.time.delayedCall(1500, () => {
       this.startPlayerTurn();
-    }, 1500);
+    });
   }
 
   /**
@@ -978,6 +990,10 @@ export class Combat extends Scene {
     this.updateTurnUI();
     this.updateHandDisplay();
     this.updateActionButtons(); // Reset to card selection buttons
+    
+    // Ensure action processing is reset
+    this.isActionProcessing = false;
+    this.setActionButtonsEnabled(true);
   }
 
   /**
@@ -1008,22 +1024,35 @@ export class Combat extends Scene {
    * Apply damage to enemy
    */
   private damageEnemy(damage: number): void {
+    console.log(`Applying ${damage} damage to enemy`);
     let finalDamage = damage;
     if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
       finalDamage *= 1.5;
+      console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
     }
     const actualDamage = Math.max(0, finalDamage - this.combatState.enemy.block);
+    console.log(`Enemy has ${this.combatState.enemy.block} block, taking ${actualDamage} actual damage`);
+    
     this.combatState.enemy.currentHealth -= actualDamage;
     this.combatState.enemy.block = Math.max(
       0,
       this.combatState.enemy.block - finalDamage
     );
+    
+    console.log(`Enemy health: ${this.combatState.enemy.currentHealth}/${this.combatState.enemy.maxHealth}`);
 
     // Add visual feedback for enemy taking damage
     this.animateSpriteDamage(this.enemySprite);
+    this.updateEnemyUI();
 
+    // Check if enemy is defeated
     if (this.combatState.enemy.currentHealth <= 0) {
-      this.endCombat(true);
+      this.combatState.enemy.currentHealth = 0;
+      this.updateEnemyUI();
+      console.log("Enemy defeated!");
+      this.time.delayedCall(500, () => {
+        this.endCombat(true);
+      });
     }
   }
 
@@ -1031,24 +1060,35 @@ export class Combat extends Scene {
    * Apply damage to player
    */
   private damagePlayer(damage: number): void {
+    console.log(`Applying ${damage} damage to player`);
     let finalDamage = damage;
     if (this.combatState.player.statusEffects.some((e) => e.name === "Vulnerable")) {
       finalDamage *= 1.5;
+      console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
     }
     const actualDamage = Math.max(0, finalDamage - this.combatState.player.block);
+    console.log(`Player has ${this.combatState.player.block} block, taking ${actualDamage} actual damage`);
+    
     this.combatState.player.currentHealth -= actualDamage;
     this.combatState.player.block = Math.max(
       0,
       this.combatState.player.block - finalDamage
     );
+    
+    console.log(`Player health: ${this.combatState.player.currentHealth}/${this.combatState.player.maxHealth}`);
 
     // Add visual feedback for player taking damage
     this.animateSpriteDamage(this.playerSprite);
-
     this.updatePlayerUI();
 
+    // Check if player is defeated
     if (this.combatState.player.currentHealth <= 0) {
-      this.endCombat(false);
+      this.combatState.player.currentHealth = 0;
+      this.updatePlayerUI();
+      console.log("Player defeated!");
+      this.time.delayedCall(500, () => {
+        this.endCombat(false);
+      });
     }
   }
 
@@ -1160,6 +1200,13 @@ export class Combat extends Scene {
    * End combat with result
    */
   private endCombat(victory: boolean): void {
+    // Prevent multiple end combat calls
+    if (this.combatState.phase === "ended") {
+      return;
+    }
+    
+    this.combatState.phase = "ended";
+    
     if (victory) {
       const gameState = GameState.getInstance();
       const currentNode = gameState.getCurrentNode();
@@ -1172,9 +1219,11 @@ export class Combat extends Scene {
         });
         this.updateRelicsUI();
       }
-    }
-
-    if (!victory) {
+      
+      // Victory - show post-combat dialogue
+      this.combatState.phase = "post_combat";
+      this.showPostCombatDialogue();
+    } else {
       // Player defeated - show game over
       const resultText = "Defeat!";
       const color = "#ff4757";
@@ -1189,18 +1238,10 @@ export class Combat extends Scene {
         .setOrigin(0.5);
 
       // Return to overworld after 3 seconds
-      setTimeout(() => {
-        // Update game state before returning
-        const gameState = GameState.getInstance();
-        gameState.completeCurrentNode(false); // Mark as completed (defeat)
+      this.time.delayedCall(3000, () => {
         this.scene.start("Overworld");
-      }, 3000);
-      return;
+      });
     }
-
-    // Victory - show post-combat dialogue
-    this.combatState.phase = "post_combat";
-    this.showPostCombatDialogue();
   }
 
   /**
@@ -1631,17 +1672,31 @@ export class Combat extends Scene {
     return specialActions[suit];
   }
 
-  /**
-   * Get special action name based on dominant suit
-   */
   private executeAction(actionType: "attack" | "defend" | "special"): void {
+    // Prevent action spamming
+    if (this.isActionProcessing) {
+      console.log("Action already processing, ignoring input");
+      return;
+    }
+    
+    // Set processing flag
+    this.isActionProcessing = true;
+    
+    // Visually disable action buttons
+    this.setActionButtonsEnabled(false);
+    
+    console.log(`Executing action: ${actionType}`);
+    
     const evaluation = HandEvaluator.evaluateHand(
       this.combatState.player.playedHand,
       actionType
     );
+    console.log(`Hand evaluation:`, evaluation);
+    
     const dominantSuit = this.getDominantSuit(
       this.combatState.player.playedHand
     );
+    console.log(`Dominant suit: ${dominantSuit}`);
 
     let damage = 0;
     let block = 0;
@@ -1653,17 +1708,22 @@ export class Combat extends Scene {
         const strength = this.combatState.player.statusEffects.find((e) => e.name === "Strength");
         if (strength) {
           damage += strength.value;
+          console.log(`Strength bonus applied: +${strength.value} damage`);
         }
+        console.log(`Total attack damage: ${damage}`);
         break;
       case "defend":
         block += evaluation.totalValue;
         const dexterity = this.combatState.player.statusEffects.find((e) => e.name === "Dexterity");
         if (dexterity) {
           block += dexterity.value;
+          console.log(`Dexterity bonus applied: +${dexterity.value} block`);
         }
+        console.log(`Total block gained: ${block}`);
         break;
       case "special":
         this.showActionResult(this.getSpecialActionName(dominantSuit));
+        console.log(`Special action executed: ${this.getSpecialActionName(dominantSuit)}`);
         // Special actions have unique effects based on suit
         break;
     }
@@ -1672,6 +1732,8 @@ export class Combat extends Scene {
     this.applyElementalEffects(actionType, dominantSuit, evaluation.totalValue);
 
     if (damage > 0) {
+      console.log(`Animating player attack and dealing ${damage} damage`);
+      this.animatePlayerAttack(); // Add animation when attacking
       this.damageEnemy(damage);
       this.showActionResult(`Attacked for ${damage} damage!`);
     }
@@ -1681,29 +1743,17 @@ export class Combat extends Scene {
       this.updatePlayerUI();
       this.showActionResult(`Gained ${block} block!`);
     }
-
-    // Move played cards to discard pile
-    this.combatState.player.discardPile.push(
-      ...this.combatState.player.playedHand
-    );
-    this.combatState.player.playedHand = [];
-
-    // Clear selected cards
-    this.selectedCards = [];
-
-    // Update displays
-    this.updatePlayedHandDisplay();
-
-    // Check if enemy is defeated
-    if (this.combatState.enemy.currentHealth <= 0) {
-      this.endCombat(true);
-      return;
-    }
-
-    // In Balatro style, turn ends immediately after playing one hand
-    setTimeout(() => {
-      this.endPlayerTurn();
-    }, 1500);
+    
+    // Process enemy turn after a short delay to allow player to see results
+    this.time.delayedCall(1000, () => {
+      console.log("Processing enemy turn");
+      // Process enemy action
+      this.executeEnemyTurn();
+      // Reset processing flag after enemy turn
+      this.isActionProcessing = false;
+      // Re-enable action buttons
+      this.setActionButtonsEnabled(true);
+    });
   }
 
   private applyElementalEffects(
@@ -1878,6 +1928,23 @@ export class Combat extends Scene {
   }
 
   /**
+   * Animate enemy attack (move forward and back)
+   */
+  private animateEnemyAttack(): void {
+    const originalX = this.enemySprite.x;
+    this.tweens.add({
+      targets: this.enemySprite,
+      x: originalX - 50,
+      duration: 200,
+      yoyo: true,
+      ease: "Power2",
+      onComplete: () => {
+        this.enemySprite.setX(originalX);
+      },
+    });
+  }
+
+  /**
    * Animate player attack (move forward and back)
    */
   private animatePlayerAttack(): void {
@@ -1942,8 +2009,26 @@ export class Combat extends Scene {
   }
 
   private updateStatusEffectUI(entity: Player | Enemy): void {
+    // Check if containers are initialized
+    if (!this.playerStatusContainer || !this.enemyStatusContainer) {
+      console.warn("Status containers not initialized");
+      return;
+    }
+    
     const statusContainer = entity.id === "player" ? this.playerStatusContainer : this.enemyStatusContainer;
-    statusContainer.removeAll(true);
+    
+    // Check if container exists before trying to access it
+    if (!statusContainer) {
+      console.warn("Status container not found for entity:", entity.id);
+      return;
+    }
+    
+    try {
+      statusContainer.removeAll(true);
+    } catch (error) {
+      console.warn("Error removing status container contents:", error);
+      return;
+    }
 
     let x = 0;
     entity.statusEffects.forEach((effect) => {
@@ -1977,6 +2062,24 @@ export class Combat extends Scene {
       this.damagePlayer(amount);
     } else {
       this.damageEnemy(amount);
+    }
+  }
+
+  /**
+   * Enable or disable action buttons
+   */
+  private setActionButtonsEnabled(enabled: boolean): void {
+    if (this.actionButtons) {
+      this.actionButtons.getAll().forEach((child) => {
+        if (child instanceof Phaser.GameObjects.Container) {
+          child.input.enabled = enabled;
+          // Visually indicate disabled state
+          const bg = child.getAt(0) as Phaser.GameObjects.Rectangle;
+          if (bg) {
+            bg.setFillStyle(enabled ? 0x2f3542 : 0x1a1d26);
+          }
+        }
+      });
     }
   }
 
