@@ -30,10 +30,10 @@ export class Preloader extends Scene {
     this.load.image("logo", "logo.png");
     this.load.image("bg", "bg.png");
 
-    // Player sprite sheet for Combat - 4 frames, 32x32 each (128x32 total)
-    this.load.spritesheet("player", "sprites/player.png", {
+    // Player sprite sheet for Combat - 32x64 each
+    this.load.spritesheet("combat_player", "sprites/combat/player/player_combat.png", {
       frameWidth: 32,
-      frameHeight: 32,
+      frameHeight: 64,
     });
 
     // Avatar sprite sheet for Overworld - 1 row, 10 columns of 16x16 (160x16 total)
@@ -42,10 +42,20 @@ export class Preloader extends Scene {
       frameHeight: 16,
     });
 
-    // Enemy sprite sheet - 4 frames, 32x32 each (128x32 total)
-    this.load.spritesheet("enemy", "sprites/enemy.png", {
-      frameWidth: 32,
-      frameHeight: 32,
+    // Enemy sprite sheets for Combat - 75x100 each
+    this.load.spritesheet("balete", "sprites/combat/enemy/balete_sprite.png", {
+      frameWidth: 75,
+      frameHeight: 100,
+    });
+    
+    this.load.spritesheet("sigbin", "sprites/combat/enemy/sigbin_sprite.png", {
+      frameWidth: 75,
+      frameHeight: 100,
+    });
+    
+    this.load.spritesheet("tikbalang", "sprites/combat/enemy/tikbalang_sprite.png", {
+      frameWidth: 75,
+      frameHeight: 100,
     });
     
     // Debug: Log when assets are loaded
@@ -56,11 +66,17 @@ export class Preloader extends Scene {
 
   create() {
     // Set pixel-perfect rendering for sprite textures
-    if (this.textures.exists("player")) {
-      this.textures.get("player").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    if (this.textures.exists("combat_player")) {
+      this.textures.get("combat_player").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
-    if (this.textures.exists("enemy")) {
-      this.textures.get("enemy").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    if (this.textures.exists("balete")) {
+      this.textures.get("balete").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("sigbin")) {
+      this.textures.get("sigbin").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("tikbalang")) {
+      this.textures.get("tikbalang").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
     if (this.textures.exists("overworld_player")) {
       this.textures.get("overworld_player").setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -86,34 +102,29 @@ export class Preloader extends Scene {
    * Create player animations
    */
   private createPlayerAnimations(): void {
-    console.log("Creating player animations");
-    
     // Player idle animation (first frame)
     this.anims.create({
       key: "player_idle",
-      frames: [{ key: "player", frame: 0 }],
+      frames: [{ key: "combat_player", frame: 0 }],
       frameRate: 1,
       repeat: -1,
     });
-    console.log("Created player_idle animation");
 
     // Player idle down animation (first frame)
     this.anims.create({
       key: "player_idle_down",
-      frames: [{ key: "player", frame: 0 }],
+      frames: [{ key: "combat_player", frame: 0 }],
       frameRate: 1,
       repeat: -1,
     });
-    console.log("Created player_idle_down animation");
 
     // Player walk animation (frames 0-3)
     this.anims.create({
       key: "player_walk",
-      frames: this.anims.generateFrameNumbers("player", { start: 0, end: 3 }),
+      frames: this.anims.generateFrameNumbers("combat_player", { start: 0, end: 3 }),
       frameRate: 8,
       repeat: -1,
     });
-    console.log("Created player_walk animation");
   }
 
   /**
@@ -196,16 +207,37 @@ export class Preloader extends Scene {
   }
 
   /**
-   * Create enemy animations
+   * Create enemy animations for Combat
    */
   private createEnemyAnimations(): void {
-    // Enemy idle animation (frames 0-3)
+    console.log("Creating enemy animations");
+    
+    // Balete idle animation
     this.anims.create({
-      key: "enemy_idle",
-      frames: this.anims.generateFrameNumbers("enemy", { start: 0, end: 3 }),
+      key: "balete_idle",
+      frames: this.anims.generateFrameNumbers("balete", { start: 0, end: 3 }),
       frameRate: 8,
       repeat: -1,
     });
+    console.log("Created balete_idle animation");
+    
+    // Sigbin idle animation
+    this.anims.create({
+      key: "sigbin_idle",
+      frames: this.anims.generateFrameNumbers("sigbin", { start: 0, end: 3 }),
+      frameRate: 8,
+      repeat: -1,
+    });
+    console.log("Created sigbin_idle animation");
+    
+    // Tikbalang idle animation
+    this.anims.create({
+      key: "tikbalang_idle",
+      frames: this.anims.generateFrameNumbers("tikbalang", { start: 0, end: 3 }),
+      frameRate: 8,
+      repeat: -1,
+    });
+    console.log("Created tikbalang_idle animation");
   }
 
   /**

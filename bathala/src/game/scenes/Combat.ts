@@ -384,8 +384,8 @@ export class Combat extends Scene {
     const playerY = 300;
 
     // Player sprite with idle animation
-    this.playerSprite = this.add.sprite(playerX, playerY, "player");
-    this.playerSprite.setScale(2); // Scale up from 48x48 to 96x96
+    this.playerSprite = this.add.sprite(playerX, playerY, "combat_player");
+    this.playerSprite.setScale(1); // 32x64 sprites, no additional scaling needed
     this.playerSprite.setFlipX(true); // Flip to face right (toward enemy)
 
     // Try to play animation, fallback if it fails
@@ -435,15 +435,42 @@ export class Combat extends Scene {
     const enemyX = 824;
     const enemyY = 300;
 
+    // Determine which enemy sprite to use based on enemy type
+    let enemySpriteKey = "balete"; // default
+    let enemyAnimationKey = "balete_idle"; // default
+    
+    // Check enemy name to determine sprite
+    const enemyName = this.combatState.enemy.name.toLowerCase();
+    if (enemyName.includes("balete")) {
+      enemySpriteKey = "balete";
+      enemyAnimationKey = "balete_idle";
+    } else if (enemyName.includes("sigbin")) {
+      enemySpriteKey = "sigbin";
+      enemyAnimationKey = "sigbin_idle";
+    } else if (enemyName.includes("tikbalang")) {
+      enemySpriteKey = "tikbalang";
+      enemyAnimationKey = "tikbalang_idle";
+    } else {
+      // Alternate between the three sprites for other enemies
+      const spriteOptions = [
+        { key: "balete", anim: "balete_idle" },
+        { key: "sigbin", anim: "sigbin_idle" },
+        { key: "tikbalang", anim: "tikbalang_idle" }
+      ];
+      const randomIndex = Math.floor(Math.random() * spriteOptions.length);
+      enemySpriteKey = spriteOptions[randomIndex].key;
+      enemyAnimationKey = spriteOptions[randomIndex].anim;
+    }
+
     // Enemy sprite with idle animation
-    this.enemySprite = this.add.sprite(enemyX, enemyY, "enemy");
-    this.enemySprite.setScale(3); // Scale up from 32x32 to 96x96
+    this.enemySprite = this.add.sprite(enemyX, enemyY, enemySpriteKey);
+    this.enemySprite.setScale(1); // 75x100 sprites, no additional scaling needed
 
     // Try to play animation, fallback if it fails
     try {
-      this.enemySprite.play("enemy_idle");
+      this.enemySprite.play(enemyAnimationKey);
     } catch (error) {
-      console.warn("Enemy idle animation not found, using static sprite");
+      console.warn(`Enemy idle animation ${enemyAnimationKey} not found, using static sprite`);
     }
 
     // Enemy name
@@ -1187,7 +1214,7 @@ export class Combat extends Scene {
         // Update game state before returning
         const gameState = GameState.getInstance();
         gameState.completeCurrentNode(false); // Mark as completed (defeat)
-        this.scene.start("Map");
+        this.scene.start("Overworld");
       }, 3000);
       return;
     }
@@ -1219,8 +1246,26 @@ export class Combat extends Scene {
     dialogueBox.setStrokeStyle(3, 0x57606f);
 
     // Enemy portrait (sprite instead of emoji)
-    const enemyPortrait = this.add.sprite(512, 250, "enemy");
-    enemyPortrait.setScale(2);
+    // Determine which enemy sprite to use based on enemy type
+    let enemySpriteKey = "balete"; // default
+    
+    // Check enemy name to determine sprite
+    const enemyName = this.combatState.enemy.name.toLowerCase();
+    if (enemyName.includes("balete")) {
+      enemySpriteKey = "balete";
+    } else if (enemyName.includes("sigbin")) {
+      enemySpriteKey = "sigbin";
+    } else if (enemyName.includes("tikbalang")) {
+      enemySpriteKey = "tikbalang";
+    } else {
+      // Alternate between the three sprites for other enemies
+      const spriteOptions = ["balete", "sigbin", "tikbalang"];
+      const randomIndex = Math.floor(Math.random() * spriteOptions.length);
+      enemySpriteKey = spriteOptions[randomIndex];
+    }
+    
+    const enemyPortrait = this.add.sprite(512, 250, enemySpriteKey);
+    enemyPortrait.setScale(1);
 
     // Try to play animation, fallback if it fails
     try {
