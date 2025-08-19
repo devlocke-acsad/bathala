@@ -58,7 +58,7 @@ export class Overworld extends Scene {
       }
     }
     
-    this.player = this.add.sprite(startX, startY, "avatar");
+    this.player = this.add.sprite(startX, startY, "overworld_player");
     this.player.setScale(2); // Scale up from 16x16 to 32x32
     this.player.setOrigin(0.5); // Center the sprite
     this.player.setDepth(1000); // Ensure player is above everything
@@ -191,7 +191,7 @@ export class Overworld extends Scene {
     } else if (this.cursors.right.isDown || this.wasdKeys['D'].isDown) {
       this.movePlayer(this.gridSize, 0, "avatar_walk_right");
     } else if (this.cursors.up.isDown || this.wasdKeys['W'].isDown) {
-      this.movePlayer(0, -this.gridSize, "avatar_walk_down");
+      this.movePlayer(0, -this.gridSize, "avatar_walk_up");
     } else if (this.cursors.down.isDown || this.wasdKeys['S'].isDown) {
       this.movePlayer(0, this.gridSize, "avatar_walk_down");
     }
@@ -249,9 +249,18 @@ export class Overworld extends Scene {
         onComplete: () => {
           this.isMoving = false;
           this.checkNodeInteraction();
-          // Play idle animation after movement
-          console.log("Playing idle animation");
-          this.player.play("avatar_idle_down");
+          // Play idle animation after movement based on direction
+          if (animation.includes("down")) {
+            this.player.play("avatar_idle_down");
+          } else if (animation.includes("up")) {
+            this.player.play("avatar_idle_up");
+          } else if (animation.includes("left")) {
+            this.player.play("avatar_idle_left");
+          } else if (animation.includes("right")) {
+            this.player.play("avatar_idle_right");
+          } else {
+            this.player.play("avatar_idle_down");
+          }
           
           // Update visible chunks as player moves
           this.updateVisibleChunks();
@@ -262,7 +271,18 @@ export class Overworld extends Scene {
       // Invalid move, just reset the moving flag
       this.isMoving = false;
       console.log("Invalid move, playing idle animation");
-      this.player.play("avatar_idle_down");
+      // Play appropriate idle animation based on last movement direction
+      if (animation.includes("down")) {
+        this.player.play("avatar_idle_down");
+      } else if (animation.includes("up")) {
+        this.player.play("avatar_idle_up");
+      } else if (animation.includes("left")) {
+        this.player.play("avatar_idle_left");
+      } else if (animation.includes("right")) {
+        this.player.play("avatar_idle_right");
+      } else {
+        this.player.play("avatar_idle_down");
+      }
     }
   }
 
