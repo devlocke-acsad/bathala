@@ -1,18 +1,14 @@
-# Phaser Vite TypeScript Template
+# Bathala: A Filipino-Mythology Roguelike Card Game
 
-This is a Phaser 3 project template that uses Vite for bundling. It supports hot-reloading for quick development workflow, includes TypeScript support and scripts to generate production-ready builds.
+This is the implementation of **Bathala**, a Filipino mythology-inspired roguelike card game featuring poker-based combat, deck-sculpting mechanics, and a rule-based Dynamic Difficulty Adjustment (DDA) system. This project serves as a thesis focusing on the design and validation of a transparent, rule-based DDA system to maintain player "flow" through measurable performance metrics.
 
-**[This Template is also available as a JavaScript version.](https://github.com/phaserjs/template-vite)**
-
-### Versions
-
-This template has been updated for:
-
-- [Phaser 3.90.0](https://github.com/phaserjs/phaser)
-- [Vite 6.3.1](https://github.com/vitejs/vite)
-- [TypeScript 5.7.2](https://github.com/microsoft/TypeScript)
+Built with [Phaser 3.90.0](https://github.com/phaserjs/phaser) and [Vite 6.3.1](https://github.com/vitejs/vite) for bundling with TypeScript support.
 
 ![screenshot](screenshot.png)
+
+## 🎓 Thesis Project
+
+This project is part of a thesis on game design and dynamic difficulty adjustment systems. The core research focuses on maintaining player "flow" using a rule-based system that adapts to performance metrics without affecting the core game experience.
 
 ## Requirements
 
@@ -25,10 +21,10 @@ This template has been updated for:
 | `npm install` | Install project dependencies |
 | `npm run dev` | Launch a development web server |
 | `npm run build` | Create a production build in the `dist` folder |
-| `npm run dev-nolog` | Launch a development web server without sending anonymous data (see "About log.js" below) |
-| `npm run build-nolog` | Create a production build in the `dist` folder without sending anonymous data (see "About log.js" below) |
+| `npm run dev-nolog` | Launch a development web server without sending anonymous data |
+| `npm run build-nolog` | Create a production build without sending anonymous data |
 
-## Writing Code
+## Getting Started
 
 After cloning the repo, run `npm install` from your project directory. Then, you can start the local development server by running `npm run dev`.
 
@@ -36,24 +32,20 @@ The local development server runs on `http://localhost:8080` by default. Please 
 
 Once the server is running you can edit any of the files in the `src` folder. Vite will automatically recompile your code and then reload the browser.
 
-## Template Project Structure
+## Project Structure
 
-We have provided a default project structure to get you started. This is as follows:
-
-## Template Project Structure
-
-We have provided a default project structure to get you started:
+We have adapted the default template structure to fit our thesis project:
 
 | Path                         | Description                                                |
 |------------------------------|------------------------------------------------------------|
-| `index.html`                 | A basic HTML page to contain the game.                     |
-| `public/assets`              | Game sprites, audio, etc. Served directly at runtime.      |
-| `public/style.css`           | Global layout styles.                                      |
-| `src/main.ts`                | Application bootstrap.                                     |
-| `src/game`                   | Folder containing the game code.                           |
-| `src/game/main.ts`           | Game entry point: configures and starts the game.          |
-| `src/game/scenes`            | Folder with all Phaser game scenes.                        | 
-
+| `index.html`                 | Main HTML page containing the game canvas                  |
+| `public/assets`              | Game sprites, audio, etc. Served directly at runtime       |
+| `public/style.css`           | Global layout styles                                       |
+| `src/main.ts`                | Application bootstrap                                      |
+| `src/core`                   | Core game systems (combat, DDA, progression)               |
+| `src/data`                   | Game data (cards, enemies, relics, potions)                |
+| `src/utils`                  | Utility functions and helpers                              |
+| `src/tests`                  | Unit and integration tests                                 |
 
 ## Handling Assets
 
@@ -87,12 +79,6 @@ When you issue the `npm run build` command, all static assets are automatically 
 After you run the `npm run build` command, your code will be built into a single bundle and saved to the `dist` folder, along with any other assets your project imported, or stored in the public assets folder.
 
 In order to deploy your game, you will need to upload *all* of the contents of the `dist` folder to a public facing web server.
-
-## Customizing the Template
-
-### Vite
-
-If you want to customize your build, such as adding plugin (i.e. for loading CSS or fonts), you can modify the `vite/config.*.mjs` file for cross-project changes, or you can modify and/or create new configuration files and target them in specific npm tasks inside of `package.json`. Please see the [Vite documentation](https://vitejs.dev/) for more information.
 
 ## About log.js
 
