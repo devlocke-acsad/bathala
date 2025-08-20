@@ -180,15 +180,16 @@ export class Overworld extends Scene {
       return;
     }
 
-    // Check for input
-    if (this.cursors.left.isDown || this.wasdKeys['A'].isDown) {
-      this.movePlayer(-this.gridSize, 0, "avatar_walk_left");
-    } else if (this.cursors.right.isDown || this.wasdKeys['D'].isDown) {
-      this.movePlayer(this.gridSize, 0, "avatar_walk_right");
-    } else if (this.cursors.up.isDown || this.wasdKeys['W'].isDown) {
+    // Check for input - handle multiple directions with priority
+    // Up/Down takes priority over Left/Right
+    if (this.cursors.up.isDown || this.wasdKeys['W'].isDown) {
       this.movePlayer(0, -this.gridSize, "avatar_walk_up");
     } else if (this.cursors.down.isDown || this.wasdKeys['S'].isDown) {
       this.movePlayer(0, this.gridSize, "avatar_walk_down");
+    } else if (this.cursors.left.isDown || this.wasdKeys['A'].isDown) {
+      this.movePlayer(-this.gridSize, 0, "avatar_walk_left");
+    } else if (this.cursors.right.isDown || this.wasdKeys['D'].isDown) {
+      this.movePlayer(this.gridSize, 0, "avatar_walk_right");
     }
     
     // Check for Enter key to interact with nodes
@@ -229,9 +230,17 @@ export class Overworld extends Scene {
     // Set moving flag to prevent input during movement
     this.isMoving = true;
 
-    // Play walking animation
+    // Play walking animation with error checking
     console.log("Playing animation:", animation);
-    this.player.play(animation, true);
+    if (this.anims.exists(animation)) {
+      try {
+        this.player.play(animation, true);
+      } catch (error) {
+        console.warn("Failed to play animation:", animation, error);
+      }
+    } else {
+      console.warn("Animation not found:", animation);
+    }
 
     // Calculate new position
     let newX = this.player.x + deltaX;
@@ -255,16 +264,26 @@ export class Overworld extends Scene {
           this.isMoving = false;
           this.checkNodeInteraction();
           // Play idle animation after movement based on direction
+          let idleAnimation = "avatar_idle_down";
           if (animation.includes("down")) {
-            this.player.play("avatar_idle_down");
+            idleAnimation = "avatar_idle_down";
           } else if (animation.includes("up")) {
-            this.player.play("avatar_idle_up");
+            idleAnimation = "avatar_idle_up";
           } else if (animation.includes("left")) {
-            this.player.play("avatar_idle_left");
+            idleAnimation = "avatar_idle_left";
           } else if (animation.includes("right")) {
-            this.player.play("avatar_idle_right");
+            idleAnimation = "avatar_idle_right";
+          }
+          
+          console.log("Playing idle animation:", idleAnimation);
+          if (this.anims.exists(idleAnimation)) {
+            try {
+              this.player.play(idleAnimation);
+            } catch (error) {
+              console.warn("Failed to play idle animation:", idleAnimation, error);
+            }
           } else {
-            this.player.play("avatar_idle_down");
+            console.warn("Idle animation not found:", idleAnimation);
           }
           
           // Update visible chunks as player moves
@@ -277,16 +296,25 @@ export class Overworld extends Scene {
       this.isMoving = false;
       console.log("Invalid move, playing idle animation");
       // Play appropriate idle animation based on last movement direction
+      let idleAnimation = "avatar_idle_down";
       if (animation.includes("down")) {
-        this.player.play("avatar_idle_down");
+        idleAnimation = "avatar_idle_down";
       } else if (animation.includes("up")) {
-        this.player.play("avatar_idle_up");
+        idleAnimation = "avatar_idle_up";
       } else if (animation.includes("left")) {
-        this.player.play("avatar_idle_left");
+        idleAnimation = "avatar_idle_left";
       } else if (animation.includes("right")) {
-        this.player.play("avatar_idle_right");
+        idleAnimation = "avatar_idle_right";
+      }
+      
+      if (this.anims.exists(idleAnimation)) {
+        try {
+          this.player.play(idleAnimation);
+        } catch (error) {
+          console.warn("Failed to play idle animation:", idleAnimation, error);
+        }
       } else {
-        this.player.play("avatar_idle_down");
+        console.warn("Idle animation not found:", idleAnimation);
       }
     }
   }
@@ -470,12 +498,138 @@ export class Overworld extends Scene {
 
     if (nodeIndex !== -1) {
       const node = this.nodes[nodeIndex];
-      if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
-        // Remove the node from the list so it doesn't trigger again
-        this.nodes.splice(nodeIndex, 1);
-        this.startCombat(node.type);
+      
+      // Handle different node types
+      switch (node.type) {
+        case "combat":
+        case "elite":
+        case "boss":
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          this.startCombat(node.type);
+          break;
+          
+        case "shop":
+          // Test event for shop
+          this.showNodeEvent("Shop", "Welcome to the shop! Here you can buy cards and relics.", 0x00ff00);
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          break;
+          
+        case "event":
+          // Test event for random event
+          this.showNodeEvent("Mysterious Event", "You encounter a mysterious figure who offers you a choice...", 0x0000ff);
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          break;
+          
+        case "campfire":
+          // Test event for campfire/rest
+          this.showNodeEvent("Campfire", "You rest at the campfire and heal some HP.", 0xff4500);
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          break;
+          
+        case "treasure":
+          // Test event for treasure
+          this.showNodeEvent("Treasure!", "You found a treasure chest! Gained 50 gold.", 0xffff00);
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          break;
       }
     }
+  }
+
+  /**
+   * Show a simple event dialog for node interactions
+   */
+  private showNodeEvent(title: string, message: string, color: number): void {
+    // Disable player movement during event
+    this.isMoving = true;
+    
+    // Create overlay
+    const overlay = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000
+    ).setAlpha(0.7).setScrollFactor(0).setDepth(2000);
+    
+    // Create dialog box
+    const dialogBox = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      600,
+      300,
+      0x2f3542
+    ).setStrokeStyle(3, color).setScrollFactor(0).setDepth(2001);
+    
+    // Create title
+    const titleText = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2 - 100,
+      title,
+      {
+        fontFamily: "Centrion",
+        fontSize: 32,
+        color: `#${color.toString(16).padStart(6, '0')}`,
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(2002);
+    
+    // Create message
+    const messageText = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      message,
+      {
+        fontFamily: "Centrion",
+        fontSize: 18,
+        color: "#e8eced",
+        align: "center",
+        wordWrap: { width: 500 }
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(2002);
+    
+    // Create continue button
+    const continueButton = this.add.container(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2 + 100
+    ).setScrollFactor(0).setDepth(2002);
+    
+    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x3d4454)
+      .setStrokeStyle(2, color);
+    const buttonText = this.add.text(0, 0, "Continue", {
+      fontFamily: "Centrion",
+      fontSize: 18,
+      color: "#e8eced"
+    }).setOrigin(0.5);
+    
+    continueButton.add([buttonBg, buttonText]);
+    continueButton.setInteractive(
+      new Phaser.Geom.Rectangle(-75, -20, 150, 40),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    continueButton.on('pointerdown', () => {
+      // Clean up dialog elements
+      overlay.destroy();
+      dialogBox.destroy();
+      titleText.destroy();
+      messageText.destroy();
+      continueButton.destroy();
+      
+      // Re-enable player movement
+      this.isMoving = false;
+    });
+    
+    continueButton.on('pointerover', () => {
+      buttonBg.setFillStyle(0x4a5464);
+    });
+    
+    continueButton.on('pointerout', () => {
+      buttonBg.setFillStyle(0x3d4454);
+    });
   }
 
   startCombat(nodeType: string): void {
