@@ -378,61 +378,79 @@ export class Overworld extends Scene {
   }
 
   renderNode(node: MapNode): void {
-    let displayChar = "";
-    let displayColor = 0x000000;
-    switch (node.type) {
-      case "combat":
-        displayChar = "⚔️";
-        displayColor = 0xff0000;
-        break;
-      case "elite":
-        displayChar = "👹";
-        displayColor = 0xffa500;
-        break;
-      case "boss":
-        displayChar = "👑";
-        displayColor = 0x800080;
-        break;
-      case "shop":
-        displayChar = "💰";
-        displayColor = 0x00ff00;
-        break;
-      case "event":
-        displayChar = "❓";
-        displayColor = 0x0000ff;
-        break;
-      case "campfire":
-        displayChar = "🔥";
-        displayColor = 0xff4500;
-        break;
-      case "treasure":
-        displayChar = "💎";
-        displayColor = 0xffff00;
-        break;
-    }
-    
-    // Create a visual indicator for the node
+    // Create a visual indicator for the node with a circle background
     const nodeIndicator = this.add.circle(
       node.x + this.gridSize / 2, 
       node.y + this.gridSize / 2, 
       this.gridSize / 2 - 2, 
-      displayColor, 
-      0.3
+      0x000000, // Black background
+      0.5 // 50% opacity
     );
     nodeIndicator.setOrigin(0.5);
     nodeIndicator.setDepth(500); // Above maze but below player
     
-    // Add the emoji/text
-    const nodeText = this.add.text(
+    // Create sprite based on node type
+    let spriteKey = "";
+    let animKey = "";
+    
+    switch (node.type) {
+      case "combat":
+        spriteKey = "chort_f0";
+        animKey = "chort_idle";
+        break;
+      case "elite":
+        spriteKey = "big_demon_f0";
+        animKey = "big_demon_idle";
+        break;
+      case "boss":
+        // For now, use the elite sprite as placeholder for boss
+        spriteKey = "big_demon_f0";
+        animKey = "big_demon_idle";
+        break;
+      case "shop":
+        spriteKey = "necromancer_f0";
+        animKey = "necromancer_idle";
+        break;
+      case "event":
+        spriteKey = "doc_f0";
+        animKey = "doc_idle";
+        break;
+      case "campfire":
+        spriteKey = "angel_f0";
+        animKey = "angel_idle";
+        break;
+      case "treasure":
+        spriteKey = "chest_f0";
+        animKey = "chest_open";
+        break;
+      default:
+        // Fallback to a simple circle if no sprite is available
+        const fallbackCircle = this.add.circle(
+          node.x + this.gridSize / 2, 
+          node.y + this.gridSize / 2, 
+          this.gridSize / 4, 
+          0xffffff, 
+          1
+        );
+        fallbackCircle.setOrigin(0.5);
+        fallbackCircle.setDepth(501);
+        return;
+    }
+    
+    // Create the sprite
+    const nodeSprite = this.add.sprite(
       node.x + this.gridSize / 2, 
       node.y + this.gridSize / 2, 
-      displayChar, 
-      {
-        fontSize: `${this.gridSize / 2}px`,
-        color: `#${displayColor.toString(16).padStart(6, '0')}`,
-      }
-    ).setOrigin(0.5);
-    nodeText.setDepth(501); // Above the indicator
+      spriteKey
+    );
+    nodeSprite.setOrigin(0.5);
+    nodeSprite.setDepth(501); // Above the indicator
+    nodeSprite.setScale(1.5); // Scale up a bit for better visibility
+    
+    // Play the animation if it exists
+    if (this.anims.exists(animKey)) {
+      nodeSprite.play(animKey);
+    }
   }
 
   isValidPosition(x: number, y: number): boolean {

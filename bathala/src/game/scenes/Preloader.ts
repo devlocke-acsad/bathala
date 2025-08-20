@@ -62,6 +62,40 @@ export class Preloader extends Scene {
       frameHeight: 100,
     });
     
+    // Overworld node sprites
+    // Combat node sprites (chort)
+    this.load.image("chort_f0", "sprites/overworld/combat/chort_idle_anim_f0.png");
+    this.load.image("chort_f1", "sprites/overworld/combat/chort_idle_anim_f1.png");
+    this.load.image("chort_f2", "sprites/overworld/combat/chort_idle_anim_f2.png");
+    
+    // Elite node sprites (big demon)
+    this.load.image("big_demon_f0", "sprites/overworld/elite/big_demon_idle_anim_f0.png");
+    this.load.image("big_demon_f1", "sprites/overworld/elite/big_demon_idle_anim_f1.png");
+    this.load.image("big_demon_f2", "sprites/overworld/elite/big_demon_idle_anim_f2.png");
+    this.load.image("big_demon_f3", "sprites/overworld/elite/big_demon_idle_anim_f3.png");
+    
+    // Campfire node sprites (angel)
+    this.load.image("angel_f0", "sprites/overworld/campfire/angel_idle_anim_f0.png");
+    this.load.image("angel_f1", "sprites/overworld/campfire/angel_idle_anim_f1.png");
+    this.load.image("angel_f2", "sprites/overworld/campfire/angel_idle_anim_f2.png");
+    this.load.image("angel_f3", "sprites/overworld/campfire/angel_idle_anim_f3.png");
+    
+    // Shop node sprites (necromancer)
+    this.load.image("necromancer_f0", "sprites/overworld/shop/necromancer_anim_f0.png");
+    this.load.image("necromancer_f1", "sprites/overworld/shop/necromancer_anim_f1.png");
+    this.load.image("necromancer_f2", "sprites/overworld/shop/necromancer_anim_f2.png");
+    this.load.image("necromancer_f3", "sprites/overworld/shop/necromancer_anim_f3.png");
+    
+    // Event node sprites (doc)
+    this.load.image("doc_f0", "sprites/overworld/event/doc_idle_anim_f0.png");
+    this.load.image("doc_f1", "sprites/overworld/event/doc_idle_anim_f1.png");
+    this.load.image("doc_f2", "sprites/overworld/event/doc_idle_anim_f2.png");
+    
+    // Treasure node sprites (chest)
+    this.load.image("chest_f0", "sprites/overworld/treasure/chest_full_open_anim_f0.png");
+    this.load.image("chest_f1", "sprites/overworld/treasure/chest_full_open_anim_f1.png");
+    this.load.image("chest_f2", "sprites/overworld/treasure/chest_full_open_anim_f2.png");
+    
     // Debug: Log when assets are loaded
     this.load.on('filecomplete', (key: string, type: string) => {
       console.log(`Loaded asset: ${key} (${type})`);
@@ -93,6 +127,7 @@ export class Preloader extends Scene {
         this.createPlayerAnimations();
         this.createEnemyAnimations();
         this.createAvatarAnimations();
+        this.createNodeAnimations(); // Add this line
       } catch (error) {
         console.warn("Could not create sprite animations:", error);
       }
@@ -242,6 +277,94 @@ export class Preloader extends Scene {
       repeat: -1,
     });
     console.log("Created tikbalang_idle animation");
+  }
+
+  /**
+   * Create overworld node animations
+   */
+  private createNodeAnimations(): void {
+    console.log("Creating node animations");
+    
+    // Combat node animation (chort)
+    this.anims.create({
+      key: "chort_idle",
+      frames: [
+        { key: "chort_f0" },
+        { key: "chort_f1" },
+        { key: "chort_f2" }
+      ],
+      frameRate: 4,
+      repeat: -1,
+    });
+    console.log("Created chort_idle animation");
+    
+    // Elite node animation (big demon)
+    this.anims.create({
+      key: "big_demon_idle",
+      frames: [
+        { key: "big_demon_f0" },
+        { key: "big_demon_f1" },
+        { key: "big_demon_f2" },
+        { key: "big_demon_f3" }
+      ],
+      frameRate: 4,
+      repeat: -1,
+    });
+    console.log("Created big_demon_idle animation");
+    
+    // Campfire node animation (angel)
+    this.anims.create({
+      key: "angel_idle",
+      frames: [
+        { key: "angel_f0" },
+        { key: "angel_f1" },
+        { key: "angel_f2" },
+        { key: "angel_f3" }
+      ],
+      frameRate: 4,
+      repeat: -1,
+    });
+    console.log("Created angel_idle animation");
+    
+    // Shop node animation (necromancer)
+    this.anims.create({
+      key: "necromancer_idle",
+      frames: [
+        { key: "necromancer_f0" },
+        { key: "necromancer_f1" },
+        { key: "necromancer_f2" },
+        { key: "necromancer_f3" }
+      ],
+      frameRate: 4,
+      repeat: -1,
+    });
+    console.log("Created necromancer_idle animation");
+    
+    // Event node animation (doc)
+    this.anims.create({
+      key: "doc_idle",
+      frames: [
+        { key: "doc_f0" },
+        { key: "doc_f1" },
+        { key: "doc_f2" }
+      ],
+      frameRate: 4,
+      repeat: -1,
+    });
+    console.log("Created doc_idle animation");
+    
+    // Treasure node animation (chest)
+    this.anims.create({
+      key: "chest_open",
+      frames: [
+        { key: "chest_f0" },
+        { key: "chest_f1" },
+        { key: "chest_f2" }
+      ],
+      frameRate: 4,
+      repeat: -1,
+    });
+    console.log("Created chest_open animation");
   }
 
   /**
