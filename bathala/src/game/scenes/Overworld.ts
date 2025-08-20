@@ -5,13 +5,13 @@ import { OverworldGameState } from "../../core/managers/OverworldGameState";
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
-  private playerIndicator!: Phaser.GameObjects.Arc;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: { [key: string]: Phaser.Input.Keyboard.Key };
   private nodes: MapNode[] = [];
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
   private gridSize: number = 32;
   private isMoving: boolean = false;
+  private isTransitioningToCombat: boolean = false;
   private gameState: OverworldGameState;
   private cycleText!: Phaser.GameObjects.Text;
   private bossText!: Phaser.GameObjects.Text;
@@ -62,11 +62,6 @@ export class Overworld extends Scene {
     this.player.setScale(2); // Scale up from 16x16 to 32x32
     this.player.setOrigin(0.5); // Center the sprite
     this.player.setDepth(1000); // Ensure player is above everything
-    
-    // Add a visual indicator to help see the player
-    this.playerIndicator = this.add.circle(startX, startY, 25, 0x00ff00, 0.5);
-    this.playerIndicator.setOrigin(0.5);
-    this.playerIndicator.setDepth(999); // Below player
     
     console.log("Playing avatar_idle_down animation");
     this.player.play("avatar_idle_down"); // Initial animation
@@ -180,20 +175,21 @@ export class Overworld extends Scene {
   }
 
   update(): void {
-    // Skip input handling if player is currently moving
-    if (this.isMoving) {
+    // Skip input handling if player is currently moving or transitioning to combat
+    if (this.isMoving || this.isTransitioningToCombat) {
       return;
     }
 
-    // Check for input
-    if (this.cursors.left.isDown || this.wasdKeys['A'].isDown) {
-      this.movePlayer(-this.gridSize, 0, "avatar_walk_left");
-    } else if (this.cursors.right.isDown || this.wasdKeys['D'].isDown) {
-      this.movePlayer(this.gridSize, 0, "avatar_walk_right");
-    } else if (this.cursors.up.isDown || this.wasdKeys['W'].isDown) {
+    // Check for input - handle multiple directions with priority
+    // Up/Down takes priority over Left/Right
+    if (this.cursors.up.isDown || this.wasdKeys['W'].isDown) {
       this.movePlayer(0, -this.gridSize, "avatar_walk_up");
     } else if (this.cursors.down.isDown || this.wasdKeys['S'].isDown) {
       this.movePlayer(0, this.gridSize, "avatar_walk_down");
+    } else if (this.cursors.left.isDown || this.wasdKeys['A'].isDown) {
+      this.movePlayer(-this.gridSize, 0, "avatar_walk_left");
+    } else if (this.cursors.right.isDown || this.wasdKeys['D'].isDown) {
+      this.movePlayer(this.gridSize, 0, "avatar_walk_right");
     }
     
     // Check for Enter key to interact with nodes
@@ -220,13 +216,31 @@ export class Overworld extends Scene {
     }
   }
 
+  /**
+   * Called when the scene resumes from another scene
+   */
+  resume(): void {
+    // Re-enable input when returning from combat
+    this.input.keyboard.enabled = true;
+    this.isMoving = false;
+    this.isTransitioningToCombat = false;
+  }
+
   movePlayer(deltaX: number, deltaY: number, animation: string): void {
     // Set moving flag to prevent input during movement
     this.isMoving = true;
 
-    // Play walking animation
+    // Play walking animation with error checking
     console.log("Playing animation:", animation);
-    this.player.play(animation, true);
+    if (this.anims.exists(animation)) {
+      try {
+        this.player.play(animation, true);
+      } catch (error) {
+        console.warn("Failed to play animation:", animation, error);
+      }
+    } else {
+      console.warn("Animation not found:", animation);
+    }
 
     // Calculate new position
     let newX = this.player.x + deltaX;
@@ -240,9 +254,9 @@ export class Overworld extends Scene {
       // Record the action for day/night cycle
       this.gameState.recordAction();
       
-      // Move player and indicator with tween
+      // Move player with tween
       this.tweens.add({
-        targets: [this.player, this.playerIndicator],
+        targets: this.player,
         x: newX,
         y: newY,
         duration: 150, // Slightly faster movement
@@ -250,16 +264,26 @@ export class Overworld extends Scene {
           this.isMoving = false;
           this.checkNodeInteraction();
           // Play idle animation after movement based on direction
+          let idleAnimation = "avatar_idle_down";
           if (animation.includes("down")) {
-            this.player.play("avatar_idle_down");
+            idleAnimation = "avatar_idle_down";
           } else if (animation.includes("up")) {
-            this.player.play("avatar_idle_up");
+            idleAnimation = "avatar_idle_up";
           } else if (animation.includes("left")) {
-            this.player.play("avatar_idle_left");
+            idleAnimation = "avatar_idle_left";
           } else if (animation.includes("right")) {
-            this.player.play("avatar_idle_right");
+            idleAnimation = "avatar_idle_right";
+          }
+          
+          console.log("Playing idle animation:", idleAnimation);
+          if (this.anims.exists(idleAnimation)) {
+            try {
+              this.player.play(idleAnimation);
+            } catch (error) {
+              console.warn("Failed to play idle animation:", idleAnimation, error);
+            }
           } else {
-            this.player.play("avatar_idle_down");
+            console.warn("Idle animation not found:", idleAnimation);
           }
           
           // Update visible chunks as player moves
@@ -272,16 +296,25 @@ export class Overworld extends Scene {
       this.isMoving = false;
       console.log("Invalid move, playing idle animation");
       // Play appropriate idle animation based on last movement direction
+      let idleAnimation = "avatar_idle_down";
       if (animation.includes("down")) {
-        this.player.play("avatar_idle_down");
+        idleAnimation = "avatar_idle_down";
       } else if (animation.includes("up")) {
-        this.player.play("avatar_idle_up");
+        idleAnimation = "avatar_idle_up";
       } else if (animation.includes("left")) {
-        this.player.play("avatar_idle_left");
+        idleAnimation = "avatar_idle_left";
       } else if (animation.includes("right")) {
-        this.player.play("avatar_idle_right");
+        idleAnimation = "avatar_idle_right";
+      }
+      
+      if (this.anims.exists(idleAnimation)) {
+        try {
+          this.player.play(idleAnimation);
+        } catch (error) {
+          console.warn("Failed to play idle animation:", idleAnimation, error);
+        }
       } else {
-        this.player.play("avatar_idle_down");
+        console.warn("Idle animation not found:", idleAnimation);
       }
     }
   }
@@ -336,7 +369,8 @@ export class Overworld extends Scene {
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[0].length; x++) {
         if (maze[y][x] === 1) { // Wall
-          graphics.fillStyle(0x555555);
+          // Rich dark brown stone walls
+          graphics.fillStyle(0x3d291f);
           graphics.fillRect(
             offsetX + x * this.gridSize,
             offsetY + y * this.gridSize,
@@ -344,16 +378,9 @@ export class Overworld extends Scene {
             this.gridSize
           );
         } else { // Path
-          graphics.fillStyle(0x333333);
+          // Weathered stone path
+          graphics.fillStyle(0x5a4a3f);
           graphics.fillRect(
-            offsetX + x * this.gridSize,
-            offsetY + y * this.gridSize,
-            this.gridSize,
-            this.gridSize
-          );
-          
-          graphics.lineStyle(1, 0x444444);
-          graphics.strokeRect(
             offsetX + x * this.gridSize,
             offsetY + y * this.gridSize,
             this.gridSize,
@@ -367,61 +394,68 @@ export class Overworld extends Scene {
   }
 
   renderNode(node: MapNode): void {
-    let displayChar = "";
-    let displayColor = 0x000000;
+    // Create sprite based on node type
+    let spriteKey = "";
+    let animKey = "";
+    
     switch (node.type) {
       case "combat":
-        displayChar = "⚔️";
-        displayColor = 0xff0000;
+        spriteKey = "chort_f0";
+        animKey = "chort_idle";
         break;
       case "elite":
-        displayChar = "👹";
-        displayColor = 0xffa500;
+        spriteKey = "big_demon_f0";
+        animKey = "big_demon_idle";
         break;
       case "boss":
-        displayChar = "👑";
-        displayColor = 0x800080;
+        // For now, use the elite sprite as placeholder for boss
+        spriteKey = "big_demon_f0";
+        animKey = "big_demon_idle";
         break;
       case "shop":
-        displayChar = "💰";
-        displayColor = 0x00ff00;
+        spriteKey = "necromancer_f0";
+        animKey = "necromancer_idle";
         break;
       case "event":
-        displayChar = "❓";
-        displayColor = 0x0000ff;
+        spriteKey = "doc_f0";
+        animKey = "doc_idle";
         break;
       case "campfire":
-        displayChar = "🔥";
-        displayColor = 0xff4500;
+        spriteKey = "angel_f0";
+        animKey = "angel_idle";
         break;
       case "treasure":
-        displayChar = "💎";
-        displayColor = 0xffff00;
+        spriteKey = "chest_f0";
+        animKey = "chest_open";
         break;
+      default:
+        // Fallback to a simple circle if no sprite is available
+        const fallbackCircle = this.add.circle(
+          node.x + this.gridSize / 2, 
+          node.y + this.gridSize / 2, 
+          this.gridSize / 4, 
+          0xffffff, 
+          1
+        );
+        fallbackCircle.setOrigin(0.5);
+        fallbackCircle.setDepth(501);
+        return;
     }
     
-    // Create a visual indicator for the node
-    const nodeIndicator = this.add.circle(
+    // Create the sprite
+    const nodeSprite = this.add.sprite(
       node.x + this.gridSize / 2, 
       node.y + this.gridSize / 2, 
-      this.gridSize / 2 - 2, 
-      displayColor, 
-      0.3
+      spriteKey
     );
-    nodeIndicator.setOrigin(0.5);
-    nodeIndicator.setDepth(500); // Above maze but below player
+    nodeSprite.setOrigin(0.5);
+    nodeSprite.setDepth(501); // Above the maze
+    nodeSprite.setScale(1.5); // Scale up a bit for better visibility
     
-    // Add the emoji/text
-    const nodeText = this.add.text(
-      node.x + this.gridSize / 2, 
-      node.y + this.gridSize / 2, 
-      displayChar, 
-      {
-        fontSize: `${this.gridSize / 2}px`,
-        color: `#${displayColor.toString(16).padStart(6, '0')}`,
-      }
-    ).setOrigin(0.5);
-    nodeText.setDepth(501); // Above the indicator
+    // Play the animation if it exists
+    if (this.anims.exists(animKey)) {
+      nodeSprite.play(animKey);
+    }
   }
 
   isValidPosition(x: number, y: number): boolean {
@@ -464,41 +498,291 @@ export class Overworld extends Scene {
 
     if (nodeIndex !== -1) {
       const node = this.nodes[nodeIndex];
-      if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
-        // Remove the node from the list so it doesn't trigger again
-        this.nodes.splice(nodeIndex, 1);
-        this.startCombat(node.type);
+      
+      // Handle different node types
+      switch (node.type) {
+        case "combat":
+        case "elite":
+        case "boss":
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          this.startCombat(node.type);
+          break;
+          
+        case "shop":
+          // Test event for shop
+          this.showNodeEvent("Shop", "Welcome to the shop! Here you can buy cards and relics.", 0x00ff00);
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          break;
+          
+        case "event":
+          // Test event for random event
+          this.showNodeEvent("Mysterious Event", "You encounter a mysterious figure who offers you a choice...", 0x0000ff);
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          break;
+          
+        case "campfire":
+          // Test event for campfire/rest
+          this.showNodeEvent("Campfire", "You rest at the campfire and heal some HP.", 0xff4500);
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          break;
+          
+        case "treasure":
+          // Test event for treasure
+          this.showNodeEvent("Treasure!", "You found a treasure chest! Gained 50 gold.", 0xffff00);
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          break;
       }
     }
   }
 
+  /**
+   * Show a simple event dialog for node interactions
+   */
+  private showNodeEvent(title: string, message: string, color: number): void {
+    // Disable player movement during event
+    this.isMoving = true;
+    
+    // Create overlay
+    const overlay = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000
+    ).setAlpha(0.7).setScrollFactor(0).setDepth(2000);
+    
+    // Create dialog box
+    const dialogBox = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      600,
+      300,
+      0x2f3542
+    ).setStrokeStyle(3, color).setScrollFactor(0).setDepth(2001);
+    
+    // Create title
+    const titleText = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2 - 100,
+      title,
+      {
+        fontFamily: "Centrion",
+        fontSize: 32,
+        color: `#${color.toString(16).padStart(6, '0')}`,
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(2002);
+    
+    // Create message
+    const messageText = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      message,
+      {
+        fontFamily: "Centrion",
+        fontSize: 18,
+        color: "#e8eced",
+        align: "center",
+        wordWrap: { width: 500 }
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(2002);
+    
+    // Create continue button
+    const continueButton = this.add.container(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2 + 100
+    ).setScrollFactor(0).setDepth(2002);
+    
+    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x3d4454)
+      .setStrokeStyle(2, color);
+    const buttonText = this.add.text(0, 0, "Continue", {
+      fontFamily: "Centrion",
+      fontSize: 18,
+      color: "#e8eced"
+    }).setOrigin(0.5);
+    
+    continueButton.add([buttonBg, buttonText]);
+    continueButton.setInteractive(
+      new Phaser.Geom.Rectangle(-75, -20, 150, 40),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    continueButton.on('pointerdown', () => {
+      // Clean up dialog elements
+      overlay.destroy();
+      dialogBox.destroy();
+      titleText.destroy();
+      messageText.destroy();
+      continueButton.destroy();
+      
+      // Re-enable player movement
+      this.isMoving = false;
+    });
+    
+    continueButton.on('pointerover', () => {
+      buttonBg.setFillStyle(0x4a5464);
+    });
+    
+    continueButton.on('pointerout', () => {
+      buttonBg.setFillStyle(0x3d4454);
+    });
+  }
+
   startCombat(nodeType: string): void {
-    const bars = [];
-    const barHeight = this.cameras.main.height / 10;
-
-    for (let i = 0; i < 10; i++) {
-      const bar = this.add
-        .rectangle(
-          this.cameras.main.width,
-          i * barHeight,
-          this.cameras.main.width,
-          barHeight,
-          0x000000
-        )
-        .setOrigin(1, 0);
-
-      bars.push(bar);
-    }
-
+    // Prevent player from moving during combat transition
+    this.isMoving = true;
+    this.isTransitioningToCombat = true;
+    
+    // Disable input during transition
+    this.input.keyboard.enabled = false;
+    
+    // Get camera dimensions
+    const camera = this.cameras.main;
+    const cameraWidth = camera.width;
+    const cameraHeight = camera.height;
+    
+    // Create a full-screen overlay that follows the camera
+    const overlay = this.add.rectangle(
+      cameraWidth / 2,
+      cameraHeight / 2,
+      cameraWidth,
+      cameraHeight,
+      0x000000
+    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0); // Start transparent
+    
+    // Fade in the overlay
     this.tweens.add({
-      targets: bars,
-      x: 0,
-      duration: 500,
-      ease: "Power2",
-      delay: this.tweens.stagger(100),
-      onComplete: () => {
-        this.scene.start("Combat", { nodeType: nodeType });
-      },
+      targets: overlay,
+      alpha: 1,
+      duration: 300,
+      ease: 'Power2'
+    });
+    
+    // Create bars within the overlay after a short delay
+    this.time.delayedCall(200, () => {
+      const bars = [];
+      const barCount = 30; // Even more bars for complete coverage
+      const barHeight = cameraHeight / barCount;
+      
+      // Create bars with alternating colors for menacing effect
+      for (let i = 0; i < barCount; i++) {
+        const color = i % 2 === 0 ? 0x8B0000 : 0x000000; // Dark red and black
+        const bar = this.add
+          .rectangle(
+            cameraWidth,
+            i * barHeight,
+            cameraWidth,
+            barHeight + 2, // Add extra height to ensure no gaps
+            color
+          )
+          .setOrigin(1, 0)
+          .setAlpha(1.0) // Full opacity
+          .setScrollFactor(0); // Fixed to camera
+
+        bars.push(bar);
+      }
+      
+      // Add some random visual effects for menace
+      const particles = [];
+      for (let i = 0; i < 40; i++) {
+        const particle = this.add.circle(
+          Phaser.Math.Between(0, cameraWidth),
+          Phaser.Math.Between(0, cameraHeight),
+          Phaser.Math.Between(4, 15),
+          0xff0000,
+          1.0 // Full opacity
+        ).setScrollFactor(0); // Fixed to camera
+        particles.push(particle);
+      }
+
+      // Animate bars with more menacing pattern - slower and more dramatic
+      this.tweens.add({
+        targets: bars,
+        x: 0,
+        duration: 1200, // Slower animation for maximum drama
+        ease: "Power3",
+        delay: this.tweens.stagger(150, { // Slower stagger
+          from: 'center', // Start from center for more dramatic effect
+          grid: '30x1' 
+        }),
+        onComplete: () => {
+          // Flash screen red for intensity
+          const flash = this.add.rectangle(
+            cameraWidth / 2,
+            cameraHeight / 2,
+            cameraWidth,
+            cameraHeight,
+            0xff0000
+          ).setAlpha(0).setScrollFactor(0); // Start transparent
+          
+          // Fade in the flash
+          this.tweens.add({
+            targets: flash,
+            alpha: 0.9,
+            duration: 200,
+            ease: 'Power2',
+            onComplete: () => {
+              // Fade out the flash
+              this.tweens.add({
+                targets: flash,
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                  flash.destroy();
+                  
+                  // Add a final dramatic effect before transitioning
+                  // Zoom and fade the entire camera
+                  const zoomDuration = 800;
+                  
+                  this.tweens.add({
+                    targets: camera,
+                    zoom: 1.5, // Zoom in slightly
+                    duration: zoomDuration / 2,
+                    ease: 'Power2',
+                    yoyo: true,
+                    hold: 100,
+                    onComplete: () => {
+                      // Instead of fading out overlay, we'll keep it and pass it to combat scene
+                      // Start combat scene and pass the overlay for fade-in effect
+                      this.scene.start("Combat", { 
+                        nodeType: nodeType,
+                        transitionOverlay: overlay // Pass overlay to combat scene
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+      
+      // Animate particles for extra menace - slower and more dramatic
+      this.tweens.add({
+        targets: particles,
+        x: {
+          getEnd: function (target: Phaser.GameObjects.Arc) {
+            return target.x + Phaser.Math.Between(-200, 200);
+          }
+        },
+        y: {
+          getEnd: function (target: Phaser.GameObjects.Arc) {
+            return target.y + Phaser.Math.Between(-200, 200);
+          }
+        },
+        alpha: 0,
+        scale: 0, // Shrink particles as they fade
+        duration: 1200, // Match bar animation duration
+        ease: "Power2",
+        onComplete: () => {
+          particles.forEach(particle => particle.destroy());
+        }
+      });
     });
   }
 }
