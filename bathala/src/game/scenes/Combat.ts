@@ -45,7 +45,9 @@ export class Combat extends Scene {
   private relicsContainer!: Phaser.GameObjects.Container;
   private playerStatusContainer!: Phaser.GameObjects.Container;
   private enemyStatusContainer!: Phaser.GameObjects.Container;
-  private isActionProcessing: boolean = false; // Add this to prevent action spamming
+  private isActionProcessing: boolean = false;
+  private actionResultText!: Phaser.GameObjects.Text;
+  private handEvaluationText!: Phaser.GameObjects.Text;
 
   // Sprite references for animations
   private playerSprite!: Phaser.GameObjects.Sprite;
@@ -348,8 +350,8 @@ export class Combat extends Scene {
     // Title
     this.add
       .text(512, 30, "Combat - Forest Encounter", {
-        fontFamily: "Chivo",
-        fontSize: 24,
+        fontFamily: "Centrion",
+        fontSize: 28,
         color: "#e8eced",
         align: "center",
       })
@@ -375,6 +377,9 @@ export class Combat extends Scene {
 
     // Relics display
     this.createRelicsUI();
+
+    // Action result display
+    this.createActionResultUI();
   }
 
   /**
@@ -394,11 +399,13 @@ export class Combat extends Scene {
       this.playerSprite.play("player_idle");
     } catch (error) {
       console.warn("Player idle animation not found, using static sprite");
-    } // Player name
+    }
+
+    // Player name
     this.add
       .text(playerX, playerY - 120, this.combatState.player.name, {
-        fontFamily: "Chivo",
-        fontSize: 20,
+        fontFamily: "Centrion",
+        fontSize: 24,
         color: "#e8eced",
         align: "center",
       })
@@ -407,8 +414,8 @@ export class Combat extends Scene {
     // Health display
     this.playerHealthText = this.add
       .text(playerX, playerY + 80, "", {
-        fontFamily: "Chivo",
-        fontSize: 18,
+        fontFamily: "Centrion",
+        fontSize: 20,
         color: "#ff6b6b",
         align: "center",
       })
@@ -417,8 +424,8 @@ export class Combat extends Scene {
     // Block display
     this.playerBlockText = this.add
       .text(playerX, playerY + 105, "", {
-        fontFamily: "Chivo",
-        fontSize: 16,
+        fontFamily: "Centrion",
+        fontSize: 18,
         color: "#4ecdc4",
         align: "center",
       })
@@ -477,8 +484,8 @@ export class Combat extends Scene {
     // Enemy name (positioned further from enemy due to larger sprite)
     this.add
       .text(enemyX, enemyY - 170, this.combatState.enemy.name, {
-        fontFamily: "Chivo",
-        fontSize: 24, // Larger font size
+        fontFamily: "Centrion",
+        fontSize: 28, // Larger font size
         color: "#e8eced",
         align: "center",
       })
@@ -487,8 +494,8 @@ export class Combat extends Scene {
     // Health display (positioned further from enemy due to larger sprite)
     this.enemyHealthText = this.add
       .text(enemyX, enemyY - 140, "", {
-        fontFamily: "Chivo",
-        fontSize: 20, // Larger font size
+        fontFamily: "Centrion",
+        fontSize: 24, // Larger font size
         color: "#ff6b6b",
         align: "center",
       })
@@ -497,8 +504,8 @@ export class Combat extends Scene {
     // Block display (positioned further from enemy due to larger sprite)
     this.enemyBlockText = this.add
       .text(enemyX, enemyY - 110, "", {
-        fontFamily: "Chivo",
-        fontSize: 18,
+        fontFamily: "Centrion",
+        fontSize: 20,
         color: "#4ecdc4",
         align: "center",
       })
@@ -507,8 +514,8 @@ export class Combat extends Scene {
     // Intent display (positioned further from enemy due to larger sprite)
     this.enemyIntentText = this.add
       .text(enemyX, enemyY + 170, "", {
-        fontFamily: "Chivo",
-        fontSize: 18,
+        fontFamily: "Centrion",
+        fontSize: 20,
         color: "#feca57",
         align: "center",
         wordWrap: { width: 200 },
@@ -526,7 +533,7 @@ export class Combat extends Scene {
    * Create hand UI container
    */
   private createHandUI(): void {
-    this.handContainer = this.add.container(512, 600);
+    this.handContainer = this.add.container(512, 650);
     this.updateHandDisplay();
   }
 
@@ -534,14 +541,25 @@ export class Combat extends Scene {
    * Create played hand UI container
    */
   private createPlayedHandUI(): void {
-    this.playedHandContainer = this.add.container(512, 400);
+    this.playedHandContainer = this.add.container(512, 450);
+    
+    // Initialize hand evaluation text
+    this.handEvaluationText = this.add
+      .text(0, 50, "", {
+        fontFamily: "Centrion",
+        fontSize: 18,
+        color: "#ffd93d",
+        align: "center",
+      })
+      .setOrigin(0.5)
+      .setVisible(false);
   }
 
   /**
    * Create action buttons
    */
   private createActionButtons(): void {
-    this.actionButtons = this.add.container(512, 520);
+    this.actionButtons = this.add.container(512, 570);
     this.updateActionButtons();
   }
 
@@ -554,19 +572,19 @@ export class Combat extends Scene {
 
     if (this.combatState.phase === "player_turn") {
       // Card selection phase
-      const playButton = this.createButton(-80, 0, "Play Hand", () => {
+      const playButton = this.createButton(-190, 0, "Play Hand", () => {
         this.playSelectedCards();
       });
 
-      const sortRankButton = this.createButton(80, 0, "Sort: Rank", () => {
+      const sortRankButton = this.createButton(-60, 0, "Sort: Rank", () => {
         this.sortHand("rank");
       });
 
-      const sortSuitButton = this.createButton(-80, 30, "Sort: Suit", () => {
+      const sortSuitButton = this.createButton(60, 0, "Sort: Suit", () => {
         this.sortHand("suit");
       });
 
-      const discardButton = this.createButton(80, 30, "Discard", () => {
+      const discardButton = this.createButton(190, 0, "Discard", () => {
         this.discardSelectedCards();
       });
 
@@ -582,7 +600,7 @@ export class Combat extends Scene {
         this.combatState.player.playedHand
       );
 
-      const attackButton = this.createButton(-80, 0, "Attack", () => {
+      const attackButton = this.createButton(-120, 0, "Attack", () => {
         this.executeAction("attack");
       });
 
@@ -590,19 +608,14 @@ export class Combat extends Scene {
         this.executeAction("defend");
       });
 
-      const specialButton = this.createButton(
-        80,
-        0,
-        "Special",
-        () => {
-          this.executeAction("special");
-        }
-      );
+      const specialButton = this.createButton(120, 0, "Special", () => {
+        this.executeAction("special");
+      });
 
       const specialTooltip = this.add
-        .text(80, 30, this.getSpecialActionName(dominantSuit), {
-          fontFamily: "Chivo",
-          fontSize: 12,
+        .text(120, 30, this.getSpecialActionName(dominantSuit), {
+          fontFamily: "Centrion",
+          fontSize: 14,
           color: "#ffffff",
           backgroundColor: "#000000",
           padding: { x: 5, y: 5 },
@@ -627,21 +640,21 @@ export class Combat extends Scene {
    */
   private createTurnUI(): void {
     this.turnText = this.add.text(50, 100, "", {
-      fontFamily: "Chivo",
-      fontSize: 16,
+      fontFamily: "Centrion",
+      fontSize: 18,
       color: "#e8eced",
     });
 
     this.actionsText = this.add.text(50, 130, "", {
-      fontFamily: "Chivo",
-      fontSize: 14,
+      fontFamily: "Centrion",
+      fontSize: 16,
       color: "#ffd93d",
     });
 
     // Hand indicator text - shows current selected hand type
     this.handIndicatorText = this.add.text(50, 160, "", {
-      fontFamily: "Chivo",
-      fontSize: 14,
+      fontFamily: "Centrion",
+      fontSize: 16,
       color: "#4ecdc4",
     });
 
@@ -674,7 +687,8 @@ export class Combat extends Scene {
 
       const tooltip = this.add
         .text(x, 30, relic.name + "\n" + relic.description, {
-          fontSize: 12,
+          fontFamily: "Centrion",
+          fontSize: 14,
           backgroundColor: "#000",
           padding: { x: 5, y: 5 },
         })
@@ -704,13 +718,13 @@ export class Combat extends Scene {
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
 
-    const bg = this.add.rectangle(0, 0, 100, 25, 0x2f3542);
+    const bg = this.add.rectangle(0, 0, 120, 35, 0x2f3542);
     bg.setStrokeStyle(2, 0x57606f);
 
     const buttonText = this.add
       .text(0, 0, text, {
-        fontFamily: "Chivo",
-        fontSize: 12,
+        fontFamily: "Centrion",
+        fontSize: 16,
         color: "#e8eced",
         align: "center",
       })
@@ -718,7 +732,7 @@ export class Combat extends Scene {
 
     button.add([bg, buttonText]);
     button.setInteractive(
-      new Phaser.Geom.Rectangle(-50, -12.5, 100, 25),
+      new Phaser.Geom.Rectangle(-60, -17.5, 120, 35),
       Phaser.Geom.Rectangle.Contains
     );
     button.on("pointerdown", () => {
@@ -790,7 +804,8 @@ export class Combat extends Scene {
     // Card rank
     const rankText = this.add
       .text(-15, -20, card.rank, {
-        fontSize: 12,
+        fontFamily: "Centrion",
+        fontSize: 14,
         color: "#000000",
       })
       .setOrigin(0.5);
@@ -799,7 +814,8 @@ export class Combat extends Scene {
     const display = DeckManager.getCardDisplay(card);
     const suitText = this.add
       .text(15, -20, display.symbol, {
-        fontSize: 12,
+        fontFamily: "Centrion",
+        fontSize: 14,
         color: display.color,
       })
       .setOrigin(0.5);
@@ -807,7 +823,8 @@ export class Combat extends Scene {
     // Element symbol
     const elementText = this.add
       .text(0, 10, display.elementSymbol, {
-        fontSize: 16,
+        fontFamily: "Centrion",
+        fontSize: 18,
       })
       .setOrigin(0.5);
 
@@ -1613,7 +1630,8 @@ export class Combat extends Scene {
     if (playedHand.length === 0) return;
 
     const cardWidth = 70;
-    const startX = -(playedHand.length * cardWidth) / 2 + cardWidth / 2;
+    const totalWidth = playedHand.length * cardWidth;
+    const startX = -totalWidth / 2 + cardWidth / 2;
 
     playedHand.forEach((card, index) => {
       const cardSprite = this.createCardSprite(
@@ -1628,22 +1646,13 @@ export class Combat extends Scene {
 
     // Show hand evaluation
     const evaluation = HandEvaluator.evaluateHand(playedHand, "attack");
-    const evalText = this.add
-      .text(
-        512,
-        450,
-        `${evaluation.description} - Value: ${evaluation.totalValue}`,
-        {
-          fontFamily: "Chivo",
-          fontSize: 16,
-          color: "#ffd93d",
-          align: "center",
-        }
-      )
-      .setOrigin(0.5);
+    this.handEvaluationText.setText(
+      `${evaluation.description} - Value: ${evaluation.totalValue}`
+    );
+    this.handEvaluationText.setVisible(true);
 
     // Store eval text to destroy later
-    this.playedHandContainer.add(evalText);
+    this.playedHandContainer.add(this.handEvaluationText);
   }
 
   /**
@@ -1876,24 +1885,36 @@ export class Combat extends Scene {
   }
 
   /**
-   * Show action result message
+   * Create action result UI
    */
-  private showActionResult(message: string): void {
-    const resultText = this.add
-      .text(512, 350, message, {
-        fontFamily: "Chivo",
-        fontSize: 18,
+  private createActionResultUI(): void {
+    this.actionResultText = this.add
+      .text(512, 350, "", {
+        fontFamily: "Centrion",
+        fontSize: 20,
         color: "#2ed573",
         align: "center",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setVisible(false);
+  }
+
+  /**
+   * Show action result message
+   */
+  private showActionResult(message: string): void {
+    this.actionResultText.setText(message);
+    this.actionResultText.setVisible(true);
 
     // Fade out after 2 seconds
     this.tweens.add({
-      targets: resultText,
+      targets: this.actionResultText,
       alpha: 0,
       duration: 2000,
-      onComplete: () => resultText.destroy(),
+      onComplete: () => {
+        this.actionResultText.setVisible(false);
+        this.actionResultText.setAlpha(1); // Reset alpha for next use
+      },
     });
   }
 
@@ -2038,7 +2059,8 @@ export class Combat extends Scene {
 
       const tooltip = this.add
         .text(x, 20, effect.description, {
-          fontSize: 12,
+          fontFamily: "Centrion",
+          fontSize: 14,
           backgroundColor: "#000",
           padding: { x: 5, y: 5 },
         })

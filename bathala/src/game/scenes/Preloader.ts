@@ -30,6 +30,10 @@ export class Preloader extends Scene {
     this.load.image("logo", "logo.png");
     this.load.image("bg", "bg.png");
 
+    // Fonts
+    this.loadFont("Centrion", "fonts/centrion/Centrion-Regular.otf");
+    this.loadFont("Chivo", "fonts/chivo/Chivo-Medium.ttf");
+
     // Player sprite sheet for Combat - 32x64 each
     this.load.spritesheet("combat_player", "sprites/combat/player/player_combat.png", {
       frameWidth: 32,
@@ -93,8 +97,8 @@ export class Preloader extends Scene {
         console.warn("Could not create sprite animations:", error);
       }
 
-      //  Move to the Overworld
-      this.scene.start("Overworld");
+      //  Move to the MainMenu instead of directly to Overworld
+      this.scene.start("MainMenu");
     });
   }
 
@@ -238,6 +242,19 @@ export class Preloader extends Scene {
       repeat: -1,
     });
     console.log("Created tikbalang_idle animation");
+  }
+
+  /**
+   * Load a font file
+   */
+  private loadFont(name: string, path: string): void {
+    const font = new FontFace(name, `url(${path})`);
+    font.load().then(() => {
+      (document as any).fonts.add(font);
+      console.log(`Font ${name} loaded successfully`);
+    }).catch((error) => {
+      console.warn(`Failed to load font ${name}:`, error);
+    });
   }
 
   /**
