@@ -13,29 +13,27 @@ export class MainMenu extends Scene {
     // Set camera background color to custom background color ONLY
     this.cameras.main.setBackgroundColor(0x0e1112); // --background (#0e1112)
 
-    // Title (Bathala) with custom font and color
-    this.title = this.add
-      .text(512, 180, "BATHALA", {
-        fontFamily: "Centrion", // Custom font for title
-        fontSize: 96,
-        color: "#e8eced", // --text
+    // Center the content vertically on the screen
+    const centerY = this.cameras.main.height / 2;
+    
+    // Create wavy BATHALA text with alternating vertical offsets
+    this.createWavyTitle(512, centerY - 100, "BATHALA");
 
-        align: "center",
-      })
-      .setOrigin(0.5);
-
-    // Menu options with secondary font and color
+    // Menu options - centered below the title
     const menuOptions = ["Play", "Compendium", "Settings", "Quit"];
+    const startY = centerY + 20; // Start menu options below the title
+    const spacing = 60; // Increase spacing between options
+    
     menuOptions.forEach((option, i) => {
       const menuText = this.add
-        .text(512, 320 + i * 48, option, {
+        .text(512, startY + i * spacing, option, {
           fontFamily: "Centrion", // Secondary font for menu
           fontSize: 32,
           color: "#abb6bd", // --primary
-
           align: "center",
         })
         .setOrigin(0.5);
+        
       // Add pointer interaction for Play (example)
       if (option === "Play") {
         menuText
@@ -44,6 +42,36 @@ export class MainMenu extends Scene {
             this.scene.start("Overworld");
           });
       }
+    });
+  }
+
+  /**
+   * Create a wavy title effect by offsetting each letter vertically
+   */
+  private createWavyTitle(x: number, y: number, text: string): void {
+    const letters = text.split('');
+    const baseFontSize = 120; 
+    const verticalOffset = 20; 
+    const horizontalSpacing = 0.65; 
+    
+    letters.forEach((letter, index) => {
+      // Calculate horizontal position for each letter
+      const letterX = x + (index - (letters.length - 1) / 2) * (baseFontSize * horizontalSpacing);
+      
+      // Alternate vertical offset (even indices go down, odd indices go up)
+      const letterY = y + (index % 2 === 0 ? verticalOffset : -verticalOffset);
+      
+      // Create the letter with styling
+      const letterText = this.add
+        .text(letterX, letterY, letter, {
+          fontFamily: "Centrion",
+          fontSize: baseFontSize,
+          color: "#e8eced",
+        })
+        .setOrigin(0.5);
+      
+      // Add subtle pixelated effect with a slight offset shadow
+      letterText.setShadow(2, 2, '#000000', 0, true, false);
     });
   }
 }
