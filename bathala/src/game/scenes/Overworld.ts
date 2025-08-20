@@ -503,101 +503,137 @@ export class Overworld extends Scene {
       cameraWidth,
       cameraHeight,
       0x000000
-    ).setOrigin(0.5, 0.5).setAlpha(1.0);
+    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0); // Start transparent
     
-    // Make sure overlay follows camera
-    overlay.setScrollFactor(0); // Fixed to camera
-    
-    // Create bars within the overlay
-    const bars = [];
-    const barCount = 30; // Even more bars for complete coverage
-    const barHeight = cameraHeight / barCount;
-    
-    // Create bars with alternating colors for menacing effect
-    for (let i = 0; i < barCount; i++) {
-      const color = i % 2 === 0 ? 0x8B0000 : 0x000000; // Dark red and black
-      const bar = this.add
-        .rectangle(
-          cameraWidth,
-          i * barHeight,
-          cameraWidth,
-          barHeight + 2, // Add extra height to ensure no gaps
-          color
-        )
-        .setOrigin(1, 0)
-        .setAlpha(1.0) // Full opacity
-        .setScrollFactor(0); // Fixed to camera
-
-      bars.push(bar);
-    }
-    
-    // Add some random visual effects for menace
-    const particles = [];
-    for (let i = 0; i < 40; i++) {
-      const particle = this.add.circle(
-        Phaser.Math.Between(0, cameraWidth),
-        Phaser.Math.Between(0, cameraHeight),
-        Phaser.Math.Between(4, 15),
-        0xff0000,
-        1.0 // Full opacity
-      ).setScrollFactor(0); // Fixed to camera
-      particles.push(particle);
-    }
-
-    // Animate bars with more menacing pattern - slower and more dramatic
+    // Fade in the overlay
     this.tweens.add({
-      targets: bars,
-      x: 0,
-      duration: 1500, // Even slower animation for maximum drama
-      ease: "Power3",
-      delay: this.tweens.stagger(180, { // Slower stagger
-        from: 'center', // Start from center for more dramatic effect
-        grid: '30x1' 
-      }),
-      onComplete: () => {
-        // Flash screen red for intensity
-        const flash = this.add.rectangle(
-          cameraWidth / 2,
-          cameraHeight / 2,
-          cameraWidth,
-          cameraHeight,
-          0xff0000
-        ).setAlpha(0.9).setScrollFactor(0); // Fixed to camera
-        
-        this.tweens.add({
-          targets: flash,
-          alpha: 0,
-          duration: 500, // Longer flash duration
-          onComplete: () => {
-            flash.destroy();
-            overlay.destroy(); // Clean up overlay
-            // Start combat scene
-            this.scene.start("Combat", { nodeType: nodeType });
-          }
-        });
-      }
+      targets: overlay,
+      alpha: 1,
+      duration: 300,
+      ease: 'Power2'
     });
     
-    // Animate particles for extra menace - slower and more dramatic
-    this.tweens.add({
-      targets: particles,
-      x: {
-        getEnd: function (target: Phaser.GameObjects.Arc) {
-          return target.x + Phaser.Math.Between(-200, 200);
-        }
-      },
-      y: {
-        getEnd: function (target: Phaser.GameObjects.Arc) {
-          return target.y + Phaser.Math.Between(-200, 200);
-        }
-      },
-      alpha: 0,
-      scale: 0, // Shrink particles as they fade
-      duration: 1500, // Match bar animation duration
-      ease: "Power2",
-      onComplete: () => {
-        particles.forEach(particle => particle.destroy());
+    // Create bars within the overlay after a short delay
+    this.time.delayedCall(200, () => {
+      const bars = [];
+      const barCount = 30; // Even more bars for complete coverage
+      const barHeight = cameraHeight / barCount;
+      
+      // Create bars with alternating colors for menacing effect
+      for (let i = 0; i < barCount; i++) {
+        const color = i % 2 === 0 ? 0x8B0000 : 0x000000; // Dark red and black
+        const bar = this.add
+          .rectangle(
+            cameraWidth,
+            i * barHeight,
+            cameraWidth,
+            barHeight + 2, // Add extra height to ensure no gaps
+            color
+          )
+          .setOrigin(1, 0)
+          .setAlpha(1.0) // Full opacity
+          .setScrollFactor(0); // Fixed to camera
+
+        bars.push(bar);
       }
+      
+      // Add some random visual effects for menace
+      const particles = [];
+      for (let i = 0; i < 40; i++) {
+        const particle = this.add.circle(
+          Phaser.Math.Between(0, cameraWidth),
+          Phaser.Math.Between(0, cameraHeight),
+          Phaser.Math.Between(4, 15),
+          0xff0000,
+          1.0 // Full opacity
+        ).setScrollFactor(0); // Fixed to camera
+        particles.push(particle);
+      }
+
+      // Animate bars with more menacing pattern - slower and more dramatic
+      this.tweens.add({
+        targets: bars,
+        x: 0,
+        duration: 1200, // Slower animation for maximum drama
+        ease: "Power3",
+        delay: this.tweens.stagger(150, { // Slower stagger
+          from: 'center', // Start from center for more dramatic effect
+          grid: '30x1' 
+        }),
+        onComplete: () => {
+          // Flash screen red for intensity
+          const flash = this.add.rectangle(
+            cameraWidth / 2,
+            cameraHeight / 2,
+            cameraWidth,
+            cameraHeight,
+            0xff0000
+          ).setAlpha(0).setScrollFactor(0); // Start transparent
+          
+          // Fade in the flash
+          this.tweens.add({
+            targets: flash,
+            alpha: 0.9,
+            duration: 200,
+            ease: 'Power2',
+            onComplete: () => {
+              // Fade out the flash
+              this.tweens.add({
+                targets: flash,
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                  flash.destroy();
+                  
+                  // Add a final dramatic effect before transitioning
+                  // Zoom and fade the entire camera
+                  const zoomDuration = 800;
+                  
+                  this.tweens.add({
+                    targets: camera,
+                    zoom: 1.5, // Zoom in slightly
+                    duration: zoomDuration / 2,
+                    ease: 'Power2',
+                    yoyo: true,
+                    hold: 100,
+                    onComplete: () => {
+                      // Instead of fading out overlay, we'll keep it and pass it to combat scene
+                      // Start combat scene and pass the overlay for fade-in effect
+                      this.scene.start("Combat", { 
+                        nodeType: nodeType,
+                        transitionOverlay: overlay // Pass overlay to combat scene
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          });
+        }
+      });
+      
+      // Animate particles for extra menace - slower and more dramatic
+      this.tweens.add({
+        targets: particles,
+        x: {
+          getEnd: function (target: Phaser.GameObjects.Arc) {
+            return target.x + Phaser.Math.Between(-200, 200);
+          }
+        },
+        y: {
+          getEnd: function (target: Phaser.GameObjects.Arc) {
+            return target.y + Phaser.Math.Between(-200, 200);
+          }
+        },
+        alpha: 0,
+        scale: 0, // Shrink particles as they fade
+        duration: 1200, // Match bar animation duration
+        ease: "Power2",
+        onComplete: () => {
+          particles.forEach(particle => particle.destroy());
+        }
+      });
     });
   }
 }

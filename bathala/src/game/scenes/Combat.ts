@@ -255,7 +255,7 @@ export class Combat extends Scene {
     super({ key: "Combat" });
   }
 
-  create(data: { nodeType: string }): void {
+  create(data: { nodeType: string, transitionOverlay?: any }): void {
     this.cameras.main.setBackgroundColor(0x0e1112);
 
     // Initialize combat state
@@ -267,8 +267,24 @@ export class Combat extends Scene {
     // Draw initial hand
     this.drawInitialHand();
 
-    // Start player turn
-    this.startPlayerTurn();
+    // Handle transition overlay for fade-in effect
+    if (data.transitionOverlay) {
+      // Create a fade-in effect by fading out the overlay passed from Overworld
+      this.tweens.add({
+        targets: data.transitionOverlay,
+        alpha: 0,
+        duration: 600,
+        ease: 'Power2',
+        onComplete: () => {
+          data.transitionOverlay.destroy();
+          // Start player turn after fade-in completes
+          this.startPlayerTurn();
+        }
+      });
+    } else {
+      // No transition overlay, start player turn immediately
+      this.startPlayerTurn();
+    }
   }
 
   /**
