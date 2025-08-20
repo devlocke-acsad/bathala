@@ -5,14 +5,13 @@ import { OverworldGameState } from "../../core/managers/OverworldGameState";
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
-  private playerIndicator!: Phaser.GameObjects.Arc;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: { [key: string]: Phaser.Input.Keyboard.Key };
   private nodes: MapNode[] = [];
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
   private gridSize: number = 32;
   private isMoving: boolean = false;
-  private isTransitioningToCombat: boolean = false; // Add this line
+  private isTransitioningToCombat: boolean = false;
   private gameState: OverworldGameState;
   private cycleText!: Phaser.GameObjects.Text;
   private bossText!: Phaser.GameObjects.Text;
@@ -63,11 +62,6 @@ export class Overworld extends Scene {
     this.player.setScale(2); // Scale up from 16x16 to 32x32
     this.player.setOrigin(0.5); // Center the sprite
     this.player.setDepth(1000); // Ensure player is above everything
-    
-    // Add a visual indicator to help see the player
-    this.playerIndicator = this.add.circle(startX, startY, 25, 0x00ff00, 0.5);
-    this.playerIndicator.setOrigin(0.5);
-    this.playerIndicator.setDepth(999); // Below player
     
     console.log("Playing avatar_idle_down animation");
     this.player.play("avatar_idle_down"); // Initial animation
@@ -251,9 +245,9 @@ export class Overworld extends Scene {
       // Record the action for day/night cycle
       this.gameState.recordAction();
       
-      // Move player and indicator with tween
+      // Move player with tween
       this.tweens.add({
-        targets: [this.player, this.playerIndicator],
+        targets: this.player,
         x: newX,
         y: newY,
         duration: 150, // Slightly faster movement
@@ -347,7 +341,8 @@ export class Overworld extends Scene {
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[0].length; x++) {
         if (maze[y][x] === 1) { // Wall
-          graphics.fillStyle(0x555555);
+          // Rich dark brown stone walls
+          graphics.fillStyle(0x3d291f);
           graphics.fillRect(
             offsetX + x * this.gridSize,
             offsetY + y * this.gridSize,
@@ -355,16 +350,9 @@ export class Overworld extends Scene {
             this.gridSize
           );
         } else { // Path
-          graphics.fillStyle(0x333333);
+          // Weathered stone path
+          graphics.fillStyle(0x5a4a3f);
           graphics.fillRect(
-            offsetX + x * this.gridSize,
-            offsetY + y * this.gridSize,
-            this.gridSize,
-            this.gridSize
-          );
-          
-          graphics.lineStyle(1, 0x444444);
-          graphics.strokeRect(
             offsetX + x * this.gridSize,
             offsetY + y * this.gridSize,
             this.gridSize,
@@ -378,17 +366,6 @@ export class Overworld extends Scene {
   }
 
   renderNode(node: MapNode): void {
-    // Create a visual indicator for the node with a circle background
-    const nodeIndicator = this.add.circle(
-      node.x + this.gridSize / 2, 
-      node.y + this.gridSize / 2, 
-      this.gridSize / 2 - 2, 
-      0x000000, // Black background
-      0.5 // 50% opacity
-    );
-    nodeIndicator.setOrigin(0.5);
-    nodeIndicator.setDepth(500); // Above maze but below player
-    
     // Create sprite based on node type
     let spriteKey = "";
     let animKey = "";
@@ -444,7 +421,7 @@ export class Overworld extends Scene {
       spriteKey
     );
     nodeSprite.setOrigin(0.5);
-    nodeSprite.setDepth(501); // Above the indicator
+    nodeSprite.setDepth(501); // Above the maze
     nodeSprite.setScale(1.5); // Scale up a bit for better visibility
     
     // Play the animation if it exists
