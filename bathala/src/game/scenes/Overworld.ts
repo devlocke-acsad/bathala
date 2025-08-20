@@ -12,6 +12,7 @@ export class Overworld extends Scene {
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
   private gridSize: number = 32;
   private isMoving: boolean = false;
+  private isTransitioningToCombat: boolean = false; // Add this line
   private gameState: OverworldGameState;
   private cycleText!: Phaser.GameObjects.Text;
   private bossText!: Phaser.GameObjects.Text;
@@ -180,8 +181,8 @@ export class Overworld extends Scene {
   }
 
   update(): void {
-    // Skip input handling if player is currently moving
-    if (this.isMoving) {
+    // Skip input handling if player is currently moving or transitioning to combat
+    if (this.isMoving || this.isTransitioningToCombat) {
       return;
     }
 
@@ -218,6 +219,16 @@ export class Overworld extends Scene {
     } else {
       this.bossText.setColor('#ffffff');
     }
+  }
+
+  /**
+   * Called when the scene resumes from another scene
+   */
+  resume(): void {
+    // Re-enable input when returning from combat
+    this.input.keyboard.enabled = true;
+    this.isMoving = false;
+    this.isTransitioningToCombat = false;
   }
 
   movePlayer(deltaX: number, deltaY: number, animation: string): void {
@@ -473,32 +484,120 @@ export class Overworld extends Scene {
   }
 
   startCombat(nodeType: string): void {
+    // Prevent player from moving during combat transition
+    this.isMoving = true;
+    this.isTransitioningToCombat = true;
+    
+    // Disable input during transition
+    this.input.keyboard.enabled = false;
+    
+    // Get camera dimensions
+    const camera = this.cameras.main;
+    const cameraWidth = camera.width;
+    const cameraHeight = camera.height;
+    
+    // Create a full-screen overlay that follows the camera
+    const overlay = this.add.rectangle(
+      cameraWidth / 2,
+      cameraHeight / 2,
+      cameraWidth,
+      cameraHeight,
+      0x000000
+    ).setOrigin(0.5, 0.5).setAlpha(1.0);
+    
+    // Make sure overlay follows camera
+    overlay.setScrollFactor(0); // Fixed to camera
+    
+    // Create bars within the overlay
     const bars = [];
-    const barHeight = this.cameras.main.height / 10;
-
-    for (let i = 0; i < 10; i++) {
+    const barCount = 30; // Even more bars for complete coverage
+    const barHeight = cameraHeight / barCount;
+    
+    // Create bars with alternating colors for menacing effect
+    for (let i = 0; i < barCount; i++) {
+      const color = i % 2 === 0 ? 0x8B0000 : 0x000000; // Dark red and black
       const bar = this.add
         .rectangle(
-          this.cameras.main.width,
+          cameraWidth,
           i * barHeight,
-          this.cameras.main.width,
-          barHeight,
-          0x000000
+          cameraWidth,
+          barHeight + 2, // Add extra height to ensure no gaps
+          color
         )
-        .setOrigin(1, 0);
+        .setOrigin(1, 0)
+        .setAlpha(1.0) // Full opacity
+        .setScrollFactor(0); // Fixed to camera
 
       bars.push(bar);
     }
+    
+    // Add some random visual effects for menace
+    const particles = [];
+    for (let i = 0; i < 40; i++) {
+      const particle = this.add.circle(
+        Phaser.Math.Between(0, cameraWidth),
+        Phaser.Math.Between(0, cameraHeight),
+        Phaser.Math.Between(4, 15),
+        0xff0000,
+        1.0 // Full opacity
+      ).setScrollFactor(0); // Fixed to camera
+      particles.push(particle);
+    }
 
+    // Animate bars with more menacing pattern - slower and more dramatic
     this.tweens.add({
       targets: bars,
       x: 0,
-      duration: 500,
-      ease: "Power2",
-      delay: this.tweens.stagger(100),
+      duration: 1500, // Even slower animation for maximum drama
+      ease: "Power3",
+      delay: this.tweens.stagger(180, { // Slower stagger
+        from: 'center', // Start from center for more dramatic effect
+        grid: '30x1' 
+      }),
       onComplete: () => {
-        this.scene.start("Combat", { nodeType: nodeType });
+        // Flash screen red for intensity
+        const flash = this.add.rectangle(
+          cameraWidth / 2,
+          cameraHeight / 2,
+          cameraWidth,
+          cameraHeight,
+          0xff0000
+        ).setAlpha(0.9).setScrollFactor(0); // Fixed to camera
+        
+        this.tweens.add({
+          targets: flash,
+          alpha: 0,
+          duration: 500, // Longer flash duration
+          onComplete: () => {
+            flash.destroy();
+            overlay.destroy(); // Clean up overlay
+            // Start combat scene
+            this.scene.start("Combat", { nodeType: nodeType });
+          }
+        });
+      }
+    });
+    
+    // Animate particles for extra menace - slower and more dramatic
+    this.tweens.add({
+      targets: particles,
+      x: {
+        getEnd: function (target: Phaser.GameObjects.Arc) {
+          return target.x + Phaser.Math.Between(-200, 200);
+        }
       },
+      y: {
+        getEnd: function (target: Phaser.GameObjects.Arc) {
+          return target.y + Phaser.Math.Between(-200, 200);
+        }
+      },
+      alpha: 0,
+      scale: 0, // Shrink particles as they fade
+      duration: 1500, // Match bar animation duration
+      ease: "Power2",
+      onComplete: () => {
+        particles.forEach(particle => particle.destroy());
+      }
     });
   }
 }
