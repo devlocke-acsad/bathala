@@ -16,12 +16,16 @@ export class Map extends Scene {
   constructor() {
     super({ key: "Map" });
 
+    // Get screen dimensions
+    const screenWidth = 1024; // Default width
+    const screenHeight = 576; // Default height (16:9 aspect ratio)
+    
     this.mapConfig = {
-      canvasWidth: 1024,
-      canvasHeight: 768,
+      canvasWidth: screenWidth,
+      canvasHeight: screenHeight,
       nodeSize: 40,
-      layerSpacing: 60,
-      nodeSpacing: 100,
+      layerSpacing: Math.max(60, screenHeight * 0.08), // Responsive spacing
+      nodeSpacing: Math.max(100, screenWidth * 0.1), // Responsive spacing
       colors: {
         combat: 0xff6b6b, // Red for combat
         elite: 0xffd93d, // Gold for elite
@@ -58,8 +62,9 @@ export class Map extends Scene {
     }
 
     // Create title
+    const screenWidth = this.cameras.main.width;
     this.add
-      .text(512, 50, "Forest of Whispers - Act 1", {
+      .text(screenWidth/2, 50, "Forest of Whispers - Act 1", {
         fontFamily: "Centrion",
         fontSize: 32,
         color: "#e8eced",
@@ -382,6 +387,9 @@ export class Map extends Scene {
    * Create UI elements
    */
   private createUI(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
     // Back to menu button
     const backButton = this.add.text(50, 50, "← Back to Menu", {
       fontFamily: "Centrion",
@@ -396,7 +404,7 @@ export class Map extends Scene {
 
     // Progress indicator
     this.add
-      .text(950, 50, "Act 1 Progress: 0/13", {
+      .text(screenWidth - 74, 50, "Act 1 Progress: 0/13", {
         fontFamily: "Centrion",
         fontSize: 16,
         color: "#e8eced",

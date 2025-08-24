@@ -13,11 +13,15 @@ export class MainMenu extends Scene {
     // Set camera background color to custom background color ONLY
     this.cameras.main.setBackgroundColor(0x0e1112); // --background (#0e1112)
 
+    // Get screen dimensions
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
     // Center the content vertically on the screen
-    const centerY = this.cameras.main.height / 2;
+    const centerY = screenHeight / 2;
     
     // Create wavy BATHALA text with alternating vertical offsets
-    this.createWavyTitle(512, centerY - 100, "BATHALA");
+    this.createWavyTitle(screenWidth/2, centerY - 100, "BATHALA");
 
     // Menu options - centered below the title
     const menuOptions = ["Play", "Compendium", "Settings", "Quit"];
@@ -26,7 +30,7 @@ export class MainMenu extends Scene {
     
     menuOptions.forEach((option, i) => {
       const menuText = this.add
-        .text(512, startY + i * spacing, option, {
+        .text(screenWidth/2, startY + i * spacing, option, {
           fontFamily: "Centrion", // Secondary font for menu
           fontSize: 32,
           color: "#abb6bd", // --primary

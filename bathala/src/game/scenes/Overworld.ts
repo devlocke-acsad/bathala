@@ -109,7 +109,8 @@ export class Overworld extends Scene {
     );
     
     // Create action buttons on the top right side of the screen
-    const buttonX = this.cameras.main.width - 150;
+    const screenWidth = this.cameras.main.width;
+    const buttonX = screenWidth - 150;
     let buttonY = 100;
     
     // Combat test button

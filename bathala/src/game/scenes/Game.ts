@@ -15,14 +15,18 @@ export class Game extends Scene {
     // Phaser expects a hex number, so we hardcode the color value
     this.camera.setBackgroundColor(0x0e1112); // #0e1112
 
-    this.background = this.add.image(512, 384, "background");
+    // Get screen dimensions
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    this.background = this.add.image(screenWidth/2, screenHeight/2, "background");
     this.background.setAlpha(0.5);
 
     // Use custom font and colors for text
     this.msg_text = this.add.text(
-      512,
-      384,
-      "Welcome to Bathala!\nClick to enter the overworld\nand begin your journey",
+      screenWidth/2,
+      screenHeight/2,
+      "Welcome to Bathala!\\nClick to enter the overworld\\nand begin your journey",
       {
         fontFamily: "Centrion", // Custom font loaded via CSS
         fontSize: 38,

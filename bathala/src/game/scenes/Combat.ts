@@ -363,9 +363,13 @@ export class Combat extends Scene {
    * Create the combat UI layout
    */
   private createCombatUI(): void {
+    // Get screen dimensions
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
     // Title
     this.add
-      .text(512, 30, "Combat - Forest Encounter", {
+      .text(screenWidth/2, 30, "Combat - Forest Encounter", {
         fontFamily: "Centrion",
         fontSize: 28,
         color: "#e8eced",
@@ -402,8 +406,11 @@ export class Combat extends Scene {
    * Create player UI elements
    */
   private createPlayerUI(): void {
-    const playerX = 200;
-    const playerY = 300;
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    const playerX = screenWidth * 0.25; // 25% from left
+    const playerY = screenHeight * 0.4; // 40% from top
 
     // Player sprite with idle animation
     this.playerSprite = this.add.sprite(playerX, playerY, "combat_player");
@@ -456,8 +463,11 @@ export class Combat extends Scene {
    * Create enemy UI elements
    */
   private createEnemyUI(): void {
-    const enemyX = 824;
-    const enemyY = 300;
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    const enemyX = screenWidth * 0.75; // 75% from left
+    const enemyY = screenHeight * 0.4; // 40% from top
 
     // Determine which enemy sprite to use based on enemy type
     let enemySpriteKey = "balete"; // default
@@ -549,7 +559,8 @@ export class Combat extends Scene {
    * Create hand UI container
    */
   private createHandUI(): void {
-    this.handContainer = this.add.container(512, 650);
+    const screenHeight = this.cameras.main.height;
+    this.handContainer = this.add.container(512, screenHeight - 100);
     this.updateHandDisplay();
   }
 
@@ -557,7 +568,8 @@ export class Combat extends Scene {
    * Create played hand UI container
    */
   private createPlayedHandUI(): void {
-    this.playedHandContainer = this.add.container(512, 450);
+    const screenHeight = this.cameras.main.height;
+    this.playedHandContainer = this.add.container(512, screenHeight - 300);
     
     // Initialize hand evaluation text
     this.handEvaluationText = this.add
@@ -575,7 +587,8 @@ export class Combat extends Scene {
    * Create action buttons
    */
   private createActionButtons(): void {
-    this.actionButtons = this.add.container(512, 570);
+    const screenHeight = this.cameras.main.height;
+    this.actionButtons = this.add.container(512, screenHeight - 180);
     this.updateActionButtons();
   }
 
@@ -655,20 +668,21 @@ export class Combat extends Scene {
    * Create turn UI
    */
   private createTurnUI(): void {
-    this.turnText = this.add.text(50, 100, "", {
+    const screenWidth = this.cameras.main.width;
+    this.turnText = this.add.text(screenWidth - 200, 50, "", {
       fontFamily: "Centrion",
       fontSize: 18,
       color: "#e8eced",
     });
 
-    this.actionsText = this.add.text(50, 130, "", {
+    this.actionsText = this.add.text(screenWidth - 200, 80, "", {
       fontFamily: "Centrion",
       fontSize: 16,
       color: "#ffd93d",
     });
 
     // Hand indicator text - shows current selected hand type
-    this.handIndicatorText = this.add.text(50, 160, "", {
+    this.handIndicatorText = this.add.text(screenWidth - 200, 110, "", {
       fontFamily: "Centrion",
       fontSize: 16,
       color: "#4ecdc4",
@@ -681,7 +695,8 @@ export class Combat extends Scene {
    * Create relics UI container
    */
   private createRelicsUI(): void {
-    this.relicsContainer = this.add.container(100, 50);
+    const screenWidth = this.cameras.main.width;
+    this.relicsContainer = this.add.container(screenWidth - 100, 50);
     this.updateRelicsUI();
   }
 

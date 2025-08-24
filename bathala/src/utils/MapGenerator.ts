@@ -39,13 +39,15 @@ export class MapGenerator {
 
     // Calculate canvas dimensions
     const canvasWidth = 1024;
-    const canvasHeight = 768;
+    const canvasHeight = 576; // 16:9 aspect ratio
     
     // Position nodes evenly across the canvas
-    const startX = 200;
-    const endX = canvasWidth - 200;
-    const startY = 150;
-    const endY = canvasHeight - 150;
+    const marginX = canvasWidth * 0.15; // 15% margin on each side
+    const marginY = canvasHeight * 0.15; // 15% margin on top/bottom
+    const startX = marginX;
+    const endX = canvasWidth - marginX;
+    const startY = marginY;
+    const endY = canvasHeight - marginY;
     
     // Calculate spacing
     const xSpacing = (endX - startX) / (this.NODES_PER_LAYER - 1);

@@ -12,7 +12,7 @@ import { Preloader } from "./scenes/Preloader";
 const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,
   width: 1024,
-  height: 768,
+  height: 576, // 16:9 aspect ratio (1024 / 16 * 9 = 576)
   parent: "game-container",
   backgroundColor: "#028af8",
   scene: [Boot, Preloader, MainMenu, Overworld, Combat, MainGame, GameOver],
@@ -22,11 +22,13 @@ const config: Phaser.Types.Core.GameConfig = {
   //   antialias: true,
   // },
 
-  // // Scale settings for proper display
-  // scale: {
-  //   mode: Phaser.Scale.FIT,
-  //   autoCenter: Phaser.Scale.CENTER_BOTH,
-  // },
+  // Scale settings for proper display
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: 1024,
+    height: 576,
+  },
 };
 
 const StartGame = (parent: string) => {
