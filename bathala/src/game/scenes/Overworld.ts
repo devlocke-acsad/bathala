@@ -103,11 +103,12 @@ export class Overworld extends Scene {
         backgroundColor: 'rgba(0,0,0,0.5)',
         padding: { x: 10, y: 5 }
       }
-    );
+    ).setScrollFactor(0).setDepth(1000); // Fix to camera and set depth
     
-    // Create action buttons on the top right side of the screen
+    // Create action buttons on the top right side of the screen (fixed to camera)
     const screenWidth = this.cameras.main.width;
-    const buttonX = screenWidth - 150;
+    const screenHeight = this.cameras.main.height;
+    const buttonX = screenWidth - 150; // Position from right edge
     let buttonY = 100;
     
     // Combat test button
@@ -149,6 +150,29 @@ export class Overworld extends Scene {
     // Treasure test button
     this.createActionButton(buttonX, buttonY, "Treasure", "#ffff00", () => {
       console.log("Treasure action triggered");
+    });
+    
+    // Create additional easily accessible test buttons at the bottom of the screen (fixed to camera)
+    const bottomButtonY = screenHeight - 100;
+    let bottomButtonX = 100;
+    
+    // Quick Boss Fight button at bottom
+    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Boss", "#8b5cf6", () => {
+      this.startCombat("boss");
+    });
+    
+    bottomButtonX += 150;
+    
+    // Quick Combat button at bottom
+    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Combat", "#ff0000", () => {
+      this.startCombat("combat");
+    });
+    
+    bottomButtonX += 150;
+    
+    // Quick Elite button at bottom
+    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Elite", "#ffa500", () => {
+      this.startCombat("elite");
     });
   }
 
@@ -244,6 +268,11 @@ export class Overworld extends Scene {
     button.add([background, buttonText]);
     button.setInteractive(new Phaser.Geom.Rectangle(-60, -20, 120, 40), Phaser.Geom.Rectangle.Contains);
     
+    // Set depth to ensure buttons are visible above other UI elements
+    button.setDepth(1000);
+    // Fix buttons to camera so they're always visible
+    button.setScrollFactor(0);
+    
     button.on('pointerdown', callback);
     button.on('pointerover', () => {
       background.setFillStyle(0x555555);
@@ -276,6 +305,21 @@ export class Overworld extends Scene {
     // Check for Enter key to interact with nodes
     if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))) {
       this.checkNodeInteraction();
+    }
+    
+    // Check for B key to trigger boss fight (for testing)
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B))) {
+      this.startCombat("boss");
+    }
+    
+    // Check for C key to trigger combat (for testing)
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C))) {
+      this.startCombat("combat");
+    }
+    
+    // Check for E key to trigger elite combat (for testing)
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E))) {
+      this.startCombat("elite");
     }
     
     // Update UI
