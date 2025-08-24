@@ -559,8 +559,9 @@ export class Combat extends Scene {
    * Create hand UI container
    */
   private createHandUI(): void {
+    const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    this.handContainer = this.add.container(512, screenHeight - 100);
+    this.handContainer = this.add.container(screenWidth/2, screenHeight - 100);
     this.updateHandDisplay();
   }
 
@@ -568,8 +569,9 @@ export class Combat extends Scene {
    * Create played hand UI container
    */
   private createPlayedHandUI(): void {
+    const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    this.playedHandContainer = this.add.container(512, screenHeight - 300);
+    this.playedHandContainer = this.add.container(screenWidth/2, screenHeight - 300);
     
     // Initialize hand evaluation text
     this.handEvaluationText = this.add
@@ -587,8 +589,9 @@ export class Combat extends Scene {
    * Create action buttons
    */
   private createActionButtons(): void {
+    const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    this.actionButtons = this.add.container(512, screenHeight - 180);
+    this.actionButtons = this.add.container(screenWidth/2, screenHeight - 180);
     this.updateActionButtons();
   }
 
@@ -599,21 +602,26 @@ export class Combat extends Scene {
     // Clear existing buttons
     this.actionButtons.removeAll(true);
 
+    const screenWidth = this.cameras.main.width;
+    const baseSpacing = 190;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const adjustedSpacing = baseSpacing * scaleFactor;
+
     if (this.combatState.phase === "player_turn") {
       // Card selection phase
-      const playButton = this.createButton(-190, 0, "Play Hand", () => {
+      const playButton = this.createButton(-adjustedSpacing, 0, "Play Hand", () => {
         this.playSelectedCards();
       });
 
-      const sortRankButton = this.createButton(-60, 0, "Sort: Rank", () => {
+      const sortRankButton = this.createButton(-adjustedSpacing/3, 0, "Sort: Rank", () => {
         this.sortHand("rank");
       });
 
-      const sortSuitButton = this.createButton(60, 0, "Sort: Suit", () => {
+      const sortSuitButton = this.createButton(adjustedSpacing/3, 0, "Sort: Suit", () => {
         this.sortHand("suit");
       });
 
-      const discardButton = this.createButton(190, 0, "Discard", () => {
+      const discardButton = this.createButton(adjustedSpacing, 0, "Discard", () => {
         this.discardSelectedCards();
       });
 
@@ -629,7 +637,8 @@ export class Combat extends Scene {
         this.combatState.player.playedHand
       );
 
-      const attackButton = this.createButton(-120, 0, "Attack", () => {
+      const buttonSpacing = (adjustedSpacing * 2) / 3;
+      const attackButton = this.createButton(-buttonSpacing, 0, "Attack", () => {
         this.executeAction("attack");
       });
 
@@ -637,14 +646,14 @@ export class Combat extends Scene {
         this.executeAction("defend");
       });
 
-      const specialButton = this.createButton(120, 0, "Special", () => {
+      const specialButton = this.createButton(buttonSpacing, 0, "Special", () => {
         this.executeAction("special");
       });
 
       const specialTooltip = this.add
-        .text(120, 30, this.getSpecialActionName(dominantSuit), {
+        .text(buttonSpacing, 30, this.getSpecialActionName(dominantSuit), {
           fontFamily: "Centrion",
-          fontSize: 14,
+          fontSize: Math.floor(14 * scaleFactor),
           color: "#ffffff",
           backgroundColor: "#000000",
           padding: { x: 5, y: 5 },
@@ -707,19 +716,23 @@ export class Combat extends Scene {
     this.relicsContainer.removeAll(true);
 
     const relics = this.combatState.player.relics;
+    const screenWidth = this.cameras.main.width;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const baseSpacing = 30;
+    const spacing = baseSpacing * scaleFactor;
     let x = 0;
 
     relics.forEach((relic) => {
       const relicText = this.add
         .text(x, 0, relic.emoji, {
-          fontSize: 24,
+          fontSize: Math.floor(24 * scaleFactor),
         })
         .setInteractive();
 
       const tooltip = this.add
-        .text(x, 30, relic.name + "\n" + relic.description, {
+        .text(x, spacing, relic.name + "\n" + relic.description, {
           fontFamily: "Centrion",
-          fontSize: 14,
+          fontSize: Math.floor(14 * scaleFactor),
           backgroundColor: "#000",
           padding: { x: 5, y: 5 },
         })
@@ -734,7 +747,7 @@ export class Combat extends Scene {
       });
 
       this.relicsContainer.add([relicText, tooltip]);
-      x += 30;
+      x += spacing;
     });
   }
 
@@ -747,15 +760,24 @@ export class Combat extends Scene {
     text: string,
     callback: () => void
   ): Phaser.GameObjects.Container {
+    const screenWidth = this.cameras.main.width;
+    const baseButtonWidth = 120;
+    const baseButtonHeight = 35;
+    
+    // Scale button size based on screen width
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const buttonWidth = baseButtonWidth * scaleFactor;
+    const buttonHeight = baseButtonHeight * scaleFactor;
+
     const button = this.add.container(x, y);
 
-    const bg = this.add.rectangle(0, 0, 120, 35, 0x2f3542);
+    const bg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x2f3542);
     bg.setStrokeStyle(2, 0x57606f);
 
     const buttonText = this.add
       .text(0, 0, text, {
         fontFamily: "Centrion",
-        fontSize: 16,
+        fontSize: Math.floor(16 * scaleFactor),
         color: "#e8eced",
         align: "center",
       })
@@ -763,7 +785,7 @@ export class Combat extends Scene {
 
     button.add([bg, buttonText]);
     button.setInteractive(
-      new Phaser.Geom.Rectangle(-60, -17.5, 120, 35),
+      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
     button.on("pointerdown", () => {
@@ -798,12 +820,19 @@ export class Combat extends Scene {
 
     const hand = this.combatState.player.hand;
     const cardWidth = 60;
-    const startX = -(hand.length * cardWidth) / 2 + cardWidth / 2;
+    const totalWidth = hand.length * cardWidth;
+    const screenWidth = this.cameras.main.width;
+    
+    // Limit the total width to 80% of screen width to prevent overflow
+    const maxWidth = screenWidth * 0.8;
+    const actualCardWidth = totalWidth > maxWidth ? (maxWidth / hand.length) : cardWidth;
+    const actualTotalWidth = hand.length * actualCardWidth;
+    const startX = -actualTotalWidth / 2 + actualCardWidth / 2;
 
     hand.forEach((card, index) => {
       const cardSprite = this.createCardSprite(
         card,
-        startX + index * cardWidth,
+        startX + index * actualCardWidth,
         0
       );
       this.handContainer.add(cardSprite);
@@ -822,40 +851,50 @@ export class Combat extends Scene {
   ): Phaser.GameObjects.Container {
     const cardContainer = this.add.container(x, y);
 
+    // Calculate card dimensions based on screen size
+    const screenWidth = this.cameras.main.width;
+    const baseCardWidth = 50;
+    const baseCardHeight = 70;
+    
+    // Scale card size based on screen width, but keep minimum size
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const cardWidth = baseCardWidth * scaleFactor;
+    const cardHeight = baseCardHeight * scaleFactor;
+
     // Card background
     const bg = this.add.rectangle(
       0,
       0,
-      50,
-      70,
+      cardWidth,
+      cardHeight,
       card.selected ? 0x4ecdc4 : 0xffffff
     );
     bg.setStrokeStyle(2, card.selected ? 0x2ed573 : 0x2f3542);
 
     // Card rank
     const rankText = this.add
-      .text(-15, -20, card.rank, {
+      .text(-cardWidth/2 + 10, -cardHeight/2 + 10, card.rank, {
         fontFamily: "Centrion",
-        fontSize: 14,
+        fontSize: Math.floor(14 * scaleFactor),
         color: "#000000",
       })
-      .setOrigin(0.5);
+      .setOrigin(0, 0);
 
     // Card suit
     const display = DeckManager.getCardDisplay(card);
     const suitText = this.add
-      .text(15, -20, display.symbol, {
+      .text(cardWidth/2 - 10, -cardHeight/2 + 10, display.symbol, {
         fontFamily: "Centrion",
-        fontSize: 14,
+        fontSize: Math.floor(14 * scaleFactor),
         color: display.color,
       })
-      .setOrigin(0.5);
+      .setOrigin(1, 0);
 
     // Element symbol
     const elementText = this.add
-      .text(0, 10, display.elementSymbol, {
+      .text(0, 0, display.elementSymbol, {
         fontFamily: "Centrion",
-        fontSize: 18,
+        fontSize: Math.floor(18 * scaleFactor),
       })
       .setOrigin(0.5);
 
@@ -864,7 +903,7 @@ export class Combat extends Scene {
     // Make interactive only for hand cards
     if (interactive) {
       cardContainer.setInteractive(
-        new Phaser.Geom.Rectangle(-25, -35, 50, 70),
+        new Phaser.Geom.Rectangle(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight),
         Phaser.Geom.Rectangle.Contains
       );
       cardContainer.on("pointerdown", () => this.selectCard(card));
@@ -1255,6 +1294,10 @@ export class Combat extends Scene {
     
     this.combatState.phase = "ended";
     
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    
     if (victory) {
       const gameState = GameState.getInstance();
       const currentNode = gameState.getCurrentNode();
@@ -1277,9 +1320,9 @@ export class Combat extends Scene {
       const color = "#ff4757";
 
       this.add
-        .text(512, 384, resultText, {
+        .text(screenWidth/2, screenHeight/2, resultText, {
           fontFamily: "Chivo",
-          fontSize: 48,
+          fontSize: Math.floor(48 * scaleFactor),
           color: color,
           align: "center",
         })
@@ -1299,6 +1342,11 @@ export class Combat extends Scene {
     // Clear combat UI
     this.clearCombatUI();
 
+    // Get screen dimensions
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+
     // Convert enemy name to dialogue key
     const enemyKey = this.combatState.enemy.name
       .toLowerCase()
@@ -1307,11 +1355,13 @@ export class Combat extends Scene {
       this.creatureDialogues[enemyKey] || this.creatureDialogues.goblin;
 
     // Background overlay
-    this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.8);
+    this.add.rectangle(screenWidth/2, screenHeight/2, screenWidth, screenHeight, 0x000000, 0.8);
 
     // Dialogue box
-    const dialogueBox = this.add.rectangle(512, 400, 800, 400, 0x2f3542);
-    dialogueBox.setStrokeStyle(3, 0x57606f);
+    const dialogueBoxWidth = Math.min(800, screenWidth * 0.8);
+    const dialogueBoxHeight = Math.min(400, screenHeight * 0.6);
+    const dialogueBox = this.add.rectangle(screenWidth/2, screenHeight/2, dialogueBoxWidth, dialogueBoxHeight, 0x2f3542);
+    dialogueBox.setStrokeStyle(Math.floor(3 * scaleFactor), 0x57606f);
 
     // Enemy portrait (sprite instead of emoji)
     // Determine which enemy sprite to use based on enemy type
@@ -1332,8 +1382,8 @@ export class Combat extends Scene {
       enemySpriteKey = spriteOptions[randomIndex];
     }
     
-    const enemyPortrait = this.add.sprite(512, 250, enemySpriteKey);
-    enemyPortrait.setScale(3);
+    const enemyPortrait = this.add.sprite(screenWidth/2, screenHeight/2 - 100, enemySpriteKey);
+    enemyPortrait.setScale(3 * scaleFactor);
 
     // Try to play animation, fallback if it fails
     try {
@@ -1344,9 +1394,9 @@ export class Combat extends Scene {
 
     // Enemy name (larger font and positioned further from portrait due to larger sprite)
     this.add
-      .text(512, 150, dialogue.name, {
+      .text(screenWidth/2, screenHeight/2 - 200, dialogue.name, {
         fontFamily: "Chivo",
-        fontSize: 28, // Larger font size
+        fontSize: Math.floor(28 * scaleFactor), // Larger font size
         color: "#e8eced",
         align: "center",
       })
@@ -1354,21 +1404,21 @@ export class Combat extends Scene {
 
     // Main dialogue text (positioned further down due to larger portrait)
     this.add
-      .text(512, 370, "You have defeated this creature. What do you choose?", {
+      .text(screenWidth/2, screenHeight/2, "You have defeated this creature. What do you choose?", {
         fontFamily: "Chivo",
-        fontSize: 18,
+        fontSize: Math.floor(18 * scaleFactor),
         color: "#e8eced",
         align: "center",
-        wordWrap: { width: 700 }, // Wider word wrap for better readability
+        wordWrap: { width: dialogueBoxWidth * 0.9 }, // Wider word wrap for better readability
       })
       .setOrigin(0.5);
 
     // Landas choice buttons
-    this.createDialogueButton(350, 480, "Spare", "#2ed573", () =>
+    this.createDialogueButton(screenWidth/2 - 150, screenHeight/2 + 100, "Spare", "#2ed573", () =>
       this.makeLandasChoice("spare", dialogue)
     );
 
-    this.createDialogueButton(674, 480, "Slay", "#ff4757", () =>
+    this.createDialogueButton(screenWidth/2 + 150, screenHeight/2 + 100, "Slay", "#ff4757", () =>
       this.makeLandasChoice("kill", dialogue)
     );
 
@@ -1378,14 +1428,14 @@ export class Combat extends Scene {
 
     this.add
       .text(
-        512,
-        550,
+        screenWidth/2,
+        screenHeight/2 + 170,
         `Current Landas: ${
           this.combatState.player.landasScore
         } (${landasTier.toUpperCase()})`,
         {
           fontFamily: "Chivo",
-          fontSize: 16,
+          fontSize: Math.floor(16 * scaleFactor),
           color: landasColor,
           align: "center",
         }
@@ -1403,15 +1453,20 @@ export class Combat extends Scene {
     color: string,
     callback: () => void
   ): Phaser.GameObjects.Container {
+    const screenWidth = this.cameras.main.width;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const buttonWidth = 200 * scaleFactor;
+    const buttonHeight = 40 * scaleFactor;
+
     const button = this.add.container(x, y);
 
-    const bg = this.add.rectangle(0, 0, 200, 40, 0x2f3542);
-    bg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(color).color);
+    const bg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x2f3542);
+    bg.setStrokeStyle(Math.floor(2 * scaleFactor), Phaser.Display.Color.HexStringToColor(color).color);
 
     const buttonText = this.add
       .text(0, 0, text, {
         fontFamily: "Chivo",
-        fontSize: 14,
+        fontSize: Math.floor(14 * scaleFactor),
         color: color,
         align: "center",
       })
@@ -1419,7 +1474,7 @@ export class Combat extends Scene {
 
     button.add([bg, buttonText]);
     button.setInteractive(
-      new Phaser.Geom.Rectangle(-100, -20, 200, 40),
+      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
     button.on("pointerdown", callback);
@@ -1483,15 +1538,20 @@ export class Combat extends Scene {
     const landasChangeText =
       landasChange > 0 ? `+${landasChange}` : `${landasChange}`;
 
+    // Get screen dimensions
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+
     // Title
     this.add
       .text(
-        512,
+        screenWidth/2,
         100,
         choice === "spare" ? "Mercy Shown" : "Victory Through Force",
         {
           fontFamily: "Chivo",
-          fontSize: 32,
+          fontSize: Math.floor(32 * scaleFactor),
           color: choiceColor,
           align: "center",
         }
@@ -1500,23 +1560,25 @@ export class Combat extends Scene {
 
     // Dialogue
     this.add
-      .text(512, 200, dialogue, {
+      .text(screenWidth/2, 200, dialogue, {
         fontFamily: "Chivo",
-        fontSize: 16,
+        fontSize: Math.floor(16 * scaleFactor),
         color: "#e8eced",
         align: "center",
-        wordWrap: { width: 700 },
+        wordWrap: { width: screenWidth * 0.7 },
       })
       .setOrigin(0.5);
 
     // Rewards box
-    const rewardsBox = this.add.rectangle(512, 400, 600, 250, 0x2f3542);
+    const rewardsBoxWidth = Math.min(600, screenWidth * 0.6);
+    const rewardsBoxHeight = Math.min(250, screenHeight * 0.4);
+    const rewardsBox = this.add.rectangle(screenWidth/2, 400, rewardsBoxWidth, rewardsBoxHeight, 0x2f3542);
     rewardsBox.setStrokeStyle(2, 0x57606f);
 
     this.add
-      .text(512, 320, "Rewards", {
+      .text(screenWidth/2, 320, "Rewards", {
         fontFamily: "Chivo",
-        fontSize: 24,
+        fontSize: Math.floor(24 * scaleFactor),
         color: "#ffd93d",
         align: "center",
       })
@@ -1527,59 +1589,59 @@ export class Combat extends Scene {
     // Ginto reward
     if (reward.ginto > 0) {
       this.add
-        .text(512, rewardY, `💰 ${reward.ginto} Ginto`, {
+        .text(screenWidth/2, rewardY, `💰 ${reward.ginto} Ginto`, {
           fontFamily: "Chivo",
-          fontSize: 16,
+          fontSize: Math.floor(16 * scaleFactor),
           color: "#e8eced",
           align: "center",
         })
         .setOrigin(0.5);
-      rewardY += 25;
+      rewardY += 25 * scaleFactor;
     }
 
     // Baubles reward
     if (reward.baubles > 0) {
       this.add
-        .text(512, rewardY, `💎 ${reward.baubles} Bathala Baubles`, {
+        .text(screenWidth/2, rewardY, `💎 ${reward.baubles} Bathala Baubles`, {
           fontFamily: "Chivo",
-          fontSize: 16,
+          fontSize: Math.floor(16 * scaleFactor),
           color: "#4ecdc4",
           align: "center",
         })
         .setOrigin(0.5);
-      rewardY += 25;
+      rewardY += 25 * scaleFactor;
     }
 
     // Health healing
     if (reward.healthHealing > 0) {
       this.add
-        .text(512, rewardY, `❤️ Healed ${reward.healthHealing} HP`, {
+        .text(screenWidth/2, rewardY, `❤️ Healed ${reward.healthHealing} HP`, {
           fontFamily: "Chivo",
-          fontSize: 16,
+          fontSize: Math.floor(16 * scaleFactor),
           color: "#ff6b6b",
           align: "center",
         })
         .setOrigin(0.5);
-      rewardY += 25;
+      rewardY += 25 * scaleFactor;
     }
 
     // Landas change
     this.add
-      .text(512, rewardY, `✨ Landas ${landasChangeText}`, {
+      .text(screenWidth/2, rewardY, `✨ Landas ${landasChangeText}`, {
         fontFamily: "Chivo",
-        fontSize: 16,
+        fontSize: Math.floor(16 * scaleFactor),
         color: landasChange > 0 ? "#2ed573" : "#ff4757",
         align: "center",
       })
       .setOrigin(0.5);
-    rewardY += 25;
+    rewardY += 25 * scaleFactor;
 
     // Bonus effect
     if (reward.bonusEffect) {
       this.add
-        .text(512, rewardY, `✨ ${reward.bonusEffect}`, {
+        .text(screenWidth/2, rewardY, `✨ ${reward.bonusEffect}`, {
           fontFamily: "Chivo",
-          fontSize: 14,
+          fontSize: Math.floor(14 * scaleFactor),
           color: "#ffd93d",
           align: "center",
         })
@@ -1592,14 +1654,14 @@ export class Combat extends Scene {
 
     this.add
       .text(
-        512,
+        screenWidth/2,
         520,
         `Landas: ${
           this.combatState.player.landasScore
         } (${landasTier.toUpperCase()})`,
         {
           fontFamily: "Chivo",
-          fontSize: 18,
+          fontSize: Math.floor(18 * scaleFactor),
           color: landasColor,
           align: "center",
         }
@@ -1607,7 +1669,7 @@ export class Combat extends Scene {
       .setOrigin(0.5);
 
     // Continue button
-    this.createDialogueButton(512, 600, "Continue", "#4ecdc4", () => {
+    this.createDialogueButton(screenWidth/2, 600, "Continue", "#4ecdc4", () => {
       this.scene.start("Overworld");
     });
 
@@ -1621,9 +1683,39 @@ export class Combat extends Scene {
    * Clear combat UI elements
    */
   private clearCombatUI(): void {
-    this.handContainer.destroy();
-    this.playedHandContainer.destroy();
-    this.actionButtons.destroy();
+    if (this.handContainer) {
+      this.handContainer.destroy();
+    }
+    if (this.playedHandContainer) {
+      this.playedHandContainer.destroy();
+    }
+    if (this.actionButtons) {
+      this.actionButtons.destroy();
+    }
+    if (this.relicsContainer) {
+      this.relicsContainer.destroy();
+    }
+    if (this.playerStatusContainer) {
+      this.playerStatusContainer.destroy();
+    }
+    if (this.enemyStatusContainer) {
+      this.enemyStatusContainer.destroy();
+    }
+    if (this.actionResultText) {
+      this.actionResultText.destroy();
+    }
+    if (this.handEvaluationText) {
+      this.handEvaluationText.destroy();
+    }
+    if (this.turnText) {
+      this.turnText.destroy();
+    }
+    if (this.actionsText) {
+      this.actionsText.destroy();
+    }
+    if (this.handIndicatorText) {
+      this.handIndicatorText.destroy();
+    }
   }
 
   /**
@@ -1662,12 +1754,18 @@ export class Combat extends Scene {
 
     const cardWidth = 70;
     const totalWidth = playedHand.length * cardWidth;
-    const startX = -totalWidth / 2 + cardWidth / 2;
+    const screenWidth = this.cameras.main.width;
+    
+    // Limit the total width to 80% of screen width to prevent overflow
+    const maxWidth = screenWidth * 0.8;
+    const actualCardWidth = totalWidth > maxWidth ? (maxWidth / playedHand.length) : cardWidth;
+    const actualTotalWidth = playedHand.length * actualCardWidth;
+    const startX = -actualTotalWidth / 2 + actualCardWidth / 2;
 
     playedHand.forEach((card, index) => {
       const cardSprite = this.createCardSprite(
         card,
-        startX + index * cardWidth,
+        startX + index * actualCardWidth,
         0,
         false
       );
@@ -1677,6 +1775,8 @@ export class Combat extends Scene {
 
     // Show hand evaluation
     const evaluation = HandEvaluator.evaluateHand(playedHand, "attack");
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    this.handEvaluationText.setFontSize(Math.floor(18 * scaleFactor));
     this.handEvaluationText.setText(
       `${evaluation.description} - Value: ${evaluation.totalValue}`
     );
@@ -1916,13 +2016,17 @@ export class Combat extends Scene {
   }
 
   /**
-   * Create action result UI
+   * Create action result display
    */
   private createActionResultUI(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    
     this.actionResultText = this.add
-      .text(512, 350, "", {
+      .text(screenWidth/2, screenHeight/2, "", {
         fontFamily: "Centrion",
-        fontSize: 20,
+        fontSize: Math.floor(20 * scaleFactor),
         color: "#2ed573",
         align: "center",
       })
@@ -1934,6 +2038,11 @@ export class Combat extends Scene {
    * Show action result message
    */
   private showActionResult(message: string): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Update position to center of screen
+    this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
     this.actionResultText.setText(message);
     this.actionResultText.setVisible(true);
 
@@ -2082,16 +2191,21 @@ export class Combat extends Scene {
       return;
     }
 
+    const screenWidth = this.cameras.main.width;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const baseSpacing = 30;
+    const spacing = baseSpacing * scaleFactor;
     let x = 0;
+    
     entity.statusEffects.forEach((effect) => {
       const effectText = this.add.text(x, 0, `${effect.emoji}${effect.duration}`, {
-        fontSize: 16,
+        fontSize: Math.floor(16 * scaleFactor),
       }).setInteractive();
 
       const tooltip = this.add
-        .text(x, 20, effect.description, {
+        .text(x, spacing, effect.description, {
           fontFamily: "Centrion",
-          fontSize: 14,
+          fontSize: Math.floor(14 * scaleFactor),
           backgroundColor: "#000",
           padding: { x: 5, y: 5 },
         })
@@ -2106,7 +2220,7 @@ export class Combat extends Scene {
       });
 
       statusContainer.add([effectText, tooltip]);
-      x += 30;
+      x += spacing;
     });
   }
 
