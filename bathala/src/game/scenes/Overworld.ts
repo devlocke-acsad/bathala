@@ -83,6 +83,9 @@ export class Overworld extends Scene {
     
     // Render initial chunks around player
     this.updateVisibleChunks();
+
+    // Listen for resize events
+    this.scale.on('resize', this.handleResize, this);
   }
 
   createUI(): void {
@@ -785,5 +788,13 @@ export class Overworld extends Scene {
         }
       });
     });
+  }
+
+  /**
+   * Handle scene resize
+   */
+  private handleResize(): void {
+    // Update UI elements on resize
+    this.updateUI();
   }
 }

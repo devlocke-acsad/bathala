@@ -15,6 +15,21 @@ export class Game extends Scene {
     // Phaser expects a hex number, so we hardcode the color value
     this.camera.setBackgroundColor(0x0e1112); // #0e1112
 
+    // Create UI elements
+    this.createUI();
+
+    // Listen for resize events
+    this.scale.on('resize', this.handleResize, this);
+
+    this.input.once("pointerdown", () => {
+      this.scene.start("Overworld");
+    });
+  }
+
+  /**
+   * Create UI elements
+   */
+  private createUI(): void {
     // Get screen dimensions
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
@@ -36,9 +51,14 @@ export class Game extends Scene {
       }
     );
     this.msg_text.setOrigin(0.5);
+  }
 
-    this.input.once("pointerdown", () => {
-      this.scene.start("Overworld");
-    });
+  /**
+   * Handle scene resize
+   */
+  private handleResize(): void {
+    // Clear and recreate UI
+    this.children.removeAll();
+    this.createUI();
   }
 }

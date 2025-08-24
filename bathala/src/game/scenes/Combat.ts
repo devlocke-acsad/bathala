@@ -285,6 +285,9 @@ export class Combat extends Scene {
       // No transition overlay, start player turn immediately
       this.startPlayerTurn();
     }
+
+    // Listen for resize events
+    this.scale.on('resize', this.handleResize, this);
   }
 
   /**
@@ -2257,5 +2260,64 @@ export class Combat extends Scene {
     } else {
       this.updateEnemyUI();
     }
+  }
+
+  /**
+   * Handle scene resize
+   */
+  private handleResize(): void {
+    // Reposition UI elements on resize
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Update containers if they exist
+    if (this.handContainer) {
+      this.handContainer.setPosition(screenWidth/2, screenHeight - 100);
+    }
+    
+    if (this.playedHandContainer) {
+      this.playedHandContainer.setPosition(screenWidth/2, screenHeight - 300);
+    }
+    
+    if (this.actionButtons) {
+      this.actionButtons.setPosition(screenWidth/2, screenHeight - 180);
+    }
+    
+    if (this.relicsContainer) {
+      this.relicsContainer.setPosition(screenWidth - 100, 50);
+    }
+    
+    // Update text positions
+    if (this.turnText) {
+      this.turnText.setPosition(screenWidth - 200, 50);
+    }
+    
+    if (this.actionsText) {
+      this.actionsText.setPosition(screenWidth - 200, 80);
+    }
+    
+    if (this.handIndicatorText) {
+      this.handIndicatorText.setPosition(screenWidth - 200, 110);
+    }
+    
+    if (this.actionResultText) {
+      this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
+    }
+    
+    // Update player and enemy positions
+    if (this.playerSprite) {
+      this.playerSprite.setPosition(screenWidth * 0.25, screenHeight * 0.4);
+    }
+    
+    if (this.enemySprite) {
+      this.enemySprite.setPosition(screenWidth * 0.75, screenHeight * 0.4);
+    }
+    
+    // Redraw UI elements
+    this.updateHandDisplay();
+    this.updatePlayedHandDisplay();
+    this.updateActionButtons();
+    this.updateRelicsUI();
+    this.updateTurnUI();
   }
 }

@@ -1,6 +1,9 @@
 import { Scene } from "phaser";
 
 export class Preloader extends Scene {
+  progressBar: Phaser.GameObjects.Rectangle;
+  progressBox: Phaser.GameObjects.Rectangle;
+
   constructor() {
     super("Preloader");
   }
@@ -13,16 +16,19 @@ export class Preloader extends Scene {
     this.add.image(screenWidth/2, screenHeight/2, "bg");
 
     //  A simple progress bar. This is the outline of the bar.
-    this.add.rectangle(screenWidth/2, screenHeight/2, 468, 32).setStrokeStyle(1, 0xffffff);
+    this.progressBox = this.add.rectangle(screenWidth/2, screenHeight/2, 468, 32).setStrokeStyle(1, 0xffffff);
 
     //  This is the progress bar itself. It will increase in size from the left based on the % of progress.
-    const bar = this.add.rectangle((screenWidth/2) - 230, screenHeight/2, 4, 28, 0xffffff);
+    this.progressBar = this.add.rectangle((screenWidth/2) - 230, screenHeight/2, 4, 28, 0xffffff);
 
     //  Use the 'progress' event emitted by the LoaderPlugin to update the loading bar
     this.load.on("progress", (progress: number) => {
       //  Update the progress bar (our bar is 464px wide, so 100% = 464px)
-      bar.width = 4 + 460 * progress;
+      this.progressBar.width = 4 + 460 * progress;
     });
+
+    // Listen for resize events
+    this.scale.on('resize', this.handleResize, this);
   }
 
   preload() {
@@ -138,6 +144,23 @@ export class Preloader extends Scene {
       //  Move to the MainMenu instead of directly to Overworld
       this.scene.start("MainMenu");
     });
+  }
+
+  /**
+   * Handle scene resize
+   */
+  private handleResize(): void {
+    // Reposition progress bar on resize
+    const screenWidth = this.game.config.width as number;
+    const screenHeight = this.game.config.height as number;
+    
+    if (this.progressBox) {
+      this.progressBox.setPosition(screenWidth/2, screenHeight/2);
+    }
+    
+    if (this.progressBar) {
+      this.progressBar.setPosition((screenWidth/2) - 230, screenHeight/2);
+    }
   }
 
   /**

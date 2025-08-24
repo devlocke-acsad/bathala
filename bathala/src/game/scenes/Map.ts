@@ -77,6 +77,9 @@ export class Map extends Scene {
 
     // Add UI elements
     this.createUI();
+
+    // Listen for resize events
+    this.scale.on('resize', this.handleResize, this);
   }
 
   /**
@@ -410,5 +413,24 @@ export class Map extends Scene {
         color: "#e8eced",
       })
       .setOrigin(1, 0);
+  }
+
+  /**
+   * Handle scene resize
+   */
+  private handleResize(): void {
+    // Redraw the entire map on resize
+    // Clear existing graphics and nodes
+    this.pathLines.forEach(line => line.destroy());
+    this.pathLines = [];
+    
+    Object.values(this.nodeSprites).forEach(sprite => sprite.destroy());
+    this.nodeSprites = {};
+    
+    // Redraw the map
+    this.drawMap();
+    
+    // Recreate UI
+    this.createUI();
   }
 }

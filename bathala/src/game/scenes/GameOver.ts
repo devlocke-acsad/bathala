@@ -16,6 +16,23 @@ export class GameOver extends Scene
         this.camera = this.cameras.main
         this.camera.setBackgroundColor(0xff0000);
 
+        // Create UI elements
+        this.createUI();
+
+        // Listen for resize events
+        this.scale.on('resize', this.handleResize, this);
+
+        this.input.once('pointerdown', () => {
+
+            this.scene.start('MainMenu');
+
+        });
+    }
+
+    /**
+     * Create UI elements
+     */
+    private createUI(): void {
         // Get screen dimensions
         const screenWidth = this.cameras.main.width;
         const screenHeight = this.cameras.main.height;
@@ -29,11 +46,14 @@ export class GameOver extends Scene
             align: 'center'
         });
         this.gameover_text.setOrigin(0.5);
+    }
 
-        this.input.once('pointerdown', () => {
-
-            this.scene.start('MainMenu');
-
-        });
+    /**
+     * Handle scene resize
+     */
+    private handleResize(): void {
+        // Clear and recreate UI
+        this.children.removeAll();
+        this.createUI();
     }
 }

@@ -4,6 +4,7 @@ export class MainMenu extends Scene {
   background: GameObjects.Image;
   logo: GameObjects.Image;
   title: GameObjects.Text;
+  menuTexts: GameObjects.Text[] = [];
 
   constructor() {
     super("MainMenu");
@@ -12,6 +13,20 @@ export class MainMenu extends Scene {
   create() {
     // Set camera background color to custom background color ONLY
     this.cameras.main.setBackgroundColor(0x0e1112); // --background (#0e1112)
+
+    // Create UI elements
+    this.createUI();
+
+    // Listen for resize events
+    this.scale.on('resize', this.handleResize, this);
+  }
+
+  /**
+   * Create UI elements
+   */
+  private createUI(): void {
+    // Clear existing menu texts
+    this.menuTexts = [];
 
     // Get screen dimensions
     const screenWidth = this.cameras.main.width;
@@ -46,7 +61,18 @@ export class MainMenu extends Scene {
             this.scene.start("Overworld");
           });
       }
+      
+      this.menuTexts.push(menuText);
     });
+  }
+
+  /**
+   * Handle scene resize
+   */
+  private handleResize(): void {
+    // Clear and recreate UI
+    this.children.removeAll();
+    this.createUI();
   }
 
   /**
