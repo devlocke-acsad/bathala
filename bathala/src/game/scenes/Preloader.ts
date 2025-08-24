@@ -89,6 +89,12 @@ export class Preloader extends Scene {
     this.load.image("angel_f2", "sprites/overworld/campfire/angel_idle_anim_f2.png");
     this.load.image("angel_f3", "sprites/overworld/campfire/angel_idle_anim_f3.png");
     
+    // Add campfire spritesheet for animated campfire
+    this.load.spritesheet("campfire", "sprites/overworld/campfire/angel_idle_anim_f0.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
+    
     // Shop node sprites (necromancer)
     this.load.image("necromancer_f0", "sprites/overworld/shop/necromancer_anim_f0.png");
     this.load.image("necromancer_f1", "sprites/overworld/shop/necromancer_anim_f1.png");
@@ -351,6 +357,20 @@ export class Preloader extends Scene {
       repeat: -1,
     });
     console.log("Created angel_idle animation");
+    
+    // Campfire animation (same as angel)
+    this.anims.create({
+      key: "campfire_burn",
+      frames: [
+        { key: "angel_f0" },
+        { key: "angel_f1" },
+        { key: "angel_f2" },
+        { key: "angel_f3" }
+      ],
+      frameRate: 4,
+      repeat: -1,
+    });
+    console.log("Created campfire_burn animation");
     
     // Shop node animation (necromancer)
     this.anims.create({

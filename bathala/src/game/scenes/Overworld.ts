@@ -131,7 +131,32 @@ export class Overworld extends Scene {
     
     // Shop test button
     this.createActionButton(buttonX, buttonY, "Shop", "#00ff00", () => {
-      console.log("Shop action triggered");
+      this.scene.start("Shop", { 
+        player: {
+          id: "player",
+          name: "Hero",
+          maxHealth: 80,
+          currentHealth: 80,
+          block: 0,
+          statusEffects: [],
+          hand: [],
+          deck: [],
+          discardPile: [],
+          drawPile: [],
+          playedHand: [],
+          landasScore: 0,
+          ginto: 100,
+          baubles: 0,
+          relics: [
+            {
+              id: "placeholder_relic",
+              name: "Placeholder Relic",
+              description: "This is a placeholder relic.",
+              emoji: "⚙️",
+            },
+          ],
+        }
+      });
     });
     buttonY += 60;
     
@@ -143,13 +168,63 @@ export class Overworld extends Scene {
     
     // Campfire test button
     this.createActionButton(buttonX, buttonY, "Campfire", "#ff4500", () => {
-      console.log("Campfire action triggered");
+      this.scene.start("Campfire", { 
+        player: {
+          id: "player",
+          name: "Hero",
+          maxHealth: 80,
+          currentHealth: 80,
+          block: 0,
+          statusEffects: [],
+          hand: [],
+          deck: [],
+          discardPile: [],
+          drawPile: [],
+          playedHand: [],
+          landasScore: 0,
+          ginto: 100,
+          baubles: 0,
+          relics: [
+            {
+              id: "placeholder_relic",
+              name: "Placeholder Relic",
+              description: "This is a placeholder relic.",
+              emoji: "⚙️",
+            },
+          ],
+        }
+      });
     });
     buttonY += 60;
     
     // Treasure test button
     this.createActionButton(buttonX, buttonY, "Treasure", "#ffff00", () => {
-      console.log("Treasure action triggered");
+      this.scene.start("Treasure", { 
+        player: {
+          id: "player",
+          name: "Hero",
+          maxHealth: 80,
+          currentHealth: 80,
+          block: 0,
+          statusEffects: [],
+          hand: [],
+          deck: [],
+          discardPile: [],
+          drawPile: [],
+          playedHand: [],
+          landasScore: 0,
+          ginto: 100,
+          baubles: 0,
+          relics: [
+            {
+              id: "placeholder_relic",
+              name: "Placeholder Relic",
+              description: "This is a placeholder relic.",
+              emoji: "⚙️",
+            },
+          ],
+        }
+      });
     });
     
     // Create additional easily accessible test buttons at the bottom of the screen (fixed to camera)
@@ -173,6 +248,102 @@ export class Overworld extends Scene {
     // Quick Elite button at bottom
     this.createActionButton(bottomButtonX, bottomButtonY, "Quick Elite", "#ffa500", () => {
       this.startCombat("elite");
+    });
+    
+    bottomButtonX += 150;
+    
+    // Quick Campfire button at bottom
+    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Campfire", "#ff4500", () => {
+      this.scene.start("Campfire", { 
+        player: {
+          id: "player",
+          name: "Hero",
+          maxHealth: 80,
+          currentHealth: 80,
+          block: 0,
+          statusEffects: [],
+          hand: [],
+          deck: [],
+          discardPile: [],
+          drawPile: [],
+          playedHand: [],
+          landasScore: 0,
+          ginto: 100,
+          baubles: 0,
+          relics: [
+            {
+              id: "placeholder_relic",
+              name: "Placeholder Relic",
+              description: "This is a placeholder relic.",
+              emoji: "⚙️",
+            },
+          ],
+        }
+      });
+    });
+    
+    bottomButtonX += 150;
+    
+    // Quick Shop button at bottom
+    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Shop", "#00ff00", () => {
+      this.scene.start("Shop", { 
+        player: {
+          id: "player",
+          name: "Hero",
+          maxHealth: 80,
+          currentHealth: 80,
+          block: 0,
+          statusEffects: [],
+          hand: [],
+          deck: [],
+          discardPile: [],
+          drawPile: [],
+          playedHand: [],
+          landasScore: 0,
+          ginto: 100,
+          baubles: 0,
+          relics: [
+            {
+              id: "placeholder_relic",
+              name: "Placeholder Relic",
+              description: "This is a placeholder relic.",
+              emoji: "⚙️",
+            },
+          ],
+        }
+      });
+    });
+    
+    bottomButtonX += 150;
+    
+    // Quick Treasure button at bottom
+    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Treasure", "#ffff00", () => {
+      this.scene.start("Treasure", { 
+        player: {
+          id: "player",
+          name: "Hero",
+          maxHealth: 80,
+          currentHealth: 80,
+          block: 0,
+          statusEffects: [],
+          hand: [],
+          deck: [],
+          discardPile: [],
+          drawPile: [],
+          playedHand: [],
+          landasScore: 0,
+          ginto: 100,
+          baubles: 0,
+          relics: [
+            {
+              id: "placeholder_relic",
+              name: "Placeholder Relic",
+              description: "This is a placeholder relic.",
+              emoji: "⚙️",
+            },
+          ],
+        }
+      });
     });
   }
 
@@ -320,6 +491,156 @@ export class Overworld extends Scene {
     // Check for E key to trigger elite combat (for testing)
     if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E))) {
       this.startCombat("elite");
+    }
+    
+    // Check for T key to trigger treasure (for testing)
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T))) {
+      this.scene.start("Treasure", { 
+        player: {
+          id: "player",
+          name: "Hero",
+          maxHealth: 80,
+          currentHealth: 80,
+          block: 0,
+          statusEffects: [],
+          hand: [],
+          deck: [],
+          discardPile: [],
+          drawPile: [],
+          playedHand: [],
+          landasScore: 0,
+          ginto: 100,
+          baubles: 0,
+          relics: [
+            {
+              id: "placeholder_relic",
+              name: "Placeholder Relic",
+              description: "This is a placeholder relic.",
+              emoji: "⚙️",
+            },
+          ],
+        }
+      });
+    }
+    
+    // Check for F key to trigger campfire (for testing)
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F))) {
+      this.scene.start("Campfire", { 
+        player: {
+          id: "player",
+          name: "Hero",
+          maxHealth: 80,
+          currentHealth: 80,
+          block: 0,
+          statusEffects: [],
+          hand: [],
+          deck: [],
+          discardPile: [],
+          drawPile: [],
+          playedHand: [],
+          landasScore: 0,
+          ginto: 100,
+          baubles: 0,
+          relics: [
+            {
+              id: "placeholder_relic",
+              name: "Placeholder Relic",
+              description: "This is a placeholder relic.",
+              emoji: "⚙️",
+            },
+          ],
+        }
+      });
+    }
+    
+    // Check for S key to trigger shop (for testing)
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S))) {
+      this.scene.start("Shop", { 
+        player: {
+          id: "player",
+          name: "Hero",
+          maxHealth: 80,
+          currentHealth: 80,
+          block: 0,
+          statusEffects: [],
+          hand: [],
+          deck: [],
+          discardPile: [],
+          drawPile: [],
+          playedHand: [],
+          landasScore: 0,
+          ginto: 100,
+          baubles: 0,
+          relics: [
+            {
+              id: "placeholder_relic",
+              name: "Placeholder Relic",
+              description: "This is a placeholder relic.",
+              emoji: "⚙️",
+            },
+          ],
+        }
+      });
+    }
+    
+    // Check for F key to trigger campfire (for testing)
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F))) {
+      this.scene.start("Campfire", { 
+        player: {
+          id: "player",
+          name: "Hero",
+          maxHealth: 80,
+          currentHealth: 80,
+          block: 0,
+          statusEffects: [],
+          hand: [],
+          deck: [],
+          discardPile: [],
+          drawPile: [],
+          playedHand: [],
+          landasScore: 0,
+          ginto: 100,
+          baubles: 0,
+          relics: [
+            {
+              id: "placeholder_relic",
+              name: "Placeholder Relic",
+              description: "This is a placeholder relic.",
+              emoji: "⚙️",
+            },
+          ],
+        }
+      });
+    }
+    
+    // Check for R key to trigger treasure (for testing)
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R))) {
+      this.scene.start("Treasure", { 
+        player: {
+          id: "player",
+          name: "Hero",
+          maxHealth: 80,
+          currentHealth: 80,
+          block: 0,
+          statusEffects: [],
+          hand: [],
+          deck: [],
+          discardPile: [],
+          drawPile: [],
+          playedHand: [],
+          landasScore: 0,
+          ginto: 100,
+          baubles: 0,
+          relics: [
+            {
+              id: "placeholder_relic",
+              name: "Placeholder Relic",
+              description: "This is a placeholder relic.",
+              emoji: "⚙️",
+            },
+          ],
+        }
+      });
     }
     
     // Update UI
@@ -699,29 +1020,98 @@ export class Overworld extends Scene {
           break;
           
         case "shop":
-          // Test event for shop
-          this.showNodeEvent("Shop", "Welcome to the shop! Here you can buy cards and relics.", 0x00ff00);
-          // Remove the node from the list so it doesn't trigger again
-          this.nodes.splice(nodeIndex, 1);
+          // Navigate to shop scene
+          this.scene.start("Shop", { 
+            player: {
+              id: "player",
+              name: "Hero",
+              maxHealth: 80,
+              currentHealth: 80,
+              block: 0,
+              statusEffects: [],
+              hand: [],
+              deck: [],
+              discardPile: [],
+              drawPile: [],
+              playedHand: [],
+              landasScore: 0,
+              ginto: 100,
+              baubles: 0,
+              relics: [
+                {
+                  id: "placeholder_relic",
+                  name: "Placeholder Relic",
+                  description: "This is a placeholder relic.",
+                  emoji: "⚙️",
+                },
+              ],
+            }
+          });
+          break;
+          
+        case "campfire":
+          // Navigate to campfire scene
+          this.scene.start("Campfire", { 
+            player: {
+              id: "player",
+              name: "Hero",
+              maxHealth: 80,
+              currentHealth: 80,
+              block: 0,
+              statusEffects: [],
+              hand: [],
+              deck: [],
+              discardPile: [],
+              drawPile: [],
+              playedHand: [],
+              landasScore: 0,
+              ginto: 100,
+              baubles: 0,
+              relics: [
+                {
+                  id: "placeholder_relic",
+                  name: "Placeholder Relic",
+                  description: "This is a placeholder relic.",
+                  emoji: "⚙️",
+                },
+              ],
+            }
+          });
+          break;
+          
+        case "treasure":
+          // Navigate to treasure scene
+          this.scene.start("Treasure", { 
+            player: {
+              id: "player",
+              name: "Hero",
+              maxHealth: 80,
+              currentHealth: 80,
+              block: 0,
+              statusEffects: [],
+              hand: [],
+              deck: [],
+              discardPile: [],
+              drawPile: [],
+              playedHand: [],
+              landasScore: 0,
+              ginto: 100,
+              baubles: 0,
+              relics: [
+                {
+                  id: "placeholder_relic",
+                  name: "Placeholder Relic",
+                  description: "This is a placeholder relic.",
+                  emoji: "⚙️",
+                },
+              ],
+            }
+          });
           break;
           
         case "event":
           // Test event for random event
           this.showNodeEvent("Mysterious Event", "You encounter a mysterious figure who offers you a choice...", 0x0000ff);
-          // Remove the node from the list so it doesn't trigger again
-          this.nodes.splice(nodeIndex, 1);
-          break;
-          
-        case "campfire":
-          // Test event for campfire/rest
-          this.showNodeEvent("Campfire", "You rest at the campfire and heal some HP.", 0xff4500);
-          // Remove the node from the list so it doesn't trigger again
-          this.nodes.splice(nodeIndex, 1);
-          break;
-          
-        case "treasure":
-          // Test event for treasure
-          this.showNodeEvent("Treasure!", "You found a treasure chest! Gained 50 gold.", 0xffff00);
           // Remove the node from the list so it doesn't trigger again
           this.nodes.splice(nodeIndex, 1);
           break;
