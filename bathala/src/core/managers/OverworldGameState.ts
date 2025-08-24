@@ -48,6 +48,13 @@ export class OverworldGameState {
   }
 
   /**
+   * Check if boss should appear
+   */
+  shouldBossAppear(): boolean {
+    return this.actionsTaken >= this.totalActionsUntilBoss && !this.bossAppeared;
+  }
+
+  /**
    * Reset the game state for a new run
    */
   reset(): void {

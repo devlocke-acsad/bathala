@@ -13,7 +13,9 @@ export class Overworld extends Scene {
   private isMoving: boolean = false;
   private isTransitioningToCombat: boolean = false;
   private gameState: OverworldGameState;
-  private cycleText!: Phaser.GameObjects.Text;
+  private dayNightProgressFill!: Phaser.GameObjects.Rectangle;
+  private dayNightIndicator!: Phaser.GameObjects.Triangle;
+  private nightOverlay!: Phaser.GameObjects.Rectangle | null;
   private bossText!: Phaser.GameObjects.Text;
   private actionButtons: Phaser.GameObjects.Container[] = [];
 
@@ -89,16 +91,8 @@ export class Overworld extends Scene {
   }
 
   createUI(): void {
-    // Create day/night cycle indicator
-    this.cycleText = this.add.text(10, 10, 
-      `Cycle ${this.gameState.currentCycle}: ${this.gameState.getTimeOfDay()}`, 
-      {
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        padding: { x: 10, y: 5 }
-      }
-    );
+    // Create day/night cycle progress bar (He is Coming style)
+    this.createDayNightProgressBar();
     
     // Create boss appearance indicator
     this.bossText = this.add.text(10, 40, 
@@ -128,6 +122,12 @@ export class Overworld extends Scene {
     });
     buttonY += 60;
     
+    // Boss test button
+    this.createActionButton(buttonX, buttonY, "Boss Fight", "#8b5cf6", () => {
+      this.startCombat("boss");
+    });
+    buttonY += 60;
+    
     // Shop test button
     this.createActionButton(buttonX, buttonY, "Shop", "#00ff00", () => {
       console.log("Shop action triggered");
@@ -150,6 +150,83 @@ export class Overworld extends Scene {
     this.createActionButton(buttonX, buttonY, "Treasure", "#ffff00", () => {
       console.log("Treasure action triggered");
     });
+  }
+
+  createDayNightProgressBar(): void {
+    const screenWidth = this.cameras.main.width;
+    const progressBarWidth = screenWidth * 0.6;
+    const progressBarHeight = 20;
+    const progressBarX = (screenWidth - progressBarWidth) / 2;
+    const progressBarY = 30; // Move down to avoid overlapping with other UI elements
+    
+    // Create background bar
+    this.add.rectangle(
+      progressBarX + progressBarWidth / 2,
+      progressBarY,
+      progressBarWidth,
+      progressBarHeight,
+      0x000000
+    ).setAlpha(0.7).setScrollFactor(0).setDepth(100); // Fixed to camera with depth
+    
+    // Create progress bar fill
+    this.dayNightProgressFill = this.add.rectangle(
+      progressBarX,
+      progressBarY,
+      0, // Width will be updated
+      progressBarHeight,
+      0xffd93d // Day color (yellow)
+    ).setOrigin(0, 0.5).setScrollFactor(0).setDepth(101); // Fixed to camera with depth
+    
+    // Create tick marks (10 ticks for 5 cycles)
+    for (let i = 0; i <= 10; i++) {
+      const tickX = progressBarX + (i * progressBarWidth / 10);
+      const tickHeight = i % 2 === 0 ? 10 : 5; // Longer ticks for cycle boundaries
+      
+      this.add.rectangle(
+        tickX,
+        progressBarY,
+        2,
+        tickHeight,
+        0xffffff
+      ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102); // Fixed to camera with depth
+    }
+    
+    // Create sun and moon icons
+    // Sun for day cycles (even numbers)
+    for (let i = 0; i <= 10; i += 2) {
+      const iconX = progressBarX + (i * progressBarWidth / 10);
+      const sun = this.add.circle(iconX, progressBarY - 15, 8, 0xffd93d);
+      sun.setStrokeStyle(1, 0x000000);
+      sun.setScrollFactor(0).setDepth(102); // Fixed to camera with depth
+    }
+    
+    // Moon for night cycles (odd numbers)
+    for (let i = 1; i <= 9; i += 2) {
+      const iconX = progressBarX + (i * progressBarWidth / 10);
+      const moon = this.add.circle(iconX, progressBarY - 15, 6, 0x4ecdc4);
+      moon.setStrokeStyle(1, 0x000000);
+      moon.setScrollFactor(0).setDepth(102); // Fixed to camera with depth
+    }
+    
+    // Boss icon at the end of the progress bar
+    const bossIconX = progressBarX + progressBarWidth;
+    const bossText = this.add.text(bossIconX, progressBarY - 15, "👹", {
+      fontSize: '24px',
+      align: 'center'
+    }).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102);
+    
+    // Create player indicator
+    this.dayNightIndicator = this.add.triangle(
+      progressBarX,
+      progressBarY,
+      0, -8,
+      -6, 4,
+      6, 4,
+      0xff0000
+    ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(103); // Fixed to camera with depth
+    
+    // Update the progress bar
+    this.updateDayNightProgressBar();
   }
 
   createActionButton(x: number, y: number, text: string, color: string, callback: () => void): void {
@@ -206,8 +283,8 @@ export class Overworld extends Scene {
   }
 
   updateUI(): void {
-    // Update cycle text
-    this.cycleText.setText(`Cycle ${this.gameState.currentCycle}: ${this.gameState.getTimeOfDay()}`);
+    // Update day/night progress bar
+    this.updateDayNightProgressBar();
     
     // Update boss progress
     this.bossText.setText(`Boss Progress: ${Math.round(this.gameState.getBossProgress() * 100)}%`);
@@ -217,6 +294,41 @@ export class Overworld extends Scene {
       this.bossText.setColor('#ff0000');
     } else {
       this.bossText.setColor('#ffffff');
+    }
+  }
+
+  updateDayNightProgressBar(): void {
+    const screenWidth = this.cameras.main.width;
+    const progressBarWidth = screenWidth * 0.6;
+    const progressBarX = (screenWidth - progressBarWidth) / 2;
+    
+    // Calculate progress (0 to 1)
+    const totalProgress = Math.min(this.gameState.actionsTaken / this.gameState.totalActionsUntilBoss, 1);
+    
+    // Update progress bar fill
+    const fillWidth = progressBarWidth * totalProgress;
+    this.dayNightProgressFill.width = fillWidth;
+    
+    // Update color based on day/night
+    this.dayNightProgressFill.fillColor = this.gameState.isDay ? 0xffd93d : 0x4ecdc4;
+    
+    // Update player indicator position
+    this.dayNightIndicator.x = progressBarX + (progressBarWidth * totalProgress);
+    
+    // Handle night overlay
+    if (!this.gameState.isDay && !this.nightOverlay) {
+      // Create night overlay
+      this.nightOverlay = this.add.rectangle(
+        this.cameras.main.width / 2,
+        this.cameras.main.height / 2,
+        this.cameras.main.width,
+        this.cameras.main.height,
+        0x000033
+      ).setAlpha(0.4).setScrollFactor(0).setDepth(999);
+    } else if (this.gameState.isDay && this.nightOverlay) {
+      // Remove night overlay
+      this.nightOverlay.destroy();
+      this.nightOverlay = null;
     }
   }
 
@@ -257,6 +369,12 @@ export class Overworld extends Scene {
       console.log("Position is valid, moving player");
       // Record the action for day/night cycle
       this.gameState.recordAction();
+      
+      // Check if day/night cycle changed
+      if (this.gameState.actionsUntilCycleChange === 49) { // Just changed
+        // Handle day/night transition
+        this.handleDayNightTransition();
+      }
       
       // Move player with tween
       this.tweens.add({
@@ -320,6 +438,24 @@ export class Overworld extends Scene {
       } else {
         console.warn("Idle animation not found:", idleAnimation);
       }
+    }
+  }
+
+  handleDayNightTransition(): void {
+    // Update night overlay
+    if (!this.gameState.isDay && !this.nightOverlay) {
+      // Create night overlay
+      this.nightOverlay = this.add.rectangle(
+        this.cameras.main.width / 2,
+        this.cameras.main.height / 2,
+        this.cameras.main.width,
+        this.cameras.main.height,
+        0x000033
+      ).setAlpha(0.4).setScrollFactor(0).setDepth(999);
+    } else if (this.gameState.isDay && this.nightOverlay) {
+      // Remove night overlay
+      this.nightOverlay.destroy();
+      this.nightOverlay = null;
     }
   }
 
@@ -507,10 +643,15 @@ export class Overworld extends Scene {
       switch (node.type) {
         case "combat":
         case "elite":
-        case "boss":
           // Remove the node from the list so it doesn't trigger again
           this.nodes.splice(nodeIndex, 1);
           this.startCombat(node.type);
+          break;
+          
+        case "boss":
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          this.startCombat("boss");
           break;
           
         case "shop":
@@ -542,6 +683,67 @@ export class Overworld extends Scene {
           break;
       }
     }
+    
+    // Check if boss should appear automatically
+    if (this.gameState.shouldBossAppear()) {
+      this.showBossAppearance();
+    }
+  }
+
+  showBossAppearance(): void {
+    // Disable player movement during boss appearance
+    this.isMoving = true;
+    
+    // Create overlay
+    const overlay = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000
+    ).setAlpha(0).setScrollFactor(0).setDepth(3000);
+    
+    // Fade in overlay
+    this.tweens.add({
+      targets: overlay,
+      alpha: 0.8,
+      duration: 1000,
+      ease: 'Power2'
+    });
+    
+    // Create boss appearance text
+    const bossText = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      "THE BOSS APPROACHES...",
+      {
+        fontFamily: "Centrion",
+        fontSize: 48,
+        color: "#ff0000",
+        align: "center"
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(3001).setScale(0.1);
+    
+    // Animate text scaling
+    this.tweens.add({
+      targets: bossText,
+      scale: 1,
+      duration: 1500,
+      ease: 'Elastic.easeOut'
+    });
+    
+    // Shake camera for dramatic effect
+    this.cameras.main.shake(2000, 0.02);
+    
+    // After delay, start boss combat
+    this.time.delayedCall(3000, () => {
+      // Clean up
+      overlay.destroy();
+      bossText.destroy();
+      
+      // Start boss combat
+      this.startCombat("boss");
+    });
   }
 
   /**
@@ -644,6 +846,12 @@ export class Overworld extends Scene {
     // Disable input during transition
     this.input.keyboard.enabled = false;
     
+    // Check if this is a boss fight for special animation
+    if (nodeType === "boss") {
+      this.startBossCombat();
+      return;
+    }
+    
     // Get camera dimensions
     const camera = this.cameras.main;
     const cameraWidth = camera.width;
@@ -689,19 +897,6 @@ export class Overworld extends Scene {
 
         bars.push(bar);
       }
-      
-      // Add some random visual effects for menace
-      const particles = [];
-      for (let i = 0; i < 40; i++) {
-        const particle = this.add.circle(
-          Phaser.Math.Between(0, cameraWidth),
-          Phaser.Math.Between(0, cameraHeight),
-          Phaser.Math.Between(4, 15),
-          0xff0000,
-          1.0 // Full opacity
-        ).setScrollFactor(0); // Fixed to camera
-        particles.push(particle);
-      }
 
       // Animate bars with more menacing pattern - slower and more dramatic
       this.tweens.add({
@@ -714,78 +909,96 @@ export class Overworld extends Scene {
           grid: '30x1' 
         }),
         onComplete: () => {
-          // Flash screen red for intensity
-          const flash = this.add.rectangle(
-            cameraWidth / 2,
-            cameraHeight / 2,
-            cameraWidth,
-            cameraHeight,
-            0xff0000
-          ).setAlpha(0).setScrollFactor(0); // Start transparent
+          // Add a final dramatic effect before transitioning
+          // Zoom and fade the entire camera
+          const zoomDuration = 800;
           
-          // Fade in the flash
           this.tweens.add({
-            targets: flash,
-            alpha: 0.9,
-            duration: 200,
+            targets: camera,
+            zoom: 1.5, // Zoom in slightly
+            duration: zoomDuration / 2,
             ease: 'Power2',
+            yoyo: true,
+            hold: 100,
             onComplete: () => {
-              // Fade out the flash
-              this.tweens.add({
-                targets: flash,
-                alpha: 0,
-                duration: 300,
-                ease: 'Power2',
-                onComplete: () => {
-                  flash.destroy();
-                  
-                  // Add a final dramatic effect before transitioning
-                  // Zoom and fade the entire camera
-                  const zoomDuration = 800;
-                  
-                  this.tweens.add({
-                    targets: camera,
-                    zoom: 1.5, // Zoom in slightly
-                    duration: zoomDuration / 2,
-                    ease: 'Power2',
-                    yoyo: true,
-                    hold: 100,
-                    onComplete: () => {
-                      // Instead of fading out overlay, we'll keep it and pass it to combat scene
-                      // Start combat scene and pass the overlay for fade-in effect
-                      this.scene.start("Combat", { 
-                        nodeType: nodeType,
-                        transitionOverlay: overlay // Pass overlay to combat scene
-                      });
-                    }
-                  });
-                }
+              // Instead of fading out overlay, we'll keep it and pass it to combat scene
+              // Start combat scene and pass the overlay for fade-in effect
+              this.scene.start("Combat", { 
+                nodeType: nodeType,
+                transitionOverlay: overlay // Pass overlay to combat scene
               });
             }
           });
         }
       });
+    });
+  }
+
+  startBossCombat(): void {
+    // Get camera dimensions
+    const camera = this.cameras.main;
+    const cameraWidth = camera.width;
+    const cameraHeight = camera.height;
+    
+    // Create epic boss transition effect
+    const overlay = this.add.rectangle(
+      cameraWidth / 2,
+      cameraHeight / 2,
+      cameraWidth,
+      cameraHeight,
+      0x000000
+    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
+    
+    // Epic fade in
+    this.tweens.add({
+      targets: overlay,
+      alpha: 1,
+      duration: 1000,
+      ease: 'Power2'
+    });
+    
+    // Create epic radial effect
+    this.time.delayedCall(500, () => {
+      // Create expanding circles
+      const circles = [];
+      for (let i = 0; i < 5; i++) {
+        const circle = this.add.circle(
+          cameraWidth / 2,
+          cameraHeight / 2,
+          10,
+          0xff0000,
+          0.7
+        ).setScrollFactor(0).setDepth(2001);
+        
+        circles.push(circle);
+        
+        // Animate circle expansion
+        this.tweens.add({
+          targets: circle,
+          radius: cameraWidth,
+          alpha: 0,
+          duration: 2000,
+          delay: i * 200,
+          ease: 'Power2'
+        });
+      }
       
-      // Animate particles for extra menace - slower and more dramatic
-      this.tweens.add({
-        targets: particles,
-        x: {
-          getEnd: function (target: Phaser.GameObjects.Arc) {
-            return target.x + Phaser.Math.Between(-200, 200);
+      // Final transition
+      this.time.delayedCall(2500, () => {
+        // Final zoom and transition
+        this.tweens.add({
+          targets: camera,
+          zoom: 2,
+          duration: 1000,
+          ease: 'Power2',
+          onComplete: () => {
+            // Start boss combat
+            this.scene.start("Combat", { 
+              nodeType: "boss",
+              transitionOverlay: overlay
+            });
           }
-        },
-        y: {
-          getEnd: function (target: Phaser.GameObjects.Arc) {
-            return target.y + Phaser.Math.Between(-200, 200);
-          }
-        },
-        alpha: 0,
-        scale: 0, // Shrink particles as they fade
-        duration: 1200, // Match bar animation duration
-        ease: "Power2",
-        onComplete: () => {
-          particles.forEach(particle => particle.destroy());
-        }
+        });
       });
     });
   }
