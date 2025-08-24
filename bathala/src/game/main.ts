@@ -11,8 +11,8 @@ import { Preloader } from "./scenes/Preloader";
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
 const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,
-  width: 1024,
-  height: 576, // 16:9 aspect ratio (1024 / 16 * 9 = 576)
+  width: window.innerWidth,
+  height: window.innerHeight,
   parent: "game-container",
   backgroundColor: "#028af8",
   scene: [Boot, Preloader, MainMenu, Overworld, Combat, MainGame, GameOver],
@@ -24,10 +24,10 @@ const config: Phaser.Types.Core.GameConfig = {
 
   // Scale settings for proper display
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: Phaser.Scale.ENVELOP, // Use ENVELOP to fill the screen while maintaining aspect ratio
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    width: 1024,
-    height: 576,
+    width: window.innerWidth,
+    height: window.innerHeight,
   },
 };
 

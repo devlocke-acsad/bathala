@@ -23,14 +23,24 @@
 /* Chivo is now loaded from Google Fonts in the HTML head */
 
 
-body {
-    font-family: 'Centrion', Arial, sans-serif;
+* {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: 'Centrion', Arial, sans-serif;
     color: rgba(255, 255, 255, 0.87);
     background-color: var(--secondary);
-    overflow: hidden;
-    /* Prevent scrolling */
+    margin: 0;
+    padding: 0;
 }
 
 #app {
@@ -43,15 +53,25 @@ body {
     position: fixed;
     top: 0;
     left: 0;
+    margin: 0;
+    padding: 0;
 }
 
 #game-container {
     width: 100%;
     height: 100%;
+    margin: 0;
+    padding: 0;
+    position: relative;
 }
 
 #game-container canvas {
-    width: 100%;
-    height: 100%;
+    width: 100% !important;
+    height: 100% !important;
     display: block;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
 }
