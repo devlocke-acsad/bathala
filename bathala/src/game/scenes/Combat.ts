@@ -8,17 +8,18 @@ import {
   HonorRange,
   CreatureDialogue,
   PostCombatReward,
+  Landas,
   HandType,
   StatusEffect,
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
+import { GameState } from "../../core/managers/GameState";
 import {
   getRandomCommonEnemy,
   getRandomEliteEnemy,
   getBossEnemy,
 } from "../../data/enemies/Act1Enemies";
-import { GameState } from "../../core/managers/GameState";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -48,6 +49,7 @@ export class Combat extends Scene {
   private isActionProcessing: boolean = false;
   private actionResultText!: Phaser.GameObjects.Text;
   private handEvaluationText!: Phaser.GameObjects.Text;
+  private combatEnded: boolean = false; // Add flag to prevent multiple end combat calls
 
   // Sprite references for animations
   private playerSprite!: Phaser.GameObjects.Sprite;
@@ -1149,6 +1151,12 @@ export class Combat extends Scene {
    * Start player turn (Balatro style)
    */
   private startPlayerTurn(): void {
+    // Don't start player turn if combat has ended
+    if (this.combatEnded) {
+      console.log("Combat has ended, not starting player turn");
+      return;
+    }
+
     this.applyStatusEffects(this.combatState.player);
 
     this.combatState.phase = "player_turn";
@@ -1160,6 +1168,12 @@ export class Combat extends Scene {
     // Clear any selected cards from previous turn
     this.selectedCards = [];
 
+    // Clear played hand from previous turn and move cards to discard pile
+    if (this.combatState.player.playedHand.length > 0) {
+      this.combatState.player.discardPile.push(...this.combatState.player.playedHand);
+      this.combatState.player.playedHand = [];
+    }
+
     // Draw cards to ensure player has 8 cards at start of turn
     const targetHandSize = 8;
     const cardsNeeded = targetHandSize - this.combatState.player.hand.length;
@@ -1169,6 +1183,7 @@ export class Combat extends Scene {
 
     this.updateTurnUI();
     this.updateHandDisplay();
+    this.updatePlayedHandDisplay(); // Clear the played hand display
     this.updateActionButtons(); // Reset to card selection buttons
     
     // Ensure action processing is reset
@@ -1331,11 +1346,20 @@ export class Combat extends Scene {
    * Update turn UI elements
    */
   private updateTurnUI(): void {
-    this.turnText.setText(`Turn: ${this.combatState.turn}`);
-    this.actionsText.setText(
-      `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Hand: ${this.combatState.player.hand.length}/8`
-    );
-    this.updateHandIndicator();
+    // Don't update UI if combat has ended
+    if (this.combatEnded) {
+      return;
+    }
+    
+    try {
+      this.turnText.setText(`Turn: ${this.combatState.turn}`);
+      this.actionsText.setText(
+        `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Hand: ${this.combatState.player.hand.length}/8`
+      );
+      this.updateHandIndicator();
+    } catch (error) {
+      console.error("Error updating turn UI:", error);
+    }
   }
 
   /**
@@ -1381,15 +1405,19 @@ export class Combat extends Scene {
    */
   private endCombat(victory: boolean): void {
     // Prevent multiple end combat calls
-    if (this.combatState.phase === "ended") {
+    if (this.combatEnded) {
+      console.log("Combat already ended, preventing duplicate call");
       return;
     }
     
-    this.combatState.phase = "ended";
+    this.combatEnded = true;
+    this.combatState.phase = "post_combat";
     
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
+    const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
+    const screenHeight = this.cameras.main?.height || this.scale.height || 768;
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    
+    console.log(`Combat ended with victory: ${victory}`);
     
     if (victory) {
       const gameState = GameState.getInstance();
@@ -1404,9 +1432,10 @@ export class Combat extends Scene {
         this.updateRelicsUI();
       }
       
-      // Victory - show post-combat dialogue
-      this.combatState.phase = "post_combat";
-      this.showPostCombatDialogue();
+      // Victory - show post-combat dialogue with delay to prevent double calls
+      this.time.delayedCall(100, () => {
+        this.showPostCombatDialogue();
+      });
     } else {
       // Player defeated - show game over
       const resultText = "Defeat!";
@@ -1435,9 +1464,9 @@ export class Combat extends Scene {
     // Clear combat UI
     this.clearCombatUI();
 
-    // Get screen dimensions
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
+    // Get screen dimensions safely
+    const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
+    const screenHeight = this.cameras.main?.height || this.scale.height || 768;
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
 
     // Convert enemy name to dialogue key
@@ -1475,14 +1504,25 @@ export class Combat extends Scene {
       enemySpriteKey = spriteOptions[randomIndex];
     }
     
-    const enemyPortrait = this.add.sprite(screenWidth/2, screenHeight/2 - 100, enemySpriteKey);
-    enemyPortrait.setScale(3 * scaleFactor);
-
-    // Try to play animation, fallback if it fails
+    // Create enemy portrait with error handling
+    let enemyPortrait: Phaser.GameObjects.Sprite | null = null;
     try {
-      enemyPortrait.play("enemy_idle");
+      // Check if the sprite texture exists before creating
+      if (this.textures.exists(enemySpriteKey)) {
+        enemyPortrait = this.add.sprite(screenWidth/2, screenHeight/2 - 100, enemySpriteKey);
+        enemyPortrait.setScale(3 * scaleFactor);
+
+        // Try to play animation, fallback if it fails
+        try {
+          enemyPortrait.play("enemy_idle");
+        } catch (error) {
+          console.warn("Enemy portrait animation not found, using static sprite");
+        }
+      } else {
+        console.warn(`Sprite texture ${enemySpriteKey} not found, skipping portrait`);
+      }
     } catch (error) {
-      console.warn("Enemy portrait animation not found, using static sprite");
+      console.error("Error creating enemy portrait:", error);
     }
 
     // Enemy name (larger font and positioned further from portrait due to larger sprite)
@@ -1546,15 +1586,18 @@ export class Combat extends Scene {
     color: string,
     callback: () => void
   ): Phaser.GameObjects.Container {
-    const screenWidth = this.cameras.main.width;
+    const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
     const buttonWidth = 200 * scaleFactor;
     const buttonHeight = 40 * scaleFactor;
 
     const button = this.add.container(x, y);
 
+    // Convert hex color to number for Phaser
+    const colorNumber = parseInt(color.replace('#', ''), 16);
+    
     const bg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x2f3542);
-    bg.setStrokeStyle(Math.floor(2 * scaleFactor), Phaser.Display.Color.HexStringToColor(color).color);
+    bg.setStrokeStyle(Math.floor(2 * scaleFactor), colorNumber);
 
     const buttonText = this.add
       .text(0, 0, text, {
@@ -1570,14 +1613,42 @@ export class Combat extends Scene {
       new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
-    button.on("pointerdown", callback);
-    button.on("pointerover", () => {
-      bg.setFillStyle(Phaser.Display.Color.HexStringToColor(color).color);
-      buttonText.setColor("#000000");
+    
+    // Fix button events to prevent freezing
+    button.on("pointerdown", () => {
+      try {
+        console.log(`Button clicked: ${text}`);
+        // Disable the button to prevent multiple clicks
+        button.disableInteractive();
+        
+        // Remove all button events to prevent further interaction
+        button.removeAllListeners();
+        
+        // Add a small delay before executing callback to ensure UI updates
+        this.time.delayedCall(50, () => {
+          callback();
+        });
+      } catch (error) {
+        console.error("Error in button click:", error);
+      }
     });
+    
+    button.on("pointerover", () => {
+      try {
+        bg.setFillStyle(colorNumber);
+        buttonText.setColor("#000000");
+      } catch (error) {
+        console.error("Error in button hover:", error);
+      }
+    });
+    
     button.on("pointerout", () => {
-      bg.setFillStyle(0x2f3542);
-      buttonText.setColor(color);
+      try {
+        bg.setFillStyle(0x2f3542);
+        buttonText.setColor(color);
+      } catch (error) {
+        console.error("Error in button out:", error);
+      }
     });
 
     return button;
@@ -1590,32 +1661,48 @@ export class Combat extends Scene {
     choice: "spare" | "kill",
     dialogue: CreatureDialogue
   ): void {
-    const isSpare = choice === "spare";
-    const landasChange = isSpare ? 1 : -1;
-    const reward = isSpare ? dialogue.spareReward : dialogue.killReward;
-    const choiceDialogue = isSpare
-      ? dialogue.spareDialogue
-      : dialogue.killDialogue;
+    try {
+      console.log(`Making landas choice: ${choice}`);
+      
+      const isSpare = choice === "spare";
+      const landasChange = isSpare ? 1 : -1;
+      const reward = isSpare ? dialogue.spareReward : dialogue.killReward;
+      const choiceDialogue = isSpare
+        ? dialogue.spareDialogue
+        : dialogue.killDialogue;
 
-    // Update landas score
-    this.combatState.player.landasScore += landasChange;
+      console.log(`Landas change: ${landasChange}, Reward:`, reward);
 
-    // Apply rewards
-    this.combatState.player.ginto += reward.ginto;
-    this.combatState.player.baubles += reward.baubles;
+      // Update landas score
+      this.combatState.player.landasScore += landasChange;
 
-    if (reward.healthHealing > 0) {
-      this.combatState.player.currentHealth = Math.min(
-        this.combatState.player.maxHealth,
-        this.combatState.player.currentHealth + reward.healthHealing
-      );
+      // Apply rewards
+      this.combatState.player.ginto += reward.ginto;
+      this.combatState.player.baubles += reward.baubles;
+
+      if (reward.healthHealing > 0) {
+        this.combatState.player.currentHealth = Math.min(
+          this.combatState.player.maxHealth,
+          this.combatState.player.currentHealth + reward.healthHealing
+        );
+      }
+
+      console.log("Clearing dialogue and showing results...");
+
+      // Clear dialogue and show results
+      this.children.removeAll();
+      this.cameras.main.setBackgroundColor(0x0e1112);
+
+      // Add small delay before showing rewards screen
+      this.time.delayedCall(100, () => {
+        this.showRewardsScreen(choice, choiceDialogue, reward, landasChange);
+      });
+      
+    } catch (error) {
+      console.error("Error in makeLandasChoice:", error);
+      // Fallback - return to overworld if something goes wrong
+      this.returnToOverworld();
     }
-
-    // Clear dialogue and show results
-    this.children.removeAll();
-    this.cameras.main.setBackgroundColor(0x0e1112);
-
-    this.showRewardsScreen(choice, choiceDialogue, reward, landasChange);
   }
 
   /**
@@ -1631,12 +1718,10 @@ export class Combat extends Scene {
     const landasChangeText =
       landasChange > 0 ? `+${landasChange}` : `${landasChange}`;
 
-    // Get screen dimensions
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-
-    // Title
+      // Get screen dimensions
+      const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
+      const screenHeight = this.cameras.main?.height || this.scale.height || 768;
+      const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));    // Title
     this.add
       .text(
         screenWidth/2,
@@ -1763,51 +1848,99 @@ export class Combat extends Scene {
 
     // Continue button
     this.createDialogueButton(screenWidth/2, 600, "Continue", "#4ecdc4", () => {
-      this.scene.start("Overworld");
+      // Save player state and return to overworld
+      this.returnToOverworld();
     });
 
     // Auto-continue after 8 seconds
-    setTimeout(() => {
+    this.time.delayedCall(8000, () => {
+      this.returnToOverworld();
+    });
+  }
+
+  /**
+   * Return to overworld with updated player state
+   */
+  private returnToOverworld(): void {
+    try {
+      console.log("Returning to overworld...");
+      
+      // Save player state to GameState manager
+      const gameState = GameState.getInstance();
+      
+      // Update player data in GameState
+      gameState.updatePlayerData({
+        currentHealth: this.combatState.player.currentHealth,
+        maxHealth: this.combatState.player.maxHealth,
+        landasScore: this.combatState.player.landasScore,
+        ginto: this.combatState.player.ginto,
+        baubles: this.combatState.player.baubles,
+        relics: this.combatState.player.relics,
+      });
+
+      console.log("Player data saved to GameState");
+
+      // Mark the current node as completed
+      gameState.completeCurrentNode(true);
+
+      console.log("Node marked as completed, starting Overworld scene...");
+
+      // Return to overworld
       this.scene.start("Overworld");
-    }, 8000);
+      
+    } catch (error) {
+      console.error("Error in returnToOverworld:", error);
+      // Even if there's an error, try to return to overworld
+      try {
+        this.scene.start("Overworld");
+      } catch (fallbackError) {
+        console.error("Fallback scene start also failed:", fallbackError);
+        // Last resort - restart the game
+        this.scene.start("MainMenu");
+      }
+    }
   }
 
   /**
    * Clear combat UI elements
    */
   private clearCombatUI(): void {
-    if (this.handContainer) {
-      this.handContainer.destroy();
-    }
-    if (this.playedHandContainer) {
-      this.playedHandContainer.destroy();
-    }
-    if (this.actionButtons) {
-      this.actionButtons.destroy();
-    }
-    if (this.relicsContainer) {
-      this.relicsContainer.destroy();
-    }
-    if (this.playerStatusContainer) {
-      this.playerStatusContainer.destroy();
-    }
-    if (this.enemyStatusContainer) {
-      this.enemyStatusContainer.destroy();
-    }
-    if (this.actionResultText) {
-      this.actionResultText.destroy();
-    }
-    if (this.handEvaluationText) {
-      this.handEvaluationText.destroy();
-    }
-    if (this.turnText) {
-      this.turnText.destroy();
-    }
-    if (this.actionsText) {
-      this.actionsText.destroy();
-    }
-    if (this.handIndicatorText) {
-      this.handIndicatorText.destroy();
+    try {
+      if (this.handContainer) {
+        this.handContainer.destroy();
+      }
+      if (this.playedHandContainer) {
+        this.playedHandContainer.destroy();
+      }
+      if (this.actionButtons) {
+        this.actionButtons.destroy();
+      }
+      if (this.relicsContainer) {
+        this.relicsContainer.destroy();
+      }
+      if (this.playerStatusContainer) {
+        this.playerStatusContainer.destroy();
+      }
+      if (this.enemyStatusContainer) {
+        this.enemyStatusContainer.destroy();
+      }
+      if (this.actionResultText) {
+        this.actionResultText.destroy();
+      }
+      if (this.handEvaluationText) {
+        this.handEvaluationText.destroy();
+      }
+      if (this.turnText) {
+        this.turnText.destroy();
+      }
+      if (this.actionsText) {
+        this.actionsText.destroy();
+      }
+      if (this.handIndicatorText) {
+        this.handIndicatorText.destroy();
+      }
+    } catch (error) {
+      console.error("Error clearing combat UI:", error);
     }
   }
 
@@ -1843,7 +1976,11 @@ export class Combat extends Scene {
     this.playedCardSprites = [];
 
     const playedHand = this.combatState.player.playedHand;
-    if (playedHand.length === 0) return;
+    if (playedHand.length === 0) {
+      // Hide hand evaluation text when no cards are played
+      this.handEvaluationText.setVisible(false);
+      return;
+    }
 
     const cardWidth = 70;
     const totalWidth = playedHand.length * cardWidth;
