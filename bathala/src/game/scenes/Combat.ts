@@ -564,7 +564,8 @@ export class Combat extends Scene {
   private createHandUI(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    this.handContainer = this.add.container(screenWidth/2, screenHeight - 100);
+    // Position hand container higher (above buttons)
+    this.handContainer = this.add.container(screenWidth/2, screenHeight - 180);
     this.updateHandDisplay();
   }
 
@@ -574,7 +575,8 @@ export class Combat extends Scene {
   private createPlayedHandUI(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    this.playedHandContainer = this.add.container(screenWidth/2, screenHeight - 300);
+    // Position played hand container higher
+    this.playedHandContainer = this.add.container(screenWidth/2, screenHeight - 350);
     
     // Initialize hand evaluation text
     this.handEvaluationText = this.add
@@ -594,7 +596,8 @@ export class Combat extends Scene {
   private createActionButtons(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    this.actionButtons = this.add.container(screenWidth/2, screenHeight - 180);
+    // Position buttons below the cards
+    this.actionButtons = this.add.container(screenWidth/2, screenHeight - 100);
     this.updateActionButtons();
   }
 
@@ -814,7 +817,7 @@ export class Combat extends Scene {
   }
 
   /**
-   * Update hand display
+   * Update hand display with a curved fanned-out arrangement
    */
   private updateHandDisplay(): void {
     // Clear existing card sprites
@@ -832,14 +835,30 @@ export class Combat extends Scene {
     const actualTotalWidth = hand.length * actualCardWidth;
     const startX = -actualTotalWidth / 2 + actualCardWidth / 2;
 
+    // Create a very gentle curved arrangement for the cards (like Balatro)
+    const curveHeight = 5; // Much smaller curve height for a flatter arch
+    
     hand.forEach((card, index) => {
+      // Calculate position along a very gentle curve
+      const positionRatio = hand.length > 1 ? index / (hand.length - 1) : 0.5;
+      
+      // Calculate x and y positions with a very gentle arch curve
+      const x = startX + index * actualCardWidth;
+      // Create a very subtle arch that peaks in the middle
+      const y = -Math.sin(positionRatio * Math.PI) * curveHeight;
+      
       const cardSprite = this.createCardSprite(
         card,
-        startX + index * actualCardWidth,
-        0
+        x,
+        y
       );
       this.handContainer.add(cardSprite);
       this.cardSprites.push(cardSprite);
+      
+      // If card is already selected, apply the popup effect
+      if (card.selected) {
+        cardSprite.setY(y - 50); // Pop up higher than others
+      }
     });
   }
 
@@ -870,9 +889,11 @@ export class Combat extends Scene {
       0,
       cardWidth,
       cardHeight,
-      card.selected ? 0x4ecdc4 : 0xffffff
+      0xffffff
     );
+    // Only change border color when selected
     bg.setStrokeStyle(2, card.selected ? 0x2ed573 : 0x2f3542);
+    bg.setName('cardBackground'); // Set name for later reference
 
     // Card rank
     const rankText = this.add
@@ -882,6 +903,7 @@ export class Combat extends Scene {
         color: "#000000",
       })
       .setOrigin(0, 0);
+    rankText.setName('rankText'); // Set name for later reference
 
     // Card suit
     const display = DeckManager.getCardDisplay(card);
@@ -892,6 +914,7 @@ export class Combat extends Scene {
         color: display.color,
       })
       .setOrigin(1, 0);
+    suitText.setName('suitText'); // Set name for later reference
 
     // Element symbol
     const elementText = this.add
@@ -900,6 +923,7 @@ export class Combat extends Scene {
         fontSize: Math.floor(18 * scaleFactor),
       })
       .setOrigin(0.5);
+    elementText.setName('elementText'); // Set name for later reference
 
     cardContainer.add([bg, rankText, suitText, elementText]);
 
@@ -912,13 +936,38 @@ export class Combat extends Scene {
       cardContainer.on("pointerdown", () => this.selectCard(card));
     }
 
+    // Store reference to card for later updates
+    (cardContainer as any).cardRef = card;
+
     return cardContainer;
   }
 
   /**
-   * Select/deselect a card
+   * Update the visual appearance of a card without recreating it
+   */
+  private updateCardVisuals(card: PlayingCard): void {
+    const cardIndex = this.combatState.player.hand.findIndex(c => c.id === card.id);
+    if (cardIndex !== -1 && this.cardSprites[cardIndex]) {
+      const cardSprite = this.cardSprites[cardIndex];
+      
+      // Update background border only
+      const bg = cardSprite.getByName('cardBackground') as Phaser.GameObjects.Rectangle;
+      if (bg) {
+        bg.setStrokeStyle(2, card.selected ? 0x2ed573 : 0x2f3542);
+      }
+    }
+  }
+
+  /**
+   * Select/deselect a card with popup animation
    */
   private selectCard(card: PlayingCard): void {
+    // If trying to select a new card when already 5 are selected, ignore
+    if (!card.selected && this.selectedCards.length >= 5) {
+      this.showActionResult("Cannot select more than 5 cards!");
+      return;
+    }
+
     card.selected = !card.selected;
 
     if (card.selected) {
@@ -927,7 +976,48 @@ export class Combat extends Scene {
       this.selectedCards = this.selectedCards.filter((c) => c.id !== card.id);
     }
 
-    this.updateHandDisplay();
+    // Find the card sprite to animate
+    const cardIndex = this.combatState.player.hand.findIndex(c => c.id === card.id);
+    if (cardIndex !== -1 && this.cardSprites[cardIndex]) {
+      const cardSprite = this.cardSprites[cardIndex];
+      
+      // Get the base Y position from the card arrangement
+      const hand = this.combatState.player.hand;
+      const cardWidth = 60;
+      const totalWidth = hand.length * cardWidth;
+      const screenWidth = this.cameras.main.width;
+      const maxWidth = screenWidth * 0.8;
+      const actualCardWidth = totalWidth > maxWidth ? (maxWidth / hand.length) : cardWidth;
+      const actualTotalWidth = hand.length * actualCardWidth;
+      const startX = -actualTotalWidth / 2 + actualCardWidth / 2;
+      const curveHeight = 5;
+      const positionRatio = hand.length > 1 ? cardIndex / (hand.length - 1) : 0.5;
+      const baseY = -Math.sin(positionRatio * Math.PI) * curveHeight;
+      
+      // Animate the card with a bounce effect and pop up
+      if (card.selected) {
+        // Pop up animation - move card up slightly and scale slightly
+        this.tweens.add({
+          targets: cardSprite,
+          y: baseY - 20, // Reduced popup height
+          scale: 1.05,
+          duration: 200,
+          ease: 'Power2'
+        });
+      } else {
+        // Return to original position
+        this.tweens.add({
+          targets: cardSprite,
+          y: baseY,
+          scale: 1.0,
+          duration: 200,
+          ease: 'Power2'
+        });
+      }
+    }
+
+    // Update card visuals without recreating all cards
+    this.updateCardVisuals(card);
     this.updateHandIndicator(); // Update hand indicator when selection changes
   }
 
