@@ -1,4 +1,5 @@
 import { GameMap, MapNode } from "../types/MapTypes";
+import { Player } from "../types/CombatTypes";
 
 /**
  * GameState - Manages global game state across scenes
@@ -11,6 +12,7 @@ export class GameState {
   public currentNodeId: string | null = null;
   public lastCompletedNodeId: string | null = null;
   public combatVictory: boolean = false;
+  public playerData: Partial<Player> | null = null;
 
   private constructor() {}
 
@@ -108,6 +110,21 @@ export class GameState {
     this.currentNodeId = null;
     this.lastCompletedNodeId = null;
     this.combatVictory = false;
+    this.playerData = null;
+  }
+
+  /**
+   * Update player data
+   */
+  updatePlayerData(data: Partial<Player>): void {
+    this.playerData = { ...this.playerData, ...data };
+  }
+
+  /**
+   * Get current player data
+   */
+  getPlayerData(): Partial<Player> | null {
+    return this.playerData;
   }
 
   /**
