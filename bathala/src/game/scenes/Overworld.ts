@@ -345,6 +345,13 @@ export class Overworld extends Scene {
         }
       });
     });
+    
+    bottomButtonX += 150;
+    
+    // DDA Debug button at bottom  
+    this.createActionButton(bottomButtonX, bottomButtonY, "DDA Debug", "#9c27b0", () => {
+      this.scene.start("DDADebugScene");
+    });
   }
 
   createDayNightProgressBar(): void {
