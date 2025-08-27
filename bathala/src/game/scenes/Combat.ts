@@ -15,6 +15,8 @@ import {
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
 import { GameState } from "../../core/managers/GameState";
+import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
+import { CombatMetrics } from "../../core/dda/DDATypes";
 import {
   getRandomCommonEnemy,
   getRandomEliteEnemy,
@@ -50,6 +52,14 @@ export class Combat extends Scene {
   private actionResultText!: Phaser.GameObjects.Text;
   private handEvaluationText!: Phaser.GameObjects.Text;
   private combatEnded: boolean = false; // Add flag to prevent multiple end combat calls
+
+  // DDA tracking
+  private dda: RuleBasedDDA;
+  private combatStartTime: number = 0;
+  private initialPlayerHealth: number = 0;
+  private turnCount: number = 0;
+  private bestHandAchieved: HandType = "high_card";
+  private totalDiscardsUsed: number = 0;
 
   // Sprite references for animations
   private playerSprite!: Phaser.GameObjects.Sprite;
@@ -339,6 +349,19 @@ export class Combat extends Scene {
       selectedCards: [],
       lastAction: null,
     };
+    
+    // Initialize DDA tracking
+    this.dda = RuleBasedDDA.getInstance();
+    this.combatStartTime = Date.now();
+    this.initialPlayerHealth = player.currentHealth;
+    this.turnCount = 0;
+    this.bestHandAchieved = "high_card";
+    this.totalDiscardsUsed = 0;
+    
+    // Apply current DDA difficulty adjustments to enemy
+    const adjustment = this.dda.getCurrentDifficultyAdjustment();
+    this.combatState.enemy.maxHealth = Math.round(this.combatState.enemy.maxHealth * adjustment.enemyHealthMultiplier);
+    this.combatState.enemy.currentHealth = this.combatState.enemy.maxHealth;
   }
 
   /**
@@ -1100,6 +1123,7 @@ export class Combat extends Scene {
 
     // Increment discard counter
     this.discardsUsedThisTurn++;
+    this.totalDiscardsUsed++; // Track total for DDA
 
     // Clear selection
     this.selectedCards = [];
@@ -1161,6 +1185,7 @@ export class Combat extends Scene {
 
     this.combatState.phase = "player_turn";
     this.combatState.turn++;
+    this.turnCount++; // Track total turns for DDA
 
     // Reset discard counter (only 3 discards per turn)
     this.discardsUsedThisTurn = 0;
@@ -1418,6 +1443,43 @@ export class Combat extends Scene {
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
     
     console.log(`Combat ended with victory: ${victory}`);
+    
+    // Calculate DDA metrics and send to system
+    const combatMetrics: CombatMetrics = {
+      combatId: `combat_${Date.now()}`,
+      timestamp: Date.now(),
+      
+      // Pre-combat state
+      startHealth: this.initialPlayerHealth,
+      startMaxHealth: this.combatState.player.maxHealth,
+      startGold: this.combatState.player.ginto,
+      
+      // Combat performance  
+      endHealth: this.combatState.player.currentHealth,
+      healthPercentage: this.combatState.player.currentHealth / this.initialPlayerHealth,
+      turnCount: this.turnCount,
+      damageDealt: Math.max(0, this.combatState.enemy.maxHealth - this.combatState.enemy.currentHealth),
+      damageReceived: Math.max(0, this.initialPlayerHealth - this.combatState.player.currentHealth),
+      discardsUsed: this.totalDiscardsUsed,
+      maxDiscardsAvailable: this.turnCount * this.maxDiscardsPerTurn,
+      
+      // Hand quality metrics
+      handsPlayed: [this.bestHandAchieved], // Simplified for now
+      bestHandAchieved: this.bestHandAchieved,
+      averageHandQuality: this.getHandQualityScore(this.bestHandAchieved),
+      
+      // Outcome
+      victory: victory,
+      combatDuration: Date.now() - this.combatStartTime,
+      
+      // Enemy information
+      enemyType: "common" as const, // Simplified for now
+      enemyName: this.combatState.enemy.name,
+      enemyStartHealth: this.combatState.enemy.maxHealth,
+    };
+    
+    // Update DDA system with combat results
+    this.dda.processCombatResults(combatMetrics);
     
     if (victory) {
       const gameState = GameState.getInstance();
@@ -2063,6 +2125,11 @@ export class Combat extends Scene {
     );
     console.log(`Hand evaluation:`, evaluation);
     
+    // Track best hand for DDA
+    if (this.isHandBetterThan(evaluation.type, this.bestHandAchieved)) {
+      this.bestHandAchieved = evaluation.type;
+    }
+    
     const dominantSuit = this.getDominantSuit(
       this.combatState.player.playedHand
     );
@@ -2546,5 +2613,47 @@ export class Combat extends Scene {
     this.updateActionButtons();
     this.updateRelicsUI();
     this.updateTurnUI();
+  }
+  
+  /**
+   * Helper method to determine if one hand type is better than another for DDA tracking
+   */
+  private isHandBetterThan(newHand: HandType, currentBest: HandType): boolean {
+    const handRanking: Record<HandType, number> = {
+      "high_card": 1,
+      "pair": 2,
+      "two_pair": 3,
+      "three_of_a_kind": 4,
+      "straight": 5,
+      "flush": 6,
+      "full_house": 7,
+      "four_of_a_kind": 8,
+      "five_of_a_kind": 9,
+      "straight_flush": 10,
+      "royal_flush": 11,
+    };
+    
+    return handRanking[newHand] > handRanking[currentBest];
+  }
+  
+  /**
+   * Convert hand type to quality score for DDA analysis
+   */
+  private getHandQualityScore(handType: HandType): number {
+    const handRanking: Record<HandType, number> = {
+      "high_card": 1,
+      "pair": 2,
+      "two_pair": 3,
+      "three_of_a_kind": 4,
+      "straight": 5,
+      "flush": 6,
+      "full_house": 7,
+      "four_of_a_kind": 8,
+      "five_of_a_kind": 9,
+      "straight_flush": 10,
+      "royal_flush": 11,
+    };
+    
+    return handRanking[handType] / 11; // Normalize to 0-1 scale
   }
 }
