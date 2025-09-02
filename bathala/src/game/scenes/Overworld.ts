@@ -77,6 +77,9 @@ export class Overworld extends Scene {
       'D': Phaser.Input.Keyboard.KeyCodes.D
     }) as { [key: string]: Phaser.Input.Keyboard.Key };
     
+    // Add shop key (M for Mysterious Merchant)
+    this.shopKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+    
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
     
@@ -485,6 +488,50 @@ export class Overworld extends Scene {
       this.checkNodeInteraction();
     }
     
+    // Check for M key to open the mysterious merchant shop
+    if (Phaser.Input.Keyboard.JustDown(this.shopKey)) {
+      // Find if there's a shop node nearby
+      const shopNode = this.nodes.find(node => 
+        node.type === "shop" && 
+        Phaser.Math.Distance.Between(
+          this.player.x, 
+          this.player.y, 
+          node.x + this.gridSize / 2, 
+          node.y + this.gridSize / 2
+        ) < this.gridSize
+      );
+      
+      if (shopNode) {
+        // Navigate to shop scene
+        this.scene.start("Shop", { 
+          player: {
+            id: "player",
+            name: "Hero",
+            maxHealth: 80,
+            currentHealth: 80,
+            block: 0,
+            statusEffects: [],
+            hand: [],
+            deck: [],
+            discardPile: [],
+            drawPile: [],
+            playedHand: [],
+            landasScore: 0,
+            ginto: 100,
+            baubles: 0,
+            relics: [
+              {
+                id: "placeholder_relic",
+                name: "Placeholder Relic",
+                description: "This is a placeholder relic.",
+                emoji: "⚙️",
+              },
+            ],
+          }
+        });
+      }
+    }
+    
     // Check for B key to trigger boss fight (for testing)
     if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B))) {
       this.startCombat("boss");
@@ -503,66 +550,6 @@ export class Overworld extends Scene {
     // Check for T key to trigger treasure (for testing)
     if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T))) {
       this.scene.start("Treasure", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          baubles: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
-      });
-    }
-    
-    // Check for F key to trigger campfire (for testing)
-    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F))) {
-      this.scene.start("Campfire", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          baubles: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
-      });
-    }
-    
-    // Check for S key to trigger shop (for testing)
-    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S))) {
-      this.scene.start("Shop", { 
         player: {
           id: "player",
           name: "Hero",
