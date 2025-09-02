@@ -157,6 +157,7 @@ export class Campfire extends Scene {
     this.tooltipBox.removeAll(true);
     
     let description = "";
+    
     switch(action) {
       case "Rest":
         description = "Heal 30% of your maximum HP";
@@ -392,38 +393,53 @@ export class Campfire extends Scene {
     const cardWidth = baseCardWidth * scaleFactor;
     const cardHeight = baseCardHeight * scaleFactor;
     
-    // Card background
-    const bg = this.add.rectangle(
-      0,
-      0,
-      cardWidth,
-      cardHeight,
-      0xffffff
-    );
-    bg.setStrokeStyle(2, 0x2f3542);
+    // Convert card rank to sprite rank (1-13)
+    const rankMap: Record<string, string> = {
+      "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
+      "6": "6", "7": "7", "8": "8", "9": "9", "10": "10",
+      "Mandirigma": "11", "Babaylan": "12", "Datu": "13"
+    };
+    const spriteRank = rankMap[card.rank] || "1";
     
-    // Card rank
-    const rankText = this.add.text(-cardWidth/2 + 10, -cardHeight/2 + 10, card.rank, {
-      fontFamily: "Centrion",
-      fontSize: Math.floor(14 * scaleFactor),
-      color: "#000000",
-    }).setOrigin(0, 0);
+    // Convert suit to lowercase for sprite naming
+    const suitMap: Record<string, string> = {
+      "Apoy": "apoy", "Tubig": "tubig", "Lupa": "lupa", "Hangin": "hangin"
+    };
+    const spriteSuit = suitMap[card.suit] || "apoy";
     
-    // Card suit
-    const display = DeckManager.getCardDisplay(card);
-    const suitText = this.add.text(cardWidth/2 - 10, -cardHeight/2 + 10, display.symbol, {
-      fontFamily: "Centrion",
-      fontSize: Math.floor(14 * scaleFactor),
-      color: display.color,
-    }).setOrigin(1, 0);
+    // Create card sprite using the loaded image
+    const textureKey = `card_${spriteRank}_${spriteSuit}`;
+    console.log(`Trying to load card texture: ${textureKey} for card ${card.rank} of ${card.suit}`);
+    let cardSprite;
     
-    // Element symbol
-    const elementText = this.add.text(0, 0, display.elementSymbol, {
-      fontFamily: "Centrion",
-      fontSize: Math.floor(18 * scaleFactor),
-    }).setOrigin(0.5);
+    // Check if texture exists, fallback to generated card if not
+    if (this.textures.exists(textureKey)) {
+      console.log(`Card texture found: ${textureKey}`);
+      cardSprite = this.add.image(0, 0, textureKey);
+    } else {
+      console.warn(`Card texture ${textureKey} not found, using fallback`);
+      // Fallback to generated card
+      cardSprite = this.add.rectangle(0, 0, cardWidth, cardHeight, 0xffffff);
+      
+      // Add rank text
+      const rankText = this.add.text(-cardWidth/2 + 5, -cardHeight/2 + 5, card.rank, {
+        fontSize: Math.floor(10 * scaleFactor),
+        color: "#000000",
+      }).setOrigin(0, 0);
+      cardContainer.add(rankText);
+      
+      // Add suit symbol
+      const display = DeckManager.getCardDisplay(card);
+      const suitText = this.add.text(cardWidth/2 - 5, -cardHeight/2 + 5, display.symbol, {
+        fontSize: Math.floor(10 * scaleFactor),
+        color: display.color,
+      }).setOrigin(1, 0);
+      cardContainer.add(suitText);
+    }
     
-    cardContainer.add([bg, rankText, suitText, elementText]);
+    cardSprite.setDisplaySize(cardWidth, cardHeight);
+    
+    cardContainer.add(cardSprite);
     
     // Make interactive only if requested
     if (interactive) {

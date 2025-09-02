@@ -589,8 +589,8 @@ export class Combat extends Scene {
   private createHandUI(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    // Position hand container higher (above buttons)
-    this.handContainer = this.add.container(screenWidth/2, screenHeight - 180);
+    // Position hand container higher to avoid overlap with buttons
+    this.handContainer = this.add.container(screenWidth/2, screenHeight - 240);
     this.updateHandDisplay();
   }
 
@@ -879,11 +879,6 @@ export class Combat extends Scene {
       );
       this.handContainer.add(cardSprite);
       this.cardSprites.push(cardSprite);
-      
-      // If card is already selected, apply the popup effect
-      if (card.selected) {
-        cardSprite.setY(y - 50); // Pop up higher than others
-      }
     });
   }
 
@@ -896,61 +891,82 @@ export class Combat extends Scene {
     y: number,
     interactive: boolean = true
   ): Phaser.GameObjects.Container {
-    const cardContainer = this.add.container(x, y);
+    const cardContainer = this.add.container(0, 0);
 
     // Calculate card dimensions based on screen size
     const screenWidth = this.cameras.main.width;
-    const baseCardWidth = 50;
-    const baseCardHeight = 70;
+    const baseCardWidth = 80;  // Increased from 50
+    const baseCardHeight = 112; // Increased from 70
     
     // Scale card size based on screen width, but keep minimum size
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
     const cardWidth = baseCardWidth * scaleFactor;
     const cardHeight = baseCardHeight * scaleFactor;
 
-    // Card background
-    const bg = this.add.rectangle(
-      0,
-      0,
-      cardWidth,
-      cardHeight,
-      0xffffff
-    );
-    // Only change border color when selected
-    bg.setStrokeStyle(2, card.selected ? 0x2ed573 : 0x2f3542);
-    bg.setName('cardBackground'); // Set name for later reference
-
-    // Card rank
-    const rankText = this.add
-      .text(-cardWidth/2 + 10, -cardHeight/2 + 10, card.rank, {
-        fontFamily: "Centrion",
-        fontSize: Math.floor(14 * scaleFactor),
+    // Convert card rank to sprite rank (1-13)
+    const rankMap: Record<string, string> = {
+      "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
+      "6": "6", "7": "7", "8": "8", "9": "9", "10": "10",
+      "Mandirigma": "11", "Babaylan": "12", "Datu": "13"
+    };
+    const spriteRank = rankMap[card.rank] || "1";
+    
+    // Convert suit to lowercase for sprite naming
+    const suitMap: Record<string, string> = {
+      "Apoy": "apoy", "Tubig": "tubig", "Lupa": "lupa", "Hangin": "hangin"
+    };
+    const spriteSuit = suitMap[card.suit] || "apoy";
+    
+    // Create card sprite using the loaded image
+    const textureKey = `card_${spriteRank}_${spriteSuit}`;
+    console.log(`Trying to load card texture: ${textureKey} for card ${card.rank} of ${card.suit}`);
+    let cardSprite;
+    
+    // Check if texture exists, fallback to generated card if not
+    if (this.textures.exists(textureKey)) {
+      console.log(`Card texture found: ${textureKey}`);
+      cardSprite = this.add.image(0, 0, textureKey);
+    } else {
+      console.warn(`Card texture ${textureKey} not found, using fallback`);
+      // Fallback to generated card
+      cardSprite = this.add.rectangle(0, 0, cardWidth, cardHeight, 0xffffff);
+      
+      // Add rank text
+      const rankText = this.add.text(-cardWidth/2 + 5, -cardHeight/2 + 5, card.rank, {
+        fontSize: Math.floor(10 * scaleFactor),
         color: "#000000",
-      })
-      .setOrigin(0, 0);
-    rankText.setName('rankText'); // Set name for later reference
-
-    // Card suit
-    const display = DeckManager.getCardDisplay(card);
-    const suitText = this.add
-      .text(cardWidth/2 - 10, -cardHeight/2 + 10, display.symbol, {
-        fontFamily: "Centrion",
-        fontSize: Math.floor(14 * scaleFactor),
+      }).setOrigin(0, 0);
+      cardContainer.add(rankText);
+      
+      // Add suit symbol
+      const display = DeckManager.getCardDisplay(card);
+      const suitText = this.add.text(cardWidth/2 - 5, -cardHeight/2 + 5, display.symbol, {
+        fontSize: Math.floor(10 * scaleFactor),
         color: display.color,
-      })
-      .setOrigin(1, 0);
-    suitText.setName('suitText'); // Set name for later reference
+      }).setOrigin(1, 0);
+      cardContainer.add(suitText);
+    }
+    
+    cardSprite.setDisplaySize(cardWidth, cardHeight);
+    
+    // Add a border that changes when selected
+    const border = this.add.rectangle(
+      0,
+      0,
+      cardWidth + 4,
+      cardHeight + 4,
+      0x000000,
+      0  // No fill
+    );
+    border.setStrokeStyle(2, 0x2ed573);
+    border.setName('cardBorder'); // Set name for later reference
+    // Only show border when card is selected
+    border.setVisible(card.selected);
 
-    // Element symbol
-    const elementText = this.add
-      .text(0, 0, display.elementSymbol, {
-        fontFamily: "Centrion",
-        fontSize: Math.floor(18 * scaleFactor),
-      })
-      .setOrigin(0.5);
-    elementText.setName('elementText'); // Set name for later reference
+    cardContainer.add([cardSprite, border]);
 
-    cardContainer.add([bg, rankText, suitText, elementText]);
+    // Position the container
+    cardContainer.setPosition(x, y);
 
     // Make interactive only for hand cards
     if (interactive) {
@@ -975,10 +991,10 @@ export class Combat extends Scene {
     if (cardIndex !== -1 && this.cardSprites[cardIndex]) {
       const cardSprite = this.cardSprites[cardIndex];
       
-      // Update background border only
-      const bg = cardSprite.getByName('cardBackground') as Phaser.GameObjects.Rectangle;
-      if (bg) {
-        bg.setStrokeStyle(2, card.selected ? 0x2ed573 : 0x2f3542);
+      // Update border visibility only
+      const border = cardSprite.getByName('cardBorder') as Phaser.GameObjects.Rectangle;
+      if (border) {
+        border.setVisible(card.selected);
       }
     }
   }
@@ -1018,12 +1034,14 @@ export class Combat extends Scene {
       const curveHeight = 5;
       const positionRatio = hand.length > 1 ? cardIndex / (hand.length - 1) : 0.5;
       const baseY = -Math.sin(positionRatio * Math.PI) * curveHeight;
+      const baseX = startX + cardIndex * actualCardWidth;
       
       // Animate the card with a bounce effect and pop up
       if (card.selected) {
         // Pop up animation - move card up slightly and scale slightly
         this.tweens.add({
           targets: cardSprite,
+          x: baseX,
           y: baseY - 20, // Reduced popup height
           scale: 1.05,
           duration: 200,
@@ -1033,6 +1051,7 @@ export class Combat extends Scene {
         // Return to original position
         this.tweens.add({
           targets: cardSprite,
+          x: baseX,
           y: baseY,
           scale: 1.0,
           duration: 200,
@@ -1081,11 +1100,108 @@ export class Combat extends Scene {
    * Sort hand by rank or suit
    */
   private sortHand(sortBy: "rank" | "suit"): void {
-    this.combatState.player.hand = DeckManager.sortCards(
-      this.combatState.player.hand,
-      sortBy
-    );
-    this.updateHandDisplay();
+    // Create shuffling animation before sorting
+    this.animateCardShuffle(sortBy, () => {
+      // Animation handles the sorting internally
+    });
+  }
+
+  /**
+   * Animate card shuffling effect (Aggressive shuffling style)
+   */
+  private animateCardShuffle(sortType: "rank" | "suit", onComplete: () => void): void {
+    // Store original positions of all cards
+    const originalPositions = this.cardSprites.map(cardSprite => ({
+      x: cardSprite.x,
+      y: cardSprite.y,
+      rotation: cardSprite.rotation
+    }));
+    
+    // Phase 1: Aggressive shuffle chaos - cards fly around randomly
+    const shufflePromises = this.cardSprites.map((cardSprite, index) => {
+      return new Promise<void>((resolve) => {
+        // Random chaotic movement
+        const randomX = (Math.random() - 0.5) * 200; // Wide random X movement
+        const randomY = (Math.random() - 0.5) * 100; // Random Y movement
+        const randomRotation = (Math.random() - 0.5) * 2; // Aggressive rotation
+        const randomScale = 0.7 + Math.random() * 0.6; // Random scale between 0.7 and 1.3
+        
+        this.tweens.add({
+          targets: cardSprite,
+          x: cardSprite.x + randomX,
+          y: cardSprite.y + randomY,
+          rotation: randomRotation,
+          scaleX: randomScale,
+          scaleY: randomScale,
+          duration: 150, // Fast chaotic movement
+          delay: index * 8, // Very fast stagger for chaos
+          ease: 'Power2.easeOut',
+          onComplete: () => {
+            // Second shuffle phase - more chaos
+            const moreRandomX = (Math.random() - 0.5) * 150;
+            const moreRandomY = (Math.random() - 0.5) * 80;
+            const moreRotation = (Math.random() - 0.5) * 1.5;
+            
+            this.tweens.add({
+              targets: cardSprite,
+              x: cardSprite.x + moreRandomX,
+              y: cardSprite.y + moreRandomY,
+              rotation: moreRotation,
+              scaleX: 0.8 + Math.random() * 0.4,
+              scaleY: 0.8 + Math.random() * 0.4,
+              duration: 100,
+              ease: 'Power1.easeInOut',
+              onComplete: () => resolve()
+            });
+          }
+        });
+      });
+    });
+    
+    // Wait for aggressive shuffle, then sort and organize
+    Promise.all(shufflePromises).then(() => {
+      // Sort the hand data during the chaos
+      this.combatState.player.hand = DeckManager.sortCards(
+        this.combatState.player.hand,
+        sortType
+      );
+      
+      // Calculate new sorted positions
+      const cardWidth = 80;
+      const screenWidth = this.cameras.main.width;
+      const actualCardWidth = Math.min(cardWidth, (screenWidth * 0.8) / this.cardSprites.length);
+      const totalWidth = this.cardSprites.length * actualCardWidth;
+      const startX = -totalWidth / 2 + actualCardWidth / 2;
+      
+      // Phase 2: Cards snap into sorted positions with smooth landing
+      const organizePromises = this.cardSprites.map((cardSprite, index) => {
+        return new Promise<void>((resolve) => {
+          const newX = startX + (index * actualCardWidth);
+          const curveHeight = 5;
+          const progress = index / Math.max(1, this.cardSprites.length - 1);
+          const curveY = -curveHeight * Math.sin(progress * Math.PI);
+          const newY = originalPositions[0].y + curveY;
+          
+          this.tweens.add({
+            targets: cardSprite,
+            x: newX,
+            y: newY,
+            rotation: 0,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 200,
+            delay: index * 10, // Fast stagger for organization
+            ease: 'Back.easeOut', // Smooth landing with overshoot
+            onComplete: () => resolve()
+          });
+        });
+      });
+      
+      Promise.all(organizePromises).then(() => {
+        this.updateHandDisplay();
+        onComplete();
+      });
+    });
   }
 
   /**
