@@ -111,6 +111,23 @@ export class Preloader extends Scene {
     this.load.image("chest_f1", "sprites/overworld/treasure/chest_full_open_anim_f1.png");
     this.load.image("chest_f2", "sprites/overworld/treasure/chest_full_open_anim_f2.png");
     
+    // Load card sprites
+    const suits = ["apoy", "tubig", "lupa", "hangin"];
+    const ranks = [
+      "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+      "11", "12", "13"  // Mandirigma, Babaylan, Datu
+    ];
+    
+    // Load all card sprites
+    for (const suit of suits) {
+      for (const rank of ranks) {
+        const fileName = `${rank}${suit}.png`;
+        const key = `card_${rank}_${suit}`;
+        console.log(`Loading card sprite: ${key} from ${fileName}`);
+        this.load.image(key, `sprites/cards/${fileName}`);
+      }
+    }
+    
     // Debug: Log when assets are loaded
     this.load.on('filecomplete', (key: string, type: string) => {
       console.log(`Loaded asset: ${key} (${type})`);
