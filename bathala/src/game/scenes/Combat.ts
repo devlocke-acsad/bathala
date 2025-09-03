@@ -68,6 +68,8 @@ export class Combat extends Scene {
   // Deck animation properties
   private deckSprite!: Phaser.GameObjects.Container;
   private deckPosition!: { x: number; y: number };
+  private discardSprite!: Phaser.GameObjects.Container;
+  private discardPosition!: { x: number; y: number };
   private isDrawingCards: boolean = false;
 
   // Post-combat dialogue system
@@ -283,6 +285,9 @@ export class Combat extends Scene {
     
     // Create deck sprite
     this.createDeckSprite();
+    
+    // Create discard pile sprite
+    this.createDiscardSprite();
 
     // Draw initial hand
     this.drawInitialHand();
@@ -1083,6 +1088,45 @@ export class Combat extends Scene {
   }
 
   /**
+   * Unplay a card from the played hand back to the regular hand
+   */
+  private unplayCard(card: PlayingCard): void {
+    // Check if the card is actually in the played hand
+    const playedIndex = this.combatState.player.playedHand.findIndex(c => c.id === card.id);
+    if (playedIndex === -1) {
+      console.warn("Trying to unplay a card that's not in the played hand");
+      return;
+    }
+
+    // Remove card from played hand
+    this.combatState.player.playedHand.splice(playedIndex, 1);
+    
+    // Add card back to regular hand
+    this.combatState.player.hand.push(card);
+    
+    // Reset card selection state
+    card.selected = false;
+    
+    // Remove from selected cards if it was there
+    this.selectedCards = this.selectedCards.filter(c => c.id !== card.id);
+    this.combatState.selectedCards = this.combatState.selectedCards.filter(c => c.id !== card.id);
+    
+    // If no cards left in played hand, return to card selection phase
+    if (this.combatState.player.playedHand.length === 0) {
+      this.combatState.phase = "player_turn";
+      this.updateActionButtons();
+    }
+    
+    // Update displays
+    this.updateHandDisplay();
+    this.updatePlayedHandDisplay();
+    this.updateHandIndicator();
+    
+    // Show feedback
+    this.showActionResult(`Unplayed ${card.rank} of ${card.suit}`);
+  }
+
+  /**
    * Play selected cards (Balatro style - one hand per turn)
    */
   private playSelectedCards(): void {
@@ -1124,50 +1168,56 @@ export class Combat extends Scene {
   }
 
   /**
-   * Animate card shuffling effect (Aggressive shuffling style)
+   * Animate card shuffling effect (Individual card tracking)
    */
   private animateCardShuffle(sortType: "rank" | "suit", onComplete: () => void): void {
-    // Store original positions of all cards
+    // Store original positions and card data before sorting
     const originalPositions = this.cardSprites.map(cardSprite => ({
       x: cardSprite.x,
       y: cardSprite.y,
       rotation: cardSprite.rotation
     }));
     
-    // Phase 1: Aggressive shuffle chaos - cards fly around randomly
-    const shufflePromises = this.cardSprites.map((cardSprite, index) => {
+    // Store the original card order to track which card goes where
+    const originalCards = [...this.combatState.player.hand];
+    
+    // Sort the hand data to get the new order
+    const sortedCards = DeckManager.sortCards([...this.combatState.player.hand], sortType);
+    
+    // Create a mapping of where each card should end up
+    const cardMappings = this.cardSprites.map((cardSprite, originalIndex) => {
+      const originalCard = originalCards[originalIndex];
+      const newIndex = sortedCards.findIndex(card => 
+        card.suit === originalCard.suit && card.rank === originalCard.rank
+      );
+      return {
+        sprite: cardSprite,
+        originalIndex,
+        newIndex,
+        targetPosition: originalPositions[newIndex] // Where this card should end up
+      };
+    });
+    
+    // Phase 1: Cards lift up and move to their sorted positions individually
+    const movePromises = cardMappings.map((mapping, index) => {
       return new Promise<void>((resolve) => {
-        // Random chaotic movement
-        const randomX = (Math.random() - 0.5) * 200; // Wide random X movement
-        const randomY = (Math.random() - 0.5) * 100; // Random Y movement
-        const randomRotation = (Math.random() - 0.5) * 2; // Aggressive rotation
-        const randomScale = 0.7 + Math.random() * 0.6; // Random scale between 0.7 and 1.3
-        
+        // First lift up slightly
         this.tweens.add({
-          targets: cardSprite,
-          x: cardSprite.x + randomX,
-          y: cardSprite.y + randomY,
-          rotation: randomRotation,
-          scaleX: randomScale,
-          scaleY: randomScale,
-          duration: 150, // Fast chaotic movement
-          delay: index * 8, // Very fast stagger for chaos
+          targets: mapping.sprite,
+          y: mapping.sprite.y - 20,
+          rotation: (Math.random() - 0.5) * 0.3,
+          duration: 100,
+          delay: index * 8,
           ease: 'Power2.easeOut',
           onComplete: () => {
-            // Second shuffle phase - more chaos
-            const moreRandomX = (Math.random() - 0.5) * 150;
-            const moreRandomY = (Math.random() - 0.5) * 80;
-            const moreRotation = (Math.random() - 0.5) * 1.5;
-            
+            // Then move to the target position
             this.tweens.add({
-              targets: cardSprite,
-              x: cardSprite.x + moreRandomX,
-              y: cardSprite.y + moreRandomY,
-              rotation: moreRotation,
-              scaleX: 0.8 + Math.random() * 0.4,
-              scaleY: 0.8 + Math.random() * 0.4,
-              duration: 100,
-              ease: 'Power1.easeInOut',
+              targets: mapping.sprite,
+              x: mapping.targetPosition.x,
+              y: mapping.targetPosition.y,
+              rotation: 0,
+              duration: 200,
+              ease: 'Power2.easeInOut',
               onComplete: () => resolve()
             });
           }
@@ -1175,49 +1225,12 @@ export class Combat extends Scene {
       });
     });
     
-    // Wait for aggressive shuffle, then sort and organize
-    Promise.all(shufflePromises).then(() => {
-      // Sort the hand data during the chaos
-      this.combatState.player.hand = DeckManager.sortCards(
-        this.combatState.player.hand,
-        sortType
-      );
-      
-      // Calculate new sorted positions
-      const cardWidth = 80;
-      const screenWidth = this.cameras.main.width;
-      const actualCardWidth = Math.min(cardWidth, (screenWidth * 0.8) / this.cardSprites.length);
-      const totalWidth = this.cardSprites.length * actualCardWidth;
-      const startX = -totalWidth / 2 + actualCardWidth / 2;
-      
-      // Phase 2: Cards snap into sorted positions with smooth landing
-      const organizePromises = this.cardSprites.map((cardSprite, index) => {
-        return new Promise<void>((resolve) => {
-          const newX = startX + (index * actualCardWidth);
-          const curveHeight = 5;
-          const progress = index / Math.max(1, this.cardSprites.length - 1);
-          const curveY = -curveHeight * Math.sin(progress * Math.PI);
-          const newY = originalPositions[0].y + curveY;
-          
-          this.tweens.add({
-            targets: cardSprite,
-            x: newX,
-            y: newY,
-            rotation: 0,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 200,
-            delay: index * 10, // Fast stagger for organization
-            ease: 'Back.easeOut', // Smooth landing with overshoot
-            onComplete: () => resolve()
-          });
-        });
-      });
-      
-      Promise.all(organizePromises).then(() => {
-        this.updateHandDisplay();
-        onComplete();
-      });
+    // Wait for all cards to reach their positions, then update the hand data
+    Promise.all(movePromises).then(() => {
+      // Update the hand data to match the sorted order
+      this.combatState.player.hand = sortedCards;
+      this.updateHandDisplay();
+      onComplete();
     });
   }
 
@@ -1264,6 +1277,7 @@ export class Combat extends Scene {
     this.updateHandDisplay();
     this.updateTurnUI();
     this.updateHandIndicator(); // Update hand indicator after discarding
+    this.updateDiscardDisplay(); // Update discard pile display
   }
 
   /**
@@ -1330,6 +1344,7 @@ export class Combat extends Scene {
     if (this.combatState.player.playedHand.length > 0) {
       this.combatState.player.discardPile.push(...this.combatState.player.playedHand);
       this.combatState.player.playedHand = [];
+      this.updateDiscardDisplay(); // Update discard pile display
     }
 
     // Draw cards to ensure player has 8 cards at start of turn
@@ -1379,6 +1394,7 @@ export class Combat extends Scene {
     // Animate only the newly drawn cards
     this.animateNewCards(drawnCards, previousHandSize);
     this.updateDeckDisplay();
+    this.updateDiscardDisplay(); // Also update discard in case of shuffle
   }
 
   /**
@@ -2200,8 +2216,48 @@ export class Combat extends Scene {
         card,
         startX + index * actualCardWidth,
         0,
-        false
+        true // Make interactive so players can unplay cards
       );
+      
+      // Override the default card interaction to unplay instead of select
+      cardSprite.removeAllListeners('pointerdown');
+      cardSprite.on("pointerdown", () => {
+        this.unplayCard(card);
+      });
+      
+      // Add visual feedback for played cards when hovering
+      cardSprite.on("pointerover", () => {
+        cardSprite.setScale(1.15);
+        // Add golden tint to indicate it's clickable to unplay
+        cardSprite.list.forEach(child => {
+          if (child instanceof Phaser.GameObjects.Image) {
+            child.setTint(0xffd93d);
+          }
+        });
+        this.tweens.add({
+          targets: cardSprite,
+          y: cardSprite.y - 15,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
+      cardSprite.on("pointerout", () => {
+        cardSprite.setScale(1);
+        // Remove tint
+        cardSprite.list.forEach(child => {
+          if (child instanceof Phaser.GameObjects.Image) {
+            child.clearTint();
+          }
+        });
+        this.tweens.add({
+          targets: cardSprite,
+          y: cardSprite.y + 15,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
       this.playedHandContainer.add(cardSprite);
       this.playedCardSprites.push(cardSprite);
     });
@@ -2479,31 +2535,64 @@ export class Combat extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Position deck on the left side, below the player area
+    // Position deck on the right side, below the enemy area
     this.deckPosition = {
-      x: screenWidth * 0.15,
+      x: screenWidth * 0.85,
       y: screenHeight * 0.75
     };
     
     this.deckSprite = this.add.container(this.deckPosition.x, this.deckPosition.y);
     
-    // Create deck pile visual (stack of card backs)
+    // Calculate card dimensions based on screen size (same as hand cards)
+    const baseCardWidth = 80;
+    const baseCardHeight = 112;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const cardWidth = baseCardWidth * scaleFactor;
+    const cardHeight = baseCardHeight * scaleFactor;
+    
+    // Create deck pile visual (stack of cards)
     const deckCardCount = Math.min(5, this.combatState.player.drawPile.length); // Show max 5 cards in stack
     
     for (let i = 0; i < deckCardCount; i++) {
-      const cardBack = this.add.rectangle(
-        i * 2, // Slight offset for stack effect
-        -i * 2,
-        60,
-        84,
-        0x1a1a2e
-      );
-      cardBack.setStrokeStyle(2, 0x16213e);
-      this.deckSprite.add(cardBack);
+      if (i === deckCardCount - 1) {
+        // Top card uses 13apoy sprite (front face)
+        let frontCard;
+        if (this.textures.exists('card_13_apoy')) {
+          frontCard = this.add.image(
+            i * 3, // Slight offset for stack effect
+            -i * 3,
+            'card_13_apoy'
+          );
+        } else {
+          // Fallback to rectangle with different color for front card
+          frontCard = this.add.rectangle(
+            i * 3,
+            -i * 3,
+            cardWidth,
+            cardHeight,
+            0x3a1a1a // Reddish color for apoy
+          );
+          frontCard.setStrokeStyle(2, 0x5a2a2a);
+        }
+        frontCard.setDisplaySize(cardWidth, cardHeight);
+        this.deckSprite.add(frontCard);
+      } else {
+        // Back cards use simple rectangle (card backs)
+        const cardBack = this.add.rectangle(
+          i * 3, // Slight offset for stack effect
+          -i * 3,
+          cardWidth,
+          cardHeight,
+          0x1a1a2e
+        );
+        cardBack.setStrokeStyle(2, 0x16213e);
+        this.deckSprite.add(cardBack);
+      }
     }
     
-    // Add deck label
-    const deckLabel = this.add.text(0, 50, `Deck: ${this.combatState.player.drawPile.length}`, {
+    // Add deck label positioned below the deck cards
+    const labelY = (cardHeight / 2) + 20; // Position below the cards
+    const deckLabel = this.add.text(0, labelY, `Deck: ${this.combatState.player.drawPile.length}`, {
       fontFamily: "Chivo",
       fontSize: 12,
       color: "#ffffff",
@@ -2511,6 +2600,54 @@ export class Combat extends Scene {
     }).setOrigin(0.5);
     
     this.deckSprite.add(deckLabel);
+  }
+
+  /**
+   * Create discard pile sprite representation
+   */
+  private createDiscardSprite(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Position discard pile on the left side, below the player area
+    this.discardPosition = {
+      x: screenWidth * 0.15,
+      y: screenHeight * 0.75
+    };
+    
+    this.discardSprite = this.add.container(this.discardPosition.x, this.discardPosition.y);
+    
+    // Calculate card dimensions based on screen size (same as hand cards)
+    const baseCardWidth = 80;
+    const baseCardHeight = 112;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const cardWidth = baseCardWidth * scaleFactor;
+    const cardHeight = baseCardHeight * scaleFactor;
+    
+    // Create discard pile visual (stack of card backs)
+    const discardCardCount = Math.min(3, this.combatState.player.discardPile.length); // Show max 3 cards in stack
+    
+    for (let i = 0; i < discardCardCount; i++) {
+      const cardBack = this.add.rectangle(
+        i * 3, // Slight offset for stack effect
+        -i * 3,
+        cardWidth,
+        cardHeight,
+        0x2a2a2a // Darker color for discard pile
+      );
+      cardBack.setStrokeStyle(2, 0x444444);
+      this.discardSprite.add(cardBack);
+    }
+    
+    // Add discard label
+    const discardLabel = this.add.text(0, 50, `Discard: ${this.combatState.player.discardPile.length}`, {
+      fontFamily: "Chivo",
+      fontSize: 12,
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    this.discardSprite.add(discardLabel);
   }
 
   /**
@@ -2589,17 +2726,91 @@ export class Combat extends Scene {
   }
   
   /**
-   * Update deck display (card count)
+   * Update deck display (card count and visual)
    */
   private updateDeckDisplay(): void {
-    if (this.deckSprite && this.deckSprite.list.length > 0) {
-      // Find and update the deck label
-      const deckLabel = this.deckSprite.list.find(child => 
+    if (!this.deckSprite) return;
+    
+    // Find and update the deck label
+    const deckLabel = this.deckSprite.list.find(child => 
+      child instanceof Phaser.GameObjects.Text
+    ) as Phaser.GameObjects.Text;
+    
+    if (deckLabel) {
+      deckLabel.setText(`Deck: ${this.combatState.player.drawPile.length}`);
+    }
+    
+    // If deck count is significantly different, rebuild the visual
+    const currentCardCount = this.deckSprite.list.filter(child => 
+      child instanceof Phaser.GameObjects.Rectangle || child instanceof Phaser.GameObjects.Image
+    ).length;
+    const expectedCardCount = Math.min(5, this.combatState.player.drawPile.length);
+    
+    if (currentCardCount !== expectedCardCount) {
+      // Remove old cards but keep the label
+      this.deckSprite.list.forEach(child => {
+        if (child instanceof Phaser.GameObjects.Rectangle || child instanceof Phaser.GameObjects.Image) {
+          child.destroy();
+        }
+      });
+      
+      // Rebuild deck visual
+      const screenWidth = this.cameras.main.width;
+      const baseCardWidth = 80;
+      const baseCardHeight = 112;
+      const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+      const cardWidth = baseCardWidth * scaleFactor;
+      const cardHeight = baseCardHeight * scaleFactor;
+      
+      for (let i = 0; i < expectedCardCount; i++) {
+        if (i === expectedCardCount - 1) {
+          // Top card uses 13apoy sprite (front face)
+          let frontCard;
+          if (this.textures.exists('card_13_apoy')) {
+            frontCard = this.add.image(
+              i * 3,
+              -i * 3,
+              'card_13_apoy'
+            );
+          } else {
+            frontCard = this.add.rectangle(
+              i * 3,
+              -i * 3,
+              cardWidth,
+              cardHeight,
+              0x3a1a1a
+            );
+            frontCard.setStrokeStyle(2, 0x5a2a2a);
+          }
+          frontCard.setDisplaySize(cardWidth, cardHeight);
+          this.deckSprite.add(frontCard);
+        } else {
+          const cardBack = this.add.rectangle(
+            i * 3,
+            -i * 3,
+            cardWidth,
+            cardHeight,
+            0x1a1a2e
+          );
+          cardBack.setStrokeStyle(2, 0x16213e);
+          this.deckSprite.add(cardBack);
+        }
+      }
+    }
+  }
+  
+  /**
+   * Update discard pile display (card count)
+   */
+  private updateDiscardDisplay(): void {
+    if (this.discardSprite && this.discardSprite.list.length > 0) {
+      // Find and update the discard label
+      const discardLabel = this.discardSprite.list.find(child => 
         child instanceof Phaser.GameObjects.Text
       ) as Phaser.GameObjects.Text;
       
-      if (deckLabel) {
-        deckLabel.setText(`Deck: ${this.combatState.player.drawPile.length}`);
+      if (discardLabel) {
+        discardLabel.setText(`Discard: ${this.combatState.player.discardPile.length}`);
       }
     }
   }
