@@ -64,6 +64,8 @@ export class Combat extends Scene {
   // Sprite references for animations
   private playerSprite!: Phaser.GameObjects.Sprite;
   private enemySprite!: Phaser.GameObjects.Sprite;
+  private playerShadow!: Phaser.GameObjects.Graphics;
+  private enemyShadow!: Phaser.GameObjects.Graphics;
   
   // Deck animation properties
   private deckSprite!: Phaser.GameObjects.Container;
@@ -71,6 +73,9 @@ export class Combat extends Scene {
   private discardSprite!: Phaser.GameObjects.Container;
   private discardPosition!: { x: number; y: number };
   private isDrawingCards: boolean = false;
+
+  // Relic inventory
+  private relicInventory!: Phaser.GameObjects.Container;
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
@@ -275,13 +280,18 @@ export class Combat extends Scene {
   }
 
   create(data: { nodeType: string, transitionOverlay?: any }): void {
-    this.cameras.main.setBackgroundColor(0x0e1112);
+    // Add forest background
+    const bg = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, "forest_bg");
+    bg.setDisplaySize(this.cameras.main.width, this.cameras.main.height);
 
     // Initialize combat state
     this.initializeCombat(data.nodeType);
 
     // Create UI elements
     this.createCombatUI();
+    
+    // Create relic inventory
+    this.createRelicInventory();
     
     // Create deck sprite
     this.createDeckSprite();
@@ -453,6 +463,11 @@ export class Combat extends Scene {
     const playerX = screenWidth * 0.25; // 25% from left
     const playerY = screenHeight * 0.4; // 40% from top
 
+    // Create player shadow circle
+    this.playerShadow = this.add.graphics();
+    this.playerShadow.fillStyle(0x000000, 0.3); // Black with 30% opacity
+    this.playerShadow.fillEllipse(playerX, playerY + 60, 80, 20); // Oval shadow below player
+
     // Player sprite with idle animation
     this.playerSprite = this.add.sprite(playerX, playerY, "combat_player");
     this.playerSprite.setScale(2); // Scale up from 32x64 to 64x128
@@ -509,6 +524,11 @@ export class Combat extends Scene {
     
     const enemyX = screenWidth * 0.75; // 75% from left
     const enemyY = screenHeight * 0.4; // 40% from top
+    
+    // Create enemy shadow circle
+    this.enemyShadow = this.add.graphics();
+    this.enemyShadow.fillStyle(0x000000, 0.3); // Black with 30% opacity
+    this.enemyShadow.fillEllipse(enemyX, enemyY + 90, 120, 30); // Larger oval shadow below enemy
 
     // Determine which enemy sprite to use based on enemy type
     let enemySpriteKey = "balete"; // default
@@ -796,6 +816,129 @@ export class Combat extends Scene {
   }
 
   /**
+   * Create relic inventory in top left corner with vignette design
+   */
+  private createRelicInventory(): void {
+    // Create container for the inventory
+    this.relicInventory = this.add.container(20, 20);
+    
+    // Create the main background rectangle with vignette effect (longer length)
+    const inventoryWidth = 1200; // Increased from 200
+    const inventoryHeight = 120;
+    
+    // Main background
+    const mainBg = this.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x2a2a2a, 0.9);
+    mainBg.setStrokeStyle(2, 0x4a4a4a);
+    
+    // Inner vignette effect - darker inner rectangle
+    const innerBg = this.add.rectangle(0, 0, inventoryWidth - 10, inventoryHeight - 10, 0x1a1a1a, 0.7);
+    innerBg.setStrokeStyle(1, 0x3a3a3a);
+    
+    // Title text positioned at top left of the box
+    const titleText = this.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
+      fontFamily: "Centrion",
+      fontSize: 14,
+      color: "#ffffff",
+      align: "left"
+    }).setOrigin(0, 0.5);
+    
+    // Create relic slots grid (4x2 = 8 slots for longer rectangle)
+    const slotSize = 25;
+    const slotsPerRow = 4; // Increased from 3
+    const rows = 2;
+    const slotSpacing = 35;
+    
+    const startX = -(slotsPerRow - 1) * slotSpacing / 2;
+    const startY = -10;
+    
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < slotsPerRow; col++) {
+        const slotX = startX + col * slotSpacing;
+        const slotY = startY + row * slotSpacing;
+        
+        // Create slot background
+        const slot = this.add.rectangle(slotX, slotY, slotSize, slotSize, 0x0a0a0a, 0.8);
+        slot.setStrokeStyle(1, 0x555555);
+        
+        this.relicInventory.add(slot);
+      }
+    }
+    
+    // Add all elements to container
+    this.relicInventory.add([mainBg, innerBg, titleText]);
+    
+    // Update with current relics
+    this.updateRelicInventory();
+  }
+
+  /**
+   * Update relic inventory with current relics
+   */
+  private updateRelicInventory(): void {
+    if (!this.relicInventory) return;
+    
+    const relics = this.combatState.player.relics;
+    const slotSize = 25;
+    const slotsPerRow = 4; // Updated to match new grid
+    const slotSpacing = 35;
+    const startX = -(slotsPerRow - 1) * slotSpacing / 2;
+    const startY = -10;
+    
+    // Remove existing relic displays (keep slots and background)
+    this.relicInventory.list.forEach(child => {
+      if ((child as any).isRelicDisplay) {
+        child.destroy();
+      }
+    });
+    
+    // Add current relics to slots
+    relics.forEach((relic, index) => {
+      if (index < 8) { // Max 8 slots now (4x2)
+        const row = Math.floor(index / slotsPerRow);
+        const col = index % slotsPerRow;
+        const slotX = startX + col * slotSpacing;
+        const slotY = startY + row * slotSpacing;
+        
+        // Create relic emoji/icon
+        const relicIcon = this.add.text(slotX, slotY, relic.emoji || "?", {
+          fontSize: 18,
+          align: "center"
+        }).setOrigin(0.5);
+        
+        // Mark as relic display for cleanup
+        (relicIcon as any).isRelicDisplay = true;
+        
+        // Add hover tooltip
+        relicIcon.setInteractive();
+        relicIcon.on("pointerover", () => {
+          // Create temporary tooltip
+          const tooltip = this.add.text(slotX, slotY - 40, relic.name, {
+            fontFamily: "Chivo",
+            fontSize: 12,
+            color: "#ffffff",
+            backgroundColor: "#000000",
+            padding: { x: 8, y: 4 }
+          }).setOrigin(0.5);
+          
+          (tooltip as any).isTooltip = true;
+          this.relicInventory.add(tooltip);
+        });
+        
+        relicIcon.on("pointerout", () => {
+          // Remove tooltip
+          this.relicInventory.list.forEach(child => {
+            if ((child as any).isTooltip) {
+              child.destroy();
+            }
+          });
+        });
+        
+        this.relicInventory.add(relicIcon);
+      }
+    });
+  }
+
+  /**
    * Create a button with text and callback
    */
   private createButton(
@@ -996,7 +1139,42 @@ export class Combat extends Scene {
         new Phaser.Geom.Rectangle(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight),
         Phaser.Geom.Rectangle.Contains
       );
+      
+      // Card selection
       cardContainer.on("pointerdown", () => this.selectCard(card));
+      
+      // Hover effects
+      cardContainer.on("pointerover", () => {
+        // Lift card up and slightly scale it
+        this.tweens.add({
+          targets: cardContainer,
+          y: y - 15, // Lift up by 15 pixels
+          scaleX: 1.05,
+          scaleY: 1.05,
+          duration: 150,
+          ease: 'Power2.easeOut'
+        });
+        
+        // Add subtle glow effect by adjusting tint
+        const cardSprite = cardContainer.list[0] as Phaser.GameObjects.Sprite;
+        cardSprite.setTint(0xffffff); // Brighten the card
+      });
+      
+      cardContainer.on("pointerout", () => {
+        // Return to original position and scale
+        this.tweens.add({
+          targets: cardContainer,
+          y: y, // Return to original position
+          scaleX: 1,
+          scaleY: 1,
+          duration: 150,
+          ease: 'Power2.easeOut'
+        });
+        
+        // Remove glow effect
+        const cardSprite = cardContainer.list[0] as Phaser.GameObjects.Sprite;
+        cardSprite.clearTint();
+      });
     }
 
     // Store reference to card for later updates
@@ -1649,6 +1827,7 @@ export class Combat extends Scene {
           emoji: "🏆",
         });
         this.updateRelicsUI();
+        this.updateRelicInventory();
       }
       
       // Victory - show post-combat dialogue with delay to prevent double calls
@@ -2555,7 +2734,7 @@ export class Combat extends Scene {
     
     for (let i = 0; i < deckCardCount; i++) {
       if (i === deckCardCount - 1) {
-        // Top card uses 13apoy sprite (front face)
+        // Top card uses 13apoy sprite (front face) with black border
         let frontCard;
         if (this.textures.exists('card_13_apoy')) {
           frontCard = this.add.image(
@@ -2563,29 +2742,29 @@ export class Combat extends Scene {
             -i * 3,
             'card_13_apoy'
           );
+          frontCard.setDisplaySize(cardWidth, cardHeight);
         } else {
-          // Fallback to rectangle with different color for front card
+          // Fallback to white rectangle for front card
           frontCard = this.add.rectangle(
             i * 3,
             -i * 3,
             cardWidth,
             cardHeight,
-            0x3a1a1a // Reddish color for apoy
+            0xffffff // White color
           );
-          frontCard.setStrokeStyle(2, 0x5a2a2a);
+          frontCard.setStrokeStyle(2, 0x000000); // Black border
         }
-        frontCard.setDisplaySize(cardWidth, cardHeight);
         this.deckSprite.add(frontCard);
       } else {
-        // Back cards use simple rectangle (card backs)
+        // Back cards use white rectangle with black border
         const cardBack = this.add.rectangle(
           i * 3, // Slight offset for stack effect
           -i * 3,
           cardWidth,
           cardHeight,
-          0x1a1a2e
+          0xffffff // White color
         );
-        cardBack.setStrokeStyle(2, 0x16213e);
+        cardBack.setStrokeStyle(2, 0x000000); // Black border
         this.deckSprite.add(cardBack);
       }
     }
@@ -2754,7 +2933,7 @@ export class Combat extends Scene {
         }
       });
       
-      // Rebuild deck visual
+      // Rebuild deck visual with white cards and black borders
       const screenWidth = this.cameras.main.width;
       const baseCardWidth = 80;
       const baseCardHeight = 112;
@@ -2772,27 +2951,29 @@ export class Combat extends Scene {
               -i * 3,
               'card_13_apoy'
             );
+            frontCard.setDisplaySize(cardWidth, cardHeight);
           } else {
+            // Fallback to white rectangle
             frontCard = this.add.rectangle(
               i * 3,
               -i * 3,
               cardWidth,
               cardHeight,
-              0x3a1a1a
+              0xffffff // White color
             );
-            frontCard.setStrokeStyle(2, 0x5a2a2a);
+            frontCard.setStrokeStyle(2, 0x000000); // Black border
           }
-          frontCard.setDisplaySize(cardWidth, cardHeight);
           this.deckSprite.add(frontCard);
         } else {
+          // Back cards with white background and black border
           const cardBack = this.add.rectangle(
             i * 3,
             -i * 3,
             cardWidth,
             cardHeight,
-            0x1a1a2e
+            0xffffff // White color
           );
-          cardBack.setStrokeStyle(2, 0x16213e);
+          cardBack.setStrokeStyle(2, 0x000000); // Black border
           this.deckSprite.add(cardBack);
         }
       }
@@ -3235,6 +3416,7 @@ export class Combat extends Scene {
     this.updatePlayedHandDisplay();
     this.updateActionButtons();
     this.updateRelicsUI();
+    this.updateRelicInventory();
     this.updateTurnUI();
   }
   

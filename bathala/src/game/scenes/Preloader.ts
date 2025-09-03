@@ -38,6 +38,7 @@ export class Preloader extends Scene {
     // Basic assets
     this.load.image("logo", "logo.png");
     this.load.image("bg", "bg.png");
+    this.load.image("forest_bg", "forest_bg.png");
 
     // Fonts
     this.loadFont("Centrion", "fonts/centrion/Centrion-Regular.otf");
