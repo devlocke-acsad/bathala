@@ -65,6 +65,7 @@ export class Combat extends Scene {
   private bestHandAchieved: HandType = "high_card";
   private scanlines!: Phaser.GameObjects.TileSprite;
   private scanlineTimer: number = 0;
+  private battleStartDialogueContainer!: Phaser.GameObjects.Container | null;
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
@@ -266,6 +267,7 @@ export class Combat extends Scene {
 
   constructor() {
     super({ key: "Combat" });
+    this.battleStartDialogueContainer = null;
   }
 
   create(data: { nodeType: string, transitionOverlay?: any }): void {
@@ -303,15 +305,111 @@ export class Combat extends Scene {
           data.transitionOverlay.destroy();
           // Start player turn after fade-in completes
           this.startPlayerTurn();
+          // Show start of battle dialogue after fade-in
+          this.time.delayedCall(100, () => {
+            this.showBattleStartDialogue();
+          });
         }
       });
     } else {
       // No transition overlay, start player turn immediately
       this.startPlayerTurn();
+      // Show start of battle dialogue
+      this.time.delayedCall(100, () => {
+        this.showBattleStartDialogue();
+      });
     }
 
     // Listen for resize events
     this.scale.on('resize', this.handleResize, this);
+  }
+
+  /**
+   * Show Celeste-style dialogue at start of battle
+   */
+  private showBattleStartDialogue(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Create semi-transparent overlay
+    const overlay = this.add.rectangle(
+      screenWidth / 2,
+      screenHeight / 2,
+      screenWidth,
+      screenHeight,
+      0x000000
+    ).setAlpha(0.7).setScrollFactor(0).setDepth(5000);
+    
+    // Create dialogue box
+    const dialogueBox = this.add.rectangle(
+      screenWidth / 2,
+      screenHeight - 100,
+      screenWidth * 0.8,
+      120,
+      0xffffff
+    ).setScrollFactor(0).setDepth(5001);
+    
+    // Create dialogue text
+    const dialogueText = this.add.text(
+      screenWidth / 2,
+      screenHeight - 100,
+      `A wild ${this.combatState.enemy.name} appears!`,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 24,
+        color: "#000000",
+        align: "center",
+        wordWrap: { width: screenWidth * 0.7 }
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+    
+    // Create continue indicator
+    const continueIndicator = this.add.text(
+      screenWidth / 2 + dialogueText.width / 2 - 20,
+      screenHeight - 60,
+      "▼",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#000000"
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+    
+    // Create container for all dialogue elements
+    this.battleStartDialogueContainer = this.add.container(0, 0, [
+      overlay,
+      dialogueBox,
+      dialogueText,
+      continueIndicator
+    ]).setScrollFactor(0).setDepth(5000);
+    
+    // Make the dialogue box interactive so it can be clicked to continue
+    this.battleStartDialogueContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, screenWidth, screenHeight), Phaser.Geom.Rectangle.Contains);
+    
+    // Add click handler to remove the dialogue
+    this.battleStartDialogueContainer.on('pointerdown', () => {
+      this.tweens.add({
+        targets: this.battleStartDialogueContainer,
+        alpha: 0,
+        duration: 300,
+        onComplete: () => {
+          if (this.battleStartDialogueContainer) {
+            this.battleStartDialogueContainer.destroy();
+            this.battleStartDialogueContainer = null;
+          }
+        }
+      });
+    });
+    
+    // Add blinking animation to the continue indicator
+    this.time.addEvent({
+      delay: 500,
+      callback: () => {
+        continueIndicator.setVisible(!continueIndicator.visible);
+      },
+      callbackScope: this,
+      loop: true
+    });
   }
 
   /**
@@ -2352,6 +2450,11 @@ export class Combat extends Scene {
       }
       if (this.handIndicatorText) {
         this.handIndicatorText.destroy();
+      }
+      // Clean up battle start dialogue if it exists
+      if (this.battleStartDialogueContainer) {
+        this.battleStartDialogueContainer.destroy();
+        this.battleStartDialogueContainer = null;
       }
     } catch (error) {
       console.error("Error clearing combat UI:", error);
