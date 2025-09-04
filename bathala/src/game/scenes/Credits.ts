@@ -90,7 +90,7 @@ export class Credits extends Scene {
     this.creditsContainer = this.add.container(0, 0);
     
     // Title
-    const title = this.add.text(width/2, 100, "CREDITS", {
+    const title = this.add.text(width/2, 100, "Credits", {
       fontFamily: "Pixeled English Font",
       fontSize: 48,
       color: "#77888C",
