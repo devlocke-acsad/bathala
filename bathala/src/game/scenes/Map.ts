@@ -65,7 +65,7 @@ export class Map extends Scene {
     const screenWidth = this.cameras.main.width;
     this.add
       .text(screenWidth/2, 50, "Forest of Whispers - Act 1", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: 32,
         color: "#e8eced",
         align: "center",
@@ -147,7 +147,7 @@ export class Map extends Scene {
     const nodeText = this.getNodeDisplayText(node.type);
     const text = this.add
       .text(0, 0, nodeText, {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 16,
         color: "#ffffff",
         align: "center",
@@ -395,7 +395,7 @@ export class Map extends Scene {
     
     // Back to menu button
     const backButton = this.add.text(50, 50, "← Back to Menu", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 20,
       color: "#e8eced",
     });
@@ -408,7 +408,7 @@ export class Map extends Scene {
     // Progress indicator
     this.add
       .text(screenWidth - 74, 50, "Act 1 Progress: 0/13", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 16,
         color: "#e8eced",
       })

@@ -48,34 +48,23 @@ export class Combat extends Scene {
   private relicsContainer!: Phaser.GameObjects.Container;
   private playerStatusContainer!: Phaser.GameObjects.Container;
   private enemyStatusContainer!: Phaser.GameObjects.Container;
-  private isActionProcessing: boolean = false;
-  private actionResultText!: Phaser.GameObjects.Text;
-  private handEvaluationText!: Phaser.GameObjects.Text;
-  private combatEnded: boolean = false; // Add flag to prevent multiple end combat calls
-
-  // DDA tracking
-  private dda: RuleBasedDDA;
-  private combatStartTime: number = 0;
-  private initialPlayerHealth: number = 0;
-  private turnCount: number = 0;
-  private bestHandAchieved: HandType = "high_card";
-  private totalDiscardsUsed: number = 0;
-
-  // Sprite references for animations
   private playerSprite!: Phaser.GameObjects.Sprite;
   private enemySprite!: Phaser.GameObjects.Sprite;
-  private playerShadow!: Phaser.GameObjects.Graphics;
-  private enemyShadow!: Phaser.GameObjects.Graphics;
-  
-  // Deck animation properties
-  private deckSprite!: Phaser.GameObjects.Container;
-  private deckPosition!: { x: number; y: number };
-  private discardSprite!: Phaser.GameObjects.Container;
-  private discardPosition!: { x: number; y: number };
+  private deckSprite!: Phaser.GameObjects.Sprite;
+  private discardPileSprite!: Phaser.GameObjects.Sprite;
+  private landasChoiceContainer!: Phaser.GameObjects.Container;
+  private rewardsContainer!: Phaser.GameObjects.Container;
+  private gameOverContainer!: Phaser.GameObjects.Container;
+  private actionResultText!: Phaser.GameObjects.Text;
+  private enemyAttackPreviewText!: Phaser.GameObjects.Text;
   private isDrawingCards: boolean = false;
-
-  // Relic inventory
-  private relicInventory!: Phaser.GameObjects.Container;
+  private isActionProcessing: boolean = false;
+  private deckPosition!: { x: number; y: number };
+  private discardPilePosition!: { x: number; y: number };
+  private shopKey!: Phaser.Input.Keyboard.Key;
+  private bestHandAchieved: HandType = "high_card";
+  private scanlines!: Phaser.GameObjects.TileSprite;
+  private scanlineTimer: number = 0;
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
@@ -352,7 +341,7 @@ export class Combat extends Scene {
           id: "placeholder_relic",
           name: "Placeholder Relic",
           description: "This is a placeholder relic.",
-          emoji: "⚙️",
+          emoji: "",
         },
       ],
     };
@@ -418,10 +407,13 @@ export class Combat extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
+    // Create CRT scanline effect
+    this.createCRTEffect();
+    
     // Title
     this.add
       .text(screenWidth/2, 30, "Combat - Forest Encounter", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 28,
         color: "#e8eced",
         align: "center",
@@ -483,7 +475,7 @@ export class Combat extends Scene {
     // Player name
     this.add
       .text(playerX, playerY - 120, this.combatState.player.name, {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#e8eced",
         align: "center",
@@ -493,7 +485,7 @@ export class Combat extends Scene {
     // Health display
     this.playerHealthText = this.add
       .text(playerX, playerY + 80, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#ff6b6b",
         align: "center",
@@ -503,7 +495,7 @@ export class Combat extends Scene {
     // Block display
     this.playerBlockText = this.add
       .text(playerX, playerY + 105, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#4ecdc4",
         align: "center",
@@ -571,7 +563,7 @@ export class Combat extends Scene {
     // Enemy name (positioned further from enemy due to larger sprite)
     this.add
       .text(enemyX, enemyY - 170, this.combatState.enemy.name, {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 28, // Larger font size
         color: "#e8eced",
         align: "center",
@@ -581,7 +573,7 @@ export class Combat extends Scene {
     // Health display (positioned further from enemy due to larger sprite)
     this.enemyHealthText = this.add
       .text(enemyX, enemyY - 140, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 24, // Larger font size
         color: "#ff6b6b",
         align: "center",
@@ -591,7 +583,7 @@ export class Combat extends Scene {
     // Block display (positioned further from enemy due to larger sprite)
     this.enemyBlockText = this.add
       .text(enemyX, enemyY - 110, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#4ecdc4",
         align: "center",
@@ -601,7 +593,7 @@ export class Combat extends Scene {
     // Intent display (positioned further from enemy due to larger sprite)
     this.enemyIntentText = this.add
       .text(enemyX, enemyY + 170, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#feca57",
         align: "center",
@@ -639,7 +631,7 @@ export class Combat extends Scene {
     // Initialize hand evaluation text
     this.handEvaluationText = this.add
       .text(0, -80, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#ffd93d",
         align: "center",
@@ -667,7 +659,7 @@ export class Combat extends Scene {
     this.actionButtons.removeAll(true);
 
     const screenWidth = this.cameras.main.width;
-    const baseSpacing = 190;
+    const baseSpacing = 240; // Increased from 190 for better button separation
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
     const adjustedSpacing = baseSpacing * scaleFactor;
 
@@ -701,7 +693,7 @@ export class Combat extends Scene {
         this.combatState.player.playedHand
       );
 
-      const buttonSpacing = (adjustedSpacing * 2) / 3;
+      const buttonSpacing = adjustedSpacing; // Use full adjusted spacing for better separation
       const attackButton = this.createButton(-buttonSpacing, 0, "Attack", () => {
         this.executeAction("attack");
       });
@@ -716,7 +708,7 @@ export class Combat extends Scene {
 
       const specialTooltip = this.add
         .text(buttonSpacing, 30, this.getSpecialActionName(dominantSuit), {
-          fontFamily: "Centrion",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(14 * scaleFactor),
           color: "#ffffff",
           backgroundColor: "#000000",
@@ -743,21 +735,20 @@ export class Combat extends Scene {
   private createTurnUI(): void {
     const screenWidth = this.cameras.main.width;
     this.turnText = this.add.text(screenWidth - 200, 50, "", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#e8eced",
     });
 
     this.actionsText = this.add.text(screenWidth - 200, 80, "", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#ffd93d",
     });
 
     // Hand indicator text - shows current selected hand type
     this.handIndicatorText = this.add.text(screenWidth - 200, 110, "", {
-      fontFamily: "Centrion",
-      fontSize: 16,
+      fontFamily: "dungeon-mode",
       color: "#4ecdc4",
     });
 
@@ -770,6 +761,8 @@ export class Combat extends Scene {
   private createRelicsUI(): void {
     const screenWidth = this.cameras.main.width;
     this.relicsContainer = this.add.container(screenWidth - 100, 50);
+    // Hide the relics container as requested
+    this.relicsContainer.setVisible(false);
     this.updateRelicsUI();
   }
 
@@ -795,7 +788,7 @@ export class Combat extends Scene {
 
       const tooltip = this.add
         .text(x, spacing, relic.name + "\n" + relic.description, {
-          fontFamily: "Centrion",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(14 * scaleFactor),
           backgroundColor: "#000",
           padding: { x: 5, y: 5 },
@@ -822,6 +815,9 @@ export class Combat extends Scene {
     // Create container for the inventory
     this.relicInventory = this.add.container(20, 20);
     
+    // Hide the relic inventory as requested
+    this.relicInventory.setVisible(false);
+    
     // Create the main background rectangle with vignette effect (longer length)
     const inventoryWidth = 1200; // Increased from 200
     const inventoryHeight = 120;
@@ -836,7 +832,7 @@ export class Combat extends Scene {
     
     // Title text positioned at top left of the box
     const titleText = this.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 14,
       color: "#ffffff",
       align: "left"
@@ -913,7 +909,7 @@ export class Combat extends Scene {
         relicIcon.on("pointerover", () => {
           // Create temporary tooltip
           const tooltip = this.add.text(slotX, slotY - 40, relic.name, {
-            fontFamily: "Chivo",
+            fontFamily: "dungeon-mode",
             fontSize: 12,
             color: "#ffffff",
             backgroundColor: "#000000",
@@ -953,8 +949,24 @@ export class Combat extends Scene {
     
     // Scale button size based on screen width
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    const buttonWidth = baseButtonWidth * scaleFactor;
-    const buttonHeight = baseButtonHeight * scaleFactor;
+    
+    // Create a temporary text object to measure the actual text width
+    const tempText = this.add.text(0, 0, text, {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.floor(16 * scaleFactor),
+      color: "#e8eced",
+      align: "center"
+    });
+    
+    // Get the actual width of the text
+    const textWidth = tempText.width;
+    const textHeight = tempText.height;
+    tempText.destroy(); // Remove the temporary text
+    
+    // Set button dimensions with proper padding
+    const padding = 20;
+    const buttonWidth = Math.max(baseButtonWidth, textWidth + padding); // Minimum width of baseButtonWidth
+    const buttonHeight = Math.max(baseButtonHeight, textHeight + 10); // Minimum height of baseButtonHeight
 
     const button = this.add.container(x, y);
 
@@ -963,7 +975,7 @@ export class Combat extends Scene {
 
     const buttonText = this.add
       .text(0, 0, text, {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(16 * scaleFactor),
         color: "#e8eced",
         align: "center",
@@ -1098,6 +1110,7 @@ export class Combat extends Scene {
       
       // Add rank text
       const rankText = this.add.text(-cardWidth/2 + 5, -cardHeight/2 + 5, card.rank, {
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(10 * scaleFactor),
         color: "#000000",
       }).setOrigin(0, 0);
@@ -1106,6 +1119,7 @@ export class Combat extends Scene {
       // Add suit symbol
       const display = DeckManager.getCardDisplay(card);
       const suitText = this.add.text(cardWidth/2 - 5, -cardHeight/2 + 5, display.symbol, {
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(10 * scaleFactor),
         color: display.color,
       }).setOrigin(1, 0);
@@ -1662,14 +1676,14 @@ export class Combat extends Scene {
         type: "attack",
         value: enemy.damage,
         description: `Attacks for ${enemy.damage} damage`,
-        icon: "⚔️",
+        icon: "†",
       };
     } else if (nextAction === "defend") {
       enemy.intent = {
         type: "defend",
         value: 5,
         description: "Gains 5 block",
-        icon: "🛡️",
+        icon: "⛨",
       };
       enemy.block += 5;
     }
@@ -1683,9 +1697,9 @@ export class Combat extends Scene {
   private updatePlayerUI(): void {
     const player = this.combatState.player;
     this.playerHealthText.setText(
-      `❤️ ${player.currentHealth}/${player.maxHealth}`
+      `♥ ${player.currentHealth}/${player.maxHealth}`
     );
-    this.playerBlockText.setText(player.block > 0 ? `🛡️ ${player.block}` : "");
+    this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
   }
 
   /**
@@ -1694,9 +1708,9 @@ export class Combat extends Scene {
   private updateEnemyUI(): void {
     const enemy = this.combatState.enemy;
     this.enemyHealthText.setText(
-      `❤️ ${enemy.currentHealth}/${enemy.maxHealth}`
+      `♥ ${enemy.currentHealth}/${enemy.maxHealth}`
     );
-    this.enemyBlockText.setText(enemy.block > 0 ? `🛡️ ${enemy.block}` : "");
+    this.enemyBlockText.setText(enemy.block > 0 ? `⛨ ${enemy.block}` : "");
     this.enemyIntentText.setText(
       `${enemy.intent.icon} ${enemy.intent.description}`
     );
@@ -1841,7 +1855,7 @@ export class Combat extends Scene {
 
       this.add
         .text(screenWidth/2, screenHeight/2, resultText, {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(48 * scaleFactor),
           color: color,
           align: "center",
@@ -1926,7 +1940,7 @@ export class Combat extends Scene {
     // Enemy name (larger font and positioned further from portrait due to larger sprite)
     this.add
       .text(screenWidth/2, screenHeight/2 - 200, dialogue.name, {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(28 * scaleFactor), // Larger font size
         color: "#e8eced",
         align: "center",
@@ -1936,7 +1950,7 @@ export class Combat extends Scene {
     // Main dialogue text (positioned further down due to larger portrait)
     this.add
       .text(screenWidth/2, screenHeight/2, "You have defeated this creature. What do you choose?", {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(18 * scaleFactor),
         color: "#e8eced",
         align: "center",
@@ -1965,7 +1979,7 @@ export class Combat extends Scene {
           this.combatState.player.landasScore
         } (${landasTier.toUpperCase()})`,
         {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: landasColor,
           align: "center",
@@ -1999,7 +2013,7 @@ export class Combat extends Scene {
 
     const buttonText = this.add
       .text(0, 0, text, {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(14 * scaleFactor),
         color: color,
         align: "center",
@@ -2126,7 +2140,7 @@ export class Combat extends Scene {
         100,
         choice === "spare" ? "Mercy Shown" : "Victory Through Force",
         {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(32 * scaleFactor),
           color: choiceColor,
           align: "center",
@@ -2137,7 +2151,7 @@ export class Combat extends Scene {
     // Dialogue
     this.add
       .text(screenWidth/2, 200, dialogue, {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(16 * scaleFactor),
         color: "#e8eced",
         align: "center",
@@ -2153,7 +2167,7 @@ export class Combat extends Scene {
 
     this.add
       .text(screenWidth/2, 320, "Rewards", {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(24 * scaleFactor),
         color: "#ffd93d",
         align: "center",
@@ -2166,7 +2180,7 @@ export class Combat extends Scene {
     if (reward.ginto > 0) {
       this.add
         .text(screenWidth/2, rewardY, `💰 ${reward.ginto} Ginto`, {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#e8eced",
           align: "center",
@@ -2179,7 +2193,7 @@ export class Combat extends Scene {
     if (reward.baubles > 0) {
       this.add
         .text(screenWidth/2, rewardY, `💎 ${reward.baubles} Bathala Baubles`, {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#4ecdc4",
           align: "center",
@@ -2191,8 +2205,8 @@ export class Combat extends Scene {
     // Health healing
     if (reward.healthHealing > 0) {
       this.add
-        .text(screenWidth/2, rewardY, `❤️ Healed ${reward.healthHealing} HP`, {
-          fontFamily: "Chivo",
+        .text(screenWidth/2, rewardY, `♥ Healed ${reward.healthHealing} HP`, {
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#ff6b6b",
           align: "center",
@@ -2204,7 +2218,7 @@ export class Combat extends Scene {
     // Landas change
     this.add
       .text(screenWidth/2, rewardY, `✨ Landas ${landasChangeText}`, {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(16 * scaleFactor),
         color: landasChange > 0 ? "#2ed573" : "#ff4757",
         align: "center",
@@ -2216,7 +2230,7 @@ export class Combat extends Scene {
     if (reward.bonusEffect) {
       this.add
         .text(screenWidth/2, rewardY, `✨ ${reward.bonusEffect}`, {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(14 * scaleFactor),
           color: "#ffd93d",
           align: "center",
@@ -2236,7 +2250,7 @@ export class Combat extends Scene {
           this.combatState.player.landasScore
         } (${landasTier.toUpperCase()})`,
         {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(18 * scaleFactor),
           color: landasColor,
           align: "center",
@@ -2474,10 +2488,10 @@ export class Combat extends Scene {
 
   private getSpecialActionName(suit: Suit): string {
     const specialActions: Record<Suit, string> = {
-      Apoy: "AoE Damage + Burn",
+      Apoy: "AoE + Burn",
       Tubig: "Heal + Cleanse",
       Lupa: "Apply Vulnerable",
-      Hangin: "Draw Cards + Weak",
+      Hangin: "Draw + Weak",
     };
     return specialActions[suit];
   }
@@ -2597,7 +2611,7 @@ export class Combat extends Scene {
             duration: 999,
             value: 1,
             description: "Deal +1 additional damage per stack with Attack actions.",
-            emoji: "💪",
+            emoji: "†",
           });
         } else {
           // AoE Damage + Burn
@@ -2655,7 +2669,7 @@ export class Combat extends Scene {
             duration: 2,
             value: 1.5,
             description: "Take +50% damage from all incoming attacks.",
-            emoji: "💥",
+            emoji: "†",
           });
         }
         break;
@@ -2671,7 +2685,7 @@ export class Combat extends Scene {
             duration: 999,
             value: 1,
             description: "Gain +1 additional block per stack with Defend actions.",
-            emoji: "🤸",
+            emoji: "⛨",
           });
         } else {
           // Draw cards + Apply Weak
@@ -2683,7 +2697,7 @@ export class Combat extends Scene {
             duration: 2,
             value: 0.5,
             description: "Deal -50% damage with Attack actions.",
-            emoji: "😞",
+            emoji: "†",
           });
         }
         break;
@@ -2700,7 +2714,7 @@ export class Combat extends Scene {
     
     this.actionResultText = this.add
       .text(screenWidth/2, screenHeight/2, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(20 * scaleFactor),
         color: "#2ed573",
         align: "center",
@@ -2774,7 +2788,7 @@ export class Combat extends Scene {
     // Add deck label positioned below the deck cards
     const labelY = (cardHeight / 2) + 20; // Position below the cards
     const deckLabel = this.add.text(0, labelY, `Deck: ${this.combatState.player.drawPile.length}`, {
-      fontFamily: "Chivo",
+      fontFamily: "dungeon-mode",
       fontSize: 12,
       color: "#ffffff",
       align: "center"
@@ -2822,7 +2836,7 @@ export class Combat extends Scene {
     
     // Add discard label
     const discardLabel = this.add.text(0, 50, `Discard: ${this.combatState.player.discardPile.length}`, {
-      fontFamily: "Chivo",
+      fontFamily: "dungeon-mode",
       fontSize: 12,
       color: "#ffffff",
       align: "center"
@@ -3307,7 +3321,7 @@ export class Combat extends Scene {
 
       const tooltip = this.add
         .text(x, spacing, effect.description, {
-          fontFamily: "Centrion",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(14 * scaleFactor),
           backgroundColor: "#000",
           padding: { x: 5, y: 5 },
@@ -3362,9 +3376,60 @@ export class Combat extends Scene {
     }
   }
 
-  /**
-   * Handle scene resize
-   */
+  /**\n   * Create CRT scanline effect for retro aesthetic\n   */
+  private createCRTEffect(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // Create scanlines using a tile sprite
+    this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
+      .setOrigin(0)
+      .setAlpha(0.25) // Increased opacity for more prominence
+      .setTint(0x77888C)
+      .setScrollFactor(0) // Fixed to camera
+      .setDepth(9999); // Ensure it's above everything else
+      
+    // Create a more pronounced scanline pattern (4x4 as requested)
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0x000000, 1);
+    graphics.fillRect(0, 0, 4, 2); // Thicker lines
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillRect(0, 2, 4, 2); // Thicker lines
+    
+    const texture = graphics.generateTexture('combat_scanline', 4, 4);
+    this.scanlines.setTexture('combat_scanline');
+    
+    // Add a subtle screen flicker effect
+    this.scheduleFlicker();
+  }
+  
+  /**\n   * Schedule the next screen flicker\n   */
+  private scheduleFlicker(): void {
+    this.time.addEvent({
+      delay: Phaser.Math.Between(5000, 15000), // Random flicker every 5-15 seconds
+      callback: this.flickerScreen,
+      callbackScope: this,
+      loop: false
+    });
+  }
+  
+  /**\n   * Create a brief screen flicker effect\n   */
+  private flickerScreen(): void {
+    // Brief flicker
+    this.tweens.add({
+      targets: this.scanlines,
+      alpha: 0.4,
+      duration: 50,
+      yoyo: true,
+      ease: 'Power2',
+      onComplete: () => {
+        // Schedule next flicker after this one completes
+        this.scheduleFlicker();
+      }
+    });
+  }
+
+  /**\n   * Handle scene resize\n   */
   private handleResize(): void {
     // Reposition UI elements on resize
     const screenWidth = this.cameras.main.width;
@@ -3420,6 +3485,22 @@ export class Combat extends Scene {
     this.updateRelicsUI();
     this.updateRelicInventory();
     this.updateTurnUI();
+    
+    // Recreate CRT effect on resize
+    if (this.scanlines) {
+      this.scanlines.destroy();
+    }
+    this.createCRTEffect();
+  }
+
+  /**\n   * Update method for animation effects\n   */
+  update(time: number, delta: number): void {
+    // Animate the scanlines
+    if (this.scanlines) {
+      this.scanlineTimer += delta;
+      // Move scanlines vertically to simulate CRT effect at a faster pace
+      this.scanlines.tilePositionY = this.scanlineTimer * 0.15; // Increased speed
+    }
   }
   
   /**

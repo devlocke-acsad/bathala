@@ -36,7 +36,7 @@ export class Shop extends Scene {
       30,
       "Mysterious Merchant",
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: 32,
         color: "#e8eced",
         align: "center",
@@ -67,7 +67,7 @@ export class Shop extends Scene {
       80,
       `Ginto: ${this.player.ginto} 💰`,
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#ffd93d",
       }
@@ -78,7 +78,7 @@ export class Shop extends Scene {
       110,
       `Baubles: ${this.player.baubles} 💎`,
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#4ecdc4",
       }
@@ -152,7 +152,7 @@ export class Shop extends Scene {
     
     // Item name
     const name = this.add.text(-140, -60, item.name, {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 20,
       color: "#e8eced",
       align: "left",
@@ -160,7 +160,7 @@ export class Shop extends Scene {
     
     // Item description
     const description = this.add.text(-140, -30, item.description, {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#a8a8a8",
       align: "left",
@@ -171,7 +171,7 @@ export class Shop extends Scene {
     const priceColor = item.currency === "ginto" ? "#ffd93d" : "#4ecdc4";
     const priceEmoji = item.currency === "ginto" ? "💰" : "💎";
     const price = this.add.text(-140, 30, `Price: ${item.price} ${priceEmoji}`, {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 18,
       color: priceColor,
     }).setOrigin(0, 0);
@@ -179,7 +179,7 @@ export class Shop extends Scene {
     // Owned status
     const isOwned = this.player.relics.some(relic => relic.id === item.item.id);
     const ownedText = this.add.text(-140, 60, isOwned ? "Owned" : "Click to buy", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 16,
       color: isOwned ? "#ff9f43" : "#2ed573",
     }).setOrigin(0, 0);
@@ -197,13 +197,19 @@ export class Shop extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
+    const buttonText = "Leave Shop";
+    const baseWidth = 150;
+    const textWidth = buttonText.length * 10; // Approximate width per character
+    const buttonWidth = Math.max(baseWidth, textWidth + 20); // Add padding
+    const buttonHeight = 50;
+    
     const backButton = this.add.container(screenWidth / 2, screenHeight - 50);
     
-    const background = this.add.rectangle(0, 0, 150, 50, 0xff4757);
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0xff4757);
     background.setStrokeStyle(2, 0xffffff);
     
-    const text = this.add.text(0, 0, "Leave Shop", {
-      fontFamily: "Centrion",
+    const text = this.add.text(0, 0, buttonText, {
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 20,
       color: "#ffffff",
     }).setOrigin(0.5);
@@ -211,7 +217,7 @@ export class Shop extends Scene {
     backButton.add([background, text]);
     
     backButton.setInteractive(
-      new Phaser.Geom.Rectangle(-75, -25, 150, 50),
+      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
     
@@ -282,7 +288,7 @@ export class Shop extends Scene {
         
         // Add a visual indicator that the item is owned
         const ownedIndicator = this.add.text(0, 0, "OWNED", {
-          fontFamily: "Centrion",
+          fontFamily: "dungeon-mode",
           fontSize: 12,
           color: "#666666",
         }).setOrigin(0.5);
@@ -307,7 +313,7 @@ export class Shop extends Scene {
       screenHeight - 100,
       message,
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: color,
         align: "center",

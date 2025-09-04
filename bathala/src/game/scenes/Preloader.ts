@@ -1,31 +1,69 @@
-import { Scene } from "phaser";
+import { Scene, GameObjects } from "phaser";
 
 export class Preloader extends Scene {
   progressBar: Phaser.GameObjects.Rectangle;
   progressBox: Phaser.GameObjects.Rectangle;
+  loadingText: GameObjects.Text;
+  scanlines: GameObjects.TileSprite;
+  scanlineTimer: number = 0;
 
   constructor() {
     super("Preloader");
   }
 
   init() {
+    // Set background color
+    this.cameras.main.setBackgroundColor(0x150E10);
+    
     //  We loaded this image in our Boot Scene, so we can display it here
     //  Position the background in the center of the screen
     const screenWidth = this.game.config.width as number;
     const screenHeight = this.game.config.height as number;
-    this.add.image(screenWidth/2, screenHeight/2, "bg");
+    
+    // Add "BATHALA" text in the center using dungeon-mode-inverted font
+    this.loadingText = this.add.text(screenWidth/2, screenHeight/2 - 100, 'BATHALA', {
+      fontFamily: 'dungeon-mode-inverted',
+      fontSize: 48,
+      color: '#77888C',
+    }).setOrigin(0.5);
+    
+    // Add loading status text using dungeon-mode font
+    this.add.text(screenWidth/2, screenHeight/2 - 30, 'GATHERING THE ELEMENTS...', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 16,
+      color: '#77888C',
+    }).setOrigin(0.5);
 
     //  A simple progress bar. This is the outline of the bar.
-    this.progressBox = this.add.rectangle(screenWidth/2, screenHeight/2, 468, 32).setStrokeStyle(1, 0xffffff);
+    this.progressBox = this.add.rectangle(screenWidth/2, screenHeight/2, 400, 20).setStrokeStyle(2, 0x77888C);
 
     //  This is the progress bar itself. It will increase in size from the left based on the % of progress.
-    this.progressBar = this.add.rectangle((screenWidth/2) - 230, screenHeight/2, 4, 28, 0xffffff);
+    this.progressBar = this.add.rectangle((screenWidth/2) - 195, screenHeight/2, 10, 16, 0x77888C);
 
     //  Use the 'progress' event emitted by the LoaderPlugin to update the loading bar
     this.load.on("progress", (progress: number) => {
-      //  Update the progress bar (our bar is 464px wide, so 100% = 464px)
-      this.progressBar.width = 4 + 460 * progress;
+      //  Update the progress bar (our bar is 390px wide, so 100% = 390px)
+      this.progressBar.width = 10 + 380 * progress;
     });
+
+    // Create more subtle retro CRT scanline effect
+    this.scanlines = this.add.tileSprite(0, 0, screenWidth, screenHeight, '__WHITE')
+      .setOrigin(0)
+      .setAlpha(0.15) // More subtle opacity
+      .setTint(0x77888C);
+      
+    // Create a subtle scanline pattern
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0x000000, 1);
+    graphics.fillRect(0, 0, 4, 1);
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillRect(0, 1, 4, 1);
+    
+    const texture = graphics.generateTexture('preloader_scanline', 4, 2);
+    this.scanlines.setTexture('preloader_scanline');
+    
+    // Move scanlines to the back
+    this.scanlines.setDepth(-10);
 
     // Listen for resize events
     this.scale.on('resize', this.handleResize, this);
@@ -43,6 +81,10 @@ export class Preloader extends Scene {
     // Fonts
     this.loadFont("Centrion", "fonts/centrion/Centrion-Regular.otf");
     this.loadFont("Chivo", "fonts/chivo/Chivo-Medium.ttf");
+    this.loadFont("dungeon-mode", "fonts/dungeon-mode/dungeon-mode.ttf");
+    this.loadFont("dungeon-mode-inverted", "fonts/dungeon-mode/dungeon-mode-inverted.ttf");
+    this.loadFont("HeinzHeinrich", "fonts/heinzheinrich/HeinzHeinrich-Regular.otf");
+    this.loadFont("Pixeled English Font", "fonts/pixeled-english/Pixeled English Font.ttf");
 
     // Player sprite sheet for Combat - 32x64 each
     this.load.spritesheet("combat_player", "sprites/combat/player/player_combat.png", {
@@ -129,6 +171,11 @@ export class Preloader extends Scene {
       }
     }
     
+    // Load UI icons for day/night tracker
+    this.load.image("bathala_sun_icon", "ui/icons/bathala_sun_icon.png");
+    this.load.image("bathala_moon_icon", "ui/icons/bathala_moon_icon.png");
+    this.load.image("bathala_boss_icon", "ui/icons/bathala_boss_icon.png");
+    
     // Debug: Log when assets are loaded
     this.load.on('filecomplete', (key: string, type: string) => {
       console.log(`Loaded asset: ${key} (${type})`);
@@ -183,7 +230,12 @@ export class Preloader extends Scene {
     }
     
     if (this.progressBar) {
-      this.progressBar.setPosition((screenWidth/2) - 230, screenHeight/2);
+      this.progressBar.setPosition((screenWidth/2) - 195, screenHeight/2);
+    }
+    
+    // Resize scanlines
+    if (this.scanlines) {
+      this.scanlines.setSize(screenWidth, screenHeight);
     }
   }
 
@@ -463,5 +515,13 @@ export class Preloader extends Scene {
         }, 1000);
       }
     });
+  }
+  
+  update(time: number, delta: number): void {
+    // Animate the scanlines
+    if (this.scanlines) {
+      this.scanlineTimer += delta;
+      this.scanlines.tilePositionY = this.scanlineTimer * 0.15; // Increased speed
+    }
   }
 }

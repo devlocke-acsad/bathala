@@ -43,7 +43,7 @@ export class Game extends Scene {
       screenHeight/2,
       "Welcome to Bathala!\\nClick to enter the overworld\\nand begin your journey",
       {
-        fontFamily: "Centrion", // Custom font loaded via CSS
+        fontFamily: "dungeon-mode", // Custom font loaded via CSS
         fontSize: 38,
         color: "#e8eced", // --text
         align: "center",
