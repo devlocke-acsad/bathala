@@ -13,16 +13,48 @@ import {
 } from "../../../core/dda/DDAConfig";
 import { CombatMetrics, DifficultyTier } from "../../../core/dda/DDATypes";
 
+/**
+ * Interfaces for F1 Score and Confusion Matrix analytics
+ */
+interface PredictionResult {
+  actual: DifficultyTier;
+  predicted: DifficultyTier;
+  timestamp: number;
+  pps: number;
+  combatId: string;
+}
+
+interface ConfusionMatrix {
+  struggling: { struggling: number; learning: number; thriving: number; mastering: number };
+  learning: { struggling: number; learning: number; thriving: number; mastering: number };
+  thriving: { struggling: number; learning: number; thriving: number; mastering: number };
+  mastering: { struggling: number; learning: number; thriving: number; mastering: number };
+}
+
+interface F1ScoreMetrics {
+  precision: Record<DifficultyTier, number>;
+  recall: Record<DifficultyTier, number>;
+  f1Score: Record<DifficultyTier, number>;
+  overallF1Score: number;
+  accuracy: number;
+}
+
 export class DDADebugScene extends Scene {
   private dda: RuleBasedDDA;
   private analytics: DDAAnalyticsManager;
   private simulationData: Array<{ pps: number; tier: DifficultyTier; timestamp: number }> = [];
+  
+  // New analytics data for F1 Score and Confusion Matrix
+  private predictionResults: PredictionResult[] = [];
+  private confusionMatrix: ConfusionMatrix;
+  private f1Metrics: F1ScoreMetrics;
   
   // UI Elements
   private ppsGraph!: Phaser.GameObjects.Graphics;
   private infoPanel!: Phaser.GameObjects.Container;
   private simulationPanel!: Phaser.GameObjects.Container;
   private configPanel!: Phaser.GameObjects.Container;
+  private analyticsPanel!: Phaser.GameObjects.Container;
   
   // Current configuration
   private currentConfig: DDAModifiers = DEFAULT_DDA_CONFIG;
@@ -30,6 +62,23 @@ export class DDADebugScene extends Scene {
 
   constructor() {
     super({ key: "DDADebugScene" });
+    
+    // Initialize confusion matrix
+    this.confusionMatrix = {
+      struggling: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      learning: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      thriving: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      mastering: { struggling: 0, learning: 0, thriving: 0, mastering: 0 }
+    };
+    
+    // Initialize F1 metrics
+    this.f1Metrics = {
+      precision: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      recall: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      f1Score: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      overallF1Score: 0,
+      accuracy: 0
+    };
   }
 
   create(): void {
@@ -45,6 +94,7 @@ export class DDADebugScene extends Scene {
     this.createStatusPanel();
     this.createTestingPanel();
     this.createConfigPanel();
+    this.createAnalyticsPanel();
     this.createBackButton();
     
     // Initialize with current data
@@ -266,8 +316,34 @@ export class DDADebugScene extends Scene {
     });
     
     // Export button
-    const exportButton = this.createButton(170, 120, "Export\nData", 0xffa502, () => this.exportData());
+    const exportButton = this.createButton(170, 120, "Export\nCSV", 0xffa502, () => this.exportCSVData());
     this.configPanel.add(exportButton);
+  }
+
+  /**
+   * Create analytics panel for F1 Score and Confusion Matrix
+   */
+  private createAnalyticsPanel(): void {
+    const panelX = 50;
+    const panelY = 680;
+    const panelWidth = 1300;
+    const panelHeight = 200;
+    
+    this.analyticsPanel = this.add.container(panelX, panelY);
+    
+    // Background
+    const bg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x111111);
+    bg.setStrokeStyle(2, 0x555555);
+    bg.setOrigin(0);
+    this.analyticsPanel.add(bg);
+    
+    // Title
+    const title = this.add.text(panelWidth / 2, 20, "Advanced Analytics - F1 Score & Confusion Matrix", {
+      fontFamily: "Centrion",
+      fontSize: 24,
+      color: "#ffffff",
+    }).setOrigin(0.5);
+    this.analyticsPanel.add(title);
   }
 
   /**
@@ -426,8 +502,32 @@ export class DDADebugScene extends Scene {
   }
 
   private simulateCombat(metrics: CombatMetrics): void {
+    // Get predicted tier before processing combat
+    const preCombatState = this.dda.getPlayerPPS();
+    const predictedTier = preCombatState.tier;
+    
     // Update DDA with combat results
     const result = this.dda.processCombatResults(metrics);
+    
+    // Get actual tier after processing
+    const actualTier = result.tier;
+    
+    // Record prediction result for confusion matrix and F1 score
+    const predictionResult: PredictionResult = {
+      actual: actualTier,
+      predicted: predictedTier,
+      timestamp: Date.now(),
+      pps: result.currentPPS,
+      combatId: metrics.combatId
+    };
+    
+    this.predictionResults.push(predictionResult);
+    
+    // Update confusion matrix
+    this.updateConfusionMatrix(actualTier, predictedTier);
+    
+    // Recalculate F1 metrics
+    this.calculateF1Metrics();
     
     // Add to simulation data
     this.simulationData.push({
@@ -468,6 +568,25 @@ export class DDADebugScene extends Scene {
 
   private resetData(): void {
     this.simulationData = [];
+    this.predictionResults = [];
+    
+    // Reset confusion matrix
+    this.confusionMatrix = {
+      struggling: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      learning: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      thriving: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      mastering: { struggling: 0, learning: 0, thriving: 0, mastering: 0 }
+    };
+    
+    // Reset F1 metrics
+    this.f1Metrics = {
+      precision: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      recall: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      f1Score: { struggling: 0, learning: 0, thriving: 0, mastering: 0 },
+      overallF1Score: 0,
+      accuracy: 0
+    };
+    
     this.dda.resetSession();
     this.updateDisplay();
   }
@@ -478,23 +597,140 @@ export class DDADebugScene extends Scene {
     this.updateDisplay();
   }
 
-  private exportData(): void {
-    const data = {
-      simulationData: this.simulationData,
-      analytics: this.analytics.getSessionSummary(),
-      timestamp: new Date().toISOString()
-    };
+  /**
+   * Update confusion matrix with new prediction result
+   */
+  private updateConfusionMatrix(actual: DifficultyTier, predicted: DifficultyTier): void {
+    this.confusionMatrix[actual][predicted]++;
+  }
+
+  /**
+   * Calculate F1 Score metrics from current prediction results
+   */
+  private calculateF1Metrics(): void {
+    const tiers: DifficultyTier[] = ['struggling', 'learning', 'thriving', 'mastering'];
+    let totalCorrect = 0;
+    let totalPredictions = 0;
+    let weightedF1Sum = 0;
+    let totalSupport = 0;
+
+    tiers.forEach(tier => {
+      // Calculate True Positives, False Positives, False Negatives
+      const truePositives = this.confusionMatrix[tier][tier];
+      
+      const falsePositives = tiers
+        .filter(t => t !== tier)
+        .reduce((sum, t) => sum + this.confusionMatrix[t][tier], 0);
+      
+      const falseNegatives = tiers
+        .filter(t => t !== tier)
+        .reduce((sum, t) => sum + this.confusionMatrix[tier][t], 0);
+
+      // Calculate Precision, Recall, F1 Score
+      const precision = (truePositives + falsePositives) > 0 ? 
+        truePositives / (truePositives + falsePositives) : 0;
+      
+      const recall = (truePositives + falseNegatives) > 0 ? 
+        truePositives / (truePositives + falseNegatives) : 0;
+      
+      const f1Score = (precision + recall) > 0 ? 
+        2 * (precision * recall) / (precision + recall) : 0;
+
+      this.f1Metrics.precision[tier] = precision;
+      this.f1Metrics.recall[tier] = recall;
+      this.f1Metrics.f1Score[tier] = f1Score;
+
+      // Calculate support (actual occurrences of this tier)
+      const support = tiers.reduce((sum, t) => sum + this.confusionMatrix[tier][t], 0);
+      totalSupport += support;
+      weightedF1Sum += f1Score * support;
+
+      totalCorrect += truePositives;
+      totalPredictions += support;
+    });
+
+    // Calculate overall metrics
+    this.f1Metrics.accuracy = totalPredictions > 0 ? totalCorrect / totalPredictions : 0;
+    this.f1Metrics.overallF1Score = totalSupport > 0 ? weightedF1Sum / totalSupport : 0;
+  }
+
+  /**
+   * Export comprehensive analytics data to CSV
+   */
+  private exportCSVData(): void {
+    const csvContent = this.generateCSVContent();
     
-    console.log("DDA Analytics Data:", data);
-    
-    // Create downloadable file
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    // Create and download CSV file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `dda-analytics-${Date.now()}.json`;
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `bathala-dda-analytics-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+    link.click();
     URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Generate CSV content with F1 Score and Confusion Matrix data
+   */
+  private generateCSVContent(): string {
+    let csv = '';
+    
+    // Session metadata
+    csv += 'Bathala DDA Analytics Export\n';
+    csv += `Export Date,${new Date().toISOString()}\n`;
+    csv += `Total Combats,${this.simulationData.length}\n`;
+    csv += `Total Predictions,${this.predictionResults.length}\n`;
+    csv += '\n';
+
+    // F1 Score Metrics
+    csv += 'F1 Score Metrics\n';
+    csv += 'Difficulty Tier,Precision,Recall,F1 Score\n';
+    const tiers: DifficultyTier[] = ['struggling', 'learning', 'thriving', 'mastering'];
+    tiers.forEach(tier => {
+      csv += `${tier},${this.f1Metrics.precision[tier].toFixed(4)},${this.f1Metrics.recall[tier].toFixed(4)},${this.f1Metrics.f1Score[tier].toFixed(4)}\n`;
+    });
+    csv += `Overall Accuracy,${this.f1Metrics.accuracy.toFixed(4)}\n`;
+    csv += `Overall F1 Score,${this.f1Metrics.overallF1Score.toFixed(4)}\n`;
+    csv += '\n';
+
+    // Confusion Matrix
+    csv += 'Confusion Matrix\n';
+    csv += 'Actual/Predicted,struggling,learning,thriving,mastering\n';
+    tiers.forEach(actualTier => {
+      csv += `${actualTier}`;
+      tiers.forEach(predictedTier => {
+        csv += `,${this.confusionMatrix[actualTier][predictedTier]}`;
+      });
+      csv += '\n';
+    });
+    csv += '\n';
+
+    // Raw Prediction Data
+    csv += 'Raw Prediction Data\n';
+    csv += 'Timestamp,Combat ID,Predicted Tier,Actual Tier,PPS,Correct Prediction\n';
+    this.predictionResults.forEach(result => {
+      const isCorrect = result.actual === result.predicted ? 'TRUE' : 'FALSE';
+      csv += `${new Date(result.timestamp).toISOString()},${result.combatId},${result.predicted},${result.actual},${result.pps.toFixed(4)},${isCorrect}\n`;
+    });
+    csv += '\n';
+
+    // Simulation Data
+    csv += 'Simulation Data\n';
+    csv += 'Timestamp,PPS,Difficulty Tier\n';
+    this.simulationData.forEach(data => {
+      csv += `${new Date(data.timestamp).toISOString()},${data.pps.toFixed(4)},${data.tier}\n`;
+    });
+
+    // Analytics Summary
+    if (this.analytics) {
+      const sessionSummary = this.analytics.getSessionSummary();
+      csv += '\n';
+      csv += 'Session Analytics Summary\n';
+      csv += sessionSummary.replace(/=/g, '').trim();
+    }
+
+    return csv;
   }
 
   /**
@@ -503,6 +739,7 @@ export class DDADebugScene extends Scene {
   private updateDisplay(): void {
     this.updateGraph();
     this.updateStatusPanel();
+    this.updateAnalyticsPanel();
   }
 
   private updateGraph(): void {
@@ -588,6 +825,107 @@ export class DDADebugScene extends Scene {
         color: "#aaaaaa",
       });
       this.infoPanel.add(text);
+    });
+  }
+
+  /**
+   * Update analytics panel with F1 Score and Confusion Matrix data
+   */
+  private updateAnalyticsPanel(): void {
+    // Clear existing analytics display
+    this.analyticsPanel.removeAll(true);
+    
+    // Recreate background and title
+    const panelWidth = 1300;
+    const panelHeight = 200;
+    
+    const bg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x111111);
+    bg.setStrokeStyle(2, 0x555555);
+    bg.setOrigin(0);
+    this.analyticsPanel.add(bg);
+    
+    const title = this.add.text(panelWidth / 2, 20, "Advanced Analytics - F1 Score & Confusion Matrix", {
+      fontFamily: "Centrion",
+      fontSize: 24,
+      color: "#ffffff",
+    }).setOrigin(0.5);
+    this.analyticsPanel.add(title);
+
+    // F1 Score Display
+    const f1Title = this.add.text(50, 60, "F1 Score Metrics:", {
+      fontFamily: "Chivo",
+      fontSize: 18,
+      color: "#00ff00",
+      fontStyle: "bold"
+    });
+    this.analyticsPanel.add(f1Title);
+
+    let yOffset = 85;
+    const tiers: DifficultyTier[] = ['struggling', 'learning', 'thriving', 'mastering'];
+    
+    tiers.forEach((tier, index) => {
+      const f1Score = this.f1Metrics.f1Score[tier];
+      const precision = this.f1Metrics.precision[tier];
+      const recall = this.f1Metrics.recall[tier];
+      
+      const tierText = this.add.text(50 + (index * 150), yOffset, 
+        `${tier.charAt(0).toUpperCase() + tier.slice(1)}\nF1: ${f1Score.toFixed(3)}\nP: ${precision.toFixed(3)}\nR: ${recall.toFixed(3)}`, {
+        fontFamily: "Chivo",
+        fontSize: 12,
+        color: "#ffffff",
+        align: "center"
+      });
+      this.analyticsPanel.add(tierText);
+    });
+
+    // Overall metrics
+    const overallText = this.add.text(700, 70, 
+      `Overall Accuracy: ${(this.f1Metrics.accuracy * 100).toFixed(1)}%\nOverall F1 Score: ${this.f1Metrics.overallF1Score.toFixed(3)}\nTotal Predictions: ${this.predictionResults.length}`, {
+      fontFamily: "Chivo",
+      fontSize: 14,
+      color: "#ffff00",
+      fontStyle: "bold"
+    });
+    this.analyticsPanel.add(overallText);
+
+    // Confusion Matrix Visualization
+    const matrixTitle = this.add.text(950, 60, "Confusion Matrix:", {
+      fontFamily: "Chivo",
+      fontSize: 16,
+      color: "#ff6b35",
+      fontStyle: "bold"
+    });
+    this.analyticsPanel.add(matrixTitle);
+
+    // Create a mini confusion matrix display
+    const cellSize = 30;
+    const startX = 950;
+    const startY = 85;
+    
+    tiers.forEach((actualTier, row) => {
+      tiers.forEach((predictedTier, col) => {
+        const count = this.confusionMatrix[actualTier][predictedTier];
+        const x = startX + (col * cellSize);
+        const y = startY + (row * cellSize);
+        
+        // Color coding: green for correct predictions, red for incorrect
+        const isCorrect = actualTier === predictedTier;
+        const color = isCorrect ? (count > 0 ? 0x2ed573 : 0x111111) : (count > 0 ? 0xff4757 : 0x111111);
+        
+        const cell = this.add.rectangle(x, y, cellSize - 2, cellSize - 2, color);
+        cell.setStrokeStyle(1, 0x555555);
+        this.analyticsPanel.add(cell);
+        
+        if (count > 0) {
+          const countText = this.add.text(x, y, count.toString(), {
+            fontFamily: "Chivo",
+            fontSize: 10,
+            color: "#ffffff",
+            fontStyle: "bold"
+          }).setOrigin(0.5);
+          this.analyticsPanel.add(countText);
+        }
+      });
     });
   }
 }
