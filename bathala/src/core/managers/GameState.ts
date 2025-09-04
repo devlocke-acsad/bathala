@@ -13,6 +13,8 @@ export class GameState {
   public lastCompletedNodeId: string | null = null;
   public combatVictory: boolean = false;
   public playerData: Partial<Player> | null = null;
+  public playerPosition: { x: number; y: number } | null = null;
+  public overworldState: any = null;
 
   private constructor() {}
 
@@ -111,6 +113,43 @@ export class GameState {
     this.lastCompletedNodeId = null;
     this.combatVictory = false;
     this.playerData = null;
+    this.playerPosition = null;
+    this.overworldState = null;
+  }
+
+  /**
+   * Save player position
+   */
+  savePlayerPosition(x: number, y: number): void {
+    this.playerPosition = { x, y };
+  }
+
+  /**
+   * Get saved player position
+   */
+  getPlayerPosition(): { x: number; y: number } | null {
+    return this.playerPosition;
+  }
+
+  /**
+   * Clear saved player position
+   */
+  clearPlayerPosition(): void {
+    this.playerPosition = null;
+  }
+
+  /**
+   * Save overworld state
+   */
+  saveOverworldState(state: any): void {
+    this.overworldState = state;
+  }
+
+  /**
+   * Get saved overworld state
+   */
+  getOverworldState(): any {
+    return this.overworldState;
   }
 
   /**
