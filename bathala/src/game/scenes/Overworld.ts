@@ -448,76 +448,116 @@ export class Overworld extends Scene {
     
     const screenWidth = this.cameras.main.width;
     const progressBarWidth = screenWidth * 0.6;
-    const progressBarHeight = 20;
     const progressBarX = (screenWidth - progressBarWidth) / 2;
-    const progressBarY = 30; // Move down to avoid overlapping with other UI elements
+    const progressBarY = 80; // Move down with more margin above it to prevent overflow
     
-    // Create background bar
-    this.add.rectangle(
-      progressBarX + progressBarWidth / 2,
-      progressBarY,
-      progressBarWidth,
-      progressBarHeight,
-      0x000000
-    ).setAlpha(0.7).setScrollFactor(0).setDepth(100); // Fixed to camera with depth
+    // Create horizontal axis line segments with colors matching the vertical ticks
+    // Last segment should use night color, only the final tick should be red for boss
+    const segmentWidth = progressBarWidth / 10;
+    for (let i = 0; i < 10; i++) {
+      const segmentX = progressBarX + (i * segmentWidth) + (segmentWidth / 2);
+      const isDay = i % 2 === 0;
+      
+      this.add.rectangle(
+        segmentX,
+        progressBarY,
+        segmentWidth,
+        4,
+        isDay ? 0xFFD368 : 0x7144FF // Day or night color
+      ).setAlpha(1).setScrollFactor(0).setDepth(100); // Fixed to camera with depth
+    }
     
-    // Create progress bar fill
-    this.dayNightProgressFill = this.add.rectangle(
-      progressBarX,
-      progressBarY,
-      0, // Width will be updated
-      progressBarHeight,
-      0xffd93d // Day color (yellow)
-    ).setOrigin(0, 0.5).setScrollFactor(0).setDepth(101); // Fixed to camera with depth
-    
-    // Create tick marks (10 ticks for 5 cycles)
+    // Create major ticks (taller bars) at icon positions with thicker lines and matching colors
     for (let i = 0; i <= 10; i++) {
       const tickX = progressBarX + (i * progressBarWidth / 10);
-      const tickHeight = i % 2 === 0 ? 10 : 5; // Longer ticks for cycle boundaries
+      let color;
       
+      if (i === 10) {
+        // Boss tick (red color)
+        color = 0xE54646;
+      } else {
+        // Day/night ticks
+        const isDay = i % 2 === 0;
+        color = isDay ? 0xFFD368 : 0x7144FF;
+      }
+      
+      // Major tick (taller bar) with thicker line
       this.add.rectangle(
         tickX,
         progressBarY,
-        2,
-        tickHeight,
-        0xffffff
-      ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102); // Fixed to camera with depth
+        4,
+        16,
+        color
+      ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(101);
     }
     
-    // Create sun and moon icons
-    // Sun for day cycles (even numbers)
-    for (let i = 0; i <= 10; i += 2) {
-      const iconX = progressBarX + (i * progressBarWidth / 10);
-      const sun = this.add.circle(iconX, progressBarY - 15, 8, 0xffd93d);
-      sun.setStrokeStyle(1, 0x000000);
-      sun.setScrollFactor(0).setDepth(102); // Fixed to camera with depth
+    // Create minor ticks (shorter bars) between icons with thicker lines and matching colors
+    const stepsPerSegment = 5;
+    for (let i = 0; i < 10; i++) {
+      const segmentStartX = progressBarX + (i * progressBarWidth / 10);
+      const segmentEndX = progressBarX + ((i + 1) * progressBarWidth / 10);
+      const stepWidth = (segmentEndX - segmentStartX) / stepsPerSegment;
+      let color;
+      
+      if (i === 9) {
+        // Last segment for boss (red color for final tick only)
+        // For minor ticks in the last segment, use night color
+        color = 0x7144FF; // Night color
+      } else {
+        // Day/night segments
+        const isDay = i % 2 === 0;
+        color = isDay ? 0xFFD368 : 0x7144FF;
+      }
+      
+      for (let step = 1; step < stepsPerSegment; step++) {
+        const tickX = segmentStartX + (step * stepWidth);
+        
+        // Minor tick (shorter bar) with thicker line
+        this.add.rectangle(
+          tickX,
+          progressBarY,
+          3,
+          10,
+          color
+        ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102);
+      }
     }
     
-    // Moon for night cycles (odd numbers)
-    for (let i = 1; i <= 9; i += 2) {
-      const iconX = progressBarX + (i * progressBarWidth / 10);
-      const moon = this.add.circle(iconX, progressBarY - 15, 6, 0x4ecdc4);
-      moon.setStrokeStyle(1, 0x000000);
-      moon.setScrollFactor(0).setDepth(102); // Fixed to camera with depth
+    // Create icons above the axis line (5 day/night cycles = 10 icons + 1 boss)
+    // Position icons in the middle of each cycle segment
+    const iconOffset = progressBarWidth / 20; // Half of segment width to center icons
+    for (let i = 0; i < 10; i++) {
+      const iconX = progressBarX + (i * progressBarWidth / 10) + iconOffset;
+      const iconY = progressBarY - 50; // Position above the axis line (moved down to match new position)
+      
+      if (i % 2 === 0) {
+        // Day icon (sun) - even positions
+        const sunIcon = this.add.image(iconX, iconY, "bathala_sun_icon");
+        sunIcon.setScale(1.8);
+        sunIcon.setScrollFactor(0).setDepth(103);
+      } else {
+        // Night icon (moon) - odd positions
+        const moonIcon = this.add.image(iconX, iconY, "bathala_moon_icon");
+        moonIcon.setScale(1.8);
+        moonIcon.setScrollFactor(0).setDepth(103);
+      }
     }
     
-    // Boss icon at the end of the progress bar
+    // Boss icon at the end, positioned above the axis line
+    // Position it at the end of the progress bar
     const bossIconX = progressBarX + progressBarWidth;
-    const bossText = this.add.text(bossIconX, progressBarY - 15, "👹", {
-      fontFamily: 'dungeon-mode-inverted',
-      fontSize: '24px',
-      align: 'center'
-    }).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102);
+    const bossIconY = progressBarY - 50; // Position above the axis line (moved down to match new position)
+    const bossIcon = this.add.image(bossIconX, bossIconY, "bathala_boss_icon");
+    bossIcon.setScale(2.0);
+    bossIcon.setScrollFactor(0).setDepth(103);
     
-    // Create player indicator
-    this.dayNightIndicator = this.add.triangle(
-      progressBarX,
-      progressBarY,
-      0, -8,
-      -6, 4,
-      6, 4,
-      0xff0000
-    ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(103); // Fixed to camera with depth
+    // Create player indicator (▲ symbol pointing up from below the axis line)
+    this.dayNightIndicator = this.add.text(0, 0, "▲", {
+      fontFamily: 'dungeon-mode-inverted',
+      fontSize: '36px',
+      color: '#E54646',
+      align: 'center'
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(104); // Fixed to camera with depth, positioned below axis line
     
     // Update the progress bar
     this.updateDayNightProgressBar();
@@ -878,19 +918,14 @@ export class Overworld extends Scene {
     const screenWidth = this.cameras.main.width;
     const progressBarWidth = screenWidth * 0.6;
     const progressBarX = (screenWidth - progressBarWidth) / 2;
+    const progressBarY = 80; // Match the Y position from createDayNightProgressBar (updated position)
     
     // Calculate progress (0 to 1)
     const totalProgress = Math.min(this.gameState.actionsTaken / this.gameState.totalActionsUntilBoss, 1);
     
-    // Update progress bar fill
-    const fillWidth = progressBarWidth * totalProgress;
-    this.dayNightProgressFill.width = fillWidth;
-    
-    // Update color based on day/night
-    this.dayNightProgressFill.fillColor = this.gameState.isDay ? 0xffd93d : 0x4ecdc4;
-    
-    // Update player indicator position
+    // Update player indicator position (below the bar)
     this.dayNightIndicator.x = progressBarX + (progressBarWidth * totalProgress);
+    this.dayNightIndicator.y = progressBarY + 25; // Position below the bar
     
     // Handle night overlay
     if (!this.gameState.isDay && !this.nightOverlay) {
