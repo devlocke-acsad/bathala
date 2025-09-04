@@ -7,6 +7,8 @@ export class MainMenu extends Scene {
   menuTexts: GameObjects.Text[] = [];
   versionText: GameObjects.Text;
   footerText: GameObjects.Text;
+  scanlines: GameObjects.TileSprite;
+  scanlineTimer: number = 0;
 
   constructor() {
     super("MainMenu");
@@ -16,11 +18,41 @@ export class MainMenu extends Scene {
     // Set camera background color to custom background color ONLY
     this.cameras.main.setBackgroundColor(0x150E10); // Updated background color (#150E10)
 
+    // Create background effects
+    this.createBackgroundEffects();
+
     // Create UI elements
     this.createUI();
 
     // Listen for resize events
     this.scale.on('resize', this.handleResize, this);
+  }
+
+  /**
+   * Create retro CRT scanline effect
+   */
+  private createBackgroundEffects(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // Create scanlines using a tile sprite
+    this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
+      .setOrigin(0)
+      .setAlpha(0.50)
+      .setTint(0x272739);
+      
+    // Create the scanline pattern
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0x000000, 1);
+    graphics.fillRect(0, 0, 2, 1);
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillRect(0, 1, 2, 1);
+    
+    const texture = graphics.generateTexture('scanline', 2, 2);
+    this.scanlines.setTexture('scanline');
+    
+    // Move background to the back
+    this.scanlines.setDepth(-10);
   }
 
   /**
@@ -102,6 +134,7 @@ export class MainMenu extends Scene {
   private handleResize(): void {
     // Clear and recreate UI
     this.children.removeAll();
+    this.createBackgroundEffects();
     this.createUI();
   }
 
@@ -121,5 +154,17 @@ export class MainMenu extends Scene {
     
     // Add subtle shadow
     titleText.setShadow(2, 2, '#000000', 0, true, false);
+  }
+
+  /**
+   * Update method for animation effects
+   */
+  update(time: number, delta: number): void {
+    // Animate the scanlines
+    if (this.scanlines) {
+      this.scanlineTimer += delta;
+      // Move scanlines vertically to simulate CRT effect
+      this.scanlines.tilePositionY = this.scanlineTimer * 0.05;
+    }
   }
 }
