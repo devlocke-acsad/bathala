@@ -2,6 +2,7 @@ import { Scene } from "phaser";
 import { MazeOverworldGenerator } from "../../utils/MazeOverworldGenerator";
 import { MapNode } from "../../core/types/MapTypes";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
+import { GameState } from "../../core/managers/GameState";
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
@@ -25,42 +26,54 @@ export class Overworld extends Scene {
   }
 
   create(): void {
-    // Reset the maze generator cache for a new game
-    MazeOverworldGenerator.clearCache();
+    // Check if we're returning from another scene
+    const gameState = GameState.getInstance();
+    const savedPosition = gameState.getPlayerPosition();
     
-    // Get the initial chunk to ensure player starts in a valid position
-    const initialChunk = MazeOverworldGenerator.getChunk(0, 0, this.gridSize);
-    
-    // Find a valid starting position in the center of the initial chunk
-    const chunkCenterX = Math.floor(MazeOverworldGenerator['chunkSize'] / 2);
-    const chunkCenterY = Math.floor(MazeOverworldGenerator['chunkSize'] / 2);
-    
-    // Ensure the center position is a path
-    let startX = chunkCenterX * this.gridSize + this.gridSize / 2;
-    let startY = chunkCenterY * this.gridSize + this.gridSize / 2;
-    
-    // If center is a wall, find the nearest path
-    if (initialChunk.maze[chunkCenterY][chunkCenterX] === 1) {
-      // Search for nearby paths
-      let foundPath = false;
-      for (let distance = 1; distance < 5 && !foundPath; distance++) {
-        for (let dy = -distance; dy <= distance && !foundPath; dy++) {
-          for (let dx = -distance; dx <= distance && !foundPath; dx++) {
-            const newY = chunkCenterY + dy;
-            const newX = chunkCenterX + dx;
-            if (newY >= 0 && newY < initialChunk.maze.length && 
-                newX >= 0 && newX < initialChunk.maze[0].length && 
-                initialChunk.maze[newY][newX] === 0) {
-              startX = newX * this.gridSize + this.gridSize / 2;
-              startY = newY * this.gridSize + this.gridSize / 2;
-              foundPath = true;
+    if (savedPosition) {
+      // Restore player at saved position
+      this.player = this.add.sprite(savedPosition.x, savedPosition.y, "overworld_player");
+      // Clear the saved position so it's not used again
+      gameState.clearPlayerPosition();
+    } else {
+      // Reset the maze generator cache for a new game
+      MazeOverworldGenerator.clearCache();
+      
+      // Get the initial chunk to ensure player starts in a valid position
+      const initialChunk = MazeOverworldGenerator.getChunk(0, 0, this.gridSize);
+      
+      // Find a valid starting position in the center of the initial chunk
+      const chunkCenterX = Math.floor(MazeOverworldGenerator['chunkSize'] / 2);
+      const chunkCenterY = Math.floor(MazeOverworldGenerator['chunkSize'] / 2);
+      
+      // Ensure the center position is a path
+      let startX = chunkCenterX * this.gridSize + this.gridSize / 2;
+      let startY = chunkCenterY * this.gridSize + this.gridSize / 2;
+      
+      // If center is a wall, find the nearest path
+      if (initialChunk.maze[chunkCenterY][chunkCenterX] === 1) {
+        // Search for nearby paths
+        let foundPath = false;
+        for (let distance = 1; distance < 5 && !foundPath; distance++) {
+          for (let dy = -distance; dy <= distance && !foundPath; dy++) {
+            for (let dx = -distance; dx <= distance && !foundPath; dx++) {
+              const newY = chunkCenterY + dy;
+              const newX = chunkCenterX + dx;
+              if (newY >= 0 && newY < initialChunk.maze.length && 
+                  newX >= 0 && newX < initialChunk.maze[0].length && 
+                  initialChunk.maze[newY][newX] === 0) {
+                startX = newX * this.gridSize + this.gridSize / 2;
+                startY = newY * this.gridSize + this.gridSize / 2;
+                foundPath = true;
+              }
             }
           }
         }
       }
+      
+      this.player = this.add.sprite(startX, startY, "overworld_player");
     }
     
-    this.player = this.add.sprite(startX, startY, "overworld_player");
     this.player.setScale(2); // Scale up from 16x16 to 32x32
     this.player.setOrigin(0.5); // Center the sprite
     this.player.setDepth(1000); // Ensure player is above everything
@@ -83,17 +96,25 @@ export class Overworld extends Scene {
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
     
-    // Create UI elements
-    this.createUI();
+    // Create UI elements with a slight delay to ensure camera is ready
+    this.time.delayedCall(10, this.createUI, [], this);
     
-    // Render initial chunks around player
-    this.updateVisibleChunks();
+    // Render initial chunks around player with a slight delay to ensure camera is ready
+    this.time.delayedCall(20, this.updateVisibleChunks, [], this);
 
     // Listen for resize events
     this.scale.on('resize', this.handleResize, this);
   }
 
   createUI(): void {
+    // Ensure camera is available before proceeding
+    if (!this.cameras || !this.cameras.main) {
+      console.warn("Camera not available, scheduling UI creation for next frame");
+      // Try again on the next frame
+      this.time.delayedCall(10, this.createUI, [], this);
+      return;
+    }
+    
     // Create day/night cycle progress bar (He is Coming style)
     this.createDayNightProgressBar();
     
@@ -134,7 +155,13 @@ export class Overworld extends Scene {
     
     // Shop test button
     this.createActionButton(buttonX, buttonY, "Shop", "#00ff00", () => {
-      this.scene.start("Shop", { 
+      // Save player position before transitioning
+      const gameState = GameState.getInstance();
+      gameState.savePlayerPosition(this.player.x, this.player.y);
+      
+      // Pause this scene and launch shop scene
+      this.scene.pause();
+      this.scene.launch("Shop", { 
         player: {
           id: "player",
           name: "Hero",
@@ -171,7 +198,13 @@ export class Overworld extends Scene {
     
     // Campfire test button
     this.createActionButton(buttonX, buttonY, "Campfire", "#ff4500", () => {
-      this.scene.start("Campfire", { 
+      // Save player position before transitioning
+      const gameState = GameState.getInstance();
+      gameState.savePlayerPosition(this.player.x, this.player.y);
+      
+      // Pause this scene and launch campfire scene
+      this.scene.pause();
+      this.scene.launch("Campfire", { 
         player: {
           id: "player",
           name: "Hero",
@@ -202,7 +235,13 @@ export class Overworld extends Scene {
     
     // Treasure test button
     this.createActionButton(buttonX, buttonY, "Treasure", "#ffff00", () => {
-      this.scene.start("Treasure", { 
+      // Save player position before transitioning
+      const gameState = GameState.getInstance();
+      gameState.savePlayerPosition(this.player.x, this.player.y);
+      
+      // Pause this scene and launch treasure scene
+      this.scene.pause();
+      this.scene.launch("Treasure", { 
         player: {
           id: "player",
           name: "Hero",
@@ -257,7 +296,13 @@ export class Overworld extends Scene {
     
     // Quick Campfire button at bottom
     this.createActionButton(bottomButtonX, bottomButtonY, "Quick Campfire", "#ff4500", () => {
-      this.scene.start("Campfire", { 
+      // Save player position before transitioning
+      const gameState = GameState.getInstance();
+      gameState.savePlayerPosition(this.player.x, this.player.y);
+      
+      // Pause this scene and launch campfire scene
+      this.scene.pause();
+      this.scene.launch("Campfire", { 
         player: {
           id: "player",
           name: "Hero",
@@ -289,7 +334,13 @@ export class Overworld extends Scene {
     
     // Quick Shop button at bottom
     this.createActionButton(bottomButtonX, bottomButtonY, "Quick Shop", "#00ff00", () => {
-      this.scene.start("Shop", { 
+      // Save player position before transitioning
+      const gameState = GameState.getInstance();
+      gameState.savePlayerPosition(this.player.x, this.player.y);
+      
+      // Pause this scene and launch shop scene
+      this.scene.pause();
+      this.scene.launch("Shop", { 
         player: {
           id: "player",
           name: "Hero",
@@ -321,7 +372,13 @@ export class Overworld extends Scene {
     
     // Quick Treasure button at bottom
     this.createActionButton(bottomButtonX, bottomButtonY, "Quick Treasure", "#ffff00", () => {
-      this.scene.start("Treasure", { 
+      // Save player position before transitioning
+      const gameState = GameState.getInstance();
+      gameState.savePlayerPosition(this.player.x, this.player.y);
+      
+      // Pause this scene and launch treasure scene
+      this.scene.pause();
+      this.scene.launch("Treasure", { 
         player: {
           id: "player",
           name: "Hero",
@@ -358,6 +415,12 @@ export class Overworld extends Scene {
   }
 
   createDayNightProgressBar(): void {
+    // Ensure camera is available before proceeding
+    if (!this.cameras || !this.cameras.main) {
+      console.warn("Camera not available, skipping day/night progress bar creation");
+      return;
+    }
+    
     const screenWidth = this.cameras.main.width;
     const progressBarWidth = screenWidth * 0.6;
     const progressBarHeight = 20;
@@ -470,6 +533,11 @@ export class Overworld extends Scene {
     if (this.isMoving || this.isTransitioningToCombat) {
       return;
     }
+    
+    // Ensure camera is available before processing input
+    if (!this.cameras || !this.cameras.main) {
+      return;
+    }
 
     // Check for input - handle multiple directions with priority
     // Up/Down takes priority over Left/Right
@@ -502,8 +570,13 @@ export class Overworld extends Scene {
       );
       
       if (shopNode) {
-        // Navigate to shop scene
-        this.scene.start("Shop", { 
+        // Save player position before transitioning
+        const gameState = GameState.getInstance();
+        gameState.savePlayerPosition(this.player.x, this.player.y);
+        
+        // Pause this scene and launch shop scene
+        this.scene.pause();
+        this.scene.launch("Shop", { 
           player: {
             id: "player",
             name: "Hero",
@@ -549,7 +622,13 @@ export class Overworld extends Scene {
     
     // Check for T key to trigger treasure (for testing)
     if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T))) {
-      this.scene.start("Treasure", { 
+      // Save player position before transitioning
+      const gameState = GameState.getInstance();
+      gameState.savePlayerPosition(this.player.x, this.player.y);
+      
+      // Pause this scene and launch treasure scene
+      this.scene.pause();
+      this.scene.launch("Treasure", { 
         player: {
           id: "player",
           name: "Hero",
@@ -579,7 +658,13 @@ export class Overworld extends Scene {
     
     // Check for F key to trigger campfire (for testing)
     if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F))) {
-      this.scene.start("Campfire", { 
+      // Save player position before transitioning
+      const gameState = GameState.getInstance();
+      gameState.savePlayerPosition(this.player.x, this.player.y);
+      
+      // Pause this scene and launch campfire scene
+      this.scene.pause();
+      this.scene.launch("Campfire", { 
         player: {
           id: "player",
           name: "Hero",
@@ -609,7 +694,13 @@ export class Overworld extends Scene {
     
     // Check for R key to trigger treasure (for testing)
     if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R))) {
-      this.scene.start("Treasure", { 
+      // Save player position before transitioning
+      const gameState = GameState.getInstance();
+      gameState.savePlayerPosition(this.player.x, this.player.y);
+      
+      // Pause this scene and launch treasure scene
+      this.scene.pause();
+      this.scene.launch("Treasure", { 
         player: {
           id: "player",
           name: "Hero",
@@ -691,14 +782,30 @@ export class Overworld extends Scene {
     }
   }
 
+  // No need for resume method since we handle state restoration in create()
+  
   /**
    * Called when the scene resumes from another scene
    */
   resume(): void {
-    // Re-enable input when returning from combat
+    // Re-enable input when returning from other scenes
     this.input.keyboard.enabled = true;
     this.isMoving = false;
     this.isTransitioningToCombat = false;
+    
+    // Restore player position if saved
+    const gameState = GameState.getInstance();
+    const savedPosition = gameState.getPlayerPosition();
+    if (savedPosition) {
+      this.player.setPosition(savedPosition.x, savedPosition.y);
+      // Center camera on player
+      this.cameras.main.startFollow(this.player);
+      // Clear the saved position
+      gameState.clearPlayerPosition();
+    }
+    
+    // Update visible chunks around player
+    this.updateVisibleChunks();
   }
 
   movePlayer(deltaX: number, deltaY: number, animation: string): void {
@@ -819,6 +926,12 @@ export class Overworld extends Scene {
   }
 
   updateVisibleChunks(): void {
+    // Ensure camera is available before proceeding
+    if (!this.cameras || !this.cameras.main) {
+      console.warn("Camera not available, skipping chunk update");
+      return;
+    }
+    
     // Determine which chunks are visible based on camera position
     const camera = this.cameras.main;
     const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
@@ -1014,8 +1127,13 @@ export class Overworld extends Scene {
           break;
           
         case "shop":
-          // Navigate to shop scene
-          this.scene.start("Shop", { 
+          // Save player position before transitioning
+          const gameState = GameState.getInstance();
+          gameState.savePlayerPosition(this.player.x, this.player.y);
+          
+          // Pause this scene and launch shop scene
+          this.scene.pause();
+          this.scene.launch("Shop", { 
             player: {
               id: "player",
               name: "Hero",
@@ -1044,8 +1162,13 @@ export class Overworld extends Scene {
           break;
           
         case "campfire":
-          // Navigate to campfire scene
-          this.scene.start("Campfire", { 
+          // Save player position before transitioning
+          const gameState2 = GameState.getInstance();
+          gameState2.savePlayerPosition(this.player.x, this.player.y);
+          
+          // Pause this scene and launch campfire scene
+          this.scene.pause();
+          this.scene.launch("Campfire", { 
             player: {
               id: "player",
               name: "Hero",
@@ -1074,8 +1197,13 @@ export class Overworld extends Scene {
           break;
           
         case "treasure":
-          // Navigate to treasure scene
-          this.scene.start("Treasure", { 
+          // Save player position before transitioning
+          const gameState3 = GameState.getInstance();
+          gameState3.savePlayerPosition(this.player.x, this.player.y);
+          
+          // Pause this scene and launch treasure scene
+          this.scene.pause();
+          this.scene.launch("Treasure", { 
             player: {
               id: "player",
               name: "Hero",
@@ -1271,6 +1399,10 @@ export class Overworld extends Scene {
     this.isMoving = true;
     this.isTransitioningToCombat = true;
     
+    // Save player position before transitioning
+    const gameState = GameState.getInstance();
+    gameState.savePlayerPosition(this.player.x, this.player.y);
+    
     // Disable input during transition
     this.input.keyboard.enabled = false;
     
@@ -1302,67 +1434,19 @@ export class Overworld extends Scene {
       ease: 'Power2'
     });
     
-    // Create bars within the overlay after a short delay
-    this.time.delayedCall(200, () => {
-      const bars = [];
-      const barCount = 30; // Even more bars for complete coverage
-      const barHeight = cameraHeight / barCount;
-      
-      // Create bars with alternating colors for menacing effect
-      for (let i = 0; i < barCount; i++) {
-        const color = i % 2 === 0 ? 0x8B0000 : 0x000000; // Dark red and black
-        const bar = this.add
-          .rectangle(
-            cameraWidth,
-            i * barHeight,
-            cameraWidth,
-            barHeight + 2, // Add extra height to ensure no gaps
-            color
-          )
-          .setOrigin(1, 0)
-          .setAlpha(1.0) // Full opacity
-          .setScrollFactor(0); // Fixed to camera
-
-        bars.push(bar);
-      }
-
-      // Animate bars with more menacing pattern - slower and more dramatic
-      this.tweens.add({
-        targets: bars,
-        x: 0,
-        duration: 1200, // Slower animation for maximum drama
-        ease: "Power3",
-        delay: this.tweens.stagger(150, { // Slower stagger
-          from: 'center', // Start from center for more dramatic effect
-          grid: '30x1' 
-        }),
-        onComplete: () => {
-          // Add a final dramatic effect before transitioning
-          // Zoom and fade the entire camera
-          const zoomDuration = 800;
-          
-          this.tweens.add({
-            targets: camera,
-            zoom: 1.5, // Zoom in slightly
-            duration: zoomDuration / 2,
-            ease: 'Power2',
-            yoyo: true,
-            hold: 100,
-            onComplete: () => {
-              // Instead of fading out overlay, we'll keep it and pass it to combat scene
-              // Start combat scene and pass the overlay for fade-in effect
-              this.scene.start("Combat", { 
-                nodeType: nodeType,
-                transitionOverlay: overlay // Pass overlay to combat scene
-              });
-            }
-          });
-        }
-      });
+    // Pause this scene and start combat scene
+    this.scene.pause();
+    this.scene.launch("Combat", { 
+      nodeType: nodeType,
+      transitionOverlay: overlay // Pass overlay to combat scene
     });
   }
 
   startBossCombat(): void {
+    // Save player position before transitioning
+    const gameState = GameState.getInstance();
+    gameState.savePlayerPosition(this.player.x, this.player.y);
+    
     // Get camera dimensions
     const camera = this.cameras.main;
     const cameraWidth = camera.width;
@@ -1420,8 +1504,9 @@ export class Overworld extends Scene {
           duration: 1000,
           ease: 'Power2',
           onComplete: () => {
-            // Start boss combat
-            this.scene.start("Combat", { 
+            // Pause this scene and launch boss combat
+            this.scene.pause();
+            this.scene.launch("Combat", { 
               nodeType: "boss",
               transitionOverlay: overlay
             });

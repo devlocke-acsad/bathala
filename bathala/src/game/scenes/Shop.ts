@@ -219,7 +219,8 @@ export class Shop extends Scene {
       // Complete the shop node and return to overworld
       const gameState = GameState.getInstance();
       gameState.completeCurrentNode(true);
-      this.scene.start("Overworld");
+      this.scene.stop();
+      this.scene.resume("Overworld");
     });
     
     backButton.on("pointerover", () => background.setFillStyle(0xff6b81));

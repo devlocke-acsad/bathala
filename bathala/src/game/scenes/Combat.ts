@@ -2281,18 +2281,20 @@ export class Combat extends Scene {
       // Mark the current node as completed
       gameState.completeCurrentNode(true);
 
-      console.log("Node marked as completed, starting Overworld scene...");
+      console.log("Node marked as completed, resuming Overworld scene...");
 
-      // Return to overworld
-      this.scene.start("Overworld");
+      // Stop this scene and resume overworld
+      this.scene.stop();
+      this.scene.resume("Overworld");
       
     } catch (error) {
       console.error("Error in returnToOverworld:", error);
       // Even if there's an error, try to return to overworld
       try {
-        this.scene.start("Overworld");
+        this.scene.stop();
+        this.scene.resume("Overworld");
       } catch (fallbackError) {
-        console.error("Fallback scene start also failed:", fallbackError);
+        console.error("Fallback scene resume also failed:", fallbackError);
         // Last resort - restart the game
         this.scene.start("MainMenu");
       }

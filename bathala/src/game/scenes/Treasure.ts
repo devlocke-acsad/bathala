@@ -217,7 +217,8 @@ export class Treasure extends Scene {
       // Complete the treasure node and return to overworld
       const gameState = GameState.getInstance();
       gameState.completeCurrentNode(true);
-      this.scene.start("Overworld");
+      this.scene.stop();
+      this.scene.resume("Overworld");
     });
     
     backButton.on("pointerover", () => background.setFillStyle(0xff6b81));
@@ -284,7 +285,8 @@ export class Treasure extends Scene {
       // Complete the treasure node and return to overworld
       const gameState = GameState.getInstance();
       gameState.completeCurrentNode(true);
-      this.scene.start("Overworld");
+      this.scene.stop();
+      this.scene.resume("Overworld");
     });
     
     continueButton.on("pointerover", () => background.setFillStyle(0x4efc9d));
