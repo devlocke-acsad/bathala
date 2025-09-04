@@ -1,5 +1,22 @@
 import { MapNode, NodeType } from "../core/types/MapTypes";
 
+class RandomUtil {
+  // Private static helper method — not accessible outside this class
+  private static generateSeed(): number {
+    const now = Date.now();
+    const perf = performance.now();
+    return now + perf;
+  }
+
+  // Public static method to get a 5-digit random number
+  static get5DigitRandom(): number {
+    const seed = this.generateSeed();
+    const raw = Math.sin(seed) * 1000000 + Math.cos(seed / 2) * 100000;
+    const fiveDigit = Math.floor(Math.abs(raw)) % 90000 + 10000;
+    return fiveDigit;
+  }
+}
+
 interface ChunkData {
   maze: number[][];
   nodes: MapNode[];
@@ -13,18 +30,18 @@ interface SeededRandom {
 
 export class MazeOverworldGenerator {
   private static chunks: Map<string, ChunkData> = new Map();
-  private static chunkSize: number = 32; // Increased for better performance ratio
+  private static chunkSize: number = 8; // Increased for better performance ratio
   private static generatedChunks: Set<string> = new Set();
   private static maxCachedChunks: number = 100; // Memory management
-  private static globalSeed: number = 12345; // Global seed for deterministic generation
+  private static globalSeed: number = RandomUtil.get5DigitRandom(); // Global seed for deterministic generation
   
   // Terrain constants
   private static readonly WALL = 1;
   private static readonly PATH = 0;
   
   // Road network parameters
-  private static readonly ROAD_DENSITY = 0.1; // Probability of major road per chunk
-  private static readonly SECONDARY_ROAD_CHANCE = 0.4;
+  private static readonly ROAD_DENSITY = 0.8; // Probability of major road per chunk
+  private static readonly SECONDARY_ROAD_CHANCE = 0.9;
   private static readonly ROAD_WIDTH = 1;
 
   /**
@@ -42,7 +59,7 @@ export class MazeOverworldGenerator {
       return { maze: cached.maze, nodes: cached.nodes };
     }
     
-    // Memory management - remove oldest chunks if cache is full
+    // Memory management - remove oldest chu nks if cache is full
     if (this.chunks.size >= this.maxCachedChunks) {
       const oldestKey = this.chunks.keys().next().value;
       if (oldestKey) {
@@ -96,6 +113,9 @@ export class MazeOverworldGenerator {
     // Ensure connectivity between chunks
     this.ensureChunkConnectivity(maze, chunkX, chunkY, rng);
     
+    // Remove any isolated roads
+    this.removeIsolatedRoads(maze);
+    
     // Post-process for better structure
     const processedMaze = this.postProcessMaze(maze, rng);
     
@@ -103,7 +123,105 @@ export class MazeOverworldGenerator {
     const nodes = this.generateOptimizedNodes(processedMaze, chunkX, chunkY, gridSize, rng);
     
     return { maze: processedMaze, nodes, roadConnections };
+}
+
+/**
+ * Check and remove isolated roads using a plus-shaped multi-chunk analysis
+ * Processes the center chunk and its four adjacent chunks (north, south, east, west)
+ */
+private static removeIsolatedRoads(maze: number[][]): void {
+  // Define sub-chunk size (must be smaller than chunkSize)
+  const subChunkSize = 4; // Process in 4x4 chunks
+  
+  let hasIsolatedRoads = true;
+  while (hasIsolatedRoads) {
+    hasIsolatedRoads = false;
+    
+    // Process the center chunk and its four adjacent chunks in a plus shape
+    const chunkDirections = [
+      { dx: 0, dy: 0 },    // Center
+      { dx: 0, dy: -1 },   // North
+      { dx: 0, dy: 1 },    // South
+      { dx: -1, dy: 0 },   // West
+      { dx: 1, dy: 0 }     // East
+    ];
+    
+    for (const direction of chunkDirections) {
+      const offsetX = direction.dx * this.chunkSize;
+      const offsetY = direction.dy * this.chunkSize;
+      
+      // Process each subchunk within the current chunk
+      for (let chunkY = 0; chunkY < this.chunkSize; chunkY += subChunkSize) {
+        for (let chunkX = 0; chunkX < this.chunkSize; chunkX += subChunkSize) {
+          // Only process cells in the center chunk
+          if (direction.dx === 0 && direction.dy === 0) {
+            // Process each cell within the subchunk
+            for (let dy = 0; dy < subChunkSize; dy++) {
+              const y = chunkY + dy;
+              if (y <= 0 || y >= this.chunkSize - 1) continue;
+              
+              for (let dx = 0; dx < subChunkSize; dx++) {
+                const x = chunkX + dx;
+                if (x <= 0 || x >= this.chunkSize - 1) continue;
+                
+                if (maze[y][x] === this.PATH) {
+                  // Check if the road is isolated by examining adjacent chunks
+                  const isIsolated = this.isRoadIsolated(maze, x, y, direction);
+                  
+                  if (isIsolated) {
+                    maze[y][x] = this.WALL;
+                    hasIsolatedRoads = true;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
+}
+
+/**
+ * Check if a road cell is isolated by examining surrounding cells including adjacent chunks
+ */
+private static isRoadIsolated(maze: number[][], x: number, y: number, direction: { dx: number; dy: number }): boolean {
+  const directions = [
+    { dx: 0, dy: -1 },  // North
+    { dx: 0, dy: 1 },   // South
+    { dx: -1, dy: 0 },  // West
+    { dx: 1, dy: 0 }    // East
+  ];
+  
+  let wallCount = 0;
+  
+  for (const dir of directions) {
+    const nx = x + dir.dx;
+    const ny = y + dir.dy;
+    
+    // Check if the position is within the current chunk
+    if (nx >= 0 && nx < this.chunkSize && ny >= 0 && ny < this.chunkSize) {
+      if (maze[ny][nx] === this.WALL) {
+        wallCount++;
+      }
+    } else {
+      // Position is in an adjacent chunk
+      // For now, treat out-of-bounds as walls unless it's at the edge connecting to an adjacent chunk
+      const isEdgeConnection = (
+        (nx < 0 && direction.dx === -1) ||
+        (nx >= this.chunkSize && direction.dx === 1) ||
+        (ny < 0 && direction.dy === -1) ||
+        (ny >= this.chunkSize && direction.dy === 1)
+      );
+      
+      if (!isEdgeConnection) {
+        wallCount++;
+      }
+    }
+  }
+  
+  return wallCount === 4;
+}
 
   /**
    * Generate base maze using cellular automata
@@ -293,7 +411,7 @@ export class MazeOverworldGenerator {
    */
   private static ensureChunkConnectivity(maze: number[][], chunkX: number, chunkY: number, rng: SeededRandom): void {
     const center = Math.floor(this.chunkSize / 2);
-    const connectionWidth = 3; // Wider connections for better flow
+    const connectionWidth = 2; // Wider connections for better flow
     
     // Check if adjacent chunks exist and create connections
     const adjacentChunks = [
@@ -373,7 +491,7 @@ export class MazeOverworldGenerator {
             const nx = x + dx;
             const ny = y + dy;
             if (nx >= 0 && nx < this.chunkSize && ny >= 0 && ny < this.chunkSize) {
-              if (rng.next() < 0.2) { // 60% chance
+              if (rng.next() < 0.1) { // 60% chance
                 processed[ny][nx] = this.PATH;
               }
             }
