@@ -5,6 +5,10 @@ export class MainMenu extends Scene {
   logo: GameObjects.Image;
   title: GameObjects.Text;
   menuTexts: GameObjects.Text[] = [];
+  versionText: GameObjects.Text;
+  footerText: GameObjects.Text;
+  scanlines: GameObjects.TileSprite;
+  scanlineTimer: number = 0;
 
   constructor() {
     super("MainMenu");
@@ -12,13 +16,43 @@ export class MainMenu extends Scene {
 
   create() {
     // Set camera background color to custom background color ONLY
-    this.cameras.main.setBackgroundColor(0x0e1112); // --background (#0e1112)
+    this.cameras.main.setBackgroundColor(0x150E10); // Updated background color (#150E10)
+
+    // Create background effects
+    this.createBackgroundEffects();
 
     // Create UI elements
     this.createUI();
 
     // Listen for resize events
     this.scale.on('resize', this.handleResize, this);
+  }
+
+  /**
+   * Create prominent CRT scanline effect
+   */
+  private createBackgroundEffects(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // Create more prominent scanlines using a tile sprite
+    this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
+      .setOrigin(0)
+      .setAlpha(0.15) // Increased opacity for more prominence
+      .setTint(0x77888C);
+      
+    // Create a more pronounced scanline pattern
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0x000000, 1);
+    graphics.fillRect(0, 0, 4, 2); // Thicker lines
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillRect(0, 2, 4, 2); // Thicker lines
+    
+    const texture = graphics.generateTexture('scanline', 4, 4);
+    this.scanlines.setTexture('scanline');
+    
+    // Move background to the back
+    this.scanlines.setDepth(-10);
   }
 
   /**
@@ -32,35 +66,63 @@ export class MainMenu extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
+    // Add version text in top right with more margin using dungeon-mode font
+    this.versionText = this.add
+      .text(screenWidth - 40, 40, "0.5.0", {
+        fontFamily: "dungeon-mode",
+        fontSize: 24,
+        color: "#77888C", // --primary
+        align: "right",
+      })
+      .setOrigin(1, 0);
+
+    // Add footer text with more margin using dungeon-mode font
+    this.footerText = this.add
+      .text(screenWidth/2, screenHeight - 40, "Bathala. Developed by Devlocke. Copyright 2025.", {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#77888C", // --primary
+        align: "center",
+      })
+      .setOrigin(0.5, 1);
+
     // Center the content vertically on the screen
     const centerY = screenHeight / 2;
     
-    // Create wavy BATHALA text with alternating vertical offsets
-    this.createWavyTitle(screenWidth/2, centerY - 100, "BATHALA");
+    // Create "bathala" text in lowercase with Pixeled English Font
+    this.createStraightTitle(screenWidth/2, centerY - 150, "bathala");
 
-    // Menu options - centered below the title
-    const menuOptions = ["Play", "Compendium", "Settings", "Quit"];
-    const startY = centerY + 20; // Start menu options below the title
-    const spacing = 60; // Increase spacing between options
+    // Menu options - centered below the title with increased gap using dungeon-mode-inverted font
+    const menuOptions = ["Play", "Discover", "Settings"]; // Updated options
+    const startY = centerY + 48; // Increased gap between title and menu options
+    const spacing = 64; // Increased spacing between options
     
     menuOptions.forEach((option, i) => {
       const menuText = this.add
         .text(screenWidth/2, startY + i * spacing, option, {
-          fontFamily: "Centrion", // Secondary font for menu
+          fontFamily: "dungeon-mode-inverted", // Updated font for menu
           fontSize: 32,
-          color: "#abb6bd", // --primary
+          color: "#77888C", // Updated color --primary
           align: "center",
         })
         .setOrigin(0.5);
         
-      // Add pointer interaction for Play (example)
-      if (option === "Play") {
-        menuText
-          .setInteractive({ useHandCursor: true })
-          .on("pointerdown", () => {
-            this.scene.start("Overworld");
-          });
-      }
+      // Add pointer interaction for all menu options
+      menuText
+        .setInteractive({ useHandCursor: true })
+        .on("pointerdown", () => {
+          switch (option) {
+            case "Play":
+              this.scene.start("Overworld");
+              break;
+            case "Discover":
+              // TODO: Implement compendium scene
+              break;
+            case "Settings":
+              // TODO: Implement settings scene
+              break;
+          }
+        });
       
       this.menuTexts.push(menuText);
     });
@@ -72,36 +134,36 @@ export class MainMenu extends Scene {
   private handleResize(): void {
     // Clear and recreate UI
     this.children.removeAll();
+    this.createBackgroundEffects();
     this.createUI();
   }
 
   /**
-   * Create a wavy title effect by offsetting each letter vertically
+   * Create a straight title with Pixeled English Font and updated color
    */
-  private createWavyTitle(x: number, y: number, text: string): void {
-    const letters = text.split('');
-    const baseFontSize = 120; 
-    const verticalOffset = 20; 
-    const horizontalSpacing = 0.65; 
+  private createStraightTitle(x: number, y: number, text: string): void {
+    // Create the text with styling
+    const titleText = this.add
+      .text(x, y, text, {
+        fontFamily: "Pixeled English Font", // Updated font
+        fontSize: 250, 
+        color: "#77888C", // Updated color
+      })
+      .setOrigin(0.5);
     
-    letters.forEach((letter, index) => {
-      // Calculate horizontal position for each letter
-      const letterX = x + (index - (letters.length - 1) / 2) * (baseFontSize * horizontalSpacing);
-      
-      // Alternate vertical offset (even indices go down, odd indices go up)
-      const letterY = y + (index % 2 === 0 ? verticalOffset : -verticalOffset);
-      
-      // Create the letter with styling
-      const letterText = this.add
-        .text(letterX, letterY, letter, {
-          fontFamily: "Centrion",
-          fontSize: baseFontSize,
-          color: "#e8eced",
-        })
-        .setOrigin(0.5);
-      
-      // Add subtle pixelated effect with a slight offset shadow
-      letterText.setShadow(2, 2, '#000000', 0, true, false);
-    });
+    // Add subtle shadow
+    titleText.setShadow(2, 2, '#000000', 0, true, false);
+  }
+
+  /**
+   * Update method for animation effects
+   */
+  update(time: number, delta: number): void {
+    // Animate the scanlines
+    if (this.scanlines) {
+      this.scanlineTimer += delta;
+      // Move scanlines vertically to simulate CRT effect at a faster pace
+      this.scanlines.tilePositionY = this.scanlineTimer * 0.1; // Increased speed
+    }
   }
 }

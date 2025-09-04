@@ -18,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
   width: window.innerWidth,
   height: window.innerHeight,
   parent: "game-container",
-  backgroundColor: "#028af8",
+  backgroundColor: "#150E10",
   scene: [Boot, Preloader, MainMenu, Overworld, Combat, Shop, Campfire, Treasure, DDADebugScene, MainGame, GameOver],
 
   // Keep antialias off for crisp rendering, but don't force pixelArt globally
