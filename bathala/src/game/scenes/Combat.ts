@@ -761,6 +761,8 @@ export class Combat extends Scene {
   private createRelicsUI(): void {
     const screenWidth = this.cameras.main.width;
     this.relicsContainer = this.add.container(screenWidth - 100, 50);
+    // Hide the relics container as requested
+    this.relicsContainer.setVisible(false);
     this.updateRelicsUI();
   }
 
@@ -812,6 +814,9 @@ export class Combat extends Scene {
   private createRelicInventory(): void {
     // Create container for the inventory
     this.relicInventory = this.add.container(20, 20);
+    
+    // Hide the relic inventory as requested
+    this.relicInventory.setVisible(false);
     
     // Create the main background rectangle with vignette effect (longer length)
     const inventoryWidth = 1200; // Increased from 200
