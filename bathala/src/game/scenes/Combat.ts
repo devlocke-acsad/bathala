@@ -413,7 +413,7 @@ export class Combat extends Scene {
     // Title
     this.add
       .text(screenWidth/2, 30, "Combat - Forest Encounter", {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 28,
         color: "#e8eced",
         align: "center",
@@ -659,7 +659,7 @@ export class Combat extends Scene {
     this.actionButtons.removeAll(true);
 
     const screenWidth = this.cameras.main.width;
-    const baseSpacing = 190;
+    const baseSpacing = 240; // Increased from 190 for better button separation
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
     const adjustedSpacing = baseSpacing * scaleFactor;
 
@@ -693,7 +693,7 @@ export class Combat extends Scene {
         this.combatState.player.playedHand
       );
 
-      const buttonSpacing = (adjustedSpacing * 2) / 3;
+      const buttonSpacing = adjustedSpacing; // Use full adjusted spacing for better separation
       const attackButton = this.createButton(-buttonSpacing, 0, "Attack", () => {
         this.executeAction("attack");
       });
@@ -827,7 +827,7 @@ export class Combat extends Scene {
     
     // Title text positioned at top left of the box
     const titleText = this.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 14,
       color: "#ffffff",
       align: "left"
@@ -944,8 +944,24 @@ export class Combat extends Scene {
     
     // Scale button size based on screen width
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    const buttonWidth = baseButtonWidth * scaleFactor;
-    const buttonHeight = baseButtonHeight * scaleFactor;
+    
+    // Create a temporary text object to measure the actual text width
+    const tempText = this.add.text(0, 0, text, {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.floor(16 * scaleFactor),
+      color: "#e8eced",
+      align: "center"
+    });
+    
+    // Get the actual width of the text
+    const textWidth = tempText.width;
+    const textHeight = tempText.height;
+    tempText.destroy(); // Remove the temporary text
+    
+    // Set button dimensions with proper padding
+    const padding = 20;
+    const buttonWidth = Math.max(baseButtonWidth, textWidth + padding); // Minimum width of baseButtonWidth
+    const buttonHeight = Math.max(baseButtonHeight, textHeight + 10); // Minimum height of baseButtonHeight
 
     const button = this.add.container(x, y);
 
@@ -954,7 +970,7 @@ export class Combat extends Scene {
 
     const buttonText = this.add
       .text(0, 0, text, {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(16 * scaleFactor),
         color: "#e8eced",
         align: "center",
@@ -1834,7 +1850,7 @@ export class Combat extends Scene {
 
       this.add
         .text(screenWidth/2, screenHeight/2, resultText, {
-          fontFamily: "dungeon-mode-inverted",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(48 * scaleFactor),
           color: color,
           align: "center",
@@ -2119,7 +2135,7 @@ export class Combat extends Scene {
         100,
         choice === "spare" ? "Mercy Shown" : "Victory Through Force",
         {
-          fontFamily: "dungeon-mode-inverted",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(32 * scaleFactor),
           color: choiceColor,
           align: "center",
@@ -2146,7 +2162,7 @@ export class Combat extends Scene {
 
     this.add
       .text(screenWidth/2, 320, "Rewards", {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(24 * scaleFactor),
         color: "#ffd93d",
         align: "center",
@@ -2467,10 +2483,10 @@ export class Combat extends Scene {
 
   private getSpecialActionName(suit: Suit): string {
     const specialActions: Record<Suit, string> = {
-      Apoy: "AoE Damage + Burn",
+      Apoy: "AoE + Burn",
       Tubig: "Heal + Cleanse",
       Lupa: "Apply Vulnerable",
-      Hangin: "Draw Cards + Weak",
+      Hangin: "Draw + Weak",
     };
     return specialActions[suit];
   }
