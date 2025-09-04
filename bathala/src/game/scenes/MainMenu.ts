@@ -116,7 +116,7 @@ export class MainMenu extends Scene {
               this.scene.start("Overworld");
               break;
             case "Discover":
-              // TODO: Implement compendium scene
+              this.scene.start("Discover");
               break;
             case "Settings":
               // TODO: Implement settings scene
