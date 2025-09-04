@@ -1,14 +1,14 @@
 :root {
     --text: #f1f1f0;
-    --background: #0e0e0d;
-    --primary: #bfbbae;
+    --background: #150E10; /* Updated background color */
+    --primary: #77888C; /* Updated primary color */
     --secondary: #5f5845;
     --accent: #a69a78;
 }
 
 @font-face {
     font-family: 'Centrion';
-    src: url('./assets/fonts/centrion/Centrion-Regular.otf') format('truetype');
+    src: url('./assets/fonts/centrion/Centrion-Regular.otf') format('opentype');
     font-weight: normal;
     font-style: normal;
 }
@@ -16,6 +16,27 @@
 @font-face {
     font-family: 'Chivo';
     src: url('./assets/fonts/chivo/Chivo-Medium.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'HeinzHeinrich';
+    src: url('./assets/fonts/heinzheinrich/HeinzHeinrich-Regular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'dungeon-mode';
+    src: url('./assets/fonts/dungeon-mode/dungeon-mode.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'dungeon-mode-inverted';
+    src: url('./assets/fonts/dungeon-mode/dungeon-mode-inverted.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
 }

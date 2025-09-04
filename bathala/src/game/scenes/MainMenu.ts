@@ -5,6 +5,8 @@ export class MainMenu extends Scene {
   logo: GameObjects.Image;
   title: GameObjects.Text;
   menuTexts: GameObjects.Text[] = [];
+  versionText: GameObjects.Text;
+  footerText: GameObjects.Text;
 
   constructor() {
     super("MainMenu");
@@ -12,7 +14,7 @@ export class MainMenu extends Scene {
 
   create() {
     // Set camera background color to custom background color ONLY
-    this.cameras.main.setBackgroundColor(0x0e1112); // --background (#0e1112)
+    this.cameras.main.setBackgroundColor(0x150E10); // Updated background color (#150E10)
 
     // Create UI elements
     this.createUI();
@@ -32,35 +34,63 @@ export class MainMenu extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
+    // Add version text in top right with more margin
+    this.versionText = this.add
+      .text(screenWidth - 40, 40, "0.5.0", {
+        fontFamily: "dungeon-mode",
+        fontSize: 24,
+        color: "#77888C", // --primary
+        align: "right",
+      })
+      .setOrigin(1, 0);
+
+    // Add footer text with more margin
+    this.footerText = this.add
+      .text(screenWidth/2, screenHeight - 40, "Bathala. Developed by Devlocke. Copyright 2025.", {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#77888C", // --primary
+        align: "center",
+      })
+      .setOrigin(0.5, 1);
+
     // Center the content vertically on the screen
     const centerY = screenHeight / 2;
     
-    // Create wavy BATHALA text with alternating vertical offsets
-    this.createWavyTitle(screenWidth/2, centerY - 100, "BATHALA");
+    // Create "bathala" text in lowercase with HeinzHeinrich font
+    this.createStraightTitle(screenWidth/2, centerY - 150, "bathala");
 
-    // Menu options - centered below the title
-    const menuOptions = ["Play", "Compendium", "Settings", "Quit"];
-    const startY = centerY + 20; // Start menu options below the title
-    const spacing = 60; // Increase spacing between options
+    // Menu options - centered below the title with increased gap
+    const menuOptions = ["Play", "Discover", "Settings"]; // Updated options
+    const startY = centerY + 48; // Increased gap between title and menu options
+    const spacing = 64; // Increased spacing between options
     
     menuOptions.forEach((option, i) => {
       const menuText = this.add
         .text(screenWidth/2, startY + i * spacing, option, {
-          fontFamily: "Centrion", // Secondary font for menu
+          fontFamily: "dungeon-mode-inverted", // Updated font for menu
           fontSize: 32,
-          color: "#abb6bd", // --primary
+          color: "#77888C", // Updated color --primary
           align: "center",
         })
         .setOrigin(0.5);
         
-      // Add pointer interaction for Play (example)
-      if (option === "Play") {
-        menuText
-          .setInteractive({ useHandCursor: true })
-          .on("pointerdown", () => {
-            this.scene.start("Overworld");
-          });
-      }
+      // Add pointer interaction for all menu options
+      menuText
+        .setInteractive({ useHandCursor: true })
+        .on("pointerdown", () => {
+          switch (option) {
+            case "Play":
+              this.scene.start("Overworld");
+              break;
+            case "Discover":
+              // TODO: Implement compendium scene
+              break;
+            case "Settings":
+              // TODO: Implement settings scene
+              break;
+          }
+        });
       
       this.menuTexts.push(menuText);
     });
@@ -76,32 +106,19 @@ export class MainMenu extends Scene {
   }
 
   /**
-   * Create a wavy title effect by offsetting each letter vertically
+   * Create a straight title with HeinzHeinrich font and updated color
    */
-  private createWavyTitle(x: number, y: number, text: string): void {
-    const letters = text.split('');
-    const baseFontSize = 120; 
-    const verticalOffset = 20; 
-    const horizontalSpacing = 0.65; 
+  private createStraightTitle(x: number, y: number, text: string): void {
+    // Create the text with styling
+    const titleText = this.add
+      .text(x, y, text, {
+        fontFamily: "HeinzHeinrich", // Updated font
+        fontSize: 120,
+        color: "#77888C", // Updated color
+      })
+      .setOrigin(0.5);
     
-    letters.forEach((letter, index) => {
-      // Calculate horizontal position for each letter
-      const letterX = x + (index - (letters.length - 1) / 2) * (baseFontSize * horizontalSpacing);
-      
-      // Alternate vertical offset (even indices go down, odd indices go up)
-      const letterY = y + (index % 2 === 0 ? verticalOffset : -verticalOffset);
-      
-      // Create the letter with styling
-      const letterText = this.add
-        .text(letterX, letterY, letter, {
-          fontFamily: "Centrion",
-          fontSize: baseFontSize,
-          color: "#e8eced",
-        })
-        .setOrigin(0.5);
-      
-      // Add subtle pixelated effect with a slight offset shadow
-      letterText.setShadow(2, 2, '#000000', 0, true, false);
-    });
+    // Add subtle shadow
+    titleText.setShadow(2, 2, '#000000', 0, true, false);
   }
 }
