@@ -29,26 +29,26 @@ export class MainMenu extends Scene {
   }
 
   /**
-   * Create retro CRT scanline effect
+   * Create prominent CRT scanline effect
    */
   private createBackgroundEffects(): void {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
-    // Create scanlines using a tile sprite
+    // Create more prominent scanlines using a tile sprite
     this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
       .setOrigin(0)
-      .setAlpha(0.50)
-      .setTint(0x272739);
+      .setAlpha(0.15) // Increased opacity for more prominence
+      .setTint(0x77888C);
       
-    // Create the scanline pattern
+    // Create a more pronounced scanline pattern
     const graphics = this.make.graphics({ x: 0, y: 0, add: false });
     graphics.fillStyle(0x000000, 1);
-    graphics.fillRect(0, 0, 2, 1);
+    graphics.fillRect(0, 0, 4, 2); // Thicker lines
     graphics.fillStyle(0xffffff, 1);
-    graphics.fillRect(0, 1, 2, 1);
+    graphics.fillRect(0, 2, 4, 2); // Thicker lines
     
-    const texture = graphics.generateTexture('scanline', 2, 2);
+    const texture = graphics.generateTexture('scanline', 4, 4);
     this.scanlines.setTexture('scanline');
     
     // Move background to the back
@@ -66,7 +66,7 @@ export class MainMenu extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Add version text in top right with more margin
+    // Add version text in top right with more margin using dungeon-mode font
     this.versionText = this.add
       .text(screenWidth - 40, 40, "0.5.0", {
         fontFamily: "dungeon-mode",
@@ -76,7 +76,7 @@ export class MainMenu extends Scene {
       })
       .setOrigin(1, 0);
 
-    // Add footer text with more margin
+    // Add footer text with more margin using dungeon-mode font
     this.footerText = this.add
       .text(screenWidth/2, screenHeight - 40, "Bathala. Developed by Devlocke. Copyright 2025.", {
         fontFamily: "dungeon-mode",
@@ -89,10 +89,10 @@ export class MainMenu extends Scene {
     // Center the content vertically on the screen
     const centerY = screenHeight / 2;
     
-    // Create "bathala" text in lowercase with HeinzHeinrich font
+    // Create "bathala" text in lowercase with Pixeled English Font
     this.createStraightTitle(screenWidth/2, centerY - 150, "bathala");
 
-    // Menu options - centered below the title with increased gap
+    // Menu options - centered below the title with increased gap using dungeon-mode-inverted font
     const menuOptions = ["Play", "Discover", "Settings"]; // Updated options
     const startY = centerY + 48; // Increased gap between title and menu options
     const spacing = 64; // Increased spacing between options
@@ -145,7 +145,6 @@ export class MainMenu extends Scene {
     // Create the text with styling
     const titleText = this.add
       .text(x, y, text, {
-        // fontFamily: "HeinzHeinrich", // Original font
         fontFamily: "Pixeled English Font", // Updated font
         fontSize: 250, 
         color: "#77888C", // Updated color
@@ -163,8 +162,8 @@ export class MainMenu extends Scene {
     // Animate the scanlines
     if (this.scanlines) {
       this.scanlineTimer += delta;
-      // Move scanlines vertically to simulate CRT effect
-      this.scanlines.tilePositionY = this.scanlineTimer * 0.05;
+      // Move scanlines vertically to simulate CRT effect at a faster pace
+      this.scanlines.tilePositionY = this.scanlineTimer * 0.1; // Increased speed
     }
   }
 }
