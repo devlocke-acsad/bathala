@@ -1564,22 +1564,222 @@ export class Overworld extends Scene {
       cameraWidth,
       cameraHeight,
       0x000000
-    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0); // Start transparent
+    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
     
-    // Fade in the overlay
-    this.tweens.add({
-      targets: overlay,
-      alpha: 1,
-      duration: 300,
-      ease: 'Power2'
-    });
-    
-    // Pause this scene and start combat scene
-    this.scene.pause();
-    this.scene.launch("Combat", { 
-      nodeType: nodeType,
-      transitionOverlay: overlay // Pass overlay to combat scene
-    });
+    // Different transition effects based on enemy type (Pokemon-like wild encounters with consistent red/black theme)
+    if (nodeType === "elite") {
+      // Elite enemy transition - Pokemon-like wild encounter with red/black theme
+      // Flash screen with red tint
+      const flashOverlay = this.add.rectangle(
+        cameraWidth / 2,
+        cameraHeight / 2,
+        cameraWidth,
+        cameraHeight,
+        0xff0000
+      ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2001);
+      
+      // Animate flash
+      this.tweens.add({
+        targets: flashOverlay,
+        alpha: 0.7,
+        duration: 200,
+        yoyo: true,
+        repeat: 1,
+        onComplete: () => {
+          flashOverlay.destroy();
+        }
+      });
+      
+      // Shake player sprite
+      const originalPlayerX = this.player.x;
+      const originalPlayerY = this.player.y;
+      
+      // More intense shaking for elite enemies
+      this.tweens.add({
+        targets: this.player,
+        x: originalPlayerX + Phaser.Math.Between(-5, 5),
+        y: originalPlayerY + Phaser.Math.Between(-5, 5),
+        duration: 100,
+        repeat: 5,
+        yoyo: true,
+        onComplete: () => {
+          this.player.setX(originalPlayerX);
+          this.player.setY(originalPlayerY);
+        }
+      });
+      
+      // Create elite enemy encounter effect
+      this.time.delayedCall(500, () => {
+        // Create expanding circles with red color
+        for (let i = 0; i < 3; i++) {
+          const circle = this.add.circle(
+            cameraWidth / 2,
+            cameraHeight / 2,
+            10,
+            0xff0000, // Red color for elite enemies
+            0.3
+          ).setScrollFactor(0).setDepth(2001);
+          
+          // Animate circle expansion
+          this.tweens.add({
+            targets: circle,
+            radius: cameraWidth / 3,
+            alpha: 0,
+            duration: 1000,
+            delay: i * 100,
+            ease: 'Power2',
+            onComplete: () => {
+              circle.destroy();
+            }
+          });
+        }
+        
+        // Create red sparkle effects
+        for (let i = 0; i < 20; i++) {
+          const sparkle = this.add.rectangle(
+            Phaser.Math.Between(cameraWidth/2 - 100, cameraWidth/2 + 100),
+            Phaser.Math.Between(cameraHeight/2 - 100, cameraHeight/2 + 100),
+            Phaser.Math.Between(2, 5),
+            Phaser.Math.Between(2, 5),
+            0xff0000,
+            1
+          ).setScrollFactor(0).setDepth(2001);
+          
+          // Animate sparkles
+          this.tweens.add({
+            targets: sparkle,
+            alpha: 0,
+            duration: 800,
+            delay: Phaser.Math.Between(0, 500),
+            onComplete: () => {
+              sparkle.destroy();
+            }
+          });
+        }
+      });
+      
+      // Fade to black and transition
+      this.time.delayedCall(1500, () => {
+        this.tweens.add({
+          targets: overlay,
+          alpha: 1,
+          duration: 800,
+          ease: 'Power2',
+          onComplete: () => {
+            // Pause this scene and start combat scene
+            this.scene.pause();
+            this.scene.launch("Combat", { 
+              nodeType: nodeType,
+              transitionOverlay: overlay // Pass overlay to combat scene
+            });
+          }
+        });
+      });
+    } else {
+      // Common enemy transition - Pokemon-like wild encounter with red/black theme
+      // Flash screen red
+      const flashOverlay = this.add.rectangle(
+        cameraWidth / 2,
+        cameraHeight / 2,
+        cameraWidth,
+        cameraHeight,
+        0xff0000
+      ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2001);
+      
+      // Animate flash
+      this.tweens.add({
+        targets: flashOverlay,
+        alpha: 0.8,
+        duration: 150,
+        yoyo: true,
+        repeat: 1,
+        onComplete: () => {
+          flashOverlay.destroy();
+        }
+      });
+      
+      // Shake player sprite slightly
+      const originalPlayerX = this.player.x;
+      const originalPlayerY = this.player.y;
+      
+      this.tweens.add({
+        targets: this.player,
+        x: originalPlayerX + Phaser.Math.Between(-3, 3),
+        y: originalPlayerY + Phaser.Math.Between(-3, 3),
+        duration: 100,
+        repeat: 3,
+        yoyo: true,
+        onComplete: () => {
+          this.player.setX(originalPlayerX);
+          this.player.setY(originalPlayerY);
+        }
+      });
+      
+      // Create common enemy encounter effect
+      this.time.delayedCall(400, () => {
+        // Create simple expanding circle in red
+        const circle = this.add.circle(
+          cameraWidth / 2,
+          cameraHeight / 2,
+          10,
+          0xff0000, // Red color for common enemies
+          0.2
+        ).setScrollFactor(0).setDepth(2001);
+        
+        // Animate circle expansion
+        this.tweens.add({
+          targets: circle,
+          radius: cameraWidth / 4,
+          alpha: 0,
+          duration: 800,
+          ease: 'Power2',
+          onComplete: () => {
+            circle.destroy();
+          }
+        });
+        
+        // Create small red sparkle effects
+        for (let i = 0; i < 10; i++) {
+          const sparkle = this.add.rectangle(
+            Phaser.Math.Between(cameraWidth/2 - 50, cameraWidth/2 + 50),
+            Phaser.Math.Between(cameraHeight/2 - 50, cameraHeight/2 + 50),
+            2,
+            2,
+            0xff0000,
+            1
+          ).setScrollFactor(0).setDepth(2001);
+          
+          // Animate sparkles
+          this.tweens.add({
+            targets: sparkle,
+            alpha: 0,
+            duration: 600,
+            delay: Phaser.Math.Between(0, 300),
+            onComplete: () => {
+              sparkle.destroy();
+            }
+          });
+        }
+      });
+      
+      // Fade to black and transition
+      this.time.delayedCall(1200, () => {
+        this.tweens.add({
+          targets: overlay,
+          alpha: 1,
+          duration: 600,
+          ease: 'Power2',
+          onComplete: () => {
+            // Pause this scene and start combat scene
+            this.scene.pause();
+            this.scene.launch("Combat", { 
+              nodeType: nodeType,
+              transitionOverlay: overlay // Pass overlay to combat scene
+            });
+          }
+        });
+      });
+    }
   }
 
   startBossCombat(): void {
