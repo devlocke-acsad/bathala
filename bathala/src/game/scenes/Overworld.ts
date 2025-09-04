@@ -21,6 +21,10 @@ export class Overworld extends Scene {
   private actionButtons: Phaser.GameObjects.Container[] = [];
   private scanlines!: Phaser.GameObjects.TileSprite;
   private scanlineTimer: number = 0;
+  private shopKey!: Phaser.Input.Keyboard.Key;
+  private testButtonsVisible: boolean = false;
+  private testButtonsContainer!: Phaser.GameObjects.Container;
+  private toggleButton!: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: "Overworld" });
@@ -144,19 +148,19 @@ export class Overworld extends Scene {
     // Combat test button
     this.createActionButton(buttonX, buttonY, "Combat", "#ff0000", () => {
       this.startCombat("combat");
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Elite test button
     this.createActionButton(buttonX, buttonY, "Elite", "#ffa500", () => {
       this.startCombat("elite");
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Boss test button
     this.createActionButton(buttonX, buttonY, "Boss Fight", "#8b5cf6", () => {
       this.startCombat("boss");
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Shop test button
@@ -193,13 +197,13 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Event test button
     this.createActionButton(buttonX, buttonY, "Event", "#0000ff", () => {
       console.log("Event action triggered");
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Campfire test button
@@ -236,7 +240,7 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Treasure test button
@@ -273,7 +277,7 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     
     // Create additional easily accessible test buttons at the bottom of the screen (fixed to camera)
     const bottomButtonY = screenHeight - 100;
@@ -289,21 +293,21 @@ export class Overworld extends Scene {
     // Quick Boss Fight button at bottom
     this.createActionButton(currentButtonX, bottomButtonY, "Quick Boss", "#8b5cf6", () => {
       this.startCombat("boss");
-    });
+    }, this.testButtonsContainer);
     
     currentButtonX += 200;
     
     // Quick Combat button at bottom
     this.createActionButton(currentButtonX, bottomButtonY, "Quick Combat", "#ff0000", () => {
       this.startCombat("combat");
-    });
+    }, this.testButtonsContainer);
     
     currentButtonX += 200;
     
     // Quick Elite button at bottom
     this.createActionButton(currentButtonX, bottomButtonY, "Quick Elite", "#ffa500", () => {
       this.startCombat("elite");
-    });
+    }, this.testButtonsContainer);
     
     currentButtonX += 200;
     
@@ -341,7 +345,7 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     
     currentButtonX += 200;
     
@@ -379,7 +383,7 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     
     currentButtonX += 200;
     
@@ -417,14 +421,22 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     
     currentButtonX += 200;
     
     // DDA Debug button at bottom  
     this.createActionButton(currentButtonX, bottomButtonY, "DDA Debug", "#9c27b0", () => {
       this.scene.start("DDADebugScene");
-    });
+    }, this.testButtonsContainer);
+    
+    // Create container for all test buttons
+    this.testButtonsContainer = this.add.container(0, 0);
+    // Add all existing test buttons to the container
+    // (We'll need to modify the button creation to add them to this container)
+    
+    // Create toggle button
+    this.createToggleButton();
   }
 
   createDayNightProgressBar(): void {
@@ -511,7 +523,7 @@ export class Overworld extends Scene {
     this.updateDayNightProgressBar();
   }
 
-  createActionButton(x: number, y: number, text: string, color: string, callback: () => void): void {
+  createActionButton(x: number, y: number, text: string, color: string, callback: () => void, container?: Phaser.GameObjects.Container): void {
     const button = this.add.container(x, y);
     
     // Create a temporary text object to measure the actual text width
@@ -557,7 +569,90 @@ export class Overworld extends Scene {
       background.setFillStyle(0x333333);
     });
     
+    // Add to the specified container if provided, otherwise add to scene
+    if (container) {
+      container.add(button);
+    }
+    
     this.actionButtons.push(button);
+  }
+
+  createToggleButton(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Position toggle button at top-right corner
+    const toggleX = screenWidth - 60;
+    const toggleY = 50;
+    
+    this.toggleButton = this.add.container(toggleX, toggleY);
+    
+    // Create a temporary text object to measure the actual text width
+    const tempText = this.add.text(0, 0, "Dev Mode", {
+      fontFamily: 'dungeon-mode',
+      fontSize: '12px',
+      color: '#ffffff'
+    });
+    
+    // Get the actual width of the text
+    const textWidth = tempText.width;
+    const textHeight = tempText.height;
+    tempText.destroy(); // Remove the temporary text
+    
+    // Set button dimensions with proper padding
+    const padding = 20;
+    const buttonWidth = Math.max(100, textWidth + padding); // Minimum width of 100px
+    const buttonHeight = Math.max(30, textHeight + 10); // Minimum height of 30px
+    
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x333333);
+    background.setStrokeStyle(2, 0xffffff);
+    
+    const buttonText = this.add.text(0, 0, "Dev Mode", {
+      fontFamily: 'dungeon-mode',
+      fontSize: '12px',
+      color: '#ffffff',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    this.toggleButton.add([background, buttonText]);
+    this.toggleButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
+    this.toggleButton.setScrollFactor(0);
+    this.toggleButton.setDepth(2000); // Ensure it's above other UI elements
+    
+    this.toggleButton.on('pointerdown', () => {
+      this.toggleTestButtons();
+    });
+    
+    this.toggleButton.on('pointerover', () => {
+      background.setFillStyle(0x555555);
+    });
+    
+    this.toggleButton.on('pointerout', () => {
+      background.setFillStyle(0x333333);
+    });
+    
+    // Initially hide all test buttons since dev mode is off by default
+    this.hideTestButtons();
+  }
+
+  toggleTestButtons(): void {
+    this.testButtonsVisible = !this.testButtonsVisible;
+    
+    // Update toggle button text
+    const buttonText = this.toggleButton.getAt(1) as Phaser.GameObjects.Text;
+    buttonText.setText("Dev Mode");
+    
+    // Show or hide all test buttons only
+    this.actionButtons.forEach(button => {
+      button.setVisible(this.testButtonsVisible);
+    });
+  }
+  
+  hideTestButtons(): void {
+    // Hide only test buttons, not essential UI elements
+    this.actionButtons.forEach(button => {
+      button.setVisible(false);
+    });
   }
 
   update(): void {
