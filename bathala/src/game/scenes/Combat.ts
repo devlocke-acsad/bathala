@@ -48,34 +48,23 @@ export class Combat extends Scene {
   private relicsContainer!: Phaser.GameObjects.Container;
   private playerStatusContainer!: Phaser.GameObjects.Container;
   private enemyStatusContainer!: Phaser.GameObjects.Container;
-  private isActionProcessing: boolean = false;
-  private actionResultText!: Phaser.GameObjects.Text;
-  private handEvaluationText!: Phaser.GameObjects.Text;
-  private combatEnded: boolean = false; // Add flag to prevent multiple end combat calls
-
-  // DDA tracking
-  private dda: RuleBasedDDA;
-  private combatStartTime: number = 0;
-  private initialPlayerHealth: number = 0;
-  private turnCount: number = 0;
-  private bestHandAchieved: HandType = "high_card";
-  private totalDiscardsUsed: number = 0;
-
-  // Sprite references for animations
   private playerSprite!: Phaser.GameObjects.Sprite;
   private enemySprite!: Phaser.GameObjects.Sprite;
-  private playerShadow!: Phaser.GameObjects.Graphics;
-  private enemyShadow!: Phaser.GameObjects.Graphics;
-  
-  // Deck animation properties
-  private deckSprite!: Phaser.GameObjects.Container;
-  private deckPosition!: { x: number; y: number };
-  private discardSprite!: Phaser.GameObjects.Container;
-  private discardPosition!: { x: number; y: number };
+  private deckSprite!: Phaser.GameObjects.Sprite;
+  private discardPileSprite!: Phaser.GameObjects.Sprite;
+  private landasChoiceContainer!: Phaser.GameObjects.Container;
+  private rewardsContainer!: Phaser.GameObjects.Container;
+  private gameOverContainer!: Phaser.GameObjects.Container;
+  private actionResultText!: Phaser.GameObjects.Text;
+  private enemyAttackPreviewText!: Phaser.GameObjects.Text;
   private isDrawingCards: boolean = false;
-
-  // Relic inventory
-  private relicInventory!: Phaser.GameObjects.Container;
+  private isActionProcessing: boolean = false;
+  private deckPosition!: { x: number; y: number };
+  private discardPilePosition!: { x: number; y: number };
+  private shopKey!: Phaser.Input.Keyboard.Key;
+  private bestHandAchieved: HandType = "high_card";
+  private scanlines!: Phaser.GameObjects.TileSprite;
+  private scanlineTimer: number = 0;
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
@@ -417,6 +406,9 @@ export class Combat extends Scene {
     // Get screen dimensions
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
+    
+    // Create CRT scanline effect
+    this.createCRTEffect();
     
     // Title
     this.add
@@ -3362,9 +3354,60 @@ export class Combat extends Scene {
     }
   }
 
-  /**
-   * Handle scene resize
-   */
+  /**\n   * Create CRT scanline effect for retro aesthetic\n   */
+  private createCRTEffect(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // Create scanlines using a tile sprite
+    this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
+      .setOrigin(0)
+      .setAlpha(0.25) // Increased opacity for more prominence
+      .setTint(0x77888C)
+      .setScrollFactor(0) // Fixed to camera
+      .setDepth(9999); // Ensure it's above everything else
+      
+    // Create a more pronounced scanline pattern (4x4 as requested)
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0x000000, 1);
+    graphics.fillRect(0, 0, 4, 2); // Thicker lines
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillRect(0, 2, 4, 2); // Thicker lines
+    
+    const texture = graphics.generateTexture('combat_scanline', 4, 4);
+    this.scanlines.setTexture('combat_scanline');
+    
+    // Add a subtle screen flicker effect
+    this.scheduleFlicker();
+  }
+  
+  /**\n   * Schedule the next screen flicker\n   */
+  private scheduleFlicker(): void {
+    this.time.addEvent({
+      delay: Phaser.Math.Between(5000, 15000), // Random flicker every 5-15 seconds
+      callback: this.flickerScreen,
+      callbackScope: this,
+      loop: false
+    });
+  }
+  
+  /**\n   * Create a brief screen flicker effect\n   */
+  private flickerScreen(): void {
+    // Brief flicker
+    this.tweens.add({
+      targets: this.scanlines,
+      alpha: 0.4,
+      duration: 50,
+      yoyo: true,
+      ease: 'Power2',
+      onComplete: () => {
+        // Schedule next flicker after this one completes
+        this.scheduleFlicker();
+      }
+    });
+  }
+
+  /**\n   * Handle scene resize\n   */
   private handleResize(): void {
     // Reposition UI elements on resize
     const screenWidth = this.cameras.main.width;
@@ -3420,6 +3463,22 @@ export class Combat extends Scene {
     this.updateRelicsUI();
     this.updateRelicInventory();
     this.updateTurnUI();
+    
+    // Recreate CRT effect on resize
+    if (this.scanlines) {
+      this.scanlines.destroy();
+    }
+    this.createCRTEffect();
+  }
+
+  /**\n   * Update method for animation effects\n   */
+  update(time: number, delta: number): void {
+    // Animate the scanlines
+    if (this.scanlines) {
+      this.scanlineTimer += delta;
+      // Move scanlines vertically to simulate CRT effect at a faster pace
+      this.scanlines.tilePositionY = this.scanlineTimer * 0.15; // Increased speed
+    }
   }
   
   /**

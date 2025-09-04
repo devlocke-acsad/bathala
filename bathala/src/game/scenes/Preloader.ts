@@ -46,20 +46,20 @@ export class Preloader extends Scene {
       this.progressBar.width = 10 + 380 * progress;
     });
 
-    // Create retro CRT scanline effect
+    // Create more subtle retro CRT scanline effect
     this.scanlines = this.add.tileSprite(0, 0, screenWidth, screenHeight, '__WHITE')
       .setOrigin(0)
-      .setAlpha(0.1)
+      .setAlpha(0.15) // More subtle opacity
       .setTint(0x77888C);
       
-    // Create the scanline pattern
+    // Create a subtle scanline pattern
     const graphics = this.make.graphics({ x: 0, y: 0, add: false });
     graphics.fillStyle(0x000000, 1);
-    graphics.fillRect(0, 0, 2, 1);
+    graphics.fillRect(0, 0, 4, 1);
     graphics.fillStyle(0xffffff, 1);
-    graphics.fillRect(0, 1, 2, 1);
+    graphics.fillRect(0, 1, 4, 1);
     
-    const texture = graphics.generateTexture('preloader_scanline', 2, 2);
+    const texture = graphics.generateTexture('preloader_scanline', 4, 2);
     this.scanlines.setTexture('preloader_scanline');
     
     // Move scanlines to the back
@@ -516,7 +516,7 @@ export class Preloader extends Scene {
     // Animate the scanlines
     if (this.scanlines) {
       this.scanlineTimer += delta;
-      this.scanlines.tilePositionY = this.scanlineTimer * 0.05;
+      this.scanlines.tilePositionY = this.scanlineTimer * 0.15; // Increased speed
     }
   }
 }
