@@ -64,30 +64,30 @@ export class Boot extends Scene
         this.loadingBarOutline = this.add.rectangle(width/2, height/2 + 60, 300, 20)
             .setStrokeStyle(2, 0x77888C);
             
-        // Create loading bar
-        this.loadingBar = this.add.rectangle((width/2) - 145, height/2 + 60, 10, 16, 0x77888C)
+        // Create loading bar (properly aligned inside the outline)
+        this.loadingBar = this.add.rectangle(width/2 - 148, height/2 + 52, 4, 16, 0x77888C)
             .setOrigin(0, 0);
             
-        // Create retro CRT scanline effect
+        // Create more subtle retro CRT scanline effect
         this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
             .setOrigin(0)
-            .setAlpha(0.1)
+            .setAlpha(0.15) // More subtle opacity
             .setTint(0x77888C);
             
-        // Create the scanline pattern
+        // Create a subtle scanline pattern
         const graphics = this.make.graphics({ x: 0, y: 0, add: false });
         graphics.fillStyle(0x000000, 1);
-        graphics.fillRect(0, 0, 2, 1);
+        graphics.fillRect(0, 0, 4, 1);
         graphics.fillStyle(0xffffff, 1);
-        graphics.fillRect(0, 1, 2, 1);
+        graphics.fillRect(0, 1, 4, 1);
         
-        const texture = graphics.generateTexture('boot_scanline', 2, 2);
+        const texture = graphics.generateTexture('boot_scanline', 4, 2);
         this.scanlines.setTexture('boot_scanline');
         
-        // Animate the loading bar
+        // Animate the loading bar (fill the entire outline)
         this.tweens.add({
             targets: this.loadingBar,
-            width: 290,
+            width: 296,
             duration: 500,
             ease: 'Linear'
         });
@@ -97,7 +97,7 @@ export class Boot extends Scene
         // Animate the scanlines
         if (this.scanlines) {
             this.scanlineTimer += delta;
-            this.scanlines.tilePositionY = this.scanlineTimer * 0.05;
+            this.scanlines.tilePositionY = this.scanlineTimer * 0.15; // Increased speed
         }
     }
 }

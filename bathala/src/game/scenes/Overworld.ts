@@ -19,6 +19,8 @@ export class Overworld extends Scene {
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
   private bossText!: Phaser.GameObjects.Text;
   private actionButtons: Phaser.GameObjects.Container[] = [];
+  private scanlines!: Phaser.GameObjects.TileSprite;
+  private scanlineTimer: number = 0;
 
   constructor() {
     super({ key: "Overworld" });
@@ -95,6 +97,9 @@ export class Overworld extends Scene {
     
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
+    
+    // Create CRT scanline effect
+    this.createCRTEffect();
     
     // Create UI elements with a slight delay to ensure camera is ready
     this.time.delayedCall(10, this.createUI, [], this);
@@ -808,61 +813,65 @@ export class Overworld extends Scene {
     this.updateVisibleChunks();
   }
 
-  movePlayer(deltaX: number, deltaY: number, animation: string): void {
+  /**\n   * Move player to a new position with animation\n   */
+  movePlayer(targetX: number, targetY: number, direction: string): void {
     // Set moving flag to prevent input during movement
     this.isMoving = true;
-
+    
     // Play walking animation with error checking
-    console.log("Playing animation:", animation);
-    if (this.anims.exists(animation)) {
+    let walkAnimation = "avatar_walk_down";
+    let idleAnimation = "avatar_idle_down";
+    
+    switch (direction) {
+      case "up":
+        walkAnimation = "avatar_walk_up";
+        idleAnimation = "avatar_idle_up";
+        break;
+      case "down":
+        walkAnimation = "avatar_walk_down";
+        idleAnimation = "avatar_idle_down";
+        break;
+      case "left":
+        walkAnimation = "avatar_walk_left";
+        idleAnimation = "avatar_idle_left";
+        break;
+      case "right":
+        walkAnimation = "avatar_walk_right";
+        idleAnimation = "avatar_idle_right";
+        break;
+    }
+    
+    console.log("Playing walk animation:", walkAnimation);
+    if (this.anims.exists(walkAnimation)) {
       try {
-        this.player.play(animation, true);
+        this.player.play(walkAnimation, true);
       } catch (error) {
-        console.warn("Failed to play animation:", animation, error);
+        console.warn("Failed to play walk animation:", walkAnimation, error);
       }
     } else {
-      console.warn("Animation not found:", animation);
+      console.warn("Walk animation not found:", walkAnimation);
     }
 
-    // Calculate new position
-    let newX = this.player.x + deltaX;
-    let newY = this.player.y + deltaY;
-    
-    console.log(`Moving from (${this.player.x}, ${this.player.y}) to (${newX}, ${newY})`);
-
     // Check if the new position is valid (not a wall)
-    if (this.isValidPosition(newX, newY)) {
+    if (this.isValidPosition(targetX, targetY)) {
       console.log("Position is valid, moving player");
-      // Record the action for day/night cycle
-      this.gameState.recordAction();
-      
-      // Check if day/night cycle changed
-      if (this.gameState.actionsUntilCycleChange === 49) { // Just changed
-        // Handle day/night transition
-        this.handleDayNightTransition();
-      }
       
       // Move player with tween
       this.tweens.add({
         targets: this.player,
-        x: newX,
-        y: newY,
+        x: targetX,
+        y: targetY,
         duration: 150, // Slightly faster movement
         onComplete: () => {
           this.isMoving = false;
           this.checkNodeInteraction();
-          // Play idle animation after movement based on direction
-          let idleAnimation = "avatar_idle_down";
-          if (animation.includes("down")) {
-            idleAnimation = "avatar_idle_down";
-          } else if (animation.includes("up")) {
-            idleAnimation = "avatar_idle_up";
-          } else if (animation.includes("left")) {
-            idleAnimation = "avatar_idle_left";
-          } else if (animation.includes("right")) {
-            idleAnimation = "avatar_idle_right";
-          }
           
+          // Record the action for day/night cycle after movement completes
+          this.gameState.recordAction();
+          // Update UI to reflect day/night cycle changes
+          this.updateUI();
+          
+          // Play idle animation after movement
           console.log("Playing idle animation:", idleAnimation);
           if (this.anims.exists(idleAnimation)) {
             try {
@@ -884,17 +893,7 @@ export class Overworld extends Scene {
       this.isMoving = false;
       console.log("Invalid move, playing idle animation");
       // Play appropriate idle animation based on last movement direction
-      let idleAnimation = "avatar_idle_down";
-      if (animation.includes("down")) {
-        idleAnimation = "avatar_idle_down";
-      } else if (animation.includes("up")) {
-        idleAnimation = "avatar_idle_up";
-      } else if (animation.includes("left")) {
-        idleAnimation = "avatar_idle_left";
-      } else if (animation.includes("right")) {
-        idleAnimation = "avatar_idle_right";
-      }
-      
+      console.log("Playing idle animation:", idleAnimation);
       if (this.anims.exists(idleAnimation)) {
         try {
           this.player.play(idleAnimation);
@@ -1516,11 +1515,128 @@ export class Overworld extends Scene {
     });
   }
 
-  /**
-   * Handle scene resize
-   */
+  /**\n   * Create CRT scanline effect for retro aesthetic\n   */
+  private createCRTEffect(): void {
+    const width = this.cameras.main.width;
+    const height = this.cameras.main.height;
+    
+    // Create scanlines using a tile sprite
+    this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
+      .setOrigin(0)
+      .setAlpha(0.25) // Increased opacity for more prominence
+      .setTint(0x77888C)
+      .setScrollFactor(0) // Fixed to camera
+      .setDepth(9999); // Ensure it's above everything else
+      
+    // Create a more pronounced scanline pattern (4x4 as requested)
+    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    graphics.fillStyle(0x000000, 1);
+    graphics.fillRect(0, 0, 4, 2); // Thicker lines
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillRect(0, 2, 4, 2); // Thicker lines
+    
+    const texture = graphics.generateTexture('overworld_scanline', 4, 4);
+    this.scanlines.setTexture('overworld_scanline');
+  }
+
+  /**\n   * Handle scene resize\n   */
   private handleResize(): void {
     // Update UI elements on resize
     this.updateUI();
+    
+    // Recreate CRT effect on resize
+    if (this.scanlines) {
+      this.scanlines.destroy();
+    }
+    this.createCRTEffect();
+  }
+
+  /**\n   * Update method for animation effects and player movement\n   */
+  update(time: number, delta: number): void {
+    // Animate the scanlines
+    if (this.scanlines) {
+      this.scanlineTimer += delta;
+      // Move scanlines vertically to simulate CRT effect at a faster pace
+      this.scanlines.tilePositionY = this.scanlineTimer * 0.15; // Increased speed
+    }
+    
+    // Handle player movement if not moving or in transition
+    if (!this.isMoving && !this.isTransitioningToCombat) {
+      const speed = 128; // pixels per second
+      const gridSize = this.gridSize;
+      let moved = false;
+      
+      // Check for movement input
+      if (this.cursors.left.isDown || this.wasdKeys.A.isDown) {
+        const targetX = this.player.x - gridSize;
+        if (this.isValidPosition(targetX, this.player.y)) {
+          this.movePlayer(targetX, this.player.y, "left");
+          moved = true;
+        }
+      } else if (this.cursors.right.isDown || this.wasdKeys.D.isDown) {
+        const targetX = this.player.x + gridSize;
+        if (this.isValidPosition(targetX, this.player.y)) {
+          this.movePlayer(targetX, this.player.y, "right");
+          moved = true;
+        }
+      } else if (this.cursors.up.isDown || this.wasdKeys.W.isDown) {
+        const targetY = this.player.y - gridSize;
+        if (this.isValidPosition(this.player.x, targetY)) {
+          this.movePlayer(this.player.x, targetY, "up");
+          moved = true;
+        }
+      } else if (this.cursors.down.isDown || this.wasdKeys.S.isDown) {
+        const targetY = this.player.y + gridSize;
+        if (this.isValidPosition(this.player.x, targetY)) {
+          this.movePlayer(this.player.x, targetY, "down");
+          moved = true;
+        }
+      }
+      
+      // Check for shop key
+      if (Phaser.Input.Keyboard.JustDown(this.shopKey)) {
+        console.log("Shop key pressed");
+        // Save player position before transitioning
+        const gameState = GameState.getInstance();
+        gameState.savePlayerPosition(this.player.x, this.player.y);
+        
+        // Pause this scene and launch shop scene
+        this.scene.pause();
+        this.scene.launch("Shop", { 
+          player: {
+            id: "player",
+            name: "Hero",
+            maxHealth: 80,
+            currentHealth: 80,
+            block: 0,
+            statusEffects: [],
+            hand: [],
+            deck: [],
+            discardPile: [],
+            drawPile: [],
+            playedHand: [],
+            landasScore: 0,
+            ginto: 100,
+            baubles: 0,
+            relics: [
+              {
+                id: "placeholder_relic",
+                name: "Placeholder Relic",
+                description: "This is a placeholder relic.",
+                emoji: "⚙️",
+              },
+            ],
+          }
+        });
+      }
+      
+      // Update chunk rendering and day/night cycle if player moved
+      if (moved) {
+        this.updateVisibleChunks();
+        this.checkNodeInteraction();
+        // Update UI to reflect day/night cycle changes
+        this.updateUI();
+      }
+    }
   }
 }
