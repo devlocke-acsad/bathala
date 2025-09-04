@@ -137,29 +137,56 @@ export class HandEvaluator {
 
   /**
    * Check if cards form a straight
+   * Ace can be either low (1) or high (14) but not both
    */
   private static isStraight(ranks: Rank[]): boolean {
     if (ranks.length !== 5) return false;
 
-    const values = ranks
+    // Check if we have an Ace in the hand
+    const hasAce = ranks.includes("1");
+    
+    // Get values treating Ace as low (1)
+    const valuesLow = ranks
       .map((rank) => this.RANK_VALUES[rank])
       .sort((a, b) => a - b);
 
-    // Check for consecutive values
-    for (let i = 1; i < values.length; i++) {
-      if (values[i] !== values[i - 1] + 1) return false;
+    // Check for consecutive values with Ace as low
+    let isStraightLow = true;
+    for (let i = 1; i < valuesLow.length; i++) {
+      if (valuesLow[i] !== valuesLow[i - 1] + 1) {
+        isStraightLow = false;
+        break;
+      }
     }
 
-    return true;
+    // If it's already a straight with Ace low, return true
+    if (isStraightLow) return true;
+
+    // If we have an Ace, also check with Ace as high (14)
+    if (hasAce) {
+      const valuesHigh = ranks
+        .map((rank) => rank === "1" ? 14 : this.RANK_VALUES[rank])
+        .sort((a, b) => a - b);
+
+      // Check for consecutive values with Ace as high
+      for (let i = 1; i < valuesHigh.length; i++) {
+        if (valuesHigh[i] !== valuesHigh[i - 1] + 1) return false;
+      }
+
+      return true;
+    }
+
+    return false;
   }
 
   /**
    * Check if hand is a royal flush (A, K, Q, J, 10)
    */
   private static isRoyalFlush(ranks: Rank[]): boolean {
-    const royalRanks = ["Datu", "Babaylan", "Mandirigma", "10", "9"];
+    // Royal flush consists of Ace through 10
+    const royalRanks = ["1", "Datu", "Babaylan", "Mandirigma", "10"];
     return (
-      ranks.length === 5 && ranks.every((rank) => royalRanks.includes(rank))
+      ranks.length === 5 && royalRanks.every((rank) => ranks.includes(rank))
     );
   }
 
