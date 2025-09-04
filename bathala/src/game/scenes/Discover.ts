@@ -13,7 +13,6 @@ export class Discover extends Scene {
   private cardsContainer: GameObjects.Container;
   private cards: GameObjects.Container[] = [];
   private scrollMask: GameObjects.Graphics;
-  // Scrolling variables
   private scrollY: number = 0;
   private targetScrollY: number = 0;
   private maxScroll: number = 0;
@@ -30,6 +29,15 @@ export class Discover extends Scene {
   // Detailed view elements
   private detailViewContainer: GameObjects.Container;
   private isDetailViewOpen: boolean = false;
+  
+  // Text elements for detail view
+  private detailNameText: GameObjects.Text;
+  private detailTypeText: GameObjects.Text;
+  private detailSymbolText: GameObjects.Text;
+  private detailStatsText: GameObjects.Text;
+  private detailAbilitiesText: GameObjects.Text;
+  private detailDescriptionText: GameObjects.Text;
+  private detailLoreText: GameObjects.Text;
   
   constructor() {
     super({ key: "Discover" });
@@ -71,163 +79,96 @@ export class Discover extends Scene {
   }
 
   /**
-   * Create prominent CRT scanline effect and background elements
+   * Create subtle background effects
    */
   private createBackgroundEffects(): void {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
-    // Create dark background with subtle texture
-    const backgroundGraphics = this.make.graphics({});
-    backgroundGraphics.fillStyle(0x150E10, 1);
-    backgroundGraphics.fillRect(0, 0, width, height);
+    // Create dark background
+    this.add.rectangle(0, 0, width, height, 0x150E10).setOrigin(0);
     
-    // Add subtle noise texture
-    for (let i = 0; i < 1000; i++) {
-      const x = Math.floor(Math.random() * width);
-      const y = Math.floor(Math.random() * height);
-      const alpha = Math.random() * 0.1;
-      backgroundGraphics.fillStyle(0x2a1f24, alpha);
-      backgroundGraphics.fillRect(x, y, 1, 1);
-    }
-    
-    const backgroundTexture = backgroundGraphics.generateTexture('discoverBackground', width, height);
-    const background = this.add.image(0, 0, 'discoverBackground')
-      .setOrigin(0)
-      .setDepth(-20);
-    
-    // Create prominent scanlines using a tile sprite
+    // Create subtle scanlines using a tile sprite
     this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
       .setOrigin(0)
-      .setAlpha(0.15)
-      .setTint(0x77888C);
+      .setAlpha(0.08)
+      .setTint(0x4a3a40);
       
-    // Create a more pronounced scanline pattern
+    // Create a subtle scanline pattern
     const graphics = this.make.graphics({});
     graphics.fillStyle(0x000000, 1);
-    graphics.fillRect(0, 0, 4, 2);
+    graphics.fillRect(0, 0, 2, 1);
     graphics.fillStyle(0xffffff, 1);
-    graphics.fillRect(0, 2, 4, 2);
+    graphics.fillRect(0, 1, 2, 1);
     
-    const texture = graphics.generateTexture('scanline', 4, 4);
+    const texture = graphics.generateTexture('scanline', 2, 2);
     this.scanlines.setTexture('scanline');
-    
-    // Add decorative border elements
-    this.createDecorativeBorders(width, height);
     
     // Move background to the back
     this.scanlines.setDepth(-10);
   }
-  
-  /**
-   * Create decorative border elements for retro fantasy aesthetic
-   */
-  private createDecorativeBorders(width: number, height: number): void {
-    // Corner decorations
-    const cornerSize = 40;
-    
-    // Top-left corner
-    const topLeft = this.add.graphics();
-    topLeft.lineStyle(2, 0x77888C, 1);
-    topLeft.beginPath();
-    topLeft.moveTo(20, 0);
-    topLeft.lineTo(0, 0);
-    topLeft.lineTo(0, 20);
-    topLeft.moveTo(0, cornerSize);
-    topLeft.lineTo(0, cornerSize + 10);
-    topLeft.moveTo(cornerSize, 0);
-    topLeft.lineTo(cornerSize + 10, 0);
-    topLeft.strokePath();
-    
-    // Top-right corner
-    const topRight = this.add.graphics();
-    topRight.lineStyle(2, 0x77888C, 1);
-    topRight.beginPath();
-    topRight.moveTo(width - 20, 0);
-    topRight.lineTo(width, 0);
-    topRight.lineTo(width, 20);
-    topRight.moveTo(width, cornerSize);
-    topRight.lineTo(width, cornerSize + 10);
-    topRight.moveTo(width - cornerSize, 0);
-    topRight.lineTo(width - cornerSize - 10, 0);
-    topRight.strokePath();
-    
-    // Bottom-left corner
-    const bottomLeft = this.add.graphics();
-    bottomLeft.lineStyle(2, 0x77888C, 1);
-    bottomLeft.beginPath();
-    bottomLeft.moveTo(20, height);
-    bottomLeft.lineTo(0, height);
-    bottomLeft.lineTo(0, height - 20);
-    bottomLeft.moveTo(0, height - cornerSize);
-    bottomLeft.lineTo(0, height - cornerSize - 10);
-    bottomLeft.moveTo(cornerSize, height);
-    bottomLeft.lineTo(cornerSize + 10, height);
-    bottomLeft.strokePath();
-    
-    // Bottom-right corner
-    const bottomRight = this.add.graphics();
-    bottomRight.lineStyle(2, 0x77888C, 1);
-    bottomRight.beginPath();
-    bottomRight.moveTo(width - 20, height);
-    bottomRight.lineTo(width, height);
-    bottomRight.lineTo(width, height - 20);
-    bottomRight.moveTo(width, height - cornerSize);
-    bottomRight.lineTo(width, height - cornerSize - 10);
-    bottomRight.moveTo(width - cornerSize, height);
-    bottomRight.lineTo(width - cornerSize - 10, height);
-    bottomRight.strokePath();
-    
-    // Set depth to ensure they're behind content but in front of background
-    [topLeft, topRight, bottomLeft, bottomRight].forEach(element => {
-      element.setDepth(-5);
-    });
-  }
 
   /**
-   * Create UI elements
+   * Create UI elements with improved typography
    */
   private createUI(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Add title with decorative elements
+    // Add title with improved styling
     this.title = this.add
-      .text(screenWidth/2, 50, "Mythical Compendium", {
+      .text(screenWidth/2, 60, "Mythical Compendium", {
         fontFamily: "dungeon-mode-inverted",
-        fontSize: 36,
+        fontSize: 32,
         color: "#e8eced",
         align: "center",
       })
       .setOrigin(0.5);
       
-    // Add decorative underline to title
+    // Add subtle underline to title
     const titleWidth = this.title.width;
     const underline = this.add.graphics();
-    underline.lineStyle(3, 0x77888C, 0.8);
+    underline.lineStyle(2, 0x4a3a40, 0.6);
     underline.beginPath();
-    underline.moveTo(screenWidth/2 - titleWidth/2, 90);
-    underline.lineTo(screenWidth/2 + titleWidth/2, 90);
+    underline.moveTo(screenWidth/2 - titleWidth/2, 100);
+    underline.lineTo(screenWidth/2 + titleWidth/2, 100);
     underline.strokePath();
       
-    // Add back button with enhanced styling
+    // Add back button with cleaner styling
     this.backButton = this.add
-      .text(40, 40, "← Back", {
+      .text(50, 50, "← Back", {
         fontFamily: "dungeon-mode",
-        fontSize: 24,
+        fontSize: 20,
         color: "#77888C",
         align: "left",
       })
       .setOrigin(0)
       .setInteractive({ useHandCursor: true })
       .on("pointerover", () => {
-        this.backButton.setColor("#e8eced");
+        this.tweens.add({
+          targets: this.backButton,
+          color: 0xe8eced,
+          duration: 200
+        });
       })
       .on("pointerout", () => {
-        this.backButton.setColor("#77888C");
+        this.tweens.add({
+          targets: this.backButton,
+          color: 0x77888C,
+          duration: 200
+        });
       })
       .on("pointerdown", () => {
-        this.scene.start("MainMenu");
+        // Add press effect
+        this.tweens.add({
+          targets: this.backButton,
+          scale: 0.9,
+          duration: 100,
+          yoyo: true,
+          onComplete: () => {
+            this.handleBackNavigation();
+          }
+        });
       });
   }
   
@@ -343,9 +284,9 @@ export class Discover extends Scene {
     this.cards = [];
     
     // Calculate grid positions
-    const cardWidth = 200;
-    const cardHeight = 250;
-    const cardSpacing = 30;
+    const cardWidth = 180;
+    const cardHeight = 160;
+    const cardSpacing = 25;
     const cardsPerRow = Math.floor((screenWidth - 100) / (cardWidth + cardSpacing));
     const startX = (screenWidth - (cardsPerRow * cardWidth + (cardsPerRow - 1) * cardSpacing)) / 2;
     const startY = 150;
@@ -371,83 +312,80 @@ export class Discover extends Scene {
   }
   
   /**
-   * Create a single character card with image representation
+   * Create a single character card with clean, minimalist design
    */
   private createCharacterCard(entry: any, x: number, y: number, width: number, height: number): GameObjects.Container {
     const container = this.add.container(x, y);
     
-    // Card background with enhanced styling
-    const background = this.add.rectangle(0, 0, width, height, 0x2a1f24)
-      .setStrokeStyle(2, 0x4a3a40)
+    // Card background with subtle styling
+    const background = this.add.rectangle(0, 0, width, height, 0x1d151a)
+      .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0);
       
-    // Card header with decorative elements
-    const headerBar = this.add.rectangle(0, 0, width, 40, 0x1d151a)
-      .setOrigin(0);
-      
-    // Card header with name and type
-    const nameText = this.add.text(width/2, 20, entry.name, {
+    // Character symbol (larger and more prominent)
+    const symbol = this.getCharacterSymbol(entry.id);
+    const symbolText = this.add.text(width/2, 40, symbol, {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 18,
+      fontSize: 48,
+      color: entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#77888C"
+    }).setOrigin(0.5);
+    
+    // Character name (cleaner styling)
+    const nameText = this.add.text(width/2, 90, entry.name, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
       color: "#e8eced"
     }).setOrigin(0.5);
     
-    const typeText = this.add.text(width - 10, 10, entry.type, {
+    // Character type badge
+    const typeColorHex = entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#06d6a0";
+    const typeColor = entry.type === "Boss" ? 0xff6b6b : entry.type === "Elite" ? 0xffd93d : 0x06d6a0;
+    const typeBadge = this.add.rectangle(width/2, 120, 80, 20, 0x2a1f24)
+      .setStrokeStyle(1, typeColor)
+      .setOrigin(0.5);
+      
+    const typeText = this.add.text(width/2, 120, entry.type, {
       fontFamily: "dungeon-mode",
       fontSize: 12,
-      color: entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#06d6a0"
-    }).setOrigin(1, 0);
-    
-    // Character representation (symbolic image)
-    const symbol = this.getCharacterSymbol(entry.id);
-    const symbolText = this.add.text(width/2, 70, symbol, {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 60,
-      color: entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#06d6a0"
+      color: typeColorHex
     }).setOrigin(0.5);
     
-    // Description preview
-    const descriptionText = this.add.text(10, 130, this.truncateText(entry.description, 60), {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#a9b4b8",
-      wordWrap: { width: width - 20 },
-      lineSpacing: 2
-    }).setOrigin(0);
-    
-    // Lore preview
-    const lorePreview = this.add.text(10, height - 40, this.truncateText(entry.lore, 40) + "...", {
-      fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#8a9a9f",
-      fontStyle: "italic",
-      wordWrap: { width: width - 20 }
-    }).setOrigin(0);
-    
-    // Click to view details text
-    const clickText = this.add.text(width/2, height - 15, "Click for details", {
-      fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#77888C"
-    }).setOrigin(0.5);
-    
-    // Make card interactive with hover effects
+    // Subtle hover effect
     background.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains)
       .on('pointerdown', () => {
-        this.showCharacterDetails(entry);
+        // Add a press effect
+        this.tweens.add({
+          targets: container,
+          scale: 0.95,
+          duration: 100,
+          yoyo: true,
+          onComplete: () => {
+            this.showCharacterDetails(entry);
+          }
+        });
       })
       .on('pointerover', () => {
-        // Hover effect
-        background.setFillStyle(0x3a2a32);
-        container.setScale(1.05);
+        // Subtle hover effect
+        background.setFillStyle(0x2a1f24);
+        this.tweens.add({
+          targets: container,
+          scale: 1.05,
+          duration: 200,
+          ease: 'Power2'
+        });
       })
       .on('pointerout', () => {
         // Reset effect
-        background.setFillStyle(0x2a1f24);
-        container.setScale(1);
+        background.setFillStyle(0x1d151a);
+        this.tweens.add({
+          targets: container,
+          scale: 1,
+          duration: 200,
+          ease: 'Power2'
+        });
       });
     
-    container.add([background, headerBar, nameText, typeText, symbolText, descriptionText, lorePreview, clickText]);
+    container.add([background, symbolText, nameText, typeBadge, typeText]);
     return container;
   }
   
@@ -470,15 +408,7 @@ export class Discover extends Scene {
   }
   
   /**
-   * Truncate text to specified length
-   */
-  private truncateText(text: string, maxLength: number): string {
-    if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength);
-  }
-  
-  /**
-   * Create detailed view for character information
+   * Create detailed view for character information with improved styling
    */
   private createDetailView(): void {
     const screenWidth = this.cameras.main.width;
@@ -488,20 +418,20 @@ export class Discover extends Scene {
     this.detailViewContainer = this.add.container(0, 0);
     this.detailViewContainer.setVisible(false);
     
-    // Background overlay
+    // Background overlay with subtle transparency
     const overlay = this.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000)
       .setOrigin(0)
-      .setAlpha(0.8);
+      .setAlpha(0.7);
       
-    // Detailed view background
-    const detailBackground = this.add.rectangle(screenWidth/2, screenHeight/2, screenWidth - 100, screenHeight - 100, 0x2a1f24)
-      .setStrokeStyle(2, 0x77888C)
+    // Detailed view background with consistent styling
+    const detailBackground = this.add.rectangle(screenWidth/2, screenHeight/2, screenWidth - 120, screenHeight - 120, 0x1d151a)
+      .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0.5);
       
     // Close button
-    const closeButton = this.add.text(screenWidth - 80, 80, "✕", {
+    const closeButton = this.add.text(screenWidth - 90, 90, "✕", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 24,
+      fontSize: 20,
       color: "#ff6b6b"
     }).setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
@@ -509,114 +439,176 @@ export class Discover extends Scene {
         this.handleBackNavigation();
       });
       
-    // Character name
-    const nameText = this.add.text(screenWidth/2, 120, "", {
+    // Character name with improved styling
+    this.detailNameText = this.add.text(screenWidth/2, 130, "", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 32,
+      fontSize: 28,
       color: "#e8eced"
     }).setOrigin(0.5);
     
-    // Character type
-    const typeText = this.add.text(screenWidth/2, 160, "", {
+    // Character type with consistent badge styling
+    const typeBadge = this.add.rectangle(screenWidth/2, 170, 100, 25, 0x2a1f24)
+      .setStrokeStyle(1, 0x77888C)
+      .setOrigin(0.5);
+    
+    this.detailTypeText = this.add.text(screenWidth/2, 170, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 18,
+      fontSize: 14,
       color: "#77888C"
     }).setOrigin(0.5);
     
     // Character symbol
-    const symbolText = this.add.text(screenWidth/2, 220, "", {
+    this.detailSymbolText = this.add.text(screenWidth/2, 230, "", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 80,
+      fontSize: 70,
       color: "#e8eced"
     }).setOrigin(0.5);
     
-    // Stats
-    const statsText = this.add.text(screenWidth/2 - 150, 300, "", {
+    // Stats section title
+    const statsTitle = this.add.text(screenWidth/2 - 150, 300, "STATS", {
       fontFamily: "dungeon-mode",
-      fontSize: 16,
+      fontSize: 14,
       color: "#77888C"
     }).setOrigin(0);
     
-    // Abilities
-    const abilitiesText = this.add.text(screenWidth/2 + 50, 300, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: 16,
-      color: "#c9a74a"
-    }).setOrigin(0);
+    // Stats container
+    const statsContainer = this.add.rectangle(screenWidth/2 - 150, 330, 140, 60, 0x2a1f24)
+      .setStrokeStyle(1, 0x4a3a40)
+      .setOrigin(0);
     
-    // Description
-    const descriptionTitle = this.add.text(screenWidth/2, 350, "Description", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 20,
-      color: "#e8eced"
-    }).setOrigin(0.5);
-    
-    const descriptionText = this.add.text(screenWidth/2, 380, "", {
+    // Stats text
+    this.detailStatsText = this.add.text(screenWidth/2 - 140, 340, "", {
       fontFamily: "dungeon-mode",
       fontSize: 14,
       color: "#a9b4b8",
-      wordWrap: { width: screenWidth - 200 },
-      lineSpacing: 3
-    }).setOrigin(0.5, 0);
+      wordWrap: { width: 120 }
+    }).setOrigin(0);
     
-    // Lore
-    const loreTitle = this.add.text(screenWidth/2, 480, "Mythology & Lore", {
+    // Abilities section title
+    const abilitiesTitle = this.add.text(screenWidth/2 + 50, 300, "ABILITIES", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#77888C"
+    }).setOrigin(0);
+    
+    // Abilities container
+    const abilitiesContainer = this.add.rectangle(screenWidth/2 + 50, 330, 200, 60, 0x2a1f24)
+      .setStrokeStyle(1, 0x4a3a40)
+      .setOrigin(0);
+    
+    // Abilities text
+    this.detailAbilitiesText = this.add.text(screenWidth/2 + 60, 340, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#c9a74a",
+      wordWrap: { width: 180 }
+    }).setOrigin(0);
+    
+    // Description section
+    const descriptionTitle = this.add.text(screenWidth/2, 420, "DESCRIPTION", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 20,
+      fontSize: 18,
       color: "#e8eced"
     }).setOrigin(0.5);
     
-    const loreText = this.add.text(screenWidth/2, 510, "", {
+    const descriptionContainer = this.add.rectangle(screenWidth/2, 460, screenWidth - 200, 80, 0x2a1f24)
+      .setStrokeStyle(1, 0x4a3a40)
+      .setOrigin(0.5, 0);
+    
+    this.detailDescriptionText = this.add.text(screenWidth/2, 470, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#a9b4b8",
+      wordWrap: { width: screenWidth - 220 },
+      lineSpacing: 2
+    }).setOrigin(0.5, 0);
+    
+    // Lore section
+    const loreTitle = this.add.text(screenWidth/2, 560, "MYTHOLOGY & LORE", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 18,
+      color: "#e8eced"
+    }).setOrigin(0.5);
+    
+    const loreContainer = this.add.rectangle(screenWidth/2, 600, screenWidth - 200, 120, 0x2a1f24)
+      .setStrokeStyle(1, 0x4a3a40)
+      .setOrigin(0.5, 0);
+    
+    this.detailLoreText = this.add.text(screenWidth/2, 610, "", {
       fontFamily: "dungeon-mode",
       fontSize: 14,
       color: "#8a9a9f",
       fontStyle: "italic",
-      wordWrap: { width: screenWidth - 200 },
-      lineSpacing: 3
+      wordWrap: { width: screenWidth - 220 },
+      lineSpacing: 2
     }).setOrigin(0.5, 0);
     
     this.detailViewContainer.add([
-      overlay, detailBackground, closeButton, nameText, typeText, symbolText,
-      statsText, abilitiesText, descriptionTitle, descriptionText, loreTitle, loreText
+      overlay, detailBackground, closeButton, this.detailNameText, typeBadge, this.detailTypeText, this.detailSymbolText,
+      statsTitle, statsContainer, this.detailStatsText, abilitiesTitle, abilitiesContainer, this.detailAbilitiesText,
+      descriptionTitle, descriptionContainer, this.detailDescriptionText, loreTitle, loreContainer, this.detailLoreText
     ]);
   }
   
   /**
-   * Show detailed view of a character
+   * Show detailed view of a character with animation
    */
   private showCharacterDetails(entry: any): void {
     this.isDetailViewOpen = true;
     
-    // Update detail view content
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
+    // Update content with consistent styling
+    this.detailNameText.setText(entry.name);
     
-    // Get text elements from container
-    const nameText = this.detailViewContainer.getAt(3) as GameObjects.Text;
-    const typeText = this.detailViewContainer.getAt(4) as GameObjects.Text;
-    const symbolText = this.detailViewContainer.getAt(5) as GameObjects.Text;
-    const statsText = this.detailViewContainer.getAt(6) as GameObjects.Text;
-    const abilitiesText = this.detailViewContainer.getAt(7) as GameObjects.Text;
-    const descriptionText = this.detailViewContainer.getAt(9) as GameObjects.Text;
-    const loreText = this.detailViewContainer.getAt(11) as GameObjects.Text;
+    this.detailTypeText.setText(entry.type);
+    const typeColorHex = entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#06d6a0";
+    const typeColor = entry.type === "Boss" ? 0xff6b6b : entry.type === "Elite" ? 0xffd93d : 0x06d6a0;
+    this.detailTypeText.setColor(typeColorHex);
     
-    // Update content
-    nameText.setText(entry.name);
-    typeText.setText(entry.type);
-    typeText.setColor(entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#06d6a0");
-    symbolText.setText(this.getCharacterSymbol(entry.id));
-    symbolText.setColor(entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#06d6a0");
-    statsText.setText("Health: " + entry.health + "\nAttack: " + entry.attack);
-    abilitiesText.setText("Abilities:\n" + (entry.abilities ? entry.abilities.join("\n") : "None"));
-    descriptionText.setText(entry.description);
-    loreText.setText(entry.lore);
+    this.detailSymbolText.setText(this.getCharacterSymbol(entry.id));
+    this.detailSymbolText.setColor(typeColorHex);
     
-    // Show detail view
-    this.detailViewContainer.setVisible(true);
+    this.detailStatsText.setText("Health: " + entry.health + "\nAttack: " + entry.attack);
+    this.detailAbilitiesText.setText(entry.abilities ? entry.abilities.join("\n") : "None");
+    this.detailDescriptionText.setText(entry.description);
+    this.detailLoreText.setText(entry.lore);
     
     // Hide main content
     this.title.setVisible(false);
     this.cardsContainer.setVisible(false);
+    
+    // Animate detail view entrance
+    this.detailViewContainer.setAlpha(0);
+    this.detailViewContainer.setVisible(true);
+    
+    this.tweens.add({
+      targets: this.detailViewContainer,
+      alpha: 1,
+      duration: 300,
+      ease: 'Power2'
+    });
+  }
+  
+  /**
+   * Hide detailed view and return to main view with animation
+   */
+  private hideCharacterDetails(): void {
+    this.isDetailViewOpen = false;
+    
+    // Animate detail view exit
+    this.tweens.add({
+      targets: this.detailViewContainer,
+      alpha: 0,
+      duration: 200,
+      ease: 'Power2',
+      onComplete: () => {
+        // Hide detail view
+        this.detailViewContainer.setVisible(false);
+        
+        // Show main content
+        this.title.setVisible(true);
+        this.cardsContainer.setVisible(true);
+      }
+    });
   }
   
   /**
@@ -640,15 +632,11 @@ export class Discover extends Scene {
     // Create mask
     this.scrollMask = this.make.graphics({});
     this.scrollMask.fillStyle(0xffffff);
-    this.scrollMask.beginPath();
     this.scrollMask.fillRect(0, 120, screenWidth, screenHeight - 140);
-    this.scrollMask.fillPath();
     
     const maskShape = this.make.graphics({});
     maskShape.fillStyle(0xffffff);
-    maskShape.beginPath();
     maskShape.fillRect(0, 120, screenWidth, screenHeight - 140);
-    maskShape.fillPath();
     
     const mask = maskShape.createGeometryMask();
     this.cardsContainer.setMask(mask);
@@ -746,20 +734,6 @@ export class Discover extends Scene {
     this.createScrollMask();
   }
 
-  /**
-   * Hide detailed view and return to main view
-   */
-  private hideCharacterDetails(): void {
-    this.isDetailViewOpen = false;
-    
-    // Hide detail view
-    this.detailViewContainer.setVisible(false);
-    
-    // Show main content
-    this.title.setVisible(true);
-    this.cardsContainer.setVisible(true);
-  }
-  
   /**
    * Update method for animation effects and smooth scrolling
    */
