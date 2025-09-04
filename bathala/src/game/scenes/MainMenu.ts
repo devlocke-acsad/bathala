@@ -93,7 +93,7 @@ export class MainMenu extends Scene {
     this.createStraightTitle(screenWidth/2, centerY - 150, "bathala");
 
     // Menu options - centered below the title with increased gap using dungeon-mode-inverted font
-    const menuOptions = ["Play", "Discover", "Settings"]; // Updated options
+    const menuOptions = ["Play", "Discover", "Credits", "Settings"]; // Updated options
     const startY = centerY + 48; // Increased gap between title and menu options
     const spacing = 64; // Increased spacing between options
     
@@ -117,6 +117,9 @@ export class MainMenu extends Scene {
               break;
             case "Discover":
               this.scene.start("Discover");
+              break;
+            case "Credits":
+              this.scene.start("Credits");
               break;
             case "Settings":
               // TODO: Implement settings scene
