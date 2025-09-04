@@ -341,7 +341,7 @@ export class Combat extends Scene {
           id: "placeholder_relic",
           name: "Placeholder Relic",
           description: "This is a placeholder relic.",
-          emoji: "⚙️",
+          emoji: "",
         },
       ],
     };
@@ -1671,14 +1671,14 @@ export class Combat extends Scene {
         type: "attack",
         value: enemy.damage,
         description: `Attacks for ${enemy.damage} damage`,
-        icon: "⚔️",
+        icon: "†",
       };
     } else if (nextAction === "defend") {
       enemy.intent = {
         type: "defend",
         value: 5,
         description: "Gains 5 block",
-        icon: "🛡️",
+        icon: "⛨",
       };
       enemy.block += 5;
     }
@@ -1692,9 +1692,9 @@ export class Combat extends Scene {
   private updatePlayerUI(): void {
     const player = this.combatState.player;
     this.playerHealthText.setText(
-      `❤️ ${player.currentHealth}/${player.maxHealth}`
+      `♥ ${player.currentHealth}/${player.maxHealth}`
     );
-    this.playerBlockText.setText(player.block > 0 ? `🛡️ ${player.block}` : "");
+    this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
   }
 
   /**
@@ -1703,9 +1703,9 @@ export class Combat extends Scene {
   private updateEnemyUI(): void {
     const enemy = this.combatState.enemy;
     this.enemyHealthText.setText(
-      `❤️ ${enemy.currentHealth}/${enemy.maxHealth}`
+      `♥ ${enemy.currentHealth}/${enemy.maxHealth}`
     );
-    this.enemyBlockText.setText(enemy.block > 0 ? `🛡️ ${enemy.block}` : "");
+    this.enemyBlockText.setText(enemy.block > 0 ? `⛨ ${enemy.block}` : "");
     this.enemyIntentText.setText(
       `${enemy.intent.icon} ${enemy.intent.description}`
     );
@@ -2200,7 +2200,7 @@ export class Combat extends Scene {
     // Health healing
     if (reward.healthHealing > 0) {
       this.add
-        .text(screenWidth/2, rewardY, `❤️ Healed ${reward.healthHealing} HP`, {
+        .text(screenWidth/2, rewardY, `♥ Healed ${reward.healthHealing} HP`, {
           fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#ff6b6b",
@@ -2606,7 +2606,7 @@ export class Combat extends Scene {
             duration: 999,
             value: 1,
             description: "Deal +1 additional damage per stack with Attack actions.",
-            emoji: "💪",
+            emoji: "†",
           });
         } else {
           // AoE Damage + Burn
@@ -2664,7 +2664,7 @@ export class Combat extends Scene {
             duration: 2,
             value: 1.5,
             description: "Take +50% damage from all incoming attacks.",
-            emoji: "💥",
+            emoji: "†",
           });
         }
         break;
@@ -2680,7 +2680,7 @@ export class Combat extends Scene {
             duration: 999,
             value: 1,
             description: "Gain +1 additional block per stack with Defend actions.",
-            emoji: "🤸",
+            emoji: "⛨",
           });
         } else {
           // Draw cards + Apply Weak
@@ -2692,7 +2692,7 @@ export class Combat extends Scene {
             duration: 2,
             value: 0.5,
             description: "Deal -50% damage with Attack actions.",
-            emoji: "😞",
+            emoji: "†",
           });
         }
         break;
