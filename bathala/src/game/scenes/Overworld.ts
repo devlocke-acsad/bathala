@@ -21,6 +21,10 @@ export class Overworld extends Scene {
   private actionButtons: Phaser.GameObjects.Container[] = [];
   private scanlines!: Phaser.GameObjects.TileSprite;
   private scanlineTimer: number = 0;
+  private shopKey!: Phaser.Input.Keyboard.Key;
+  private testButtonsVisible: boolean = false;
+  private testButtonsContainer!: Phaser.GameObjects.Container;
+  private toggleButton!: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: "Overworld" });
@@ -127,6 +131,7 @@ export class Overworld extends Scene {
     this.bossText = this.add.text(10, 40, 
       `Boss Progress: ${Math.round(this.gameState.getBossProgress() * 100)}%`, 
       {
+        fontFamily: 'dungeon-mode',
         fontSize: '16px',
         color: '#ffffff',
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -143,19 +148,19 @@ export class Overworld extends Scene {
     // Combat test button
     this.createActionButton(buttonX, buttonY, "Combat", "#ff0000", () => {
       this.startCombat("combat");
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Elite test button
     this.createActionButton(buttonX, buttonY, "Elite", "#ffa500", () => {
       this.startCombat("elite");
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Boss test button
     this.createActionButton(buttonX, buttonY, "Boss Fight", "#8b5cf6", () => {
       this.startCombat("boss");
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Shop test button
@@ -192,13 +197,13 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Event test button
     this.createActionButton(buttonX, buttonY, "Event", "#0000ff", () => {
       console.log("Event action triggered");
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Campfire test button
@@ -235,7 +240,7 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     buttonY += 60;
     
     // Treasure test button
@@ -272,35 +277,42 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     
     // Create additional easily accessible test buttons at the bottom of the screen (fixed to camera)
     const bottomButtonY = screenHeight - 100;
-    let bottomButtonX = 100;
+    
+    // Calculate total width needed for all buttons to center them
+    const buttonCount = 8; // Number of bottom buttons
+    const buttonSpacing = 200; // Increased spacing between buttons
+    const totalWidth = (buttonCount - 1) * buttonSpacing; // Total width of spacing between buttons
+    const bottomButtonX = (screenWidth - totalWidth) / 2; // Center the group of buttons
+    
+    let currentButtonX = bottomButtonX;
     
     // Quick Boss Fight button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Boss", "#8b5cf6", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Boss", "#8b5cf6", () => {
       this.startCombat("boss");
-    });
+    }, this.testButtonsContainer);
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // Quick Combat button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Combat", "#ff0000", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Combat", "#ff0000", () => {
       this.startCombat("combat");
-    });
+    }, this.testButtonsContainer);
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // Quick Elite button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Elite", "#ffa500", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Elite", "#ffa500", () => {
       this.startCombat("elite");
-    });
+    }, this.testButtonsContainer);
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // Quick Campfire button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Campfire", "#ff4500", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Campfire", "#ff4500", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
@@ -333,12 +345,12 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // Quick Shop button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Shop", "#00ff00", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Shop", "#00ff00", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
@@ -371,12 +383,12 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // Quick Treasure button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Treasure", "#ffff00", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Treasure", "#ffff00", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
@@ -409,14 +421,22 @@ export class Overworld extends Scene {
           ],
         }
       });
-    });
+    }, this.testButtonsContainer);
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // DDA Debug button at bottom  
-    this.createActionButton(bottomButtonX, bottomButtonY, "DDA Debug", "#9c27b0", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "DDA Debug", "#9c27b0", () => {
       this.scene.start("DDADebugScene");
-    });
+    }, this.testButtonsContainer);
+    
+    // Create container for all test buttons
+    this.testButtonsContainer = this.add.container(0, 0);
+    // Add all existing test buttons to the container
+    // (We'll need to modify the button creation to add them to this container)
+    
+    // Create toggle button
+    this.createToggleButton();
   }
 
   createDayNightProgressBar(): void {
@@ -428,94 +448,153 @@ export class Overworld extends Scene {
     
     const screenWidth = this.cameras.main.width;
     const progressBarWidth = screenWidth * 0.6;
-    const progressBarHeight = 20;
     const progressBarX = (screenWidth - progressBarWidth) / 2;
-    const progressBarY = 30; // Move down to avoid overlapping with other UI elements
+    const progressBarY = 80; // Move down with more margin above it to prevent overflow
     
-    // Create background bar
-    this.add.rectangle(
-      progressBarX + progressBarWidth / 2,
-      progressBarY,
-      progressBarWidth,
-      progressBarHeight,
-      0x000000
-    ).setAlpha(0.7).setScrollFactor(0).setDepth(100); // Fixed to camera with depth
+    // Create horizontal axis line segments with colors matching the vertical ticks
+    // Last segment should use night color, only the final tick should be red for boss
+    const segmentWidth = progressBarWidth / 10;
+    for (let i = 0; i < 10; i++) {
+      const segmentX = progressBarX + (i * segmentWidth) + (segmentWidth / 2);
+      const isDay = i % 2 === 0;
+      
+      this.add.rectangle(
+        segmentX,
+        progressBarY,
+        segmentWidth,
+        4,
+        isDay ? 0xFFD368 : 0x7144FF // Day or night color
+      ).setAlpha(1).setScrollFactor(0).setDepth(100); // Fixed to camera with depth
+    }
     
-    // Create progress bar fill
-    this.dayNightProgressFill = this.add.rectangle(
-      progressBarX,
-      progressBarY,
-      0, // Width will be updated
-      progressBarHeight,
-      0xffd93d // Day color (yellow)
-    ).setOrigin(0, 0.5).setScrollFactor(0).setDepth(101); // Fixed to camera with depth
-    
-    // Create tick marks (10 ticks for 5 cycles)
+    // Create major ticks (taller bars) at icon positions with thicker lines and matching colors
     for (let i = 0; i <= 10; i++) {
       const tickX = progressBarX + (i * progressBarWidth / 10);
-      const tickHeight = i % 2 === 0 ? 10 : 5; // Longer ticks for cycle boundaries
+      let color;
       
+      if (i === 10) {
+        // Boss tick (red color)
+        color = 0xE54646;
+      } else {
+        // Day/night ticks
+        const isDay = i % 2 === 0;
+        color = isDay ? 0xFFD368 : 0x7144FF;
+      }
+      
+      // Major tick (taller bar) with thicker line
       this.add.rectangle(
         tickX,
         progressBarY,
-        2,
-        tickHeight,
-        0xffffff
-      ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102); // Fixed to camera with depth
+        4,
+        16,
+        color
+      ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(101);
     }
     
-    // Create sun and moon icons
-    // Sun for day cycles (even numbers)
-    for (let i = 0; i <= 10; i += 2) {
-      const iconX = progressBarX + (i * progressBarWidth / 10);
-      const sun = this.add.circle(iconX, progressBarY - 15, 8, 0xffd93d);
-      sun.setStrokeStyle(1, 0x000000);
-      sun.setScrollFactor(0).setDepth(102); // Fixed to camera with depth
+    // Create minor ticks (shorter bars) between icons with thicker lines and matching colors
+    const stepsPerSegment = 5;
+    for (let i = 0; i < 10; i++) {
+      const segmentStartX = progressBarX + (i * progressBarWidth / 10);
+      const segmentEndX = progressBarX + ((i + 1) * progressBarWidth / 10);
+      const stepWidth = (segmentEndX - segmentStartX) / stepsPerSegment;
+      let color;
+      
+      if (i === 9) {
+        // Last segment for boss (red color for final tick only)
+        // For minor ticks in the last segment, use night color
+        color = 0x7144FF; // Night color
+      } else {
+        // Day/night segments
+        const isDay = i % 2 === 0;
+        color = isDay ? 0xFFD368 : 0x7144FF;
+      }
+      
+      for (let step = 1; step < stepsPerSegment; step++) {
+        const tickX = segmentStartX + (step * stepWidth);
+        
+        // Minor tick (shorter bar) with thicker line
+        this.add.rectangle(
+          tickX,
+          progressBarY,
+          3,
+          10,
+          color
+        ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102);
+      }
     }
     
-    // Moon for night cycles (odd numbers)
-    for (let i = 1; i <= 9; i += 2) {
-      const iconX = progressBarX + (i * progressBarWidth / 10);
-      const moon = this.add.circle(iconX, progressBarY - 15, 6, 0x4ecdc4);
-      moon.setStrokeStyle(1, 0x000000);
-      moon.setScrollFactor(0).setDepth(102); // Fixed to camera with depth
+    // Create icons above the axis line (5 day/night cycles = 10 icons + 1 boss)
+    // Position icons in the middle of each cycle segment
+    const iconOffset = progressBarWidth / 20; // Half of segment width to center icons
+    for (let i = 0; i < 10; i++) {
+      const iconX = progressBarX + (i * progressBarWidth / 10) + iconOffset;
+      const iconY = progressBarY - 50; // Position above the axis line (moved down to match new position)
+      
+      if (i % 2 === 0) {
+        // Day icon (sun) - even positions
+        const sunIcon = this.add.image(iconX, iconY, "bathala_sun_icon");
+        sunIcon.setScale(1.8);
+        sunIcon.setScrollFactor(0).setDepth(103);
+      } else {
+        // Night icon (moon) - odd positions
+        const moonIcon = this.add.image(iconX, iconY, "bathala_moon_icon");
+        moonIcon.setScale(1.8);
+        moonIcon.setScrollFactor(0).setDepth(103);
+      }
     }
     
-    // Boss icon at the end of the progress bar
+    // Boss icon at the end, positioned above the axis line
+    // Position it at the end of the progress bar
     const bossIconX = progressBarX + progressBarWidth;
-    const bossText = this.add.text(bossIconX, progressBarY - 15, "👹", {
-      fontSize: '24px',
-      align: 'center'
-    }).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102);
+    const bossIconY = progressBarY - 50; // Position above the axis line (moved down to match new position)
+    const bossIcon = this.add.image(bossIconX, bossIconY, "bathala_boss_icon");
+    bossIcon.setScale(2.0);
+    bossIcon.setScrollFactor(0).setDepth(103);
     
-    // Create player indicator
-    this.dayNightIndicator = this.add.triangle(
-      progressBarX,
-      progressBarY,
-      0, -8,
-      -6, 4,
-      6, 4,
-      0xff0000
-    ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(103); // Fixed to camera with depth
+    // Create player indicator (▲ symbol pointing up from below the axis line)
+    this.dayNightIndicator = this.add.text(0, 0, "▲", {
+      fontFamily: 'dungeon-mode-inverted',
+      fontSize: '36px',
+      color: '#E54646',
+      align: 'center'
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(104); // Fixed to camera with depth, positioned below axis line
     
     // Update the progress bar
     this.updateDayNightProgressBar();
   }
 
-  createActionButton(x: number, y: number, text: string, color: string, callback: () => void): void {
+  createActionButton(x: number, y: number, text: string, color: string, callback: () => void, container?: Phaser.GameObjects.Container): void {
     const button = this.add.container(x, y);
     
-    const background = this.add.rectangle(0, 0, 120, 40, 0x333333);
+    // Create a temporary text object to measure the actual text width
+    const tempText = this.add.text(0, 0, text, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '14px',
+      color: color
+    });
+    
+    // Get the actual width of the text
+    const textWidth = tempText.width;
+    const textHeight = tempText.height;
+    tempText.destroy(); // Remove the temporary text
+    
+    // Set button dimensions with proper padding
+    const padding = 20;
+    const buttonWidth = Math.max(120, textWidth + padding); // Minimum width of 120px
+    const buttonHeight = Math.max(40, textHeight + 10); // Minimum height of 40px
+    
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x333333);
     background.setStrokeStyle(2, parseInt(color.replace('#', ''), 16));
     
     const buttonText = this.add.text(0, 0, text, {
+      fontFamily: 'dungeon-mode',
       fontSize: '14px',
       color: color,
       align: 'center'
     }).setOrigin(0.5);
     
     button.add([background, buttonText]);
-    button.setInteractive(new Phaser.Geom.Rectangle(-60, -20, 120, 40), Phaser.Geom.Rectangle.Contains);
+    button.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
     
     // Set depth to ensure buttons are visible above other UI elements
     button.setDepth(1000);
@@ -530,7 +609,90 @@ export class Overworld extends Scene {
       background.setFillStyle(0x333333);
     });
     
+    // Add to the specified container if provided, otherwise add to scene
+    if (container) {
+      container.add(button);
+    }
+    
     this.actionButtons.push(button);
+  }
+
+  createToggleButton(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Position toggle button at top-right corner
+    const toggleX = screenWidth - 60;
+    const toggleY = 50;
+    
+    this.toggleButton = this.add.container(toggleX, toggleY);
+    
+    // Create a temporary text object to measure the actual text width
+    const tempText = this.add.text(0, 0, "Dev Mode", {
+      fontFamily: 'dungeon-mode',
+      fontSize: '12px',
+      color: '#ffffff'
+    });
+    
+    // Get the actual width of the text
+    const textWidth = tempText.width;
+    const textHeight = tempText.height;
+    tempText.destroy(); // Remove the temporary text
+    
+    // Set button dimensions with proper padding
+    const padding = 20;
+    const buttonWidth = Math.max(100, textWidth + padding); // Minimum width of 100px
+    const buttonHeight = Math.max(30, textHeight + 10); // Minimum height of 30px
+    
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x333333);
+    background.setStrokeStyle(2, 0xffffff);
+    
+    const buttonText = this.add.text(0, 0, "Dev Mode", {
+      fontFamily: 'dungeon-mode',
+      fontSize: '12px',
+      color: '#ffffff',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    this.toggleButton.add([background, buttonText]);
+    this.toggleButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
+    this.toggleButton.setScrollFactor(0);
+    this.toggleButton.setDepth(2000); // Ensure it's above other UI elements
+    
+    this.toggleButton.on('pointerdown', () => {
+      this.toggleTestButtons();
+    });
+    
+    this.toggleButton.on('pointerover', () => {
+      background.setFillStyle(0x555555);
+    });
+    
+    this.toggleButton.on('pointerout', () => {
+      background.setFillStyle(0x333333);
+    });
+    
+    // Initially hide all test buttons since dev mode is off by default
+    this.hideTestButtons();
+  }
+
+  toggleTestButtons(): void {
+    this.testButtonsVisible = !this.testButtonsVisible;
+    
+    // Update toggle button text
+    const buttonText = this.toggleButton.getAt(1) as Phaser.GameObjects.Text;
+    buttonText.setText("Dev Mode");
+    
+    // Show or hide all test buttons only
+    this.actionButtons.forEach(button => {
+      button.setVisible(this.testButtonsVisible);
+    });
+  }
+  
+  hideTestButtons(): void {
+    // Hide only test buttons, not essential UI elements
+    this.actionButtons.forEach(button => {
+      button.setVisible(false);
+    });
   }
 
   update(): void {
@@ -756,19 +918,14 @@ export class Overworld extends Scene {
     const screenWidth = this.cameras.main.width;
     const progressBarWidth = screenWidth * 0.6;
     const progressBarX = (screenWidth - progressBarWidth) / 2;
+    const progressBarY = 80; // Match the Y position from createDayNightProgressBar (updated position)
     
     // Calculate progress (0 to 1)
     const totalProgress = Math.min(this.gameState.actionsTaken / this.gameState.totalActionsUntilBoss, 1);
     
-    // Update progress bar fill
-    const fillWidth = progressBarWidth * totalProgress;
-    this.dayNightProgressFill.width = fillWidth;
-    
-    // Update color based on day/night
-    this.dayNightProgressFill.fillColor = this.gameState.isDay ? 0xffd93d : 0x4ecdc4;
-    
-    // Update player indicator position
+    // Update player indicator position (below the bar)
     this.dayNightIndicator.x = progressBarX + (progressBarWidth * totalProgress);
+    this.dayNightIndicator.y = progressBarY + 25; // Position below the bar
     
     // Handle night overlay
     if (!this.gameState.isDay && !this.nightOverlay) {
@@ -1272,7 +1429,7 @@ export class Overworld extends Scene {
       this.cameras.main.height / 2,
       "THE BOSS APPROACHES...",
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: 48,
         color: "#ff0000",
         align: "center"
@@ -1332,7 +1489,7 @@ export class Overworld extends Scene {
       this.cameras.main.height / 2 - 100,
       title,
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: 32,
         color: `#${color.toString(16).padStart(6, '0')}`,
       }
@@ -1344,7 +1501,7 @@ export class Overworld extends Scene {
       this.cameras.main.height / 2,
       message,
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#e8eced",
         align: "center",
@@ -1353,22 +1510,41 @@ export class Overworld extends Scene {
     ).setOrigin(0.5).setScrollFactor(0).setDepth(2002);
     
     // Create continue button
+    const buttonTextContent = "Continue";
+    
+    // Create a temporary text object to measure the actual text width
+    const tempText = this.add.text(0, 0, buttonTextContent, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#e8eced"
+    });
+    
+    // Get the actual width of the text
+    const textWidth = tempText.width;
+    const textHeight = tempText.height;
+    tempText.destroy(); // Remove the temporary text
+    
+    // Set button dimensions with proper padding
+    const padding = 20;
+    const buttonWidth = Math.max(150, textWidth + padding); // Minimum width of 150px
+    const buttonHeight = Math.max(40, textHeight + 10); // Minimum height of 40px
+    
     const continueButton = this.add.container(
       this.cameras.main.width / 2,
       this.cameras.main.height / 2 + 100
     ).setScrollFactor(0).setDepth(2002);
     
-    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x3d4454)
+    const buttonBg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x3d4454)
       .setStrokeStyle(2, color);
-    const buttonText = this.add.text(0, 0, "Continue", {
-      fontFamily: "Centrion",
+    const buttonText = this.add.text(0, 0, buttonTextContent, {
+      fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#e8eced"
     }).setOrigin(0.5);
     
     continueButton.add([buttonBg, buttonText]);
     continueButton.setInteractive(
-      new Phaser.Geom.Rectangle(-75, -20, 150, 40),
+      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
     
@@ -1423,22 +1599,222 @@ export class Overworld extends Scene {
       cameraWidth,
       cameraHeight,
       0x000000
-    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0); // Start transparent
+    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
     
-    // Fade in the overlay
-    this.tweens.add({
-      targets: overlay,
-      alpha: 1,
-      duration: 300,
-      ease: 'Power2'
-    });
-    
-    // Pause this scene and start combat scene
-    this.scene.pause();
-    this.scene.launch("Combat", { 
-      nodeType: nodeType,
-      transitionOverlay: overlay // Pass overlay to combat scene
-    });
+    // Different transition effects based on enemy type (Pokemon-like wild encounters with consistent red/black theme)
+    if (nodeType === "elite") {
+      // Elite enemy transition - Pokemon-like wild encounter with red/black theme
+      // Flash screen with red tint
+      const flashOverlay = this.add.rectangle(
+        cameraWidth / 2,
+        cameraHeight / 2,
+        cameraWidth,
+        cameraHeight,
+        0xff0000
+      ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2001);
+      
+      // Animate flash
+      this.tweens.add({
+        targets: flashOverlay,
+        alpha: 0.7,
+        duration: 200,
+        yoyo: true,
+        repeat: 1,
+        onComplete: () => {
+          flashOverlay.destroy();
+        }
+      });
+      
+      // Shake player sprite
+      const originalPlayerX = this.player.x;
+      const originalPlayerY = this.player.y;
+      
+      // More intense shaking for elite enemies
+      this.tweens.add({
+        targets: this.player,
+        x: originalPlayerX + Phaser.Math.Between(-5, 5),
+        y: originalPlayerY + Phaser.Math.Between(-5, 5),
+        duration: 100,
+        repeat: 5,
+        yoyo: true,
+        onComplete: () => {
+          this.player.setX(originalPlayerX);
+          this.player.setY(originalPlayerY);
+        }
+      });
+      
+      // Create elite enemy encounter effect
+      this.time.delayedCall(500, () => {
+        // Create expanding circles with red color
+        for (let i = 0; i < 3; i++) {
+          const circle = this.add.circle(
+            cameraWidth / 2,
+            cameraHeight / 2,
+            10,
+            0xff0000, // Red color for elite enemies
+            0.3
+          ).setScrollFactor(0).setDepth(2001);
+          
+          // Animate circle expansion
+          this.tweens.add({
+            targets: circle,
+            radius: cameraWidth / 3,
+            alpha: 0,
+            duration: 1000,
+            delay: i * 100,
+            ease: 'Power2',
+            onComplete: () => {
+              circle.destroy();
+            }
+          });
+        }
+        
+        // Create red sparkle effects
+        for (let i = 0; i < 20; i++) {
+          const sparkle = this.add.rectangle(
+            Phaser.Math.Between(cameraWidth/2 - 100, cameraWidth/2 + 100),
+            Phaser.Math.Between(cameraHeight/2 - 100, cameraHeight/2 + 100),
+            Phaser.Math.Between(2, 5),
+            Phaser.Math.Between(2, 5),
+            0xff0000,
+            1
+          ).setScrollFactor(0).setDepth(2001);
+          
+          // Animate sparkles
+          this.tweens.add({
+            targets: sparkle,
+            alpha: 0,
+            duration: 800,
+            delay: Phaser.Math.Between(0, 500),
+            onComplete: () => {
+              sparkle.destroy();
+            }
+          });
+        }
+      });
+      
+      // Fade to black and transition
+      this.time.delayedCall(1500, () => {
+        this.tweens.add({
+          targets: overlay,
+          alpha: 1,
+          duration: 800,
+          ease: 'Power2',
+          onComplete: () => {
+            // Pause this scene and start combat scene
+            this.scene.pause();
+            this.scene.launch("Combat", { 
+              nodeType: nodeType,
+              transitionOverlay: overlay // Pass overlay to combat scene
+            });
+          }
+        });
+      });
+    } else {
+      // Common enemy transition - Pokemon-like wild encounter with red/black theme
+      // Flash screen red
+      const flashOverlay = this.add.rectangle(
+        cameraWidth / 2,
+        cameraHeight / 2,
+        cameraWidth,
+        cameraHeight,
+        0xff0000
+      ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2001);
+      
+      // Animate flash
+      this.tweens.add({
+        targets: flashOverlay,
+        alpha: 0.8,
+        duration: 150,
+        yoyo: true,
+        repeat: 1,
+        onComplete: () => {
+          flashOverlay.destroy();
+        }
+      });
+      
+      // Shake player sprite slightly
+      const originalPlayerX = this.player.x;
+      const originalPlayerY = this.player.y;
+      
+      this.tweens.add({
+        targets: this.player,
+        x: originalPlayerX + Phaser.Math.Between(-3, 3),
+        y: originalPlayerY + Phaser.Math.Between(-3, 3),
+        duration: 100,
+        repeat: 3,
+        yoyo: true,
+        onComplete: () => {
+          this.player.setX(originalPlayerX);
+          this.player.setY(originalPlayerY);
+        }
+      });
+      
+      // Create common enemy encounter effect
+      this.time.delayedCall(400, () => {
+        // Create simple expanding circle in red
+        const circle = this.add.circle(
+          cameraWidth / 2,
+          cameraHeight / 2,
+          10,
+          0xff0000, // Red color for common enemies
+          0.2
+        ).setScrollFactor(0).setDepth(2001);
+        
+        // Animate circle expansion
+        this.tweens.add({
+          targets: circle,
+          radius: cameraWidth / 4,
+          alpha: 0,
+          duration: 800,
+          ease: 'Power2',
+          onComplete: () => {
+            circle.destroy();
+          }
+        });
+        
+        // Create small red sparkle effects
+        for (let i = 0; i < 10; i++) {
+          const sparkle = this.add.rectangle(
+            Phaser.Math.Between(cameraWidth/2 - 50, cameraWidth/2 + 50),
+            Phaser.Math.Between(cameraHeight/2 - 50, cameraHeight/2 + 50),
+            2,
+            2,
+            0xff0000,
+            1
+          ).setScrollFactor(0).setDepth(2001);
+          
+          // Animate sparkles
+          this.tweens.add({
+            targets: sparkle,
+            alpha: 0,
+            duration: 600,
+            delay: Phaser.Math.Between(0, 300),
+            onComplete: () => {
+              sparkle.destroy();
+            }
+          });
+        }
+      });
+      
+      // Fade to black and transition
+      this.time.delayedCall(1200, () => {
+        this.tweens.add({
+          targets: overlay,
+          alpha: 1,
+          duration: 600,
+          ease: 'Power2',
+          onComplete: () => {
+            // Pause this scene and start combat scene
+            this.scene.pause();
+            this.scene.launch("Combat", { 
+              nodeType: nodeType,
+              transitionOverlay: overlay // Pass overlay to combat scene
+            });
+          }
+        });
+      });
+    }
   }
 
   startBossCombat(): void {

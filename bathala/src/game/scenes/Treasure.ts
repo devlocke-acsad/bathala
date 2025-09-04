@@ -38,7 +38,7 @@ export class Treasure extends Scene {
       30,
       "Treasure Chest",
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: 32,
         color: "#e8eced",
         align: "center",
@@ -59,11 +59,11 @@ export class Treasure extends Scene {
     // Create description text
     this.descriptionText = this.add.text(
       screenWidth / 2,
-      screenHeight / 2,
-      "Choose one relic to take with you",
+      screenHeight / 2 + 100,
+      "Choose a relic to add to your collection",
       {
-        fontFamily: "Centrion",
-        fontSize: 20,
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
         color: "#ffd93d",
         align: "center",
       }
@@ -158,31 +158,31 @@ export class Treasure extends Scene {
     tooltipBg.setStrokeStyle(2, 0x57606f);
     
     // Relic name
-    const name = this.add.text(-115, -50, relic.name, {
-      fontFamily: "Centrion",
+    const nameText = this.add.text(0, -60, relic.name, {
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 20,
-      color: "#e8eced",
-      align: "left",
-    }).setOrigin(0, 0);
+      color: "#ffd93d",
+      align: "center",
+    }).setOrigin(0.5);
     
     // Relic description
-    const description = this.add.text(-115, -20, relic.description, {
-      fontFamily: "Centrion",
+    const descText = this.add.text(0, -20, relic.description, {
+      fontFamily: "dungeon-mode",
       fontSize: 16,
-      color: "#a8a8a8",
-      align: "left",
-      wordWrap: { width: 230 }
-    }).setOrigin(0, 0);
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: 180 }
+    }).setOrigin(0.5);
     
     // Instruction
     const instruction = this.add.text(-115, 30, "Click to acquire", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 14,
       color: "#2ed573",
       align: "left",
     }).setOrigin(0, 0);
     
-    this.tooltipBox.add([tooltipBg, name, description, instruction]);
+    this.tooltipBox.add([tooltipBg, nameText, descText, instruction]);
     this.tooltipBox.setPosition(x, y);
     this.tooltipBox.setVisible(true);
   }
@@ -195,13 +195,19 @@ export class Treasure extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
+    const buttonText = "Leave Treasure";
+    const baseWidth = 180;
+    const textWidth = buttonText.length * 10; // Approximate width per character
+    const buttonWidth = Math.max(baseWidth, textWidth + 20); // Add padding
+    const buttonHeight = 50;
+    
     const backButton = this.add.container(screenWidth / 2, screenHeight - 120);
     
-    const background = this.add.rectangle(0, 0, 180, 50, 0xff4757);
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0xff4757);
     background.setStrokeStyle(2, 0xffffff);
     
-    const text = this.add.text(0, 0, "Leave Treasure", {
-      fontFamily: "Centrion",
+    const text = this.add.text(0, 0, buttonText, {
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 20,
       color: "#ffffff",
     }).setOrigin(0.5);
@@ -209,7 +215,7 @@ export class Treasure extends Scene {
     backButton.add([background, text]);
     
     backButton.setInteractive(
-      new Phaser.Geom.Rectangle(-90, -25, 180, 50),
+      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
     
@@ -269,7 +275,7 @@ export class Treasure extends Scene {
     background.setStrokeStyle(2, 0xffffff);
     
     const text = this.add.text(0, 0, "Continue Journey", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 20,
       color: "#000000",
     }).setOrigin(0.5);
@@ -309,7 +315,7 @@ export class Treasure extends Scene {
       screenHeight - 100,
       message,
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: color,
         align: "center",

@@ -171,6 +171,11 @@ export class Preloader extends Scene {
       }
     }
     
+    // Load UI icons for day/night tracker
+    this.load.image("bathala_sun_icon", "ui/icons/bathala_sun_icon.png");
+    this.load.image("bathala_moon_icon", "ui/icons/bathala_moon_icon.png");
+    this.load.image("bathala_boss_icon", "ui/icons/bathala_boss_icon.png");
+    
     // Debug: Log when assets are loaded
     this.load.on('filecomplete', (key: string, type: string) => {
       console.log(`Loaded asset: ${key} (${type})`);

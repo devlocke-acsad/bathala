@@ -55,19 +55,31 @@ export class DDADebugScene extends Scene {
    * Create clean title section
    */
   private createTitle(): void {
-    const centerX = this.cameras.main.width / 2;
+    const screenWidth = this.cameras.main.width;
     
-    this.add.text(centerX, 30, "DDA Analytics Dashboard", {
-      fontFamily: "Centrion",
-      fontSize: 36,
-      color: "#ffffff",
-    }).setOrigin(0.5);
+    this.add.text(
+      screenWidth / 2,
+      20,
+      "DDA System Debugger",
+      {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 32,
+        color: "#4ecdc4",
+        align: "center"
+      }
+    ).setOrigin(0.5);
     
-    this.add.text(centerX, 65, "Dynamic Difficulty Adjustment Testing", {
-      fontFamily: "Chivo",
-      fontSize: 18,
-      color: "#aaaaaa",
-    }).setOrigin(0.5);
+    this.add.text(
+      screenWidth / 2,
+      60,
+      "Rule-Based Dynamic Difficulty Adjustment",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
+        color: "#a8a8a8",
+        align: "center"
+      }
+    ).setOrigin(0.5);
   }
 
   /**
@@ -90,7 +102,7 @@ export class DDADebugScene extends Scene {
     
     // Title
     const title = this.add.text(graphWidth / 2, -40, "Player Performance Score", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 24,
       color: "#ffffff",
     }).setOrigin(0.5);
@@ -104,7 +116,7 @@ export class DDADebugScene extends Scene {
       const label = this.add.text(-20, y, i.toString(), {
         fontSize: 16,
         color: "#cccccc",
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
       }).setOrigin(1, 0.5);
       container.add(label);
       
@@ -147,7 +159,7 @@ export class DDADebugScene extends Scene {
       const label = this.add.text(width + 20, yEnd + tierHeight / 2, tier.name, {
         fontSize: 16,
         color: `#${tier.color.toString(16)}`,
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontStyle: "bold"
       }).setOrigin(0, 0.5);
       container.add(label);
@@ -173,7 +185,7 @@ export class DDADebugScene extends Scene {
     
     // Title
     const title = this.add.text(panelWidth / 2, 20, "Current Status", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 24,
       color: "#ffffff",
     }).setOrigin(0.5);
@@ -199,7 +211,7 @@ export class DDADebugScene extends Scene {
     
     // Title
     const title = this.add.text(panelWidth / 2, 20, "Combat Testing", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 24,
       color: "#ffffff",
     }).setOrigin(0.5);
@@ -247,7 +259,7 @@ export class DDADebugScene extends Scene {
     
     // Title
     const title = this.add.text(panelWidth / 2, 20, "Configuration", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 24,
       color: "#ffffff",
     }).setOrigin(0.5);
@@ -283,7 +295,7 @@ export class DDADebugScene extends Scene {
     
     // Button text
     const buttonText = this.add.text(0, 0, text, {
-      fontFamily: "Chivo",
+      fontFamily: "dungeon-mode",
       fontSize: 14,
       color: "#ffffff",
       align: "center",
@@ -305,7 +317,7 @@ export class DDADebugScene extends Scene {
    */
   private createBackButton(): void {
     const backBtn = this.add.text(50, this.cameras.main.height - 50, "← Back to Game", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 20,
       color: "#ffffff",
       backgroundColor: "#ff4757",
@@ -538,11 +550,12 @@ export class DDADebugScene extends Scene {
     bg.setOrigin(0);
     this.infoPanel.add(bg);
     
-    const title = this.add.text(175, 20, "Current Status", {
-      fontFamily: "Centrion",
-      fontSize: 24,
-      color: "#ffffff",
-    }).setOrigin(0.5);
+    // Panel title
+    const title = this.add.text(10, 10, "Current Status", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 20,
+      color: "#4ecdc4"
+    });
     this.infoPanel.add(title);
     
     // Current stats using correct API
@@ -559,7 +572,7 @@ export class DDADebugScene extends Scene {
     
     stats.forEach((stat, index) => {
       const text = this.add.text(20, 60 + index * 30, stat, {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#ffffff",
       });
@@ -569,7 +582,7 @@ export class DDADebugScene extends Scene {
     // Show current difficulty modifiers using correct API
     const adjustment = this.dda.getCurrentDifficultyAdjustment();
     const modText = this.add.text(20, 160, "Difficulty Modifiers:", {
-      fontFamily: "Chivo",
+      fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#cccccc",
     });
@@ -583,7 +596,7 @@ export class DDADebugScene extends Scene {
     
     modDetails.forEach((detail, index) => {
       const text = this.add.text(20, 185 + index * 20, detail, {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: 14,
         color: "#aaaaaa",
       });
