@@ -127,6 +127,7 @@ export class Overworld extends Scene {
     this.bossText = this.add.text(10, 40, 
       `Boss Progress: ${Math.round(this.gameState.getBossProgress() * 100)}%`, 
       {
+        fontFamily: 'dungeon-mode',
         fontSize: '16px',
         color: '#ffffff',
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -276,31 +277,38 @@ export class Overworld extends Scene {
     
     // Create additional easily accessible test buttons at the bottom of the screen (fixed to camera)
     const bottomButtonY = screenHeight - 100;
-    let bottomButtonX = 100;
+    
+    // Calculate total width needed for all buttons to center them
+    const buttonCount = 8; // Number of bottom buttons
+    const buttonSpacing = 200; // Increased spacing between buttons
+    const totalWidth = (buttonCount - 1) * buttonSpacing; // Total width of spacing between buttons
+    const bottomButtonX = (screenWidth - totalWidth) / 2; // Center the group of buttons
+    
+    let currentButtonX = bottomButtonX;
     
     // Quick Boss Fight button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Boss", "#8b5cf6", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Boss", "#8b5cf6", () => {
       this.startCombat("boss");
     });
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // Quick Combat button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Combat", "#ff0000", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Combat", "#ff0000", () => {
       this.startCombat("combat");
     });
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // Quick Elite button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Elite", "#ffa500", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Elite", "#ffa500", () => {
       this.startCombat("elite");
     });
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // Quick Campfire button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Campfire", "#ff4500", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Campfire", "#ff4500", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
@@ -335,10 +343,10 @@ export class Overworld extends Scene {
       });
     });
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // Quick Shop button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Shop", "#00ff00", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Shop", "#00ff00", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
@@ -373,10 +381,10 @@ export class Overworld extends Scene {
       });
     });
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // Quick Treasure button at bottom
-    this.createActionButton(bottomButtonX, bottomButtonY, "Quick Treasure", "#ffff00", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Treasure", "#ffff00", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
@@ -411,10 +419,10 @@ export class Overworld extends Scene {
       });
     });
     
-    bottomButtonX += 150;
+    currentButtonX += 200;
     
     // DDA Debug button at bottom  
-    this.createActionButton(bottomButtonX, bottomButtonY, "DDA Debug", "#9c27b0", () => {
+    this.createActionButton(currentButtonX, bottomButtonY, "DDA Debug", "#9c27b0", () => {
       this.scene.start("DDADebugScene");
     });
   }
@@ -484,6 +492,7 @@ export class Overworld extends Scene {
     // Boss icon at the end of the progress bar
     const bossIconX = progressBarX + progressBarWidth;
     const bossText = this.add.text(bossIconX, progressBarY - 15, "👹", {
+      fontFamily: 'dungeon-mode-inverted',
       fontSize: '24px',
       align: 'center'
     }).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102);
@@ -505,17 +514,35 @@ export class Overworld extends Scene {
   createActionButton(x: number, y: number, text: string, color: string, callback: () => void): void {
     const button = this.add.container(x, y);
     
-    const background = this.add.rectangle(0, 0, 120, 40, 0x333333);
+    // Create a temporary text object to measure the actual text width
+    const tempText = this.add.text(0, 0, text, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '14px',
+      color: color
+    });
+    
+    // Get the actual width of the text
+    const textWidth = tempText.width;
+    const textHeight = tempText.height;
+    tempText.destroy(); // Remove the temporary text
+    
+    // Set button dimensions with proper padding
+    const padding = 20;
+    const buttonWidth = Math.max(120, textWidth + padding); // Minimum width of 120px
+    const buttonHeight = Math.max(40, textHeight + 10); // Minimum height of 40px
+    
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x333333);
     background.setStrokeStyle(2, parseInt(color.replace('#', ''), 16));
     
     const buttonText = this.add.text(0, 0, text, {
+      fontFamily: 'dungeon-mode',
       fontSize: '14px',
       color: color,
       align: 'center'
     }).setOrigin(0.5);
     
     button.add([background, buttonText]);
-    button.setInteractive(new Phaser.Geom.Rectangle(-60, -20, 120, 40), Phaser.Geom.Rectangle.Contains);
+    button.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
     
     // Set depth to ensure buttons are visible above other UI elements
     button.setDepth(1000);
@@ -1272,7 +1299,7 @@ export class Overworld extends Scene {
       this.cameras.main.height / 2,
       "THE BOSS APPROACHES...",
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: 48,
         color: "#ff0000",
         align: "center"
@@ -1332,7 +1359,7 @@ export class Overworld extends Scene {
       this.cameras.main.height / 2 - 100,
       title,
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: 32,
         color: `#${color.toString(16).padStart(6, '0')}`,
       }
@@ -1344,7 +1371,7 @@ export class Overworld extends Scene {
       this.cameras.main.height / 2,
       message,
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#e8eced",
         align: "center",
@@ -1353,22 +1380,41 @@ export class Overworld extends Scene {
     ).setOrigin(0.5).setScrollFactor(0).setDepth(2002);
     
     // Create continue button
+    const buttonTextContent = "Continue";
+    
+    // Create a temporary text object to measure the actual text width
+    const tempText = this.add.text(0, 0, buttonTextContent, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#e8eced"
+    });
+    
+    // Get the actual width of the text
+    const textWidth = tempText.width;
+    const textHeight = tempText.height;
+    tempText.destroy(); // Remove the temporary text
+    
+    // Set button dimensions with proper padding
+    const padding = 20;
+    const buttonWidth = Math.max(150, textWidth + padding); // Minimum width of 150px
+    const buttonHeight = Math.max(40, textHeight + 10); // Minimum height of 40px
+    
     const continueButton = this.add.container(
       this.cameras.main.width / 2,
       this.cameras.main.height / 2 + 100
     ).setScrollFactor(0).setDepth(2002);
     
-    const buttonBg = this.add.rectangle(0, 0, 150, 40, 0x3d4454)
+    const buttonBg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x3d4454)
       .setStrokeStyle(2, color);
-    const buttonText = this.add.text(0, 0, "Continue", {
-      fontFamily: "Centrion",
+    const buttonText = this.add.text(0, 0, buttonTextContent, {
+      fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#e8eced"
     }).setOrigin(0.5);
     
     continueButton.add([buttonBg, buttonText]);
     continueButton.setInteractive(
-      new Phaser.Geom.Rectangle(-75, -20, 150, 40),
+      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
     

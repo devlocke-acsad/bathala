@@ -41,7 +41,7 @@ export class GameOver extends Scene
         this.background.setAlpha(0.5);
 
         this.gameover_text = this.add.text(screenWidth/2, screenHeight/2, 'Game Over', {
-            fontFamily: 'Arial Black', fontSize: 64, color: '#ffffff',
+            fontFamily: 'dungeon-mode-inverted', fontSize: 64, color: '#ffffff',
             stroke: '#000000', strokeThickness: 8,
             align: 'center'
         });

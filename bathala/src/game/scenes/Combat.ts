@@ -413,7 +413,7 @@ export class Combat extends Scene {
     // Title
     this.add
       .text(screenWidth/2, 30, "Combat - Forest Encounter", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: 28,
         color: "#e8eced",
         align: "center",
@@ -475,7 +475,7 @@ export class Combat extends Scene {
     // Player name
     this.add
       .text(playerX, playerY - 120, this.combatState.player.name, {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#e8eced",
         align: "center",
@@ -485,7 +485,7 @@ export class Combat extends Scene {
     // Health display
     this.playerHealthText = this.add
       .text(playerX, playerY + 80, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#ff6b6b",
         align: "center",
@@ -495,7 +495,7 @@ export class Combat extends Scene {
     // Block display
     this.playerBlockText = this.add
       .text(playerX, playerY + 105, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#4ecdc4",
         align: "center",
@@ -563,7 +563,7 @@ export class Combat extends Scene {
     // Enemy name (positioned further from enemy due to larger sprite)
     this.add
       .text(enemyX, enemyY - 170, this.combatState.enemy.name, {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 28, // Larger font size
         color: "#e8eced",
         align: "center",
@@ -573,7 +573,7 @@ export class Combat extends Scene {
     // Health display (positioned further from enemy due to larger sprite)
     this.enemyHealthText = this.add
       .text(enemyX, enemyY - 140, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 24, // Larger font size
         color: "#ff6b6b",
         align: "center",
@@ -583,7 +583,7 @@ export class Combat extends Scene {
     // Block display (positioned further from enemy due to larger sprite)
     this.enemyBlockText = this.add
       .text(enemyX, enemyY - 110, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#4ecdc4",
         align: "center",
@@ -593,7 +593,7 @@ export class Combat extends Scene {
     // Intent display (positioned further from enemy due to larger sprite)
     this.enemyIntentText = this.add
       .text(enemyX, enemyY + 170, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#feca57",
         align: "center",
@@ -631,7 +631,7 @@ export class Combat extends Scene {
     // Initialize hand evaluation text
     this.handEvaluationText = this.add
       .text(0, -80, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#ffd93d",
         align: "center",
@@ -708,7 +708,7 @@ export class Combat extends Scene {
 
       const specialTooltip = this.add
         .text(buttonSpacing, 30, this.getSpecialActionName(dominantSuit), {
-          fontFamily: "Centrion",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(14 * scaleFactor),
           color: "#ffffff",
           backgroundColor: "#000000",
@@ -735,21 +735,20 @@ export class Combat extends Scene {
   private createTurnUI(): void {
     const screenWidth = this.cameras.main.width;
     this.turnText = this.add.text(screenWidth - 200, 50, "", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#e8eced",
     });
 
     this.actionsText = this.add.text(screenWidth - 200, 80, "", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#ffd93d",
     });
 
     // Hand indicator text - shows current selected hand type
     this.handIndicatorText = this.add.text(screenWidth - 200, 110, "", {
-      fontFamily: "Centrion",
-      fontSize: 16,
+      fontFamily: "dungeon-mode",
       color: "#4ecdc4",
     });
 
@@ -787,7 +786,7 @@ export class Combat extends Scene {
 
       const tooltip = this.add
         .text(x, spacing, relic.name + "\n" + relic.description, {
-          fontFamily: "Centrion",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(14 * scaleFactor),
           backgroundColor: "#000",
           padding: { x: 5, y: 5 },
@@ -828,7 +827,7 @@ export class Combat extends Scene {
     
     // Title text positioned at top left of the box
     const titleText = this.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 14,
       color: "#ffffff",
       align: "left"
@@ -905,7 +904,7 @@ export class Combat extends Scene {
         relicIcon.on("pointerover", () => {
           // Create temporary tooltip
           const tooltip = this.add.text(slotX, slotY - 40, relic.name, {
-            fontFamily: "Chivo",
+            fontFamily: "dungeon-mode",
             fontSize: 12,
             color: "#ffffff",
             backgroundColor: "#000000",
@@ -955,7 +954,7 @@ export class Combat extends Scene {
 
     const buttonText = this.add
       .text(0, 0, text, {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: Math.floor(16 * scaleFactor),
         color: "#e8eced",
         align: "center",
@@ -1090,6 +1089,7 @@ export class Combat extends Scene {
       
       // Add rank text
       const rankText = this.add.text(-cardWidth/2 + 5, -cardHeight/2 + 5, card.rank, {
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(10 * scaleFactor),
         color: "#000000",
       }).setOrigin(0, 0);
@@ -1098,6 +1098,7 @@ export class Combat extends Scene {
       // Add suit symbol
       const display = DeckManager.getCardDisplay(card);
       const suitText = this.add.text(cardWidth/2 - 5, -cardHeight/2 + 5, display.symbol, {
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(10 * scaleFactor),
         color: display.color,
       }).setOrigin(1, 0);
@@ -1833,7 +1834,7 @@ export class Combat extends Scene {
 
       this.add
         .text(screenWidth/2, screenHeight/2, resultText, {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode-inverted",
           fontSize: Math.floor(48 * scaleFactor),
           color: color,
           align: "center",
@@ -1918,7 +1919,7 @@ export class Combat extends Scene {
     // Enemy name (larger font and positioned further from portrait due to larger sprite)
     this.add
       .text(screenWidth/2, screenHeight/2 - 200, dialogue.name, {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(28 * scaleFactor), // Larger font size
         color: "#e8eced",
         align: "center",
@@ -1928,7 +1929,7 @@ export class Combat extends Scene {
     // Main dialogue text (positioned further down due to larger portrait)
     this.add
       .text(screenWidth/2, screenHeight/2, "You have defeated this creature. What do you choose?", {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(18 * scaleFactor),
         color: "#e8eced",
         align: "center",
@@ -1957,7 +1958,7 @@ export class Combat extends Scene {
           this.combatState.player.landasScore
         } (${landasTier.toUpperCase()})`,
         {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: landasColor,
           align: "center",
@@ -1991,7 +1992,7 @@ export class Combat extends Scene {
 
     const buttonText = this.add
       .text(0, 0, text, {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(14 * scaleFactor),
         color: color,
         align: "center",
@@ -2118,7 +2119,7 @@ export class Combat extends Scene {
         100,
         choice === "spare" ? "Mercy Shown" : "Victory Through Force",
         {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode-inverted",
           fontSize: Math.floor(32 * scaleFactor),
           color: choiceColor,
           align: "center",
@@ -2129,7 +2130,7 @@ export class Combat extends Scene {
     // Dialogue
     this.add
       .text(screenWidth/2, 200, dialogue, {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(16 * scaleFactor),
         color: "#e8eced",
         align: "center",
@@ -2145,7 +2146,7 @@ export class Combat extends Scene {
 
     this.add
       .text(screenWidth/2, 320, "Rewards", {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: Math.floor(24 * scaleFactor),
         color: "#ffd93d",
         align: "center",
@@ -2158,7 +2159,7 @@ export class Combat extends Scene {
     if (reward.ginto > 0) {
       this.add
         .text(screenWidth/2, rewardY, `💰 ${reward.ginto} Ginto`, {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#e8eced",
           align: "center",
@@ -2171,7 +2172,7 @@ export class Combat extends Scene {
     if (reward.baubles > 0) {
       this.add
         .text(screenWidth/2, rewardY, `💎 ${reward.baubles} Bathala Baubles`, {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#4ecdc4",
           align: "center",
@@ -2184,7 +2185,7 @@ export class Combat extends Scene {
     if (reward.healthHealing > 0) {
       this.add
         .text(screenWidth/2, rewardY, `❤️ Healed ${reward.healthHealing} HP`, {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#ff6b6b",
           align: "center",
@@ -2196,7 +2197,7 @@ export class Combat extends Scene {
     // Landas change
     this.add
       .text(screenWidth/2, rewardY, `✨ Landas ${landasChangeText}`, {
-        fontFamily: "Chivo",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(16 * scaleFactor),
         color: landasChange > 0 ? "#2ed573" : "#ff4757",
         align: "center",
@@ -2208,7 +2209,7 @@ export class Combat extends Scene {
     if (reward.bonusEffect) {
       this.add
         .text(screenWidth/2, rewardY, `✨ ${reward.bonusEffect}`, {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(14 * scaleFactor),
           color: "#ffd93d",
           align: "center",
@@ -2228,7 +2229,7 @@ export class Combat extends Scene {
           this.combatState.player.landasScore
         } (${landasTier.toUpperCase()})`,
         {
-          fontFamily: "Chivo",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(18 * scaleFactor),
           color: landasColor,
           align: "center",
@@ -2692,7 +2693,7 @@ export class Combat extends Scene {
     
     this.actionResultText = this.add
       .text(screenWidth/2, screenHeight/2, "", {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: Math.floor(20 * scaleFactor),
         color: "#2ed573",
         align: "center",
@@ -2766,7 +2767,7 @@ export class Combat extends Scene {
     // Add deck label positioned below the deck cards
     const labelY = (cardHeight / 2) + 20; // Position below the cards
     const deckLabel = this.add.text(0, labelY, `Deck: ${this.combatState.player.drawPile.length}`, {
-      fontFamily: "Chivo",
+      fontFamily: "dungeon-mode",
       fontSize: 12,
       color: "#ffffff",
       align: "center"
@@ -2814,7 +2815,7 @@ export class Combat extends Scene {
     
     // Add discard label
     const discardLabel = this.add.text(0, 50, `Discard: ${this.combatState.player.discardPile.length}`, {
-      fontFamily: "Chivo",
+      fontFamily: "dungeon-mode",
       fontSize: 12,
       color: "#ffffff",
       align: "center"
@@ -3299,7 +3300,7 @@ export class Combat extends Scene {
 
       const tooltip = this.add
         .text(x, spacing, effect.description, {
-          fontFamily: "Centrion",
+          fontFamily: "dungeon-mode",
           fontSize: Math.floor(14 * scaleFactor),
           backgroundColor: "#000",
           padding: { x: 5, y: 5 },

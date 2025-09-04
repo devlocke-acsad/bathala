@@ -33,7 +33,7 @@ export class Campfire extends Scene {
       30,
       "Campfire",
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: 32,
         color: "#e8eced",
         align: "center",
@@ -56,7 +56,7 @@ export class Campfire extends Scene {
       screenHeight / 2 + 50,
       "Choose an action",
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#ffd93d",
         align: "center",
@@ -117,11 +117,17 @@ export class Campfire extends Scene {
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
     
-    const background = this.add.rectangle(0, 0, 120, 50, 0x2f3542);
+    // Adjust button width based on text length to prevent overflow
+    const baseWidth = 120;
+    const textWidth = text.length * 10; // Approximate width per character
+    const buttonWidth = Math.max(baseWidth, textWidth + 20); // Add padding
+    const buttonHeight = 50;
+    
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x2f3542);
     background.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(color).color);
     
     const buttonText = this.add.text(0, 0, text, {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 20,
       color: color,
       align: "center",
@@ -130,7 +136,7 @@ export class Campfire extends Scene {
     button.add([background, buttonText]);
     
     button.setInteractive(
-      new Phaser.Geom.Rectangle(-60, -25, 120, 50),
+      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
     
@@ -179,7 +185,7 @@ export class Campfire extends Scene {
     
     // Action description
     const descText = this.add.text(-115, -30, description, {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#e8eced",
       align: "left",
@@ -203,21 +209,21 @@ export class Campfire extends Scene {
     // Card info
     const display = DeckManager.getCardDisplay(card);
     const cardInfo = this.add.text(-90, -40, `${card.rank} of ${card.suit}`, {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 18,
       color: display.color,
       align: "left",
     }).setOrigin(0, 0);
     
     const elementInfo = this.add.text(-90, -10, `Element: ${display.elementSymbol}`, {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#a8a8a8",
       align: "left",
     }).setOrigin(0, 0);
     
     const instruction = this.add.text(-90, 20, "Click to select", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode",
       fontSize: 14,
       color: "#2ed573",
       align: "left",
@@ -242,7 +248,7 @@ export class Campfire extends Scene {
     background.setStrokeStyle(2, 0xffffff);
     
     const text = this.add.text(0, 0, "Leave Campfire", {
-      fontFamily: "Centrion",
+      fontFamily: "dungeon-mode-inverted",
       fontSize: 20,
       color: "#ffffff",
     }).setOrigin(0.5);
@@ -539,7 +545,7 @@ export class Campfire extends Scene {
       30,
       "Campfire",
       {
-        fontFamily: "Centrion",
+        fontFamily: "dungeon-mode-inverted",
         fontSize: 32,
         color: "#e8eced",
         align: "center",
