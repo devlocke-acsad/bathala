@@ -106,14 +106,15 @@ export class MainMenu extends Scene {
   }
 
   /**
-   * Create a straight title with HeinzHeinrich font and updated color
+   * Create a straight title with Pixeled English Font and updated color
    */
   private createStraightTitle(x: number, y: number, text: string): void {
     // Create the text with styling
     const titleText = this.add
       .text(x, y, text, {
-        fontFamily: "HeinzHeinrich", // Updated font
-        fontSize: 120,
+        // fontFamily: "HeinzHeinrich", // Original font
+        fontFamily: "Pixeled English Font", // Updated font
+        fontSize: 250, 
         color: "#77888C", // Updated color
       })
       .setOrigin(0.5);

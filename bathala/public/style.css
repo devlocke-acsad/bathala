@@ -41,6 +41,13 @@
     font-style: normal;
 }
 
+@font-face {
+    font-family: 'Pixeled English Font';
+    src: url('./assets/fonts/pixeled-english/Pixeled English Font.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 /* Chivo is now loaded from Google Fonts in the HTML head */
 
 
