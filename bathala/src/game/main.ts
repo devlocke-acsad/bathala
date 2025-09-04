@@ -7,6 +7,7 @@ import { Combat } from "./scenes/Combat";
 import { Shop } from "./scenes/Shop";
 import { Campfire } from "./scenes/Campfire";
 import { Treasure } from "./scenes/Treasure";
+import { Discover } from "./scenes/Discover";
 import { DDADebugScene } from "./scenes/debug/DDADebugScene";
 import { AUTO, Game } from "phaser";
 import { Preloader } from "./scenes/Preloader";
@@ -19,7 +20,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: window.innerHeight,
   parent: "game-container",
   backgroundColor: "#150E10",
-  scene: [Boot, Preloader, MainMenu, Overworld, Combat, Shop, Campfire, Treasure, DDADebugScene, MainGame, GameOver],
+  scene: [Boot, Preloader, MainMenu, Overworld, Combat, Shop, Campfire, Treasure, Discover, DDADebugScene, MainGame, GameOver],
 
   // Keep antialias off for crisp rendering, but don't force pixelArt globally
   // render: {
@@ -33,6 +34,11 @@ const config: Phaser.Types.Core.GameConfig = {
     width: window.innerWidth,
     height: window.innerHeight,
   },
+  
+  // Enable DOM elements for UI components
+  dom: {
+    createContainer: true
+  }
 };
 
 const StartGame = (parent: string) => {
