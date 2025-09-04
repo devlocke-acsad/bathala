@@ -386,7 +386,7 @@ export class Combat extends Scene {
     // Make the dialogue box interactive so it can be clicked to continue
     this.battleStartDialogueContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, screenWidth, screenHeight), Phaser.Geom.Rectangle.Contains);
     
-    // Add click handler to remove the dialogue
+    // Add click handler to remove the dialogue and show enemy dialogue
     this.battleStartDialogueContainer.on('pointerdown', () => {
       this.tweens.add({
         targets: this.battleStartDialogueContainer,
@@ -396,6 +396,11 @@ export class Combat extends Scene {
           if (this.battleStartDialogueContainer) {
             this.battleStartDialogueContainer.destroy();
             this.battleStartDialogueContainer = null;
+            
+            // Show enemy dialogue after player dialogue is removed
+            this.time.delayedCall(100, () => {
+              this.showEnemyDialogue();
+            });
           }
         }
       });
@@ -410,6 +415,308 @@ export class Combat extends Scene {
       callbackScope: this,
       loop: true
     });
+  }
+
+  /**
+   * Show Celeste-style enemy dialogue at top of screen
+   */
+  private showEnemyDialogue(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Create dialogue box at top
+    const dialogueBox = this.add.rectangle(
+      screenWidth / 2,
+      80,
+      screenWidth * 0.8,
+      100,
+      0xffffff
+    ).setScrollFactor(0).setDepth(5001);
+    
+    // Determine which enemy sprite to use based on enemy type
+    let enemySpriteKey = "balete"; // default
+    
+    // Check enemy name to determine sprite
+    const enemyName = this.combatState.enemy.name.toLowerCase();
+    if (enemyName.includes("balete")) {
+      enemySpriteKey = "balete";
+    } else if (enemyName.includes("sigbin")) {
+      enemySpriteKey = "sigbin";
+    } else if (enemyName.includes("tikbalang")) {
+      enemySpriteKey = "tikbalang";
+    } else {
+      // Alternate between the three sprites for other enemies
+      const spriteOptions = ["balete", "sigbin", "tikbalang"];
+      const randomIndex = Math.floor(Math.random() * spriteOptions.length);
+      enemySpriteKey = spriteOptions[randomIndex];
+    }
+    
+    // Create enemy icon
+    let enemyIcon: Phaser.GameObjects.Sprite | null = null;
+    if (this.textures.exists(enemySpriteKey)) {
+      enemyIcon = this.add.sprite(
+        (screenWidth / 2) - (screenWidth * 0.8 / 2) + 40,
+        80,
+        enemySpriteKey
+      ).setScale(1.5).setScrollFactor(0).setDepth(5002);
+    }
+    
+    // Create enemy name text
+    const enemyNameText = this.add.text(
+      (screenWidth / 2) - (screenWidth * 0.8 / 2) + 80,
+      60,
+      this.combatState.enemy.name,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#000000",
+        align: "left"
+      }
+    ).setOrigin(0, 0).setScrollFactor(0).setDepth(5002);
+    
+    // Create enemy dialogue text
+    const enemyDialogueText = this.add.text(
+      (screenWidth / 2) - (screenWidth * 0.8 / 2) + 80,
+      90,
+      this.getEnemyDialogue(),
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#000000",
+        align: "left",
+        wordWrap: { width: screenWidth * 0.8 - 100 }
+      }
+    ).setOrigin(0, 0).setScrollFactor(0).setDepth(5002);
+    
+    // Create continue indicator
+    const continueIndicator = this.add.text(
+      screenWidth / 2 + (screenWidth * 0.8 / 2) - 20,
+      110,
+      "▼",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#000000"
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+    
+    // Create container for all enemy dialogue elements
+    const enemyDialogueContainer = this.add.container(0, 0, [
+      dialogueBox,
+      enemyIcon,
+      enemyNameText,
+      enemyDialogueText,
+      continueIndicator
+    ]).setScrollFactor(0).setDepth(5000);
+    
+    // Make the dialogue box interactive so it can be clicked to continue
+    enemyDialogueContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, screenWidth, 160), Phaser.Geom.Rectangle.Contains);
+    
+    // Add click handler to remove the dialogue
+    enemyDialogueContainer.on('pointerdown', () => {
+      this.tweens.add({
+        targets: enemyDialogueContainer,
+        alpha: 0,
+        duration: 300,
+        onComplete: () => {
+          enemyDialogueContainer.destroy();
+        }
+      });
+    });
+    
+    // Add blinking animation to the continue indicator
+    this.time.addEvent({
+      delay: 500,
+      callback: () => {
+        continueIndicator.setVisible(!continueIndicator.visible);
+      },
+      callbackScope: this,
+      loop: true
+    });
+  }
+
+  /**
+   * Get enemy dialogue based on enemy type
+   */
+  private getEnemyDialogue(): string {
+    const enemyName = this.combatState.enemy.name.toLowerCase();
+    
+    // Specific dialogues for known enemies
+    if (enemyName.includes("balete")) {
+      return "The ancient tree spirit awakens! You dare disturb my slumber?";
+    } else if (enemyName.includes("sigbin")) {
+      return "You cannot escape my grasp, mortal! Prepare to be drained!";
+    } else if (enemyName.includes("tikbalang")) {
+      return "Lost, are you? Let me lead you to your doom!";
+    } else if (enemyName.includes("goblin")) {
+      return "You're no match for the forest goblins! Get them!";
+    } else if (enemyName.includes("manananggal")) {
+      return "My hunger knows no bounds! I will feast on your soul!";
+    } else if (enemyName.includes("aswang")) {
+      return "Fear my curse! Your flesh will be my sustenance!";
+    } else if (enemyName.includes("duwende")) {
+      return "Intruder! You shall not pass the chief's domain!";
+    } else if (enemyName.includes("kapre")) {
+      return "You dare enter my tree? Face my wrath!";
+    } else if (enemyName.includes("tiyanak")) {
+      return "Cry, baby, cry! Your tears will be my delight!";
+    } else if (enemyName.includes("bakunawa")) {
+      return "The eclipse approaches! Your world will be consumed!";
+    }
+    
+    // Default dialogue
+    return "You have encountered a fearsome creature! Prepare for battle!";
+  }
+
+  /**
+   * Show Celeste-style dialogue when enemy reaches 50% health
+   */
+  private showHalfHealthDialogue(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Create dialogue box at top
+    const dialogueBox = this.add.rectangle(
+      screenWidth / 2,
+      80,
+      screenWidth * 0.8,
+      100,
+      0xffffff
+    ).setScrollFactor(0).setDepth(5001);
+    
+    // Determine which enemy sprite to use based on enemy type
+    let enemySpriteKey = "balete"; // default
+    
+    // Check enemy name to determine sprite
+    const enemyName = this.combatState.enemy.name.toLowerCase();
+    if (enemyName.includes("balete")) {
+      enemySpriteKey = "balete";
+    } else if (enemyName.includes("sigbin")) {
+      enemySpriteKey = "sigbin";
+    } else if (enemyName.includes("tikbalang")) {
+      enemySpriteKey = "tikbalang";
+    } else {
+      // Alternate between the three sprites for other enemies
+      const spriteOptions = ["balete", "sigbin", "tikbalang"];
+      const randomIndex = Math.floor(Math.random() * spriteOptions.length);
+      enemySpriteKey = spriteOptions[randomIndex];
+    }
+    
+    // Create enemy icon
+    let enemyIcon: Phaser.GameObjects.Sprite | null = null;
+    if (this.textures.exists(enemySpriteKey)) {
+      enemyIcon = this.add.sprite(
+        (screenWidth / 2) - (screenWidth * 0.8 / 2) + 40,
+        80,
+        enemySpriteKey
+      ).setScale(1.5).setScrollFactor(0).setDepth(5002);
+    }
+    
+    // Create enemy name text
+    const enemyNameText = this.add.text(
+      (screenWidth / 2) - (screenWidth * 0.8 / 2) + 80,
+      60,
+      this.combatState.enemy.name,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#000000",
+        align: "left"
+      }
+    ).setOrigin(0, 0).setScrollFactor(0).setDepth(5002);
+    
+    // Create enemy dialogue text
+    const enemyDialogueText = this.add.text(
+      (screenWidth / 2) - (screenWidth * 0.8 / 2) + 80,
+      90,
+      this.getHalfHealthDialogue(),
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#000000",
+        align: "left",
+        wordWrap: { width: screenWidth * 0.8 - 100 }
+      }
+    ).setOrigin(0, 0).setScrollFactor(0).setDepth(5002);
+    
+    // Create continue indicator
+    const continueIndicator = this.add.text(
+      screenWidth / 2 + (screenWidth * 0.8 / 2) - 20,
+      110,
+      "▼",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#000000"
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
+    
+    // Create container for all enemy dialogue elements
+    const halfHealthDialogueContainer = this.add.container(0, 0, [
+      dialogueBox,
+      enemyIcon,
+      enemyNameText,
+      enemyDialogueText,
+      continueIndicator
+    ]).setScrollFactor(0).setDepth(5000);
+    
+    // Make the dialogue box interactive so it can be clicked to continue
+    halfHealthDialogueContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, screenWidth, 160), Phaser.Geom.Rectangle.Contains);
+    
+    // Add click handler to remove the dialogue
+    halfHealthDialogueContainer.on('pointerdown', () => {
+      this.tweens.add({
+        targets: halfHealthDialogueContainer,
+        alpha: 0,
+        duration: 300,
+        onComplete: () => {
+          halfHealthDialogueContainer.destroy();
+        }
+      });
+    });
+    
+    // Add blinking animation to the continue indicator
+    this.time.addEvent({
+      delay: 500,
+      callback: () => {
+        continueIndicator.setVisible(!continueIndicator.visible);
+      },
+      callbackScope: this,
+      loop: true
+    });
+  }
+
+  /**
+   * Get enemy dialogue for when they reach 50% health
+   */
+  private getHalfHealthDialogue(): string {
+    const enemyName = this.combatState.enemy.name.toLowerCase();
+    
+    // Specific dialogues for known enemies at 50% health
+    if (enemyName.includes("balete")) {
+      return "The roots of my power run deep! You cannot fell me so easily!";
+    } else if (enemyName.includes("sigbin")) {
+      return "My strength is not yet spent! I will drain you dry!";
+    } else if (enemyName.includes("tikbalang")) {
+      return "Foolish mortal! I have many tricks yet to show you!";
+    } else if (enemyName.includes("goblin")) {
+      return "We're just getting started! Feel our true power!";
+    } else if (enemyName.includes("manananggal")) {
+      return "You think you've won? My hunger only grows stronger!";
+    } else if (enemyName.includes("aswang")) {
+      return "You cannot escape my curse! I will consume your very soul!";
+    } else if (enemyName.includes("duwende")) {
+      return "The chief's power is not so easily diminished!";
+    } else if (enemyName.includes("kapre")) {
+      return "My tree grants me endless strength! You cannot prevail!";
+    } else if (enemyName.includes("tiyanak")) {
+      return "My tears of blood will be your downfall!";
+    } else if (enemyName.includes("bakunawa")) {
+      return "The eclipse strengthens me! You cannot stop the coming darkness!";
+    }
+    
+    // Default dialogue
+    return "You think you've won? I'm just getting started!";
   }
 
   /**
@@ -1711,6 +2018,13 @@ export class Combat extends Scene {
     // Add visual feedback for enemy taking damage
     this.animateSpriteDamage(this.enemySprite);
     this.updateEnemyUI();
+
+    // Check for 50% health trigger
+    const healthPercentage = this.combatState.enemy.currentHealth / this.combatState.enemy.maxHealth;
+    if (healthPercentage <= 0.5 && !this.combatState.enemy.halfHealthTriggered) {
+      this.combatState.enemy.halfHealthTriggered = true;
+      this.showHalfHealthDialogue();
+    }
 
     // Check if enemy is defeated
     if (this.combatState.enemy.currentHealth <= 0) {

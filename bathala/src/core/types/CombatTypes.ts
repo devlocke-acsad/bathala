@@ -76,6 +76,7 @@ export interface Enemy extends CombatEntity {
   damage: number;
   attackPattern: string[];
   currentPatternIndex: number;
+  halfHealthTriggered?: boolean; // For 50% health dialogue trigger
 }
 
 export interface Relic {
