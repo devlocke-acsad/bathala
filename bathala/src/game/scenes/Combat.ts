@@ -64,6 +64,18 @@ export class Combat extends Scene {
   // Sprite references for animations
   private playerSprite!: Phaser.GameObjects.Sprite;
   private enemySprite!: Phaser.GameObjects.Sprite;
+  private playerShadow!: Phaser.GameObjects.Graphics;
+  private enemyShadow!: Phaser.GameObjects.Graphics;
+  
+  // Deck animation properties
+  private deckSprite!: Phaser.GameObjects.Container;
+  private deckPosition!: { x: number; y: number };
+  private discardSprite!: Phaser.GameObjects.Container;
+  private discardPosition!: { x: number; y: number };
+  private isDrawingCards: boolean = false;
+
+  // Relic inventory
+  private relicInventory!: Phaser.GameObjects.Container;
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
@@ -268,13 +280,24 @@ export class Combat extends Scene {
   }
 
   create(data: { nodeType: string, transitionOverlay?: any }): void {
-    this.cameras.main.setBackgroundColor(0x0e1112);
+    // Add forest background
+    const bg = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, "forest_bg");
+    bg.setDisplaySize(this.cameras.main.width, this.cameras.main.height);
 
     // Initialize combat state
     this.initializeCombat(data.nodeType);
 
     // Create UI elements
     this.createCombatUI();
+    
+    // Create relic inventory
+    this.createRelicInventory();
+    
+    // Create deck sprite
+    this.createDeckSprite();
+    
+    // Create discard pile sprite
+    this.createDiscardSprite();
 
     // Draw initial hand
     this.drawInitialHand();
@@ -440,6 +463,11 @@ export class Combat extends Scene {
     const playerX = screenWidth * 0.25; // 25% from left
     const playerY = screenHeight * 0.4; // 40% from top
 
+    // Create player shadow circle
+    this.playerShadow = this.add.graphics();
+    this.playerShadow.fillStyle(0x000000, 0.3); // Black with 30% opacity
+    this.playerShadow.fillEllipse(playerX, playerY + 60, 80, 20); // Oval shadow below player
+
     // Player sprite with idle animation
     this.playerSprite = this.add.sprite(playerX, playerY, "combat_player");
     this.playerSprite.setScale(2); // Scale up from 32x64 to 64x128
@@ -496,6 +524,11 @@ export class Combat extends Scene {
     
     const enemyX = screenWidth * 0.75; // 75% from left
     const enemyY = screenHeight * 0.4; // 40% from top
+    
+    // Create enemy shadow circle
+    this.enemyShadow = this.add.graphics();
+    this.enemyShadow.fillStyle(0x000000, 0.3); // Black with 30% opacity
+    this.enemyShadow.fillEllipse(enemyX, enemyY + 90, 120, 30); // Larger oval shadow below enemy
 
     // Determine which enemy sprite to use based on enemy type
     let enemySpriteKey = "balete"; // default
@@ -600,12 +633,12 @@ export class Combat extends Scene {
   private createPlayedHandUI(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    // Position played hand container higher
-    this.playedHandContainer = this.add.container(screenWidth/2, screenHeight - 350);
+    // Position played hand container much higher to avoid overlap with hand
+    this.playedHandContainer = this.add.container(screenWidth/2, screenHeight - 450);
     
     // Initialize hand evaluation text
     this.handEvaluationText = this.add
-      .text(0, 50, "", {
+      .text(0, -80, "", {
         fontFamily: "Centrion",
         fontSize: 18,
         color: "#ffd93d",
@@ -783,6 +816,129 @@ export class Combat extends Scene {
   }
 
   /**
+   * Create relic inventory in top left corner with vignette design
+   */
+  private createRelicInventory(): void {
+    // Create container for the inventory
+    this.relicInventory = this.add.container(20, 20);
+    
+    // Create the main background rectangle with vignette effect (longer length)
+    const inventoryWidth = 1200; // Increased from 200
+    const inventoryHeight = 120;
+    
+    // Main background
+    const mainBg = this.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x2a2a2a, 0.9);
+    mainBg.setStrokeStyle(2, 0x4a4a4a);
+    
+    // Inner vignette effect - darker inner rectangle
+    const innerBg = this.add.rectangle(0, 0, inventoryWidth - 10, inventoryHeight - 10, 0x1a1a1a, 0.7);
+    innerBg.setStrokeStyle(1, 0x3a3a3a);
+    
+    // Title text positioned at top left of the box
+    const titleText = this.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
+      fontFamily: "Centrion",
+      fontSize: 14,
+      color: "#ffffff",
+      align: "left"
+    }).setOrigin(0, 0.5);
+    
+    // Create relic slots grid (4x2 = 8 slots for longer rectangle)
+    const slotSize = 25;
+    const slotsPerRow = 4; // Increased from 3
+    const rows = 2;
+    const slotSpacing = 35;
+    
+    const startX = -(slotsPerRow - 1) * slotSpacing / 2;
+    const startY = -10;
+    
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < slotsPerRow; col++) {
+        const slotX = startX + col * slotSpacing;
+        const slotY = startY + row * slotSpacing;
+        
+        // Create slot background
+        const slot = this.add.rectangle(slotX, slotY, slotSize, slotSize, 0x0a0a0a, 0.8);
+        slot.setStrokeStyle(1, 0x555555);
+        
+        this.relicInventory.add(slot);
+      }
+    }
+    
+    // Add all elements to container
+    this.relicInventory.add([mainBg, innerBg, titleText]);
+    
+    // Update with current relics
+    this.updateRelicInventory();
+  }
+
+  /**
+   * Update relic inventory with current relics
+   */
+  private updateRelicInventory(): void {
+    if (!this.relicInventory) return;
+    
+    const relics = this.combatState.player.relics;
+    const slotSize = 25;
+    const slotsPerRow = 4; // Updated to match new grid
+    const slotSpacing = 35;
+    const startX = -(slotsPerRow - 1) * slotSpacing / 2;
+    const startY = -10;
+    
+    // Remove existing relic displays (keep slots and background)
+    this.relicInventory.list.forEach(child => {
+      if ((child as any).isRelicDisplay) {
+        child.destroy();
+      }
+    });
+    
+    // Add current relics to slots
+    relics.forEach((relic, index) => {
+      if (index < 8) { // Max 8 slots now (4x2)
+        const row = Math.floor(index / slotsPerRow);
+        const col = index % slotsPerRow;
+        const slotX = startX + col * slotSpacing;
+        const slotY = startY + row * slotSpacing;
+        
+        // Create relic emoji/icon
+        const relicIcon = this.add.text(slotX, slotY, relic.emoji || "?", {
+          fontSize: 18,
+          align: "center"
+        }).setOrigin(0.5);
+        
+        // Mark as relic display for cleanup
+        (relicIcon as any).isRelicDisplay = true;
+        
+        // Add hover tooltip
+        relicIcon.setInteractive();
+        relicIcon.on("pointerover", () => {
+          // Create temporary tooltip
+          const tooltip = this.add.text(slotX, slotY - 40, relic.name, {
+            fontFamily: "Chivo",
+            fontSize: 12,
+            color: "#ffffff",
+            backgroundColor: "#000000",
+            padding: { x: 8, y: 4 }
+          }).setOrigin(0.5);
+          
+          (tooltip as any).isTooltip = true;
+          this.relicInventory.add(tooltip);
+        });
+        
+        relicIcon.on("pointerout", () => {
+          // Remove tooltip
+          this.relicInventory.list.forEach(child => {
+            if ((child as any).isTooltip) {
+              child.destroy();
+            }
+          });
+        });
+        
+        this.relicInventory.add(relicIcon);
+      }
+    });
+  }
+
+  /**
    * Create a button with text and callback
    */
   private createButton(
@@ -834,17 +990,26 @@ export class Combat extends Scene {
   }
 
   /**
-   * Draw initial hand of cards
+   * Draw initial hand of cards with animation
    */
   private drawInitialHand(): void {
-    // Hand is already drawn in initializeCombat
-    this.updateHandDisplay();
+    // Clear any existing hand display
+    this.cardSprites.forEach((sprite) => sprite.destroy());
+    this.cardSprites = [];
+    
+    // Animate drawing cards from deck one by one
+    this.animateDrawCardsFromDeck(this.combatState.player.hand.length);
   }
 
   /**
    * Update hand display with a curved fanned-out arrangement
    */
   private updateHandDisplay(): void {
+    // Don't update if cards are currently being drawn
+    if (this.isDrawingCards) {
+      return;
+    }
+    
     // Clear existing card sprites
     this.cardSprites.forEach((sprite) => sprite.destroy());
     this.cardSprites = [];
@@ -974,7 +1139,42 @@ export class Combat extends Scene {
         new Phaser.Geom.Rectangle(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight),
         Phaser.Geom.Rectangle.Contains
       );
+      
+      // Card selection
       cardContainer.on("pointerdown", () => this.selectCard(card));
+      
+      // Hover effects
+      cardContainer.on("pointerover", () => {
+        // Lift card up and slightly scale it
+        this.tweens.add({
+          targets: cardContainer,
+          y: y - 15, // Lift up by 15 pixels
+          scaleX: 1.05,
+          scaleY: 1.05,
+          duration: 150,
+          ease: 'Power2.easeOut'
+        });
+        
+        // Add subtle glow effect by adjusting tint
+        const cardSprite = cardContainer.list[0] as Phaser.GameObjects.Sprite;
+        cardSprite.setTint(0xffffff); // Brighten the card
+      });
+      
+      cardContainer.on("pointerout", () => {
+        // Return to original position and scale
+        this.tweens.add({
+          targets: cardContainer,
+          y: y, // Return to original position
+          scaleX: 1,
+          scaleY: 1,
+          duration: 150,
+          ease: 'Power2.easeOut'
+        });
+        
+        // Remove glow effect
+        const cardSprite = cardContainer.list[0] as Phaser.GameObjects.Sprite;
+        cardSprite.clearTint();
+      });
     }
 
     // Store reference to card for later updates
@@ -1066,6 +1266,45 @@ export class Combat extends Scene {
   }
 
   /**
+   * Unplay a card from the played hand back to the regular hand
+   */
+  private unplayCard(card: PlayingCard): void {
+    // Check if the card is actually in the played hand
+    const playedIndex = this.combatState.player.playedHand.findIndex(c => c.id === card.id);
+    if (playedIndex === -1) {
+      console.warn("Trying to unplay a card that's not in the played hand");
+      return;
+    }
+
+    // Remove card from played hand
+    this.combatState.player.playedHand.splice(playedIndex, 1);
+    
+    // Add card back to regular hand
+    this.combatState.player.hand.push(card);
+    
+    // Reset card selection state
+    card.selected = false;
+    
+    // Remove from selected cards if it was there
+    this.selectedCards = this.selectedCards.filter(c => c.id !== card.id);
+    this.combatState.selectedCards = this.combatState.selectedCards.filter(c => c.id !== card.id);
+    
+    // If no cards left in played hand, return to card selection phase
+    if (this.combatState.player.playedHand.length === 0) {
+      this.combatState.phase = "player_turn";
+      this.updateActionButtons();
+    }
+    
+    // Update displays
+    this.updateHandDisplay();
+    this.updatePlayedHandDisplay();
+    this.updateHandIndicator();
+    
+    // Show feedback
+    this.showActionResult(`Unplayed ${card.rank} of ${card.suit}`);
+  }
+
+  /**
    * Play selected cards (Balatro style - one hand per turn)
    */
   private playSelectedCards(): void {
@@ -1107,50 +1346,56 @@ export class Combat extends Scene {
   }
 
   /**
-   * Animate card shuffling effect (Aggressive shuffling style)
+   * Animate card shuffling effect (Individual card tracking)
    */
   private animateCardShuffle(sortType: "rank" | "suit", onComplete: () => void): void {
-    // Store original positions of all cards
+    // Store original positions and card data before sorting
     const originalPositions = this.cardSprites.map(cardSprite => ({
       x: cardSprite.x,
       y: cardSprite.y,
       rotation: cardSprite.rotation
     }));
     
-    // Phase 1: Aggressive shuffle chaos - cards fly around randomly
-    const shufflePromises = this.cardSprites.map((cardSprite, index) => {
+    // Store the original card order to track which card goes where
+    const originalCards = [...this.combatState.player.hand];
+    
+    // Sort the hand data to get the new order
+    const sortedCards = DeckManager.sortCards([...this.combatState.player.hand], sortType);
+    
+    // Create a mapping of where each card should end up
+    const cardMappings = this.cardSprites.map((cardSprite, originalIndex) => {
+      const originalCard = originalCards[originalIndex];
+      const newIndex = sortedCards.findIndex(card => 
+        card.suit === originalCard.suit && card.rank === originalCard.rank
+      );
+      return {
+        sprite: cardSprite,
+        originalIndex,
+        newIndex,
+        targetPosition: originalPositions[newIndex] // Where this card should end up
+      };
+    });
+    
+    // Phase 1: Cards lift up and move to their sorted positions individually
+    const movePromises = cardMappings.map((mapping, index) => {
       return new Promise<void>((resolve) => {
-        // Random chaotic movement
-        const randomX = (Math.random() - 0.5) * 200; // Wide random X movement
-        const randomY = (Math.random() - 0.5) * 100; // Random Y movement
-        const randomRotation = (Math.random() - 0.5) * 2; // Aggressive rotation
-        const randomScale = 0.7 + Math.random() * 0.6; // Random scale between 0.7 and 1.3
-        
+        // First lift up slightly
         this.tweens.add({
-          targets: cardSprite,
-          x: cardSprite.x + randomX,
-          y: cardSprite.y + randomY,
-          rotation: randomRotation,
-          scaleX: randomScale,
-          scaleY: randomScale,
-          duration: 150, // Fast chaotic movement
-          delay: index * 8, // Very fast stagger for chaos
+          targets: mapping.sprite,
+          y: mapping.sprite.y - 20,
+          rotation: (Math.random() - 0.5) * 0.3,
+          duration: 100,
+          delay: index * 8,
           ease: 'Power2.easeOut',
           onComplete: () => {
-            // Second shuffle phase - more chaos
-            const moreRandomX = (Math.random() - 0.5) * 150;
-            const moreRandomY = (Math.random() - 0.5) * 80;
-            const moreRotation = (Math.random() - 0.5) * 1.5;
-            
+            // Then move to the target position
             this.tweens.add({
-              targets: cardSprite,
-              x: cardSprite.x + moreRandomX,
-              y: cardSprite.y + moreRandomY,
-              rotation: moreRotation,
-              scaleX: 0.8 + Math.random() * 0.4,
-              scaleY: 0.8 + Math.random() * 0.4,
-              duration: 100,
-              ease: 'Power1.easeInOut',
+              targets: mapping.sprite,
+              x: mapping.targetPosition.x,
+              y: mapping.targetPosition.y,
+              rotation: 0,
+              duration: 200,
+              ease: 'Power2.easeInOut',
               onComplete: () => resolve()
             });
           }
@@ -1158,49 +1403,12 @@ export class Combat extends Scene {
       });
     });
     
-    // Wait for aggressive shuffle, then sort and organize
-    Promise.all(shufflePromises).then(() => {
-      // Sort the hand data during the chaos
-      this.combatState.player.hand = DeckManager.sortCards(
-        this.combatState.player.hand,
-        sortType
-      );
-      
-      // Calculate new sorted positions
-      const cardWidth = 80;
-      const screenWidth = this.cameras.main.width;
-      const actualCardWidth = Math.min(cardWidth, (screenWidth * 0.8) / this.cardSprites.length);
-      const totalWidth = this.cardSprites.length * actualCardWidth;
-      const startX = -totalWidth / 2 + actualCardWidth / 2;
-      
-      // Phase 2: Cards snap into sorted positions with smooth landing
-      const organizePromises = this.cardSprites.map((cardSprite, index) => {
-        return new Promise<void>((resolve) => {
-          const newX = startX + (index * actualCardWidth);
-          const curveHeight = 5;
-          const progress = index / Math.max(1, this.cardSprites.length - 1);
-          const curveY = -curveHeight * Math.sin(progress * Math.PI);
-          const newY = originalPositions[0].y + curveY;
-          
-          this.tweens.add({
-            targets: cardSprite,
-            x: newX,
-            y: newY,
-            rotation: 0,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 200,
-            delay: index * 10, // Fast stagger for organization
-            ease: 'Back.easeOut', // Smooth landing with overshoot
-            onComplete: () => resolve()
-          });
-        });
-      });
-      
-      Promise.all(organizePromises).then(() => {
-        this.updateHandDisplay();
-        onComplete();
-      });
+    // Wait for all cards to reach their positions, then update the hand data
+    Promise.all(movePromises).then(() => {
+      // Update the hand data to match the sorted order
+      this.combatState.player.hand = sortedCards;
+      this.updateHandDisplay();
+      onComplete();
     });
   }
 
@@ -1247,6 +1455,7 @@ export class Combat extends Scene {
     this.updateHandDisplay();
     this.updateTurnUI();
     this.updateHandIndicator(); // Update hand indicator after discarding
+    this.updateDiscardDisplay(); // Update discard pile display
   }
 
   /**
@@ -1313,6 +1522,7 @@ export class Combat extends Scene {
     if (this.combatState.player.playedHand.length > 0) {
       this.combatState.player.discardPile.push(...this.combatState.player.playedHand);
       this.combatState.player.playedHand = [];
+      this.updateDiscardDisplay(); // Update discard pile display
     }
 
     // Draw cards to ensure player has 8 cards at start of turn
@@ -1333,7 +1543,7 @@ export class Combat extends Scene {
   }
 
   /**
-   * Draw cards from deck
+   * Draw cards from deck with animation
    */
   private drawCards(count: number): void {
     const { drawnCards, remainingDeck } = DeckManager.drawCards(
@@ -1341,6 +1551,7 @@ export class Combat extends Scene {
       count
     );
 
+    const previousHandSize = this.combatState.player.hand.length;
     this.combatState.player.hand.push(...drawnCards);
     this.combatState.player.drawPile = remainingDeck;
 
@@ -1349,11 +1560,19 @@ export class Combat extends Scene {
       this.combatState.player.drawPile.length === 0 &&
       this.combatState.player.discardPile.length > 0
     ) {
-      this.combatState.player.drawPile = DeckManager.shuffleDeck(
-        this.combatState.player.discardPile
-      );
-      this.combatState.player.discardPile = [];
+      // Show shuffle animation
+      this.animateShuffleDeck(() => {
+        this.combatState.player.drawPile = DeckManager.shuffleDeck(
+          this.combatState.player.discardPile
+        );
+        this.combatState.player.discardPile = [];
+      });
     }
+    
+    // Animate only the newly drawn cards
+    this.animateNewCards(drawnCards, previousHandSize);
+    this.updateDeckDisplay();
+    this.updateDiscardDisplay(); // Also update discard in case of shuffle
   }
 
   /**
@@ -1608,6 +1827,7 @@ export class Combat extends Scene {
           emoji: "🏆",
         });
         this.updateRelicsUI();
+        this.updateRelicInventory();
       }
       
       // Victory - show post-combat dialogue with delay to prevent double calls
@@ -2175,8 +2395,48 @@ export class Combat extends Scene {
         card,
         startX + index * actualCardWidth,
         0,
-        false
+        true // Make interactive so players can unplay cards
       );
+      
+      // Override the default card interaction to unplay instead of select
+      cardSprite.removeAllListeners('pointerdown');
+      cardSprite.on("pointerdown", () => {
+        this.unplayCard(card);
+      });
+      
+      // Add visual feedback for played cards when hovering
+      cardSprite.on("pointerover", () => {
+        cardSprite.setScale(1.15);
+        // Add golden tint to indicate it's clickable to unplay
+        cardSprite.list.forEach(child => {
+          if (child instanceof Phaser.GameObjects.Image) {
+            child.setTint(0xffd93d);
+          }
+        });
+        this.tweens.add({
+          targets: cardSprite,
+          y: cardSprite.y - 15,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
+      cardSprite.on("pointerout", () => {
+        cardSprite.setScale(1);
+        // Remove tint
+        cardSprite.list.forEach(child => {
+          if (child instanceof Phaser.GameObjects.Image) {
+            child.clearTint();
+          }
+        });
+        this.tweens.add({
+          targets: cardSprite,
+          y: cardSprite.y + 15,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
       this.playedHandContainer.add(cardSprite);
       this.playedCardSprites.push(cardSprite);
     });
@@ -2445,6 +2705,434 @@ export class Combat extends Scene {
       })
       .setOrigin(0.5)
       .setVisible(false);
+  }
+
+  /**
+   * Create deck sprite representation for animations
+   */
+  private createDeckSprite(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Position deck on the right side, below the enemy area
+    this.deckPosition = {
+      x: screenWidth * 0.85,
+      y: screenHeight * 0.75
+    };
+    
+    this.deckSprite = this.add.container(this.deckPosition.x, this.deckPosition.y);
+    
+    // Calculate card dimensions based on screen size (same as hand cards)
+    const baseCardWidth = 80;
+    const baseCardHeight = 112;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const cardWidth = baseCardWidth * scaleFactor;
+    const cardHeight = baseCardHeight * scaleFactor;
+    
+    // Create deck pile visual (stack of cards)
+    const deckCardCount = Math.min(5, this.combatState.player.drawPile.length); // Show max 5 cards in stack
+    
+    for (let i = 0; i < deckCardCount; i++) {
+      if (i === deckCardCount - 1) {
+        // Top card uses 13apoy sprite (front face) with black border
+        let frontCard;
+        if (this.textures.exists('card_13_apoy')) {
+          frontCard = this.add.image(
+            i * 3, // Slight offset for stack effect
+            -i * 3,
+            'card_13_apoy'
+          );
+          frontCard.setDisplaySize(cardWidth, cardHeight);
+        } else {
+          // Fallback to white rectangle for front card
+          frontCard = this.add.rectangle(
+            i * 3,
+            -i * 3,
+            cardWidth,
+            cardHeight,
+            0xffffff // White color
+          );
+          frontCard.setStrokeStyle(2, 0x000000); // Black border
+        }
+        this.deckSprite.add(frontCard);
+      } else {
+        // Back cards use white rectangle with black border
+        const cardBack = this.add.rectangle(
+          i * 3, // Slight offset for stack effect
+          -i * 3,
+          cardWidth,
+          cardHeight,
+          0xffffff // White color
+        );
+        cardBack.setStrokeStyle(2, 0x000000); // Black border
+        this.deckSprite.add(cardBack);
+      }
+    }
+    
+    // Add deck label positioned below the deck cards
+    const labelY = (cardHeight / 2) + 20; // Position below the cards
+    const deckLabel = this.add.text(0, labelY, `Deck: ${this.combatState.player.drawPile.length}`, {
+      fontFamily: "Chivo",
+      fontSize: 12,
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    this.deckSprite.add(deckLabel);
+  }
+
+  /**
+   * Create discard pile sprite representation
+   */
+  private createDiscardSprite(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Position discard pile on the left side, below the player area
+    this.discardPosition = {
+      x: screenWidth * 0.15,
+      y: screenHeight * 0.75
+    };
+    
+    this.discardSprite = this.add.container(this.discardPosition.x, this.discardPosition.y);
+    
+    // Calculate card dimensions based on screen size (same as hand cards)
+    const baseCardWidth = 80;
+    const baseCardHeight = 112;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const cardWidth = baseCardWidth * scaleFactor;
+    const cardHeight = baseCardHeight * scaleFactor;
+    
+    // Create discard pile visual (stack of card backs)
+    const discardCardCount = Math.min(3, this.combatState.player.discardPile.length); // Show max 3 cards in stack
+    
+    for (let i = 0; i < discardCardCount; i++) {
+      const cardBack = this.add.rectangle(
+        i * 3, // Slight offset for stack effect
+        -i * 3,
+        cardWidth,
+        cardHeight,
+        0x2a2a2a // Darker color for discard pile
+      );
+      cardBack.setStrokeStyle(2, 0x444444);
+      this.discardSprite.add(cardBack);
+    }
+    
+    // Add discard label
+    const discardLabel = this.add.text(0, 50, `Discard: ${this.combatState.player.discardPile.length}`, {
+      fontFamily: "Chivo",
+      fontSize: 12,
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    this.discardSprite.add(discardLabel);
+  }
+
+  /**
+   * Animate drawing cards from deck to hand positions (Balatro style)
+   */
+  private animateDrawCardsFromDeck(cardCount: number): void {
+    if (this.isDrawingCards) return; // Prevent multiple simultaneous draws
+    
+    this.isDrawingCards = true;
+    const hand = this.combatState.player.hand;
+    
+    // Calculate final hand positions
+    const screenWidth = this.cameras.main.width;
+    const cardWidth = 60;
+    const totalWidth = hand.length * cardWidth;
+    const maxWidth = screenWidth * 0.8;
+    const actualCardWidth = totalWidth > maxWidth ? (maxWidth / hand.length) : cardWidth;
+    const actualTotalWidth = hand.length * actualCardWidth;
+    const startX = screenWidth / 2 - actualTotalWidth / 2 + actualCardWidth / 2;
+    const handY = this.cameras.main.height - 240; // Match the hand container position
+    
+    // Create cards at deck position first
+    hand.forEach((card, index) => {
+      // Create card sprite at deck position - make it interactive from the start
+      const cardSprite = this.createCardSprite(card, 0, 0, true);
+      
+      // Position at deck location initially
+      cardSprite.setPosition(this.deckPosition.x, this.deckPosition.y);
+      cardSprite.setScale(0.8); // Start smaller
+      cardSprite.setAlpha(0.9);
+      
+      // Add to hand container but position at deck
+      this.handContainer.add(cardSprite);
+      this.cardSprites.push(cardSprite);
+      
+      // Calculate final position
+      const finalX = startX + index * actualCardWidth - screenWidth / 2;
+      const finalY = handY - this.cameras.main.height + 240; // Match the hand container position
+      
+      // Add slight curve effect
+      const curveHeight = 5;
+      const positionRatio = hand.length > 1 ? index / (hand.length - 1) : 0.5;
+      const curveY = finalY - Math.sin(positionRatio * Math.PI) * curveHeight;
+      
+      // Animate card flying to hand position
+      this.tweens.add({
+        targets: cardSprite,
+        x: finalX,
+        y: curveY,
+        scaleX: 1,
+        scaleY: 1,
+        alpha: 1,
+        duration: 300 + index * 50, // Stagger animations
+        delay: index * 100, // Delay each card
+        ease: 'Power2',
+        onComplete: () => {
+          // If this is the last card, mark drawing as complete
+          if (index === hand.length - 1) {
+            this.isDrawingCards = false;
+            this.updateDeckDisplay();
+          }
+        }
+      });
+      
+      // Add a slight bounce effect
+      this.tweens.add({
+        targets: cardSprite,
+        scaleX: 1.1,
+        scaleY: 1.1,
+        duration: 150,
+        delay: 300 + index * 100,
+        ease: 'Power2',
+        yoyo: true
+      });
+    });
+  }
+  
+  /**
+   * Update deck display (card count and visual)
+   */
+  private updateDeckDisplay(): void {
+    if (!this.deckSprite) return;
+    
+    // Find and update the deck label
+    const deckLabel = this.deckSprite.list.find(child => 
+      child instanceof Phaser.GameObjects.Text
+    ) as Phaser.GameObjects.Text;
+    
+    if (deckLabel) {
+      deckLabel.setText(`Deck: ${this.combatState.player.drawPile.length}`);
+    }
+    
+    // If deck count is significantly different, rebuild the visual
+    const currentCardCount = this.deckSprite.list.filter(child => 
+      child instanceof Phaser.GameObjects.Rectangle || child instanceof Phaser.GameObjects.Image
+    ).length;
+    const expectedCardCount = Math.min(5, this.combatState.player.drawPile.length);
+    
+    if (currentCardCount !== expectedCardCount) {
+      // Remove old cards but keep the label
+      this.deckSprite.list.forEach(child => {
+        if (child instanceof Phaser.GameObjects.Rectangle || child instanceof Phaser.GameObjects.Image) {
+          child.destroy();
+        }
+      });
+      
+      // Rebuild deck visual with white cards and black borders
+      const screenWidth = this.cameras.main.width;
+      const baseCardWidth = 80;
+      const baseCardHeight = 112;
+      const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+      const cardWidth = baseCardWidth * scaleFactor;
+      const cardHeight = baseCardHeight * scaleFactor;
+      
+      for (let i = 0; i < expectedCardCount; i++) {
+        if (i === expectedCardCount - 1) {
+          // Top card uses 13apoy sprite (front face)
+          let frontCard;
+          if (this.textures.exists('card_13_apoy')) {
+            frontCard = this.add.image(
+              i * 3,
+              -i * 3,
+              'card_13_apoy'
+            );
+            frontCard.setDisplaySize(cardWidth, cardHeight);
+          } else {
+            // Fallback to white rectangle
+            frontCard = this.add.rectangle(
+              i * 3,
+              -i * 3,
+              cardWidth,
+              cardHeight,
+              0xffffff // White color
+            );
+            frontCard.setStrokeStyle(2, 0x000000); // Black border
+          }
+          this.deckSprite.add(frontCard);
+        } else {
+          // Back cards with white background and black border
+          const cardBack = this.add.rectangle(
+            i * 3,
+            -i * 3,
+            cardWidth,
+            cardHeight,
+            0xffffff // White color
+          );
+          cardBack.setStrokeStyle(2, 0x000000); // Black border
+          this.deckSprite.add(cardBack);
+        }
+      }
+    }
+  }
+  
+  /**
+   * Update discard pile display (card count)
+   */
+  private updateDiscardDisplay(): void {
+    if (this.discardSprite && this.discardSprite.list.length > 0) {
+      // Find and update the discard label
+      const discardLabel = this.discardSprite.list.find(child => 
+        child instanceof Phaser.GameObjects.Text
+      ) as Phaser.GameObjects.Text;
+      
+      if (discardLabel) {
+        discardLabel.setText(`Discard: ${this.combatState.player.discardPile.length}`);
+      }
+    }
+  }
+  
+  /**
+   * Animate only newly drawn cards from deck to hand
+   */
+  private animateNewCards(newCards: PlayingCard[], startingIndex: number): void {
+    if (this.isDrawingCards) return;
+    
+    this.isDrawingCards = true;
+    
+    // First, update the entire hand display without animation for existing cards
+    this.updateHandDisplayQuiet();
+    
+    // Then animate only the new cards
+    const hand = this.combatState.player.hand;
+    const screenWidth = this.cameras.main.width;
+    const cardWidth = 60;
+    const totalWidth = hand.length * cardWidth;
+    const maxWidth = screenWidth * 0.8;
+    const actualCardWidth = totalWidth > maxWidth ? (maxWidth / hand.length) : cardWidth;
+    const actualTotalWidth = hand.length * actualCardWidth;
+    const startX = screenWidth / 2 - actualTotalWidth / 2 + actualCardWidth / 2;
+    const handY = this.cameras.main.height - 240; // Match the hand container position
+    
+    newCards.forEach((card, relativeIndex) => {
+      const absoluteIndex = startingIndex + relativeIndex;
+      
+      if (absoluteIndex < this.cardSprites.length) {
+        const cardSprite = this.cardSprites[absoluteIndex];
+        
+        // Start from deck position
+        cardSprite.setPosition(this.deckPosition.x - screenWidth / 2, this.deckPosition.y - handY + 240);
+        cardSprite.setScale(0.8);
+        cardSprite.setAlpha(0.9);
+        
+        // Calculate final position
+        const finalX = startX + absoluteIndex * actualCardWidth - screenWidth / 2;
+        const finalY = handY - this.cameras.main.height + 240; // Match the hand container position
+        
+        // Add curve effect
+        const curveHeight = 5;
+        const positionRatio = hand.length > 1 ? absoluteIndex / (hand.length - 1) : 0.5;
+        const curveY = finalY - Math.sin(positionRatio * Math.PI) * curveHeight;
+        
+        // Animate to final position
+        this.tweens.add({
+          targets: cardSprite,
+          x: finalX,
+          y: curveY,
+          scaleX: 1,
+          scaleY: 1,
+          alpha: 1,
+          duration: 300,
+          delay: relativeIndex * 100,
+          ease: 'Power2',
+          onComplete: () => {
+            if (relativeIndex === newCards.length - 1) {
+              this.isDrawingCards = false;
+            }
+          }
+        });
+      }
+    });
+  }
+  
+  /**
+   * Update hand display without animations (for existing cards)
+   */
+  private updateHandDisplayQuiet(): void {
+    // Clear existing sprites
+    this.cardSprites.forEach((sprite) => sprite.destroy());
+    this.cardSprites = [];
+
+    const hand = this.combatState.player.hand;
+    const cardWidth = 60;
+    const totalWidth = hand.length * cardWidth;
+    const screenWidth = this.cameras.main.width;
+    
+    const maxWidth = screenWidth * 0.8;
+    const actualCardWidth = totalWidth > maxWidth ? (maxWidth / hand.length) : cardWidth;
+    const actualTotalWidth = hand.length * actualCardWidth;
+    const startX = -actualTotalWidth / 2 + actualCardWidth / 2;
+
+    const curveHeight = 5;
+    
+    hand.forEach((card, index) => {
+      const positionRatio = hand.length > 1 ? index / (hand.length - 1) : 0.5;
+      const x = startX + index * actualCardWidth;
+      const y = -Math.sin(positionRatio * Math.PI) * curveHeight;
+      
+      const cardSprite = this.createCardSprite(card, x, y);
+      this.handContainer.add(cardSprite);
+      this.cardSprites.push(cardSprite);
+    });
+  }
+  
+  /**
+   * Animate deck shuffle when discard pile is shuffled back
+   */
+  private animateShuffleDeck(onComplete: () => void): void {
+    if (!this.deckSprite) {
+      onComplete();
+      return;
+    }
+    
+    // Create shuffle effect
+    this.tweens.add({
+      targets: this.deckSprite,
+      angle: 360,
+      scaleX: 1.2,
+      scaleY: 1.2,
+      duration: 400,
+      ease: 'Power2',
+      yoyo: true,
+      onComplete: () => {
+        onComplete();
+        this.updateDeckDisplay();
+      }
+    });
+    
+    // Add some particle-like effect for shuffle
+    for (let i = 0; i < 8; i++) {
+      const particle = this.add.rectangle(
+        this.deckPosition.x + (Math.random() - 0.5) * 40,
+        this.deckPosition.y + (Math.random() - 0.5) * 40,
+        4,
+        4,
+        0xffd700
+      );
+      
+      this.tweens.add({
+        targets: particle,
+        alpha: 0,
+        y: particle.y - 30,
+        duration: 600,
+        ease: 'Power2',
+        onComplete: () => particle.destroy()
+      });
+    }
   }
 
   /**
@@ -2728,6 +3416,7 @@ export class Combat extends Scene {
     this.updatePlayedHandDisplay();
     this.updateActionButtons();
     this.updateRelicsUI();
+    this.updateRelicInventory();
     this.updateTurnUI();
   }
   
