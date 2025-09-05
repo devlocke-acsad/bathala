@@ -133,17 +133,36 @@ export class Credits extends Scene {
         "Apyongs", 
         "Comrad's Comembo", 
         "Converse", 
-        "Mama", 
+        "Mama Cleofe", 
         "Friends and Family", 
         "GCash", 
         "SeaBank",
         "TikTok",
+        "Instagram Reels",
+        "GOMO Sim Card",
+        "Library Wifi",
+        "GoSort Family",
         "Spotify Premium Mod APK", 
         "Move It",
         "SPayLater",
+        "John Rey Nable",
+        "Kim Galledo",
+        "Jomari Estrella",
+        "Copilot",
+        "PEAK",
+        "TFT",
+        "Left 4 Dead 2",
+        "Romeo Bargabino",
+        "Motor ni Lita",
+        "Motor ni Tempra",
+        "Justin Nabunturan",
         "Exequel Adizon",
         "GOD",
-      ]}
+      ]},
+      { header: "IN MEMORY OF:", names: [
+          "PALAD",
+          "2024-2024"
+        ]}
     ];
     
     let yPos = 250;
