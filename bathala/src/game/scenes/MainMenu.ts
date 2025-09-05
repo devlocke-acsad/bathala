@@ -122,7 +122,7 @@ export class MainMenu extends Scene {
               this.scene.start("Credits");
               break;
             case "Settings":
-              // TODO: Implement settings scene
+              this.scene.start("Settings");
               break;
           }
         });
