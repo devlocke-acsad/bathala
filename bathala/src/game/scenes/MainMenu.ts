@@ -89,8 +89,8 @@ export class MainMenu extends Scene {
     // Center the content vertically on the screen
     const centerY = screenHeight / 2;
     
-    // Create "bathala" text in lowercase with Pixeled English Font
-    this.createStraightTitle(screenWidth/2, centerY - 150, "bathala");
+    // Create "bathala" text with special handling for font loading
+    this.createBathalaText(screenWidth/2, centerY - 150);
 
     // Menu options - centered below the title with increased gap using dungeon-mode-inverted font
     const menuOptions = ["Play", "Discover", "Credits", "Settings"]; // Updated options
@@ -132,6 +132,28 @@ export class MainMenu extends Scene {
   }
 
   /**
+   * Create the "bathala" text with special font loading handling
+   */
+  private createBathalaText(x: number, y: number): void {
+    // Create the text
+    const titleText = this.add
+      .text(x, y, "bathala", {
+        fontFamily: "Pixeled English Font",
+        fontSize: 250,
+        color: "#77888C",
+      })
+      .setOrigin(0.5);
+    
+    // Add subtle shadow
+    titleText.setShadow(2, 2, '#000000', 0, true, false);
+    
+    // Force refresh after a short delay
+    this.time.delayedCall(50, () => {
+      titleText.setText("bathala");
+    });
+  }
+
+  /**
    * Handle scene resize
    */
   private handleResize(): void {
@@ -139,23 +161,6 @@ export class MainMenu extends Scene {
     this.children.removeAll();
     this.createBackgroundEffects();
     this.createUI();
-  }
-
-  /**
-   * Create a straight title with Pixeled English Font and updated color
-   */
-  private createStraightTitle(x: number, y: number, text: string): void {
-    // Create the text with styling
-    const titleText = this.add
-      .text(x, y, text, {
-        fontFamily: "Pixeled English Font", // Updated font
-        fontSize: 250, 
-        color: "#77888C", // Updated color
-      })
-      .setOrigin(0.5);
-    
-    // Add subtle shadow
-    titleText.setShadow(2, 2, '#000000', 0, true, false);
   }
 
   /**
