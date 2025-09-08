@@ -487,6 +487,25 @@ export class Preloader extends Scene {
    * Load a font file
    */
   private loadFont(name: string, path: string): void {
+    // For the Pixeled English Font, also load it via CSS to ensure it's available
+    if (name === "Pixeled English Font") {
+      // Create a temporary element to trigger font loading
+      const tempElement = document.createElement('div');
+      tempElement.style.fontFamily = `"${name}", Arial, sans-serif`;
+      tempElement.style.fontSize = '250px';
+      tempElement.style.position = 'absolute';
+      tempElement.style.visibility = 'hidden';
+      tempElement.textContent = 'bathala';
+      document.body.appendChild(tempElement);
+      
+      // Remove the element after a short time
+      setTimeout(() => {
+        if (tempElement.parentNode) {
+          tempElement.parentNode.removeChild(tempElement);
+        }
+      }, 1000);
+    }
+    
     const font = new FontFace(name, `url(${path})`);
     font.load().then(() => {
       (document as any).fonts.add(font);
