@@ -17,10 +17,13 @@ export class DDAAnalyticsManager {
   private static instance: DDAAnalyticsManager;
   private currentSession: SessionMetrics;
   private dda: RuleBasedDDA;
+  private winRateTargetBand: { min: number; max: number };
 
   private constructor() {
     this.dda = RuleBasedDDA.getInstance();
     this.currentSession = this.initializeSession();
+    // Default target band is 40-60%
+    this.winRateTargetBand = { min: 40, max: 60 };
   }
 
   static getInstance(): DDAAnalyticsManager {
@@ -28,6 +31,65 @@ export class DDAAnalyticsManager {
       DDAAnalyticsManager.instance = new DDAAnalyticsManager();
     }
     return DDAAnalyticsManager.instance;
+  }
+
+  /**
+   * Set custom win rate target band
+   * @param min Minimum win rate percentage (0-100)
+   * @param max Maximum win rate percentage (0-100)
+   */
+  public setWinRateTargetBand(min: number, max: number): void {
+    if (min < 0 || max > 100 || min >= max) {
+      throw new Error("Invalid win rate target band. Min must be 0-100 and less than max, max must be 0-100 and greater than min.");
+    }
+    this.winRateTargetBand = { min, max };
+  }
+
+  /**
+   * Get current win rate target band
+   */
+  public getWinRateTargetBand(): { min: number; max: number } {
+    return { ...this.winRateTargetBand };
+  }
+
+  /**
+   * Check if current win rate is within target band
+   * @returns Object with win rate status and details
+   */
+  public checkWinRateTargetBand(): { 
+    winRate: number; 
+    targetBand: { min: number; max: number }; 
+    withinTarget: boolean;
+    status: "below_target" | "within_target" | "above_target";
+  } {
+    const totalCombats = this.currentSession.totalCombats;
+    const victories = this.currentSession.victories;
+    
+    if (totalCombats === 0) {
+      return {
+        winRate: 0,
+        targetBand: { ...this.winRateTargetBand },
+        withinTarget: false,
+        status: "below_target"
+      };
+    }
+    
+    const winRate = Math.round((victories / totalCombats) * 100);
+    const { min, max } = this.winRateTargetBand;
+    
+    let status: "below_target" | "within_target" | "above_target" = "within_target";
+    if (winRate < min) {
+      status = "below_target";
+    } else if (winRate > max) {
+      status = "above_target";
+    }
+    
+    return {
+      winRate,
+      targetBand: { ...this.winRateTargetBand },
+      withinTarget: winRate >= min && winRate <= max,
+      status
+    };
   }
 
   /**
@@ -362,13 +424,14 @@ export class DDAAnalyticsManager {
   public getSessionSummary(): string {
     const session = this.currentSession;
     const flowMetrics = this.calculateFlowMetrics();
+    const winRateInfo = this.checkWinRateTargetBand();
     
     return `
 === DDA Session Summary ===
 Session ID: ${session.sessionId}
 Duration: ${Math.round((Date.now() - session.startTime) / 1000 / 60)} minutes
 Total Combats: ${session.totalCombats}
-Win Rate: ${session.totalCombats > 0 ? Math.round((session.victories / session.totalCombats) * 100) : 0}%
+Win Rate: ${session.totalCombats > 0 ? Math.round((session.victories / session.totalCombats) * 100) : 0}% (${winRateInfo.withinTarget ? "Within" : "Outside"} target band ${winRateInfo.targetBand.min}-${winRateInfo.targetBand.max}%)
 Current PPS: ${session.currentPPS.toFixed(2)}
 Current Tier: ${this.dda.getPlayerPPS().tier}
 Avg Health Retained: ${Math.round(session.averageHealthRetained * 100)}%

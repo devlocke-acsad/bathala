@@ -521,6 +521,9 @@ export class DDADebugScene extends Scene {
     // Update DDA with combat results
     const result = this.dda.processCombatResults(metrics);
     
+    // Record combat with analytics manager
+    this.analytics.recordCombat(metrics);
+    
     // Get actual tier after processing
     const actualTier = result.tier;
     
@@ -799,12 +802,22 @@ export class DDADebugScene extends Scene {
     const playerPPS = this.dda.getPlayerPPS();
     const currentPPS = playerPPS.currentPPS;
     const currentTier = playerPPS.tier;
-    const combatCount = this.simulationData.length;
+    
+    // Get session metrics from analytics manager
+    const sessionMetrics = this.analytics.getAnalytics().sessionMetrics;
+    const combatCount = sessionMetrics.totalCombats;
+    
+    // Get win rate information
+    const winRateInfo = this.analytics.checkWinRateTargetBand();
+    const winRateText = combatCount > 0 ? 
+      `Win Rate: ${winRateInfo.winRate}% (${winRateInfo.withinTarget ? "Within" : "Outside"} target)` :
+      "Win Rate: N/A";
     
     const stats = [
       `PPS: ${currentPPS.toFixed(2)}`,
       `Tier: ${currentTier}`,
       `Combats: ${combatCount}`,
+      winRateText,
     ];
     
     stats.forEach((stat, index) => {
@@ -818,7 +831,7 @@ export class DDADebugScene extends Scene {
     
     // Show current difficulty modifiers using correct API
     const adjustment = this.dda.getCurrentDifficultyAdjustment();
-    const modText = this.add.text(20, 160, "Difficulty Modifiers:", {
+    const modText = this.add.text(20, 190, "Difficulty Modifiers:", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#cccccc",
@@ -832,7 +845,7 @@ export class DDADebugScene extends Scene {
     ];
     
     modDetails.forEach((detail, index) => {
-      const text = this.add.text(20, 185 + index * 20, detail, {
+      const text = this.add.text(20, 215 + index * 20, detail, {
         fontFamily: "dungeon-mode",
         fontSize: 14,
         color: "#aaaaaa",
