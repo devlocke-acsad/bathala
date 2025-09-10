@@ -427,7 +427,8 @@ export class Overworld extends Scene {
     
     // DDA Debug button at bottom  
     this.createActionButton(currentButtonX, bottomButtonY, "DDA Debug", "#9c27b0", () => {
-      this.scene.start("DDADebugScene");
+      this.scene.launch("DDADebugScene");
+      this.scene.pause();
     }, this.testButtonsContainer);
     
     // Create container for all test buttons

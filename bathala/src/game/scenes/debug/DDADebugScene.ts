@@ -401,7 +401,10 @@ export class DDADebugScene extends Scene {
     });
     
     backBtn.setInteractive();
-    backBtn.on("pointerdown", () => this.scene.start("Overworld"));
+    backBtn.on("pointerdown", () => {
+      this.scene.stop();
+      this.scene.resume("Overworld");
+    });
     backBtn.on("pointerover", () => backBtn.setBackgroundColor("#ff6b81"));
     backBtn.on("pointerout", () => backBtn.setBackgroundColor("#ff4757"));
   }
