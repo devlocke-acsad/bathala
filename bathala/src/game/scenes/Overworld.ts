@@ -21,8 +21,9 @@ export class Overworld extends Scene {
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
   private bossText!: Phaser.GameObjects.Text;
   private actionButtons: Phaser.GameObjects.Container[] = [];
-  private scanlines!: Phaser.GameObjects.TileSprite;
-  private scanlineTimer: number = 0;
+  // Scanlines disabled to remove VHS flickering
+  // private scanlines!: Phaser.GameObjects.TileSprite;
+  // private scanlineTimer: number = 0;
   private shopKey!: Phaser.Input.Keyboard.Key;
   private testButtonsVisible: boolean = false;
   private testButtonsContainer!: Phaser.GameObjects.Container;
@@ -171,8 +172,8 @@ export class Overworld extends Scene {
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
     
-    // Create CRT scanline effect
-    this.createCRTEffect();
+    // Create CRT scanline effect - DISABLED to remove VHS flickering
+    // this.createCRTEffect();
     
     // Create UI elements with a slight delay to ensure camera is ready
     this.time.delayedCall(10, this.createUI, [], this);
@@ -1972,8 +1973,9 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Create CRT scanline effect for retro aesthetic
+   * Create CRT scanline effect for retro aesthetic - DISABLED to remove VHS flickering
    */
+  /*
   private createCRTEffect(): void {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
@@ -1996,6 +1998,7 @@ export class Overworld extends Scene {
     const texture = graphics.generateTexture('overworld_scanline', 4, 4);
     this.scanlines.setTexture('overworld_scanline');
   }
+  */
 
   /**
    * Handle scene resize
@@ -2004,23 +2007,23 @@ export class Overworld extends Scene {
     // Update UI elements on resize
     this.updateUI();
     
-    // Recreate CRT effect on resize
-    if (this.scanlines) {
-      this.scanlines.destroy();
-    }
-    this.createCRTEffect();
+    // CRT effect disabled to remove VHS flickering
+    // if (this.scanlines) {
+    //   this.scanlines.destroy();
+    // }
+    // this.createCRTEffect();
   }
 
   /**
    * Update method for animation effects and player movement
    */
   update(time: number, delta: number): void {
-    // Animate the scanlines
-    if (this.scanlines) {
-      this.scanlineTimer += delta;
-      // Move scanlines vertically to simulate CRT effect at a faster pace
-      this.scanlines.tilePositionY = this.scanlineTimer * 0.15; // Increased speed
-    }
+    // Animate the scanlines - DISABLED to remove VHS flickering
+    // if (this.scanlines) {
+    //   this.scanlineTimer += delta;
+    //   // Move scanlines vertically to simulate CRT effect at a faster pace
+    //   this.scanlines.tilePositionY = this.scanlineTimer * 0.15; // Increased speed
+    // }
     
     // Handle player movement if not moving or in transition
     if (!this.isMoving && !this.isTransitioningToCombat) {
@@ -2124,39 +2127,50 @@ export class Overworld extends Scene {
    */
   private createCompactLeftPanel(screenHeight: number): void {
     const panelWidth = 300;
-    const panelHeight = 700; // Much taller for dramatic spacing
+    const panelHeight = 700;
     const panelX = 20;
     const panelY = screenHeight / 2 - panelHeight / 2;
     
-    // Main panel background with Persona-style design
+    // Main panel background with enhanced styling
     const panelBg = this.add.graphics();
-    panelBg.fillStyle(0x1a0d0d, 0.95);
-    panelBg.lineStyle(3, 0x8b0000, 1);
-    panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
-    panelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
-    this.uiContainer.add(panelBg);
+    // Add subtle gradient effect
+    panelBg.fillGradientStyle(0x1a0d0d, 0x1a0d0d, 0x0d0d0d, 0x0d0d0d, 0.95);
+    panelBg.lineStyle(4, 0xff0000, 0.9);
+    panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+    panelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
     
-    // Add a title bar at the top
+    // Add inner glow effect
+    const innerGlow = this.add.graphics();
+    innerGlow.lineStyle(2, 0xff0000, 0.3);
+    innerGlow.strokeRoundedRect(panelX + 3, panelY + 3, panelWidth - 6, panelHeight - 6, 12);
+    
+    this.uiContainer.add([panelBg, innerGlow]);
+    
+    // Enhanced title bar with gradient
     const titleBar = this.add.graphics();
-    titleBar.fillStyle(0x000000, 0.9);
-    titleBar.fillRoundedRect(panelX, panelY, panelWidth, 40, 12, 12, 0, 0);
+    titleBar.fillGradientStyle(0x000000, 0x000000, 0x330000, 0x330000, 0.95);
+    titleBar.lineStyle(2, 0xff0000, 0.8);
+    titleBar.fillRoundedRect(panelX + 5, panelY + 5, panelWidth - 10, 45, 10);
+    titleBar.strokeRoundedRect(panelX + 5, panelY + 5, panelWidth - 10, 45, 10);
     this.uiContainer.add(titleBar);
     
-    const titleText = this.add.text(panelX + panelWidth / 2, panelY + 20, "STATUS", {
+    // Enhanced title text with shadow
+    const titleText = this.add.text(panelX + panelWidth / 2, panelY + 27, "STATUS", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: "18px",
-      color: "#ff0000",
+      color: "#ff3333",
       fontStyle: "bold"
     }).setOrigin(0.5, 0.5);
+    titleText.setShadow(2, 2, '#000000', 3, false, true);
     this.uiContainer.add(titleText);
     
     // Top section: Health and vital stats with proper spacing
-    this.createTopStatsSection(panelX + 20, panelY + 60);
+    this.createTopStatsSection(panelX + 20, panelY + 70);
     
-    // Middle section: Relics grid (MUCH more space from health section)
+    // Middle section: Relics grid
     this.createGridInventorySection(panelX + 20, panelY + 350);
     
-    // Bottom section: Potions and actions (MUCH more space from relics)
+    // Bottom section: Potions and actions
     this.createBottomActionsSection(panelX + 20, panelY + 550);
   }
 
@@ -2164,94 +2178,112 @@ export class Overworld extends Scene {
    * Create top stats section with health bar and key stats
    */
   private createTopStatsSection(x: number, y: number): void {
-    // Health section with better organization and more height
+    // Enhanced health section with gradient background
     const healthSectionBg = this.add.graphics();
-    healthSectionBg.fillStyle(0x000000, 0.9);
-    healthSectionBg.lineStyle(2, 0xff0000, 1);
-    healthSectionBg.fillRoundedRect(x - 10, y - 10, 270, 240, 8); // Taller for better spacing
-    healthSectionBg.strokeRoundedRect(x - 10, y - 10, 270, 240, 8);
-    this.uiContainer.add(healthSectionBg);
+    healthSectionBg.fillGradientStyle(0x1a0000, 0x1a0000, 0x000000, 0x000000, 0.95);
+    healthSectionBg.lineStyle(3, 0xff0000, 0.8);
+    healthSectionBg.fillRoundedRect(x - 10, y - 10, 270, 240, 12);
+    healthSectionBg.strokeRoundedRect(x - 10, y - 10, 270, 240, 12);
     
-    // Health header - positioned at top
+    // Add subtle inner glow
+    const healthGlow = this.add.graphics();
+    healthGlow.lineStyle(1, 0xff0000, 0.3);
+    healthGlow.strokeRoundedRect(x - 7, y - 7, 264, 234, 9);
+    
+    this.uiContainer.add([healthSectionBg, healthGlow]);
+    
+    // Enhanced health header with glow effect
     const healthIcon = this.add.text(x, y, "❤️", {
-      fontSize: "20px",
+      fontSize: "24px",
       fontStyle: "bold"
     });
+    healthIcon.setShadow(1, 1, '#ff0000', 3, false, true);
     
-    const healthLabel = this.add.text(x + 30, y + 2, "HEALTH", {
+    const healthLabel = this.add.text(x + 35, y + 2, "HEALTH", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: "16px",
       color: "#ffffff",
       fontStyle: "bold"
     });
+    healthLabel.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Health value positioned right after the label
-    this.healthText = this.add.text(x + 30, y + 22, "10/10", {
+    // Enhanced health value with larger font
+    this.healthText = this.add.text(x + 35, y + 26, "80/80", {
       fontFamily: "dungeon-mode",
       fontSize: "18px",
-      color: "#ff0000",
+      color: "#ff3333",
       fontStyle: "bold"
     });
+    this.healthText.setShadow(2, 2, '#000000', 3, false, true);
     
-    // Health bar positioned directly below health value
+    // Enhanced health bar with better styling
     const healthBarContainer = this.add.graphics();
-    healthBarContainer.fillStyle(0x222222, 0.9);
-    healthBarContainer.lineStyle(2, 0xffffff, 1);
-    healthBarContainer.fillRoundedRect(x, y + 48, 250, 20, 10); // Directly below health value
-    healthBarContainer.strokeRoundedRect(x, y + 48, 250, 20, 10);
+    healthBarContainer.fillStyle(0x1a1a1a, 0.9);
+    healthBarContainer.lineStyle(2, 0x666666, 1);
+    healthBarContainer.fillRoundedRect(x, y + 55, 250, 24, 12);
+    healthBarContainer.strokeRoundedRect(x, y + 55, 250, 24, 12);
     this.uiContainer.add(healthBarContainer);
     
     this.healthBar = this.add.graphics();
     this.uiContainer.add(this.healthBar);
     
-    // Separator line after health section
+    // Enhanced separator with gradient effect
     const healthSeparator = this.add.graphics();
-    healthSeparator.lineStyle(1, 0x666666, 0.8);
+    healthSeparator.lineStyle(2, 0x666666, 0.6);
     healthSeparator.beginPath();
-    healthSeparator.moveTo(x - 5, y + 78); // Positioned between health bar and currency
-    healthSeparator.lineTo(x + 255, y + 78);
+    healthSeparator.moveTo(x - 5, y + 88);
+    healthSeparator.lineTo(x + 255, y + 88);
     healthSeparator.closePath();
     healthSeparator.strokePath();
     this.uiContainer.add(healthSeparator);
     
-    // Currency display with proper spacing below health bar
+    // Enhanced currency display
     const currencyBg = this.add.graphics();
-    currencyBg.fillStyle(0x000000, 0.9);
-    currencyBg.lineStyle(2, 0xffd700, 1);
-    currencyBg.fillRoundedRect(x, y + 88, 120, 40, 6); // Good spacing from health bar
-    currencyBg.strokeRoundedRect(x, y + 88, 120, 40, 6);
-    this.uiContainer.add(currencyBg);
+    currencyBg.fillGradientStyle(0x1a1a00, 0x1a1a00, 0x000000, 0x000000, 0.95);
+    currencyBg.lineStyle(2, 0xffd700, 0.9);
+    currencyBg.fillRoundedRect(x, y + 98, 130, 45, 8);
+    currencyBg.strokeRoundedRect(x, y + 98, 130, 45, 8);
     
-    const gintoIcon = this.add.text(x + 10, y + 98, "💰", {
-      fontSize: "18px"
+    // Add currency inner glow
+    const currencyGlow = this.add.graphics();
+    currencyGlow.lineStyle(1, 0xffd700, 0.3);
+    currencyGlow.strokeRoundedRect(x + 2, y + 100, 126, 41, 6);
+    
+    this.uiContainer.add([currencyBg, currencyGlow]);
+    
+    const gintoIcon = this.add.text(x + 10, y + 108, "💰", {
+      fontSize: "20px"
     });
+    gintoIcon.setShadow(1, 1, '#ffd700', 2, false, true);
     
-    const gintoLabel = this.add.text(x + 35, y + 93, "GINTO", {
-      fontFamily: "dungeon-mode",
+    const gintoLabel = this.add.text(x + 38, y + 103, "GINTO", {
+      fontFamily: "dungeon-mode-inverted",
       fontSize: "12px",
       color: "#ffd700",
       fontStyle: "bold"
     });
+    gintoLabel.setShadow(1, 1, '#000000', 2, false, true);
     
-    this.currencyText = this.add.text(x + 35, y + 108, "0", {
+    this.currencyText = this.add.text(x + 38, y + 120, "100", {
       fontFamily: "dungeon-mode",
       fontSize: "16px",
       color: "#ffffff",
       fontStyle: "bold"
     });
+    this.currencyText.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Separator line after currency section
+    // Enhanced separator
     const currencySeparator = this.add.graphics();
-    currencySeparator.lineStyle(1, 0x666666, 0.8);
+    currencySeparator.lineStyle(2, 0x666666, 0.6);
     currencySeparator.beginPath();
-    currencySeparator.moveTo(x - 5, y + 138); // Positioned between currency and landas
-    currencySeparator.lineTo(x + 255, y + 138);
+    currencySeparator.moveTo(x - 5, y + 152);
+    currencySeparator.lineTo(x + 255, y + 152);
     currencySeparator.closePath();
     currencySeparator.strokePath();
     this.uiContainer.add(currencySeparator);
     
-    // Landás meter with proper spacing below currency
-    this.createLandasMeter(x, y + 148, 250, 25); // Good spacing from currency
+    // Enhanced Landás meter
+    this.createLandasMeter(x, y + 162, 250, 28);
     
     this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel]);
   }
@@ -2265,20 +2297,6 @@ export class Overworld extends Scene {
     const slotsPerRow = 4;
     const rows = 2;
     
-    // Create section header with much more spacing above
-    const relicsHeaderBg = this.add.graphics();
-    relicsHeaderBg.fillStyle(0x000000, 0.9);
-    relicsHeaderBg.fillRoundedRect(x - 5, y - 60, 100, 25, 6); // Much more space above
-    this.uiContainer.add(relicsHeaderBg);
-    
-    const relicsTitle = this.add.text(x, y - 47, "RELICS", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: "14px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    this.uiContainer.add(relicsTitle);
-    
     // Create inventory grid background with proper size calculation
     const gridPadding = 10;
     const gridWidth = slotsPerRow * slotSize + (slotsPerRow - 1) * slotSpacing + (gridPadding * 2);
@@ -2289,6 +2307,21 @@ export class Overworld extends Scene {
     gridBg.lineStyle(2, 0x444444, 1);
     gridBg.fillRoundedRect(x - gridPadding, y - gridPadding, gridWidth, gridHeight, 10);
     gridBg.strokeRoundedRect(x - gridPadding, y - gridPadding, gridWidth, gridHeight, 10);
+    this.uiContainer.add(gridBg);
+    
+    // Create section header positioned properly above the grid
+    const relicsHeaderBg = this.add.graphics();
+    relicsHeaderBg.fillStyle(0x000000, 0.9);
+    relicsHeaderBg.fillRoundedRect(x - 5, y - 35, 100, 25, 6);
+    this.uiContainer.add(relicsHeaderBg);
+    
+    const relicsTitle = this.add.text(x, y - 22, "RELICS", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "14px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    }).setOrigin(0, 0.5);
+    this.uiContainer.add(relicsTitle);
     this.uiContainer.add(gridBg);
     
     // Create inventory slots with proper spacing
@@ -2363,67 +2396,89 @@ export class Overworld extends Scene {
    * Create a Persona-style Landás meter display
    */
   private createLandasMeter(x: number, y: number, width: number, height: number): void {
-    // Create meter background
+    // Enhanced meter background with gradient
     const meterBg = this.add.graphics();
-    meterBg.fillStyle(0x000000, 0.9); // Black background
-    meterBg.lineStyle(2, 0xffffff, 1); // White border
-    meterBg.fillRoundedRect(x, y, width, height, 5);
-    meterBg.strokeRoundedRect(x, y, width, height, 5);
-    this.uiContainer.add(meterBg);
+    meterBg.fillGradientStyle(0x0a0a0a, 0x0a0a0a, 0x000000, 0x000000, 0.95);
+    meterBg.lineStyle(3, 0x666666, 0.9);
+    meterBg.fillRoundedRect(x, y, width, height, 8);
+    meterBg.strokeRoundedRect(x, y, width, height, 8);
     
-    // Create gradient meter fill (conquest to mercy)
+    // Add inner border for depth
+    const innerBorder = this.add.graphics();
+    innerBorder.lineStyle(1, 0x444444, 0.6);
+    innerBorder.strokeRoundedRect(x + 2, y + 2, width - 4, height - 4, 6);
+    
+    this.uiContainer.add([meterBg, innerBorder]);
+    
+    // Enhanced gradient meter fill with smoother transition
     const gradientFill = this.add.graphics();
-    // Conquest side (red)
-    gradientFill.fillStyle(0xdc143c, 0.8);
-    gradientFill.fillRoundedRect(x, y, width / 2, height, 5);
-    // Mercy side (blue)
-    gradientFill.fillStyle(0x1e90ff, 0.8);
-    gradientFill.fillRoundedRect(x + width / 2, y, width / 2, height, 5);
+    // Conquest side with enhanced red gradient
+    gradientFill.fillGradientStyle(0xff0000, 0xdc143c, 0xb71c1c, 0x8b0000, 0.85);
+    gradientFill.fillRoundedRect(x + 2, y + 2, (width - 4) / 2, height - 4, 6);
+    
+    // Mercy side with enhanced blue gradient
+    gradientFill.fillGradientStyle(0x0080ff, 0x1e90ff, 0x4169e1, 0x0047ab, 0.85);
+    gradientFill.fillRoundedRect(x + 2 + (width - 4) / 2, y + 2, (width - 4) / 2, height - 4, 6);
+    
     this.uiContainer.add(gradientFill);
     
-    // Create indicator line
+    // Enhanced indicator line with glow effect
     this.landasMeterIndicator = this.add.graphics();
-    this.landasMeterIndicator.lineStyle(3, 0xffffff, 1);
+    this.landasMeterIndicator.lineStyle(4, 0xffffff, 1);
     this.landasMeterIndicator.beginPath();
-    this.landasMeterIndicator.moveTo(x + width / 2, y);
-    this.landasMeterIndicator.lineTo(x + width / 2, y + height);
+    this.landasMeterIndicator.moveTo(x + width / 2, y - 2);
+    this.landasMeterIndicator.lineTo(x + width / 2, y + height + 2);
     this.landasMeterIndicator.closePath();
     this.landasMeterIndicator.strokePath();
-    this.uiContainer.add(this.landasMeterIndicator);
     
-    // Create labels
-    const conquestLabel = this.add.text(x + 10, y + height / 2 - 5, "CONQUEST", {
+    // Add glow effect to indicator
+    const indicatorGlow = this.add.graphics();
+    indicatorGlow.lineStyle(2, 0xffffff, 0.3);
+    indicatorGlow.beginPath();
+    indicatorGlow.moveTo(x + width / 2, y - 1);
+    indicatorGlow.lineTo(x + width / 2, y + height + 1);
+    indicatorGlow.closePath();
+    indicatorGlow.strokePath();
+    
+    this.uiContainer.add([this.landasMeterIndicator, indicatorGlow]);
+    
+    // Enhanced labels with shadows
+    const conquestLabel = this.add.text(x + 12, y + height / 2, "CONQUEST", {
       fontFamily: "dungeon-mode",
       fontSize: "10px",
-      color: "#ff6347",
+      color: "#ff6b6b",
       fontStyle: "bold"
     }).setOrigin(0, 0.5);
+    conquestLabel.setShadow(1, 1, '#000000', 2, false, true);
     
-    const mercyLabel = this.add.text(x + width - 10, y + height / 2 - 5, "MERCY", {
+    const mercyLabel = this.add.text(x + width - 12, y + height / 2, "MERCY", {
       fontFamily: "dungeon-mode",
       fontSize: "10px",
-      color: "#87ceeb",
+      color: "#74c0fc",
       fontStyle: "bold"
     }).setOrigin(1, 0.5);
+    mercyLabel.setShadow(1, 1, '#000000', 2, false, true);
     
     this.uiContainer.add([conquestLabel, mercyLabel]);
     
-    // Add "LANDAS" label below the meter
-    const landasLabel = this.add.text(x + width / 2, y + height + 15, "LANDAS", {
+    // Enhanced "LANDAS" label with shadow
+    const landasLabel = this.add.text(x + width / 2, y + height + 18, "LANDAS", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: "12px",
       color: "#ffffff",
       fontStyle: "bold"
     }).setOrigin(0.5, 0);
+    landasLabel.setShadow(2, 2, '#000000', 3, false, true);
     this.uiContainer.add(landasLabel);
     
-    // Create value text
+    // Enhanced value text
     this.landasText = this.add.text(x + width / 2, y + height / 2, "0", {
       fontFamily: "dungeon-mode",
       fontSize: "12px",
       color: "#ffffff",
       fontStyle: "bold"
     }).setOrigin(0.5, 0.5);
+    this.landasText.setShadow(1, 1, '#000000', 2, false, true);
     this.uiContainer.add(this.landasText);
   }
 
@@ -2705,41 +2760,45 @@ export class Overworld extends Scene {
     
     this.healthBar.clear();
     
-    // Health bar position (matching exact createTopStatsSection layout)
-    // panelX = 20, health section x = panelX + 20 = 40, health bar x = x (no additional offset) = 40
-    const barX = 40; // Exact position from createTopStatsSection
-    // panelY = variable, health section y = panelY + 60, health bar y = y + 48
-    // We need to calculate this dynamically based on screen height
+    // Health bar position (matching enhanced createTopStatsSection layout)
+    const barX = 42; // Exact position from enhanced createTopStatsSection (x + 2 for inner padding)
     const screenHeight = this.cameras.main.height;
     const panelHeight = 700;
     const panelY = screenHeight / 2 - panelHeight / 2;
-    const barY = panelY + 60 + 48; // panelY + 60 (health section offset) + 48 (health bar offset within section)
-    const barWidth = 250; // Width from createTopStatsSection
-    const barHeight = 20; // Height from createTopStatsSection
+    const barY = panelY + 70 + 57; // panelY + 70 (health section offset) + 57 (health bar offset within section)
+    const barWidth = 246; // Width from enhanced createTopStatsSection (250 - 4 for inner padding)
+    const barHeight = 20; // Height from enhanced createTopStatsSection
     
-    // Health color based on percentage with Persona styling
-    let healthColor = 0x00ff00; // Bright green
-    if (healthPercent < 0.5) healthColor = 0xffff00; // Bright yellow
-    if (healthPercent < 0.25) healthColor = 0xff0000; // Bright red (Persona red)
+    // Simple health color based on percentage
+    let healthColor = 0x00ff00; // Green
     
-    // Draw health fill
-    this.healthBar.fillStyle(healthColor);
-    this.healthBar.fillRoundedRect(barX, barY, barWidth * healthPercent, barHeight, 10);
-    
-    // Add a subtle glow effect for low health
+    if (healthPercent < 0.75) {
+      healthColor = 0x90ee90; // Light green
+    }
+    if (healthPercent < 0.5) {
+      healthColor = 0xffff00; // Yellow
+    }
     if (healthPercent < 0.25) {
-      this.healthBar.fillStyle(0xff0000, 0.3);
-      this.healthBar.fillRoundedRect(barX - 2, barY - 2, barWidth * healthPercent + 4, barHeight + 4, 12);
+      healthColor = 0xff0000; // Red
     }
     
-    // Update health text
+    // Draw only the health fill - single rectangle, no overlapping
+    const fillWidth = (barWidth - 4) * healthPercent;
+    if (fillWidth > 0) {
+      this.healthBar.fillStyle(healthColor, 0.9);
+      this.healthBar.fillRoundedRect(barX, barY + 2, fillWidth, barHeight - 4, 6);
+    }
+    
+    // Update health text with simple styling (no background)
     this.healthText.setText(`${this.playerData.currentHealth}/${this.playerData.maxHealth}`);
     
-    // Add a subtle pulse animation for low health
+    // Simple pulse for low health
     if (healthPercent < 0.25) {
-      this.healthText.setShadow(2, 2, '#ff0000', 5, true, true);
+      this.healthText.setShadow(2, 2, '#ff0000', 4, false, true);
     } else {
-      this.healthText.setShadow(0, 0, '#000000', 0, false, false);
+      this.healthText.setShadow(2, 2, '#000000', 2, false, true);
+      this.tweens.killTweensOf(this.healthText);
+      this.healthText.setScale(1, 1);
     }
   }
 
