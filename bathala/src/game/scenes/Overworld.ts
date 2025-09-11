@@ -2123,97 +2123,137 @@ export class Overworld extends Scene {
    * Create compact central panel inspired by inventory UI design
    */
   private createCompactLeftPanel(screenHeight: number): void {
-    const panelWidth = 280;  // More compact square design
-    const panelHeight = 340; // Increased height for better spacing
-    const panelX = 20;       // Left edge positioning
-    const panelY = screenHeight / 2 - panelHeight / 2; // Center vertically
+    const panelWidth = 300;
+    const panelHeight = 700; // Much taller for dramatic spacing
+    const panelX = 20;
+    const panelY = screenHeight / 2 - panelHeight / 2;
     
-    // Main panel background with dark, clean design
+    // Main panel background with Persona-style design
     const panelBg = this.add.graphics();
-    panelBg.fillStyle(0x1a0d0d, 0.95); // Dark reddish background
-    panelBg.lineStyle(2, 0x8b0000, 1); // Dark red border like the reference image
-    panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
-    panelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 8);
+    panelBg.fillStyle(0x1a0d0d, 0.95);
+    panelBg.lineStyle(3, 0x8b0000, 1);
+    panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
+    panelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 12);
     this.uiContainer.add(panelBg);
     
-    // Top section: Health and vital stats
-    this.createTopStatsSection(panelX + 15, panelY + 15);
+    // Add a title bar at the top
+    const titleBar = this.add.graphics();
+    titleBar.fillStyle(0x000000, 0.9);
+    titleBar.fillRoundedRect(panelX, panelY, panelWidth, 40, 12, 12, 0, 0);
+    this.uiContainer.add(titleBar);
     
-    // Middle section: 4x2 Grid inventory layout (like the reference image)
-    this.createGridInventorySection(panelX + 15, panelY + 120);
+    const titleText = this.add.text(panelX + panelWidth / 2, panelY + 20, "STATUS", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "18px",
+      color: "#ff0000",
+      fontStyle: "bold"
+    }).setOrigin(0.5, 0.5);
+    this.uiContainer.add(titleText);
     
-    // Bottom section: Action buttons/potions
-    this.createBottomActionsSection(panelX + 15, panelY + 260);
+    // Top section: Health and vital stats with proper spacing
+    this.createTopStatsSection(panelX + 20, panelY + 60);
+    
+    // Middle section: Relics grid (MUCH more space from health section)
+    this.createGridInventorySection(panelX + 20, panelY + 350);
+    
+    // Bottom section: Potions and actions (MUCH more space from relics)
+    this.createBottomActionsSection(panelX + 20, panelY + 550);
   }
 
   /**
    * Create top stats section with health bar and key stats
    */
   private createTopStatsSection(x: number, y: number): void {
-    // Create a Persona-style card for health section
-    const healthCardBg = this.add.graphics();
-    healthCardBg.fillStyle(0x000000, 0.85); // Black background
-    healthCardBg.lineStyle(2, 0xff0000, 1); // Red border
-    healthCardBg.fillRoundedRect(x - 5, y - 5, 250, 80, 6);
-    healthCardBg.strokeRoundedRect(x - 5, y - 5, 250, 80, 6);
-    this.uiContainer.add(healthCardBg);
+    // Health section with better organization and more height
+    const healthSectionBg = this.add.graphics();
+    healthSectionBg.fillStyle(0x000000, 0.9);
+    healthSectionBg.lineStyle(2, 0xff0000, 1);
+    healthSectionBg.fillRoundedRect(x - 10, y - 10, 270, 240, 8); // Taller for better spacing
+    healthSectionBg.strokeRoundedRect(x - 10, y - 10, 270, 240, 8);
+    this.uiContainer.add(healthSectionBg);
     
-    // Health with red heart icon
-    const healthIcon = this.add.text(x, y + 5, "❤️", {
-      fontSize: "18px",
+    // Health header - positioned at top
+    const healthIcon = this.add.text(x, y, "❤️", {
+      fontSize: "20px",
       fontStyle: "bold"
     });
     
-    // Health label with Persona-style typography
-    const healthLabel = this.add.text(x + 25, y + 7, "HEALTH", {
+    const healthLabel = this.add.text(x + 30, y + 2, "HEALTH", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: "14px",
+      fontSize: "16px",
       color: "#ffffff",
       fontStyle: "bold"
     });
     
-    // Health value with Persona-style typography
-    this.healthText = this.add.text(x + 25, y + 25, "10/10", {
+    // Health value positioned right after the label
+    this.healthText = this.add.text(x + 30, y + 22, "10/10", {
       fontFamily: "dungeon-mode",
-      fontSize: "16px",
+      fontSize: "18px",
       color: "#ff0000",
       fontStyle: "bold"
     });
     
-    // Currency display with Persona-style card
-    const currencyCardBg = this.add.graphics();
-    currencyCardBg.fillStyle(0x000000, 0.85); // Black background
-    currencyCardBg.lineStyle(2, 0xff0000, 1); // Red border
-    currencyCardBg.fillRoundedRect(x + 120, y - 5, 120, 30, 6);
-    currencyCardBg.strokeRoundedRect(x + 120, y - 5, 120, 30, 6);
-    this.uiContainer.add(currencyCardBg);
+    // Health bar positioned directly below health value
+    const healthBarContainer = this.add.graphics();
+    healthBarContainer.fillStyle(0x222222, 0.9);
+    healthBarContainer.lineStyle(2, 0xffffff, 1);
+    healthBarContainer.fillRoundedRect(x, y + 48, 250, 20, 10); // Directly below health value
+    healthBarContainer.strokeRoundedRect(x, y + 48, 250, 20, 10);
+    this.uiContainer.add(healthBarContainer);
     
-    const gintoIcon = this.add.text(x + 125, y, "💰", {
-      fontSize: "16px"
+    this.healthBar = this.add.graphics();
+    this.uiContainer.add(this.healthBar);
+    
+    // Separator line after health section
+    const healthSeparator = this.add.graphics();
+    healthSeparator.lineStyle(1, 0x666666, 0.8);
+    healthSeparator.beginPath();
+    healthSeparator.moveTo(x - 5, y + 78); // Positioned between health bar and currency
+    healthSeparator.lineTo(x + 255, y + 78);
+    healthSeparator.closePath();
+    healthSeparator.strokePath();
+    this.uiContainer.add(healthSeparator);
+    
+    // Currency display with proper spacing below health bar
+    const currencyBg = this.add.graphics();
+    currencyBg.fillStyle(0x000000, 0.9);
+    currencyBg.lineStyle(2, 0xffd700, 1);
+    currencyBg.fillRoundedRect(x, y + 88, 120, 40, 6); // Good spacing from health bar
+    currencyBg.strokeRoundedRect(x, y + 88, 120, 40, 6);
+    this.uiContainer.add(currencyBg);
+    
+    const gintoIcon = this.add.text(x + 10, y + 98, "💰", {
+      fontSize: "18px"
     });
-    this.currencyText = this.add.text(x + 145, y + 2, "0", {
+    
+    const gintoLabel = this.add.text(x + 35, y + 93, "GINTO", {
       fontFamily: "dungeon-mode",
-      fontSize: "14px",
+      fontSize: "12px",
       color: "#ffd700",
       fontStyle: "bold"
     });
     
-    // Health bar with Persona-style design (red/black/white)
-    const healthBarContainer = this.add.graphics();
-    healthBarContainer.fillStyle(0x000000, 0.9); // Black background
-    healthBarContainer.lineStyle(2, 0xffffff, 1); // White border
-    healthBarContainer.fillRoundedRect(x, y + 45, 230, 15, 8);
-    healthBarContainer.strokeRoundedRect(x, y + 45, 230, 15, 8);
-    this.uiContainer.add(healthBarContainer);
+    this.currencyText = this.add.text(x + 35, y + 108, "0", {
+      fontFamily: "dungeon-mode",
+      fontSize: "16px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
     
-    // Health bar foreground with Persona red
-    this.healthBar = this.add.graphics();
-    this.uiContainer.add(this.healthBar);
+    // Separator line after currency section
+    const currencySeparator = this.add.graphics();
+    currencySeparator.lineStyle(1, 0x666666, 0.8);
+    currencySeparator.beginPath();
+    currencySeparator.moveTo(x - 5, y + 138); // Positioned between currency and landas
+    currencySeparator.lineTo(x + 255, y + 138);
+    currencySeparator.closePath();
+    currencySeparator.strokePath();
+    this.uiContainer.add(currencySeparator);
     
-    // Landás alignment indicator with Persona-style meter
-    this.createLandasMeter(x - 5, y + 70, 250, 20);
+    // Landás meter with proper spacing below currency
+    this.createLandasMeter(x, y + 148, 250, 25); // Good spacing from currency
     
-    this.uiContainer.add([healthIcon, healthLabel, gintoIcon]);
+    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel]);
   }
 
   /**
@@ -2221,37 +2261,46 @@ export class Overworld extends Scene {
    */
   private createGridInventorySection(x: number, y: number): void {
     const slotSize = 50;
-    const slotSpacing = 8;
+    const slotSpacing = 8; // Reduced back to reasonable spacing
     const slotsPerRow = 4;
     const rows = 2;
     
-    // Create Persona-style inventory grid background
-    const gridBg = this.add.graphics();
-    gridBg.fillStyle(0x000000, 0.85); // Black background
-    gridBg.lineStyle(2, 0xff0000, 1); // Red border
-    gridBg.fillRoundedRect(x - 10, y - 10, (slotSize + slotSpacing) * slotsPerRow + slotSpacing, (slotSize + slotSpacing) * rows + slotSpacing, 8);
-    gridBg.strokeRoundedRect(x - 10, y - 10, (slotSize + slotSpacing) * slotsPerRow + slotSpacing, (slotSize + slotSpacing) * rows + slotSpacing, 8);
-    this.uiContainer.add(gridBg);
+    // Create section header with much more spacing above
+    const relicsHeaderBg = this.add.graphics();
+    relicsHeaderBg.fillStyle(0x000000, 0.9);
+    relicsHeaderBg.fillRoundedRect(x - 5, y - 60, 100, 25, 6); // Much more space above
+    this.uiContainer.add(relicsHeaderBg);
     
-    // Create grid title
-    const gridTitle = this.add.text(x - 5, y - 30, "RELICS", {
+    const relicsTitle = this.add.text(x, y - 47, "RELICS", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: "16px",
+      fontSize: "14px",
       color: "#ffffff",
       fontStyle: "bold"
-    });
-    this.uiContainer.add(gridTitle);
+    }).setOrigin(0, 0.5);
+    this.uiContainer.add(relicsTitle);
     
-    // Create inventory slots with Persona-style design
+    // Create inventory grid background with proper size calculation
+    const gridPadding = 10;
+    const gridWidth = slotsPerRow * slotSize + (slotsPerRow - 1) * slotSpacing + (gridPadding * 2);
+    const gridHeight = rows * slotSize + (rows - 1) * slotSpacing + (gridPadding * 2);
+    
+    const gridBg = this.add.graphics();
+    gridBg.fillStyle(0x000000, 0.9);
+    gridBg.lineStyle(2, 0x444444, 1);
+    gridBg.fillRoundedRect(x - gridPadding, y - gridPadding, gridWidth, gridHeight, 10);
+    gridBg.strokeRoundedRect(x - gridPadding, y - gridPadding, gridWidth, gridHeight, 10);
+    this.uiContainer.add(gridBg);
+    
+    // Create inventory slots with proper spacing
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < slotsPerRow; col++) {
         const slotX = x + col * (slotSize + slotSpacing);
         const slotY = y + row * (slotSize + slotSpacing);
         
-        // Create Persona-style slot background
+        // Create slot background
         const slotBg = this.add.graphics();
-        slotBg.fillStyle(0x1a1a1a, 0.9); // Dark gray background
-        slotBg.lineStyle(1, 0xff0000, 1); // Red border
+        slotBg.fillStyle(0x222222, 0.9);
+        slotBg.lineStyle(1, 0x555555, 1);
         slotBg.fillRoundedRect(slotX, slotY, slotSize, slotSize, 6);
         slotBg.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 6);
         this.uiContainer.add(slotBg);
@@ -2267,16 +2316,8 @@ export class Overworld extends Scene {
    * Create bottom actions section for potions and controls
    */
   private createBottomActionsSection(x: number, y: number): void {
-    // Create Persona-style potions section background
-    const potionsBg = this.add.graphics();
-    potionsBg.fillStyle(0x000000, 0.85); // Black background
-    potionsBg.lineStyle(2, 0xff0000, 1); // Red border
-    potionsBg.fillRoundedRect(x - 10, y - 10, 160, 60, 8);
-    potionsBg.strokeRoundedRect(x - 10, y - 10, 160, 60, 8);
-    this.uiContainer.add(potionsBg);
-    
-    // Create potions section title
-    const potionsTitle = this.add.text(x - 5, y - 30, "POTIONS", {
+    // Create potions section title with much more spacing above
+    const potionsTitle = this.add.text(x - 5, y - 50, "POTIONS", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: "16px",
       color: "#ffffff",
@@ -2284,11 +2325,22 @@ export class Overworld extends Scene {
     });
     this.uiContainer.add(potionsTitle);
     
-    // Potions section with 3 slots
-    const potionSlotSize = 40;
-    const potionSpacing = 8;
+    // Create Persona-style potions section background - adjusted size
+    const potionsBg = this.add.graphics();
+    potionsBg.fillStyle(0x000000, 0.85); // Black background
+    potionsBg.lineStyle(2, 0xff0000, 1); // Red border
+    potionsBg.fillRoundedRect(x - 10, y - 10, 140, 60, 8); // Width calculated for 3 slots properly
+    potionsBg.strokeRoundedRect(x - 10, y - 10, 140, 60, 8);
+    this.uiContainer.add(potionsBg);
     
-    // Create Persona-style potion slots
+    // Potions section with 3 slots - calculate spacing to fit properly
+    const potionSlotSize = 38; // Slightly smaller slots
+    const totalSlotsWidth = 3 * potionSlotSize; // 114px
+    const availableWidth = 120; // Background width (140) minus padding (20)
+    const totalSpacingWidth = availableWidth - totalSlotsWidth; // 6px total
+    const potionSpacing = totalSpacingWidth / 2; // 3px between slots
+    
+    // Create Persona-style potion slots with proper spacing
     for (let i = 0; i < 3; i++) {
       const slotX = x + i * (potionSlotSize + potionSpacing);
       const slotY = y;
@@ -2305,73 +2357,6 @@ export class Overworld extends Scene {
     // Create potions container
     this.potionsContainer = this.add.container(x, y);
     this.uiContainer.add(this.potionsContainer);
-    
-    // Discard charges display with Persona styling
-    const discardCardBg = this.add.graphics();
-    discardCardBg.fillStyle(0x000000, 0.85); // Black background
-    discardCardBg.lineStyle(2, 0xff0000, 1); // Red border
-    discardCardBg.fillRoundedRect(x + 140, y - 10, 100, 30, 6);
-    discardCardBg.strokeRoundedRect(x + 140, y - 10, 100, 30, 6);
-    this.uiContainer.add(discardCardBg);
-    
-    const discardIcon = this.add.text(x + 150, y + 5, "🔄", {
-      fontSize: "16px",
-      fontStyle: "bold"
-    });
-    const discardLabel = this.add.text(x + 170, y + 7, "DISCARD:", {
-      fontFamily: "dungeon-mode",
-      fontSize: "12px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    this.discardText = this.add.text(x + 230, y + 7, "1", {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px",
-      color: "#88cc88",
-      fontStyle: "bold"
-    });
-    
-    this.uiContainer.add([discardIcon, discardLabel, this.discardText]);
-  }
-  private createBottomActionsSection(x: number, y: number): void {
-    // Potions section with 3 slots
-    const potionSlotSize = 40;
-    const potionSpacing = 8;
-    
-    for (let i = 0; i < 3; i++) {
-      const slotX = x + i * (potionSlotSize + potionSpacing);
-      const slotY = y;
-      
-      // Create potion slot background
-      const slotBg = this.add.graphics();
-      slotBg.fillStyle(0x0d0d0d, 0.8);
-      slotBg.lineStyle(1, 0x444444, 1);
-      slotBg.fillRoundedRect(slotX, slotY, potionSlotSize, potionSlotSize, 4);
-      slotBg.strokeRoundedRect(slotX, slotY, potionSlotSize, potionSlotSize, 4);
-      this.uiContainer.add(slotBg);
-    }
-    
-    // Create potions container
-    this.potionsContainer = this.add.container(x, y);
-    this.uiContainer.add(this.potionsContainer);
-    
-    // Discard charges display
-    const discardIcon = this.add.text(x + 150, y + 5, "🔄", {
-      fontSize: "14px"
-    });
-    const discardLabel = this.add.text(x + 170, y + 7, "Discard:", {
-      fontFamily: "dungeon-mode",
-      fontSize: "12px",
-      color: "#ffffff"
-    });
-    this.discardText = this.add.text(x + 230, y + 7, "1", {
-      fontFamily: "dungeon-mode",
-      fontSize: "12px",
-      color: "#88cc88",
-      fontStyle: "bold"
-    });
-    
-    this.uiContainer.add([discardIcon, discardLabel]);
   }
 
   /**
@@ -2390,10 +2375,10 @@ export class Overworld extends Scene {
     const gradientFill = this.add.graphics();
     // Conquest side (red)
     gradientFill.fillStyle(0xdc143c, 0.8);
-    gradientFill.fillRoundedRect(x, y, width / 2, height, 0, 0, 0, 5);
+    gradientFill.fillRoundedRect(x, y, width / 2, height, 5);
     // Mercy side (blue)
     gradientFill.fillStyle(0x1e90ff, 0.8);
-    gradientFill.fillRoundedRect(x + width / 2, y, width / 2, height, 0, 5, 5, 0);
+    gradientFill.fillRoundedRect(x + width / 2, y, width / 2, height, 5);
     this.uiContainer.add(gradientFill);
     
     // Create indicator line
@@ -2414,13 +2399,6 @@ export class Overworld extends Scene {
       fontStyle: "bold"
     }).setOrigin(0, 0.5);
     
-    const balanceLabel = this.add.text(x + width / 2, y - 15, "BALANCE", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: "10px",
-      color: "#9370db",
-      fontStyle: "bold"
-    }).setOrigin(0.5, 0.5);
-    
     const mercyLabel = this.add.text(x + width - 10, y + height / 2 - 5, "MERCY", {
       fontFamily: "dungeon-mode",
       fontSize: "10px",
@@ -2428,7 +2406,16 @@ export class Overworld extends Scene {
       fontStyle: "bold"
     }).setOrigin(1, 0.5);
     
-    this.uiContainer.add([conquestLabel, balanceLabel, mercyLabel]);
+    this.uiContainer.add([conquestLabel, mercyLabel]);
+    
+    // Add "LANDAS" label below the meter
+    const landasLabel = this.add.text(x + width / 2, y + height + 15, "LANDAS", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "12px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    }).setOrigin(0.5, 0);
+    this.uiContainer.add(landasLabel);
     
     // Create value text
     this.landasText = this.add.text(x + width / 2, y + height / 2, "0", {
@@ -2718,37 +2705,35 @@ export class Overworld extends Scene {
     
     this.healthBar.clear();
     
-    // Health bar position (matching new createHealthSection layout)
-    const barX = 40; // panelX + 20 from createCompactLeftPanel (20 + 20)  
-    const barY = 122; // panelY + 20 + 22 from createHealthSection (80 + 20 + 22)
-    const barWidth = 220; // Increased width for larger panel
-    const barHeight = 12; // Slightly taller bar
+    // Health bar position (matching exact createTopStatsSection layout)
+    // panelX = 20, health section x = panelX + 20 = 40, health bar x = x (no additional offset) = 40
+    const barX = 40; // Exact position from createTopStatsSection
+    // panelY = variable, health section y = panelY + 60, health bar y = y + 48
+    // We need to calculate this dynamically based on screen height
+    const screenHeight = this.cameras.main.height;
+    const panelHeight = 700;
+    const panelY = screenHeight / 2 - panelHeight / 2;
+    const barY = panelY + 60 + 48; // panelY + 60 (health section offset) + 48 (health bar offset within section)
+    const barWidth = 250; // Width from createTopStatsSection
+    const barHeight = 20; // Height from createTopStatsSection
     
     // Health color based on percentage with Persona styling
     let healthColor = 0x00ff00; // Bright green
     if (healthPercent < 0.5) healthColor = 0xffff00; // Bright yellow
     if (healthPercent < 0.25) healthColor = 0xff0000; // Bright red (Persona red)
     
-    // Draw Persona-style health bar background
-    this.healthBar.fillStyle(0x000000, 0.9); // Black background
-    this.healthBar.lineStyle(2, 0xffffff, 1); // White border
-    this.healthBar.fillRoundedRect(barX, barY, barWidth, barHeight, 6);
-    this.healthBar.strokeRoundedRect(barX, barY, barWidth, barHeight, 6);
-    
-    // Draw health fill with Persona red gradient effect
-    const gradientColor = healthPercent > 0.5 ? 0x00ff00 : healthPercent > 0.25 ? 0xffff00 : 0xff0000;
-    this.healthBar.fillStyle(gradientColor);
-    this.healthBar.fillRoundedRect(barX, barY, barWidth * healthPercent, barHeight, 6);
+    // Draw health fill
+    this.healthBar.fillStyle(healthColor);
+    this.healthBar.fillRoundedRect(barX, barY, barWidth * healthPercent, barHeight, 10);
     
     // Add a subtle glow effect for low health
     if (healthPercent < 0.25) {
       this.healthBar.fillStyle(0xff0000, 0.3);
-      this.healthBar.fillRoundedRect(barX - 2, barY - 2, barWidth * healthPercent + 4, barHeight + 4, 8);
+      this.healthBar.fillRoundedRect(barX - 2, barY - 2, barWidth * healthPercent + 4, barHeight + 4, 12);
     }
     
-    // Add heart icon to the left of the health bar
-    const heartSymbol = healthPercent > 0.5 ? "❤️" : healthPercent > 0.25 ? "💔" : "🖤";
-    this.healthText.setText(`${heartSymbol} ${this.playerData.currentHealth}/${this.playerData.maxHealth}`);
+    // Update health text
+    this.healthText.setText(`${this.playerData.currentHealth}/${this.playerData.maxHealth}`);
     
     // Add a subtle pulse animation for low health
     if (healthPercent < 0.25) {
@@ -2762,7 +2747,7 @@ export class Overworld extends Scene {
    * Update currency display
    */
   private updateCurrencyDisplay(): void {
-    this.currencyText.setText(`${this.playerData.ginto}        ${this.playerData.baubles}`);
+    this.currencyText.setText(`${this.playerData.ginto}`);
   }
 
   /**
@@ -2770,22 +2755,23 @@ export class Overworld extends Scene {
    */
   private updateLandasDisplay(): void {
     const score = this.playerData.landasScore;
-    let alignment = "BALANCE";
     let color = "#9370db";
     
     if (score >= 5) {
-      alignment = "MERCY";
       color = "#87ceeb";
     } else if (score <= -5) {
-      alignment = "CONQUEST";
       color = "#ff6347";
     }
     
     // Update the meter indicator position based on score
     // Score ranges from -10 to +10, map to 0-250 (meter width)
     const meterWidth = 250;
-    const meterX = 15; // panelX + 15 - 5 (from createCompactLeftPanel)
-    const meterY = 105; // panelY + 15 + 70 (from createTopStatsSection)
+    // Calculate dynamic coordinates matching the layout
+    const screenHeight = this.cameras.main.height;
+    const panelHeight = 700;
+    const panelY = screenHeight / 2 - panelHeight / 2;
+    const meterX = 45; // panelX + 20 + 5 = 20 + 20 + 5 = 45
+    const meterY = panelY + 60 + 148 + 10; // panelY + health section offset + landas meter offset + padding
     const normalizedScore = (score + 10) / 20; // Normalize to 0-1
     const indicatorX = meterX + (normalizedScore * meterWidth);
     
@@ -2812,7 +2798,7 @@ export class Overworld extends Scene {
     this.relicsContainer.removeAll(true);
     
     const slotSize = 50;
-    const slotSpacing = 8;
+    const slotSpacing = 8; // Match the corrected spacing from createGridInventorySection
     const slotsPerRow = 4;
     const maxRelics = 8; // 4x2 grid
     
@@ -2821,6 +2807,7 @@ export class Overworld extends Scene {
       const row = Math.floor(i / slotsPerRow);
       const col = i % slotsPerRow;
       
+      // Use same spacing calculation as the grid creation - match exactly
       const relicX = col * (slotSize + slotSpacing);
       const relicY = row * (slotSize + slotSpacing);
       
@@ -2894,8 +2881,12 @@ export class Overworld extends Scene {
   private updatePotionsDisplay(): void {
     this.potionsContainer.removeAll(true);
     
-    const potionSlotSize = 40;
-    const potionSpacing = 8;
+    // Match the calculations from createBottomActionsSection
+    const potionSlotSize = 38; // Match the slot size
+    const totalSlotsWidth = 3 * potionSlotSize;
+    const availableWidth = 120; // Background width minus padding
+    const totalSpacingWidth = availableWidth - totalSlotsWidth;
+    const potionSpacing = totalSpacingWidth / 2; // Calculate proper spacing
     const maxPotions = 3;
     
     for (let i = 0; i < Math.min(this.playerData.potions.length, maxPotions); i++) {
@@ -2903,28 +2894,23 @@ export class Overworld extends Scene {
       const potionX = i * (potionSlotSize + potionSpacing);
       const potionY = 0;
       
-      // Create Persona-style potion container
+      // Create potion container
       const potionContainer = this.add.container(potionX, potionY);
       
-      // Potion background with Persona styling
+      // Potion background
       const potionBg = this.add.graphics();
-      potionBg.fillStyle(0x000000, 0.7); // Black background
-      potionBg.lineStyle(1, 0xffffff, 1); // White border
+      potionBg.fillStyle(0x000000, 0.7);
+      potionBg.lineStyle(1, 0x555555, 1);
       potionBg.fillRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
       potionBg.strokeRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
       
       // Potion icon
       const potionIcon = this.add.text(potionSlotSize/2, potionSlotSize/2, "🧪", {
-        fontSize: "20px",
+        fontSize: "22px",
         align: "center"
       }).setOrigin(0.5);
       
-      // Add a subtle glow effect for potions
-      const glow = this.add.graphics();
-      glow.fillStyle(0x00ff00, 0.2); // Green glow
-      glow.fillRoundedRect(-1, -1, potionSlotSize + 2, potionSlotSize + 2, 6);
-      
-      potionContainer.add([glow, potionBg, potionIcon]);
+      potionContainer.add([potionBg, potionIcon]);
       
       // Make interactive for tooltip and actions
       potionContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, potionSlotSize, potionSlotSize), Phaser.Geom.Rectangle.Contains);
@@ -2933,8 +2919,8 @@ export class Overworld extends Scene {
       // Add hover effects
       potionContainer.on('pointerover', () => {
         potionBg.clear();
-        potionBg.fillStyle(0x333333, 0.9); // Lighter background on hover
-        potionBg.lineStyle(2, 0x00ff00, 1); // Thicker green border
+        potionBg.fillStyle(0x333333, 0.9);
+        potionBg.lineStyle(2, 0x44aa44, 1);
         potionBg.fillRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
         potionBg.strokeRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
         
@@ -2949,8 +2935,8 @@ export class Overworld extends Scene {
       
       potionContainer.on('pointerout', () => {
         potionBg.clear();
-        potionBg.fillStyle(0x000000, 0.7); // Original background
-        potionBg.lineStyle(1, 0xffffff, 1); // Original border
+        potionBg.fillStyle(0x000000, 0.7);
+        potionBg.lineStyle(1, 0x555555, 1);
         potionBg.fillRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
         potionBg.strokeRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
         
@@ -2963,7 +2949,7 @@ export class Overworld extends Scene {
         });
       });
       
-      // Add use/discard buttons (small) with Persona styling
+      // Add use/discard buttons
       const useButton = this.createSmallPotionButton(
         potionX + potionSlotSize - 8,
         potionY + 8,
@@ -2985,7 +2971,7 @@ export class Overworld extends Scene {
     
     // Update discard charges display
     if (this.discardText) {
-      this.discardText.setText(`${this.playerData.discardCharges || 1}`);
+      this.discardText.setText(`${this.playerData.discardCharges || 1}/${this.playerData.maxDiscardCharges || 1}`);
     }
   }
 
