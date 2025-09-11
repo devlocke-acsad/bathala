@@ -91,7 +91,7 @@ export class Shop extends Scene {
     const itemWidth = 80;
     const itemHeight = 80;
     const itemsPerRow = 8;
-    const spacing = 20;
+    const spacing = 25;
     const startX = (screenWidth - (itemsPerRow * (itemWidth + spacing) - spacing)) / 2;
     const startY = 150;
 
@@ -105,16 +105,19 @@ export class Shop extends Scene {
 
       const button = this.add.container(x, y);
       
-      // Background
-      const background = this.add.rectangle(0, 0, itemWidth, itemHeight, 0x2f3542);
-      background.setStrokeStyle(2, 0x57606f);
+      // Create square slot background with improved styling
+      const slotBg = this.add.graphics();
+      slotBg.fillStyle(0x2f3542, 0.9);
+      slotBg.lineStyle(2, 0x57606f, 1);
+      slotBg.fillRoundedRect(-itemWidth/2, -itemHeight/2, itemWidth, itemHeight, 6);
+      slotBg.strokeRoundedRect(-itemWidth/2, -itemHeight/2, itemWidth, itemHeight, 6);
       
       // Item emoji
       const emoji = this.add.text(0, 0, item.emoji, {
-        fontSize: 32,
+        fontSize: 36,
       }).setOrigin(0.5);
       
-      button.add([background, emoji]);
+      button.add([slotBg, emoji]);
       
       // Make interactive
       button.setInteractive(
@@ -124,11 +127,21 @@ export class Shop extends Scene {
       
       button.on("pointerdown", () => this.buyItem(item));
       button.on("pointerover", () => {
-        background.setFillStyle(0x3d4454);
-        this.showTooltip(item, x + itemWidth/2 + 10, y);
+        // Highlight slot on hover
+        slotBg.clear();
+        slotBg.fillStyle(0x3d4454, 0.9);
+        slotBg.lineStyle(2, 0x77808f, 1);
+        slotBg.fillRoundedRect(-itemWidth/2, -itemHeight/2, itemWidth, itemHeight, 6);
+        slotBg.strokeRoundedRect(-itemWidth/2, -itemHeight/2, itemWidth, itemHeight, 6);
+        this.showTooltip(item, x + itemWidth/2 + 15, y);
       });
       button.on("pointerout", () => {
-        background.setFillStyle(0x2f3542);
+        // Reset slot style
+        slotBg.clear();
+        slotBg.fillStyle(0x2f3542, 0.9);
+        slotBg.lineStyle(2, 0x57606f, 1);
+        slotBg.fillRoundedRect(-itemWidth/2, -itemHeight/2, itemWidth, itemHeight, 6);
+        slotBg.strokeRoundedRect(-itemWidth/2, -itemHeight/2, itemWidth, itemHeight, 6);
         this.hideTooltip();
       });
       
@@ -205,8 +218,12 @@ export class Shop extends Scene {
     
     const backButton = this.add.container(screenWidth / 2, screenHeight - 50);
     
-    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0xff4757);
-    background.setStrokeStyle(2, 0xffffff);
+    // Create button background with improved styling
+    const buttonBg = this.add.graphics();
+    buttonBg.fillStyle(0xff4757, 0.9);
+    buttonBg.lineStyle(2, 0xffffff, 1);
+    buttonBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
+    buttonBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
     
     const text = this.add.text(0, 0, buttonText, {
       fontFamily: "dungeon-mode-inverted",
@@ -214,7 +231,7 @@ export class Shop extends Scene {
       color: "#ffffff",
     }).setOrigin(0.5);
     
-    backButton.add([background, text]);
+    backButton.add([buttonBg, text]);
     
     backButton.setInteractive(
       new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
@@ -229,8 +246,22 @@ export class Shop extends Scene {
       this.scene.resume("Overworld");
     });
     
-    backButton.on("pointerover", () => background.setFillStyle(0xff6b81));
-    backButton.on("pointerout", () => background.setFillStyle(0xff4757));
+    backButton.on("pointerover", () => {
+      // Highlight button on hover
+      buttonBg.clear();
+      buttonBg.fillStyle(0xff6b81, 0.9);
+      buttonBg.lineStyle(2, 0xffffff, 1);
+      buttonBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
+      buttonBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
+    });
+    backButton.on("pointerout", () => {
+      // Reset button style
+      buttonBg.clear();
+      buttonBg.fillStyle(0xff4757, 0.9);
+      buttonBg.lineStyle(2, 0xffffff, 1);
+      buttonBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
+      buttonBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
+    });
   }
 
   private buyItem(item: ShopItem): void {
@@ -279,9 +310,13 @@ export class Shop extends Scene {
       const button = this.relicButtons[itemIndex];
       if (button) {
         // Dim the button and remove interactivity
-        const background = button.getAt(0) as Phaser.GameObjects.Rectangle;
-        if (background) {
-          background.setFillStyle(0x1a1d26);
+        const slotBg = button.getAt(0) as Phaser.GameObjects.Graphics;
+        if (slotBg) {
+          slotBg.clear();
+          slotBg.fillStyle(0x1a1d26, 0.7);
+          slotBg.lineStyle(2, 0x3a3d3f, 1);
+          slotBg.fillRoundedRect(-40, -40, 80, 80, 6);
+          slotBg.strokeRoundedRect(-40, -40, 80, 80, 6);
         }
         button.disableInteractive();
         button.setActive(false);
