@@ -2153,55 +2153,280 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Create compact central panel inspired by inventory UI design
+   * Create modern styled left panel with improved visual design
    */
   private createCompactLeftPanel(screenHeight: number): void {
-    const panelWidth = 300;
-    const panelHeight = 700;
+    const panelWidth = 320;
+    const panelHeight = Math.min(screenHeight - 40, 720);
     const panelX = 20;
     const panelY = screenHeight / 2 - panelHeight / 2;
     
-    // Main panel background with enhanced styling
+    // Modern glass-morphism style background
     const panelBg = this.add.graphics();
-    // Add subtle gradient effect
-    panelBg.fillGradientStyle(0x1a0d0d, 0x1a0d0d, 0x0d0d0d, 0x0d0d0d, 0.95);
-    panelBg.lineStyle(4, 0xff0000, 0.9);
-    panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
-    panelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 15);
+    panelBg.fillStyle(0x0a0a0a, 0.85);
+    panelBg.lineStyle(1, 0x404040, 0.6);
+    panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+    panelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
     
-    // Add inner glow effect
-    const innerGlow = this.add.graphics();
-    innerGlow.lineStyle(2, 0xff0000, 0.3);
-    innerGlow.strokeRoundedRect(panelX + 3, panelY + 3, panelWidth - 6, panelHeight - 6, 12);
+    // Subtle inner border for depth
+    const innerBorder = this.add.graphics();
+    innerBorder.lineStyle(1, 0x606060, 0.3);
+    innerBorder.strokeRoundedRect(panelX + 2, panelY + 2, panelWidth - 4, panelHeight - 4, 18);
     
-    this.uiContainer.add([panelBg, innerGlow]);
+    // Accent line on the left
+    const accentLine = this.add.graphics();
+    accentLine.lineStyle(3, 0x00bcd4, 0.8);
+    accentLine.beginPath();
+    accentLine.moveTo(panelX + 8, panelY + 20);
+    accentLine.lineTo(panelX + 8, panelY + panelHeight - 20);
+    accentLine.strokePath();
     
-    // Enhanced title bar with gradient
-    const titleBar = this.add.graphics();
-    titleBar.fillGradientStyle(0x000000, 0x000000, 0x330000, 0x330000, 0.95);
-    titleBar.lineStyle(2, 0xff0000, 0.8);
-    titleBar.fillRoundedRect(panelX + 5, panelY + 5, panelWidth - 10, 45, 10);
-    titleBar.strokeRoundedRect(panelX + 5, panelY + 5, panelWidth - 10, 45, 10);
-    this.uiContainer.add(titleBar);
+    this.uiContainer.add([panelBg, innerBorder, accentLine]);
     
-    // Enhanced title text with shadow
-    const titleText = this.add.text(panelX + panelWidth / 2, panelY + 27, "STATUS", {
+    // Modern header without heavy box
+    const headerText = this.add.text(panelX + 25, panelY + 25, "STATUS", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: "18px",
-      color: "#ff3333",
+      fontSize: "20px",
+      color: "#ffffff",
       fontStyle: "bold"
-    }).setOrigin(0.5, 0.5);
-    titleText.setShadow(2, 2, '#000000', 3, false, true);
-    this.uiContainer.add(titleText);
+    });
+    headerText.setShadow(1, 1, '#000000', 2, false, true);
+    this.uiContainer.add(headerText);
     
-    // Top section: Health and vital stats with proper spacing
-    this.createTopStatsSection(panelX + 20, panelY + 70);
+    // Calculate organized spacing for sections with more breathing room
+    const contentStartY = panelY + 80; // More space from header
+    const sectionSpacing = 25; // Increased space between sections
     
-    // Middle section: Relics grid
-    this.createGridInventorySection(panelX + 20, panelY + 350);
+    // Organized section heights for better proportions
+    const healthSectionHeight = 140;
+    const relicsSectionHeight = 170;
     
-    // Bottom section: Potions and actions
-    this.createBottomActionsSection(panelX + 20, panelY + 550);
+    let currentY = contentStartY;
+    
+    // Health section with organized spacing
+    this.createModernHealthSection(panelX + 20, currentY, panelWidth - 40);
+    currentY += healthSectionHeight + sectionSpacing;
+    
+    // Add section separator with more prominent styling
+    this.createSectionSeparator(panelX + 25, currentY - (sectionSpacing / 2), panelWidth - 50);
+    
+    // Relics section with organized spacing
+    this.createModernRelicsSection(panelX + 20, currentY, panelWidth - 40);
+    currentY += relicsSectionHeight + sectionSpacing;
+    
+    // Add section separator with more prominent styling
+    this.createSectionSeparator(panelX + 25, currentY - (sectionSpacing / 2), panelWidth - 50);
+    
+    // Potions section with organized spacing
+    this.createModernPotionsSection(panelX + 20, currentY, panelWidth - 40);
+    currentY += 120 + sectionSpacing; // Height for potions section
+    
+    // Final separator for bottom closure
+    this.createSectionSeparator(panelX + 25, currentY - (sectionSpacing / 2), panelWidth - 50);
+  }
+
+  /**
+   * Creates an enhanced section separator with visual flair
+   */
+  private createSectionSeparator(x: number, y: number, width: number): void {
+    // Create a container for the separator elements
+    const separatorContainer = this.add.container(0, 0);
+    
+    // Background glow effect
+    const glow = this.add.graphics();
+    glow.fillStyle(0x4A90E2, 0.15);
+    glow.fillRect(x + width * 0.2, y - 1, width * 0.6, 3);
+    separatorContainer.add(glow);
+    
+    // Main separator line
+    const separator = this.add.graphics();
+    separator.lineStyle(1, 0x4A90E2, 0.6);
+    separator.beginPath();
+    separator.moveTo(x + width * 0.1, y);
+    separator.lineTo(x + width * 0.9, y);
+    separator.strokePath();
+    separatorContainer.add(separator);
+    
+    // Accent dots for visual interest
+    const leftDot = this.add.graphics();
+    leftDot.fillStyle(0x4A90E2, 0.8);
+    leftDot.fillCircle(x + width * 0.1, y, 2);
+    separatorContainer.add(leftDot);
+    
+    const rightDot = this.add.graphics();
+    rightDot.fillStyle(0x4A90E2, 0.8);
+    rightDot.fillCircle(x + width * 0.9, y, 2);
+    separatorContainer.add(rightDot);
+    
+    this.uiContainer.add(separatorContainer);
+  }
+
+  /**
+   * Create modern health section with sleek design
+   */
+  private createModernHealthSection(x: number, y: number, width: number): void {
+    // Section container with subtle background
+    const sectionBg = this.add.graphics();
+    sectionBg.fillStyle(0x1a1a1a, 0.4);
+    sectionBg.lineStyle(1, 0x333333, 0.5);
+    sectionBg.fillRoundedRect(x - 5, y - 5, width + 10, 140, 12);
+    sectionBg.strokeRoundedRect(x - 5, y - 5, width + 10, 140, 12);
+    this.uiContainer.add(sectionBg);
+    
+    // Health header with organized spacing
+    const healthIcon = this.add.text(x, y + 8, "♥", {
+      fontSize: "18px",
+      color: "#e74c3c",
+      fontStyle: "bold"
+    });
+    
+    const healthLabel = this.add.text(x + 25, y + 8, "HEALTH", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "14px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    
+    // Health value with organized spacing
+    this.healthText = this.add.text(x + 25, y + 30, "80/80", {
+      fontFamily: "dungeon-mode",
+      fontSize: "16px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.healthText.setShadow(1, 1, '#000000', 1, false, true);
+    
+    // Modern health bar container with organized spacing
+    const healthBarBg = this.add.graphics();
+    healthBarBg.fillStyle(0x2c2c2c, 0.8);
+    healthBarBg.fillRoundedRect(x, y + 50, width - 10, 12, 6);
+    this.uiContainer.add(healthBarBg);
+    
+    // Health bar fill
+    this.healthBar = this.add.graphics();
+    this.uiContainer.add(this.healthBar);
+    
+    // Currency section with organized spacing
+    const currencyBg = this.add.graphics();
+    currencyBg.fillStyle(0x1a1a1a, 0.3);
+    currencyBg.lineStyle(1, 0x404040, 0.4);
+    currencyBg.fillRoundedRect(x, y + 75, width - 10, 35, 8);
+    currencyBg.strokeRoundedRect(x, y + 75, width - 10, 35, 8);
+    this.uiContainer.add(currencyBg);
+    
+    const gintoIcon = this.add.text(x + 8, y + 83, "💰", {
+      fontSize: "16px"
+    });
+    
+    const gintoLabel = this.add.text(x + 30, y + 79, "GINTO", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "10px",
+      color: "#ffd700",
+      fontStyle: "bold"
+    });
+    
+    this.currencyText = this.add.text(x + 30, y + 92, "100", {
+      fontFamily: "dungeon-mode",
+      fontSize: "14px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    
+    // Landás meter with organized spacing
+    this.createLandasMeter(x, y + 120, width - 10, 18);
+    
+    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel]);
+  }
+
+  /**
+   * Create modern relics section with grid layout
+   */
+  private createModernRelicsSection(x: number, y: number, width: number): void {
+    // Section header with organized spacing
+    const relicsLabel = this.add.text(x, y + 8, "RELICS", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "14px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.uiContainer.add(relicsLabel);
+    
+    // Grid container with organized spacing
+    const gridBg = this.add.graphics();
+    gridBg.fillStyle(0x1a1a1a, 0.4);
+    gridBg.lineStyle(1, 0x333333, 0.5);
+    gridBg.fillRoundedRect(x - 5, y + 25, width + 10, 130, 12);
+    gridBg.strokeRoundedRect(x - 5, y + 25, width + 10, 130, 12);
+    this.uiContainer.add(gridBg);
+    
+    // Create 4x2 grid of relic slots with organized spacing
+    const slotSize = 45;
+    const slotSpacing = 12;
+    const slotsPerRow = 4;
+    const rows = 2;
+    const gridStartX = x + 15;
+    const gridStartY = y + 40;
+    
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < slotsPerRow; col++) {
+        const slotX = gridStartX + col * (slotSize + slotSpacing);
+        const slotY = gridStartY + row * (slotSize + slotSpacing);
+        
+        const slot = this.add.graphics();
+        slot.fillStyle(0x2c2c2c, 0.6);
+        slot.lineStyle(1, 0x404040, 0.8);
+        slot.fillRoundedRect(slotX, slotY, slotSize, slotSize, 8);
+        slot.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 8);
+        this.uiContainer.add(slot);
+      }
+    }
+    
+    // Create relics container for items
+    this.relicsContainer = this.add.container(gridStartX, gridStartY);
+    this.uiContainer.add(this.relicsContainer);
+  }
+
+  /**
+   * Create modern potions section
+   */
+  private createModernPotionsSection(x: number, y: number, width: number): void {
+    // Section header with organized spacing
+    const potionsLabel = this.add.text(x, y + 8, "POTIONS", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "14px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.uiContainer.add(potionsLabel);
+    
+    // Potions container with organized spacing
+    const potionsBg = this.add.graphics();
+    potionsBg.fillStyle(0x1a1a1a, 0.4);
+    potionsBg.lineStyle(1, 0x333333, 0.5);
+    potionsBg.fillRoundedRect(x - 5, y + 25, width + 10, 65, 12);
+    potionsBg.strokeRoundedRect(x - 5, y + 25, width + 10, 65, 12);
+    this.uiContainer.add(potionsBg);
+    
+    // Create 3 potion slots with organized spacing
+    const slotSize = 40;
+    const slotSpacing = 18;
+    const potionStartX = x + 20;
+    const potionStartY = y + 38;
+    
+    for (let i = 0; i < 3; i++) {
+      const slotX = potionStartX + i * (slotSize + slotSpacing);
+      
+      const slot = this.add.graphics();
+      slot.fillStyle(0x2c2c2c, 0.6);
+      slot.lineStyle(1, 0x404040, 0.8);
+      slot.fillRoundedRect(slotX, potionStartY, slotSize, slotSize, 8);
+      slot.strokeRoundedRect(slotX, potionStartY, slotSize, slotSize, 8);
+      this.uiContainer.add(slot);
+    }
+    
+    // Create potions container for items
+    this.potionsContainer = this.add.container(potionStartX, potionStartY);
+    this.uiContainer.add(this.potionsContainer);
   }
 
   /**
@@ -2790,41 +3015,51 @@ export class Overworld extends Scene {
     
     this.healthBar.clear();
     
-    // Health bar position (matching enhanced createTopStatsSection layout)
-    const barX = 42; // Exact position from enhanced createTopStatsSection (x + 2 for inner padding)
+    // Modern health bar position calculation
+    const panelX = 20;
+    const panelWidth = 320;
     const screenHeight = this.cameras.main.height;
-    const panelHeight = 700;
+    const panelHeight = Math.min(screenHeight - 40, 720);
     const panelY = screenHeight / 2 - panelHeight / 2;
-    const barY = panelY + 70 + 57; // panelY + 70 (health section offset) + 57 (health bar offset within section)
-    const barWidth = 246; // Width from enhanced createTopStatsSection (250 - 4 for inner padding)
-    const barHeight = 20; // Height from enhanced createTopStatsSection
     
-    // Simple health color based on percentage
-    let healthColor = 0x00ff00; // Green
+    const healthSectionY = panelY + 70; // After header with organized spacing
+    const barX = panelX + 20; // Health section x position
+    const barY = healthSectionY + 50; // Health bar y position within section (updated)
+    const barWidth = panelWidth - 50; // Available width for health bar
+    const barHeight = 12; // Modern thin health bar
+    
+    // Modern health color progression
+    let healthColor = 0x2ecc71; // Modern green
     
     if (healthPercent < 0.75) {
-      healthColor = 0x90ee90; // Light green
+      healthColor = 0x27ae60; // Darker green
     }
     if (healthPercent < 0.5) {
-      healthColor = 0xffff00; // Yellow
+      healthColor = 0xf39c12; // Orange
     }
     if (healthPercent < 0.25) {
-      healthColor = 0xff0000; // Red
+      healthColor = 0xe74c3c; // Modern red
     }
     
-    // Draw only the health fill - single rectangle, no overlapping
-    const fillWidth = (barWidth - 4) * healthPercent;
-    if (fillWidth > 0) {
-      this.healthBar.fillStyle(healthColor, 0.9);
-      this.healthBar.fillRoundedRect(barX, barY + 2, fillWidth, barHeight - 4, 6);
+    // Draw modern health bar fill with rounded corners
+    const fillWidth = barWidth * healthPercent;
+    if (fillWidth > 4) {
+      this.healthBar.fillStyle(healthColor, 1.0);
+      this.healthBar.fillRoundedRect(barX, barY, fillWidth, barHeight, 6);
+      
+      // Add subtle glow effect for low health
+      if (healthPercent < 0.25) {
+        this.healthBar.fillStyle(healthColor, 0.3);
+        this.healthBar.fillRoundedRect(barX - 2, barY - 1, fillWidth + 4, barHeight + 2, 7);
+      }
     }
     
-    // Update health text with simple styling (no background)
+    // Update health text
     this.healthText.setText(`${this.playerData.currentHealth}/${this.playerData.maxHealth}`);
     
-    // Simple pulse for low health
+    // Modern low health effects
     if (healthPercent < 0.25) {
-      this.healthText.setShadow(2, 2, '#ff0000', 4, false, true);
+      this.healthText.setShadow(1, 1, '#e74c3c', 2, false, true);
     } else {
       this.healthText.setShadow(2, 2, '#000000', 2, false, true);
       this.tweens.killTweensOf(this.healthText);
