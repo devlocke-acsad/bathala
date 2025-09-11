@@ -2205,18 +2205,35 @@ export class Overworld extends Scene {
     const slotsPerRow = 4;
     const rows = 2;
     
-    // Create inventory grid background
+    // Create Persona-style inventory grid background
+    const gridBg = this.add.graphics();
+    gridBg.fillStyle(0x000000, 0.85); // Black background
+    gridBg.lineStyle(2, 0xff0000, 1); // Red border
+    gridBg.fillRoundedRect(x - 10, y - 10, (slotSize + slotSpacing) * slotsPerRow + slotSpacing, (slotSize + slotSpacing) * rows + slotSpacing, 8);
+    gridBg.strokeRoundedRect(x - 10, y - 10, (slotSize + slotSpacing) * slotsPerRow + slotSpacing, (slotSize + slotSpacing) * rows + slotSpacing, 8);
+    this.uiContainer.add(gridBg);
+    
+    // Create grid title
+    const gridTitle = this.add.text(x - 5, y - 30, "RELICS", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "16px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.uiContainer.add(gridTitle);
+    
+    // Create inventory slots with Persona-style design
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < slotsPerRow; col++) {
         const slotX = x + col * (slotSize + slotSpacing);
         const slotY = y + row * (slotSize + slotSpacing);
         
-        // Create slot background
+        // Create Persona-style slot background
         const slotBg = this.add.graphics();
-        slotBg.fillStyle(0x0d0d0d, 0.8);
-        slotBg.lineStyle(1, 0x444444, 1);
-        slotBg.fillRoundedRect(slotX, slotY, slotSize, slotSize, 4);
-        slotBg.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 4);
+        slotBg.fillStyle(0x1a1a1a, 0.9); // Dark gray background
+        slotBg.lineStyle(1, 0xff0000, 1); // Red border
+        slotBg.fillRoundedRect(slotX, slotY, slotSize, slotSize, 6);
+        slotBg.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 6);
         this.uiContainer.add(slotBg);
       }
     }
@@ -2229,6 +2246,73 @@ export class Overworld extends Scene {
   /**
    * Create bottom actions section for potions and controls
    */
+  private createBottomActionsSection(x: number, y: number): void {
+    // Create Persona-style potions section background
+    const potionsBg = this.add.graphics();
+    potionsBg.fillStyle(0x000000, 0.85); // Black background
+    potionsBg.lineStyle(2, 0xff0000, 1); // Red border
+    potionsBg.fillRoundedRect(x - 10, y - 10, 160, 60, 8);
+    potionsBg.strokeRoundedRect(x - 10, y - 10, 160, 60, 8);
+    this.uiContainer.add(potionsBg);
+    
+    // Create potions section title
+    const potionsTitle = this.add.text(x - 5, y - 30, "POTIONS", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "16px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.uiContainer.add(potionsTitle);
+    
+    // Potions section with 3 slots
+    const potionSlotSize = 40;
+    const potionSpacing = 8;
+    
+    // Create Persona-style potion slots
+    for (let i = 0; i < 3; i++) {
+      const slotX = x + i * (potionSlotSize + potionSpacing);
+      const slotY = y;
+      
+      // Create Persona-style slot background
+      const slotBg = this.add.graphics();
+      slotBg.fillStyle(0x1a1a1a, 0.9); // Dark gray background
+      slotBg.lineStyle(1, 0xff0000, 1); // Red border
+      slotBg.fillRoundedRect(slotX, slotY, potionSlotSize, potionSlotSize, 6);
+      slotBg.strokeRoundedRect(slotX, slotY, potionSlotSize, potionSlotSize, 6);
+      this.uiContainer.add(slotBg);
+    }
+    
+    // Create potions container
+    this.potionsContainer = this.add.container(x, y);
+    this.uiContainer.add(this.potionsContainer);
+    
+    // Discard charges display with Persona styling
+    const discardCardBg = this.add.graphics();
+    discardCardBg.fillStyle(0x000000, 0.85); // Black background
+    discardCardBg.lineStyle(2, 0xff0000, 1); // Red border
+    discardCardBg.fillRoundedRect(x + 140, y - 10, 100, 30, 6);
+    discardCardBg.strokeRoundedRect(x + 140, y - 10, 100, 30, 6);
+    this.uiContainer.add(discardCardBg);
+    
+    const discardIcon = this.add.text(x + 150, y + 5, "🔄", {
+      fontSize: "16px",
+      fontStyle: "bold"
+    });
+    const discardLabel = this.add.text(x + 170, y + 7, "DISCARD:", {
+      fontFamily: "dungeon-mode",
+      fontSize: "12px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.discardText = this.add.text(x + 230, y + 7, "1", {
+      fontFamily: "dungeon-mode",
+      fontSize: "14px",
+      color: "#88cc88",
+      fontStyle: "bold"
+    });
+    
+    this.uiContainer.add([discardIcon, discardLabel, this.discardText]);
+  }
   private createBottomActionsSection(x: number, y: number): void {
     // Potions section with 3 slots
     const potionSlotSize = 40;
@@ -2276,22 +2360,23 @@ export class Overworld extends Scene {
   private createHealthSection(x: number, y: number): void {
     // Health icon and label (larger for bigger panel)
     const healthIcon = this.add.text(x, y, "❤️", {
-      fontSize: "18px" // Larger icon
+      fontSize: "18px", // Larger icon
+      fontStyle: "bold"
     });
-    const healthLabel = this.add.text(x + 25, y + 2, "Health", {
-      fontFamily: "dungeon-mode",
+    const healthLabel = this.add.text(x + 25, y + 2, "HEALTH", {
+      fontFamily: "dungeon-mode-inverted",
       fontSize: "15px", // Larger font
       color: "#ffffff",
       fontStyle: "bold"
     });
     this.uiContainer.add([healthIcon, healthLabel]);
     
-    // Health bar background with consistent square design (larger)
+    // Health bar background with Persona styling
     const healthBarBg = this.add.graphics();
-    healthBarBg.fillStyle(0x330000, 0.9);
-    healthBarBg.lineStyle(2, 0x555555, 1); // Thicker border
-    healthBarBg.fillRoundedRect(x, y + 22, 220, 12, 4); // Larger bar
-    healthBarBg.strokeRoundedRect(x, y + 22, 220, 12, 4);
+    healthBarBg.fillStyle(0x000000, 0.9); // Black background
+    healthBarBg.lineStyle(2, 0xffffff, 1); // White border
+    healthBarBg.fillRoundedRect(x, y + 22, 220, 12, 6); // Larger bar with more rounded corners
+    healthBarBg.strokeRoundedRect(x, y + 22, 220, 12, 6);
     this.uiContainer.add(healthBarBg);
     
     // Health bar (foreground)
@@ -2302,7 +2387,8 @@ export class Overworld extends Scene {
     this.healthText = this.add.text(x, y + 38, "", {
       fontFamily: "dungeon-mode", 
       fontSize: "13px", // Larger font
-      color: "#ff6b6b"
+      color: "#ff0000",
+      fontStyle: "bold"
     });
     this.uiContainer.add(this.healthText);
   }
@@ -2343,20 +2429,31 @@ export class Overworld extends Scene {
    * Create Landás score section in compact panel with icon
    */
   private createLandasSection(x: number, y: number): void {
-    // Landás icon and label
-    const landasIcon = this.add.text(x, y, "⚖️", {
-      fontSize: "14px"
+    // Create Persona-style Landás card background
+    const landasCardBg = this.add.graphics();
+    landasCardBg.fillStyle(0x000000, 0.85); // Black background
+    landasCardBg.lineStyle(2, 0xff0000, 1); // Red border
+    landasCardBg.fillRoundedRect(x - 5, y - 5, 250, 50, 6);
+    landasCardBg.strokeRoundedRect(x - 5, y - 5, 250, 50, 6);
+    this.uiContainer.add(landasCardBg);
+    
+    // Landás icon and label with Persona styling
+    const landasIcon = this.add.text(x, y + 5, "⚖️", {
+      fontSize: "18px",
+      fontStyle: "bold"
     });
-    const landasLabel = this.add.text(x + 18, y + 2, "Landás:", {
-      fontFamily: "dungeon-mode",
-      fontSize: "12px",
-      color: "#9370db"
+    const landasLabel = this.add.text(x + 25, y + 7, "LANDÁS", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "14px",
+      color: "#9370db",
+      fontStyle: "bold"
     });
     
-    this.landasText = this.add.text(x + 18, y + 18, "", {
+    this.landasText = this.add.text(x + 25, y + 25, "", {
       fontFamily: "dungeon-mode",
-      fontSize: "11px",
-      color: "#9370db"
+      fontSize: "12px",
+      color: "#9370db",
+      fontStyle: "bold"
     });
     
     this.uiContainer.add([landasIcon, landasLabel, this.landasText]);
@@ -2688,24 +2785,38 @@ export class Overworld extends Scene {
     const barWidth = 220; // Increased width for larger panel
     const barHeight = 12; // Slightly taller bar
     
-    // Health color based on percentage
-    let healthColor = 0x00aa00; // Green
-    if (healthPercent < 0.5) healthColor = 0xaaaa00; // Yellow
-    if (healthPercent < 0.25) healthColor = 0xaa0000; // Red
+    // Health color based on percentage with Persona styling
+    let healthColor = 0x00ff00; // Bright green
+    if (healthPercent < 0.5) healthColor = 0xffff00; // Bright yellow
+    if (healthPercent < 0.25) healthColor = 0xff0000; // Bright red (Persona red)
     
-    // Draw background with consistent square design
-    this.healthBar.fillStyle(0x330000, 0.9);
-    this.healthBar.lineStyle(1, 0x555555, 1);
-    this.healthBar.fillRoundedRect(barX, barY, barWidth, barHeight, 3);
-    this.healthBar.strokeRoundedRect(barX, barY, barWidth, barHeight, 3);
+    // Draw Persona-style health bar background
+    this.healthBar.fillStyle(0x000000, 0.9); // Black background
+    this.healthBar.lineStyle(2, 0xffffff, 1); // White border
+    this.healthBar.fillRoundedRect(barX, barY, barWidth, barHeight, 6);
+    this.healthBar.strokeRoundedRect(barX, barY, barWidth, barHeight, 6);
     
-    // Draw health fill
-    this.healthBar.fillStyle(healthColor);
-    this.healthBar.fillRoundedRect(barX, barY, barWidth * healthPercent, barHeight, 3);
+    // Draw health fill with Persona red gradient effect
+    const gradientColor = healthPercent > 0.5 ? 0x00ff00 : healthPercent > 0.25 ? 0xffff00 : 0xff0000;
+    this.healthBar.fillStyle(gradientColor);
+    this.healthBar.fillRoundedRect(barX, barY, barWidth * healthPercent, barHeight, 6);
+    
+    // Add a subtle glow effect for low health
+    if (healthPercent < 0.25) {
+      this.healthBar.fillStyle(0xff0000, 0.3);
+      this.healthBar.fillRoundedRect(barX - 2, barY - 2, barWidth * healthPercent + 4, barHeight + 4, 8);
+    }
     
     // Add heart icon to the left of the health bar
     const heartSymbol = healthPercent > 0.5 ? "❤️" : healthPercent > 0.25 ? "💔" : "🖤";
     this.healthText.setText(`${heartSymbol} ${this.playerData.currentHealth}/${this.playerData.maxHealth}`);
+    
+    // Add a subtle pulse animation for low health
+    if (healthPercent < 0.25) {
+      this.healthText.setShadow(2, 2, '#ff0000', 5, true, true);
+    } else {
+      this.healthText.setShadow(0, 0, '#000000', 0, false, false);
+    }
   }
 
   /**
@@ -2720,19 +2831,26 @@ export class Overworld extends Scene {
    */
   private updateLandasDisplay(): void {
     const score = this.playerData.landasScore;
-    let alignment = "Balance";
+    let alignment = "BALANCE";
     let color = "#9370db";
+    let bgColor = 0x4b0082; // Indigo for balance
     
     if (score >= 5) {
-      alignment = "Mercy";
+      alignment = "MERCY";
       color = "#87ceeb";
+      bgColor = 0x1e90ff; // Dodger blue for mercy
     } else if (score <= -5) {
-      alignment = "Conquest";
+      alignment = "CONQUEST";
       color = "#ff6347";
+      bgColor = 0xdc143c; // Crimson for conquest
     }
     
+    // Add a subtle background effect based on alignment
     this.landasText.setText(`${alignment} (${score >= 0 ? '+' : ''}${score})`);
     this.landasText.setColor(color);
+    
+    // Add a subtle glow effect for the text
+    this.landasText.setShadow(1, 1, 'rgba(255, 255, 255, 0.5)', 2);
   }
 
   /**
@@ -2754,17 +2872,67 @@ export class Overworld extends Scene {
       const relicX = col * (slotSize + slotSpacing);
       const relicY = row * (slotSize + slotSpacing);
       
+      // Create Persona-style relic container
+      const relicContainer = this.add.container(relicX, relicY);
+      
+      // Relic background with Persona styling
+      const relicBg = this.add.graphics();
+      relicBg.fillStyle(0x000000, 0.7); // Black background
+      relicBg.lineStyle(1, 0xffffff, 1); // White border
+      relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 4);
+      relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 4);
+      
       // Relic icon/emoji
-      const relicIcon = this.add.text(relicX + slotSize/2, relicY + slotSize/2, relic.emoji, {
-        fontSize: "20px",
+      const relicIcon = this.add.text(slotSize/2, slotSize/2, relic.emoji, {
+        fontSize: "24px",
         align: "center"
       }).setOrigin(0.5);
       
+      // Add a subtle glow effect for equipped relics
+      const glow = this.add.graphics();
+      glow.fillStyle(0xff0000, 0.3); // Red glow
+      glow.fillRoundedRect(-2, -2, slotSize + 4, slotSize + 4, 6);
+      
+      relicContainer.add([glow, relicBg, relicIcon]);
+      
       // Make interactive for tooltip
-      relicIcon.setInteractive();
+      relicContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
       this.createItemTooltip(relicIcon, relic.name, relic.description);
       
-      this.relicsContainer.add(relicIcon);
+      // Add hover effects
+      relicContainer.on('pointerover', () => {
+        relicBg.clear();
+        relicBg.fillStyle(0x333333, 0.9); // Lighter background on hover
+        relicBg.lineStyle(2, 0xff0000, 1); // Thicker red border
+        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 4);
+        relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 4);
+        
+        // Scale up on hover
+        this.tweens.add({
+          targets: relicContainer,
+          scale: 1.1,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
+      relicContainer.on('pointerout', () => {
+        relicBg.clear();
+        relicBg.fillStyle(0x000000, 0.7); // Original background
+        relicBg.lineStyle(1, 0xffffff, 1); // Original border
+        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 4);
+        relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 4);
+        
+        // Scale back to normal
+        this.tweens.add({
+          targets: relicContainer,
+          scale: 1,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
+      this.relicsContainer.add(relicContainer);
     }
   }
 
@@ -2783,17 +2951,67 @@ export class Overworld extends Scene {
       const potionX = i * (potionSlotSize + potionSpacing);
       const potionY = 0;
       
+      // Create Persona-style potion container
+      const potionContainer = this.add.container(potionX, potionY);
+      
+      // Potion background with Persona styling
+      const potionBg = this.add.graphics();
+      potionBg.fillStyle(0x000000, 0.7); // Black background
+      potionBg.lineStyle(1, 0xffffff, 1); // White border
+      potionBg.fillRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
+      potionBg.strokeRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
+      
       // Potion icon
-      const potionIcon = this.add.text(potionX + potionSlotSize/2, potionY + potionSlotSize/2, "🧪", {
-        fontSize: "16px",
+      const potionIcon = this.add.text(potionSlotSize/2, potionSlotSize/2, "🧪", {
+        fontSize: "20px",
         align: "center"
       }).setOrigin(0.5);
       
+      // Add a subtle glow effect for potions
+      const glow = this.add.graphics();
+      glow.fillStyle(0x00ff00, 0.2); // Green glow
+      glow.fillRoundedRect(-1, -1, potionSlotSize + 2, potionSlotSize + 2, 6);
+      
+      potionContainer.add([glow, potionBg, potionIcon]);
+      
       // Make interactive for tooltip and actions
-      potionIcon.setInteractive();
+      potionContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, potionSlotSize, potionSlotSize), Phaser.Geom.Rectangle.Contains);
       this.createItemTooltip(potionIcon, potion.name, potion.description);
       
-      // Add use/discard buttons (small)
+      // Add hover effects
+      potionContainer.on('pointerover', () => {
+        potionBg.clear();
+        potionBg.fillStyle(0x333333, 0.9); // Lighter background on hover
+        potionBg.lineStyle(2, 0x00ff00, 1); // Thicker green border
+        potionBg.fillRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
+        potionBg.strokeRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
+        
+        // Scale up on hover
+        this.tweens.add({
+          targets: potionContainer,
+          scale: 1.1,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
+      potionContainer.on('pointerout', () => {
+        potionBg.clear();
+        potionBg.fillStyle(0x000000, 0.7); // Original background
+        potionBg.lineStyle(1, 0xffffff, 1); // Original border
+        potionBg.fillRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
+        potionBg.strokeRoundedRect(0, 0, potionSlotSize, potionSlotSize, 4);
+        
+        // Scale back to normal
+        this.tweens.add({
+          targets: potionContainer,
+          scale: 1,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
+      // Add use/discard buttons (small) with Persona styling
       const useButton = this.createSmallPotionButton(
         potionX + potionSlotSize - 8,
         potionY + 8,
@@ -2810,7 +3028,7 @@ export class Overworld extends Scene {
         () => this.discardPotion(i)
       );
       
-      this.potionsContainer.add([potionIcon, useButton, discardButton]);
+      this.potionsContainer.add([potionContainer, useButton, discardButton]);
     }
     
     // Update discard charges display
