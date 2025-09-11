@@ -21,9 +21,8 @@ export class Overworld extends Scene {
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
   private bossText!: Phaser.GameObjects.Text;
   private actionButtons: Phaser.GameObjects.Container[] = [];
-  // Scanlines disabled to remove VHS flickering
-  // private scanlines!: Phaser.GameObjects.TileSprite;
-  // private scanlineTimer: number = 0;
+  private scanlines!: Phaser.GameObjects.TileSprite;
+  private scanlineTimer: number = 0;
   private shopKey!: Phaser.Input.Keyboard.Key;
   private testButtonsVisible: boolean = false;
   private testButtonsContainer!: Phaser.GameObjects.Container;
@@ -172,8 +171,8 @@ export class Overworld extends Scene {
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
     
-    // Create CRT scanline effect - DISABLED to remove VHS flickering
-    // this.createCRTEffect();
+    // Create CRT scanline effect
+    this.createCRTEffect();
     
     // Create UI elements with a slight delay to ensure camera is ready
     this.time.delayedCall(10, this.createUI, [], this);
@@ -1973,22 +1972,21 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Create CRT scanline effect for retro aesthetic - DISABLED to remove VHS flickering
+   * Create CRT scanline effect for retro aesthetic
    */
-  /*
   private createCRTEffect(): void {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
-    // Create scanlines using a tile sprite
+    // Create scanlines using a tile sprite with reduced opacity for subtlety
     this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
       .setOrigin(0)
-      .setAlpha(0.25) // Increased opacity for more prominence
+      .setAlpha(0.12) // Reduced opacity to minimize flickering distraction
       .setTint(0x77888C)
       .setScrollFactor(0) // Fixed to camera
       .setDepth(9999); // Ensure it's above everything else
       
-    // Create a more pronounced scanline pattern (4x4 as requested)
+    // Create a subtle scanline pattern
     const graphics = this.make.graphics({ x: 0, y: 0, add: false });
     graphics.fillStyle(0x000000, 1);
     graphics.fillRect(0, 0, 4, 2); // Thicker lines
@@ -1997,8 +1995,40 @@ export class Overworld extends Scene {
     
     const texture = graphics.generateTexture('overworld_scanline', 4, 4);
     this.scanlines.setTexture('overworld_scanline');
+    
+    // Add a subtle screen flicker effect (like Combat.ts)
+    this.scheduleFlicker();
   }
-  */
+  
+  /**
+   * Schedule the next screen flicker
+   */
+  private scheduleFlicker(): void {
+    this.time.addEvent({
+      delay: Phaser.Math.Between(8000, 20000), // Random flicker every 8-20 seconds (less frequent than combat)
+      callback: this.flickerScreen,
+      callbackScope: this,
+      loop: false
+    });
+  }
+  
+  /**
+   * Create a brief screen flicker effect
+   */
+  private flickerScreen(): void {
+    // Very subtle flicker
+    this.tweens.add({
+      targets: this.scanlines,
+      alpha: 0.18, // Slight increase in opacity
+      duration: 30, // Very quick flicker
+      yoyo: true,
+      ease: 'Power2',
+      onComplete: () => {
+        // Schedule next flicker after this one completes
+        this.scheduleFlicker();
+      }
+    });
+  }
 
   /**
    * Handle scene resize
@@ -2007,23 +2037,23 @@ export class Overworld extends Scene {
     // Update UI elements on resize
     this.updateUI();
     
-    // CRT effect disabled to remove VHS flickering
-    // if (this.scanlines) {
-    //   this.scanlines.destroy();
-    // }
-    // this.createCRTEffect();
+    // Recreate CRT effect on resize
+    if (this.scanlines) {
+      this.scanlines.destroy();
+    }
+    this.createCRTEffect();
   }
 
   /**
    * Update method for animation effects and player movement
    */
   update(time: number, delta: number): void {
-    // Animate the scanlines - DISABLED to remove VHS flickering
-    // if (this.scanlines) {
-    //   this.scanlineTimer += delta;
-    //   // Move scanlines vertically to simulate CRT effect at a faster pace
-    //   this.scanlines.tilePositionY = this.scanlineTimer * 0.15; // Increased speed
-    // }
+    // Subtle scanline animation - much slower to reduce flickering
+    if (this.scanlines) {
+      this.scanlineTimer += delta;
+      // Very slow movement to minimize distraction
+      this.scanlines.tilePositionY = this.scanlineTimer * 0.02; // Much slower than before (0.15 -> 0.02)
+    }
     
     // Handle player movement if not moving or in transition
     if (!this.isMoving && !this.isTransitioningToCombat) {
