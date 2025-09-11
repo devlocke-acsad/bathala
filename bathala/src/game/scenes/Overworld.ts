@@ -3,6 +3,8 @@ import { MazeOverworldGenerator } from "../../utils/MazeOverworldGenerator";
 import { MapNode } from "../../core/types/MapTypes";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { GameState } from "../../core/managers/GameState";
+import { Player } from "../../core/types/CombatTypes";
+import { Potion } from "../../data/potions/Act1Potions";
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
@@ -25,10 +27,75 @@ export class Overworld extends Scene {
   private testButtonsVisible: boolean = false;
   private testButtonsContainer!: Phaser.GameObjects.Container;
   private toggleButton!: Phaser.GameObjects.Container;
+  
+  // Overworld UI elements
+  private uiContainer!: Phaser.GameObjects.Container;
+  private healthBar!: Phaser.GameObjects.Graphics;
+  private healthText!: Phaser.GameObjects.Text;
+  private relicsContainer!: Phaser.GameObjects.Container;
+  private potionsContainer!: Phaser.GameObjects.Container;
+  private currencyText!: Phaser.GameObjects.Text;
+  private landasText!: Phaser.GameObjects.Text;
+  private deckInfoText!: Phaser.GameObjects.Text;
+  private relicInventoryButton!: Phaser.GameObjects.Container;
+  private potionInventoryButton!: Phaser.GameObjects.Container;
+  private playerData: Player;
 
   constructor() {
     super({ key: "Overworld" });
     this.gameState = OverworldGameState.getInstance();
+    
+    // Initialize player data with default values
+    this.playerData = {
+      id: "player",
+      name: "Hero",
+      maxHealth: 80,
+      currentHealth: 80,
+      block: 0,
+      statusEffects: [],
+      hand: [],
+      deck: [],
+      discardPile: [],
+      drawPile: [],
+      playedHand: [],
+      landasScore: 0,
+      ginto: 100,
+      baubles: 0,
+      relics: [
+        {
+          id: "placeholder_relic",
+          name: "Babaylan's Talisman",
+          description: "Your hand is considered one tier higher.",
+          emoji: "🧿",
+        },
+        {
+          id: "agimat_swift_wind",
+          name: "Agimat of the Swift Wind",
+          description: "Start each combat with +1 discard charge.",
+          emoji: "💨",
+        }
+      ],
+      potions: [
+        {
+          id: "clarity_potion",
+          name: "Potion of Clarity",
+          description: "Draw 3 cards.",
+          effect: "draw_3_cards",
+          emoji: "🧠",
+          rarity: "common" as const
+        },
+        {
+          id: "fortitude_potion",
+          name: "Elixir of Fortitude", 
+          description: "Gain 15 Block.",
+          effect: "gain_15_block",
+          emoji: "🛡️",
+          rarity: "common" as const
+        }
+      ],
+      discardCharges: 1,
+      maxDiscardCharges: 1
+    };
   }
 
   create(): void {
@@ -438,6 +505,9 @@ export class Overworld extends Scene {
     
     // Create toggle button
     this.createToggleButton();
+    
+    // Create overworld UI panel
+    this.createOverworldUI();
   }
 
   createDayNightProgressBar(): void {
@@ -912,6 +982,11 @@ export class Overworld extends Scene {
       this.bossText.setColor('#ff0000');
     } else {
       this.bossText.setColor('#ffffff');
+    }
+    
+    // Update overworld UI panel
+    if (this.uiContainer) {
+      this.updateOverworldUI();
     }
   }
 
@@ -2015,5 +2090,1031 @@ export class Overworld extends Scene {
         this.updateUI();
       }
     }
+  }
+
+  /**
+   * Create the overworld UI panel with health, relics, and potions
+   */
+  private createOverworldUI(): void {
+    const screenHeight = this.cameras.main.height;
+    
+    // Create main UI container positioned at top-left
+    this.uiContainer = this.add.container(0, 0);
+    this.uiContainer.setScrollFactor(0).setDepth(1500);
+    
+    // Create compact left panel for all UI elements
+    this.createCompactLeftPanel(screenHeight);
+    
+    // Update all UI elements
+    this.updateOverworldUI();
+  }
+
+  /**
+   * Create compact left panel for all UI elements (refined game-like UI)
+   */
+  private createCompactLeftPanel(screenHeight: number): void {
+    const panelWidth = 220;
+    const panelHeight = 300;
+    const panelX = 15;
+    const panelY = 15;
+    
+    // Main panel background with refined game-like style
+    const panelBg = this.add.graphics();
+    panelBg.fillStyle(0x1a1a1a, 0.92);
+    panelBg.lineStyle(1.5, 0x444444, 1);
+    panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 5);
+    panelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 5);
+    this.uiContainer.add(panelBg);
+    
+    // Create health section
+    this.createHealthSection(panelX + 15, panelY + 15);
+    
+    // Create currency section
+    this.createCurrencySection(panelX + 15, panelY + 60);
+    
+    // Create Landás score section
+    this.createLandasSection(panelX + 15, panelY + 90);
+    
+    // Inventory title with icon
+    const inventoryIcon = this.add.text(panelX + 15, panelY + 120, "🎒", {
+      fontSize: "16px"
+    });
+    const inventoryTitle = this.add.text(panelX + 35, panelY + 122, "Inventory", {
+      fontFamily: "dungeon-mode",
+      fontSize: "14px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.uiContainer.add([inventoryIcon, inventoryTitle]);
+    
+    // Create relics section
+    this.createRelicsSection(panelX + 15, panelY + 145);
+    
+    // Create potions section
+    this.createPotionsSection(panelX + 15, panelY + 220);
+  }
+
+  /**
+   * Create health section in compact panel with icon
+   */
+  private createHealthSection(x: number, y: number): void {
+    // Health icon and label
+    const healthIcon = this.add.text(x, y, "❤️", {
+      fontSize: "16px"
+    });
+    const healthLabel = this.add.text(x + 20, y + 2, "Health", {
+      fontFamily: "dungeon-mode",
+      fontSize: "13px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.uiContainer.add([healthIcon, healthLabel]);
+    
+    // Health bar background
+    const healthBarBg = this.add.graphics();
+    healthBarBg.fillStyle(0x330000);
+    healthBarBg.fillRoundedRect(x, y + 22, 170, 10, 2);
+    this.uiContainer.add(healthBarBg);
+    
+    // Health bar (foreground)
+    this.healthBar = this.add.graphics();
+    this.uiContainer.add(this.healthBar);
+    
+    // Health text
+    this.healthText = this.add.text(x, y + 35, "", {
+      fontFamily: "dungeon-mode", 
+      fontSize: "11px",
+      color: "#ff6b6b"
+    });
+    this.uiContainer.add(this.healthText);
+  }
+
+  /**
+   * Create currency section in compact panel with icons
+   */
+  private createCurrencySection(x: number, y: number): void {
+    // Currency icons and labels
+    const gintoIcon = this.add.text(x, y, "💰", {
+      fontSize: "14px"
+    });
+    const gintoLabel = this.add.text(x + 18, y + 2, "Ginto:", {
+      fontFamily: "dungeon-mode",
+      fontSize: "12px",
+      color: "#ffd700"
+    });
+    
+    const baublesIcon = this.add.text(x + 80, y, "💎", {
+      fontSize: "14px"
+    });
+    const baublesLabel = this.add.text(x + 98, y + 2, "Baubles:", {
+      fontFamily: "dungeon-mode",
+      fontSize: "12px",
+      color: "#87ceeb"
+    });
+    
+    this.currencyText = this.add.text(x, y + 20, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: "12px", 
+      color: "#ffffff"
+    });
+    
+    this.uiContainer.add([gintoIcon, gintoLabel, baublesIcon, baublesLabel, this.currencyText]);
+  }
+
+  /**
+   * Create Landás score section in compact panel with icon
+   */
+  private createLandasSection(x: number, y: number): void {
+    // Landás icon and label
+    const landasIcon = this.add.text(x, y, "⚖️", {
+      fontSize: "14px"
+    });
+    const landasLabel = this.add.text(x + 18, y + 2, "Landás:", {
+      fontFamily: "dungeon-mode",
+      fontSize: "12px",
+      color: "#9370db"
+    });
+    
+    this.landasText = this.add.text(x + 18, y + 18, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: "11px",
+      color: "#9370db"
+    });
+    
+    this.uiContainer.add([landasIcon, landasLabel, this.landasText]);
+  }
+
+  /**
+   * Create relics section in compact panel with improved organization
+   */
+  private createRelicsSection(x: number, y: number): void {
+    // Section title with icon
+    const relicsIcon = this.add.text(x, y, "🔮", {
+      fontSize: "14px"
+    });
+    const relicsTitle = this.add.text(x + 18, y + 2, "Relics", {
+      fontFamily: "dungeon-mode",
+      fontSize: "13px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.uiContainer.add([relicsIcon, relicsTitle]);
+    
+    // Relics grid container
+    this.relicsContainer = this.add.container(x, y + 20);
+    this.uiContainer.add(this.relicsContainer);
+  }
+
+  /**
+   * Create potions section in compact panel with improved organization
+   */
+  private createPotionsSection(x: number, y: number): void {
+    // Section title with icon
+    const potionsIcon = this.add.text(x, y, "🧪", {
+      fontSize: "14px"
+    });
+    const potionsTitle = this.add.text(x + 18, y + 2, "Potions", {
+      fontFamily: "dungeon-mode",
+      fontSize: "13px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.uiContainer.add([potionsIcon, potionsTitle]);
+    
+    // Potions container
+    this.potionsContainer = this.add.container(x, y + 20);
+    this.uiContainer.add(this.potionsContainer);
+  }
+
+  /**
+   * Create a small button (He Is Coming style) for UI actions
+   */
+  private createSmallButton(x: number, y: number, text: string, callback: () => void): Phaser.GameObjects.Container {
+    const button = this.add.container(x, y);
+    
+    const padding = 8;
+    const buttonWidth = 70;
+    const buttonHeight = 20;
+    
+    const background = this.add.graphics();
+    background.fillStyle(0x333333, 0.9);
+    background.lineStyle(1, 0x555555, 1);
+    background.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
+    background.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
+    
+    const buttonText = this.add.text(0, 0, text, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '10px',
+      color: '#ffffff',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    button.add([background, buttonText]);
+    button.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
+    
+    button.on('pointerdown', callback);
+    button.on('pointerover', () => {
+      background.clear();
+      background.fillStyle(0x555555, 0.9);
+      background.lineStyle(1, 0x777777, 1);
+      background.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
+      background.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
+      buttonText.setColor('#ffff00');
+    });
+    button.on('pointerout', () => {
+      background.clear();
+      background.fillStyle(0x333333, 0.9);
+      background.lineStyle(1, 0x555555, 1);
+      background.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
+      background.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
+      buttonText.setColor('#ffffff');
+    });
+    
+    return button;
+  }
+
+  /**
+   * Create a small button for potion actions (refined game-like style)
+   */
+  private createSmallPotionButton(x: number, y: number, text: string, color: number, callback: () => void): Phaser.GameObjects.Container {
+    const button = this.add.container(x, y);
+    
+    const buttonSize = 10;
+    const background = this.add.graphics();
+    background.fillStyle(color, 0.75);
+    background.lineStyle(0.5, 0xffffff, 0.4);
+    background.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 1.5);
+    background.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 1.5);
+    
+    const buttonText = this.add.text(0, 0, text, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '6px',
+      color: '#ffffff',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    button.add([background, buttonText]);
+    button.setInteractive(new Phaser.Geom.Rectangle(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize), Phaser.Geom.Rectangle.Contains);
+    
+    button.on('pointerdown', callback);
+    button.on('pointerover', () => {
+      background.clear();
+      background.fillStyle(color, 0.9);
+      background.lineStyle(0.5, 0xffffff, 0.6);
+      background.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 1.5);
+      background.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 1.5);
+      buttonText.setColor('#ffff00');
+    });
+    button.on('pointerout', () => {
+      background.clear();
+      background.fillStyle(color, 0.75);
+      background.lineStyle(0.5, 0xffffff, 0.4);
+      background.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 1.5);
+      background.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 1.5);
+      buttonText.setColor('#ffffff');
+    });
+    
+    return button;
+  }
+
+  /**
+   * Create tooltip for items (relics, potions) in refined game-like style
+   */
+  private createItemTooltip(targetObject: Phaser.GameObjects.Text, title: string, description: string): void {
+    const tooltip = this.add.container(0, 0).setVisible(false).setDepth(2000);
+    const tooltipBg = this.add.graphics();
+    tooltipBg.fillStyle(0x000000, 0.85);
+    tooltipBg.lineStyle(0.5, 0x555555);
+    
+    const tooltipText = this.add.text(0, 0, `${title}\n${description}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: "9px",
+      color: "#ffffff",
+      wordWrap: { width: 160 },
+      align: "center"
+    }).setOrigin(0.5);
+    
+    const bounds = tooltipText.getBounds();
+    tooltipBg.fillRoundedRect(-bounds.width/2 - 6, -bounds.height/2 - 3, bounds.width + 12, bounds.height + 6, 3);
+    tooltipBg.strokeRoundedRect(-bounds.width/2 - 6, -bounds.height/2 - 3, bounds.width + 12, bounds.height + 6, 3);
+    
+    tooltip.add([tooltipBg, tooltipText]);
+    this.uiContainer.add(tooltip);
+    
+    targetObject.on('pointerover', () => {
+      const globalPos = targetObject.getWorldTransformMatrix();
+      tooltip.setPosition(globalPos.tx + 20, globalPos.ty - 20);
+      tooltip.setVisible(true);
+    });
+    
+    targetObject.on('pointerout', () => {
+      tooltip.setVisible(false);
+    });
+  }
+
+  /**
+   * Use a potion
+   */
+  private usePotion(index: number): void {
+    if (index >= 0 && index < this.playerData.potions.length) {
+      const potion = this.playerData.potions[index];
+      console.log(`Using potion: ${potion.name}`);
+      
+      // Apply potion effects here
+      switch (potion.effect) {
+        case "draw_3_cards":
+          console.log("Would draw 3 cards");
+          break;
+        case "gain_15_block":
+          console.log("Would gain 15 block");
+          break;
+        default:
+          console.log(`Unknown potion effect: ${potion.effect}`);
+      }
+      
+      // Remove potion after use
+      this.playerData.potions.splice(index, 1);
+      this.updateOverworldUI();
+    }
+  }
+
+  /**
+   * Discard a potion
+   */
+  private discardPotion(index: number): void {
+    if (index >= 0 && index < this.playerData.potions.length) {
+      const potion = this.playerData.potions[index];
+      console.log(`Discarding potion: ${potion.name}`);
+      
+      // Remove potion
+      this.playerData.potions.splice(index, 1);
+      this.updateOverworldUI();
+    }
+  }
+
+  /**
+   * Create discard charges display
+   */
+  private createDiscardChargesUI(): void {
+    // Removed discard charges display as requested
+  }
+
+  /**
+   * Create relics display
+   */
+  private createRelicsUI(): void {
+    const relicsY = 70;
+    
+    // Relics label
+    const relicsLabel = this.add.text(15, relicsY, "Relics:", {
+      fontFamily: "dungeon-mode",
+      fontSize: "14px",
+      color: "#ffffff"
+    });
+    this.uiContainer.add(relicsLabel);
+    
+    // Create relics container
+    this.relicsContainer = this.add.container(75, relicsY);
+    this.uiContainer.add(this.relicsContainer);
+    
+    // Create relic inventory button
+    this.relicInventoryButton = this.createInventoryButton(250, relicsY, "Relics", () => {
+      this.showRelicInventory();
+    });
+    this.uiContainer.add(this.relicInventoryButton);
+  }
+
+  /**
+   * Create a button to open inventory
+   */
+  private createInventoryButton(x: number, y: number, text: string, callback: () => void): Phaser.GameObjects.Container {
+    const button = this.add.container(x, y);
+    
+    // Create a temporary text object to measure the actual text width
+    const tempText = this.add.text(0, 0, text, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '10px',
+      color: '#ffffff'
+    });
+    
+    // Get the actual width of the text
+    const textWidth = tempText.width;
+    const textHeight = tempText.height;
+    tempText.destroy(); // Remove the temporary text
+    
+    // Set button dimensions with proper padding
+    const padding = 10;
+    const buttonWidth = Math.max(60, textWidth + padding); // Minimum width of 60px
+    const buttonHeight = Math.max(20, textHeight + 5); // Minimum height of 20px
+    
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x333333);
+    background.setStrokeStyle(1, 0xffffff);
+    
+    const buttonText = this.add.text(0, 0, text, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '10px',
+      color: '#ffffff',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    button.add([background, buttonText]);
+    button.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
+    
+    button.on('pointerdown', callback);
+    button.on('pointerover', () => {
+      background.setFillStyle(0x555555);
+    });
+    button.on('pointerout', () => {
+      background.setFillStyle(0x333333);
+    });
+    
+    return button;
+  }
+
+  /**
+   * Update all overworld UI elements
+   */
+  private updateOverworldUI(): void {
+    this.updateHealthBar();
+    this.updateCurrencyDisplay();
+    this.updateLandasDisplay();
+    this.updateRelicsDisplay();
+    this.updatePotionsDisplay();
+  }
+
+  /**
+   * Update health bar display
+   */
+  private updateHealthBar(): void {
+    const healthPercent = this.playerData.currentHealth / this.playerData.maxHealth;
+    
+    this.healthBar.clear();
+    
+    // Health bar position (matching createHealthSection)
+    const barX = 30; // panelX + 15 from createCompactLeftPanel (15 + 15)
+    const barY = 52; // panelY + 22 from createHealthSection (15 + 15 + 22)
+    const barWidth = 170;
+    const barHeight = 10;
+    
+    // Health color based on percentage
+    let healthColor = 0x00aa00; // Green
+    if (healthPercent < 0.5) healthColor = 0xaaaa00; // Yellow
+    if (healthPercent < 0.25) healthColor = 0xaa0000; // Red
+    
+    this.healthBar.fillStyle(healthColor);
+    this.healthBar.fillRoundedRect(barX, barY, barWidth * healthPercent, barHeight, 2);
+    
+    this.healthText.setText(`${this.playerData.currentHealth}/${this.playerData.maxHealth}`);
+  }
+
+  /**
+   * Update currency display
+   */
+  private updateCurrencyDisplay(): void {
+    this.currencyText.setText(`${this.playerData.ginto}        ${this.playerData.baubles}`);
+  }
+
+  /**
+   * Update Landás score display
+   */
+  private updateLandasDisplay(): void {
+    const score = this.playerData.landasScore;
+    let alignment = "Balance";
+    let color = "#9370db";
+    
+    if (score >= 5) {
+      alignment = "Mercy";
+      color = "#87ceeb";
+    } else if (score <= -5) {
+      alignment = "Conquest";
+      color = "#ff6347";
+    }
+    
+    this.landasText.setText(`${alignment} (${score >= 0 ? '+' : ''}${score})`);
+    this.landasText.setColor(color);
+  }
+
+  /**
+   * Update relics display in organized, clean layout
+   */
+  private updateRelicsDisplay(): void {
+    this.relicsContainer.removeAll(true);
+    
+    const relicsToShow = Math.min(4, this.playerData.relics.length); // Show max 4 in compact panel
+    const itemsPerRow = 4;
+    const iconSize = 22;
+    const spacing = 28;
+    
+    for (let i = 0; i < relicsToShow; i++) {
+      const relic = this.playerData.relics[i];
+      const row = Math.floor(i / itemsPerRow);
+      const col = i % itemsPerRow;
+      
+      // Create relic container with clean game-like style
+      const relicContainer = this.add.container(col * spacing, row * spacing);
+      
+      // Create relic background (dark square with subtle border)
+      const relicBg = this.add.graphics();
+      relicBg.fillStyle(0x2a2a2a, 0.85);
+      relicBg.lineStyle(1, 0x444444, 1);
+      relicBg.fillRoundedRect(-iconSize/2, -iconSize/2, iconSize, iconSize, 2);
+      relicBg.strokeRoundedRect(-iconSize/2, -iconSize/2, iconSize, iconSize, 2);
+      
+      // Relic icon
+      const relicIcon = this.add.text(0, 0, relic.emoji, {
+        fontSize: "16px"
+      }).setOrigin(0.5).setInteractive();
+      
+      relicContainer.add([relicBg, relicIcon]);
+      
+      // Create tooltip
+      this.createItemTooltip(relicIcon, relic.name, relic.description);
+      
+      this.relicsContainer.add(relicContainer);
+    }
+    
+    // Show count if more relics than displayed
+    if (this.playerData.relics.length > relicsToShow) {
+      const moreText = this.add.text(0, 32, `+${this.playerData.relics.length - relicsToShow}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: "9px",
+        color: "#cccccc",
+        fontStyle: "italic"
+      });
+      this.relicsContainer.add(moreText);
+    }
+  }
+
+  /**
+   * Update potions display with organized grid and interaction buttons (clean game-like style)
+   */
+  private updatePotionsDisplay(): void {
+    this.potionsContainer.removeAll(true);
+    
+    const itemsPerRow = 4;
+    const spacing = 30;
+    
+    this.playerData.potions.forEach((potion, index) => {
+      if (index < 4) { // Show max 4 potions in compact panel
+        const row = Math.floor(index / itemsPerRow);
+        const col = index % itemsPerRow;
+        
+        // Create potion container with clean game-like style
+        const potionContainer = this.add.container(col * spacing, row * spacing);
+        
+        // Create potion background (dark square with subtle border)
+        const potionBg = this.add.graphics();
+        potionBg.fillStyle(0x2a2a2a, 0.85);
+        potionBg.lineStyle(1, 0x444444, 1);
+        potionBg.fillRoundedRect(-18, -18, 36, 36, 2);
+        potionBg.strokeRoundedRect(-18, -18, 36, 36, 2);
+        
+        // Potion icon
+        const potionIcon = this.add.text(0, -2, potion.emoji, {
+          fontSize: "16px"
+        }).setOrigin(0.5);
+        
+        // Small use button (clean game-like style)
+        const useBtn = this.createSmallPotionButton(-7, 13, "U", 0x00aa00, () => {
+          this.usePotion(index);
+        });
+        
+        // Small discard button (clean game-like style)
+        const discardBtn = this.createSmallPotionButton(7, 13, "X", 0xaa0000, () => {
+          this.discardPotion(index);
+        });
+        
+        potionContainer.add([potionBg, potionIcon, useBtn, discardBtn]);
+        
+        // Create tooltip
+        this.createItemTooltip(potionIcon, potion.name, potion.description);
+        
+        this.potionsContainer.add(potionContainer);
+      }
+    });
+    
+    // Show count if more potions than displayed
+    if (this.playerData.potions.length > 4) {
+      const moreText = this.add.text(0, 40, `+${this.playerData.potions.length - 4}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: "9px",
+        color: "#cccccc",
+        fontStyle: "italic"
+      });
+      this.potionsContainer.add(moreText);
+    }
+  }
+
+  /**
+   * Update deck info display
+   */
+  private updateDeckInfoDisplay(): void {
+    const totalCards = this.playerData.deck.length;
+    const handSize = this.playerData.hand.length;
+    const discardSize = this.playerData.discardPile.length;
+    
+    const deckInfo = `Total Cards: ${totalCards}\nHand: ${handSize}\nDiscard: ${discardSize}\nDiscard Charges: ${this.playerData.discardCharges}/${this.playerData.maxDiscardCharges}`;
+    
+    this.deckInfoText.setText(deckInfo);
+  }
+
+  /**
+   * Create potions display with use/discard functionality
+   */
+  private createPotionsUI(): void {
+    const potionsY = 100;
+    
+    // Potions label
+    const potionsLabel = this.add.text(15, potionsY, "Potions:", {
+      fontFamily: "dungeon-mode",
+      fontSize: "14px",
+      color: "#ffffff"
+    });
+    this.uiContainer.add(potionsLabel);
+    
+    // Create potions container
+    this.potionsContainer = this.add.container(85, potionsY);
+    this.uiContainer.add(this.potionsContainer);
+    
+    // Create potion inventory button
+    this.potionInventoryButton = this.createInventoryButton(250, potionsY, "Potions", () => {
+      this.showPotionInventory();
+    });
+    this.uiContainer.add(this.potionInventoryButton);
+  }
+
+  /**
+   * Use a potion from inventory
+   */
+  private usePotion(index: number): void {
+    if (index < 0 || index >= this.playerData.potions.length) {
+      return;
+    }
+    
+    const potion = this.playerData.potions[index];
+    
+    // Apply potion effects
+    switch (potion.effect) {
+      case "draw_3_cards":
+        // For overworld, we could show a visual effect
+        this.showPotionEffect("💙 Clarity potion will draw 3 cards in next combat!");
+        break;
+        
+      case "gain_15_block":
+        this.showPotionEffect("🛡️ Fortitude potion will grant 15 block in next combat!");
+        break;
+        
+      case "gain_1_dexterity":
+        this.showPotionEffect("💨 Swift potion will grant +1 Dexterity in next combat!");
+        break;
+        
+      case "choose_element":
+        this.showPotionEffect("🌈 Elements potion will let you choose dominant element!");
+        break;
+        
+      default:
+        this.showPotionEffect(`Used ${potion.name}!`);
+    }
+    
+    // Remove potion from inventory
+    this.playerData.potions.splice(index, 1);
+    this.updatePotionsDisplay();
+  }
+
+  /**
+   * Discard a potion from inventory
+   */
+  private discardPotion(index: number): void {
+    if (index < 0 || index >= this.playerData.potions.length) {
+      return;
+    }
+    
+    const potion = this.playerData.potions[index];
+    this.showPotionEffect(`Discarded ${potion.name}`);
+    
+    // Remove potion from inventory
+    this.playerData.potions.splice(index, 1);
+    this.updatePotionsDisplay();
+  }
+
+  /**
+   * Show visual feedback for potion actions
+   */
+  private showPotionEffect(message: string): void {
+    const effectText = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2 - 100,
+      message,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: "18px",
+        color: "#ffffff",
+        backgroundColor: "rgba(0, 0, 0, 0.8)",
+        padding: { x: 15, y: 8 }
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
+    
+    // Animate the text
+    effectText.setScale(0.1);
+    this.tweens.add({
+      targets: effectText,
+      scale: 1,
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
+    
+    // Fade out after delay
+    this.time.delayedCall(2000, () => {
+      this.tweens.add({
+        targets: effectText,
+        alpha: 0,
+        scale: 1.2,
+        duration: 500,
+        onComplete: () => {
+          effectText.destroy();
+        }
+      });
+    });
+  }
+
+  /**
+   * Show relic inventory in a modal window
+   */
+  private showRelicInventory(): void {
+    // Create overlay
+    const overlay = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000
+    ).setAlpha(0.7).setScrollFactor(0).setDepth(3000);
+    
+    // Create inventory window
+    const windowWidth = 600;
+    const windowHeight = 400;
+    const inventoryWindow = this.add.container(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2
+    ).setScrollFactor(0).setDepth(3001);
+    
+    // Create window background
+    const windowBg = this.add.graphics();
+    windowBg.fillStyle(0x1a1a1a, 0.95);
+    windowBg.lineStyle(3, 0x4a4a4a);
+    windowBg.fillRoundedRect(-windowWidth/2, -windowHeight/2, windowWidth, windowHeight, 10);
+    windowBg.strokeRoundedRect(-windowWidth/2, -windowHeight/2, windowWidth, windowHeight, 10);
+    
+    // Create title
+    const title = this.add.text(0, -windowHeight/2 + 30, "Relic Inventory", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "24px",
+      color: "#ffffff"
+    }).setOrigin(0.5);
+    
+    // Create relic grid
+    const relicGrid = this.add.container(0, 0);
+    const relicSize = 60;
+    const relicsPerRow = 6;
+    const padding = 20;
+    
+    this.playerData.relics.forEach((relic, index) => {
+      const row = Math.floor(index / relicsPerRow);
+      const col = index % relicsPerRow;
+      
+      const x = col * (relicSize + padding) - (relicsPerRow - 1) * (relicSize + padding) / 2;
+      const y = row * (relicSize + padding) - 20;
+      
+      // Create relic square
+      const relicSquare = this.add.container(x, y);
+      const squareBg = this.add.graphics();
+      squareBg.fillStyle(0x333333);
+      squareBg.lineStyle(2, 0x555555);
+      squareBg.fillRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
+      squareBg.strokeRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
+      
+      // Create relic icon
+      const relicIcon = this.add.text(0, 0, relic.emoji, {
+        fontSize: "32px"
+      }).setOrigin(0.5);
+      
+      // Create tooltip
+      const tooltip = this.add.container(0, -70).setVisible(false);
+      const tooltipBg = this.add.graphics();
+      tooltipBg.fillStyle(0x000000, 0.9);
+      tooltipBg.lineStyle(2, 0x4a4a4a);
+      
+      const tooltipText = this.add.text(0, 0, `${relic.name}
+${relic.description}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: "14px",
+        color: "#ffffff",
+        wordWrap: { width: 200 },
+        align: "center"
+      }).setOrigin(0.5);
+      
+      const bounds = tooltipText.getBounds();
+      tooltipBg.fillRoundedRect(-bounds.width/2 - 10, -bounds.height/2 - 5, bounds.width + 20, bounds.height + 10, 5);
+      tooltipBg.strokeRoundedRect(-bounds.width/2 - 10, -bounds.height/2 - 5, bounds.width + 20, bounds.height + 10, 5);
+      
+      tooltip.add([tooltipBg, tooltipText]);
+      
+      relicSquare.add([squareBg, relicIcon, tooltip]);
+      
+      // Add hover events
+      relicSquare.setInteractive(new Phaser.Geom.Rectangle(-relicSize/2, -relicSize/2, relicSize, relicSize), Phaser.Geom.Rectangle.Contains);
+      relicSquare.on('pointerover', () => {
+        squareBg.clear();
+        squareBg.fillStyle(0x555555);
+        squareBg.lineStyle(2, 0x777777);
+        squareBg.fillRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
+        squareBg.strokeRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
+        tooltip.setVisible(true);
+      });
+      
+      relicSquare.on('pointerout', () => {
+        squareBg.clear();
+        squareBg.fillStyle(0x333333);
+        squareBg.lineStyle(2, 0x555555);
+        squareBg.fillRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
+        squareBg.strokeRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
+        tooltip.setVisible(false);
+      });
+      
+      relicGrid.add(relicSquare);
+    });
+    
+    // Create close button
+    const closeBtn = this.add.container(windowWidth/2 - 30, -windowHeight/2 + 30);
+    const closeBtnBg = this.add.graphics();
+    closeBtnBg.fillStyle(0xaa0000, 0.8);
+    closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
+    const closeBtnText = this.add.text(0, 0, "X", {
+      fontFamily: "dungeon-mode",
+      fontSize: "20px",
+      color: "#ffffff"
+    }).setOrigin(0.5);
+    closeBtn.add([closeBtnBg, closeBtnText]);
+    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-20, -20, 40, 40), Phaser.Geom.Rectangle.Contains);
+    closeBtn.on('pointerdown', () => {
+      overlay.destroy();
+      inventoryWindow.destroy();
+    });
+    closeBtn.on('pointerover', () => {
+      closeBtnBg.clear();
+      closeBtnBg.fillStyle(0xff0000, 0.9);
+      closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
+    });
+    closeBtn.on('pointerout', () => {
+      closeBtnBg.clear();
+      closeBtnBg.fillStyle(0xaa0000, 0.8);
+      closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
+    });
+    
+    inventoryWindow.add([windowBg, title, relicGrid, closeBtn]);
+  }
+
+  /**
+   * Show potion inventory in a modal window
+   */
+  private showPotionInventory(): void {
+    // Create overlay
+    const overlay = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000
+    ).setAlpha(0.7).setScrollFactor(0).setDepth(3000);
+    
+    // Create inventory window
+    const windowWidth = 600;
+    const windowHeight = 400;
+    const inventoryWindow = this.add.container(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2
+    ).setScrollFactor(0).setDepth(3001);
+    
+    // Create window background
+    const windowBg = this.add.graphics();
+    windowBg.fillStyle(0x1a1a1a, 0.95);
+    windowBg.lineStyle(3, 0x4a4a4a);
+    windowBg.fillRoundedRect(-windowWidth/2, -windowHeight/2, windowWidth, windowHeight, 10);
+    windowBg.strokeRoundedRect(-windowWidth/2, -windowHeight/2, windowWidth, windowHeight, 10);
+    
+    // Create title
+    const title = this.add.text(0, -windowHeight/2 + 30, "Potion Inventory", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "24px",
+      color: "#ffffff"
+    }).setOrigin(0.5);
+    
+    // Create potion grid
+    const potionGrid = this.add.container(0, 0);
+    const potionSize = 80;
+    const potionsPerRow = 4;
+    const padding = 30;
+    
+    this.playerData.potions.forEach((potion, index) => {
+      const row = Math.floor(index / potionsPerRow);
+      const col = index % potionsPerRow;
+      
+      const x = col * (potionSize + padding) - (potionsPerRow - 1) * (potionSize + padding) / 2;
+      const y = row * (potionSize + padding) - 20;
+      
+      // Create potion square
+      const potionSquare = this.add.container(x, y);
+      const squareBg = this.add.graphics();
+      squareBg.fillStyle(0x333333);
+      squareBg.lineStyle(2, 0x555555);
+      squareBg.fillRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
+      squareBg.strokeRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
+      
+      // Create potion icon
+      const potionIcon = this.add.text(0, -10, potion.emoji, {
+        fontSize: "36px"
+      }).setOrigin(0.5);
+      
+      // Create potion name
+      const potionName = this.add.text(0, 25, potion.name, {
+        fontFamily: "dungeon-mode",
+        fontSize: "12px",
+        color: "#ffffff"
+      }).setOrigin(0.5);
+      
+      // Create tooltip
+      const tooltip = this.add.container(0, -90).setVisible(false);
+      const tooltipBg = this.add.graphics();
+      tooltipBg.fillStyle(0x000000, 0.9);
+      tooltipBg.lineStyle(2, 0x4a4a4a);
+      
+      const tooltipText = this.add.text(0, 0, `${potion.name}
+${potion.description}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: "14px",
+        color: "#ffffff",
+        wordWrap: { width: 200 },
+        align: "center"
+      }).setOrigin(0.5);
+      
+      const bounds = tooltipText.getBounds();
+      tooltipBg.fillRoundedRect(-bounds.width/2 - 10, -bounds.height/2 - 5, bounds.width + 20, bounds.height + 10, 5);
+      tooltipBg.strokeRoundedRect(-bounds.width/2 - 10, -bounds.height/2 - 5, bounds.width + 20, bounds.height + 10, 5);
+      
+      tooltip.add([tooltipBg, tooltipText]);
+      
+      potionSquare.add([squareBg, potionIcon, potionName, tooltip]);
+      
+      // Add hover events
+      potionSquare.setInteractive(new Phaser.Geom.Rectangle(-potionSize/2, -potionSize/2, potionSize, potionSize), Phaser.Geom.Rectangle.Contains);
+      potionSquare.on('pointerover', () => {
+        squareBg.clear();
+        squareBg.fillStyle(0x555555);
+        squareBg.lineStyle(2, 0x777777);
+        squareBg.fillRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
+        squareBg.strokeRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
+        tooltip.setVisible(true);
+      });
+      
+      potionSquare.on('pointerout', () => {
+        squareBg.clear();
+        squareBg.fillStyle(0x333333);
+        squareBg.lineStyle(2, 0x555555);
+        squareBg.fillRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
+        squareBg.strokeRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
+        tooltip.setVisible(false);
+      });
+      
+      potionGrid.add(potionSquare);
+    });
+    
+    // Create close button
+    const closeBtn = this.add.container(windowWidth/2 - 30, -windowHeight/2 + 30);
+    const closeBtnBg = this.add.graphics();
+    closeBtnBg.fillStyle(0xaa0000, 0.8);
+    closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
+    const closeBtnText = this.add.text(0, 0, "X", {
+      fontFamily: "dungeon-mode",
+      fontSize: "20px",
+      color: "#ffffff"
+    }).setOrigin(0.5);
+    closeBtn.add([closeBtnBg, closeBtnText]);
+    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-20, -20, 40, 40), Phaser.Geom.Rectangle.Contains);
+    closeBtn.on('pointerdown', () => {
+      overlay.destroy();
+      inventoryWindow.destroy();
+    });
+    closeBtn.on('pointerover', () => {
+      closeBtnBg.clear();
+      closeBtnBg.fillStyle(0xff0000, 0.9);
+      closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
+    });
+    closeBtn.on('pointerout', () => {
+      closeBtnBg.clear();
+      closeBtnBg.fillStyle(0xaa0000, 0.8);
+      closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
+    });
+    
+    inventoryWindow.add([windowBg, title, potionGrid, closeBtn]);
   }
 }
