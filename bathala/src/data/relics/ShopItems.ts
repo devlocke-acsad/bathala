@@ -77,6 +77,51 @@ export const shopRelics: ShopItem[] = [
     price: 200,
     currency: "ginto",
     emoji: "⚖️"
+  },
+  {
+    id: "shop_babaylans_talisman",
+    name: "Babaylan's Talisman",
+    description: "Your hand is always considered one tier higher when evaluating poker hands.",
+    type: "relic",
+    item: {
+      id: "babaylans_talisman",
+      name: "Babaylan's Talisman",
+      description: "Your hand is always considered one tier higher when evaluating poker hands.",
+      emoji: "📿"
+    },
+    price: 180,
+    currency: "ginto",
+    emoji: "📿"
+  },
+  {
+    id: "shop_ancestral_blade",
+    name: "Ancestral Blade",
+    description: "Each time you play a Flush, gain 2 temporary Strength.",
+    type: "relic",
+    item: {
+      id: "ancestral_blade",
+      name: "Ancestral Blade",
+      description: "Each time you play a Flush, gain 2 temporary Strength.",
+      emoji: "⚔️"
+    },
+    price: 160,
+    currency: "ginto",
+    emoji: "⚔️"
+  },
+  {
+    id: "shop_tidal_amulet",
+    name: "Tidal Amulet",
+    description: "At the end of your turn, heal 2 HP for each card in your hand.",
+    type: "relic",
+    item: {
+      id: "tidal_amulet",
+      name: "Tidal Amulet",
+      description: "At the end of your turn, heal 2 HP for each card in your hand.",
+      emoji: "🌊"
+    },
+    price: 140,
+    currency: "ginto",
+    emoji: "🌊"
   }
 ];
 
@@ -111,6 +156,51 @@ export const premiumShopItems: ShopItem[] = [
     price: 2,
     currency: "baubles",
     emoji: "🍀"
+  },
+  {
+    id: "shop_echo_ancestors",
+    name: "Echo of the Ancestors",
+    description: "Enables Five of a Kind poker hands.",
+    type: "relic",
+    item: {
+      id: "echo_ancestors",
+      name: "Echo of the Ancestors",
+      description: "Enables Five of a Kind poker hands.",
+      emoji: "🌟"
+    },
+    price: 5,
+    currency: "baubles",
+    emoji: "🌟"
+  },
+  {
+    id: "shop_diwatas_crown",
+    name: "Diwata's Crown",
+    description: "Start each combat with 10 Block and gain 1 temporary Dexterity.",
+    type: "relic",
+    item: {
+      id: "diwatas_crown",
+      name: "Diwata's Crown",
+      description: "Start each combat with 10 Block and gain 1 temporary Dexterity.",
+      emoji: "👑"
+    },
+    price: 4,
+    currency: "baubles",
+    emoji: "👑"
+  },
+  {
+    id: "shop_stone_golem_heart",
+    name: "Stone Golem's Heart",
+    description: "Gain 10 Max HP. At the start of combat, gain 2 Block.",
+    type: "relic",
+    item: {
+      id: "stone_golem_heart",
+      name: "Stone Golem's Heart",
+      description: "Gain 10 Max HP. At the start of combat, gain 2 Block.",
+      emoji: "❤️"
+    },
+    price: 4,
+    currency: "baubles",
+    emoji: "❤️"
   }
 ];
 
