@@ -36,6 +36,7 @@ export class Overworld extends Scene {
   private potionsContainer!: Phaser.GameObjects.Container;
   private currencyText!: Phaser.GameObjects.Text;
   private landasText!: Phaser.GameObjects.Text;
+  private landasMeterIndicator!: Phaser.GameObjects.Graphics;
   private deckInfoText!: Phaser.GameObjects.Text;
   private discardText!: Phaser.GameObjects.Text;
   private relicInventoryButton!: Phaser.GameObjects.Container;
@@ -2123,7 +2124,7 @@ export class Overworld extends Scene {
    */
   private createCompactLeftPanel(screenHeight: number): void {
     const panelWidth = 280;  // More compact square design
-    const panelHeight = 320; // Square aspect ratio
+    const panelHeight = 340; // Increased height for better spacing
     const panelX = 20;       // Left edge positioning
     const panelY = screenHeight / 2 - panelHeight / 2; // Center vertically
     
@@ -2139,29 +2140,55 @@ export class Overworld extends Scene {
     this.createTopStatsSection(panelX + 15, panelY + 15);
     
     // Middle section: 4x2 Grid inventory layout (like the reference image)
-    this.createGridInventorySection(panelX + 15, panelY + 100);
+    this.createGridInventorySection(panelX + 15, panelY + 120);
     
     // Bottom section: Action buttons/potions
-    this.createBottomActionsSection(panelX + 15, panelY + 240);
+    this.createBottomActionsSection(panelX + 15, panelY + 260);
   }
 
   /**
    * Create top stats section with health bar and key stats
    */
   private createTopStatsSection(x: number, y: number): void {
+    // Create a Persona-style card for health section
+    const healthCardBg = this.add.graphics();
+    healthCardBg.fillStyle(0x000000, 0.85); // Black background
+    healthCardBg.lineStyle(2, 0xff0000, 1); // Red border
+    healthCardBg.fillRoundedRect(x - 5, y - 5, 250, 80, 6);
+    healthCardBg.strokeRoundedRect(x - 5, y - 5, 250, 80, 6);
+    this.uiContainer.add(healthCardBg);
+    
     // Health with red heart icon
-    const healthIcon = this.add.text(x, y, "❤️", {
-      fontSize: "16px"
-    });
-    this.healthText = this.add.text(x + 25, y + 2, "10/10", {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px",
-      color: "#ff4444",
+    const healthIcon = this.add.text(x, y + 5, "❤️", {
+      fontSize: "18px",
       fontStyle: "bold"
     });
     
-    // Currency display
-    const gintoIcon = this.add.text(x + 120, y, "💰", {
+    // Health label with Persona-style typography
+    const healthLabel = this.add.text(x + 25, y + 7, "HEALTH", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "14px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    
+    // Health value with Persona-style typography
+    this.healthText = this.add.text(x + 25, y + 25, "10/10", {
+      fontFamily: "dungeon-mode",
+      fontSize: "16px",
+      color: "#ff0000",
+      fontStyle: "bold"
+    });
+    
+    // Currency display with Persona-style card
+    const currencyCardBg = this.add.graphics();
+    currencyCardBg.fillStyle(0x000000, 0.85); // Black background
+    currencyCardBg.lineStyle(2, 0xff0000, 1); // Red border
+    currencyCardBg.fillRoundedRect(x + 120, y - 5, 120, 30, 6);
+    currencyCardBg.strokeRoundedRect(x + 120, y - 5, 120, 30, 6);
+    this.uiContainer.add(currencyCardBg);
+    
+    const gintoIcon = this.add.text(x + 125, y, "💰", {
       fontSize: "16px"
     });
     this.currencyText = this.add.text(x + 145, y + 2, "0", {
@@ -2171,29 +2198,22 @@ export class Overworld extends Scene {
       fontStyle: "bold"
     });
     
-    // Health bar (compact)
-    const healthBarBg = this.add.graphics();
-    healthBarBg.fillStyle(0x330000, 0.9);
-    healthBarBg.lineStyle(1, 0x666666, 1);
-    healthBarBg.fillRoundedRect(x, y + 25, 200, 8, 4);
-    healthBarBg.strokeRoundedRect(x, y + 25, 200, 8, 4);
-    this.uiContainer.add(healthBarBg);
+    // Health bar with Persona-style design (red/black/white)
+    const healthBarContainer = this.add.graphics();
+    healthBarContainer.fillStyle(0x000000, 0.9); // Black background
+    healthBarContainer.lineStyle(2, 0xffffff, 1); // White border
+    healthBarContainer.fillRoundedRect(x, y + 45, 230, 15, 8);
+    healthBarContainer.strokeRoundedRect(x, y + 45, 230, 15, 8);
+    this.uiContainer.add(healthBarContainer);
     
-    // Health bar foreground
+    // Health bar foreground with Persona red
     this.healthBar = this.add.graphics();
     this.uiContainer.add(this.healthBar);
     
-    // Landás alignment indicator
-    const landasIcon = this.add.text(x, y + 40, "⚖️", {
-      fontSize: "14px"
-    });
-    this.landasText = this.add.text(x + 18, y + 42, "Balance", {
-      fontFamily: "dungeon-mode",
-      fontSize: "12px",
-      color: "#9370db"
-    });
+    // Landás alignment indicator with Persona-style meter
+    this.createLandasMeter(x - 5, y + 70, 250, 20);
     
-    this.uiContainer.add([healthIcon, healthIcon, gintoIcon, landasIcon]);
+    this.uiContainer.add([healthIcon, healthLabel, gintoIcon]);
   }
 
   /**
@@ -2355,150 +2375,69 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Create health section in compact panel with icon and consistent square design
+   * Create a Persona-style Landás meter display
    */
-  private createHealthSection(x: number, y: number): void {
-    // Health icon and label (larger for bigger panel)
-    const healthIcon = this.add.text(x, y, "❤️", {
-      fontSize: "18px", // Larger icon
+  private createLandasMeter(x: number, y: number, width: number, height: number): void {
+    // Create meter background
+    const meterBg = this.add.graphics();
+    meterBg.fillStyle(0x000000, 0.9); // Black background
+    meterBg.lineStyle(2, 0xffffff, 1); // White border
+    meterBg.fillRoundedRect(x, y, width, height, 5);
+    meterBg.strokeRoundedRect(x, y, width, height, 5);
+    this.uiContainer.add(meterBg);
+    
+    // Create gradient meter fill (conquest to mercy)
+    const gradientFill = this.add.graphics();
+    // Conquest side (red)
+    gradientFill.fillStyle(0xdc143c, 0.8);
+    gradientFill.fillRoundedRect(x, y, width / 2, height, 0, 0, 0, 5);
+    // Mercy side (blue)
+    gradientFill.fillStyle(0x1e90ff, 0.8);
+    gradientFill.fillRoundedRect(x + width / 2, y, width / 2, height, 0, 5, 5, 0);
+    this.uiContainer.add(gradientFill);
+    
+    // Create indicator line
+    this.landasMeterIndicator = this.add.graphics();
+    this.landasMeterIndicator.lineStyle(3, 0xffffff, 1);
+    this.landasMeterIndicator.beginPath();
+    this.landasMeterIndicator.moveTo(x + width / 2, y);
+    this.landasMeterIndicator.lineTo(x + width / 2, y + height);
+    this.landasMeterIndicator.closePath();
+    this.landasMeterIndicator.strokePath();
+    this.uiContainer.add(this.landasMeterIndicator);
+    
+    // Create labels
+    const conquestLabel = this.add.text(x + 10, y + height / 2 - 5, "CONQUEST", {
+      fontFamily: "dungeon-mode",
+      fontSize: "10px",
+      color: "#ff6347",
       fontStyle: "bold"
-    });
-    const healthLabel = this.add.text(x + 25, y + 2, "HEALTH", {
+    }).setOrigin(0, 0.5);
+    
+    const balanceLabel = this.add.text(x + width / 2, y - 15, "BALANCE", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: "15px", // Larger font
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    this.uiContainer.add([healthIcon, healthLabel]);
-    
-    // Health bar background with Persona styling
-    const healthBarBg = this.add.graphics();
-    healthBarBg.fillStyle(0x000000, 0.9); // Black background
-    healthBarBg.lineStyle(2, 0xffffff, 1); // White border
-    healthBarBg.fillRoundedRect(x, y + 22, 220, 12, 6); // Larger bar with more rounded corners
-    healthBarBg.strokeRoundedRect(x, y + 22, 220, 12, 6);
-    this.uiContainer.add(healthBarBg);
-    
-    // Health bar (foreground)
-    this.healthBar = this.add.graphics();
-    this.uiContainer.add(this.healthBar);
-    
-    // Health text (adjusted for larger layout)
-    this.healthText = this.add.text(x, y + 38, "", {
-      fontFamily: "dungeon-mode", 
-      fontSize: "13px", // Larger font
-      color: "#ff0000",
-      fontStyle: "bold"
-    });
-    this.uiContainer.add(this.healthText);
-  }
-
-  /**
-   * Create currency section in compact panel with icons
-   */
-  private createCurrencySection(x: number, y: number): void {
-    // Currency icons and labels (larger for bigger panel)
-    const gintoIcon = this.add.text(x, y, "💰", {
-      fontSize: "16px" // Larger icon
-    });
-    const gintoLabel = this.add.text(x + 20, y + 2, "Ginto:", {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px", // Larger font
-      color: "#ffd700"
-    });
-    
-    const baublesIcon = this.add.text(x + 90, y, "💎", {
-      fontSize: "16px" // Larger icon
-    });
-    const baublesLabel = this.add.text(x + 112, y + 2, "Baubles:", {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px", // Larger font
-      color: "#87ceeb"
-    });
-    
-    this.currencyText = this.add.text(x, y + 22, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: "12px", 
-      color: "#ffffff"
-    });
-    
-    this.uiContainer.add([gintoIcon, gintoLabel, baublesIcon, baublesLabel, this.currencyText]);
-  }
-
-  /**
-   * Create Landás score section in compact panel with icon
-   */
-  private createLandasSection(x: number, y: number): void {
-    // Create Persona-style Landás card background
-    const landasCardBg = this.add.graphics();
-    landasCardBg.fillStyle(0x000000, 0.85); // Black background
-    landasCardBg.lineStyle(2, 0xff0000, 1); // Red border
-    landasCardBg.fillRoundedRect(x - 5, y - 5, 250, 50, 6);
-    landasCardBg.strokeRoundedRect(x - 5, y - 5, 250, 50, 6);
-    this.uiContainer.add(landasCardBg);
-    
-    // Landás icon and label with Persona styling
-    const landasIcon = this.add.text(x, y + 5, "⚖️", {
-      fontSize: "18px",
-      fontStyle: "bold"
-    });
-    const landasLabel = this.add.text(x + 25, y + 7, "LANDÁS", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: "14px",
+      fontSize: "10px",
       color: "#9370db",
       fontStyle: "bold"
-    });
+    }).setOrigin(0.5, 0.5);
     
-    this.landasText = this.add.text(x + 25, y + 25, "", {
+    const mercyLabel = this.add.text(x + width - 10, y + height / 2 - 5, "MERCY", {
+      fontFamily: "dungeon-mode",
+      fontSize: "10px",
+      color: "#87ceeb",
+      fontStyle: "bold"
+    }).setOrigin(1, 0.5);
+    
+    this.uiContainer.add([conquestLabel, balanceLabel, mercyLabel]);
+    
+    // Create value text
+    this.landasText = this.add.text(x + width / 2, y + height / 2, "0", {
       fontFamily: "dungeon-mode",
       fontSize: "12px",
-      color: "#9370db",
-      fontStyle: "bold"
-    });
-    
-    this.uiContainer.add([landasIcon, landasLabel, this.landasText]);
-  }
-
-  /**
-   * Create relics section in compact panel with improved organization
-   */
-  private createRelicsSection(x: number, y: number): void {
-    // Section title with icon
-    const relicsIcon = this.add.text(x, y, "🔮", {
-      fontSize: "14px"
-    });
-    const relicsTitle = this.add.text(x + 18, y + 2, "Relics", {
-      fontFamily: "dungeon-mode",
-      fontSize: "13px",
       color: "#ffffff",
       fontStyle: "bold"
-    });
-    this.uiContainer.add([relicsIcon, relicsTitle]);
-    
-    // Relics grid container
-    this.relicsContainer = this.add.container(x, y + 20);
-    this.uiContainer.add(this.relicsContainer);
-  }
-
-  /**
-   * Create potions section in compact panel with improved organization
-   */
-  private createPotionsSection(x: number, y: number): void {
-    // Section title with icon
-    const potionsIcon = this.add.text(x, y, "🧪", {
-      fontSize: "14px"
-    });
-    const potionsTitle = this.add.text(x + 18, y + 2, "Potions", {
-      fontFamily: "dungeon-mode",
-      fontSize: "13px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    this.uiContainer.add([potionsIcon, potionsTitle]);
-    
-    // Potions container
-    this.potionsContainer = this.add.container(x, y + 20);
-    this.uiContainer.add(this.potionsContainer);
+    }).setOrigin(0.5, 0.5);
+    this.uiContainer.add(this.landasText);
   }
 
   /**
@@ -2833,24 +2772,37 @@ export class Overworld extends Scene {
     const score = this.playerData.landasScore;
     let alignment = "BALANCE";
     let color = "#9370db";
-    let bgColor = 0x4b0082; // Indigo for balance
     
     if (score >= 5) {
       alignment = "MERCY";
       color = "#87ceeb";
-      bgColor = 0x1e90ff; // Dodger blue for mercy
     } else if (score <= -5) {
       alignment = "CONQUEST";
       color = "#ff6347";
-      bgColor = 0xdc143c; // Crimson for conquest
     }
     
-    // Add a subtle background effect based on alignment
-    this.landasText.setText(`${alignment} (${score >= 0 ? '+' : ''}${score})`);
-    this.landasText.setColor(color);
+    // Update the meter indicator position based on score
+    // Score ranges from -10 to +10, map to 0-250 (meter width)
+    const meterWidth = 250;
+    const meterX = 15; // panelX + 15 - 5 (from createCompactLeftPanel)
+    const meterY = 105; // panelY + 15 + 70 (from createTopStatsSection)
+    const normalizedScore = (score + 10) / 20; // Normalize to 0-1
+    const indicatorX = meterX + (normalizedScore * meterWidth);
     
-    // Add a subtle glow effect for the text
-    this.landasText.setShadow(1, 1, 'rgba(255, 255, 255, 0.5)', 2);
+    // Update indicator position
+    if (this.landasMeterIndicator) {
+      this.landasMeterIndicator.clear();
+      this.landasMeterIndicator.lineStyle(3, 0xffffff, 1);
+      this.landasMeterIndicator.beginPath();
+      this.landasMeterIndicator.moveTo(indicatorX, meterY);
+      this.landasMeterIndicator.lineTo(indicatorX, meterY + 20);
+      this.landasMeterIndicator.closePath();
+      this.landasMeterIndicator.strokePath();
+    }
+    
+    // Update text display
+    this.landasText.setText(`${score >= 0 ? '+' : ''}${score}`);
+    this.landasText.setColor(color);
   }
 
   /**
