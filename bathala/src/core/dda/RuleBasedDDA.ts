@@ -132,9 +132,8 @@ export class RuleBasedDDA {
       adjustment += config.goodHandBonus;
     }
 
-    // Combat duration penalty
-    const expectedTurns = this.getExpectedTurns(metrics.enemyType);
-    if (metrics.turnCount > expectedTurns) {
+    // Combat duration penalty (GDD specifies >8 turns)
+    if (metrics.turnCount > 8) {
       adjustment += config.longCombatPenalty;
     }
 
@@ -150,18 +149,6 @@ export class RuleBasedDDA {
     }
 
     return adjustment;
-  }
-
-  /**
-   * Get expected turn count for enemy type
-   */
-  private getExpectedTurns(enemyType: "common" | "elite" | "boss"): number {
-    switch (enemyType) {
-      case "common": return 6;
-      case "elite": return 10;
-      case "boss": return 15;
-      default: return 8;
-    }
   }
 
   /**
@@ -226,7 +213,7 @@ export class RuleBasedDDA {
     if (HAND_QUALITY_SCORES[metrics.bestHandAchieved] >= HAND_QUALITY_SCORES.four_of_a_kind) {
       reasons.push("good_hand");
     }
-    if (metrics.turnCount > this.getExpectedTurns(metrics.enemyType)) {
+    if (metrics.turnCount > 8) {
       reasons.push("long_combat");
     }
     if (!metrics.victory) reasons.push("defeat");
