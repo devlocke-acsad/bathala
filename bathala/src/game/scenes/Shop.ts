@@ -9,6 +9,7 @@ export class Shop extends Scene {
   private relicButtons: Phaser.GameObjects.Container[] = [];
   private gintoText!: Phaser.GameObjects.Text;
   private diamanteText!: Phaser.GameObjects.Text;
+  private healthText!: Phaser.GameObjects.Text;
   private tooltipBox!: Phaser.GameObjects.Container;
   private selectedItem: ShopItem | null = null;
 
@@ -113,6 +114,18 @@ export class Shop extends Scene {
 
   private createCurrencyDisplay(): void {
     const screenWidth = this.cameras.main.width;
+    
+    // Position health display at the top
+    this.healthText = this.add.text(
+      screenWidth - 300,
+      50,
+      `Health: ${this.player.currentHealth}/${this.player.maxHealth} ♥`,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#e74c3c",
+      }
+    );
     
     // Position currency display below title - moved more to the left
     this.gintoText = this.add.text(
@@ -749,6 +762,7 @@ export class Shop extends Scene {
     }
     
     // Update UI
+    this.healthText.setText(`Health: ${this.player.currentHealth}/${this.player.maxHealth} ♥`);
     this.gintoText.setText(`Ginto: ${this.player.ginto} 💰`);
     this.diamanteText.setText(`Diamante: ${this.player.diamante} 💎`);
     

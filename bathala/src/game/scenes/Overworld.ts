@@ -2084,10 +2084,10 @@ export class Overworld extends Scene {
     });
     healthLabel.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Health value with organized spacing
-    this.healthText = this.add.text(x + 25, y + 30, "80/80", {
+    // Health value beside the label - show actual player health
+    this.healthText = this.add.text(x + 100, y + 8, `${this.playerData.currentHealth}/${this.playerData.maxHealth}`, {
       fontFamily: "dungeon-mode",
-      fontSize: "16px",
+      fontSize: "14px",
       color: "#ffffff",
       fontStyle: "bold"
     });
@@ -2117,9 +2117,9 @@ export class Overworld extends Scene {
     });
     gintoLabel.setShadow(2, 2, '#000000', 2, false, true);
     
-    this.currencyText = this.add.text(x + 30, y + 92, "100", {
+    this.currencyText = this.add.text(x + 80, y + 79, `${this.playerData.ginto}`, {
       fontFamily: "dungeon-mode",
-      fontSize: "14px",
+      fontSize: "10px",
       color: "#ffffff",
       fontStyle: "bold"
     });
@@ -2139,9 +2139,9 @@ export class Overworld extends Scene {
     });
     diamanteLabel.setShadow(2, 2, '#000000', 2, false, true);
     
-    this.diamanteText = this.add.text(x + 30, y + 119, "0", {
+    this.diamanteText = this.add.text(x + 100, y + 106, `${this.playerData.diamante}`, {
       fontFamily: "dungeon-mode",
-      fontSize: "14px",
+      fontSize: "10px",
       color: "#ffffff",
       fontStyle: "bold"
     });
@@ -2150,7 +2150,7 @@ export class Overworld extends Scene {
     // Landás meter with organized spacing - moved down to prevent overlap
     this.createLandasMeter(x, y + 150, width - 10, 18);
     
-    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel]);
+    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel, this.healthText, this.currencyText, this.diamanteText]);
   }
 
   /**
