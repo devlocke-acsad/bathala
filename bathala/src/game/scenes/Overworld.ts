@@ -21,8 +21,6 @@ export class Overworld extends Scene {
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
   private bossText!: Phaser.GameObjects.Text;
   private actionButtons: Phaser.GameObjects.Container[] = [];
-  private scanlines!: Phaser.GameObjects.TileSprite;
-  private scanlineTimer: number = 0;
   private shopKey!: Phaser.Input.Keyboard.Key;
   private testButtonsVisible: boolean = false;
   private testButtonsContainer!: Phaser.GameObjects.Container;
@@ -35,6 +33,7 @@ export class Overworld extends Scene {
   private relicsContainer!: Phaser.GameObjects.Container;
   private potionsContainer!: Phaser.GameObjects.Container;
   private currencyText!: Phaser.GameObjects.Text;
+  private diamanteText!: Phaser.GameObjects.Text;
   private landasText!: Phaser.GameObjects.Text;
   private landasMeterIndicator!: Phaser.GameObjects.Graphics;
   private deckInfoText!: Phaser.GameObjects.Text;
@@ -47,57 +46,74 @@ export class Overworld extends Scene {
     super({ key: "Overworld" });
     this.gameState = OverworldGameState.getInstance();
     
-    // Initialize player data with default values
-    this.playerData = {
-      id: "player",
-      name: "Hero",
-      maxHealth: 80,
-      currentHealth: 80,
-      block: 0,
-      statusEffects: [],
-      hand: [],
-      deck: [],
-      discardPile: [],
-      drawPile: [],
-      playedHand: [],
-      landasScore: 0,
-      ginto: 100,
-      baubles: 0,
-      relics: [
-        {
-          id: "placeholder_relic",
-          name: "Babaylan's Talisman",
-          description: "Your hand is considered one tier higher.",
-          emoji: "🧿",
-        },
-        {
-          id: "agimat_swift_wind",
-          name: "Agimat of the Swift Wind",
-          description: "Start each combat with +1 discard charge.",
-          emoji: "💨",
-        }
-      ],
-      potions: [
-        {
-          id: "clarity_potion",
-          name: "Potion of Clarity",
-          description: "Draw 3 cards.",
-          effect: "draw_3_cards",
-          emoji: "🧠",
-          rarity: "common" as const
-        },
-        {
-          id: "fortitude_potion",
-          name: "Elixir of Fortitude", 
-          description: "Gain 15 Block.",
-          effect: "gain_15_block",
-          emoji: "🛡️",
-          rarity: "common" as const
-        }
-      ],
-      discardCharges: 1,
-      maxDiscardCharges: 1
-    };
+    // Initialize player data with default values or from GameState
+    const gameState = GameState.getInstance();
+    const savedPlayerData = gameState.getPlayerData();
+    
+    if (savedPlayerData) {
+      this.playerData = {
+        id: savedPlayerData.id || "player",
+        name: savedPlayerData.name || "Hero",
+        maxHealth: savedPlayerData.maxHealth || 80,
+        currentHealth: savedPlayerData.currentHealth !== undefined ? savedPlayerData.currentHealth : 80,
+        block: savedPlayerData.block || 0,
+        statusEffects: savedPlayerData.statusEffects || [],
+        hand: savedPlayerData.hand || [],
+        deck: savedPlayerData.deck || [],
+        discardPile: savedPlayerData.discardPile || [],
+        drawPile: savedPlayerData.drawPile || [],
+        playedHand: savedPlayerData.playedHand || [],
+        landasScore: savedPlayerData.landasScore || 0,
+        ginto: savedPlayerData.ginto !== undefined ? savedPlayerData.ginto : 100,
+        diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : 0,
+        relics: savedPlayerData.relics || [],
+        potions: savedPlayerData.potions || [],
+        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 1,
+        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 1
+      };
+    } else {
+      // Initialize player data with default values
+      this.playerData = {
+        id: "player",
+        name: "Hero",
+        maxHealth: 80,
+        currentHealth: 80,
+        block: 0,
+        statusEffects: [],
+        hand: [],
+        deck: [],
+        discardPile: [],
+        drawPile: [],
+        playedHand: [],
+        landasScore: 0,
+        ginto: 9999,
+        diamante: 20,
+        relics: [],
+        potions: [
+          {
+            id: "clarity_potion",
+            name: "Potion of Clarity",
+            description: "Draw 3 cards.",
+            effect: "draw_3_cards",
+            emoji: "🧠",
+            rarity: "common" as const
+          },
+          {
+            id: "fortitude_potion",
+            name: "Elixir of Fortitude", 
+            description: "Gain 15 Block.",
+            effect: "gain_15_block",
+            emoji: "🛡️",
+            rarity: "common" as const
+          }
+        ],
+        discardCharges: 1,
+        maxDiscardCharges: 1
+      };
+      
+      // Save initial player data to GameState
+      gameState.updatePlayerData(this.playerData);
+    }
   }
 
   create(): void {
@@ -171,9 +187,6 @@ export class Overworld extends Scene {
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
     
-    // Create CRT scanline effect
-    this.createCRTEffect();
-    
     // Create UI elements with a slight delay to ensure camera is ready
     this.time.delayedCall(10, this.createUI, [], this);
     
@@ -239,33 +252,10 @@ export class Overworld extends Scene {
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
       
-      // Pause this scene and launch shop scene
+      // Pause this scene and launch shop scene with actual player data
       this.scene.pause();
       this.scene.launch("Shop", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          baubles: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
+        player: this.playerData
       });
     }, this.testButtonsContainer);
     buttonY += 60;
@@ -299,7 +289,7 @@ export class Overworld extends Scene {
           playedHand: [],
           landasScore: 0,
           ginto: 100,
-          baubles: 0,
+          diamante: 0,
           relics: [
             {
               id: "placeholder_relic",
@@ -336,7 +326,7 @@ export class Overworld extends Scene {
           playedHand: [],
           landasScore: 0,
           ginto: 100,
-          baubles: 0,
+          diamante: 0,
           relics: [
             {
               id: "placeholder_relic",
@@ -404,7 +394,7 @@ export class Overworld extends Scene {
           playedHand: [],
           landasScore: 0,
           ginto: 100,
-          baubles: 0,
+          diamante: 0,
           relics: [
             {
               id: "placeholder_relic",
@@ -425,33 +415,10 @@ export class Overworld extends Scene {
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
       
-      // Pause this scene and launch shop scene
+      // Pause this scene and launch shop scene with actual player data
       this.scene.pause();
       this.scene.launch("Shop", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          baubles: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
+        player: this.playerData
       });
     }, this.testButtonsContainer);
     
@@ -480,7 +447,7 @@ export class Overworld extends Scene {
           playedHand: [],
           landasScore: 0,
           ginto: 100,
-          baubles: 0,
+          diamante: 0,
           relics: [
             {
               id: "placeholder_relic",
@@ -852,6 +819,34 @@ export class Overworld extends Scene {
       console.log("No saved position found, keeping current position");
     }
     
+    // Update player data from GameState
+    const savedPlayerData = gameState.getPlayerData();
+    if (savedPlayerData) {
+      this.playerData = {
+        id: savedPlayerData.id || this.playerData.id,
+        name: savedPlayerData.name || this.playerData.name,
+        maxHealth: savedPlayerData.maxHealth !== undefined ? savedPlayerData.maxHealth : this.playerData.maxHealth,
+        currentHealth: savedPlayerData.currentHealth !== undefined ? savedPlayerData.currentHealth : this.playerData.currentHealth,
+        block: savedPlayerData.block !== undefined ? savedPlayerData.block : this.playerData.block,
+        statusEffects: savedPlayerData.statusEffects || this.playerData.statusEffects,
+        hand: savedPlayerData.hand || this.playerData.hand,
+        deck: savedPlayerData.deck || this.playerData.deck,
+        discardPile: savedPlayerData.discardPile || this.playerData.discardPile,
+        drawPile: savedPlayerData.drawPile || this.playerData.drawPile,
+        playedHand: savedPlayerData.playedHand || this.playerData.playedHand,
+        landasScore: savedPlayerData.landasScore !== undefined ? savedPlayerData.landasScore : this.playerData.landasScore,
+        ginto: savedPlayerData.ginto !== undefined ? savedPlayerData.ginto : this.playerData.ginto,
+        diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : this.playerData.diamante,
+        relics: savedPlayerData.relics || this.playerData.relics,
+        potions: savedPlayerData.potions || this.playerData.potions,
+        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : this.playerData.discardCharges,
+        maxDiscardCharges: savedPlayerData.maxDiscardCharges !== undefined ? savedPlayerData.maxDiscardCharges : this.playerData.maxDiscardCharges
+      };
+      
+      // Update UI to reflect new player data
+      this.updateOverworldUI();
+    }
+    
     // Update visible chunks around player
     this.updateVisibleChunks();
     
@@ -1177,33 +1172,10 @@ export class Overworld extends Scene {
           const gameState = GameState.getInstance();
           gameState.savePlayerPosition(this.player.x, this.player.y);
           
-          // Pause this scene and launch shop scene
+          // Pause this scene and launch shop scene with actual player data
           this.scene.pause();
           this.scene.launch("Shop", { 
-            player: {
-              id: "player",
-              name: "Hero",
-              maxHealth: 80,
-              currentHealth: 80,
-              block: 0,
-              statusEffects: [],
-              hand: [],
-              deck: [],
-              discardPile: [],
-              drawPile: [],
-              playedHand: [],
-              landasScore: 0,
-              ginto: 100,
-              baubles: 0,
-              relics: [
-                {
-                  id: "placeholder_relic",
-                  name: "Placeholder Relic",
-                  description: "This is a placeholder relic.",
-                  emoji: "⚙️",
-                },
-              ],
-            }
+            player: this.playerData
           });
           break;
           
@@ -1229,7 +1201,7 @@ export class Overworld extends Scene {
               playedHand: [],
               landasScore: 0,
               ginto: 100,
-              baubles: 0,
+              diamante: 0,
               relics: [
                 {
                   id: "placeholder_relic",
@@ -1264,7 +1236,7 @@ export class Overworld extends Scene {
               playedHand: [],
               landasScore: 0,
               ginto: 100,
-              baubles: 0,
+              diamante: 0,
               relics: [
                 {
                   id: "placeholder_relic",
@@ -1784,89 +1756,17 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Create CRT scanline effect for retro aesthetic
-   */
-  private createCRTEffect(): void {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    
-    // Create scanlines using a tile sprite with reduced opacity for subtlety
-    this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
-      .setOrigin(0)
-      .setAlpha(0.12) // Reduced opacity to minimize flickering distraction
-      .setTint(0x77888C)
-      .setScrollFactor(0) // Fixed to camera
-      .setDepth(9999); // Ensure it's above everything else
-      
-    // Create a subtle scanline pattern
-    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-    graphics.fillStyle(0x000000, 1);
-    graphics.fillRect(0, 0, 4, 2); // Thicker lines
-    graphics.fillStyle(0xffffff, 1);
-    graphics.fillRect(0, 2, 4, 2); // Thicker lines
-    
-    const texture = graphics.generateTexture('overworld_scanline', 4, 4);
-    this.scanlines.setTexture('overworld_scanline');
-    
-    // Add a subtle screen flicker effect (like Combat.ts)
-    this.scheduleFlicker();
-  }
-  
-  /**
-   * Schedule the next screen flicker
-   */
-  private scheduleFlicker(): void {
-    this.time.addEvent({
-      delay: Phaser.Math.Between(8000, 20000), // Random flicker every 8-20 seconds (less frequent than combat)
-      callback: this.flickerScreen,
-      callbackScope: this,
-      loop: false
-    });
-  }
-  
-  /**
-   * Create a brief screen flicker effect
-   */
-  private flickerScreen(): void {
-    // Very subtle flicker
-    this.tweens.add({
-      targets: this.scanlines,
-      alpha: 0.18, // Slight increase in opacity
-      duration: 30, // Very quick flicker
-      yoyo: true,
-      ease: 'Power2',
-      onComplete: () => {
-        // Schedule next flicker after this one completes
-        this.scheduleFlicker();
-      }
-    });
-  }
-
-  /**
    * Handle scene resize
    */
   private handleResize(): void {
     // Update UI elements on resize
     this.updateUI();
-    
-    // Recreate CRT effect on resize
-    if (this.scanlines) {
-      this.scanlines.destroy();
-    }
-    this.createCRTEffect();
   }
 
   /**
    * Update method for animation effects and player movement
    */
   update(time: number, delta: number): void {
-    // Subtle scanline animation - much slower to reduce flickering
-    if (this.scanlines) {
-      this.scanlineTimer += delta;
-      // Very slow movement to minimize distraction
-      this.scanlines.tilePositionY = this.scanlineTimer * 0.02; // Much slower than before (0.15 -> 0.02)
-    }
-    
     // Skip input handling if player is currently moving or transitioning to combat
     if (this.isMoving || this.isTransitioningToCombat) {
       return;
@@ -1921,33 +1821,10 @@ export class Overworld extends Scene {
         const gameState = GameState.getInstance();
         gameState.savePlayerPosition(this.player.x, this.player.y);
         
-        // Pause this scene and launch shop scene
+        // Pause this scene and launch shop scene with actual player data
         this.scene.pause();
         this.scene.launch("Shop", { 
-          player: {
-            id: "player",
-            name: "Hero",
-            maxHealth: 80,
-            currentHealth: 80,
-            block: 0,
-            statusEffects: [],
-            hand: [],
-            deck: [],
-            discardPile: [],
-            drawPile: [],
-            playedHand: [],
-            landasScore: 0,
-            ginto: 100,
-            baubles: 0,
-            relics: [
-              {
-                id: "placeholder_relic",
-                name: "Placeholder Relic",
-                description: "This is a placeholder relic.",
-                emoji: "⚙️",
-              },
-            ],
-          }
+          player: this.playerData
         });
       }
 
@@ -2039,7 +1916,7 @@ export class Overworld extends Scene {
     const sectionSpacing = 25; // Increased space between sections
     
     // Organized section heights for better proportions
-    const healthSectionHeight = 140;
+    const healthSectionHeight = 155; // Increased to accommodate diamante spacing
     const relicsSectionHeight = 170;
     
     let currentY = contentStartY;
@@ -2106,20 +1983,20 @@ export class Overworld extends Scene {
    * Create modern health section with sleek design
    */
   private createModernHealthSection(x: number, y: number, width: number): void {
-    // Section container with subtle background
+    // Section container with subtle background - shortened to fit only currency section
     const sectionBg = this.add.graphics();
     sectionBg.fillStyle(0x1a1a1a, 0.4);
     sectionBg.lineStyle(1, 0x333333, 0.5);
-    sectionBg.fillRoundedRect(x - 5, y - 5, width + 10, 140, 12);
-    sectionBg.strokeRoundedRect(x - 5, y - 5, width + 10, 140, 12);
+    sectionBg.fillRoundedRect(x - 5, y - 5, width + 10, 115, 12);
+    sectionBg.strokeRoundedRect(x - 5, y - 5, width + 10, 115, 12);
     this.uiContainer.add(sectionBg);
     
-    // Health header with organized spacing
+    // Health header with properly aligned elements
     const healthIcon = this.add.text(x, y + 8, "♥", {
       fontSize: "18px",
       color: "#e74c3c",
       fontStyle: "bold"
-    });
+    }).setOrigin(0, 0.5);
     healthIcon.setShadow(2, 2, '#000000', 2, false, true);
     
     const healthLabel = this.add.text(x + 25, y + 8, "HEALTH", {
@@ -2127,61 +2004,81 @@ export class Overworld extends Scene {
       fontSize: "14px",
       color: "#ffffff",
       fontStyle: "bold"
-    });
+    }).setOrigin(0, 0.5);
     healthLabel.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Health value with organized spacing
-    this.healthText = this.add.text(x + 25, y + 30, "80/80", {
+    // Health value center-aligned
+    this.healthText = this.add.text(x + width/2 + 30, y + 8, `${this.playerData.currentHealth}/${this.playerData.maxHealth}`, {
       fontFamily: "dungeon-mode",
-      fontSize: "16px",
+      fontSize: "14px",
       color: "#ffffff",
-      fontStyle: "bold"
-    });
+      fontStyle: "bold",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
     this.healthText.setShadow(2, 2, '#000000', 2, false, true);
     
     // Modern health bar container with organized spacing
     const healthBarBg = this.add.graphics();
     healthBarBg.fillStyle(0x2c2c2c, 0.8);
-    healthBarBg.fillRoundedRect(x, y + 50, width - 10, 12, 6);
+    healthBarBg.fillRoundedRect(x, y + 40, width - 10, 12, 6);
     this.uiContainer.add(healthBarBg);
     
     // Health bar fill
     this.healthBar = this.add.graphics();
     this.uiContainer.add(this.healthBar);
     
-    // Currency section with organized spacing
-    const currencyBg = this.add.graphics();
-    currencyBg.fillStyle(0x1a1a1a, 0.3);
-    currencyBg.lineStyle(1, 0x404040, 0.4);
-    currencyBg.fillRoundedRect(x, y + 75, width - 10, 35, 8);
-    currencyBg.strokeRoundedRect(x, y + 75, width - 10, 35, 8);
-    this.uiContainer.add(currencyBg);
-    
-    const gintoIcon = this.add.text(x + 8, y + 83, "💰", {
+    // Currency section with properly aligned elements
+    const gintoIcon = this.add.text(x, y + 70, "💰", {
       fontSize: "16px"
-    });
+    }).setOrigin(0, 0.5);
     gintoIcon.setShadow(2, 2, '#000000', 2, false, true);
     
-    const gintoLabel = this.add.text(x + 30, y + 79, "GINTO", {
+    const gintoLabel = this.add.text(x + 25, y + 70, "GINTO", {
       fontFamily: "dungeon-mode",
       fontSize: "10px",
       color: "#ffffff",
       fontStyle: "bold"
-    });
+    }).setOrigin(0, 0.5);
     gintoLabel.setShadow(2, 2, '#000000', 2, false, true);
     
-    this.currencyText = this.add.text(x + 30, y + 92, "100", {
+    // Left-aligned GINTO value - moved further right
+    this.currencyText = this.add.text(x + 120, y + 70, `${this.playerData.ginto}`, {
       fontFamily: "dungeon-mode",
-      fontSize: "14px",
+      fontSize: "10px",
       color: "#ffffff",
-      fontStyle: "bold"
-    });
+      fontStyle: "bold",
+      align: "left"
+    }).setOrigin(0, 0.5);
     this.currencyText.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Landás meter with organized spacing
-    this.createLandasMeter(x, y + 120, width - 10, 18);
+    // Diamante currency display with properly aligned elements
+    const diamanteIcon = this.add.text(x, y + 95, "💎", {
+      fontSize: "16px"
+    }).setOrigin(0, 0.5);
+    diamanteIcon.setShadow(2, 2, '#000000', 2, false, true);
     
-    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel]);
+    const diamanteLabel = this.add.text(x + 25, y + 95, "DIAMANTE", {
+      fontFamily: "dungeon-mode",
+      fontSize: "10px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    }).setOrigin(0, 0.5);
+    diamanteLabel.setShadow(2, 2, '#000000', 2, false, true);
+    
+    // Left-aligned DIAMANTE value - moved further right
+    this.diamanteText = this.add.text(x + 120, y + 95, `${this.playerData.diamante}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: "10px",
+      color: "#ffffff",
+      fontStyle: "bold",
+      align: "left"
+    }).setOrigin(0, 0.5);
+    this.diamanteText.setShadow(2, 2, '#000000', 2, false, true);
+    
+    // Landás meter with more spacing from currency section
+    this.createLandasMeter(x, y + 140, width - 10, 18);
+    
+    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel, this.healthText, this.currencyText, this.diamanteText]);
   }
 
   /**
@@ -2340,17 +2237,17 @@ export class Overworld extends Scene {
     healthSeparator.strokePath();
     this.uiContainer.add(healthSeparator);
     
-    // Enhanced currency display
+    // Enhanced currency display with wider container to prevent overlap
     const currencyBg = this.add.graphics();
     currencyBg.fillGradientStyle(0x1a1a00, 0x1a1a00, 0x000000, 0x000000, 0.95);
     currencyBg.lineStyle(2, 0xffd700, 0.9);
-    currencyBg.fillRoundedRect(x, y + 98, 130, 45, 8);
-    currencyBg.strokeRoundedRect(x, y + 98, 130, 45, 8);
+    currencyBg.fillRoundedRect(x, y + 98, 250, 45, 8);
+    currencyBg.strokeRoundedRect(x, y + 98, 250, 45, 8);
     
     // Add currency inner glow
     const currencyGlow = this.add.graphics();
     currencyGlow.lineStyle(1, 0xffd700, 0.3);
-    currencyGlow.strokeRoundedRect(x + 2, y + 100, 126, 41, 6);
+    currencyGlow.strokeRoundedRect(x + 2, y + 100, 246, 41, 6);
     
     this.uiContainer.add([currencyBg, currencyGlow]);
     
@@ -2375,6 +2272,28 @@ export class Overworld extends Scene {
     });
     this.currencyText.setShadow(2, 2, '#000000', 2, false, true);
     
+    // Diamante currency display - positioned further right to prevent overlap
+    const diamanteIcon = this.add.text(x + 125, y + 108, "💎", {
+      fontSize: "20px"
+    });
+    diamanteIcon.setShadow(1, 1, '#00ffff', 2, false, true);
+    
+    const diamanteLabel = this.add.text(x + 153, y + 103, "DIAMANTE", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "12px",
+      color: "#00ffff",
+      fontStyle: "bold"
+    });
+    diamanteLabel.setShadow(1, 1, '#000000', 2, false, true);
+    
+    this.diamanteText = this.add.text(x + 153, y + 120, "0", {
+      fontFamily: "dungeon-mode",
+      fontSize: "16px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.diamanteText.setShadow(2, 2, '#000000', 2, false, true);
+    
     // Enhanced separator
     const currencySeparator = this.add.graphics();
     currencySeparator.lineStyle(2, 0x666666, 0.6);
@@ -2388,7 +2307,7 @@ export class Overworld extends Scene {
     // Enhanced Landás meter
     this.createLandasMeter(x, y + 162, 250, 28);
     
-    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel]);
+    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel]);
   }
 
   /**
@@ -2772,8 +2691,8 @@ export class Overworld extends Scene {
     });
     this.uiContainer.add(relicsLabel);
     
-    // Create relics container
-    this.relicsContainer = this.add.container(75, relicsY);
+    // Create relics container with proper positioning to avoid overlap
+    this.relicsContainer = this.add.container(75, relicsY + 40);
     this.uiContainer.add(this.relicsContainer);
     
     // Create relic inventory button
@@ -2863,7 +2782,7 @@ export class Overworld extends Scene {
     
     this.healthBar.clear();
     
-    // Modern health bar position calculation
+    // Modern health bar position calculation - updated to match new layout
     const panelX = 20;
     const panelWidth = 320;
     const screenHeight = this.cameras.main.height;
@@ -2872,7 +2791,7 @@ export class Overworld extends Scene {
     
     const healthSectionY = panelY + 70; // After header with organized spacing
     const barX = panelX + 20; // Health section x position
-    const barY = healthSectionY + 50; // Health bar y position within section (updated)
+    const barY = healthSectionY + 40; // Health bar y position within section (adjusted from 50 to 40)
     const barWidth = panelWidth - 50; // Available width for health bar
     const barHeight = 12; // Modern thin health bar
     
@@ -2902,7 +2821,7 @@ export class Overworld extends Scene {
       }
     }
     
-    // Update health text
+    // Update health text - maintain center alignment
     this.healthText.setText(`${this.playerData.currentHealth}/${this.playerData.maxHealth}`);
     
     // Modern low health effects
@@ -2920,6 +2839,7 @@ export class Overworld extends Scene {
    */
   private updateCurrencyDisplay(): void {
     this.currencyText.setText(`${this.playerData.ginto}`);
+    this.diamanteText.setText(`${this.playerData.diamante}`);
   }
 
   /**
@@ -2964,83 +2884,172 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Update relics display in grid layout (4x2 grid)
+   * Update relics display with modern Persona-style design
    */
   private updateRelicsDisplay(): void {
     this.relicsContainer.removeAll(true);
     
-    const slotSize = 50;
-    const slotSpacing = 8; // Match the corrected spacing from createGridInventorySection
+    const slotSize = 45; // Match the slot size from createModernRelicsSection
+    const slotSpacing = 12; // Slightly reduced spacing to better fit
     const slotsPerRow = 4;
     const maxRelics = 8; // 4x2 grid
+    
+    // Calculate total grid dimensions for reference
+    const totalGridWidth = (slotsPerRow * slotSize) + ((slotsPerRow - 1) * slotSpacing); // 213px total for 45px slots
+    const totalGridHeight = (2 * slotSize) + (1 * slotSpacing); // 102px total for 45px slots
+    
+    // Position relics relative to the container (which is already at gridStartX, gridStartY)
+    // No offset needed since container is positioned correctly
     
     for (let i = 0; i < Math.min(this.playerData.relics.length, maxRelics); i++) {
       const relic = this.playerData.relics[i];
       const row = Math.floor(i / slotsPerRow);
       const col = i % slotsPerRow;
       
-      // Use same spacing calculation as the grid creation - match exactly
+      // Position relative to container origin - matches slot positioning exactly
       const relicX = col * (slotSize + slotSpacing);
       const relicY = row * (slotSize + slotSpacing);
       
-      // Create Persona-style relic container
+      // Create modern Persona-style relic container
       const relicContainer = this.add.container(relicX, relicY);
       
-      // Relic background with Persona styling
+      // Relic background with modern gradient (no border)
       const relicBg = this.add.graphics();
-      relicBg.fillStyle(0x000000, 0.7); // Black background
-      relicBg.lineStyle(1, 0xffffff, 1); // White border
-      relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 4);
-      relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 4);
+      relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
+      relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
       
-      // Relic icon/emoji
+      // Inner glow effect (subtle, no blue)
+      const innerGlow = this.add.graphics();
+      innerGlow.lineStyle(1, 0x333344, 0.4);
+      innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
+      
+      // Relic icon with size adjusted for 45px slots
       const relicIcon = this.add.text(slotSize/2, slotSize/2, relic.emoji, {
-        fontSize: "24px",
+        fontSize: "24px", // Reduced to fit better in 45px slots
         align: "center"
       }).setOrigin(0.5);
+      relicIcon.setShadow(1, 1, '#000000', 2, false, true);
       
-      // Add a subtle glow effect for equipped relics
-      const glow = this.add.graphics();
-      glow.fillStyle(0xff0000, 0.3); // Red glow
-      glow.fillRoundedRect(-2, -2, slotSize + 4, slotSize + 4, 6);
+      relicContainer.add([relicBg, innerGlow, relicIcon]);
       
-      relicContainer.add([glow, relicBg, relicIcon]);
+      // Create hover tooltip container (initially hidden)
+      const tooltipContainer = this.add.container(slotSize/2, -50);
       
-      // Make interactive for tooltip
+      const tooltipBg = this.add.graphics();
+      tooltipBg.fillStyle(0x0a0a0a, 0.95);
+      tooltipBg.lineStyle(2, 0x00d4ff, 1);
+      
+      const tooltipText = this.add.text(0, 0, relic.name, {
+        fontFamily: "dungeon-mode",
+        fontSize: "12px", // Better readable size
+        color: "#00d4ff",
+        fontStyle: "bold",
+        align: "center"
+      }).setOrigin(0.5);
+      tooltipText.setShadow(1, 1, '#000000', 2, false, true);
+      
+      // Dynamically size tooltip based on text
+      const textBounds = tooltipText.getBounds();
+      const tooltipWidth = Math.max(textBounds.width + 16, 80);
+      const tooltipHeight = textBounds.height + 12;
+      
+      tooltipBg.fillRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 6);
+      tooltipBg.strokeRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 6);
+      
+      tooltipContainer.add([tooltipBg, tooltipText]);
+      tooltipContainer.setVisible(false);
+      tooltipContainer.setAlpha(0);
+      
+      relicContainer.add(tooltipContainer);
+      
+      // Make the entire container interactive with proper hit area
       relicContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
-      this.createItemTooltip(relicIcon, relic.name, relic.description);
       
-      // Add hover effects
+      // Enable input events
+      relicContainer.input!.enabled = true;
+      
+      // Modern hover effects
       relicContainer.on('pointerover', () => {
-        relicBg.clear();
-        relicBg.fillStyle(0x333333, 0.9); // Lighter background on hover
-        relicBg.lineStyle(2, 0xff0000, 1); // Thicker red border
-        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 4);
-        relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 4);
+        console.log('Relic hover:', relic.name); // Debug log
         
-        // Scale up on hover
+        // Enhanced background on hover (no blue border)
+        relicBg.clear();
+        relicBg.fillGradientStyle(0x2a2a4e, 0x2a2a4e, 0x1f2439, 0x1f2439, 1);
+        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
+        
+        // Enhanced glow (subtle highlight)
+        innerGlow.clear();
+        innerGlow.lineStyle(2, 0x555566, 0.8);
+        innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
+        
+        // Scale animation
         this.tweens.add({
           targets: relicContainer,
           scale: 1.1,
-          duration: 150,
+          duration: 200,
+          ease: 'Back.easeOut'
+        });
+        
+        // Show tooltip with fade in
+        tooltipContainer.setVisible(true);
+        this.tweens.add({
+          targets: tooltipContainer,
+          alpha: 1,
+          y: -65,
+          duration: 300,
           ease: 'Power2'
         });
+        
+        // Change cursor
+        this.input.setDefaultCursor('pointer');
       });
       
       relicContainer.on('pointerout', () => {
+        console.log('Relic hover out:', relic.name); // Debug log
+        
+        // Restore original background (no blue border)
         relicBg.clear();
-        relicBg.fillStyle(0x000000, 0.7); // Original background
-        relicBg.lineStyle(1, 0xffffff, 1); // Original border
-        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 4);
-        relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 4);
+        relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
+        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
+        
+        // Restore glow (subtle)
+        innerGlow.clear();
+        innerGlow.lineStyle(1, 0x333344, 0.4);
+        innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
         
         // Scale back to normal
         this.tweens.add({
           targets: relicContainer,
           scale: 1,
-          duration: 150,
+          duration: 200,
           ease: 'Power2'
         });
+        
+        // Hide tooltip
+        this.tweens.add({
+          targets: tooltipContainer,
+          alpha: 0,
+          y: -50,
+          duration: 200,
+          ease: 'Power2',
+          onComplete: () => {
+            tooltipContainer.setVisible(false);
+          }
+        });
+        
+        // Reset cursor
+        this.input.setDefaultCursor('default');
+      });
+      
+      // Add click functionality
+      relicContainer.on('pointerdown', () => {
+        console.log('Relic clicked:', relic.name); // Debug log
+        this.showRelicDetails(relic);
+      });
+      
+      // Debug: Add visual indicator that container is interactive
+      relicContainer.on('pointerup', () => {
+        console.log('Relic pointer up:', relic.name);
       });
       
       this.relicsContainer.add(relicContainer);
@@ -3555,5 +3564,239 @@ ${potion.description}`, {
     });
     
     inventoryWindow.add([windowBg, title, potionGrid, closeBtn]);
+  }
+
+  /**
+   * Show detailed relic information in a popup similar to shop style
+   */
+  private showRelicDetails(relic: any): void {
+    // Create overlay
+    const overlay = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000
+    ).setAlpha(0.8).setScrollFactor(0).setDepth(2000);
+    
+    // Create relic details panel
+    const panelWidth = 480;
+    const panelHeight = 450;
+    const panelX = this.cameras.main.width / 2;
+    const panelY = this.cameras.main.height / 2;
+    
+    const panel = this.add.container(panelX, panelY).setScrollFactor(0).setDepth(2001);
+    
+    // Panel shadow for depth
+    const panelShadow = this.add.graphics();
+    panelShadow.fillStyle(0x000000, 0.4);
+    panelShadow.fillRoundedRect(-panelWidth/2 + 8, -panelHeight/2 + 8, panelWidth, panelHeight, 20);
+    
+    // Main panel background with dark blue theme (matching overworld)
+    const panelBg = this.add.graphics();
+    panelBg.fillGradientStyle(0x1a1a2e, 0x0f1419, 0x1a1a2e, 0x0a0a0f, 0.98);
+    panelBg.lineStyle(3, 0x00d4ff, 0.9);
+    panelBg.fillRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
+    panelBg.strokeRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
+    
+    // Inner highlight for modern look
+    const innerHighlight = this.add.graphics();
+    innerHighlight.lineStyle(2, 0x00ffff, 0.3);
+    innerHighlight.strokeRoundedRect(-panelWidth/2 + 3, -panelHeight/2 + 3, panelWidth - 6, panelHeight - 6, 17);
+    
+    // Header section with emoji and name
+    const headerBg = this.add.graphics();
+    headerBg.fillGradientStyle(0x2a2a4e, 0x1a1a2e, 0x1f2439, 0x2a2a4e, 0.9);
+    headerBg.fillRoundedRect(-panelWidth/2 + 10, -panelHeight/2 + 10, panelWidth - 20, 80, 15);
+    
+    const emojiContainer = this.add.graphics();
+    emojiContainer.fillStyle(0x00d4ff, 0.2);
+    emojiContainer.lineStyle(2, 0x00ffff, 0.6);
+    emojiContainer.fillRoundedRect(-panelWidth/2 + 25, -panelHeight/2 + 25, 60, 60, 12);
+    emojiContainer.strokeRoundedRect(-panelWidth/2 + 25, -panelHeight/2 + 25, 60, 60, 12);
+    
+    const emoji = this.add.text(-panelWidth/2 + 55, -panelHeight/2 + 55, relic.emoji, {
+      fontSize: 36,
+    }).setOrigin(0.5, 0.5);
+    emoji.setShadow(2, 2, '#0a0a0f', 4, false, true);
+    
+    // Relic name
+    const name = this.add.text(-panelWidth/2 + 110, -panelHeight/2 + 45, relic.name.toUpperCase(), {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 24,
+      color: "#00d4ff",
+    }).setOrigin(0, 0);
+    name.setShadow(2, 2, '#0a0a0f', 4, false, true);
+    
+    // "EQUIPPED" badge
+    const equippedBadge = this.add.graphics();
+    equippedBadge.fillStyle(0x00ff00, 0.9);
+    equippedBadge.fillRoundedRect(panelWidth/2 - 120, -panelHeight/2 + 30, 90, 25, 12);
+    
+    const equippedText = this.add.text(panelWidth/2 - 75, -panelHeight/2 + 42, "EQUIPPED", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 12,
+      color: "#ffffff",
+      fontStyle: "bold"
+    }).setOrigin(0.5, 0.5);
+    
+    // Content sections
+    const contentStartY = -panelHeight/2 + 140;
+    
+    // Description section
+    const descSection = this.add.graphics();
+    descSection.fillStyle(0x1a1a2e, 0.3);
+    descSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 100, 8);
+    
+    const descTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 15, "DESCRIPTION", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 14,
+      color: "#00d4ff",
+      fontStyle: "bold"
+    }).setOrigin(0, 0);
+    
+    const description = this.add.text(0, contentStartY + 45, relic.description, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#ffffff",
+      align: "center",
+      wordWrap: { width: panelWidth - 100 }
+    }).setOrigin(0.5, 0);
+    
+    // Lore section
+    const loreSection = this.add.graphics();
+    loreSection.fillStyle(0x1a1a2e, 0.2);
+    loreSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY + 120, panelWidth - 60, 110, 8);
+    
+    const loreTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 135, "LORE", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 14,
+      color: "#34d399",
+      fontStyle: "bold"
+    }).setOrigin(0, 0);
+    
+    const lore = this.getRelicLore(relic);
+    const loreText = this.add.text(0, contentStartY + 165, lore, {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#cccccc",
+      align: "center",
+      wordWrap: { width: panelWidth - 100 }
+    }).setOrigin(0.5, 0);
+    
+    // Close button
+    const closeBtn = this.add.container(panelWidth/2 - 40, -panelHeight/2 + 40);
+    const closeBg = this.add.graphics();
+    closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
+    closeBg.lineStyle(2, 0xfca5a5, 0.8);
+    closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
+    closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+    
+    const closeText = this.add.text(0, 0, "✕", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: "#ffffff",
+    }).setOrigin(0.5, 0.5);
+    closeText.setShadow(1, 1, '#000000', 2, false, true);
+    
+    closeBtn.add([closeBg, closeText]);
+    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-15, -15, 30, 30), Phaser.Geom.Rectangle.Contains);
+    closeBtn.on("pointerdown", () => {
+      // Smooth exit animation
+      this.tweens.add({
+        targets: panel,
+        scale: 0.8,
+        alpha: 0,
+        duration: 200,
+        ease: 'Back.easeIn',
+        onComplete: () => {
+          overlay.destroy();
+          panel.destroy();
+        }
+      });
+    });
+    
+    // Close button hover effects
+    closeBtn.on("pointerover", () => {
+      this.tweens.add({
+        targets: closeBtn,
+        scale: 1.1,
+        duration: 100,
+        ease: 'Power2'
+      });
+      closeBg.clear();
+      closeBg.fillGradientStyle(0xf87171, 0xef4444, 0xdc2626, 0xb91c1c, 0.95);
+      closeBg.lineStyle(2, 0xfca5a5, 1);
+      closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
+      closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+    });
+    
+    closeBtn.on("pointerout", () => {
+      this.tweens.add({
+        targets: closeBtn,
+        scale: 1,
+        duration: 100,
+        ease: 'Power2'
+      });
+      closeBg.clear();
+      closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
+      closeBg.lineStyle(2, 0xfca5a5, 0.8);
+      closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
+      closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+    });
+    
+    // Assemble the panel
+    panel.add([panelShadow, panelBg, innerHighlight, headerBg, emojiContainer, emoji, name, 
+              equippedBadge, equippedText, descSection, descTitle, description, 
+              loreSection, loreTitle, loreText, closeBtn]);
+              
+    // Entrance animation
+    panel.setScale(0.8).setAlpha(0);
+    this.tweens.add({
+      targets: panel,
+      scale: 1,
+      alpha: 1,
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
+    
+    // Make overlay interactive to close when clicked
+    overlay.setInteractive();
+    overlay.on('pointerdown', () => {
+      this.tweens.add({
+        targets: panel,
+        scale: 0.8,
+        alpha: 0,
+        duration: 200,
+        ease: 'Back.easeIn',
+        onComplete: () => {
+          overlay.destroy();
+          panel.destroy();
+        }
+      });
+    });
+  }
+
+  /**
+   * Get lore text for a relic
+   */
+  private getRelicLore(relic: any): string {
+    // Return lore based on relic ID or name
+    switch(relic.id) {
+      case "earthwardens_plate":
+        return "Forged by the ancient Earthwardens who protected the first settlements from natural disasters. This mystical armor channels the strength of the mountains themselves, providing unwavering protection to those who wear it.";
+      case "swift_wind_agimat":
+        return "An enchanted talisman blessed by the spirits of the wind. It enhances the agility of its bearer, allowing them to move with the swiftness of the breeze and react faster than the eye can see.";
+      case "ember_fetish":
+        return "A relic imbued with the essence of volcanic fire. When the bearer's defenses are low, the fetish awakens and grants the fury of the forge, empowering them with the strength of molten rock.";
+      case "babaylans_talisman":
+        return "Once worn by the most revered Babaylan of the ancient tribes. This sacred talisman enhances the spiritual connection of its bearer, allowing them to channel greater power through their rituals and incantations.";
+      case "echo_of_ancestors":
+        return "A mystical artifact that resonates with the wisdom of those who came before. It breaks the natural limitations of the physical world, allowing for impossible feats that should not exist.";
+      case "seafarers_compass":
+        return "A navigational tool blessed by Lakapati, goddess of fertility and navigation. It guides the bearer through the most treacherous waters and helps them find their way even in the darkest storms.";
+      default:
+        return "An ancient artifact of great power, its origins lost to time but its effects undeniable. Those who wield it are forever changed by its mystical properties.";
+    }
   }
 }
