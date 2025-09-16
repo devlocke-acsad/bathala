@@ -60,6 +60,8 @@ export class Combat extends Scene {
   private enemyAttackPreviewText!: Phaser.GameObjects.Text;
   private isDrawingCards: boolean = false;
   private isActionProcessing: boolean = false;
+  private combatEnded: boolean = false;
+  private turnCount: number = 0;
   private deckPosition!: { x: number; y: number };
   private discardPilePosition!: { x: number; y: number };
   private shopKey!: Phaser.Input.Keyboard.Key;
@@ -67,6 +69,18 @@ export class Combat extends Scene {
   private scanlines!: Phaser.GameObjects.TileSprite;
   private scanlineTimer: number = 0;
   private battleStartDialogueContainer!: Phaser.GameObjects.Container | null;
+  
+  // DDA tracking properties
+  private dda!: RuleBasedDDA;
+  private combatStartTime!: number;
+  private initialPlayerHealth!: number;
+  private totalDiscardsUsed: number = 0;
+  
+  // UI properties
+  private playerShadow!: Phaser.GameObjects.Graphics;
+  private enemyShadow!: Phaser.GameObjects.Graphics;
+  private handEvaluationText!: Phaser.GameObjects.Text;
+  private relicInventory!: Phaser.GameObjects.Container;
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
@@ -724,33 +738,90 @@ export class Combat extends Scene {
    * Initialize combat state with player and enemy
    */
   private initializeCombat(nodeType: string): void {
-    const deck = DeckManager.createFullDeck();
-    const { drawnCards, remainingDeck } = DeckManager.drawCards(deck, 8); // Draw 8 cards
+    // Get existing player data from GameState or create new player if none exists
+    const gameState = GameState.getInstance();
+    const existingPlayerData = gameState.getPlayerData();
+    
+    let player: Player;
+    
+    if (existingPlayerData && Object.keys(existingPlayerData).length > 0) {
+      // Use existing player data and ensure all required fields are present
+      player = {
+        id: existingPlayerData.id || "player",
+        name: existingPlayerData.name || "Hero",
+        maxHealth: existingPlayerData.maxHealth || 80,
+        currentHealth: existingPlayerData.currentHealth || 80,
+        block: 0, // Always reset block at start of combat
+        statusEffects: [], // Always reset status effects at start of combat
+        hand: [], // Will be populated below
+        deck: existingPlayerData.deck || DeckManager.createFullDeck(),
+        discardPile: existingPlayerData.discardPile || [],
+        drawPile: existingPlayerData.drawPile || [],
+        playedHand: [],
+        landasScore: existingPlayerData.landasScore || 0,
+        ginto: existingPlayerData.ginto || 100,
+        baubles: existingPlayerData.baubles || 0,
+        relics: existingPlayerData.relics || [
+          {
+            id: "placeholder_relic",
+            name: "Placeholder Relic",
+            description: "This is a placeholder relic.",
+            emoji: "",
+          },
+        ],
+        potions: existingPlayerData.potions || [],
+        discardCharges: existingPlayerData.discardCharges || 1,
+        maxDiscardCharges: existingPlayerData.maxDiscardCharges || 1,
+      };
+      
+      // If the deck is in discard pile, shuffle it back to draw pile
+      if (player.drawPile.length === 0 && player.discardPile.length > 0) {
+        player.drawPile = DeckManager.shuffleDeck([...player.discardPile]);
+        player.discardPile = [];
+      }
+      
+      // If we still don't have enough cards, create a new deck
+      if (player.drawPile.length === 0) {
+        const newDeck = DeckManager.createFullDeck();
+        player.drawPile = DeckManager.shuffleDeck(newDeck);
+        player.discardPile = [];
+      }
+    } else {
+      // Create new player for first combat
+      const deck = DeckManager.createFullDeck();
+      player = {
+        id: "player",
+        name: "Hero",
+        maxHealth: 80,
+        currentHealth: 80,
+        block: 0,
+        statusEffects: [],
+        hand: [],
+        deck: deck,
+        discardPile: [],
+        drawPile: DeckManager.shuffleDeck([...deck]),
+        playedHand: [],
+        landasScore: 0,
+        ginto: 100,
+        baubles: 0,
+        relics: [
+          {
+            id: "placeholder_relic",
+            name: "Placeholder Relic",
+            description: "This is a placeholder relic.",
+            emoji: "",
+          },
+        ],
+        potions: [],
+        discardCharges: 1,
+        maxDiscardCharges: 1,
+      };
+    }
 
-    const player: Player = {
-      id: "player",
-      name: "Hero",
-      maxHealth: 80,
-      currentHealth: 80,
-      block: 0,
-      statusEffects: [],
-      hand: drawnCards,
-      deck: remainingDeck,
-      discardPile: [],
-      drawPile: remainingDeck,
-      playedHand: [],
-      landasScore: 0, // Start with neutral landas
-      ginto: 100, // Starting currency
-      baubles: 0, // Premium currency
-      relics: [
-        {
-          id: "placeholder_relic",
-          name: "Placeholder Relic",
-          description: "This is a placeholder relic.",
-          emoji: "",
-        },
-      ],
-    };
+    // Draw initial hand (8 cards)
+    const { drawnCards, remainingDeck } = DeckManager.drawCards(player.drawPile, 8);
+    player.hand = drawnCards;
+    player.drawPile = remainingDeck;
 
     // Get enemy based on node type from the data passed to the scene
     const enemyData = this.getEnemyForNodeType(nodeType);
@@ -768,18 +839,26 @@ export class Combat extends Scene {
       lastAction: null,
     };
     
-    // Initialize DDA tracking
-    this.dda = RuleBasedDDA.getInstance();
-    this.combatStartTime = Date.now();
-    this.initialPlayerHealth = player.currentHealth;
+    // Reset combat tracking variables
+    this.combatEnded = false;
     this.turnCount = 0;
     this.bestHandAchieved = "high_card";
-    this.totalDiscardsUsed = 0;
+    this.isActionProcessing = false;
     
-    // Apply current DDA difficulty adjustments to enemy
-    const adjustment = this.dda.getCurrentDifficultyAdjustment();
-    this.combatState.enemy.maxHealth = Math.round(this.combatState.enemy.maxHealth * adjustment.enemyHealthMultiplier);
-    this.combatState.enemy.currentHealth = this.combatState.enemy.maxHealth;
+    // Initialize DDA tracking if available
+    try {
+      this.dda = RuleBasedDDA.getInstance();
+      this.combatStartTime = Date.now();
+      this.initialPlayerHealth = player.currentHealth;
+      this.totalDiscardsUsed = 0;
+      
+      // Apply current DDA difficulty adjustments to enemy
+      const adjustment = this.dda.getCurrentDifficultyAdjustment();
+      this.combatState.enemy.maxHealth = Math.round(this.combatState.enemy.maxHealth * adjustment.enemyHealthMultiplier);
+      this.combatState.enemy.currentHealth = this.combatState.enemy.maxHealth;
+    } catch (error) {
+      console.warn("DDA not available, skipping DDA initialization:", error);
+    }
   }
 
   /**
@@ -2696,7 +2775,7 @@ export class Combat extends Scene {
       // Save player state to GameState manager
       const gameState = GameState.getInstance();
       
-      // Update player data in GameState
+      // Update player data in GameState with complete state
       gameState.updatePlayerData({
         currentHealth: this.combatState.player.currentHealth,
         maxHealth: this.combatState.player.maxHealth,
@@ -2704,6 +2783,21 @@ export class Combat extends Scene {
         ginto: this.combatState.player.ginto,
         baubles: this.combatState.player.baubles,
         relics: this.combatState.player.relics,
+        potions: this.combatState.player.potions,
+        discardCharges: this.combatState.player.discardCharges,
+        maxDiscardCharges: this.combatState.player.maxDiscardCharges,
+        // Save deck state (combine all cards back into deck)
+        deck: [
+          ...this.combatState.player.hand,
+          ...this.combatState.player.drawPile,
+          ...this.combatState.player.discardPile,
+          ...this.combatState.player.playedHand
+        ],
+        // Reset these for next combat
+        hand: [],
+        drawPile: [],
+        discardPile: [],
+        playedHand: []
       });
 
       console.log("Player data saved to GameState");
@@ -3005,12 +3099,8 @@ export class Combat extends Scene {
     // Process enemy turn after a short delay to allow player to see results
     this.time.delayedCall(1000, () => {
       console.log("Processing enemy turn");
-      // Process enemy action
+      // Process enemy action - the enemy turn will handle resetting the processing flag
       this.executeEnemyTurn();
-      // Reset processing flag after enemy turn
-      this.isActionProcessing = false;
-      // Re-enable action buttons
-      this.setActionButtonsEnabled(true);
     });
   }
 
