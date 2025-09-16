@@ -136,18 +136,6 @@ export class Shop extends Scene {
         color: "#4ecdc4",
       }
     );
-    
-    // Add diamante display
-    this.diamanteText = this.add.text(
-      screenWidth - 200,
-      140,
-      `Diamante: ${this.player.diamante} 💎`,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#00ffff",
-      }
-    );
   }
 
   private createInventoryUI(): void {

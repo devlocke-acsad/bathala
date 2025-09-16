@@ -93,13 +93,13 @@ export class Combat extends Scene {
         "The goblin's eyes dim as it whispers, 'The darkness... grows stronger...' Its essence fades into shadow.",
       spareReward: {
         ginto: 50,
-        baubles: 0,
+        diamante: 0,
         healthHealing: 10,
         bonusEffect: "Forest spirits may aid you later",
       },
       killReward: {
         ginto: 75,
-        baubles: 1,
+        diamante: 1,
         healthHealing: 0,
         bonusEffect: "Gained dark essence",
       },

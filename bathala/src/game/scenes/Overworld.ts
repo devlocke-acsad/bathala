@@ -1993,7 +1993,7 @@ export class Overworld extends Scene {
     const sectionSpacing = 25; // Increased space between sections
     
     // Organized section heights for better proportions
-    const healthSectionHeight = 140;
+    const healthSectionHeight = 155; // Increased to accommodate diamante spacing
     const relicsSectionHeight = 170;
     
     let currentY = contentStartY;
@@ -2154,8 +2154,8 @@ export class Overworld extends Scene {
     });
     this.diamanteText.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Landás meter with organized spacing
-    this.createLandasMeter(x, y + 137, width - 10, 18);
+    // Landás meter with organized spacing - moved down to prevent overlap
+    this.createLandasMeter(x, y + 150, width - 10, 18);
     
     this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel]);
   }
