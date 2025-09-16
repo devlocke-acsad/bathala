@@ -2724,8 +2724,8 @@ export class Overworld extends Scene {
     });
     this.uiContainer.add(relicsLabel);
     
-    // Create relics container
-    this.relicsContainer = this.add.container(75, relicsY);
+    // Create relics container with proper positioning to avoid overlap
+    this.relicsContainer = this.add.container(75, relicsY + 40);
     this.uiContainer.add(this.relicsContainer);
     
     // Create relic inventory button
@@ -2922,50 +2922,52 @@ export class Overworld extends Scene {
   private updateRelicsDisplay(): void {
     this.relicsContainer.removeAll(true);
     
-    const slotSize = 50;
-    const slotSpacing = 12; 
+    const slotSize = 50; // Reverted to original larger size
+    const slotSpacing = 12; // Slightly reduced spacing to better fit
     const slotsPerRow = 4;
     const maxRelics = 8; // 4x2 grid
+    
+    // Calculate total grid dimensions for centering
+    const totalGridWidth = (slotsPerRow * slotSize) + ((slotsPerRow - 1) * slotSpacing); // 236px total
+    const totalGridHeight = (2 * slotSize) + (1 * slotSpacing); // 112px total
+    
+    // Calculate starting offset to center the grid within the available space
+    const availableWidth = 280; // Actual available width in relics section
+    const startOffsetX = (availableWidth - totalGridWidth) / 2;
     
     for (let i = 0; i < Math.min(this.playerData.relics.length, maxRelics); i++) {
       const relic = this.playerData.relics[i];
       const row = Math.floor(i / slotsPerRow);
       const col = i % slotsPerRow;
       
-      const relicX = col * (slotSize + slotSpacing);
+      // Position with centering offset
+      const relicX = startOffsetX + (col * (slotSize + slotSpacing));
       const relicY = row * (slotSize + slotSpacing);
       
       // Create modern Persona-style relic container
       const relicContainer = this.add.container(relicX, relicY);
       
-      // Relic background with modern gradient
+      // Relic background with modern gradient (no border)
       const relicBg = this.add.graphics();
       relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
-      relicBg.lineStyle(2, 0x00d4ff, 0.6);
       relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-      relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 8);
       
-      // Inner glow effect
+      // Inner glow effect (subtle, no blue)
       const innerGlow = this.add.graphics();
-      innerGlow.lineStyle(1, 0x00d4ff, 0.3);
+      innerGlow.lineStyle(1, 0x333344, 0.4);
       innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
       
-      // Relic icon with better scaling
+      // Relic icon with original larger size
       const relicIcon = this.add.text(slotSize/2, slotSize/2, relic.emoji, {
-        fontSize: "28px",
+        fontSize: "28px", // Reverted to original size
         align: "center"
       }).setOrigin(0.5);
       relicIcon.setShadow(1, 1, '#000000', 2, false, true);
       
-      // Equipment glow effect for rarity/quality
-      const equipGlow = this.add.graphics();
-      equipGlow.fillStyle(0x00d4ff, 0.2);
-      equipGlow.fillRoundedRect(-3, -3, slotSize + 6, slotSize + 6, 10);
-      
-      relicContainer.add([equipGlow, relicBg, innerGlow, relicIcon]);
+      relicContainer.add([relicBg, innerGlow, relicIcon]);
       
       // Create hover tooltip container (initially hidden)
-      const tooltipContainer = this.add.container(slotSize/2, -35);
+      const tooltipContainer = this.add.container(slotSize/2, -50);
       
       const tooltipBg = this.add.graphics();
       tooltipBg.fillStyle(0x0a0a0a, 0.95);
@@ -2973,7 +2975,7 @@ export class Overworld extends Scene {
       
       const tooltipText = this.add.text(0, 0, relic.name, {
         fontFamily: "dungeon-mode",
-        fontSize: "12px",
+        fontSize: "12px", // Better readable size
         color: "#00d4ff",
         fontStyle: "bold",
         align: "center"
@@ -2982,7 +2984,7 @@ export class Overworld extends Scene {
       
       // Dynamically size tooltip based on text
       const textBounds = tooltipText.getBounds();
-      const tooltipWidth = textBounds.width + 16;
+      const tooltipWidth = Math.max(textBounds.width + 16, 80);
       const tooltipHeight = textBounds.height + 12;
       
       tooltipBg.fillRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 6);
@@ -2994,27 +2996,30 @@ export class Overworld extends Scene {
       
       relicContainer.add(tooltipContainer);
       
-      // Make interactive for modern hover effects
+      // Make the entire container interactive with proper hit area
       relicContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
+      
+      // Enable input events
+      relicContainer.input!.enabled = true;
       
       // Modern hover effects
       relicContainer.on('pointerover', () => {
-        // Enhanced background on hover
+        console.log('Relic hover:', relic.name); // Debug log
+        
+        // Enhanced background on hover (no blue border)
         relicBg.clear();
         relicBg.fillGradientStyle(0x2a2a4e, 0x2a2a4e, 0x1f2439, 0x1f2439, 1);
-        relicBg.lineStyle(3, 0x00ffff, 1);
         relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-        relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 8);
         
-        // Enhanced glow
+        // Enhanced glow (subtle highlight)
         innerGlow.clear();
-        innerGlow.lineStyle(2, 0x00ffff, 0.8);
+        innerGlow.lineStyle(2, 0x555566, 0.8);
         innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
         
         // Scale animation
         this.tweens.add({
           targets: relicContainer,
-          scale: 1.15,
+          scale: 1.1,
           duration: 200,
           ease: 'Back.easeOut'
         });
@@ -3024,23 +3029,26 @@ export class Overworld extends Scene {
         this.tweens.add({
           targets: tooltipContainer,
           alpha: 1,
-          y: -45,
+          y: -65,
           duration: 300,
           ease: 'Power2'
         });
+        
+        // Change cursor
+        this.input.setDefaultCursor('pointer');
       });
       
       relicContainer.on('pointerout', () => {
-        // Restore original background
+        console.log('Relic hover out:', relic.name); // Debug log
+        
+        // Restore original background (no blue border)
         relicBg.clear();
         relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
-        relicBg.lineStyle(2, 0x00d4ff, 0.6);
         relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-        relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 8);
         
-        // Restore glow
+        // Restore glow (subtle)
         innerGlow.clear();
-        innerGlow.lineStyle(1, 0x00d4ff, 0.3);
+        innerGlow.lineStyle(1, 0x333344, 0.4);
         innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
         
         // Scale back to normal
@@ -3051,17 +3059,31 @@ export class Overworld extends Scene {
           ease: 'Power2'
         });
         
-        // Hide tooltip with fade out
+        // Hide tooltip
         this.tweens.add({
           targets: tooltipContainer,
           alpha: 0,
-          y: -35,
+          y: -50,
           duration: 200,
           ease: 'Power2',
           onComplete: () => {
             tooltipContainer.setVisible(false);
           }
         });
+        
+        // Reset cursor
+        this.input.setDefaultCursor('default');
+      });
+      
+      // Add click functionality
+      relicContainer.on('pointerdown', () => {
+        console.log('Relic clicked:', relic.name); // Debug log
+        this.showRelicDetails(relic);
+      });
+      
+      // Debug: Add visual indicator that container is interactive
+      relicContainer.on('pointerup', () => {
+        console.log('Relic pointer up:', relic.name);
       });
       
       this.relicsContainer.add(relicContainer);
@@ -3576,5 +3598,239 @@ ${potion.description}`, {
     });
     
     inventoryWindow.add([windowBg, title, potionGrid, closeBtn]);
+  }
+
+  /**
+   * Show detailed relic information in a popup similar to shop style
+   */
+  private showRelicDetails(relic: any): void {
+    // Create overlay
+    const overlay = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000
+    ).setAlpha(0.8).setScrollFactor(0).setDepth(2000);
+    
+    // Create relic details panel
+    const panelWidth = 480;
+    const panelHeight = 450;
+    const panelX = this.cameras.main.width / 2;
+    const panelY = this.cameras.main.height / 2;
+    
+    const panel = this.add.container(panelX, panelY).setScrollFactor(0).setDepth(2001);
+    
+    // Panel shadow for depth
+    const panelShadow = this.add.graphics();
+    panelShadow.fillStyle(0x000000, 0.4);
+    panelShadow.fillRoundedRect(-panelWidth/2 + 8, -panelHeight/2 + 8, panelWidth, panelHeight, 20);
+    
+    // Main panel background with dark blue theme (matching overworld)
+    const panelBg = this.add.graphics();
+    panelBg.fillGradientStyle(0x1a1a2e, 0x0f1419, 0x1a1a2e, 0x0a0a0f, 0.98);
+    panelBg.lineStyle(3, 0x00d4ff, 0.9);
+    panelBg.fillRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
+    panelBg.strokeRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
+    
+    // Inner highlight for modern look
+    const innerHighlight = this.add.graphics();
+    innerHighlight.lineStyle(2, 0x00ffff, 0.3);
+    innerHighlight.strokeRoundedRect(-panelWidth/2 + 3, -panelHeight/2 + 3, panelWidth - 6, panelHeight - 6, 17);
+    
+    // Header section with emoji and name
+    const headerBg = this.add.graphics();
+    headerBg.fillGradientStyle(0x2a2a4e, 0x1a1a2e, 0x1f2439, 0x2a2a4e, 0.9);
+    headerBg.fillRoundedRect(-panelWidth/2 + 10, -panelHeight/2 + 10, panelWidth - 20, 80, 15);
+    
+    const emojiContainer = this.add.graphics();
+    emojiContainer.fillStyle(0x00d4ff, 0.2);
+    emojiContainer.lineStyle(2, 0x00ffff, 0.6);
+    emojiContainer.fillRoundedRect(-panelWidth/2 + 25, -panelHeight/2 + 25, 60, 60, 12);
+    emojiContainer.strokeRoundedRect(-panelWidth/2 + 25, -panelHeight/2 + 25, 60, 60, 12);
+    
+    const emoji = this.add.text(-panelWidth/2 + 55, -panelHeight/2 + 55, relic.emoji, {
+      fontSize: 36,
+    }).setOrigin(0.5, 0.5);
+    emoji.setShadow(2, 2, '#0a0a0f', 4, false, true);
+    
+    // Relic name
+    const name = this.add.text(-panelWidth/2 + 110, -panelHeight/2 + 45, relic.name.toUpperCase(), {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 24,
+      color: "#00d4ff",
+    }).setOrigin(0, 0);
+    name.setShadow(2, 2, '#0a0a0f', 4, false, true);
+    
+    // "EQUIPPED" badge
+    const equippedBadge = this.add.graphics();
+    equippedBadge.fillStyle(0x00ff00, 0.9);
+    equippedBadge.fillRoundedRect(panelWidth/2 - 120, -panelHeight/2 + 30, 90, 25, 12);
+    
+    const equippedText = this.add.text(panelWidth/2 - 75, -panelHeight/2 + 42, "EQUIPPED", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 12,
+      color: "#ffffff",
+      fontStyle: "bold"
+    }).setOrigin(0.5, 0.5);
+    
+    // Content sections
+    const contentStartY = -panelHeight/2 + 140;
+    
+    // Description section
+    const descSection = this.add.graphics();
+    descSection.fillStyle(0x1a1a2e, 0.3);
+    descSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 100, 8);
+    
+    const descTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 15, "DESCRIPTION", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 14,
+      color: "#00d4ff",
+      fontStyle: "bold"
+    }).setOrigin(0, 0);
+    
+    const description = this.add.text(0, contentStartY + 45, relic.description, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#ffffff",
+      align: "center",
+      wordWrap: { width: panelWidth - 100 }
+    }).setOrigin(0.5, 0);
+    
+    // Lore section
+    const loreSection = this.add.graphics();
+    loreSection.fillStyle(0x1a1a2e, 0.2);
+    loreSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY + 120, panelWidth - 60, 110, 8);
+    
+    const loreTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 135, "LORE", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 14,
+      color: "#34d399",
+      fontStyle: "bold"
+    }).setOrigin(0, 0);
+    
+    const lore = this.getRelicLore(relic);
+    const loreText = this.add.text(0, contentStartY + 165, lore, {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#cccccc",
+      align: "center",
+      wordWrap: { width: panelWidth - 100 }
+    }).setOrigin(0.5, 0);
+    
+    // Close button
+    const closeBtn = this.add.container(panelWidth/2 - 40, -panelHeight/2 + 40);
+    const closeBg = this.add.graphics();
+    closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
+    closeBg.lineStyle(2, 0xfca5a5, 0.8);
+    closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
+    closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+    
+    const closeText = this.add.text(0, 0, "✕", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: "#ffffff",
+    }).setOrigin(0.5, 0.5);
+    closeText.setShadow(1, 1, '#000000', 2, false, true);
+    
+    closeBtn.add([closeBg, closeText]);
+    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-15, -15, 30, 30), Phaser.Geom.Rectangle.Contains);
+    closeBtn.on("pointerdown", () => {
+      // Smooth exit animation
+      this.tweens.add({
+        targets: panel,
+        scale: 0.8,
+        alpha: 0,
+        duration: 200,
+        ease: 'Back.easeIn',
+        onComplete: () => {
+          overlay.destroy();
+          panel.destroy();
+        }
+      });
+    });
+    
+    // Close button hover effects
+    closeBtn.on("pointerover", () => {
+      this.tweens.add({
+        targets: closeBtn,
+        scale: 1.1,
+        duration: 100,
+        ease: 'Power2'
+      });
+      closeBg.clear();
+      closeBg.fillGradientStyle(0xf87171, 0xef4444, 0xdc2626, 0xb91c1c, 0.95);
+      closeBg.lineStyle(2, 0xfca5a5, 1);
+      closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
+      closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+    });
+    
+    closeBtn.on("pointerout", () => {
+      this.tweens.add({
+        targets: closeBtn,
+        scale: 1,
+        duration: 100,
+        ease: 'Power2'
+      });
+      closeBg.clear();
+      closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
+      closeBg.lineStyle(2, 0xfca5a5, 0.8);
+      closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
+      closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+    });
+    
+    // Assemble the panel
+    panel.add([panelShadow, panelBg, innerHighlight, headerBg, emojiContainer, emoji, name, 
+              equippedBadge, equippedText, descSection, descTitle, description, 
+              loreSection, loreTitle, loreText, closeBtn]);
+              
+    // Entrance animation
+    panel.setScale(0.8).setAlpha(0);
+    this.tweens.add({
+      targets: panel,
+      scale: 1,
+      alpha: 1,
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
+    
+    // Make overlay interactive to close when clicked
+    overlay.setInteractive();
+    overlay.on('pointerdown', () => {
+      this.tweens.add({
+        targets: panel,
+        scale: 0.8,
+        alpha: 0,
+        duration: 200,
+        ease: 'Back.easeIn',
+        onComplete: () => {
+          overlay.destroy();
+          panel.destroy();
+        }
+      });
+    });
+  }
+
+  /**
+   * Get lore text for a relic
+   */
+  private getRelicLore(relic: any): string {
+    // Return lore based on relic ID or name
+    switch(relic.id) {
+      case "earthwardens_plate":
+        return "Forged by the ancient Earthwardens who protected the first settlements from natural disasters. This mystical armor channels the strength of the mountains themselves, providing unwavering protection to those who wear it.";
+      case "swift_wind_agimat":
+        return "An enchanted talisman blessed by the spirits of the wind. It enhances the agility of its bearer, allowing them to move with the swiftness of the breeze and react faster than the eye can see.";
+      case "ember_fetish":
+        return "A relic imbued with the essence of volcanic fire. When the bearer's defenses are low, the fetish awakens and grants the fury of the forge, empowering them with the strength of molten rock.";
+      case "babaylans_talisman":
+        return "Once worn by the most revered Babaylan of the ancient tribes. This sacred talisman enhances the spiritual connection of its bearer, allowing them to channel greater power through their rituals and incantations.";
+      case "echo_of_ancestors":
+        return "A mystical artifact that resonates with the wisdom of those who came before. It breaks the natural limitations of the physical world, allowing for impossible feats that should not exist.";
+      case "seafarers_compass":
+        return "A navigational tool blessed by Lakapati, goddess of fertility and navigation. It guides the bearer through the most treacherous waters and helps them find their way even in the darkest storms.";
+      default:
+        return "An ancient artifact of great power, its origins lost to time but its effects undeniable. Those who wield it are forever changed by its mystical properties.";
+    }
   }
 }
