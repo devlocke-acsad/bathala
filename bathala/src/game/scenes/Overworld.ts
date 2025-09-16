@@ -2082,79 +2082,46 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Create modern relics section with Persona-style design
+   * Create modern relics section with grid layout
    */
   private createModernRelicsSection(x: number, y: number, width: number): void {
-    // Modern section header with sleek styling
-    const headerContainer = this.add.container(x, y);
-    
-    // Header background with gradient effect
-    const headerBg = this.add.graphics();
-    headerBg.fillGradientStyle(0x1a1a2e, 0x16213e, 0x0f3460, 0x0e6ba8, 1);
-    headerBg.lineStyle(2, 0x00d4ff, 0.8);
-    headerBg.fillRoundedRect(0, 0, width, 35, 8);
-    headerBg.strokeRoundedRect(0, 0, width, 35, 8);
-    
-    // Header accent line
-    const accentLine = this.add.graphics();
-    accentLine.lineStyle(3, 0x00d4ff, 1);
-    accentLine.beginPath();
-    accentLine.moveTo(8, 35);
-    accentLine.lineTo(width - 8, 35);
-    accentLine.strokePath();
-    
-    const relicsLabel = this.add.text(width/2, 17, "RELICS", {
+    // Section header with organized spacing
+    const relicsLabel = this.add.text(x, y + 8, "RELICS", {
       fontFamily: "dungeon-mode",
-      fontSize: "16px",
-      color: "#00d4ff",
+      fontSize: "14px",
+      color: "#ffffff",
       fontStyle: "bold"
-    }).setOrigin(0.5);
-    relicsLabel.setShadow(2, 2, '#000000', 3, false, true);
+    });
+    relicsLabel.setShadow(2, 2, '#000000', 2, false, true);
+    this.uiContainer.add(relicsLabel);
     
-    headerContainer.add([headerBg, accentLine, relicsLabel]);
-    this.uiContainer.add(headerContainer);
+    // Grid container with organized spacing
+    const gridBg = this.add.graphics();
+    gridBg.fillStyle(0x1a1a1a, 0.4);
+    gridBg.lineStyle(1, 0x333333, 0.5);
+    gridBg.fillRoundedRect(x - 5, y + 25, width + 10, 130, 12);
+    gridBg.strokeRoundedRect(x - 5, y + 25, width + 10, 130, 12);
+    this.uiContainer.add(gridBg);
     
-    // Main grid container with modern glass morphism effect
-    const gridContainer = this.add.graphics();
-    gridContainer.fillStyle(0x0a0a0a, 0.85);
-    gridContainer.lineStyle(1, 0x333344, 0.6);
-    gridContainer.fillRoundedRect(x - 5, y + 45, width + 10, 130, 12);
-    gridContainer.strokeRoundedRect(x - 5, y + 45, width + 10, 130, 12);
-    
-    // Inner glow effect
-    const innerGlow = this.add.graphics();
-    innerGlow.lineStyle(1, 0x00d4ff, 0.2);
-    innerGlow.strokeRoundedRect(x - 3, y + 47, width + 6, 126, 10);
-    
-    this.uiContainer.add([gridContainer, innerGlow]);
-    
-    // Create 4x2 grid with modern spacing
-    const slotSize = 50;
+    // Create 4x2 grid of relic slots with organized spacing
+    const slotSize = 45;
     const slotSpacing = 12;
     const slotsPerRow = 4;
     const rows = 2;
     const gridStartX = x + 15;
-    const gridStartY = y + 60;
+    const gridStartY = y + 40;
     
-    // Create slot backgrounds with Persona-style design
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < slotsPerRow; col++) {
         const slotX = gridStartX + col * (slotSize + slotSpacing);
         const slotY = gridStartY + row * (slotSize + slotSpacing);
         
-        // Modern slot background
-        const slotBg = this.add.graphics();
-        slotBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.9);
-        slotBg.lineStyle(1, 0x444455, 0.8);
-        slotBg.fillRoundedRect(slotX, slotY, slotSize, slotSize, 8);
-        slotBg.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 8);
-        
-        // Subtle inner highlight
-        const highlight = this.add.graphics();
-        highlight.lineStyle(1, 0x666677, 0.3);
-        highlight.strokeRoundedRect(slotX + 2, slotY + 2, slotSize - 4, slotSize - 4, 6);
-        
-        this.uiContainer.add([slotBg, highlight]);
+        const slot = this.add.graphics();
+        slot.fillStyle(0x2c2c2c, 0.6);
+        slot.lineStyle(1, 0x404040, 0.8);
+        slot.fillRoundedRect(slotX, slotY, slotSize, slotSize, 8);
+        slot.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 8);
+        this.uiContainer.add(slot);
       }
     }
     
@@ -2922,26 +2889,25 @@ export class Overworld extends Scene {
   private updateRelicsDisplay(): void {
     this.relicsContainer.removeAll(true);
     
-    const slotSize = 50; // Reverted to original larger size
+    const slotSize = 45; // Match the slot size from createModernRelicsSection
     const slotSpacing = 12; // Slightly reduced spacing to better fit
     const slotsPerRow = 4;
     const maxRelics = 8; // 4x2 grid
     
-    // Calculate total grid dimensions for centering
-    const totalGridWidth = (slotsPerRow * slotSize) + ((slotsPerRow - 1) * slotSpacing); // 236px total
-    const totalGridHeight = (2 * slotSize) + (1 * slotSpacing); // 112px total
+    // Calculate total grid dimensions for reference
+    const totalGridWidth = (slotsPerRow * slotSize) + ((slotsPerRow - 1) * slotSpacing); // 213px total for 45px slots
+    const totalGridHeight = (2 * slotSize) + (1 * slotSpacing); // 102px total for 45px slots
     
-    // Calculate starting offset to center the grid within the available space
-    const availableWidth = 280; // Actual available width in relics section
-    const startOffsetX = (availableWidth - totalGridWidth) / 2;
+    // Position relics relative to the container (which is already at gridStartX, gridStartY)
+    // No offset needed since container is positioned correctly
     
     for (let i = 0; i < Math.min(this.playerData.relics.length, maxRelics); i++) {
       const relic = this.playerData.relics[i];
       const row = Math.floor(i / slotsPerRow);
       const col = i % slotsPerRow;
       
-      // Position with centering offset
-      const relicX = startOffsetX + (col * (slotSize + slotSpacing));
+      // Position relative to container origin - matches slot positioning exactly
+      const relicX = col * (slotSize + slotSpacing);
       const relicY = row * (slotSize + slotSpacing);
       
       // Create modern Persona-style relic container
@@ -2957,9 +2923,9 @@ export class Overworld extends Scene {
       innerGlow.lineStyle(1, 0x333344, 0.4);
       innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
       
-      // Relic icon with original larger size
+      // Relic icon with size adjusted for 45px slots
       const relicIcon = this.add.text(slotSize/2, slotSize/2, relic.emoji, {
-        fontSize: "28px", // Reverted to original size
+        fontSize: "24px", // Reduced to fit better in 45px slots
         align: "center"
       }).setOrigin(0.5);
       relicIcon.setShadow(1, 1, '#000000', 2, false, true);
