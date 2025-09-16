@@ -854,8 +854,28 @@ export class Combat extends Scene {
       
       // Apply current DDA difficulty adjustments to enemy
       const adjustment = this.dda.getCurrentDifficultyAdjustment();
+      console.log("DDA Adjustment:", {
+        tier: adjustment.tier,
+        healthMultiplier: adjustment.enemyHealthMultiplier,
+        damageMultiplier: adjustment.enemyDamageMultiplier,
+        originalDamage: this.combatState.enemy.damage,
+        originalHealth: this.combatState.enemy.maxHealth
+      });
+      
       this.combatState.enemy.maxHealth = Math.round(this.combatState.enemy.maxHealth * adjustment.enemyHealthMultiplier);
       this.combatState.enemy.currentHealth = this.combatState.enemy.maxHealth;
+      this.combatState.enemy.damage = Math.round(this.combatState.enemy.damage * adjustment.enemyDamageMultiplier);
+      
+      console.log("DDA Applied:", {
+        newDamage: this.combatState.enemy.damage,
+        newHealth: this.combatState.enemy.maxHealth
+      });
+      
+      // Update initial intent to reflect DDA-modified damage
+      if (this.combatState.enemy.intent.type === "attack") {
+        this.combatState.enemy.intent.value = this.combatState.enemy.damage;
+        this.combatState.enemy.intent.description = `Attacks for ${this.combatState.enemy.damage} damage`;
+      }
     } catch (error) {
       console.warn("DDA not available, skipping DDA initialization:", error);
     }
@@ -2323,7 +2343,15 @@ export class Combat extends Scene {
     };
     
     // Update DDA system with combat results
-    this.dda.processCombatResults(combatMetrics);
+    const updatedPPS = this.dda.processCombatResults(combatMetrics);
+    console.log("DDA Updated:", {
+      previousPPS: updatedPPS.previousPPS,
+      currentPPS: updatedPPS.currentPPS,
+      tier: updatedPPS.tier,
+      healthPercentage: combatMetrics.healthPercentage,
+      turnCount: combatMetrics.turnCount,
+      victory: victory
+    });
     
     if (victory) {
       const gameState = GameState.getInstance();
