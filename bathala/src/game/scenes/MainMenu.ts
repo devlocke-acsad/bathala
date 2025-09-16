@@ -32,6 +32,12 @@ export class MainMenu extends Scene {
    * Create prominent CRT scanline effect
    */
   private createBackgroundEffects(): void {
+    // Safety check for cameras
+    if (!this.cameras || !this.cameras.main) {
+      console.warn("Cameras not available yet, skipping background effects");
+      return;
+    }
+    
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
@@ -89,8 +95,8 @@ export class MainMenu extends Scene {
     // Center the content vertically on the screen
     const centerY = screenHeight / 2;
     
-    // Create "bathala" text in lowercase with Pixeled English Font
-    this.createStraightTitle(screenWidth/2, centerY - 150, "bathala");
+    // Create "bathala" text with special handling for font loading
+    this.createBathalaText(screenWidth/2, centerY - 150);
 
     // Menu options - centered below the title with increased gap using dungeon-mode-inverted font
     const menuOptions = ["Play", "Discover", "Credits", "Settings"]; // Updated options
@@ -132,30 +138,41 @@ export class MainMenu extends Scene {
   }
 
   /**
-   * Handle scene resize
+   * Create the "bathala" text with special font loading handling
    */
-  private handleResize(): void {
-    // Clear and recreate UI
-    this.children.removeAll();
-    this.createBackgroundEffects();
-    this.createUI();
-  }
-
-  /**
-   * Create a straight title with Pixeled English Font and updated color
-   */
-  private createStraightTitle(x: number, y: number, text: string): void {
-    // Create the text with styling
+  private createBathalaText(x: number, y: number): void {
+    // Create the text
     const titleText = this.add
-      .text(x, y, text, {
-        fontFamily: "Pixeled English Font", // Updated font
-        fontSize: 250, 
-        color: "#77888C", // Updated color
+      .text(x, y, "bathala", {
+        fontFamily: "Pixeled English Font",
+        fontSize: 250,
+        color: "#77888C",
       })
       .setOrigin(0.5);
     
     // Add subtle shadow
     titleText.setShadow(2, 2, '#000000', 0, true, false);
+    
+    // Force refresh after a short delay
+    this.time.delayedCall(50, () => {
+      titleText.setText("bathala");
+    });
+  }
+
+  /**
+   * Handle scene resize
+   */
+  private handleResize(): void {
+    // Safety check for cameras before clearing
+    if (!this.cameras || !this.cameras.main) {
+      console.warn("Cameras not available during resize, skipping");
+      return;
+    }
+    
+    // Clear and recreate UI
+    this.children.removeAll();
+    this.createBackgroundEffects();
+    this.createUI();
   }
 
   /**

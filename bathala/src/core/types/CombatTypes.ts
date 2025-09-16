@@ -3,6 +3,8 @@
  * Based on poker hands with elemental modifications
  */
 
+import { Potion } from "../../data/potions/Act1Potions";
+
 export type Suit = "Apoy" | "Tubig" | "Lupa" | "Hangin";
 export type Rank =
   | "1"
@@ -69,6 +71,9 @@ export interface Player extends CombatEntity {
   ginto: number; // Currency for basic items
   baubles: number; // Premium currency for rare items
   relics: Relic[];
+  potions: Potion[]; // Carried potions (max 3)
+  discardCharges: number; // Available discard charges
+  maxDiscardCharges: number; // Maximum discard charges per combat
 }
 
 export interface Enemy extends CombatEntity {
