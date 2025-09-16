@@ -35,6 +35,7 @@ export class Overworld extends Scene {
   private relicsContainer!: Phaser.GameObjects.Container;
   private potionsContainer!: Phaser.GameObjects.Container;
   private currencyText!: Phaser.GameObjects.Text;
+  private diamanteText!: Phaser.GameObjects.Text;
   private landasText!: Phaser.GameObjects.Text;
   private landasMeterIndicator!: Phaser.GameObjects.Graphics;
   private deckInfoText!: Phaser.GameObjects.Text;
@@ -66,7 +67,7 @@ export class Overworld extends Scene {
         playedHand: savedPlayerData.playedHand || [],
         landasScore: savedPlayerData.landasScore || 0,
         ginto: savedPlayerData.ginto !== undefined ? savedPlayerData.ginto : 100,
-        baubles: savedPlayerData.baubles || 0,
+        diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : 0,
         relics: savedPlayerData.relics || [],
         potions: savedPlayerData.potions || [],
         discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 1,
@@ -88,7 +89,7 @@ export class Overworld extends Scene {
         playedHand: [],
         landasScore: 0,
         ginto: 9999,
-        baubles: 0,
+        diamante: 20,
         relics: [],
         potions: [
           {
@@ -293,7 +294,7 @@ export class Overworld extends Scene {
           playedHand: [],
           landasScore: 0,
           ginto: 100,
-          baubles: 0,
+          diamante: 0,
           relics: [
             {
               id: "placeholder_relic",
@@ -330,7 +331,7 @@ export class Overworld extends Scene {
           playedHand: [],
           landasScore: 0,
           ginto: 100,
-          baubles: 0,
+          diamante: 0,
           relics: [
             {
               id: "placeholder_relic",
@@ -398,7 +399,7 @@ export class Overworld extends Scene {
           playedHand: [],
           landasScore: 0,
           ginto: 100,
-          baubles: 0,
+          diamante: 0,
           relics: [
             {
               id: "placeholder_relic",
@@ -451,7 +452,7 @@ export class Overworld extends Scene {
           playedHand: [],
           landasScore: 0,
           ginto: 100,
-          baubles: 0,
+          diamante: 0,
           relics: [
             {
               id: "placeholder_relic",
@@ -840,7 +841,7 @@ export class Overworld extends Scene {
         playedHand: savedPlayerData.playedHand || this.playerData.playedHand,
         landasScore: savedPlayerData.landasScore !== undefined ? savedPlayerData.landasScore : this.playerData.landasScore,
         ginto: savedPlayerData.ginto !== undefined ? savedPlayerData.ginto : this.playerData.ginto,
-        baubles: savedPlayerData.baubles !== undefined ? savedPlayerData.baubles : this.playerData.baubles,
+        diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : this.playerData.diamante,
         relics: savedPlayerData.relics || this.playerData.relics,
         potions: savedPlayerData.potions || this.playerData.potions,
         discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : this.playerData.discardCharges,
@@ -1205,7 +1206,7 @@ export class Overworld extends Scene {
               playedHand: [],
               landasScore: 0,
               ginto: 100,
-              baubles: 0,
+              diamante: 0,
               relics: [
                 {
                   id: "placeholder_relic",
@@ -1240,7 +1241,7 @@ export class Overworld extends Scene {
               playedHand: [],
               landasScore: 0,
               ginto: 100,
-              baubles: 0,
+              diamante: 0,
               relics: [
                 {
                   id: "placeholder_relic",
@@ -2131,10 +2132,32 @@ export class Overworld extends Scene {
     });
     this.currencyText.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Landás meter with organized spacing
-    this.createLandasMeter(x, y + 120, width - 10, 18);
+    // Diamante currency display
+    const diamanteIcon = this.add.text(x + 8, y + 110, "💎", {
+      fontSize: "16px"
+    });
+    diamanteIcon.setShadow(2, 2, '#000000', 2, false, true);
     
-    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel]);
+    const diamanteLabel = this.add.text(x + 30, y + 106, "DIAMANTE", {
+      fontFamily: "dungeon-mode",
+      fontSize: "10px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    diamanteLabel.setShadow(2, 2, '#000000', 2, false, true);
+    
+    this.diamanteText = this.add.text(x + 30, y + 119, "0", {
+      fontFamily: "dungeon-mode",
+      fontSize: "14px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.diamanteText.setShadow(2, 2, '#000000', 2, false, true);
+    
+    // Landás meter with organized spacing
+    this.createLandasMeter(x, y + 137, width - 10, 18);
+    
+    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel]);
   }
 
   /**
@@ -2328,6 +2351,28 @@ export class Overworld extends Scene {
     });
     this.currencyText.setShadow(2, 2, '#000000', 2, false, true);
     
+    // Diamante currency display
+    const diamanteIcon = this.add.text(x + 70, y + 108, "💎", {
+      fontSize: "20px"
+    });
+    diamanteIcon.setShadow(1, 1, '#00ffff', 2, false, true);
+    
+    const diamanteLabel = this.add.text(x + 98, y + 103, "DIAMANTE", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: "12px",
+      color: "#00ffff",
+      fontStyle: "bold"
+    });
+    diamanteLabel.setShadow(1, 1, '#000000', 2, false, true);
+    
+    this.diamanteText = this.add.text(x + 98, y + 120, "0", {
+      fontFamily: "dungeon-mode",
+      fontSize: "16px",
+      color: "#ffffff",
+      fontStyle: "bold"
+    });
+    this.diamanteText.setShadow(2, 2, '#000000', 2, false, true);
+    
     // Enhanced separator
     const currencySeparator = this.add.graphics();
     currencySeparator.lineStyle(2, 0x666666, 0.6);
@@ -2341,7 +2386,7 @@ export class Overworld extends Scene {
     // Enhanced Landás meter
     this.createLandasMeter(x, y + 162, 250, 28);
     
-    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel]);
+    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel]);
   }
 
   /**
@@ -2873,6 +2918,7 @@ export class Overworld extends Scene {
    */
   private updateCurrencyDisplay(): void {
     this.currencyText.setText(`${this.playerData.ginto}`);
+    this.diamanteText.setText(`${this.playerData.diamante}`);
   }
 
   /**

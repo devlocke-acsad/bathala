@@ -69,7 +69,7 @@ export interface Player extends CombatEntity {
   playedHand: PlayingCard[];
   landasScore: number; // Landas system (Conquest, Balance, Mercy)
   ginto: number; // Currency for basic items
-  baubles: number; // Premium currency for rare items
+  diamante: number; // Premium currency for rare items
   relics: Relic[];
   potions: Potion[]; // Carried potions (max 3)
   discardCharges: number; // Available discard charges
@@ -134,7 +134,7 @@ export type Landas = "Conquest" | "Balance" | "Mercy";
 
 export interface PostCombatReward {
   ginto: number;
-  baubles: number;
+  diamante: number;
   healthHealing: number;
   bonusEffect?: string;
 }

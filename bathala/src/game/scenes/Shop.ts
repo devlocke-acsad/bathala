@@ -8,7 +8,7 @@ export class Shop extends Scene {
   private shopItems: ShopItem[] = [];
   private relicButtons: Phaser.GameObjects.Container[] = [];
   private gintoText!: Phaser.GameObjects.Text;
-  private baublesText!: Phaser.GameObjects.Text;
+  private diamanteText!: Phaser.GameObjects.Text;
   private tooltipBox!: Phaser.GameObjects.Container;
   private selectedItem: ShopItem | null = null;
 
@@ -126,14 +126,26 @@ export class Shop extends Scene {
       }
     );
 
-    this.baublesText = this.add.text(
+    this.diamanteText = this.add.text(
       screenWidth - 200,
       110,
-      `Baubles: ${this.player.baubles} 💎`,
+      `Diamante: ${this.player.diamante} 💎`,
       {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#4ecdc4",
+      }
+    );
+    
+    // Add diamante display
+    this.diamanteText = this.add.text(
+      screenWidth - 200,
+      140,
+      `Diamante: ${this.player.diamante} 💎`,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#00ffff",
       }
     );
   }
@@ -187,14 +199,28 @@ export class Shop extends Scene {
       emoji.setShadow(2, 2, '#000000', 3, false, true);
       
       // Currency indicator
-      const currencyEmoji = item.currency === "ginto" ? "💰" : "💎";
+      let currencyEmoji;
+      if (item.currency === "ginto") {
+        currencyEmoji = "💰";
+      } else if (item.currency === "diamante") {
+        currencyEmoji = "💎";
+      } else {
+        currencyEmoji = "💎";
+      }
       const currencyIndicator = this.add.text(itemWidth/2 - 15, -itemHeight/2 + 10, currencyEmoji, {
         fontSize: 16,
       }).setOrigin(0.5);
       
       // Price tag background
       const priceBg = this.add.graphics();
-      const priceColor = item.currency === "ginto" ? 0xffd93d : 0x4ecdc4;
+      let priceColor;
+      if (item.currency === "ginto") {
+        priceColor = 0xffd93d;
+      } else if (item.currency === "diamante") {
+        priceColor = 0x00ffff;
+      } else {
+        priceColor = 0x4ecdc4;
+      }
       priceBg.fillStyle(priceColor, isOwned ? 0.4 : 0.8);
       priceBg.fillRoundedRect(-15, itemHeight/2 - 20, 30, 20, 3);
       
@@ -412,7 +438,14 @@ export class Shop extends Scene {
     
     // Item type badge
     const typeBadge = this.add.graphics();
-    const typeColor = item.currency === "ginto" ? 0xffd93d : 0x4ecdc4;
+    let typeColor;
+    if (item.currency === "ginto") {
+      typeColor = 0xffd93d;
+    } else if (item.currency === "diamante") {
+      typeColor = 0x00ffff;
+    } else {
+      typeColor = 0x4ecdc4;
+    }
     typeBadge.fillStyle(typeColor, 0.2);
     typeBadge.fillRoundedRect(panelWidth/2 - 100, -panelHeight/2 + 30, 80, 30, 5);
     
@@ -428,7 +461,14 @@ export class Shop extends Scene {
     priceBg.fillStyle(0x2f3542, 0.8);
     priceBg.fillRoundedRect(-50, -panelHeight/2 + 100, 100, 40, 5);
     
-    const priceEmoji = item.currency === "ginto" ? "💰" : "💎";
+    let priceEmoji;
+    if (item.currency === "ginto") {
+      priceEmoji = "💰";
+    } else if (item.currency === "diamante") {
+      priceEmoji = "💎";
+    } else {
+      priceEmoji = "💎";
+    }
     const price = this.add.text(0, -panelHeight/2 + 120, `${item.price} ${priceEmoji}`, {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 20,
@@ -577,8 +617,8 @@ export class Shop extends Scene {
       return;
     }
     
-    if (item.currency === "baubles" && this.player.baubles < item.price) {
-      this.showMessage("Not enough Baubles!", "#ff4757");
+    if (item.currency === "diamante" && this.player.diamante < item.price) {
+      this.showMessage("Not enough Diamante!", "#ff4757");
       return;
     }
     
@@ -627,8 +667,18 @@ export class Shop extends Scene {
     }).setOrigin(0.5);
     
     // Price
-    const priceColor = item.currency === "ginto" ? "#ffd93d" : "#4ecdc4";
-    const priceEmoji = item.currency === "ginto" ? "💰" : "💎";
+    let priceColor;
+    let priceEmoji;
+    if (item.currency === "ginto") {
+      priceColor = "#ffd93d";
+      priceEmoji = "💰";
+    } else if (item.currency === "diamante") {
+      priceColor = "#00ffff";
+      priceEmoji = "💎";
+    } else {
+      priceColor = "#4ecdc4";
+      priceEmoji = "💎";
+    }
     const price = this.add.text(0, 10, `Price: ${item.price} ${priceEmoji}`, {
       fontFamily: "dungeon-mode",
       fontSize: 18,
@@ -701,8 +751,8 @@ export class Shop extends Scene {
     // Deduct currency
     if (item.currency === "ginto") {
       this.player.ginto -= item.price;
-    } else {
-      this.player.baubles -= item.price;
+    } else if (item.currency === "diamante") {
+      this.player.diamante -= item.price;
     }
     
     // Add relic to player
@@ -712,7 +762,7 @@ export class Shop extends Scene {
     
     // Update UI
     this.gintoText.setText(`Ginto: ${this.player.ginto} 💰`);
-    this.baublesText.setText(`Baubles: ${this.player.baubles} 💎`);
+    this.diamanteText.setText(`Diamante: ${this.player.diamante} 💎`);
     
     // Show success message with animation
     this.showMessage(`Purchased ${item.name}!`, "#2ed573");

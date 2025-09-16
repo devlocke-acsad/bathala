@@ -12,7 +12,7 @@ export interface ShopItem {
   type: "relic" | "potion" | "card";
   item: Relic | any; // For now, we'll focus on relics
   price: number;
-  currency: "ginto" | "baubles";
+  currency: "ginto" | "diamante";
   emoji: string;
 }
 
@@ -139,7 +139,7 @@ export const premiumShopItems: ShopItem[] = [
       emoji: "💎"
     },
     price: 3,
-    currency: "baubles",
+    currency: "diamante",
     emoji: "💎"
   },
   {
@@ -154,7 +154,7 @@ export const premiumShopItems: ShopItem[] = [
       emoji: "🍀"
     },
     price: 2,
-    currency: "baubles",
+    currency: "diamante",
     emoji: "🍀"
   },
   {
@@ -169,7 +169,7 @@ export const premiumShopItems: ShopItem[] = [
       emoji: "🌟"
     },
     price: 5,
-    currency: "baubles",
+    currency: "diamante",
     emoji: "🌟"
   },
   {
@@ -184,7 +184,7 @@ export const premiumShopItems: ShopItem[] = [
       emoji: "👑"
     },
     price: 4,
-    currency: "baubles",
+    currency: "diamante",
     emoji: "👑"
   },
   {
@@ -199,8 +199,39 @@ export const premiumShopItems: ShopItem[] = [
       emoji: "❤️"
     },
     price: 4,
-    currency: "baubles",
+    currency: "diamante",
     emoji: "❤️"
+  },
+  // Diamante shop items
+  {
+    id: "shop_crystal_ward",
+    name: "Crystal Ward",
+    description: "Gain 15 Block at the start of each combat.",
+    type: "relic",
+    item: {
+      id: "crystal_ward",
+      name: "Crystal Ward",
+      description: "Gain 15 Block at the start of each combat.",
+      emoji: "🛡️"
+    },
+    price: 50,
+    currency: "diamante",
+    emoji: "🛡️"
+  },
+  {
+    id: "shop_wind_dancer_boots",
+    name: "Wind Dancer's Boots",
+    description: "Gain 2 Dexterity and start each combat with +2 discard charges.",
+    type: "relic",
+    item: {
+      id: "wind_dancer_boots",
+      name: "Wind Dancer's Boots",
+      description: "Gain 2 Dexterity and start each combat with +2 discard charges.",
+      emoji: "👢"
+    },
+    price: 75,
+    currency: "diamante",
+    emoji: "👢"
   }
 ];
 
