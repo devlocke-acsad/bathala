@@ -770,210 +770,6 @@ export class Overworld extends Scene {
     });
   }
 
-  update(): void {
-    // Skip input handling if player is currently moving or transitioning to combat
-    if (this.isMoving || this.isTransitioningToCombat) {
-      return;
-    }
-    
-    // Ensure camera is available before processing input
-    if (!this.cameras || !this.cameras.main) {
-      return;
-    }
-
-    // Check for input - handle multiple directions with priority
-    // Up/Down takes priority over Left/Right
-    if (this.cursors.up.isDown || this.wasdKeys['W'].isDown) {
-      this.movePlayer(0, -this.gridSize, "avatar_walk_up");
-    } else if (this.cursors.down.isDown || this.wasdKeys['S'].isDown) {
-      this.movePlayer(0, this.gridSize, "avatar_walk_down");
-    } else if (this.cursors.left.isDown || this.wasdKeys['A'].isDown) {
-      this.movePlayer(-this.gridSize, 0, "avatar_walk_left");
-    } else if (this.cursors.right.isDown || this.wasdKeys['D'].isDown) {
-      this.movePlayer(this.gridSize, 0, "avatar_walk_right");
-    }
-    
-    // Check for Enter key to interact with nodes
-    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))) {
-      this.checkNodeInteraction();
-    }
-    
-    // Check for M key to open the mysterious merchant shop
-    if (Phaser.Input.Keyboard.JustDown(this.shopKey)) {
-      // Find if there's a shop node nearby
-      const shopNode = this.nodes.find(node => 
-        node.type === "shop" && 
-        Phaser.Math.Distance.Between(
-          this.player.x, 
-          this.player.y, 
-          node.x + this.gridSize / 2, 
-          node.y + this.gridSize / 2
-        ) < this.gridSize
-      );
-      
-      if (shopNode) {
-        // Save player position before transitioning
-        const gameState = GameState.getInstance();
-        gameState.savePlayerPosition(this.player.x, this.player.y);
-        
-        // Pause this scene and launch shop scene
-        this.scene.pause();
-        this.scene.launch("Shop", { 
-          player: {
-            id: "player",
-            name: "Hero",
-            maxHealth: 80,
-            currentHealth: 80,
-            block: 0,
-            statusEffects: [],
-            hand: [],
-            deck: [],
-            discardPile: [],
-            drawPile: [],
-            playedHand: [],
-            landasScore: 0,
-            ginto: 100,
-            baubles: 0,
-            relics: [
-              {
-                id: "placeholder_relic",
-                name: "Placeholder Relic",
-                description: "This is a placeholder relic.",
-                emoji: "⚙️",
-              },
-            ],
-          }
-        });
-      }
-    }
-    
-    // Check for B key to trigger boss fight (for testing)
-    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B))) {
-      this.startCombat("boss");
-    }
-    
-    // Check for C key to trigger combat (for testing)
-    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C))) {
-      this.startCombat("combat");
-    }
-    
-    // Check for E key to trigger elite combat (for testing)
-    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E))) {
-      this.startCombat("elite");
-    }
-    
-    // Check for T key to trigger treasure (for testing)
-    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T))) {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-      
-      // Pause this scene and launch treasure scene
-      this.scene.pause();
-      this.scene.launch("Treasure", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          baubles: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
-      });
-    }
-    
-    // Check for F key to trigger campfire (for testing)
-    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F))) {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-      
-      // Pause this scene and launch campfire scene
-      this.scene.pause();
-      this.scene.launch("Campfire", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          baubles: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
-      });
-    }
-    
-    // Check for R key to trigger treasure (for testing)
-    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R))) {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-      
-      // Pause this scene and launch treasure scene
-      this.scene.pause();
-      this.scene.launch("Treasure", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          baubles: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
-      });
-    }
-    
-    // Update UI
-    this.updateUI();
-  }
-
   updateUI(): void {
     // Update day/night progress bar
     this.updateDayNightProgressBar();
@@ -1030,24 +826,36 @@ export class Overworld extends Scene {
    * Called when the scene resumes from another scene
    */
   resume(): void {
+    console.log("Overworld.resume() called - Re-enabling input and resetting flags");
+    
     // Re-enable input when returning from other scenes
-    this.input.keyboard.enabled = true;
+    if (this.input && this.input.keyboard) {
+      this.input.keyboard.enabled = true;
+      console.log("Keyboard input re-enabled");
+    }
+    
     this.isMoving = false;
     this.isTransitioningToCombat = false;
+    console.log("Movement flags reset - isMoving:", this.isMoving, "isTransitioningToCombat:", this.isTransitioningToCombat);
     
     // Restore player position if saved
     const gameState = GameState.getInstance();
     const savedPosition = gameState.getPlayerPosition();
     if (savedPosition) {
+      console.log("Restoring player position to:", savedPosition);
       this.player.setPosition(savedPosition.x, savedPosition.y);
       // Center camera on player
       this.cameras.main.startFollow(this.player);
       // Clear the saved position
       gameState.clearPlayerPosition();
+    } else {
+      console.log("No saved position found, keeping current position");
     }
     
     // Update visible chunks around player
     this.updateVisibleChunks();
+    
+    console.log("Overworld.resume() completed successfully");
   }
 
   /**
@@ -1661,7 +1469,9 @@ export class Overworld extends Scene {
     gameState.savePlayerPosition(this.player.x, this.player.y);
     
     // Disable input during transition
-    this.input.keyboard.enabled = false;
+    if (this.input && this.input.keyboard) {
+      this.input.keyboard.enabled = false;
+    }
     
     // Check if this is a boss fight for special animation
     if (nodeType === "boss") {
@@ -2057,37 +1867,51 @@ export class Overworld extends Scene {
       this.scanlines.tilePositionY = this.scanlineTimer * 0.02; // Much slower than before (0.15 -> 0.02)
     }
     
+    // Skip input handling if player is currently moving or transitioning to combat
+    if (this.isMoving || this.isTransitioningToCombat) {
+      return;
+    }
+    
+    // Ensure camera is available before processing input
+    if (!this.cameras || !this.cameras.main) {
+      return;
+    }
+
     // Handle player movement if not moving or in transition
     if (!this.isMoving && !this.isTransitioningToCombat) {
-      const speed = 128; // pixels per second
       const gridSize = this.gridSize;
       let moved = false;
       
-      // Check for movement input
-      if (this.cursors.left.isDown || this.wasdKeys.A.isDown) {
+      // Check for movement input - fix wasdKeys access pattern
+      if (this.cursors.left.isDown || this.wasdKeys['A'].isDown) {
         const targetX = this.player.x - gridSize;
         if (this.isValidPosition(targetX, this.player.y)) {
           this.movePlayer(targetX, this.player.y, "left");
           moved = true;
         }
-      } else if (this.cursors.right.isDown || this.wasdKeys.D.isDown) {
+      } else if (this.cursors.right.isDown || this.wasdKeys['D'].isDown) {
         const targetX = this.player.x + gridSize;
         if (this.isValidPosition(targetX, this.player.y)) {
           this.movePlayer(targetX, this.player.y, "right");
           moved = true;
         }
-      } else if (this.cursors.up.isDown || this.wasdKeys.W.isDown) {
+      } else if (this.cursors.up.isDown || this.wasdKeys['W'].isDown) {
         const targetY = this.player.y - gridSize;
         if (this.isValidPosition(this.player.x, targetY)) {
           this.movePlayer(this.player.x, targetY, "up");
           moved = true;
         }
-      } else if (this.cursors.down.isDown || this.wasdKeys.S.isDown) {
+      } else if (this.cursors.down.isDown || this.wasdKeys['S'].isDown) {
         const targetY = this.player.y + gridSize;
         if (this.isValidPosition(this.player.x, targetY)) {
           this.movePlayer(this.player.x, targetY, "down");
           moved = true;
         }
+      }
+      
+      // Check for Enter key to interact with nodes
+      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))) {
+        this.checkNodeInteraction();
       }
       
       // Check for shop key
@@ -2125,6 +1949,21 @@ export class Overworld extends Scene {
             ],
           }
         });
+      }
+
+      // Check for B key to trigger boss fight (for testing)
+      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.B))) {
+        this.startCombat("boss");
+      }
+      
+      // Check for C key to trigger combat (for testing)
+      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.C))) {
+        this.startCombat("combat");
+      }
+      
+      // Check for E key to trigger elite combat (for testing)
+      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E))) {
+        this.startCombat("elite");
       }
       
       // Update chunk rendering and day/night cycle if player moved

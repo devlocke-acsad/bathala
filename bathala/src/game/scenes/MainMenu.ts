@@ -32,6 +32,12 @@ export class MainMenu extends Scene {
    * Create prominent CRT scanline effect
    */
   private createBackgroundEffects(): void {
+    // Safety check for cameras
+    if (!this.cameras || !this.cameras.main) {
+      console.warn("Cameras not available yet, skipping background effects");
+      return;
+    }
+    
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
@@ -157,6 +163,12 @@ export class MainMenu extends Scene {
    * Handle scene resize
    */
   private handleResize(): void {
+    // Safety check for cameras before clearing
+    if (!this.cameras || !this.cameras.main) {
+      console.warn("Cameras not available during resize, skipping");
+      return;
+    }
+    
     // Clear and recreate UI
     this.children.removeAll();
     this.createBackgroundEffects();
