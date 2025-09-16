@@ -21,8 +21,6 @@ export class Overworld extends Scene {
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
   private bossText!: Phaser.GameObjects.Text;
   private actionButtons: Phaser.GameObjects.Container[] = [];
-  private scanlines!: Phaser.GameObjects.TileSprite;
-  private scanlineTimer: number = 0;
   private shopKey!: Phaser.Input.Keyboard.Key;
   private testButtonsVisible: boolean = false;
   private testButtonsContainer!: Phaser.GameObjects.Container;
@@ -188,9 +186,6 @@ export class Overworld extends Scene {
     
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
-    
-    // Create CRT scanline effect
-    this.createCRTEffect();
     
     // Create UI elements with a slight delay to ensure camera is ready
     this.time.delayedCall(10, this.createUI, [], this);
@@ -1761,89 +1756,17 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Create CRT scanline effect for retro aesthetic
-   */
-  private createCRTEffect(): void {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    
-    // Create scanlines using a tile sprite with reduced opacity for subtlety
-    this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
-      .setOrigin(0)
-      .setAlpha(0.12) // Reduced opacity to minimize flickering distraction
-      .setTint(0x77888C)
-      .setScrollFactor(0) // Fixed to camera
-      .setDepth(9999); // Ensure it's above everything else
-      
-    // Create a subtle scanline pattern
-    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-    graphics.fillStyle(0x000000, 1);
-    graphics.fillRect(0, 0, 4, 2); // Thicker lines
-    graphics.fillStyle(0xffffff, 1);
-    graphics.fillRect(0, 2, 4, 2); // Thicker lines
-    
-    const texture = graphics.generateTexture('overworld_scanline', 4, 4);
-    this.scanlines.setTexture('overworld_scanline');
-    
-    // Add a subtle screen flicker effect (like Combat.ts)
-    this.scheduleFlicker();
-  }
-  
-  /**
-   * Schedule the next screen flicker
-   */
-  private scheduleFlicker(): void {
-    this.time.addEvent({
-      delay: Phaser.Math.Between(8000, 20000), // Random flicker every 8-20 seconds (less frequent than combat)
-      callback: this.flickerScreen,
-      callbackScope: this,
-      loop: false
-    });
-  }
-  
-  /**
-   * Create a brief screen flicker effect
-   */
-  private flickerScreen(): void {
-    // Very subtle flicker
-    this.tweens.add({
-      targets: this.scanlines,
-      alpha: 0.18, // Slight increase in opacity
-      duration: 30, // Very quick flicker
-      yoyo: true,
-      ease: 'Power2',
-      onComplete: () => {
-        // Schedule next flicker after this one completes
-        this.scheduleFlicker();
-      }
-    });
-  }
-
-  /**
    * Handle scene resize
    */
   private handleResize(): void {
     // Update UI elements on resize
     this.updateUI();
-    
-    // Recreate CRT effect on resize
-    if (this.scanlines) {
-      this.scanlines.destroy();
-    }
-    this.createCRTEffect();
   }
 
   /**
    * Update method for animation effects and player movement
    */
   update(time: number, delta: number): void {
-    // Subtle scanline animation - much slower to reduce flickering
-    if (this.scanlines) {
-      this.scanlineTimer += delta;
-      // Very slow movement to minimize distraction
-      this.scanlines.tilePositionY = this.scanlineTimer * 0.02; // Much slower than before (0.15 -> 0.02)
-    }
-    
     // Skip input handling if player is currently moving or transitioning to combat
     if (this.isMoving || this.isTransitioningToCombat) {
       return;
@@ -2060,20 +1983,20 @@ export class Overworld extends Scene {
    * Create modern health section with sleek design
    */
   private createModernHealthSection(x: number, y: number, width: number): void {
-    // Section container with subtle background
+    // Section container with subtle background - shortened to fit only currency section
     const sectionBg = this.add.graphics();
     sectionBg.fillStyle(0x1a1a1a, 0.4);
     sectionBg.lineStyle(1, 0x333333, 0.5);
-    sectionBg.fillRoundedRect(x - 5, y - 5, width + 10, 140, 12);
-    sectionBg.strokeRoundedRect(x - 5, y - 5, width + 10, 140, 12);
+    sectionBg.fillRoundedRect(x - 5, y - 5, width + 10, 115, 12);
+    sectionBg.strokeRoundedRect(x - 5, y - 5, width + 10, 115, 12);
     this.uiContainer.add(sectionBg);
     
-    // Health header with organized spacing
+    // Health header with properly aligned elements
     const healthIcon = this.add.text(x, y + 8, "♥", {
       fontSize: "18px",
       color: "#e74c3c",
       fontStyle: "bold"
-    });
+    }).setOrigin(0, 0.5);
     healthIcon.setShadow(2, 2, '#000000', 2, false, true);
     
     const healthLabel = this.add.text(x + 25, y + 8, "HEALTH", {
@@ -2081,119 +2004,157 @@ export class Overworld extends Scene {
       fontSize: "14px",
       color: "#ffffff",
       fontStyle: "bold"
-    });
+    }).setOrigin(0, 0.5);
     healthLabel.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Health value beside the label - show actual player health
-    this.healthText = this.add.text(x + 100, y + 8, `${this.playerData.currentHealth}/${this.playerData.maxHealth}`, {
+    // Health value center-aligned
+    this.healthText = this.add.text(x + width/2 + 30, y + 8, `${this.playerData.currentHealth}/${this.playerData.maxHealth}`, {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
       color: "#ffffff",
-      fontStyle: "bold"
-    });
+      fontStyle: "bold",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
     this.healthText.setShadow(2, 2, '#000000', 2, false, true);
     
     // Modern health bar container with organized spacing
     const healthBarBg = this.add.graphics();
     healthBarBg.fillStyle(0x2c2c2c, 0.8);
-    healthBarBg.fillRoundedRect(x, y + 50, width - 10, 12, 6);
+    healthBarBg.fillRoundedRect(x, y + 40, width - 10, 12, 6);
     this.uiContainer.add(healthBarBg);
     
     // Health bar fill
     this.healthBar = this.add.graphics();
     this.uiContainer.add(this.healthBar);
     
-    // Currency section without background - removed oval/semi-circle background
-    const gintoIcon = this.add.text(x + 8, y + 83, "💰", {
+    // Currency section with properly aligned elements
+    const gintoIcon = this.add.text(x, y + 70, "💰", {
       fontSize: "16px"
-    });
+    }).setOrigin(0, 0.5);
     gintoIcon.setShadow(2, 2, '#000000', 2, false, true);
     
-    const gintoLabel = this.add.text(x + 30, y + 79, "GINTO", {
+    const gintoLabel = this.add.text(x + 25, y + 70, "GINTO", {
       fontFamily: "dungeon-mode",
       fontSize: "10px",
       color: "#ffffff",
       fontStyle: "bold"
-    });
+    }).setOrigin(0, 0.5);
     gintoLabel.setShadow(2, 2, '#000000', 2, false, true);
     
-    this.currencyText = this.add.text(x + 80, y + 79, `${this.playerData.ginto}`, {
+    // Left-aligned GINTO value - moved further right
+    this.currencyText = this.add.text(x + 120, y + 70, `${this.playerData.ginto}`, {
       fontFamily: "dungeon-mode",
       fontSize: "10px",
       color: "#ffffff",
-      fontStyle: "bold"
-    });
+      fontStyle: "bold",
+      align: "left"
+    }).setOrigin(0, 0.5);
     this.currencyText.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Diamante currency display
-    const diamanteIcon = this.add.text(x + 8, y + 110, "💎", {
+    // Diamante currency display with properly aligned elements
+    const diamanteIcon = this.add.text(x, y + 95, "💎", {
       fontSize: "16px"
-    });
+    }).setOrigin(0, 0.5);
     diamanteIcon.setShadow(2, 2, '#000000', 2, false, true);
     
-    const diamanteLabel = this.add.text(x + 30, y + 106, "DIAMANTE", {
+    const diamanteLabel = this.add.text(x + 25, y + 95, "DIAMANTE", {
       fontFamily: "dungeon-mode",
       fontSize: "10px",
       color: "#ffffff",
       fontStyle: "bold"
-    });
+    }).setOrigin(0, 0.5);
     diamanteLabel.setShadow(2, 2, '#000000', 2, false, true);
     
-    this.diamanteText = this.add.text(x + 100, y + 106, `${this.playerData.diamante}`, {
+    // Left-aligned DIAMANTE value - moved further right
+    this.diamanteText = this.add.text(x + 120, y + 95, `${this.playerData.diamante}`, {
       fontFamily: "dungeon-mode",
       fontSize: "10px",
       color: "#ffffff",
-      fontStyle: "bold"
-    });
+      fontStyle: "bold",
+      align: "left"
+    }).setOrigin(0, 0.5);
     this.diamanteText.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Landás meter with organized spacing - moved down to prevent overlap
-    this.createLandasMeter(x, y + 150, width - 10, 18);
+    // Landás meter with more spacing from currency section
+    this.createLandasMeter(x, y + 140, width - 10, 18);
     
     this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel, this.healthText, this.currencyText, this.diamanteText]);
   }
 
   /**
-   * Create modern relics section with grid layout
+   * Create modern relics section with Persona-style design
    */
   private createModernRelicsSection(x: number, y: number, width: number): void {
-    // Section header with organized spacing
-    const relicsLabel = this.add.text(x, y + 8, "RELICS", {
+    // Modern section header with sleek styling
+    const headerContainer = this.add.container(x, y);
+    
+    // Header background with gradient effect
+    const headerBg = this.add.graphics();
+    headerBg.fillGradientStyle(0x1a1a2e, 0x16213e, 0x0f3460, 0x0e6ba8, 1);
+    headerBg.lineStyle(2, 0x00d4ff, 0.8);
+    headerBg.fillRoundedRect(0, 0, width, 35, 8);
+    headerBg.strokeRoundedRect(0, 0, width, 35, 8);
+    
+    // Header accent line
+    const accentLine = this.add.graphics();
+    accentLine.lineStyle(3, 0x00d4ff, 1);
+    accentLine.beginPath();
+    accentLine.moveTo(8, 35);
+    accentLine.lineTo(width - 8, 35);
+    accentLine.strokePath();
+    
+    const relicsLabel = this.add.text(width/2, 17, "RELICS", {
       fontFamily: "dungeon-mode",
-      fontSize: "14px",
-      color: "#ffffff",
+      fontSize: "16px",
+      color: "#00d4ff",
       fontStyle: "bold"
-    });
-    relicsLabel.setShadow(2, 2, '#000000', 2, false, true);
-    this.uiContainer.add(relicsLabel);
+    }).setOrigin(0.5);
+    relicsLabel.setShadow(2, 2, '#000000', 3, false, true);
     
-    // Grid container with organized spacing
-    const gridBg = this.add.graphics();
-    gridBg.fillStyle(0x1a1a1a, 0.4);
-    gridBg.lineStyle(1, 0x333333, 0.5);
-    gridBg.fillRoundedRect(x - 5, y + 25, width + 10, 130, 12);
-    gridBg.strokeRoundedRect(x - 5, y + 25, width + 10, 130, 12);
-    this.uiContainer.add(gridBg);
+    headerContainer.add([headerBg, accentLine, relicsLabel]);
+    this.uiContainer.add(headerContainer);
     
-    // Create 4x2 grid of relic slots with organized spacing
-    const slotSize = 45;
+    // Main grid container with modern glass morphism effect
+    const gridContainer = this.add.graphics();
+    gridContainer.fillStyle(0x0a0a0a, 0.85);
+    gridContainer.lineStyle(1, 0x333344, 0.6);
+    gridContainer.fillRoundedRect(x - 5, y + 45, width + 10, 130, 12);
+    gridContainer.strokeRoundedRect(x - 5, y + 45, width + 10, 130, 12);
+    
+    // Inner glow effect
+    const innerGlow = this.add.graphics();
+    innerGlow.lineStyle(1, 0x00d4ff, 0.2);
+    innerGlow.strokeRoundedRect(x - 3, y + 47, width + 6, 126, 10);
+    
+    this.uiContainer.add([gridContainer, innerGlow]);
+    
+    // Create 4x2 grid with modern spacing
+    const slotSize = 50;
     const slotSpacing = 12;
     const slotsPerRow = 4;
     const rows = 2;
     const gridStartX = x + 15;
-    const gridStartY = y + 40;
+    const gridStartY = y + 60;
     
+    // Create slot backgrounds with Persona-style design
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < slotsPerRow; col++) {
         const slotX = gridStartX + col * (slotSize + slotSpacing);
         const slotY = gridStartY + row * (slotSize + slotSpacing);
         
-        const slot = this.add.graphics();
-        slot.fillStyle(0x2c2c2c, 0.6);
-        slot.lineStyle(1, 0x404040, 0.8);
-        slot.fillRoundedRect(slotX, slotY, slotSize, slotSize, 8);
-        slot.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 8);
-        this.uiContainer.add(slot);
+        // Modern slot background
+        const slotBg = this.add.graphics();
+        slotBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.9);
+        slotBg.lineStyle(1, 0x444455, 0.8);
+        slotBg.fillRoundedRect(slotX, slotY, slotSize, slotSize, 8);
+        slotBg.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 8);
+        
+        // Subtle inner highlight
+        const highlight = this.add.graphics();
+        highlight.lineStyle(1, 0x666677, 0.3);
+        highlight.strokeRoundedRect(slotX + 2, slotY + 2, slotSize - 4, slotSize - 4, 6);
+        
+        this.uiContainer.add([slotBg, highlight]);
       }
     }
     
@@ -2309,17 +2270,17 @@ export class Overworld extends Scene {
     healthSeparator.strokePath();
     this.uiContainer.add(healthSeparator);
     
-    // Enhanced currency display
+    // Enhanced currency display with wider container to prevent overlap
     const currencyBg = this.add.graphics();
     currencyBg.fillGradientStyle(0x1a1a00, 0x1a1a00, 0x000000, 0x000000, 0.95);
     currencyBg.lineStyle(2, 0xffd700, 0.9);
-    currencyBg.fillRoundedRect(x, y + 98, 130, 45, 8);
-    currencyBg.strokeRoundedRect(x, y + 98, 130, 45, 8);
+    currencyBg.fillRoundedRect(x, y + 98, 250, 45, 8);
+    currencyBg.strokeRoundedRect(x, y + 98, 250, 45, 8);
     
     // Add currency inner glow
     const currencyGlow = this.add.graphics();
     currencyGlow.lineStyle(1, 0xffd700, 0.3);
-    currencyGlow.strokeRoundedRect(x + 2, y + 100, 126, 41, 6);
+    currencyGlow.strokeRoundedRect(x + 2, y + 100, 246, 41, 6);
     
     this.uiContainer.add([currencyBg, currencyGlow]);
     
@@ -2344,13 +2305,13 @@ export class Overworld extends Scene {
     });
     this.currencyText.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Diamante currency display
-    const diamanteIcon = this.add.text(x + 70, y + 108, "💎", {
+    // Diamante currency display - positioned further right to prevent overlap
+    const diamanteIcon = this.add.text(x + 125, y + 108, "💎", {
       fontSize: "20px"
     });
     diamanteIcon.setShadow(1, 1, '#00ffff', 2, false, true);
     
-    const diamanteLabel = this.add.text(x + 98, y + 103, "DIAMANTE", {
+    const diamanteLabel = this.add.text(x + 153, y + 103, "DIAMANTE", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: "12px",
       color: "#00ffff",
@@ -2358,7 +2319,7 @@ export class Overworld extends Scene {
     });
     diamanteLabel.setShadow(1, 1, '#000000', 2, false, true);
     
-    this.diamanteText = this.add.text(x + 98, y + 120, "0", {
+    this.diamanteText = this.add.text(x + 153, y + 120, "0", {
       fontFamily: "dungeon-mode",
       fontSize: "16px",
       color: "#ffffff",
@@ -2854,7 +2815,7 @@ export class Overworld extends Scene {
     
     this.healthBar.clear();
     
-    // Modern health bar position calculation
+    // Modern health bar position calculation - updated to match new layout
     const panelX = 20;
     const panelWidth = 320;
     const screenHeight = this.cameras.main.height;
@@ -2863,7 +2824,7 @@ export class Overworld extends Scene {
     
     const healthSectionY = panelY + 70; // After header with organized spacing
     const barX = panelX + 20; // Health section x position
-    const barY = healthSectionY + 50; // Health bar y position within section (updated)
+    const barY = healthSectionY + 40; // Health bar y position within section (adjusted from 50 to 40)
     const barWidth = panelWidth - 50; // Available width for health bar
     const barHeight = 12; // Modern thin health bar
     
@@ -2893,7 +2854,7 @@ export class Overworld extends Scene {
       }
     }
     
-    // Update health text
+    // Update health text - maintain center alignment
     this.healthText.setText(`${this.playerData.currentHealth}/${this.playerData.maxHealth}`);
     
     // Modern low health effects
@@ -2956,13 +2917,13 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Update relics display in grid layout (4x2 grid)
+   * Update relics display with modern Persona-style design
    */
   private updateRelicsDisplay(): void {
     this.relicsContainer.removeAll(true);
     
     const slotSize = 50;
-    const slotSpacing = 8; // Match the corrected spacing from createGridInventorySection
+    const slotSpacing = 12; 
     const slotsPerRow = 4;
     const maxRelics = 8; // 4x2 grid
     
@@ -2971,67 +2932,135 @@ export class Overworld extends Scene {
       const row = Math.floor(i / slotsPerRow);
       const col = i % slotsPerRow;
       
-      // Use same spacing calculation as the grid creation - match exactly
       const relicX = col * (slotSize + slotSpacing);
       const relicY = row * (slotSize + slotSpacing);
       
-      // Create Persona-style relic container
+      // Create modern Persona-style relic container
       const relicContainer = this.add.container(relicX, relicY);
       
-      // Relic background with Persona styling
+      // Relic background with modern gradient
       const relicBg = this.add.graphics();
-      relicBg.fillStyle(0x000000, 0.7); // Black background
-      relicBg.lineStyle(1, 0xffffff, 1); // White border
-      relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 4);
-      relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 4);
+      relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
+      relicBg.lineStyle(2, 0x00d4ff, 0.6);
+      relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
+      relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 8);
       
-      // Relic icon/emoji
+      // Inner glow effect
+      const innerGlow = this.add.graphics();
+      innerGlow.lineStyle(1, 0x00d4ff, 0.3);
+      innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
+      
+      // Relic icon with better scaling
       const relicIcon = this.add.text(slotSize/2, slotSize/2, relic.emoji, {
-        fontSize: "24px",
+        fontSize: "28px",
         align: "center"
       }).setOrigin(0.5);
+      relicIcon.setShadow(1, 1, '#000000', 2, false, true);
       
-      // Add a subtle glow effect for equipped relics
-      const glow = this.add.graphics();
-      glow.fillStyle(0xff0000, 0.3); // Red glow
-      glow.fillRoundedRect(-2, -2, slotSize + 4, slotSize + 4, 6);
+      // Equipment glow effect for rarity/quality
+      const equipGlow = this.add.graphics();
+      equipGlow.fillStyle(0x00d4ff, 0.2);
+      equipGlow.fillRoundedRect(-3, -3, slotSize + 6, slotSize + 6, 10);
       
-      relicContainer.add([glow, relicBg, relicIcon]);
+      relicContainer.add([equipGlow, relicBg, innerGlow, relicIcon]);
       
-      // Make interactive for tooltip
+      // Create hover tooltip container (initially hidden)
+      const tooltipContainer = this.add.container(slotSize/2, -35);
+      
+      const tooltipBg = this.add.graphics();
+      tooltipBg.fillStyle(0x0a0a0a, 0.95);
+      tooltipBg.lineStyle(2, 0x00d4ff, 1);
+      
+      const tooltipText = this.add.text(0, 0, relic.name, {
+        fontFamily: "dungeon-mode",
+        fontSize: "12px",
+        color: "#00d4ff",
+        fontStyle: "bold",
+        align: "center"
+      }).setOrigin(0.5);
+      tooltipText.setShadow(1, 1, '#000000', 2, false, true);
+      
+      // Dynamically size tooltip based on text
+      const textBounds = tooltipText.getBounds();
+      const tooltipWidth = textBounds.width + 16;
+      const tooltipHeight = textBounds.height + 12;
+      
+      tooltipBg.fillRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 6);
+      tooltipBg.strokeRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 6);
+      
+      tooltipContainer.add([tooltipBg, tooltipText]);
+      tooltipContainer.setVisible(false);
+      tooltipContainer.setAlpha(0);
+      
+      relicContainer.add(tooltipContainer);
+      
+      // Make interactive for modern hover effects
       relicContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
-      this.createItemTooltip(relicIcon, relic.name, relic.description);
       
-      // Add hover effects
+      // Modern hover effects
       relicContainer.on('pointerover', () => {
+        // Enhanced background on hover
         relicBg.clear();
-        relicBg.fillStyle(0x333333, 0.9); // Lighter background on hover
-        relicBg.lineStyle(2, 0xff0000, 1); // Thicker red border
-        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 4);
-        relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 4);
+        relicBg.fillGradientStyle(0x2a2a4e, 0x2a2a4e, 0x1f2439, 0x1f2439, 1);
+        relicBg.lineStyle(3, 0x00ffff, 1);
+        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
+        relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 8);
         
-        // Scale up on hover
+        // Enhanced glow
+        innerGlow.clear();
+        innerGlow.lineStyle(2, 0x00ffff, 0.8);
+        innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
+        
+        // Scale animation
         this.tweens.add({
           targets: relicContainer,
-          scale: 1.1,
-          duration: 150,
+          scale: 1.15,
+          duration: 200,
+          ease: 'Back.easeOut'
+        });
+        
+        // Show tooltip with fade in
+        tooltipContainer.setVisible(true);
+        this.tweens.add({
+          targets: tooltipContainer,
+          alpha: 1,
+          y: -45,
+          duration: 300,
           ease: 'Power2'
         });
       });
       
       relicContainer.on('pointerout', () => {
+        // Restore original background
         relicBg.clear();
-        relicBg.fillStyle(0x000000, 0.7); // Original background
-        relicBg.lineStyle(1, 0xffffff, 1); // Original border
-        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 4);
-        relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 4);
+        relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
+        relicBg.lineStyle(2, 0x00d4ff, 0.6);
+        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
+        relicBg.strokeRoundedRect(0, 0, slotSize, slotSize, 8);
+        
+        // Restore glow
+        innerGlow.clear();
+        innerGlow.lineStyle(1, 0x00d4ff, 0.3);
+        innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
         
         // Scale back to normal
         this.tweens.add({
           targets: relicContainer,
           scale: 1,
-          duration: 150,
+          duration: 200,
           ease: 'Power2'
+        });
+        
+        // Hide tooltip with fade out
+        this.tweens.add({
+          targets: tooltipContainer,
+          alpha: 0,
+          y: -35,
+          duration: 200,
+          ease: 'Power2',
+          onComplete: () => {
+            tooltipContainer.setVisible(false);
+          }
         });
       });
       
