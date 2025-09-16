@@ -2713,6 +2713,14 @@ export class Combat extends Scene {
 
       console.log("Node marked as completed, resuming Overworld scene...");
 
+      // Use a more explicit approach to ensure the overworld resumes properly
+      const overworldScene = this.scene.get("Overworld");
+      if (overworldScene) {
+        console.log("Overworld scene found, manually calling resume");
+        // Manually call the resume method to ensure it's called
+        (overworldScene as any).resume();
+      }
+
       // Stop this scene and resume overworld
       this.scene.stop();
       this.scene.resume("Overworld");
