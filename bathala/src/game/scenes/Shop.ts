@@ -114,9 +114,9 @@ export class Shop extends Scene {
   private createCurrencyDisplay(): void {
     const screenWidth = this.cameras.main.width;
     
-    // Position currency display below title
+    // Position currency display below title - moved more to the left
     this.gintoText = this.add.text(
-      screenWidth - 200,
+      screenWidth - 300,
       80,
       `Ginto: ${this.player.ginto} 💰`,
       {
@@ -127,7 +127,7 @@ export class Shop extends Scene {
     );
 
     this.diamanteText = this.add.text(
-      screenWidth - 200,
+      screenWidth - 300,
       110,
       `Diamante: ${this.player.diamante} 💎`,
       {

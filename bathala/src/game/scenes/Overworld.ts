@@ -2103,14 +2103,7 @@ export class Overworld extends Scene {
     this.healthBar = this.add.graphics();
     this.uiContainer.add(this.healthBar);
     
-    // Currency section with organized spacing
-    const currencyBg = this.add.graphics();
-    currencyBg.fillStyle(0x1a1a1a, 0.3);
-    currencyBg.lineStyle(1, 0x404040, 0.4);
-    currencyBg.fillRoundedRect(x, y + 75, width - 10, 35, 8);
-    currencyBg.strokeRoundedRect(x, y + 75, width - 10, 35, 8);
-    this.uiContainer.add(currencyBg);
-    
+    // Currency section without background - removed oval/semi-circle background
     const gintoIcon = this.add.text(x + 8, y + 83, "💰", {
       fontSize: "16px"
     });
