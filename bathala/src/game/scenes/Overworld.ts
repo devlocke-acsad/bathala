@@ -47,57 +47,74 @@ export class Overworld extends Scene {
     super({ key: "Overworld" });
     this.gameState = OverworldGameState.getInstance();
     
-    // Initialize player data with default values
-    this.playerData = {
-      id: "player",
-      name: "Hero",
-      maxHealth: 80,
-      currentHealth: 80,
-      block: 0,
-      statusEffects: [],
-      hand: [],
-      deck: [],
-      discardPile: [],
-      drawPile: [],
-      playedHand: [],
-      landasScore: 0,
-      ginto: 100,
-      baubles: 0,
-      relics: [
-        {
-          id: "placeholder_relic",
-          name: "Babaylan's Talisman",
-          description: "Your hand is considered one tier higher.",
-          emoji: "🧿",
-        },
-        {
-          id: "agimat_swift_wind",
-          name: "Agimat of the Swift Wind",
-          description: "Start each combat with +1 discard charge.",
-          emoji: "💨",
-        }
-      ],
-      potions: [
-        {
-          id: "clarity_potion",
-          name: "Potion of Clarity",
-          description: "Draw 3 cards.",
-          effect: "draw_3_cards",
-          emoji: "🧠",
-          rarity: "common" as const
-        },
-        {
-          id: "fortitude_potion",
-          name: "Elixir of Fortitude", 
-          description: "Gain 15 Block.",
-          effect: "gain_15_block",
-          emoji: "🛡️",
-          rarity: "common" as const
-        }
-      ],
-      discardCharges: 1,
-      maxDiscardCharges: 1
-    };
+    // Initialize player data with default values or from GameState
+    const gameState = GameState.getInstance();
+    const savedPlayerData = gameState.getPlayerData();
+    
+    if (savedPlayerData) {
+      this.playerData = {
+        id: savedPlayerData.id || "player",
+        name: savedPlayerData.name || "Hero",
+        maxHealth: savedPlayerData.maxHealth || 80,
+        currentHealth: savedPlayerData.currentHealth !== undefined ? savedPlayerData.currentHealth : 80,
+        block: savedPlayerData.block || 0,
+        statusEffects: savedPlayerData.statusEffects || [],
+        hand: savedPlayerData.hand || [],
+        deck: savedPlayerData.deck || [],
+        discardPile: savedPlayerData.discardPile || [],
+        drawPile: savedPlayerData.drawPile || [],
+        playedHand: savedPlayerData.playedHand || [],
+        landasScore: savedPlayerData.landasScore || 0,
+        ginto: savedPlayerData.ginto !== undefined ? savedPlayerData.ginto : 100,
+        baubles: savedPlayerData.baubles || 0,
+        relics: savedPlayerData.relics || [],
+        potions: savedPlayerData.potions || [],
+        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 1,
+        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 1
+      };
+    } else {
+      // Initialize player data with default values
+      this.playerData = {
+        id: "player",
+        name: "Hero",
+        maxHealth: 80,
+        currentHealth: 80,
+        block: 0,
+        statusEffects: [],
+        hand: [],
+        deck: [],
+        discardPile: [],
+        drawPile: [],
+        playedHand: [],
+        landasScore: 0,
+        ginto: 9999,
+        baubles: 0,
+        relics: [],
+        potions: [
+          {
+            id: "clarity_potion",
+            name: "Potion of Clarity",
+            description: "Draw 3 cards.",
+            effect: "draw_3_cards",
+            emoji: "🧠",
+            rarity: "common" as const
+          },
+          {
+            id: "fortitude_potion",
+            name: "Elixir of Fortitude", 
+            description: "Gain 15 Block.",
+            effect: "gain_15_block",
+            emoji: "🛡️",
+            rarity: "common" as const
+          }
+        ],
+        discardCharges: 1,
+        maxDiscardCharges: 1
+      };
+      
+      // Save initial player data to GameState
+      gameState.updatePlayerData(this.playerData);
+    }
   }
 
   create(): void {
@@ -239,33 +256,10 @@ export class Overworld extends Scene {
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
       
-      // Pause this scene and launch shop scene
+      // Pause this scene and launch shop scene with actual player data
       this.scene.pause();
       this.scene.launch("Shop", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          baubles: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
+        player: this.playerData
       });
     }, this.testButtonsContainer);
     buttonY += 60;
@@ -425,33 +419,10 @@ export class Overworld extends Scene {
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
       
-      // Pause this scene and launch shop scene
+      // Pause this scene and launch shop scene with actual player data
       this.scene.pause();
       this.scene.launch("Shop", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          baubles: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
+        player: this.playerData
       });
     }, this.testButtonsContainer);
     
@@ -852,6 +823,34 @@ export class Overworld extends Scene {
       console.log("No saved position found, keeping current position");
     }
     
+    // Update player data from GameState
+    const savedPlayerData = gameState.getPlayerData();
+    if (savedPlayerData) {
+      this.playerData = {
+        id: savedPlayerData.id || this.playerData.id,
+        name: savedPlayerData.name || this.playerData.name,
+        maxHealth: savedPlayerData.maxHealth !== undefined ? savedPlayerData.maxHealth : this.playerData.maxHealth,
+        currentHealth: savedPlayerData.currentHealth !== undefined ? savedPlayerData.currentHealth : this.playerData.currentHealth,
+        block: savedPlayerData.block !== undefined ? savedPlayerData.block : this.playerData.block,
+        statusEffects: savedPlayerData.statusEffects || this.playerData.statusEffects,
+        hand: savedPlayerData.hand || this.playerData.hand,
+        deck: savedPlayerData.deck || this.playerData.deck,
+        discardPile: savedPlayerData.discardPile || this.playerData.discardPile,
+        drawPile: savedPlayerData.drawPile || this.playerData.drawPile,
+        playedHand: savedPlayerData.playedHand || this.playerData.playedHand,
+        landasScore: savedPlayerData.landasScore !== undefined ? savedPlayerData.landasScore : this.playerData.landasScore,
+        ginto: savedPlayerData.ginto !== undefined ? savedPlayerData.ginto : this.playerData.ginto,
+        baubles: savedPlayerData.baubles !== undefined ? savedPlayerData.baubles : this.playerData.baubles,
+        relics: savedPlayerData.relics || this.playerData.relics,
+        potions: savedPlayerData.potions || this.playerData.potions,
+        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : this.playerData.discardCharges,
+        maxDiscardCharges: savedPlayerData.maxDiscardCharges !== undefined ? savedPlayerData.maxDiscardCharges : this.playerData.maxDiscardCharges
+      };
+      
+      // Update UI to reflect new player data
+      this.updateOverworldUI();
+    }
+    
     // Update visible chunks around player
     this.updateVisibleChunks();
     
@@ -1177,33 +1176,10 @@ export class Overworld extends Scene {
           const gameState = GameState.getInstance();
           gameState.savePlayerPosition(this.player.x, this.player.y);
           
-          // Pause this scene and launch shop scene
+          // Pause this scene and launch shop scene with actual player data
           this.scene.pause();
           this.scene.launch("Shop", { 
-            player: {
-              id: "player",
-              name: "Hero",
-              maxHealth: 80,
-              currentHealth: 80,
-              block: 0,
-              statusEffects: [],
-              hand: [],
-              deck: [],
-              discardPile: [],
-              drawPile: [],
-              playedHand: [],
-              landasScore: 0,
-              ginto: 100,
-              baubles: 0,
-              relics: [
-                {
-                  id: "placeholder_relic",
-                  name: "Placeholder Relic",
-                  description: "This is a placeholder relic.",
-                  emoji: "⚙️",
-                },
-              ],
-            }
+            player: this.playerData
           });
           break;
           
@@ -1921,33 +1897,10 @@ export class Overworld extends Scene {
         const gameState = GameState.getInstance();
         gameState.savePlayerPosition(this.player.x, this.player.y);
         
-        // Pause this scene and launch shop scene
+        // Pause this scene and launch shop scene with actual player data
         this.scene.pause();
         this.scene.launch("Shop", { 
-          player: {
-            id: "player",
-            name: "Hero",
-            maxHealth: 80,
-            currentHealth: 80,
-            block: 0,
-            statusEffects: [],
-            hand: [],
-            deck: [],
-            discardPile: [],
-            drawPile: [],
-            playedHand: [],
-            landasScore: 0,
-            ginto: 100,
-            baubles: 0,
-            relics: [
-              {
-                id: "placeholder_relic",
-                name: "Placeholder Relic",
-                description: "This is a placeholder relic.",
-                emoji: "⚙️",
-              },
-            ],
-          }
+          player: this.playerData
         });
       }
 

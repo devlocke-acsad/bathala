@@ -313,8 +313,9 @@ export class Shop extends Scene {
     );
     
     backButton.on("pointerdown", () => {
-      // Complete the shop node and return to overworld
+      // Save player data back to GameState before leaving
       const gameState = GameState.getInstance();
+      gameState.updatePlayerData(this.player);
       gameState.completeCurrentNode(true);
       this.scene.stop();
       this.scene.resume("Overworld");
