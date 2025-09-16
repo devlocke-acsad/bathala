@@ -25,7 +25,10 @@ export class Shop extends Scene {
   }
 
   create(): void {
-    this.cameras.main.setBackgroundColor(0x0f172a);
+    this.cameras.main.setBackgroundColor(0x0a0a0f);
+
+    // Persona-style fast transition effect
+    this.createPersonaTransition();
 
     // Create animated background elements
     this.createBackgroundElements();
@@ -33,11 +36,11 @@ export class Shop extends Scene {
     // Create modern title section
     const screenWidth = this.cameras.main.width;
     
-    // Title background panel
+    // Title background panel with dark violet theme
     const titlePanel = this.add.graphics();
-    titlePanel.fillGradientStyle(0x1e3a8a, 0x3b82f6, 0x1d4ed8, 0x2563eb, 0.2);
+    titlePanel.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.9);
     titlePanel.fillRoundedRect(screenWidth/2 - 200, 10, 400, 60, 12);
-    titlePanel.lineStyle(2, 0x60a5fa, 0.6);
+    titlePanel.lineStyle(2, 0x7c3aed, 0.8);
     titlePanel.strokeRoundedRect(screenWidth/2 - 200, 10, 400, 60, 12);
     
     // Main title with enhanced styling
@@ -48,11 +51,11 @@ export class Shop extends Scene {
       {
         fontFamily: "dungeon-mode-inverted",
         fontSize: 28,
-        color: "#f8fafc",
+        color: "#e9d5ff",
         align: "center",
       }
     ).setOrigin(0.5);
-    title.setShadow(3, 3, '#1e1b4b', 6, false, true);
+    title.setShadow(3, 3, '#1a1625', 6, false, true);
     
     // Subtitle
     const subtitle = this.add.text(
@@ -62,7 +65,7 @@ export class Shop extends Scene {
       {
         fontFamily: "dungeon-mode",
         fontSize: 14,
-        color: "#94a3b8",
+        color: "#a78bfa",
         align: "center",
       }
     ).setOrigin(0.5);
@@ -112,19 +115,19 @@ export class Shop extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Create a sophisticated gradient background overlay
+    // Create a sophisticated dark violet gradient background
     const bgOverlay = this.add.graphics();
-    bgOverlay.fillGradientStyle(0x0f172a, 0x1e293b, 0x334155, 0x475569, 1);
+    bgOverlay.fillGradientStyle(0x0a0a0f, 0x1a1625, 0x2d1b69, 0x1e1b4b, 1);
     bgOverlay.fillRect(0, 0, screenWidth, screenHeight);
     
-    // Add geometric pattern for Persona-style aesthetic
-    for (let i = 0; i < 15; i++) {
-      const size = Phaser.Math.Between(20, 60);
+    // Add mystical geometric pattern
+    for (let i = 0; i < 12; i++) {
+      const size = Phaser.Math.Between(15, 45);
       const x = Phaser.Math.Between(0, screenWidth);
       const y = Phaser.Math.Between(0, screenHeight);
       
       const shape = this.add.graphics();
-      shape.lineStyle(1, 0x475569, 0.15);
+      shape.lineStyle(1, 0x7c3aed, 0.15);
       shape.beginPath();
       shape.moveTo(x, y);
       shape.lineTo(x + size, y);
@@ -136,41 +139,41 @@ export class Shop extends Scene {
       this.tweens.add({
         targets: shape,
         rotation: Math.PI * 2,
-        duration: Phaser.Math.Between(15000, 25000),
+        duration: Phaser.Math.Between(20000, 30000),
         repeat: -1,
         ease: 'Linear'
       });
     }
     
-    // Create elegant floating particles
-    for (let i = 0; i < 25; i++) {
+    // Create mystical floating particles
+    for (let i = 0; i < 20; i++) {
       const particle = this.add.circle(
         Phaser.Math.Between(0, screenWidth),
         Phaser.Math.Between(0, screenHeight),
         Phaser.Math.Between(1, 2),
-        0x60a5fa,
-        0.2
+        0x7c3aed,
+        0.3
       );
       
       // Smooth floating animation
       this.tweens.add({
         targets: particle,
-        x: '+=' + Phaser.Math.Between(-150, 150),
-        y: '+=' + Phaser.Math.Between(-150, 150),
-        alpha: 0.5,
-        duration: Phaser.Math.Between(4000, 8000),
+        x: '+=' + Phaser.Math.Between(-120, 120),
+        y: '+=' + Phaser.Math.Between(-120, 120),
+        alpha: 0.6,
+        duration: Phaser.Math.Between(5000, 9000),
         repeat: -1,
         yoyo: true,
         ease: 'Sine.easeInOut'
       });
     }
     
-    // Add corner decorative elements
+    // Add corner decorative elements with violet theme
     const cornerSize = 40;
     
     // Top-left corner
     const topLeft = this.add.graphics();
-    topLeft.lineStyle(3, 0x60a5fa, 0.8);
+    topLeft.lineStyle(3, 0x7c3aed, 0.8);
     topLeft.beginPath();
     topLeft.moveTo(20, cornerSize + 20);
     topLeft.lineTo(20, 20);
@@ -179,7 +182,7 @@ export class Shop extends Scene {
     
     // Top-right corner
     const topRight = this.add.graphics();
-    topRight.lineStyle(3, 0x60a5fa, 0.8);
+    topRight.lineStyle(3, 0x7c3aed, 0.8);
     topRight.beginPath();
     topRight.moveTo(screenWidth - cornerSize - 20, 20);
     topRight.lineTo(screenWidth - 20, 20);
@@ -188,7 +191,7 @@ export class Shop extends Scene {
     
     // Bottom-left corner
     const bottomLeft = this.add.graphics();
-    bottomLeft.lineStyle(3, 0x60a5fa, 0.8);
+    bottomLeft.lineStyle(3, 0x7c3aed, 0.8);
     bottomLeft.beginPath();
     bottomLeft.moveTo(20, screenHeight - cornerSize - 20);
     bottomLeft.lineTo(20, screenHeight - 20);
@@ -197,7 +200,7 @@ export class Shop extends Scene {
     
     // Bottom-right corner
     const bottomRight = this.add.graphics();
-    bottomRight.lineStyle(3, 0x60a5fa, 0.8);
+    bottomRight.lineStyle(3, 0x7c3aed, 0.8);
     bottomRight.beginPath();
     bottomRight.moveTo(screenWidth - cornerSize - 20, screenHeight - 20);
     bottomRight.lineTo(screenWidth - 20, screenHeight - 20);
@@ -210,7 +213,7 @@ export class Shop extends Scene {
       this.tweens.add({
         targets: corner,
         alpha: 0.4,
-        duration: 2000,
+        duration: 2500,
         repeat: -1,
         yoyo: true,
         ease: 'Sine.easeInOut'
@@ -221,14 +224,14 @@ export class Shop extends Scene {
   private createCurrencyDisplay(): void {
     const screenWidth = this.cameras.main.width;
     
-    // Create modern currency panel
+    // Create modern currency panel with dark violet theme
     const currencyPanel = this.add.graphics();
-    currencyPanel.fillGradientStyle(0x1e3a8a, 0x3b82f6, 0x1d4ed8, 0x2563eb, 0.15);
-    currencyPanel.lineStyle(2, 0x60a5fa, 0.5);
+    currencyPanel.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.9);
+    currencyPanel.lineStyle(2, 0x7c3aed, 0.7);
     currencyPanel.fillRoundedRect(screenWidth - 280, 85, 260, 80, 10);
     currencyPanel.strokeRoundedRect(screenWidth - 280, 85, 260, 80, 10);
     
-    // Health display with modern styling
+    // Health display with proper alignment
     this.healthText = this.add.text(
       screenWidth - 150,
       105,
@@ -236,58 +239,41 @@ export class Shop extends Scene {
       {
         fontFamily: "dungeon-mode-inverted",
         fontSize: 16,
-        color: "#ef4444",
+        color: "#f87171",
       }
-    ).setOrigin(0.5);
+    ).setOrigin(0.5, 0.5);
     this.healthText.setShadow(1, 1, '#7f1d1d', 2, false, true);
     
-    // Ginto display with enhanced styling
-    this.gintoText = this.add.text(
-      screenWidth - 200,
-      130,
-      `${this.player.ginto}`,
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 18,
-        color: "#fbbf24",
-        fontStyle: "bold"
-      }
-    ).setOrigin(0.5);
+    // Currency section with proper centering
+    const currencyY = 135;
+    
+    // Ginto section - left aligned within currency area
+    const gintoX = screenWidth - 200;
+    const gintoIcon = this.add.text(gintoX - 15, currencyY, "💰", {
+      fontSize: 18,
+    }).setOrigin(0.5, 0.5);
+    
+    this.gintoText = this.add.text(gintoX + 15, currencyY, `${this.player.ginto}`, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: "#fbbf24",
+      fontStyle: "bold"
+    }).setOrigin(0, 0.5);
     this.gintoText.setShadow(1, 1, '#92400e', 2, false, true);
     
-    // Ginto icon
-    const gintoIcon = this.add.text(
-      screenWidth - 230,
-      130,
-      "💰",
-      {
-        fontSize: 20,
-      }
-    ).setOrigin(0.5);
+    // Diamante section - right aligned within currency area
+    const diamanteX = screenWidth - 100;
+    const diamanteIcon = this.add.text(diamanteX - 15, currencyY, "�", {
+      fontSize: 18,
+    }).setOrigin(0.5, 0.5);
     
-    // Diamante display with enhanced styling
-    this.diamanteText = this.add.text(
-      screenWidth - 100,
-      130,
-      `${this.player.diamante}`,
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 18,
-        color: "#06b6d4",
-        fontStyle: "bold"
-      }
-    ).setOrigin(0.5);
+    this.diamanteText = this.add.text(diamanteX + 15, currencyY, `${this.player.diamante}`, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: "#06b6d4",
+      fontStyle: "bold"
+    }).setOrigin(0, 0.5);
     this.diamanteText.setShadow(1, 1, '#164e63', 2, false, true);
-    
-    // Diamante icon
-    const diamanteIcon = this.add.text(
-      screenWidth - 130,
-      130,
-      "💎",
-      {
-        fontSize: 20,
-      }
-    ).setOrigin(0.5);
     
     // Add subtle pulse animation to currency
     const currencyElements = [this.gintoText, gintoIcon, this.diamanteText, diamanteIcon];
@@ -295,11 +281,11 @@ export class Shop extends Scene {
       this.tweens.add({
         targets: element,
         scale: 1.05,
-        duration: 1500,
+        duration: 1800,
         repeat: -1,
         yoyo: true,
         ease: 'Sine.easeInOut',
-        delay: index * 200
+        delay: index * 250
       });
     });
   }
@@ -334,16 +320,16 @@ export class Shop extends Scene {
       shadow.fillStyle(0x000000, 0.3);
       shadow.fillRoundedRect(-cardWidth/2 + 4, -cardHeight/2 + 4, cardWidth, cardHeight, 12);
       
-      // Main card background with Persona-style gradient
+      // Main card background with dark violet gradient
       const cardBg = this.add.graphics();
       if (isOwned) {
-        // Sophisticated owned state with subtle gradient
+        // Sophisticated owned state with muted violet
         cardBg.fillGradientStyle(0x2a2a2a, 0x1a1a1a, 0x1a1a1a, 0x0a0a0a, 0.8);
         cardBg.lineStyle(2, 0x444444, 0.6);
       } else {
-        // Elegant available state with blue-purple gradient
-        cardBg.fillGradientStyle(0x1e3a8a, 0x1e40af, 0x312e81, 0x1e1b4b, 0.95);
-        cardBg.lineStyle(3, 0x60a5fa, 0.8);
+        // Dark violet theme for available items
+        cardBg.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.95);
+        cardBg.lineStyle(3, 0x7c3aed, 0.8);
       }
       cardBg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
       cardBg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
@@ -351,7 +337,7 @@ export class Shop extends Scene {
       // Inner highlight for depth
       const innerHighlight = this.add.graphics();
       if (!isOwned) {
-        innerHighlight.lineStyle(1, 0x93c5fd, 0.4);
+        innerHighlight.lineStyle(1, 0xa78bfa, 0.4);
         innerHighlight.strokeRoundedRect(-cardWidth/2 + 2, -cardHeight/2 + 2, cardWidth - 4, cardHeight - 4, 10);
       }
       
@@ -360,22 +346,22 @@ export class Shop extends Scene {
       if (isOwned) {
         iconArea.fillStyle(0x374151, 0.6);
       } else {
-        iconArea.fillGradientStyle(0x3b82f6, 0x2563eb, 0x1d4ed8, 0x1e40af, 0.3);
+        iconArea.fillGradientStyle(0x4c1d95, 0x3730a3, 0x2d1b69, 0x1e1b4b, 0.4);
       }
       iconArea.fillRoundedRect(-cardWidth/2 + 8, -cardHeight/2 + 8, cardWidth - 16, 70, 8);
       
-      // Item emoji with enhanced styling
+      // Item emoji with enhanced styling and proper centering
       const emoji = this.add.text(0, -cardHeight/2 + 43, item.emoji, {
         fontSize: 42,
-      }).setOrigin(0.5);
+      }).setOrigin(0.5, 0.5);
       if (!isOwned) {
-        emoji.setShadow(2, 2, '#1e1b4b', 4, false, true);
+        emoji.setShadow(2, 2, '#1a1625', 4, false, true);
       } else {
         emoji.setShadow(1, 1, '#000000', 2, false, true);
         emoji.setAlpha(0.6);
       }
       
-      // Currency badge with modern styling
+      // Currency badge with proper positioning
       let currencyColor;
       let currencyEmoji;
       if (item.currency === "ginto") {
@@ -392,9 +378,9 @@ export class Shop extends Scene {
       
       const currencyIcon = this.add.text(cardWidth/2 - 15, -cardHeight/2 + 15, currencyEmoji, {
         fontSize: 12,
-      }).setOrigin(0.5);
+      }).setOrigin(0.5, 0.5);
       
-      // Price section with modern design
+      // Price section with proper alignment
       const priceArea = this.add.graphics();
       priceArea.fillStyle(0x1f2937, isOwned ? 0.5 : 0.8);
       priceArea.fillRoundedRect(-cardWidth/2 + 8, cardHeight/2 - 35, cardWidth - 16, 27, 6);
@@ -404,7 +390,7 @@ export class Shop extends Scene {
         fontSize: 16,
         color: isOwned ? "#9ca3af" : "#f9fafb",
         fontStyle: "bold"
-      }).setOrigin(0.5);
+      }).setOrigin(0.5, 0.5);
       
       // Owned overlay
       let ownedOverlay = null;
@@ -465,16 +451,16 @@ export class Shop extends Scene {
             hoverGlow = null;
           }
           
-          // Add new glow effect
+          // Add new glow effect with violet theme
           hoverGlow = this.add.graphics();
-          hoverGlow.lineStyle(4, 0x60a5fa, 0.8);
+          hoverGlow.lineStyle(4, 0x7c3aed, 0.8);
           hoverGlow.strokeRoundedRect(-cardWidth/2 - 2, -cardHeight/2 - 2, cardWidth + 4, cardHeight + 4, 14);
           button.addAt(hoverGlow, 1); // Add after shadow but before card
           
-          // Enhanced card styling on hover
+          // Enhanced card styling on hover with violet theme
           cardBg.clear();
-          cardBg.fillGradientStyle(0x2563eb, 0x3b82f6, 0x1d4ed8, 0x1e40af, 1);
-          cardBg.lineStyle(3, 0x93c5fd, 1);
+          cardBg.fillGradientStyle(0x4c1d95, 0x3730a3, 0x2d1b69, 0x1e1b4b, 1);
+          cardBg.lineStyle(3, 0xa78bfa, 1);
           cardBg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
           cardBg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
           
@@ -497,10 +483,10 @@ export class Shop extends Scene {
             hoverGlow = null;
           }
           
-          // Reset card styling
+          // Reset card styling to violet theme
           cardBg.clear();
-          cardBg.fillGradientStyle(0x1e3a8a, 0x1e40af, 0x312e81, 0x1e1b4b, 0.95);
-          cardBg.lineStyle(3, 0x60a5fa, 0.8);
+          cardBg.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.95);
+          cardBg.lineStyle(3, 0x7c3aed, 0.8);
           cardBg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
           cardBg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
           
@@ -545,25 +531,25 @@ export class Shop extends Scene {
     shadow.fillStyle(0x000000, 0.5);
     shadow.fillRoundedRect(-tooltipWidth/2 + 2, -tooltipHeight/2 + 2, tooltipWidth, tooltipHeight, 8);
     
-    // Tooltip background with gradient
+    // Tooltip background with dark violet gradient
     const bg = this.add.graphics();
-    bg.fillGradientStyle(0x1f2937, 0x374151, 0x111827, 0x1f2937, 0.95);
-    bg.lineStyle(2, 0x60a5fa, 0.8);
+    bg.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.95);
+    bg.lineStyle(2, 0x7c3aed, 0.8);
     bg.fillRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 8);
     bg.strokeRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 8);
     
-    // Inner glow
+    // Inner glow with violet theme
     const innerGlow = this.add.graphics();
-    innerGlow.lineStyle(1, 0x93c5fd, 0.3);
+    innerGlow.lineStyle(1, 0xa78bfa, 0.3);
     innerGlow.strokeRoundedRect(-tooltipWidth/2 + 2, -tooltipHeight/2 + 2, tooltipWidth - 4, tooltipHeight - 4, 6);
     
-    // Tooltip text
+    // Tooltip text with proper styling
     const text = this.add.text(0, 0, itemName, {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 16,
-      color: "#f9fafb"
-    }).setOrigin(0.5);
-    text.setShadow(1, 1, '#000000', 2, false, true);
+      color: "#e9d5ff"
+    }).setOrigin(0.5, 0.5);
+    text.setShadow(1, 1, '#1a1625', 2, false, true);
     
     tooltip.add([shadow, bg, innerGlow, text]);
     
@@ -677,201 +663,265 @@ export class Shop extends Scene {
       0x000000
     ).setAlpha(0.8).setScrollFactor(0).setDepth(2000);
     
-    // Create item details panel
-    const panelWidth = 600;
-    const panelHeight = 400;
+    // Create item details panel with modern Persona styling
+    const panelWidth = 520;
+    const panelHeight = 580;
     const panelX = this.cameras.main.width / 2;
     const panelY = this.cameras.main.height / 2;
     
     const panel = this.add.container(panelX, panelY).setScrollFactor(0).setDepth(2001);
     
-    // Panel background with enhanced styling
+    // Panel shadow for depth
+    const panelShadow = this.add.graphics();
+    panelShadow.fillStyle(0x000000, 0.4);
+    panelShadow.fillRoundedRect(-panelWidth/2 + 8, -panelHeight/2 + 8, panelWidth, panelHeight, 20);
+    
+    // Main panel background with dark violet gradient
     const panelBg = this.add.graphics();
-    panelBg.fillGradientStyle(0x1a1a1a, 0x1a1a1a, 0x0a0a0a, 0x0a0a0a, 0.95);
-    panelBg.lineStyle(3, 0x57606f, 1);
-    panelBg.fillRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 15);
-    panelBg.strokeRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 15);
+    panelBg.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.98);
+    panelBg.lineStyle(3, 0x7c3aed, 0.9);
+    panelBg.fillRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
+    panelBg.strokeRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
     
-    // Add decorative elements
-    const topLeftCorner = this.add.graphics();
-    topLeftCorner.lineStyle(2, 0xffd93d, 1);
-    topLeftCorner.beginPath();
-    topLeftCorner.moveTo(-panelWidth/2 + 20, -panelHeight/2 + 5);
-    topLeftCorner.lineTo(-panelWidth/2 + 5, -panelHeight/2 + 5);
-    topLeftCorner.lineTo(-panelWidth/2 + 5, -panelHeight/2 + 20);
-    topLeftCorner.strokePath();
+    // Inner highlight for premium feel
+    const innerHighlight = this.add.graphics();
+    innerHighlight.lineStyle(2, 0xa78bfa, 0.4);
+    innerHighlight.strokeRoundedRect(-panelWidth/2 + 4, -panelHeight/2 + 4, panelWidth - 8, panelHeight - 8, 16);
     
-    const topRightCorner = this.add.graphics();
-    topRightCorner.lineStyle(2, 0xffd93d, 1);
-    topRightCorner.beginPath();
-    topRightCorner.moveTo(panelWidth/2 - 20, -panelHeight/2 + 5);
-    topRightCorner.lineTo(panelWidth/2 - 5, -panelHeight/2 + 5);
-    topRightCorner.lineTo(panelWidth/2 - 5, -panelHeight/2 + 20);
-    topRightCorner.strokePath();
+    // Header section with violet theme
+    const headerBg = this.add.graphics();
+    headerBg.fillGradientStyle(0x4c1d95, 0x3730a3, 0x2d1b69, 0x1e1b4b, 0.4);
+    headerBg.fillRoundedRect(-panelWidth/2 + 12, -panelHeight/2 + 12, panelWidth - 24, 80, 12);
     
-    const bottomLeftCorner = this.add.graphics();
-    bottomLeftCorner.lineStyle(2, 0xffd93d, 1);
-    bottomLeftCorner.beginPath();
-    bottomLeftCorner.moveTo(-panelWidth/2 + 20, panelHeight/2 - 5);
-    bottomLeftCorner.lineTo(-panelWidth/2 + 5, panelHeight/2 - 5);
-    bottomLeftCorner.lineTo(-panelWidth/2 + 5, panelHeight/2 - 20);
-    bottomLeftCorner.strokePath();
+    // Item emoji with enhanced styling and proper container
+    const emojiContainer = this.add.graphics();
+    emojiContainer.fillStyle(0x2d1b69, 0.8);
+    emojiContainer.fillRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
+    emojiContainer.lineStyle(2, 0x7c3aed, 0.8);
+    emojiContainer.strokeRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
     
-    const bottomRightCorner = this.add.graphics();
-    bottomRightCorner.lineStyle(2, 0xffd93d, 1);
-    bottomRightCorner.beginPath();
-    bottomRightCorner.moveTo(panelWidth/2 - 20, panelHeight/2 - 5);
-    bottomRightCorner.lineTo(panelWidth/2 - 5, panelHeight/2 - 5);
-    bottomRightCorner.lineTo(panelWidth/2 - 5, panelHeight/2 - 20);
-    bottomRightCorner.strokePath();
+    const emoji = this.add.text(-panelWidth/2 + 60, -panelHeight/2 + 60, item.emoji, {
+      fontSize: 40,
+    }).setOrigin(0.5, 0.5);
+    emoji.setShadow(2, 2, '#1a1625', 4, false, true);
     
-    // Item emoji
-    const emoji = this.add.text(-panelWidth/2 + 60, -panelHeight/2 + 50, item.emoji, {
-      fontSize: 48,
-    }).setOrigin(0.5);
-    
-    // Item name
-    const name = this.add.text(0, -panelHeight/2 + 50, item.name, {
+    // Item name with proper alignment
+    const name = this.add.text(-panelWidth/2 + 110, -panelHeight/2 + 45, item.name.toUpperCase(), {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 28,
-      color: "#e8eced",
-    }).setOrigin(0.5);
-    name.setShadow(2, 2, '#000000', 3, false, true);
+      fontSize: 24,
+      color: "#e9d5ff",
+    }).setOrigin(0, 0);
+    name.setShadow(2, 2, '#1a1625', 4, false, true);
     
-    // Item type badge
-    const typeBadge = this.add.graphics();
-    let typeColor;
-    if (item.currency === "ginto") {
-      typeColor = 0xffd93d;
-    } else if (item.currency === "diamante") {
-      typeColor = 0x00ffff;
-    } else {
-      typeColor = 0x4ecdc4;
-    }
-    typeBadge.fillStyle(typeColor, 0.2);
-    typeBadge.fillRoundedRect(panelWidth/2 - 100, -panelHeight/2 + 30, 80, 30, 5);
-    
-    const typeText = this.add.text(panelWidth/2 - 60, -panelHeight/2 + 45, item.currency.toUpperCase(), {
-      fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: `#${typeColor.toString(16).padStart(6, '0')}`,
-      fontStyle: "bold"
-    }).setOrigin(0.5);
-    
-    // Price display
+    // Price display with proper centering and dark violet theme
     const priceBg = this.add.graphics();
-    priceBg.fillStyle(0x2f3542, 0.8);
-    priceBg.fillRoundedRect(-50, -panelHeight/2 + 100, 100, 40, 5);
+    priceBg.fillGradientStyle(0x1a1625, 0x2d1b69, 0x0f0f23, 0x1a1625, 0.9);
+    priceBg.lineStyle(2, 0x7c3aed, 0.8);
+    priceBg.fillRoundedRect(-80, -panelHeight/2 + 110, 160, 45, 12);
+    priceBg.strokeRoundedRect(-80, -panelHeight/2 + 110, 160, 45, 12);
     
     let priceEmoji;
     if (item.currency === "ginto") {
       priceEmoji = "💰";
-    } else if (item.currency === "diamante") {
-      priceEmoji = "💎";
     } else {
       priceEmoji = "💎";
     }
-    const price = this.add.text(0, -panelHeight/2 + 120, `${item.price} ${priceEmoji}`, {
+    
+    const priceLabel = this.add.text(0, -panelHeight/2 + 125, "PRICE", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 12,
+      color: "#a78bfa",
+    }).setOrigin(0.5, 0.5);
+    
+    const price = this.add.text(0, -panelHeight/2 + 140, `${item.price} ${priceEmoji}`, {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 20,
-      color: "#ffffff",
-    }).setOrigin(0.5);
+      color: "#e9d5ff",
+      fontStyle: "bold"
+    }).setOrigin(0.5, 0.5);
+    price.setShadow(1, 1, '#1a1625', 2, false, true);
     
-    // Description title
-    const descTitle = this.add.text(-panelWidth/2 + 30, -panelHeight/2 + 160, "DESCRIPTION", {
+    // Content sections with better spacing and violet theme
+    const contentStartY = -panelHeight/2 + 200;
+    
+    // Description section with proper alignment and sizing
+    const descSection = this.add.graphics();
+    descSection.fillStyle(0x2d1b69, 0.3);
+    descSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 100, 8);
+    
+    const descTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 15, "DESCRIPTION", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 18,
-      color: "#ffd93d",
-    });
+      fontSize: 14,
+      color: "#7c3aed",
+      fontStyle: "bold"
+    }).setOrigin(0, 0);
     
-    // Item description
-    const description = this.add.text(0, -panelHeight/2 + 190, item.description, {
-      fontFamily: "dungeon-mode",
-      fontSize: 16,
-      color: "#a8a8a8",
-      align: "center",
-      wordWrap: { width: panelWidth - 60 }
-    }).setOrigin(0.5, 0);
-    
-    // Lore title
-    const loreTitle = this.add.text(-panelWidth/2 + 30, -panelHeight/2 + 240, "LORE", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 18,
-      color: "#4ecdc4",
-    });
-    
-    // Lore content (based on item name)
-    const lore = this.getItemLore(item);
-    const loreText = this.add.text(0, -panelHeight/2 + 270, lore, {
+    const description = this.add.text(0, contentStartY + 45, item.description, {
       fontFamily: "dungeon-mode",
       fontSize: 14,
-      color: "#c0c0c0",
+      color: "#d8b4fe",
       align: "center",
-      wordWrap: { width: panelWidth - 60 }
+      wordWrap: { width: panelWidth - 100 }
     }).setOrigin(0.5, 0);
     
-    // Close button
-    const closeBtn = this.add.container(panelWidth/2 - 30, -panelHeight/2 + 30);
-    const closeBg = this.add.graphics();
-    closeBg.fillStyle(0xff4757, 0.9);
-    closeBg.fillRoundedRect(-20, -20, 40, 40, 5);
-    const closeText = this.add.text(0, 0, "X", {
+    // Lore section with proper alignment and sizing
+    const loreSection = this.add.graphics();
+    loreSection.fillStyle(0x2d1b69, 0.2);
+    loreSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY + 120, panelWidth - 60, 110, 8);
+    
+    const loreTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 135, "LORE", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 20,
+      fontSize: 14,
+      color: "#34d399",
+      fontStyle: "bold"
+    }).setOrigin(0, 0);
+    
+    const lore = this.getItemLore(item);
+    const loreText = this.add.text(0, contentStartY + 165, lore, {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#c4b5fd",
+      align: "center",
+      wordWrap: { width: panelWidth - 100 }
+    }).setOrigin(0.5, 0);
+    
+    // Persona 5 style close button - inside panel, top-right corner
+    const closeBtn = this.add.container(panelWidth/2 - 40, -panelHeight/2 + 40);
+    const closeBg = this.add.graphics();
+    closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
+    closeBg.lineStyle(2, 0xfca5a5, 0.8);
+    closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
+    closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+    
+    const closeText = this.add.text(0, 0, "✕", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
       color: "#ffffff",
-    }).setOrigin(0.5);
+    }).setOrigin(0.5, 0.5);
+    closeText.setShadow(1, 1, '#000000', 2, false, true);
+    
     closeBtn.add([closeBg, closeText]);
-    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-20, -20, 40, 40), Phaser.Geom.Rectangle.Contains);
+    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-15, -15, 30, 30), Phaser.Geom.Rectangle.Contains);
     closeBtn.on("pointerdown", () => {
-      // Clean up panel
-      overlay.destroy();
-      panel.destroy();
+      // Smooth exit animation
+      this.tweens.add({
+        targets: panel,
+        scale: 0.8,
+        alpha: 0,
+        duration: 200,
+        ease: 'Back.easeIn',
+        onComplete: () => {
+          overlay.destroy();
+          panel.destroy();
+        }
+      });
     });
     closeBtn.on("pointerover", () => {
+      this.tweens.add({
+        targets: closeBtn,
+        scale: 1.1,
+        duration: 100,
+        ease: 'Power2'
+      });
       closeBg.clear();
-      closeBg.fillStyle(0xff6b81, 0.9);
-      closeBg.fillRoundedRect(-20, -20, 40, 40, 5);
+      closeBg.fillGradientStyle(0xf87171, 0xef4444, 0xdc2626, 0xb91c1c, 0.95);
+      closeBg.lineStyle(2, 0xfca5a5, 1);
+      closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
+      closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
     });
     closeBtn.on("pointerout", () => {
+      this.tweens.add({
+        targets: closeBtn,
+        scale: 1,
+        duration: 100,
+        ease: 'Power2'
+      });
       closeBg.clear();
-      closeBg.fillStyle(0xff4757, 0.9);
-      closeBg.fillRoundedRect(-20, -20, 40, 40, 5);
+      closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
+      closeBg.lineStyle(2, 0xfca5a5, 0.8);
+      closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
+      closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
     });
     
-    // Buy button (positioned at the bottom of the panel)
-    const buyBtn = this.add.container(0, panelHeight/2 - 50);
+    // Modern buy button with dark violet theme - positioned at bottom
+    const buyBtn = this.add.container(0, panelHeight/2 - 80);
     const buyBg = this.add.graphics();
-    buyBg.fillStyle(0x2ed573, 0.9);
-    buyBg.fillRoundedRect(-80, -25, 160, 50, 8);
-    const buyText = this.add.text(0, 0, "BUY ITEM", {
+    buyBg.fillGradientStyle(0x7c3aed, 0x5b21b6, 0x4c1d95, 0x6d28d9, 0.95);
+    buyBg.lineStyle(3, 0xa78bfa, 0.8);
+    buyBg.fillRoundedRect(-120, -25, 240, 50, 12);
+    buyBg.strokeRoundedRect(-120, -25, 240, 50, 12);
+    
+    const buyInnerGlow = this.add.graphics();
+    buyInnerGlow.lineStyle(1, 0xddd6fe, 0.3);
+    buyInnerGlow.strokeRoundedRect(-118, -23, 236, 46, 10);
+    
+    const buyText = this.add.text(0, 0, "PURCHASE ITEM", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 18,
-      color: "#ffffff",
-    }).setOrigin(0.5);
-    buyBtn.add([buyBg, buyText]);
-    buyBtn.setInteractive(new Phaser.Geom.Rectangle(-80, -25, 160, 50), Phaser.Geom.Rectangle.Contains);
+      color: "#f3e8ff",
+      fontStyle: "bold"
+    }).setOrigin(0.5, 0.5);
+    buyText.setShadow(2, 2, '#1a1625', 3, false, true);
+    
+    buyBtn.add([buyBg, buyInnerGlow, buyText]);
+    buyBtn.setInteractive(new Phaser.Geom.Rectangle(-120, -25, 240, 50), Phaser.Geom.Rectangle.Contains);
     buyBtn.on("pointerdown", () => {
-      // Clean up panel
-      overlay.destroy();
-      panel.destroy();
-      
-      // Proceed with purchase
-      this.buyItem(item);
+      // Clean up panel with animation
+      this.tweens.add({
+        targets: panel,
+        scale: 0.8,
+        alpha: 0,
+        duration: 200,
+        ease: 'Back.easeIn',
+        onComplete: () => {
+          overlay.destroy();
+          panel.destroy();
+          // Proceed with purchase
+          this.buyItem(item);
+        }
+      });
     });
     buyBtn.on("pointerover", () => {
+      this.tweens.add({
+        targets: buyBtn,
+        scale: 1.05,
+        duration: 150,
+        ease: 'Power2'
+      });
       buyBg.clear();
-      buyBg.fillStyle(0x3ed583, 0.9);
-      buyBg.fillRoundedRect(-80, -25, 160, 50, 8);
+      buyBg.fillGradientStyle(0x8b5cf6, 0x7c3aed, 0x5b21b6, 0x4c1d95, 0.95);
+      buyBg.lineStyle(3, 0xa78bfa, 1);
+      buyBg.fillRoundedRect(-120, -25, 240, 50, 12);
+      buyBg.strokeRoundedRect(-120, -25, 240, 50, 12);
     });
     buyBtn.on("pointerout", () => {
+      this.tweens.add({
+        targets: buyBtn,
+        scale: 1,
+        duration: 150,
+        ease: 'Power2'
+      });
       buyBg.clear();
-      buyBg.fillStyle(0x2ed573, 0.9);
-      buyBg.fillRoundedRect(-80, -25, 160, 50, 8);
+      buyBg.fillGradientStyle(0x7c3aed, 0x5b21b6, 0x4c1d95, 0x6d28d9, 0.95);
+      buyBg.lineStyle(3, 0xa78bfa, 0.8);
+      buyBg.fillRoundedRect(-120, -25, 240, 50, 12);
+      buyBg.strokeRoundedRect(-120, -25, 240, 50, 12);
     });
     
-    panel.add([panelBg, topLeftCorner, topRightCorner, bottomLeftCorner, bottomRightCorner, 
-              emoji, name, typeBadge, typeText, priceBg, price, descTitle, description, 
-              loreTitle, loreText, closeBtn, buyBtn]);
+    // Assemble the modern panel
+    panel.add([panelShadow, panelBg, innerHighlight, headerBg, emojiContainer, emoji, name, 
+              priceBg, priceLabel, price, descSection, descTitle, description, 
+              loreSection, loreTitle, loreText, closeBtn, buyBtn]);
+              
+    // Entrance animation
+    panel.setScale(0.8).setAlpha(0);
+    this.tweens.add({
+      targets: panel,
+      scale: 1,
+      alpha: 1,
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
   }
   
   private getItemLore(item: ShopItem): string {
@@ -1169,5 +1219,148 @@ export class Shop extends Scene {
     this.createInventoryUI();
     this.createTooltipBox();
     this.createBackButton();
+  }
+
+  /**
+   * Create Persona-style fast transition effect when entering the shop
+   */
+  private createPersonaTransition(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+
+    // Create multiple transition elements for layered effect
+    
+    // Flash overlay - quick white flash
+    const flashOverlay = this.add.rectangle(screenWidth/2, screenHeight/2, screenWidth, screenHeight, 0xffffff)
+      .setAlpha(0.9)
+      .setDepth(9999);
+
+    // Diagonal wipe elements - classic Persona style
+    const wipeCount = 8;
+    const wipeElements: Phaser.GameObjects.Graphics[] = [];
+    
+    for (let i = 0; i < wipeCount; i++) {
+      const wipe = this.add.graphics();
+      wipe.fillStyle(0x000000, 1);
+      
+      // Create diagonal stripe
+      const stripeWidth = screenWidth / wipeCount;
+      const x = i * stripeWidth;
+      
+      wipe.beginPath();
+      wipe.moveTo(x, -100);
+      wipe.lineTo(x + stripeWidth + 100, -100);
+      wipe.lineTo(x + stripeWidth + 200, screenHeight + 100);
+      wipe.lineTo(x + 100, screenHeight + 100);
+      wipe.closePath();
+      wipe.fillPath();
+      
+      wipe.setDepth(9998);
+      wipeElements.push(wipe);
+    }
+
+    // Particle burst effect (if texture exists)
+    let particles: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
+    try {
+      particles = this.add.particles(screenWidth/2, screenHeight/2, 'whitePixel', {
+        speed: { min: 200, max: 400 },
+        scale: { start: 0.1, end: 0 },
+        lifespan: 300,
+        quantity: 15,
+        alpha: { start: 0.8, end: 0 },
+        tint: [0x7c3aed, 0xa78bfa, 0xe9d5ff]
+      }).setDepth(9997);
+    } catch (error) {
+      // Create simple circle particles if whitePixel texture doesn't exist
+      for (let i = 0; i < 15; i++) {
+        const particle = this.add.graphics();
+        particle.fillStyle(0x7c3aed, 0.8);
+        particle.fillCircle(0, 0, 2);
+        particle.setPosition(screenWidth/2, screenHeight/2);
+        particle.setDepth(9997);
+        
+        const angle = (i / 15) * Math.PI * 2;
+        const speed = 200 + Math.random() * 200;
+        
+        this.tweens.add({
+          targets: particle,
+          x: screenWidth/2 + Math.cos(angle) * speed,
+          y: screenHeight/2 + Math.sin(angle) * speed,
+          alpha: 0,
+          scale: 0,
+          duration: 300,
+          onComplete: () => particle.destroy()
+        });
+      }
+    }
+
+    // Sound effect (if you have audio)
+    // this.sound.play('personaTransition', { volume: 0.3 });
+
+    // Animation sequence
+    this.tweens.add({
+      targets: flashOverlay,
+      alpha: 0,
+      duration: 150,
+      ease: 'Power2.easeOut',
+      onComplete: () => {
+        flashOverlay.destroy();
+      }
+    });
+
+    // Staggered wipe animation
+    wipeElements.forEach((wipe, index) => {
+      wipe.x = -screenWidth;
+      this.tweens.add({
+        targets: wipe,
+        x: screenWidth + 200,
+        duration: 600,
+        delay: index * 50,
+        ease: 'Power3.easeOut',
+        onComplete: () => {
+          if (index === wipeElements.length - 1) {
+            // Clean up all wipe elements when the last one finishes
+            wipeElements.forEach(w => w.destroy());
+            if (particles) {
+              particles.destroy();
+            }
+          }
+        }
+      });
+    });
+
+    // Camera shake for impact
+    this.cameras.main.shake(200, 0.01);
+
+    // Add encounter text overlay
+    this.time.delayedCall(400, () => {
+      const encounterText = this.add.text(screenWidth/2, screenHeight/2 - 100, "MYSTERIOUS MERCHANT", {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 36,
+        color: "#e9d5ff",
+        stroke: "#1a1625",
+        strokeThickness: 4
+      }).setOrigin(0.5).setDepth(9996).setAlpha(0);
+
+      this.tweens.add({
+        targets: encounterText,
+        alpha: 1,
+        scale: 1.1,
+        duration: 300,
+        ease: 'Back.easeOut',
+        yoyo: true,
+        onComplete: () => {
+          this.tweens.add({
+            targets: encounterText,
+            alpha: 0,
+            duration: 500,
+            delay: 800,
+            onComplete: () => {
+              encounterText.destroy();
+            }
+          });
+        }
+      });
+    });
   }
 }
