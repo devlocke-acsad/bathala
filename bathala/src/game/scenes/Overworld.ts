@@ -88,26 +88,7 @@ export class Overworld extends Scene {
         landasScore: 0,
         ginto: 9999,
         diamante: 20,
-        relics: [
-          {
-            id: "earthwardens_plate",
-            name: "Earthwarden's Plate",
-            description: "Start each combat with 5 Block. Cannot be broken by non-attack damage.",
-            emoji: "🛡️"
-          },
-          {
-            id: "swift_wind_agimat",
-            name: "Agimat of the Swift Wind",
-            description: "Start each combat with 1 additional discard charge.",
-            emoji: "💨"
-          },
-          {
-            id: "babaylans_talisman",
-            name: "Babaylan's Talisman",
-            description: "Your hand is always considered one tier higher when evaluating poker hands.",
-            emoji: "📿"
-          }
-        ],
+        relics: [], // No test relics - will be empty until player finds them
         potions: [
           {
             id: "clarity_potion",
@@ -3020,43 +3001,6 @@ export class Overworld extends Scene {
       relicContainer.setDepth(15); // Higher than slots but lower than tooltips
       
       console.log(`🎯 Making relic container interactive at (${relicX}, ${relicY}) with size ${slotSize}x${slotSize}`);
-      
-      relicContainer.on('pointerdown', () => {
-        console.log('✅ RELIC CONTAINER CLICKED for:', relic.name);
-        this.showRelicDetails(relic);
-      });
-      
-      relicContainer.on('pointerover', () => {
-        console.log('✅ RELIC CONTAINER HOVER for:', relic.name);
-        
-        // Show tooltip
-        const tooltipY = -60;
-        tooltipContainer.setPosition(slotSize/2, tooltipY);
-        tooltipContainer.setVisible(true);
-        this.tweens.add({
-          targets: tooltipContainer,
-          alpha: 1,
-          duration: 200,
-          ease: 'Back.easeOut'
-        });
-        
-        this.input.setDefaultCursor('pointer');
-      });
-      
-      relicContainer.on('pointerout', () => {
-        // Hide tooltip
-        this.tweens.add({
-          targets: tooltipContainer,
-          alpha: 0,
-          duration: 200,
-          ease: 'Power2',
-          onComplete: () => {
-            tooltipContainer.setVisible(false);
-          }
-        });
-        
-        this.input.setDefaultCursor('default');
-      });
       relicContainer.on('pointerover', () => {
         console.log('🔥 Relic hover START:', relic.name);
         
@@ -3199,11 +3143,8 @@ export class Overworld extends Scene {
         this.input.setDefaultCursor('default');
       });
       
-      // Add click functionality
-      relicContainer.on('pointerdown', () => {
-        console.log('🖱️ Relic CLICKED:', relic.name); // Enhanced debug log
-        this.showRelicDetails(relic);
-      });
+      
+      // Removed duplicate click handler - keeping the main one at the end
       
       // Debug: Add visual indicator that container is interactive
       relicContainer.on('pointerup', () => {
@@ -3753,6 +3694,15 @@ ${potion.description}`, {
    * Show detailed relic information in a popup similar to shop style
    */
   private showRelicDetails(relic: any): void {
+    // Prevent multiple detail windows from opening
+    if ((this as any).relicDetailsOpen) {
+      console.log('🚫 Relic details already open, ignoring click');
+      return;
+    }
+    
+    (this as any).relicDetailsOpen = true;
+    console.log('📖 Opening relic details for:', relic.name);
+    
     // Create overlay
     const overlay = this.add.rectangle(
       this.cameras.main.width / 2,
@@ -3893,6 +3843,7 @@ ${potion.description}`, {
         duration: 200,
         ease: 'Back.easeIn',
         onComplete: () => {
+          (this as any).relicDetailsOpen = false;
           overlay.destroy();
           panel.destroy();
         }
@@ -3953,6 +3904,7 @@ ${potion.description}`, {
         duration: 200,
         ease: 'Back.easeIn',
         onComplete: () => {
+          (this as any).relicDetailsOpen = false;
           overlay.destroy();
           panel.destroy();
         }
