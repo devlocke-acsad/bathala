@@ -271,8 +271,21 @@ export class Campfire extends Scene {
       // Add bonfire sound effect placeholder
       console.log("Bonfire - Leaving...");
       
-      // Complete the campfire node and return to overworld
+      // Save updated player health state to GameState
       const gameState = GameState.getInstance();
+      gameState.updatePlayerData({
+        currentHealth: this.player.currentHealth,
+        maxHealth: this.player.maxHealth,
+        deck: this.player.deck,
+        // Include other state that might have changed at campfire
+        ginto: this.player.ginto,
+        relics: this.player.relics,
+        potions: this.player.potions
+      });
+      
+      console.log("💾 Player health saved to GameState:", this.player.currentHealth, "/", this.player.maxHealth);
+      
+      // Complete the campfire node and return to overworld
       gameState.completeCurrentNode(true);
       this.scene.stop();
       this.scene.resume("Overworld");
