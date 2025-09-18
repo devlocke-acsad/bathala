@@ -88,7 +88,7 @@ export class Overworld extends Scene {
         landasScore: 0,
         ginto: 9999,
         diamante: 20,
-        relics: [],
+        relics: [], // No test relics - will be empty until player finds them
         potions: [
           {
             id: "clarity_potion",
@@ -183,6 +183,18 @@ export class Overworld extends Scene {
     
     // Add shop key (M for Mysterious Merchant)
     this.shopKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+    
+    // Debug: Add global mouse tracking
+    this.input.on('pointermove', (pointer: any) => {
+      // Only log occasionally to avoid spam
+      if (Math.random() < 0.01) { // 1% chance
+        console.log('🖱️ Global mouse move:', { x: pointer.x, y: pointer.y });
+      }
+    });
+    
+    this.input.on('pointerdown', (pointer: any) => {
+      console.log('🖱️ Global mouse DOWN:', { x: pointer.x, y: pointer.y });
+    });
     
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
@@ -2121,13 +2133,17 @@ export class Overworld extends Scene {
         slot.lineStyle(1, 0x404040, 0.8);
         slot.fillRoundedRect(slotX, slotY, slotSize, slotSize, 8);
         slot.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 8);
+        slot.setDepth(-10); // Set slots behind relics
         this.uiContainer.add(slot);
       }
     }
     
     // Create relics container for items
     this.relicsContainer = this.add.container(gridStartX, gridStartY);
+    this.relicsContainer.setDepth(10); // Ensure relics appear above slots
     this.uiContainer.add(this.relicsContainer);
+    
+    console.log('🎯 Created relicsContainer at:', { x: gridStartX, y: gridStartY, depth: this.relicsContainer.depth });
   }
 
   /**
@@ -2887,6 +2903,8 @@ export class Overworld extends Scene {
    * Update relics display with modern Persona-style design
    */
   private updateRelicsDisplay(): void {
+    console.log('🎯 updateRelicsDisplay called with', this.playerData.relics.length, 'relics');
+    console.log('🎯 Player relics:', this.playerData.relics.map(r => r.name || r.id));
     this.relicsContainer.removeAll(true);
     
     const slotSize = 45; // Match the slot size from createModernRelicsSection
@@ -2912,6 +2930,7 @@ export class Overworld extends Scene {
       
       // Create modern Persona-style relic container
       const relicContainer = this.add.container(relicX, relicY);
+      // Don't set depth here - let it inherit from parent uiContainer
       
       // Relic background with modern gradient (no border)
       const relicBg = this.add.graphics();
@@ -2965,12 +2984,91 @@ export class Overworld extends Scene {
       // Make the entire container interactive with proper hit area
       relicContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
       
+      // Debug: Log interactive setup
+      console.log('🎯 Setting up interactive for:', relic.name, {
+        position: { x: relicX, y: relicY },
+        hitArea: { width: slotSize, height: slotSize },
+        inputEnabled: relicContainer.input?.enabled,
+        depth: relicContainer.depth
+      });
+      
       // Enable input events
       relicContainer.input!.enabled = true;
       
+      // Set proper interactivity for the relic container
+      relicContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
+      relicContainer.setScrollFactor(0); // Ensure container stays screen-fixed
+      relicContainer.setDepth(15); // Higher than slots but lower than tooltips
+      
+      console.log(`🎯 Making relic container interactive at (${relicX}, ${relicY}) with size ${slotSize}x${slotSize}`);
+      relicContainer.on('pointerover', () => {
+        console.log('🔥 Relic hover START:', relic.name);
+        
+        // Enhanced background on hover
+        relicBg.clear();
+        relicBg.fillGradientStyle(0x2a2a4e, 0x2a2a4e, 0x1f2439, 0x1f2439, 1);
+        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
+        
+        // Scale animation
+        this.tweens.add({
+          targets: relicContainer,
+          scale: 1.1,
+          duration: 200,
+          ease: 'Back.easeOut'
+        });
+        
+        // Show tooltip
+        const tooltipY = -60;
+        tooltipContainer.setPosition(slotSize/2, tooltipY);
+        tooltipContainer.setVisible(true);
+        this.tweens.add({
+          targets: tooltipContainer,
+          alpha: 1,
+          duration: 200,
+          ease: 'Back.easeOut'
+        });
+        
+        this.input.setDefaultCursor('pointer');
+      });
+      
+      relicContainer.on('pointerout', () => {
+        console.log('❄️ Relic hover END:', relic.name);
+        
+        // Restore original background
+        relicBg.clear();
+        relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
+        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
+        
+        // Scale back to normal
+        this.tweens.add({
+          targets: relicContainer,
+          scale: 1,
+          duration: 200,
+          ease: 'Power2'
+        });
+        
+        // Hide tooltip
+        this.tweens.add({
+          targets: tooltipContainer,
+          alpha: 0,
+          duration: 200,
+          ease: 'Power2',
+          onComplete: () => {
+            tooltipContainer.setVisible(false);
+          }
+        });
+        
+        this.input.setDefaultCursor('default');
+      });
+      
+      relicContainer.on('pointerdown', () => {
+        console.log('�️ Relic CLICKED:', relic.name);
+        this.showRelicDetails(relic);
+      });
+      
       // Modern hover effects
       relicContainer.on('pointerover', () => {
-        console.log('Relic hover:', relic.name); // Debug log
+        console.log('🔥 Relic hover START:', relic.name, 'at position:', relicX, relicY); // Enhanced debug log
         
         // Enhanced background on hover (no blue border)
         relicBg.clear();
@@ -2990,14 +3088,18 @@ export class Overworld extends Scene {
           ease: 'Back.easeOut'
         });
         
-        // Show tooltip with fade in
+        // Position tooltip above the relic
+        tooltipContainer.y = -tooltipHeight - 10;
+        
+        // Show tooltip with fade in and slide up animation
         tooltipContainer.setVisible(true);
+        tooltipContainer.y += 10; // Start slightly below the final position
         this.tweens.add({
           targets: tooltipContainer,
           alpha: 1,
-          y: -65,
-          duration: 300,
-          ease: 'Power2'
+          y: -tooltipHeight - 10,
+          duration: 200,
+          ease: 'Back.easeOut'
         });
         
         // Change cursor
@@ -3005,7 +3107,7 @@ export class Overworld extends Scene {
       });
       
       relicContainer.on('pointerout', () => {
-        console.log('Relic hover out:', relic.name); // Debug log
+        console.log('❄️ Relic hover END:', relic.name); // Enhanced debug log
         
         // Restore original background (no blue border)
         relicBg.clear();
@@ -3025,11 +3127,11 @@ export class Overworld extends Scene {
           ease: 'Power2'
         });
         
-        // Hide tooltip
+        // Hide tooltip with fade out and slide down animation
         this.tweens.add({
           targets: tooltipContainer,
           alpha: 0,
-          y: -50,
+          y: -tooltipHeight,
           duration: 200,
           ease: 'Power2',
           onComplete: () => {
@@ -3041,15 +3143,37 @@ export class Overworld extends Scene {
         this.input.setDefaultCursor('default');
       });
       
-      // Add click functionality
-      relicContainer.on('pointerdown', () => {
-        console.log('Relic clicked:', relic.name); // Debug log
-        this.showRelicDetails(relic);
-      });
+      
+      // Removed duplicate click handler - keeping the main one at the end
       
       // Debug: Add visual indicator that container is interactive
       relicContainer.on('pointerup', () => {
-        console.log('Relic pointer up:', relic.name);
+        console.log('✋ Relic pointer UP:', relic.name);
+      });
+      
+      // Add simple test event to verify input works at all
+      relicContainer.on('pointermove', () => {
+        console.log('🚀 BASIC MOVE EVENT for:', relic.name);
+      });
+      
+      // Add subtle debug border to show interactive area (can be removed later)
+      const debugBorder = this.add.graphics();
+      debugBorder.lineStyle(1, 0x00ff00, 0.3);
+      debugBorder.strokeRoundedRect(0, 0, slotSize, slotSize, 8);
+      relicContainer.add(debugBorder);
+      
+      // Calculate world position for debugging
+      const worldPos = relicContainer.parentContainer ? 
+        relicContainer.parentContainer.getWorldTransformMatrix().transformPoint(relicX, relicY) :
+        { x: relicX, y: relicY };
+      
+      console.log('✅ Created interactive relic:', relic.name, {
+        localPos: { x: relicX, y: relicY },
+        worldPos: worldPos,
+        containerDepth: relicContainer.depth,
+        parentDepth: this.relicsContainer.depth,
+        uiContainerDepth: this.uiContainer.depth,
+        inputEnabled: relicContainer.input?.enabled
       });
       
       this.relicsContainer.add(relicContainer);
@@ -3570,6 +3694,15 @@ ${potion.description}`, {
    * Show detailed relic information in a popup similar to shop style
    */
   private showRelicDetails(relic: any): void {
+    // Prevent multiple detail windows from opening
+    if ((this as any).relicDetailsOpen) {
+      console.log('🚫 Relic details already open, ignoring click');
+      return;
+    }
+    
+    (this as any).relicDetailsOpen = true;
+    console.log('📖 Opening relic details for:', relic.name);
+    
     // Create overlay
     const overlay = this.add.rectangle(
       this.cameras.main.width / 2,
@@ -3710,6 +3843,7 @@ ${potion.description}`, {
         duration: 200,
         ease: 'Back.easeIn',
         onComplete: () => {
+          (this as any).relicDetailsOpen = false;
           overlay.destroy();
           panel.destroy();
         }
@@ -3770,6 +3904,7 @@ ${potion.description}`, {
         duration: 200,
         ease: 'Back.easeIn',
         onComplete: () => {
+          (this as any).relicDetailsOpen = false;
           overlay.destroy();
           panel.destroy();
         }
