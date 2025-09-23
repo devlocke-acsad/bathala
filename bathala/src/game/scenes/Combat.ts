@@ -66,8 +66,6 @@ export class Combat extends Scene {
   private discardPilePosition!: { x: number; y: number };
   private shopKey!: Phaser.Input.Keyboard.Key;
   private bestHandAchieved: HandType = "high_card";
-  private scanlines!: Phaser.GameObjects.TileSprite;
-  private scanlineTimer: number = 0;
   private battleStartDialogueContainer!: Phaser.GameObjects.Container | null;
   
   // DDA tracking properties
@@ -81,6 +79,7 @@ export class Combat extends Scene {
   private enemyShadow!: Phaser.GameObjects.Graphics;
   private handEvaluationText!: Phaser.GameObjects.Text;
   private relicInventory!: Phaser.GameObjects.Container;
+  private currentRelicTooltip!: Phaser.GameObjects.Container | null;
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
@@ -912,9 +911,6 @@ export class Combat extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Create CRT scanline effect
-    this.createCRTEffect();
-    
     // Title
     this.add
       .text(screenWidth/2, 30, "Combat - Forest Encounter", {
@@ -1320,23 +1316,27 @@ export class Combat extends Scene {
    * Create relic inventory in top left corner with vignette design
    */
   private createRelicInventory(): void {
-    // Create container for the inventory
-    this.relicInventory = this.add.container(20, 20);
+    // Create container for the inventory - positioned at top center for better accessibility
+    const screenWidth = this.cameras.main.width;
+    this.relicInventory = this.add.container(screenWidth / 2, 80);
     
-    // Hide the relic inventory as requested
-    this.relicInventory.setVisible(false);
+    // Make the relic inventory visible by default
+    this.relicInventory.setVisible(true);
     
-    // Create the main background rectangle with vignette effect (longer length)
-    const inventoryWidth = 1200; // Increased from 200
-    const inventoryHeight = 120;
+    // Initialize tooltip reference
+    this.currentRelicTooltip = null;
     
-    // Main background
-    const mainBg = this.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x2a2a2a, 0.9);
-    mainBg.setStrokeStyle(2, 0x4a4a4a);
+    // Create the main background rectangle with vignette effect
+    const inventoryWidth = 400; // Optimized width for top placement
+    const inventoryHeight = 80;
     
-    // Inner vignette effect - darker inner rectangle
-    const innerBg = this.add.rectangle(0, 0, inventoryWidth - 10, inventoryHeight - 10, 0x1a1a1a, 0.7);
-    innerBg.setStrokeStyle(1, 0x3a3a3a);
+    // Main background with elegant dark theme
+    const mainBg = this.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x1a1a1a, 0.95);
+    mainBg.setStrokeStyle(2, 0x8b4513, 0.8); // Bronze-like border
+    
+    // Inner highlight for depth
+    const innerBg = this.add.rectangle(0, 0, inventoryWidth - 6, inventoryHeight - 6, 0x2a2a2a, 0.6);
+    innerBg.setStrokeStyle(1, 0xcd853f, 0.5); // Light bronze highlight
     
     // Title text positioned at top left of the box
     const titleText = this.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
@@ -1346,33 +1346,76 @@ export class Combat extends Scene {
       align: "left"
     }).setOrigin(0, 0.5);
     
-    // Create relic slots grid (4x2 = 8 slots for longer rectangle)
-    const slotSize = 25;
-    const slotsPerRow = 4; // Increased from 3
-    const rows = 2;
-    const slotSpacing = 35;
+    // Create toggle button for showing/hiding relic inventory
+    const toggleButton = this.createRelicInventoryToggle(inventoryWidth/2 - 30, -inventoryHeight/2 + 15);
+    
+    // Create relic slots grid (6x1 = 6 slots for horizontal layout)
+    const slotSize = 30;
+    const slotsPerRow = 6;
+    const rows = 1;
+    const slotSpacing = 45;
     
     const startX = -(slotsPerRow - 1) * slotSpacing / 2;
-    const startY = -10;
+    const startY = 10;
     
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < slotsPerRow; col++) {
         const slotX = startX + col * slotSpacing;
         const slotY = startY + row * slotSpacing;
         
-        // Create slot background
-        const slot = this.add.rectangle(slotX, slotY, slotSize, slotSize, 0x0a0a0a, 0.8);
-        slot.setStrokeStyle(1, 0x555555);
+        // Create elegant slot background
+        const slot = this.add.rectangle(slotX, slotY, slotSize, slotSize, 0x0f0f0f, 0.9);
+        slot.setStrokeStyle(2, 0x8b4513, 0.6); // Bronze border for slots
         
         this.relicInventory.add(slot);
       }
     }
     
     // Add all elements to container
-    this.relicInventory.add([mainBg, innerBg, titleText]);
+    this.relicInventory.add([mainBg, innerBg, titleText, toggleButton]);
     
     // Update with current relics
     this.updateRelicInventory();
+  }
+
+  /**
+   * Create toggle button for relic inventory
+   */
+  private createRelicInventoryToggle(x: number, y: number): Phaser.GameObjects.Container {
+    const toggleButton = this.add.container(x, y);
+    
+    // Button background
+    const bg = this.add.rectangle(0, 0, 20, 20, 0x4a4a4a, 0.9);
+    bg.setStrokeStyle(1, 0x6a6a6a);
+    
+    // Toggle text (eye icon)
+    const toggleText = this.add.text(0, 0, "👁", {
+      fontSize: 12,
+      color: "#ffffff"
+    }).setOrigin(0.5);
+    
+    toggleButton.add([bg, toggleText]);
+    
+    // Make button interactive
+    toggleButton.setInteractive(new Phaser.Geom.Rectangle(-10, -10, 20, 20), Phaser.Geom.Rectangle.Contains);
+    
+    // Toggle visibility when clicked
+    toggleButton.on("pointerdown", () => {
+      const isVisible = this.relicInventory.visible;
+      this.relicInventory.setVisible(!isVisible);
+      toggleText.setText(isVisible ? "✕" : "👁");
+    });
+    
+    // Hover effects
+    toggleButton.on("pointerover", () => {
+      bg.setFillStyle(0x5a5a5a, 0.9);
+    });
+    
+    toggleButton.on("pointerout", () => {
+      bg.setFillStyle(0x4a4a4a, 0.9);
+    });
+    
+    return toggleButton;
   }
 
   /**
@@ -1390,7 +1433,7 @@ export class Combat extends Scene {
     
     // Remove existing relic displays (keep slots and background)
     this.relicInventory.list.forEach(child => {
-      if ((child as any).isRelicDisplay) {
+      if ((child as any).isRelicDisplay || (child as any).isTooltip) {
         child.destroy();
       }
     });
@@ -1412,29 +1455,60 @@ export class Combat extends Scene {
         // Mark as relic display for cleanup
         (relicIcon as any).isRelicDisplay = true;
         
-        // Add hover tooltip
+        // Add modern hover and click interactions
         relicIcon.setInteractive();
+        
+        // Store reference for hover effects
+        let hoverGlow: Phaser.GameObjects.Graphics | null = null;
+        
         relicIcon.on("pointerover", () => {
-          // Create temporary tooltip
-          const tooltip = this.add.text(slotX, slotY - 40, relic.name, {
-            fontFamily: "dungeon-mode",
-            fontSize: 12,
-            color: "#ffffff",
-            backgroundColor: "#000000",
-            padding: { x: 8, y: 4 }
-          }).setOrigin(0.5);
+          // Create elegant glow effect
+          if (hoverGlow) {
+            hoverGlow.destroy();
+            hoverGlow = null;
+          }
           
-          (tooltip as any).isTooltip = true;
-          this.relicInventory.add(tooltip);
+          hoverGlow = this.add.graphics();
+          hoverGlow.lineStyle(3, 0x7c3aed, 0.8);
+          hoverGlow.strokeCircle(slotX, slotY, 18);
+          this.relicInventory.add(hoverGlow);
+          
+          // Scale up the icon slightly
+          this.tweens.add({
+            targets: relicIcon,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 150,
+            ease: 'Back.easeOut'
+          });
+          
+          // Show elegant tooltip with relic name only
+          this.showRelicTooltip(relic.name, slotX, slotY - 40);
         });
         
         relicIcon.on("pointerout", () => {
-          // Remove tooltip
-          this.relicInventory.list.forEach(child => {
-            if ((child as any).isTooltip) {
-              child.destroy();
-            }
+          // Remove glow effect
+          if (hoverGlow) {
+            hoverGlow.destroy();
+            hoverGlow = null;
+          }
+          
+          // Scale back to normal
+          this.tweens.add({
+            targets: relicIcon,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 150,
+            ease: 'Back.easeOut'
           });
+          
+          // Hide tooltip
+          this.hideRelicTooltip();
+        });
+        
+        relicIcon.on("pointerdown", () => {
+          // Show detailed description in a modal-style overlay
+          this.showRelicDetailModal(relic);
         });
         
         this.relicInventory.add(relicIcon);
@@ -3923,58 +3997,11 @@ export class Combat extends Scene {
     }
   }
 
-  /**\n   * Create CRT scanline effect for retro aesthetic\n   */
-  private createCRTEffect(): void {
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    
-    // Create scanlines using a tile sprite
-    this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
-      .setOrigin(0)
-      .setAlpha(0.25) // Increased opacity for more prominence
-      .setTint(0x77888C)
-      .setScrollFactor(0) // Fixed to camera
-      .setDepth(9999); // Ensure it's above everything else
-      
-    // Create a more pronounced scanline pattern (4x4 as requested)
-    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-    graphics.fillStyle(0x000000, 1);
-    graphics.fillRect(0, 0, 4, 2); // Thicker lines
-    graphics.fillStyle(0xffffff, 1);
-    graphics.fillRect(0, 2, 4, 2); // Thicker lines
-    
-    const texture = graphics.generateTexture('combat_scanline', 4, 4);
-    this.scanlines.setTexture('combat_scanline');
-    
-    // Add a subtle screen flicker effect
-    this.scheduleFlicker();
-  }
+
   
-  /**\n   * Schedule the next screen flicker\n   */
-  private scheduleFlicker(): void {
-    this.time.addEvent({
-      delay: Phaser.Math.Between(5000, 15000), // Random flicker every 5-15 seconds
-      callback: this.flickerScreen,
-      callbackScope: this,
-      loop: false
-    });
-  }
+
   
-  /**\n   * Create a brief screen flicker effect\n   */
-  private flickerScreen(): void {
-    // Brief flicker
-    this.tweens.add({
-      targets: this.scanlines,
-      alpha: 0.4,
-      duration: 50,
-      yoyo: true,
-      ease: 'Power2',
-      onComplete: () => {
-        // Schedule next flicker after this one completes
-        this.scheduleFlicker();
-      }
-    });
-  }
+
 
   /**\n   * Handle scene resize\n   */
   private handleResize(): void {
@@ -3995,8 +4022,8 @@ export class Combat extends Scene {
       this.actionButtons.setPosition(screenWidth/2, screenHeight - 180);
     }
     
-    if (this.relicsContainer) {
-      this.relicsContainer.setPosition(screenWidth - 100, 50);
+    if (this.relicInventory) {
+      this.relicInventory.setPosition(screenWidth / 2, 80);
     }
     
     // Update text positions
@@ -4032,22 +4059,11 @@ export class Combat extends Scene {
     this.updateRelicsUI();
     this.updateRelicInventory();
     this.updateTurnUI();
-    
-    // Recreate CRT effect on resize
-    if (this.scanlines) {
-      this.scanlines.destroy();
-    }
-    this.createCRTEffect();
   }
 
   /**\n   * Update method for animation effects\n   */
-  update(time: number, delta: number): void {
-    // Animate the scanlines
-    if (this.scanlines) {
-      this.scanlineTimer += delta;
-      // Move scanlines vertically to simulate CRT effect at a faster pace
-      this.scanlines.tilePositionY = this.scanlineTimer * 0.15; // Increased speed
-    }
+  update(_time: number, _delta: number): void {
+    // Reserved for future animations
   }
   
   /**
@@ -4366,6 +4382,172 @@ export class Combat extends Scene {
       if (element) {
         element.destroy();
       }
+    });
+  }
+  
+  /**
+   * Show elegant relic tooltip (just the name on hover)
+   */
+  private showRelicTooltip(name: string, x: number, y: number): void {
+    // Clean up any existing tooltip
+    this.hideRelicTooltip();
+    
+    const tooltip = this.add.container(x, y);
+    tooltip.name = 'relicTooltip';
+    
+    // Shadow for depth
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0x000000, 0.5);
+    shadow.fillRoundedRect(-name.length * 3.5 - 12, -18, name.length * 7 + 24, 36, 6);
+    
+    // Main background with gradient effect
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x2a1f3d, 0x2a1f3d, 0x1e1528, 0x1e1528, 1);
+    bg.fillRoundedRect(-name.length * 3.5 - 10, -16, name.length * 7 + 20, 32, 6);
+    bg.lineStyle(2, 0x7c3aed, 0.8);
+    bg.strokeRoundedRect(-name.length * 3.5 - 10, -16, name.length * 7 + 20, 32, 6);
+    
+    // Text with elegant styling
+    const text = this.add.text(0, 0, name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#e9d5ff",
+      align: "center"
+    }).setOrigin(0.5);
+    text.setShadow(1, 1, '#1a1625', 2, false, true);
+    
+    tooltip.add([shadow, bg, text]);
+    
+    // Smooth entrance animation
+    tooltip.setScale(0.8).setAlpha(0);
+    this.tweens.add({
+      targets: tooltip,
+      scale: 1,
+      alpha: 1,
+      duration: 150,
+      ease: 'Back.easeOut'
+    });
+    
+    this.currentRelicTooltip = tooltip;
+  }
+  
+  /**
+   * Hide the current relic tooltip
+   */
+  private hideRelicTooltip(): void {
+    if (this.currentRelicTooltip && this.currentRelicTooltip.active) {
+      this.tweens.killTweensOf(this.currentRelicTooltip);
+      this.currentRelicTooltip.destroy();
+      this.currentRelicTooltip = null;
+    }
+  }
+  
+  /**
+   * Show detailed relic description modal on click
+   */
+  private showRelicDetailModal(relic: { id: string; name: string; description: string; emoji: string }): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Create modal overlay
+    const overlay = this.add.container(screenWidth / 2, screenHeight / 2);
+    overlay.name = 'relicDetailModal';
+    
+    // Dark background overlay
+    const darkBg = this.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7);
+    darkBg.setInteractive();
+    
+    // Modal panel
+    const modalWidth = Math.min(400, screenWidth - 40);
+    const modalHeight = Math.min(250, screenHeight - 40);
+    
+    // Shadow for modal
+    const modalShadow = this.add.graphics();
+    modalShadow.fillStyle(0x000000, 0.5);
+    modalShadow.fillRoundedRect(-modalWidth/2 + 5, -modalHeight/2 + 5, modalWidth, modalHeight, 12);
+    
+    // Main modal background
+    const modalBg = this.add.graphics();
+    modalBg.fillGradientStyle(0x2a1f3d, 0x2a1f3d, 0x1e1528, 0x1e1528, 1);
+    modalBg.fillRoundedRect(-modalWidth/2, -modalHeight/2, modalWidth, modalHeight, 12);
+    modalBg.lineStyle(3, 0x7c3aed, 0.9);
+    modalBg.strokeRoundedRect(-modalWidth/2, -modalHeight/2, modalWidth, modalHeight, 12);
+    
+    // Relic emoji/icon at the top
+    const relicIcon = this.add.text(0, -modalHeight/2 + 40, relic.emoji, {
+      fontSize: 32,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Relic name
+    const nameText = this.add.text(0, -modalHeight/2 + 80, relic.name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#ffd93d",
+      align: "center"
+    }).setOrigin(0.5);
+    nameText.setShadow(2, 2, '#1a1625', 2, false, true);
+    
+    // Relic description with word wrap
+    const descText = this.add.text(0, -modalHeight/2 + 120, relic.description, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e9d5ff",
+      align: "center",
+      wordWrap: { width: modalWidth - 40 }
+    }).setOrigin(0.5);
+    descText.setShadow(1, 1, '#1a1625', 2, false, true);
+    
+    // Close button
+    const closeButton = this.add.container(0, modalHeight/2 - 30);
+    const closeBg = this.add.rectangle(0, 0, 80, 30, 0x4a4a4a, 0.9);
+    closeBg.setStrokeStyle(2, 0x7c3aed);
+    const closeText = this.add.text(0, 0, "Close", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e9d5ff"
+    }).setOrigin(0.5);
+    
+    closeButton.add([closeBg, closeText]);
+    closeButton.setInteractive(new Phaser.Geom.Rectangle(-40, -15, 80, 30), Phaser.Geom.Rectangle.Contains);
+    
+    // Add all elements to overlay
+    overlay.add([darkBg, modalShadow, modalBg, relicIcon, nameText, descText, closeButton]);
+    
+    // Entrance animation
+    overlay.setScale(0.8).setAlpha(0);
+    this.tweens.add({
+      targets: overlay,
+      scale: 1,
+      alpha: 1,
+      duration: 200,
+      ease: 'Back.easeOut'
+    });
+    
+    // Close handlers
+    const closeModal = () => {
+      this.tweens.add({
+        targets: overlay,
+        scale: 0.8,
+        alpha: 0,
+        duration: 150,
+        ease: 'Back.easeIn',
+        onComplete: () => {
+          overlay.destroy();
+        }
+      });
+    };
+    
+    darkBg.on('pointerdown', closeModal);
+    closeButton.on('pointerdown', closeModal);
+    
+    // Hover effect for close button
+    closeButton.on('pointerover', () => {
+      closeBg.setFillStyle(0x5a5a5a, 0.9);
+    });
+    
+    closeButton.on('pointerout', () => {
+      closeBg.setFillStyle(0x4a4a4a, 0.9);
     });
   }
 }
