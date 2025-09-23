@@ -2,9 +2,10 @@ import { Relic } from "../../core/types/CombatTypes";
 
 /**
  * Act 1 Relics for Bathala
- * Based on Filipino mythology and the game's design document
+ * Based on Filipino mythology - Chapter 1: The Corrupted Ancestral Forests (Lupa/Hangin Focus)
  */
 
+// Common relics (tied to regular enemies)
 export const commonRelics: Relic[] = [
   {
     id: "earthwardens_plate",
@@ -32,6 +33,7 @@ export const commonRelics: Relic[] = [
   }
 ];
 
+// Elite relics (tied to elite enemies)
 export const eliteRelics: Relic[] = [
   {
     id: "babaylans_talisman",
@@ -59,6 +61,7 @@ export const eliteRelics: Relic[] = [
   }
 ];
 
+// Boss relics (tied to boss encounters)
 export const bossRelics: Relic[] = [
   {
     id: "echo_ancestors",
@@ -80,6 +83,7 @@ export const bossRelics: Relic[] = [
   }
 ];
 
+// Treasure/event relics
 export const treasureRelics: Relic[] = [
   {
     id: "lucky_charm",
@@ -101,6 +105,7 @@ export const treasureRelics: Relic[] = [
   }
 ];
 
+// Shop relics (available for purchase)
 export const shopRelics: Relic[] = [
   {
     id: "merchants_scale",

@@ -2,7 +2,7 @@ import { Relic } from "../../core/types/CombatTypes";
 
 /**
  * Shop Items for Bathala
- * Based on Filipino mythology and the game's design document
+ * Based on Filipino mythology - Chapter 1: The Corrupted Ancestral Forests
  */
 
 export interface ShopItem {
@@ -16,7 +16,7 @@ export interface ShopItem {
   emoji: string;
 }
 
-// Common shop relics
+// Common shop relics (updated to match Act 1 relics)
 export const shopRelics: ShopItem[] = [
   {
     id: "shop_earthwardens_plate",
@@ -104,7 +104,7 @@ export const shopRelics: ShopItem[] = [
       description: "A sacred amulet blessed by the ancient shamans. Your hand is always considered one tier higher when evaluating poker hands.",
       emoji: "📿"
     },
-    price: 180,
+    price: 160,
     currency: "ginto",
     emoji: "📿"
   },
@@ -119,7 +119,7 @@ export const shopRelics: ShopItem[] = [
       description: "A kampilan blessed by the spirits of your ancestors. Each time you play a Flush, gain 2 temporary Strength.",
       emoji: "⚔️"
     },
-    price: 160,
+    price: 140,
     currency: "ginto",
     emoji: "⚔️"
   },
@@ -134,7 +134,7 @@ export const shopRelics: ShopItem[] = [
       description: "An enchanted piece of coral that pulses with the rhythm of the sea. At the end of your turn, heal 2 HP for each card in your hand.",
       emoji: "🌊"
     },
-    price: 140,
+    price: 180,
     currency: "ginto",
     emoji: "🌊"
   },
@@ -183,7 +183,7 @@ export const premiumShopItems: ShopItem[] = [
       description: "A mutya jewel that brings fortune to its bearer. Whenever you play a Straight or better, gain 1 Ginto.",
       emoji: "🍀"
     },
-    price: 2,
+    price: 4,
     currency: "diamante",
     emoji: "🍀"
   },
@@ -213,7 +213,7 @@ export const premiumShopItems: ShopItem[] = [
       description: "A crown blessed by the benevolent nature spirits. Start each combat with 10 Block and gain 1 temporary Dexterity.",
       emoji: "👑"
     },
-    price: 4,
+    price: 6,
     currency: "diamante",
     emoji: "👑"
   },
@@ -228,7 +228,7 @@ export const premiumShopItems: ShopItem[] = [
       description: "The eternal heart of an earth guardian. Gain 10 Max HP. At the start of combat, gain 2 Block.",
       emoji: "❤️"
     },
-    price: 4,
+    price: 3,
     currency: "diamante",
     emoji: "❤️"
   },
@@ -279,19 +279,19 @@ export const premiumShopItems: ShopItem[] = [
     emoji: "🛡️"
   },
   {
-    id: "shop_wind_dancer_boots",
-    name: "Wind Dancer's Boots",
-    description: "Gain 2 Dexterity and start each combat with +2 discard charges.",
+    id: "shop_forest_guardians_helm",
+    name: "Forest Guardian's Helm",
+    description: "Gain 10 Block at the start of each combat. Gain 1 Strength for each different suit in your hand.",
     type: "relic",
     item: {
-      id: "wind_dancer_boots",
-      name: "Wind Dancer's Boots",
-      description: "Gain 2 Dexterity and start each combat with +2 discard charges.",
-      emoji: "👢"
+      id: "forest_guardians_helm",
+      name: "Forest Guardian's Helm",
+      description: "Gain 10 Block at the start of each combat. Gain 1 Strength for each different suit in your hand.",
+      emoji: "⛑️"
     },
     price: 75,
     currency: "diamante",
-    emoji: "👢"
+    emoji: "⛑️"
   }
 ];
 
