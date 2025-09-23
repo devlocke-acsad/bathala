@@ -21,12 +21,12 @@ export const shopRelics: ShopItem[] = [
   {
     id: "shop_earthwardens_plate",
     name: "Earthwarden's Plate",
-    description: "Start each combat with 5 Block. Cannot be broken by non-attack damage.",
+    description: "Forged from the sacred linga stones of the mountain spirits. Start each combat with 5 Block that cannot be broken by non-attack damage.",
     type: "relic",
     item: {
       id: "earthwardens_plate",
       name: "Earthwarden's Plate",
-      description: "Start each combat with 5 Block. Cannot be broken by non-attack damage.",
+      description: "Forged from the sacred linga stones of the mountain spirits. Start each combat with 5 Block that cannot be broken by non-attack damage.",
       emoji: "🛡️"
     },
     price: 150,
@@ -36,12 +36,12 @@ export const shopRelics: ShopItem[] = [
   {
     id: "shop_swift_wind_agimat",
     name: "Agimat of the Swift Wind",
-    description: "Start each combat with 1 additional discard charge.",
+    description: "A blessed talisman that captures the essence of Tikbalang's speed. Start each combat with 1 additional discard charge.",
     type: "relic",
     item: {
       id: "swift_wind_agimat",
       name: "Agimat of the Swift Wind",
-      description: "Start each combat with 1 additional discard charge.",
+      description: "A blessed talisman that captures the essence of Tikbalang's speed. Start each combat with 1 additional discard charge.",
       emoji: "💨"
     },
     price: 120,
@@ -51,12 +51,12 @@ export const shopRelics: ShopItem[] = [
   {
     id: "shop_ember_fetish",
     name: "Ember Fetish",
-    description: "At the start of your turn, if you have no Block, gain 3 Strength.",
+    description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 3 Strength.",
     type: "relic",
     item: {
       id: "ember_fetish",
       name: "Ember Fetish",
-      description: "At the start of your turn, if you have no Block, gain 3 Strength.",
+      description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 3 Strength.",
       emoji: "🔥"
     },
     price: 100,
@@ -64,14 +64,29 @@ export const shopRelics: ShopItem[] = [
     emoji: "🔥"
   },
   {
+    id: "shop_umalagad_spirit",
+    name: "Umalagad's Spirit",
+    description: "The protective essence of a sea serpent that guides travelers. Gain 1 temporary Dexterity at the start of each combat.",
+    type: "relic",
+    item: {
+      id: "umalagad_spirit",
+      name: "Umalagad's Spirit",
+      description: "The protective essence of a sea serpent that guides travelers. Gain 1 temporary Dexterity at the start of each combat.",
+      emoji: "🐍"
+    },
+    price: 130,
+    currency: "ginto",
+    emoji: "🐍"
+  },
+  {
     id: "shop_merchants_scale",
     name: "Merchant's Scale",
-    description: "All shop items are 20% cheaper.",
+    description: "A balance blessed by Lakambini to ensure fair trade. All shop items are 20% cheaper.",
     type: "relic",
     item: {
       id: "merchants_scale",
       name: "Merchant's Scale",
-      description: "All shop items are 20% cheaper.",
+      description: "A balance blessed by Lakambini to ensure fair trade. All shop items are 20% cheaper.",
       emoji: "⚖️"
     },
     price: 200,
@@ -81,12 +96,12 @@ export const shopRelics: ShopItem[] = [
   {
     id: "shop_babaylans_talisman",
     name: "Babaylan's Talisman",
-    description: "Your hand is always considered one tier higher when evaluating poker hands.",
+    description: "A sacred amulet blessed by the ancient shamans. Your hand is always considered one tier higher when evaluating poker hands.",
     type: "relic",
     item: {
       id: "babaylans_talisman",
       name: "Babaylan's Talisman",
-      description: "Your hand is always considered one tier higher when evaluating poker hands.",
+      description: "A sacred amulet blessed by the ancient shamans. Your hand is always considered one tier higher when evaluating poker hands.",
       emoji: "📿"
     },
     price: 180,
@@ -96,12 +111,12 @@ export const shopRelics: ShopItem[] = [
   {
     id: "shop_ancestral_blade",
     name: "Ancestral Blade",
-    description: "Each time you play a Flush, gain 2 temporary Strength.",
+    description: "A kampilan blessed by the spirits of your ancestors. Each time you play a Flush, gain 2 temporary Strength.",
     type: "relic",
     item: {
       id: "ancestral_blade",
       name: "Ancestral Blade",
-      description: "Each time you play a Flush, gain 2 temporary Strength.",
+      description: "A kampilan blessed by the spirits of your ancestors. Each time you play a Flush, gain 2 temporary Strength.",
       emoji: "⚔️"
     },
     price: 160,
@@ -111,17 +126,32 @@ export const shopRelics: ShopItem[] = [
   {
     id: "shop_tidal_amulet",
     name: "Tidal Amulet",
-    description: "At the end of your turn, heal 2 HP for each card in your hand.",
+    description: "An enchanted piece of coral that pulses with the rhythm of the sea. At the end of your turn, heal 2 HP for each card in your hand.",
     type: "relic",
     item: {
       id: "tidal_amulet",
       name: "Tidal Amulet",
-      description: "At the end of your turn, heal 2 HP for each card in your hand.",
+      description: "An enchanted piece of coral that pulses with the rhythm of the sea. At the end of your turn, heal 2 HP for each card in your hand.",
       emoji: "🌊"
     },
     price: 140,
     currency: "ginto",
     emoji: "🌊"
+  },
+  {
+    id: "shop_sarimanok_feather",
+    name: "Sarimanok Feather",
+    description: "A radiant feather from the mythical bird that brings prosperity. Whenever you play a Straight or better, gain 1 Ginto.",
+    type: "relic",
+    item: {
+      id: "sarimanok_feather",
+      name: "Sarimanok Feather",
+      description: "A radiant feather from the mythical bird that brings prosperity. Whenever you play a Straight or better, gain 1 Ginto.",
+      emoji: "🦚"
+    },
+    price: 170,
+    currency: "ginto",
+    emoji: "🦚"
   }
 ];
 
@@ -130,12 +160,12 @@ export const premiumShopItems: ShopItem[] = [
   {
     id: "shop_bargain_talisman",
     name: "Bargain Talisman",
-    description: "The first shop item you buy each act is free.",
+    description: "A gemstone that negotiates with shopkeepers on your behalf. The first shop item you buy each act is free.",
     type: "relic",
     item: {
       id: "bargain_talisman",
       name: "Bargain Talisman",
-      description: "The first shop item you buy each act is free.",
+      description: "A gemstone that negotiates with shopkeepers on your behalf. The first shop item you buy each act is free.",
       emoji: "💎"
     },
     price: 3,
@@ -145,12 +175,12 @@ export const premiumShopItems: ShopItem[] = [
   {
     id: "shop_lucky_charm",
     name: "Lucky Charm",
-    description: "Whenever you play a Straight or better, gain 1 Ginto.",
+    description: "A mutya jewel that brings fortune to its bearer. Whenever you play a Straight or better, gain 1 Ginto.",
     type: "relic",
     item: {
       id: "lucky_charm",
       name: "Lucky Charm",
-      description: "Whenever you play a Straight or better, gain 1 Ginto.",
+      description: "A mutya jewel that brings fortune to its bearer. Whenever you play a Straight or better, gain 1 Ginto.",
       emoji: "🍀"
     },
     price: 2,
@@ -160,12 +190,12 @@ export const premiumShopItems: ShopItem[] = [
   {
     id: "shop_echo_ancestors",
     name: "Echo of the Ancestors",
-    description: "Enables Five of a Kind poker hands.",
+    description: "The whispered wisdom of your forebears that unlocks hidden potential. Enables Five of a Kind poker hands.",
     type: "relic",
     item: {
       id: "echo_ancestors",
       name: "Echo of the Ancestors",
-      description: "Enables Five of a Kind poker hands.",
+      description: "The whispered wisdom of your forebears that unlocks hidden potential. Enables Five of a Kind poker hands.",
       emoji: "🌟"
     },
     price: 5,
@@ -175,12 +205,12 @@ export const premiumShopItems: ShopItem[] = [
   {
     id: "shop_diwatas_crown",
     name: "Diwata's Crown",
-    description: "Start each combat with 10 Block and gain 1 temporary Dexterity.",
+    description: "A crown blessed by the benevolent nature spirits. Start each combat with 10 Block and gain 1 temporary Dexterity.",
     type: "relic",
     item: {
       id: "diwatas_crown",
       name: "Diwata's Crown",
-      description: "Start each combat with 10 Block and gain 1 temporary Dexterity.",
+      description: "A crown blessed by the benevolent nature spirits. Start each combat with 10 Block and gain 1 temporary Dexterity.",
       emoji: "👑"
     },
     price: 4,
@@ -190,17 +220,47 @@ export const premiumShopItems: ShopItem[] = [
   {
     id: "shop_stone_golem_heart",
     name: "Stone Golem's Heart",
-    description: "Gain 10 Max HP. At the start of combat, gain 2 Block.",
+    description: "The eternal heart of an earth guardian. Gain 10 Max HP. At the start of combat, gain 2 Block.",
     type: "relic",
     item: {
       id: "stone_golem_heart",
       name: "Stone Golem's Heart",
-      description: "Gain 10 Max HP. At the start of combat, gain 2 Block.",
+      description: "The eternal heart of an earth guardian. Gain 10 Max HP. At the start of combat, gain 2 Block.",
       emoji: "❤️"
     },
     price: 4,
     currency: "diamante",
     emoji: "❤️"
+  },
+  {
+    id: "shop_bakunawa_scale",
+    name: "Bakunawa Scale",
+    description: "A scale from the great serpent that devours the moon. Reduces all incoming damage by 1 and gain 5 Max HP.",
+    type: "relic",
+    item: {
+      id: "bakunawa_scale",
+      name: "Bakunawa Scale",
+      description: "A scale from the great serpent that devours the moon. Reduces all incoming damage by 1 and gain 5 Max HP.",
+      emoji: "🌙"
+    },
+    price: 5,
+    currency: "diamante",
+    emoji: "🌙"
+  },
+  {
+    id: "shop_tigmamanukan_eye",
+    name: "Tigmamanukan's Eye",
+    description: "The all-seeing eye of the prophetic bird. Draw 1 additional card at the start of each combat.",
+    type: "relic",
+    item: {
+      id: "tigmamanukan_eye",
+      name: "Tigmamanukan's Eye",
+      description: "The all-seeing eye of the prophetic bird. Draw 1 additional card at the start of each combat.",
+      emoji: "👁️"
+    },
+    price: 3,
+    currency: "diamante",
+    emoji: "👁️"
   },
   // Diamante shop items
   {
