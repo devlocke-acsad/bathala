@@ -2,7 +2,7 @@ import { Relic } from "../../core/types/CombatTypes";
 
 /**
  * Shop Items for Bathala
- * Based on Filipino mythology and the game's design document
+ * Based on Filipino mythology - Chapter 1: The Corrupted Ancestral Forests
  */
 
 export interface ShopItem {
@@ -16,52 +16,52 @@ export interface ShopItem {
   emoji: string;
 }
 
-// Common shop relics
+// Common shop relics (updated to match Act 1 relics)
 export const shopRelics: ShopItem[] = [
   {
-    id: "shop_earthwardens_plate",
-    name: "Earthwarden's Plate",
-    description: "Start each combat with 5 Block. Cannot be broken by non-attack damage.",
+    id: "shop_tikbalangs_hoof",
+    name: "Tikbalang's Hoof",
+    description: "Gain 10% chance to dodge attacks. Inspiration: Trickery (Ramos, 1990)",
     type: "relic",
     item: {
-      id: "earthwardens_plate",
-      name: "Earthwarden's Plate",
-      description: "Start each combat with 5 Block. Cannot be broken by non-attack damage.",
-      emoji: "🛡️"
+      id: "tikbalangs_hoof",
+      name: "Tikbalang's Hoof",
+      description: "Gain 10% chance to dodge attacks. Inspiration: Trickery (Ramos, 1990)",
+      emoji: "🐴"
     },
     price: 150,
     currency: "ginto",
-    emoji: "🛡️"
+    emoji: "🐴"
   },
   {
-    id: "shop_swift_wind_agimat",
-    name: "Agimat of the Swift Wind",
-    description: "Start each combat with 1 additional discard charge.",
+    id: "shop_balete_root",
+    name: "Balete Root",
+    description: "Gain 2 Block for each Lupa card played. Inspiration: Portals (Samar, 2019)",
     type: "relic",
     item: {
-      id: "swift_wind_agimat",
-      name: "Agimat of the Swift Wind",
-      description: "Start each combat with 1 additional discard charge.",
-      emoji: "💨"
+      id: "balete_root",
+      name: "Balete Root",
+      description: "Gain 2 Block for each Lupa card played. Inspiration: Portals (Samar, 2019)",
+      emoji: "🌳"
     },
     price: 120,
     currency: "ginto",
-    emoji: "💨"
+    emoji: "🌳"
   },
   {
-    id: "shop_ember_fetish",
-    name: "Ember Fetish",
-    description: "At the start of your turn, if you have no Block, gain 3 Strength.",
+    id: "shop_sigbin_heart",
+    name: "Sigbin Heart",
+    description: "Deal 5 additional damage when you Burst. Inspiration: Amulets (Eugenio, 2001)",
     type: "relic",
     item: {
-      id: "ember_fetish",
-      name: "Ember Fetish",
-      description: "At the start of your turn, if you have no Block, gain 3 Strength.",
-      emoji: "🔥"
+      id: "sigbin_heart",
+      name: "Sigbin Heart",
+      description: "Deal 5 additional damage when you Burst. Inspiration: Amulets (Eugenio, 2001)",
+      emoji: "❤️"
     },
     price: 100,
     currency: "ginto",
-    emoji: "🔥"
+    emoji: "❤️"
   },
   {
     id: "shop_merchants_scale",
@@ -79,49 +79,49 @@ export const shopRelics: ShopItem[] = [
     emoji: "⚖️"
   },
   {
-    id: "shop_babaylans_talisman",
-    name: "Babaylan's Talisman",
-    description: "Your hand is always considered one tier higher when evaluating poker hands.",
+    id: "shop_forest_wardens_bark",
+    name: "Forest Warden's Bark",
+    description: "Gain 1 Strength for each Hangin card played.",
     type: "relic",
     item: {
-      id: "babaylans_talisman",
-      name: "Babaylan's Talisman",
-      description: "Your hand is always considered one tier higher when evaluating poker hands.",
-      emoji: "📿"
-    },
-    price: 180,
-    currency: "ginto",
-    emoji: "📿"
-  },
-  {
-    id: "shop_ancestral_blade",
-    name: "Ancestral Blade",
-    description: "Each time you play a Flush, gain 2 temporary Strength.",
-    type: "relic",
-    item: {
-      id: "ancestral_blade",
-      name: "Ancestral Blade",
-      description: "Each time you play a Flush, gain 2 temporary Strength.",
-      emoji: "⚔️"
+      id: "forest_wardens_bark",
+      name: "Forest Warden's Bark",
+      description: "Gain 1 Strength for each Hangin card played.",
+      emoji: "🌿"
     },
     price: 160,
     currency: "ginto",
-    emoji: "⚔️"
+    emoji: "🌿"
   },
   {
-    id: "shop_tidal_amulet",
-    name: "Tidal Amulet",
-    description: "At the end of your turn, heal 2 HP for each card in your hand.",
+    id: "shop_wind_dancers_tassel",
+    name: "Wind Dancer's Tassel",
+    description: "Gain 1 additional discard charge each combat.",
     type: "relic",
     item: {
-      id: "tidal_amulet",
-      name: "Tidal Amulet",
-      description: "At the end of your turn, heal 2 HP for each card in your hand.",
-      emoji: "🌊"
+      id: "wind_dancers_tassel",
+      name: "Wind Dancer's Tassel",
+      description: "Gain 1 additional discard charge each combat.",
+      emoji: "🎐"
     },
     price: 140,
     currency: "ginto",
-    emoji: "🌊"
+    emoji: "🎐"
+  },
+  {
+    id: "shop_anito_stone",
+    name: "Anito Stone",
+    description: "At the start of combat, gain Block equal to 3 times the number of different suits in your hand.",
+    type: "relic",
+    item: {
+      id: "anito_stone",
+      name: "Anito Stone",
+      description: "At the start of combat, gain Block equal to 3 times the number of different suits in your hand.",
+      emoji: "🗿"
+    },
+    price: 180,
+    currency: "ginto",
+    emoji: "🗿"
   }
 ];
 
@@ -143,64 +143,64 @@ export const premiumShopItems: ShopItem[] = [
     emoji: "💎"
   },
   {
-    id: "shop_lucky_charm",
-    name: "Lucky Charm",
-    description: "Whenever you play a Straight or better, gain 1 Ginto.",
+    id: "shop_kapres_cigar",
+    name: "Kapre's Cigar",
+    description: "Summon a 5 HP minion at the start of combat. Inspiration: Smoke (Ramos, 1990)",
     type: "relic",
     item: {
-      id: "lucky_charm",
-      name: "Lucky Charm",
-      description: "Whenever you play a Straight or better, gain 1 Ginto.",
-      emoji: "🍀"
+      id: "kapres_cigar",
+      name: "Kapre's Cigar",
+      description: "Summon a 5 HP minion at the start of combat. Inspiration: Smoke (Ramos, 1990)",
+      emoji: " Maduro"
     },
-    price: 2,
+    price: 4,
     currency: "diamante",
-    emoji: "🍀"
+    emoji: " Maduro"
   },
   {
-    id: "shop_echo_ancestors",
-    name: "Echo of the Ancestors",
-    description: "Enables Five of a Kind poker hands.",
+    id: "shop_mangangaway_wand",
+    name: "Mangangaway Wand",
+    description: "Ignore 1 curse card each combat. Inspiration: Hexes (Eugenio, 2001)",
     type: "relic",
     item: {
-      id: "echo_ancestors",
-      name: "Echo of the Ancestors",
-      description: "Enables Five of a Kind poker hands.",
-      emoji: "🌟"
+      id: "mangangaway_wand",
+      name: "Mangangaway Wand",
+      description: "Ignore 1 curse card each combat. Inspiration: Hexes (Eugenio, 2001)",
+      emoji: "🪄"
     },
     price: 5,
     currency: "diamante",
-    emoji: "🌟"
+    emoji: "🪄"
   },
   {
-    id: "shop_diwatas_crown",
-    name: "Diwata's Crown",
-    description: "Start each combat with 10 Block and gain 1 temporary Dexterity.",
+    id: "shop_lupa_diwa_shard",
+    name: "Lupa Diwa Shard",
+    description: "Purify 1 additional card when visiting the shrine. Post-Boss Resolution: 'Hexes lift; earth stirs.'",
     type: "relic",
     item: {
-      id: "diwatas_crown",
-      name: "Diwata's Crown",
-      description: "Start each combat with 10 Block and gain 1 temporary Dexterity.",
-      emoji: "👑"
+      id: "lupa_diwa_shard",
+      name: "Lupa Diwa Shard",
+      description: "Purify 1 additional card when visiting the shrine. Post-Boss Resolution: 'Hexes lift; earth stirs.'",
+      emoji: "🔶"
     },
-    price: 4,
+    price: 6,
     currency: "diamante",
-    emoji: "👑"
+    emoji: "🔶"
   },
   {
-    id: "shop_stone_golem_heart",
-    name: "Stone Golem's Heart",
-    description: "Gain 10 Max HP. At the start of combat, gain 2 Block.",
+    id: "shop_engkanto_whisper",
+    name: "Engkanto Whisper",
+    description: "When you play a Flush, draw 1 card. Gain 1 curse card.",
     type: "relic",
     item: {
-      id: "stone_golem_heart",
-      name: "Stone Golem's Heart",
-      description: "Gain 10 Max HP. At the start of combat, gain 2 Block.",
-      emoji: "❤️"
+      id: "engkanto_whisper",
+      name: "Engkanto Whisper",
+      description: "When you play a Flush, draw 1 card. Gain 1 curse card.",
+      emoji: "👻"
     },
-    price: 4,
+    price: 3,
     currency: "diamante",
-    emoji: "❤️"
+    emoji: "👻"
   },
   // Diamante shop items
   {
@@ -219,19 +219,19 @@ export const premiumShopItems: ShopItem[] = [
     emoji: "🛡️"
   },
   {
-    id: "shop_wind_dancer_boots",
-    name: "Wind Dancer's Boots",
-    description: "Gain 2 Dexterity and start each combat with +2 discard charges.",
+    id: "shop_forest_guardians_helm",
+    name: "Forest Guardian's Helm",
+    description: "Gain 10 Block at the start of each combat. Gain 1 Strength for each different suit in your hand.",
     type: "relic",
     item: {
-      id: "wind_dancer_boots",
-      name: "Wind Dancer's Boots",
-      description: "Gain 2 Dexterity and start each combat with +2 discard charges.",
-      emoji: "👢"
+      id: "forest_guardians_helm",
+      name: "Forest Guardian's Helm",
+      description: "Gain 10 Block at the start of each combat. Gain 1 Strength for each different suit in your hand.",
+      emoji: "⛑️"
     },
     price: 75,
     currency: "diamante",
-    emoji: "👢"
+    emoji: "⛑️"
   }
 ];
 
