@@ -57,7 +57,7 @@ export class Overworld extends Scene {
   private tooltipBackground!: Phaser.GameObjects.Rectangle;
   private tooltipNameText!: Phaser.GameObjects.Text;
   private tooltipTypeText!: Phaser.GameObjects.Text;
-  private tooltipSymbolText!: Phaser.GameObjects.Text;
+  private tooltipSpriteContainer!: Phaser.GameObjects.Container;
   private tooltipStatsText!: Phaser.GameObjects.Text;
   private tooltipDescriptionText!: Phaser.GameObjects.Text;
   private isTooltipVisible: boolean = false;
@@ -4048,17 +4048,17 @@ ${potion.description}`, {
     
     // Tooltip background with shadow effect
     const shadowOffset = 3;
-    const tooltipShadow = this.add.rectangle(shadowOffset, shadowOffset, 300, 200, 0x000000)
+    const tooltipShadow = this.add.rectangle(shadowOffset, shadowOffset, 400, 240, 0x000000)
       .setAlpha(0.4)
       .setOrigin(0);
     
     // Main tooltip background (will be resized dynamically)
-    this.tooltipBackground = this.add.rectangle(0, 0, 300, 200, 0x1d151a)
+    this.tooltipBackground = this.add.rectangle(0, 0, 400, 240, 0x1d151a)
       .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0);
       
     // Header background for enemy name/type
-    const headerBackground = this.add.rectangle(0, 0, 300, 50, 0x2a1f24)
+    const headerBackground = this.add.rectangle(0, 0, 400, 60, 0x2a1f24)
       .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0);
       
@@ -4078,35 +4078,32 @@ ${potion.description}`, {
       fontStyle: "bold"
     }).setOrigin(0);
     
-    // Enemy symbol/emoji
-    this.tooltipSymbolText = this.add.text(270, 25, "", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 24,
-      color: "#e8eced"
-    }).setOrigin(0.5);
+    // Enemy sprite (will be created dynamically)
+    this.tooltipSpriteContainer = this.add.container(320, 30);
+    this.tooltipSpriteContainer.setSize(60, 60); // Set a larger size for the sprite area
     
     // Stats section separator
-    const statsSeparator = this.add.rectangle(10, 60, 280, 1, 0x4a3a40).setOrigin(0);
+    const statsSeparator = this.add.rectangle(10, 70, 380, 1, 0x4a3a40).setOrigin(0);
     
     // Enemy stats
-    this.tooltipStatsText = this.add.text(15, 70, "", {
+    this.tooltipStatsText = this.add.text(15, 80, "", {
       fontFamily: "dungeon-mode",
       fontSize: 11,
       color: "#c9a74a",
-      wordWrap: { width: 270 },
+      wordWrap: { width: 360 },
       lineSpacing: 2,
       fontStyle: "bold"
     }).setOrigin(0);
     
     // Description section separator  
-    const descSeparator = this.add.rectangle(10, 110, 280, 1, 0x4a3a40).setOrigin(0);
+    const descSeparator = this.add.rectangle(10, 130, 380, 1, 0x4a3a40).setOrigin(0);
     
     // Enemy description
-    this.tooltipDescriptionText = this.add.text(15, 120, "", {
+    this.tooltipDescriptionText = this.add.text(15, 140, "", {
       fontFamily: "dungeon-mode",
       fontSize: 10,
       color: "#8a9a9f",
-      wordWrap: { width: 270 },
+      wordWrap: { width: 360 },
       lineSpacing: 3,
       fontStyle: "italic"
     }).setOrigin(0);
@@ -4126,7 +4123,7 @@ ${potion.description}`, {
       headerBackground,
       this.tooltipNameText,
       this.tooltipTypeText,
-      this.tooltipSymbolText,
+      this.tooltipSpriteContainer,
       statsSeparator,
       this.tooltipStatsText,
       descSeparator,
@@ -4153,7 +4150,7 @@ ${potion.description}`, {
     }
     
     // Validate all tooltip elements exist
-    if (!this.tooltipNameText || !this.tooltipTypeText || !this.tooltipSymbolText || 
+    if (!this.tooltipNameText || !this.tooltipTypeText || !this.tooltipSpriteContainer || 
         !this.tooltipStatsText || !this.tooltipDescriptionText || !this.tooltipBackground) {
       console.warn("Cannot show tooltip: tooltip elements not properly initialized");
       return;
@@ -4162,7 +4159,26 @@ ${potion.description}`, {
     // Update tooltip content
     this.tooltipNameText.setText(enemyInfo.name);
     this.tooltipTypeText.setText(enemyInfo.type.toUpperCase());
-    this.tooltipSymbolText.setText(enemyInfo.symbol);
+    
+    // Clear previous sprite and add new one
+    this.tooltipSpriteContainer.removeAll(true);
+    if (enemyInfo.spriteKey) {
+      const sprite = this.add.sprite(0, 0, enemyInfo.spriteKey);
+      sprite.setOrigin(0.5, 0.5);
+      
+      // Scale to fit the larger container nicely
+      const targetSize = 48; // Increased from 32 to 48 for better visibility
+      const scale = targetSize / Math.max(sprite.width, sprite.height);
+      sprite.setScale(scale);
+      
+      // If it's an animated sprite, play the idle animation
+      if (enemyInfo.animationKey && this.anims.exists(enemyInfo.animationKey)) {
+        sprite.play(enemyInfo.animationKey);
+      }
+      
+      this.tooltipSpriteContainer.add(sprite);
+    }
+    
     this.tooltipStatsText.setText(`Health: ${enemyInfo.health}\nDamage: ${enemyInfo.damage}\nAbilities: ${enemyInfo.abilities.join(", ")}`);
     this.tooltipDescriptionText.setText(enemyInfo.description);
     
@@ -4183,26 +4199,27 @@ ${potion.description}`, {
     }
     
     // Calculate dynamic tooltip size based on content
-    const padding = 15;
-    const headerHeight = 50;
-    const minWidth = 320;
-    const maxWidth = 450;
+    const padding = 20;
+    const headerHeight = 60;
+    const minWidth = 420;
+    const maxWidth = 550;
     
     // Get actual text bounds (these should be available immediately after setText)
-    const statsHeight = this.tooltipStatsText?.height || 60;
-    const descHeight = this.tooltipDescriptionText?.height || 80;
+    const statsHeight = this.tooltipStatsText?.height || 70;
+    const descHeight = this.tooltipDescriptionText?.height || 90;
     
     // Calculate required height with proper spacing
     const separatorSpacing = 15;
     const totalHeight = headerHeight + separatorSpacing + statsHeight + separatorSpacing + descHeight + padding * 2;
     
-    // Calculate required width (ensure all content fits)
+    // Calculate required width (ensure all content fits including sprite)
     const nameWidth = this.tooltipNameText?.width || 100;
     const statsWidth = this.tooltipStatsText?.width || 100;
     const descWidth = this.tooltipDescriptionText?.width || 100;
-    const maxContentWidth = Math.max(nameWidth, statsWidth, descWidth);
+    const spriteAreaWidth = 80; // Account for sprite area
+    const maxContentWidth = Math.max(nameWidth + spriteAreaWidth, statsWidth, descWidth);
     const tooltipWidth = Math.max(minWidth, Math.min(maxWidth, maxContentWidth + padding * 2));
-    const tooltipHeight = Math.max(200, totalHeight); // Minimum height
+    const tooltipHeight = Math.max(260, totalHeight); // Increased minimum height
     
     // Get dynamic elements from container data
     const shadow = this.tooltipContainer.getData('shadow') as Phaser.GameObjects.Rectangle;
@@ -4219,11 +4236,11 @@ ${potion.description}`, {
     statsSeparator?.setSize(tooltipWidth - 20, 1);
     statsSeparator?.setPosition(10, headerHeight + 10);
     
-    // Reposition symbol based on new width
-    this.tooltipSymbolText?.setPosition(tooltipWidth - 25, 25);
+    // Reposition sprite container based on new width (more room for larger sprite)
+    this.tooltipSpriteContainer?.setPosition(tooltipWidth - 50, 30);
     
-    // Update text wrapping for the new width
-    const textWidth = tooltipWidth - 30; // Account for padding
+    // Update text wrapping for the new width (account for sprite area)
+    const textWidth = tooltipWidth - 100; // More space for sprite
     this.tooltipStatsText?.setWordWrapWidth(textWidth);
     this.tooltipDescriptionText?.setWordWrapWidth(textWidth);
     
@@ -4289,7 +4306,8 @@ ${potion.description}`, {
           {
             name: TIKBALANG.name,
             type: "Combat",
-            symbol: "🐴",
+            spriteKey: "tikbalang",
+            animationKey: "tikbalang_idle",
             health: TIKBALANG.maxHealth,
             damage: TIKBALANG.damage,
             abilities: ["Forest Navigation", "Illusion Casting"],
@@ -4298,7 +4316,8 @@ ${potion.description}`, {
           {
             name: DWENDE.name,
             type: "Combat", 
-            symbol: "👤",
+            spriteKey: "chort_f0", // Using overworld sprite since no dwende combat sprite
+            animationKey: null,
             health: DWENDE.maxHealth,
             damage: DWENDE.damage,
             abilities: ["Invisibility", "Mischief"],
@@ -4307,7 +4326,8 @@ ${potion.description}`, {
           {
             name: KAPRE.name,
             type: "Combat",
-            symbol: "🚬", 
+            spriteKey: "chort_f0", // Using overworld sprite since no kapre combat sprite
+            animationKey: null,
             health: KAPRE.maxHealth,
             damage: KAPRE.damage,
             abilities: ["Smoke Manipulation", "Tree Dwelling"],
@@ -4316,7 +4336,8 @@ ${potion.description}`, {
           {
             name: SIGBIN.name,
             type: "Combat",
-            symbol: "🐕",
+            spriteKey: "sigbin",
+            animationKey: "sigbin_idle",
             health: SIGBIN.maxHealth, 
             damage: SIGBIN.damage,
             abilities: ["Invisibility", "Shadow Draining"],
@@ -4325,7 +4346,8 @@ ${potion.description}`, {
           {
             name: TIYANAK.name,
             type: "Combat",
-            symbol: "👶",
+            spriteKey: "chort_f0", // Using overworld sprite since no tiyanak combat sprite
+            animationKey: null,
             health: TIYANAK.maxHealth,
             damage: TIYANAK.damage, 
             abilities: ["Shapeshifting", "Deception"],
@@ -4340,7 +4362,8 @@ ${potion.description}`, {
           {
             name: MANANANGGAL.name,
             type: "Elite",
-            symbol: "🦇",
+            spriteKey: "big_demon_f0", // Using overworld elite sprite since no manananggal combat sprite
+            animationKey: null,
             health: MANANANGGAL.maxHealth,
             damage: MANANANGGAL.damage,
             abilities: ["Flight", "Body Segmentation", "Blood Draining"],
@@ -4349,7 +4372,8 @@ ${potion.description}`, {
           {
             name: ASWANG.name,
             type: "Elite", 
-            symbol: "🧟",
+            spriteKey: "big_demon_f0", // Using overworld elite sprite since no aswang combat sprite
+            animationKey: null,
             health: ASWANG.maxHealth,
             damage: ASWANG.damage,
             abilities: ["Shapeshifting", "Cannibalism", "Night Vision"],
@@ -4358,7 +4382,8 @@ ${potion.description}`, {
           {
             name: DUWENDE_CHIEF.name,
             type: "Elite",
-            symbol: "👑",
+            spriteKey: "big_demon_f0", // Using overworld elite sprite since no duwende_chief combat sprite
+            animationKey: null,
             health: DUWENDE_CHIEF.maxHealth,
             damage: DUWENDE_CHIEF.damage,
             abilities: ["Command", "Magic", "Earth Control"],
@@ -4371,7 +4396,8 @@ ${potion.description}`, {
         return {
           name: BAKUNAWA.name,
           type: "Boss",
-          symbol: "🐍",
+          spriteKey: "balete", // Using balete sprite for boss since no bakunawa sprite available
+          animationKey: "balete_idle",
           health: BAKUNAWA.maxHealth,
           damage: BAKUNAWA.damage,
           abilities: ["Eclipse Creation", "Massive Size", "Elemental Control"],
