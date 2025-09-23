@@ -4151,7 +4151,7 @@ ${potion.description}`, {
       return;
     }
     
-    const enemyInfo = this.getEnemyInfoForNodeType(nodeType);
+    const enemyInfo = this.getEnemyInfoForNodeType(nodeType, nodeId);
     if (!enemyInfo) {
       console.warn("Cannot show tooltip: no enemy info for type", nodeType);
       return;
@@ -4324,7 +4324,18 @@ ${potion.description}`, {
   /**
    * Get enemy information for a given node type
    */
-  private getEnemyInfoForNodeType(nodeType: string): any {
+  private getEnemyInfoForNodeType(nodeType: string, nodeId?: string): any {
+    // Create a simple hash from nodeId for consistent enemy selection
+    const getNodeHash = (id: string): number => {
+      let hash = 0;
+      for (let i = 0; i < id.length; i++) {
+        const char = id.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      return Math.abs(hash);
+    };
+
     switch (nodeType) {
       case "combat":
         // Randomly select a common enemy
@@ -4380,7 +4391,10 @@ ${potion.description}`, {
             description: TIYANAK_LORE.description
           }
         ];
-        return commonEnemies[Math.floor(Math.random() * commonEnemies.length)];
+        
+        // Use node ID to consistently select the same enemy for this node
+        const combatIndex = nodeId ? getNodeHash(nodeId) % commonEnemies.length : 0;
+        return commonEnemies[combatIndex];
         
       case "elite":
         // Randomly select an elite enemy
@@ -4416,7 +4430,10 @@ ${potion.description}`, {
             description: DUWENDE_CHIEF_LORE.description
           }
         ];
-        return eliteEnemies[Math.floor(Math.random() * eliteEnemies.length)];
+        
+        // Use node ID to consistently select the same elite enemy for this node
+        const eliteIndex = nodeId ? getNodeHash(nodeId) % eliteEnemies.length : 0;
+        return eliteEnemies[eliteIndex];
         
       case "boss":
         return {
