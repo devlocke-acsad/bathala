@@ -964,6 +964,9 @@ export class Overworld extends Scene {
           
           // Update visible chunks as player moves
           this.updateVisibleChunks();
+          
+          // Move nearby enemy nodes toward player during nighttime
+          this.moveEnemiesNighttime();
         }
       });
     } else {
@@ -1000,6 +1003,189 @@ export class Overworld extends Scene {
       // Remove night overlay
       this.nightOverlay.destroy();
       this.nightOverlay = null;
+    }
+  }
+
+  /**
+   * Move enemy nodes toward the player during nighttime
+   */
+  moveEnemiesNighttime(): void {
+    // Only move enemies during nighttime
+    if (this.gameState.isDay) {
+      return;
+    }
+
+    // Define proximity threshold for enemy movement (in pixels)
+    const movementRange = this.gridSize * 12; // Increased range to 12 grid squares
+
+    // Get player position
+    const playerX = this.player.x;
+    const playerY = this.player.y;
+
+    // Find nearby enemy nodes that should move
+    const enemyNodes = this.nodes.filter(node => 
+      (node.type === "combat" || node.type === "elite") &&
+      Phaser.Math.Distance.Between(
+        playerX, playerY,
+        node.x + this.gridSize / 2, 
+        node.y + this.gridSize / 2
+      ) <= movementRange
+    );
+
+    // Move each enemy node with enhanced AI
+    enemyNodes.forEach(enemyNode => {
+      this.moveEnemyWithEnhancedAI(enemyNode, playerX, playerY);
+    });
+  }
+
+  /**
+   * Enhanced AI movement system for enemies
+   */
+  private moveEnemyWithEnhancedAI(enemyNode: MapNode, playerX: number, playerY: number): void {
+    const currentX = enemyNode.x + this.gridSize / 2;
+    const currentY = enemyNode.y + this.gridSize / 2;
+    const distance = Phaser.Math.Distance.Between(currentX, currentY, playerX, playerY);
+    
+    // Different movement strategies based on distance and enemy type
+    let movementSpeed = this.calculateEnemyMovementSpeed(enemyNode, distance);
+    let movements: {x: number, y: number}[] = [];
+    
+    // Calculate multiple movement steps for faster enemies
+    for (let i = 0; i < movementSpeed; i++) {
+      const stepPosition = this.calculateSingleEnemyStep(
+        currentX + (movements.length > 0 ? movements[movements.length - 1].x - currentX : 0),
+        currentY + (movements.length > 0 ? movements[movements.length - 1].y - currentY : 0),
+        playerX, 
+        playerY
+      );
+      
+      if (stepPosition && this.isValidPosition(stepPosition.x, stepPosition.y)) {
+        movements.push(stepPosition);
+      } else {
+        break; // Stop if we hit a wall or invalid position
+      }
+    }
+    
+    // Execute the movements with staggered timing
+    if (movements.length > 0) {
+      this.executeMultiStepMovement(enemyNode, movements);
+    }
+  }
+
+  /**
+   * Calculate enemy movement speed based on type and distance
+   */
+  private calculateEnemyMovementSpeed(enemyNode: MapNode, distanceToPlayer: number): number {
+    let baseSpeed = 1;
+    
+    // Elite enemies move faster
+    if (enemyNode.type === "elite") {
+      baseSpeed = 2;
+    }
+    
+    // Increase speed based on distance (closer enemies are more aggressive)
+    const gridDistance = distanceToPlayer / this.gridSize;
+    if (gridDistance <= 3) {
+      baseSpeed += 2; // Very close enemies get +2 speed
+    } else if (gridDistance <= 6) {
+      baseSpeed += 1; // Moderately close enemies get +1 speed
+    }
+    
+    // Add some randomization to make movement less predictable
+    if (Math.random() < 0.3) {
+      baseSpeed += 1;
+    }
+    
+    return Math.min(baseSpeed, 4); // Cap at 4 movements per turn
+  }
+
+  /**
+   * Calculate a single movement step toward the player
+   */
+  private calculateSingleEnemyStep(currentX: number, currentY: number, playerX: number, playerY: number): { x: number, y: number } | null {
+    // Calculate direction to player
+    const deltaX = playerX - currentX;
+    const deltaY = playerY - currentY;
+    
+    // If already at player position, don't move
+    if (Math.abs(deltaX) < this.gridSize / 2 && Math.abs(deltaY) < this.gridSize / 2) {
+      return null;
+    }
+    
+    // Smart movement: try diagonal movement first for more efficient pathfinding
+    let newX = currentX;
+    let newY = currentY;
+    
+    // 70% chance to move diagonally if both axes need movement
+    if (Math.abs(deltaX) > this.gridSize / 2 && Math.abs(deltaY) > this.gridSize / 2 && Math.random() < 0.7) {
+      newX = currentX + (deltaX > 0 ? this.gridSize : -this.gridSize);
+      newY = currentY + (deltaY > 0 ? this.gridSize : -this.gridSize);
+    } else {
+      // Standard movement: prioritize the axis with larger distance
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        newX = currentX + (deltaX > 0 ? this.gridSize : -this.gridSize);
+      } else {
+        newY = currentY + (deltaY > 0 ? this.gridSize : -this.gridSize);
+      }
+    }
+    
+    // Convert back to node coordinates (top-left corner)
+    return {
+      x: newX - this.gridSize / 2,
+      y: newY - this.gridSize / 2
+    };
+  }
+
+  /**
+   * Execute multiple movement steps with staggered timing
+   */
+  private executeMultiStepMovement(enemyNode: MapNode, movements: {x: number, y: number}[]): void {
+    movements.forEach((movement, index) => {
+      this.time.delayedCall(index * 100, () => { // 100ms delay between each step
+        this.animateEnemyMovement(enemyNode, movement.x, movement.y);
+      });
+    });
+  }
+
+
+  /**
+   * Animate enemy movement to new position
+   */
+  private animateEnemyMovement(enemyNode: MapNode, newX: number, newY: number): void {
+    // Update node position
+    enemyNode.x = newX;
+    enemyNode.y = newY;
+    
+    // Get the corresponding sprite
+    const sprite = this.nodeSprites.get(enemyNode.id);
+    if (sprite) {
+      // Add visual feedback for aggressive movement
+      const isAggressiveMove = enemyNode.type === "elite";
+      
+      // Create a brief flash effect for elite enemies
+      if (isAggressiveMove) {
+        sprite.setTint(0xff4444); // Red tint for aggressive movement
+        this.time.delayedCall(150, () => {
+          sprite.clearTint();
+        });
+      }
+      
+      // Animate sprite movement with dynamic timing
+      this.tweens.add({
+        targets: sprite,
+        x: newX + this.gridSize / 2,
+        y: newY + this.gridSize / 2,
+        duration: isAggressiveMove ? 120 : 180, // Faster movement for elite enemies
+        ease: 'Power2',
+        onStart: () => {
+          // Slightly scale up during movement for emphasis
+          sprite.setScale(1.6);
+        },
+        onComplete: () => {
+          // Return to normal scale
+          sprite.setScale(1.5);
+        }
+      });
     }
   }
 
