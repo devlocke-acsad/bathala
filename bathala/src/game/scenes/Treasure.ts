@@ -1,7 +1,7 @@
 import { Scene } from "phaser";
 import { GameState } from "../../core/managers/GameState";
 import { Player, Relic } from "../../core/types/CombatTypes";
-import { treasureRelics } from "../../data/relics/Act1Relics";
+import { act1TreasureRelics } from "../../data/relics";
 
 export class Treasure extends Scene {
   private player!: Player;
@@ -17,6 +17,11 @@ export class Treasure extends Scene {
 
   init(data: { player: Player }) {
     this.player = data.player;
+    
+    // For now, use Act 1 treasure relics
+    // TODO: Implement act-based relic selection when act tracking is added to GameState
+    const treasureRelics = act1TreasureRelics;
+    
     // Select 3 random treasure relics that player doesn't already have
     const availableRelics = treasureRelics.filter(
       relic => !this.player.relics.some(r => r.id === relic.id)
