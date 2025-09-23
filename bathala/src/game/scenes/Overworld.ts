@@ -1016,7 +1016,7 @@ export class Overworld extends Scene {
     }
 
     // Define proximity threshold for enemy movement (in pixels)
-    const movementRange = this.gridSize * 12; // Increased range to 12 grid squares
+    const movementRange = this.gridSize * 10; // Reduced to 10 grid squares for more breathing room
 
     // Get player position
     const playerX = this.player.x;
@@ -1078,25 +1078,23 @@ export class Overworld extends Scene {
   private calculateEnemyMovementSpeed(enemyNode: MapNode, distanceToPlayer: number): number {
     let baseSpeed = 1;
     
-    // Elite enemies move faster
+    // Elite enemies only get a small speed boost
     if (enemyNode.type === "elite") {
-      baseSpeed = 2;
+      baseSpeed = 1; // Reduced from 2 to 1
     }
     
-    // Increase speed based on distance (closer enemies are more aggressive)
+    // Much more conservative distance-based speed increases
     const gridDistance = distanceToPlayer / this.gridSize;
-    if (gridDistance <= 3) {
-      baseSpeed += 2; // Very close enemies get +2 speed
-    } else if (gridDistance <= 6) {
-      baseSpeed += 1; // Moderately close enemies get +1 speed
+    if (gridDistance <= 2) {
+      baseSpeed += 1; // Only very close enemies (2 grids) get +1 speed
     }
     
-    // Add some randomization to make movement less predictable
-    if (Math.random() < 0.3) {
+    // Reduced randomization chance and impact
+    if (Math.random() < 0.15) { // Reduced from 30% to 15%
       baseSpeed += 1;
     }
     
-    return Math.min(baseSpeed, 4); // Cap at 4 movements per turn
+    return Math.min(baseSpeed, 2); // Cap at 2 movements per turn instead of 4
   }
 
   /**
@@ -1112,12 +1110,12 @@ export class Overworld extends Scene {
       return null;
     }
     
-    // Smart movement: try diagonal movement first for more efficient pathfinding
+    // More predictable movement: mostly stick to axis-aligned movement
     let newX = currentX;
     let newY = currentY;
     
-    // 70% chance to move diagonally if both axes need movement
-    if (Math.abs(deltaX) > this.gridSize / 2 && Math.abs(deltaY) > this.gridSize / 2 && Math.random() < 0.7) {
+    // Reduced diagonal movement chance for more predictable behavior
+    if (Math.abs(deltaX) > this.gridSize / 2 && Math.abs(deltaY) > this.gridSize / 2 && Math.random() < 0.3) {
       newX = currentX + (deltaX > 0 ? this.gridSize : -this.gridSize);
       newY = currentY + (deltaY > 0 ? this.gridSize : -this.gridSize);
     } else {
@@ -1141,7 +1139,7 @@ export class Overworld extends Scene {
    */
   private executeMultiStepMovement(enemyNode: MapNode, movements: {x: number, y: number}[]): void {
     movements.forEach((movement, index) => {
-      this.time.delayedCall(index * 100, () => { // 100ms delay between each step
+      this.time.delayedCall(index * 300, () => { // Increased to 300ms delay between each step
         this.animateEnemyMovement(enemyNode, movement.x, movement.y);
       });
     });
