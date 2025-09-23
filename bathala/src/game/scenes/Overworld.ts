@@ -1149,7 +1149,7 @@ export class Overworld extends Scene {
     if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
       nodeSprite.setInteractive();
       
-      nodeSprite.on('pointerover', () => {
+      nodeSprite.on('pointerover', (pointer: Phaser.Input.Pointer) => {
         console.log(`🖱️ Hovering over ${node.type} enemy at ${node.id}`);
         
         // Cancel any pending tooltip timer
@@ -1160,8 +1160,8 @@ export class Overworld extends Scene {
         // Set current hovered node
         this.lastHoveredNodeId = node.id;
         
-        // Show enemy tooltip immediately with better state management
-        this.showEnemyTooltipImmediate(node.type, node.id);
+        // Show enemy tooltip immediately with mouse position for dynamic placement
+        this.showEnemyTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
         
         // Add hover effect to sprite
         this.tweens.add({
@@ -1170,6 +1170,14 @@ export class Overworld extends Scene {
           duration: 150,
           ease: 'Power2'
         });
+      });
+      
+      // Update tooltip position on mouse move while hovering
+      nodeSprite.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+        // Only update if tooltip is currently visible and this is the active node
+        if (this.isTooltipVisible && this.lastHoveredNodeId === node.id) {
+          this.updateTooltipSizeAndPositionImmediate(pointer.x, pointer.y);
+        }
       });
       
       nodeSprite.on('pointerout', () => {
@@ -4136,7 +4144,7 @@ ${potion.description}`, {
   /**
    * Show enemy tooltip with information - immediate version without timing issues
    */
-  private showEnemyTooltipImmediate(nodeType: string, nodeId: string): void {
+  private showEnemyTooltipImmediate(nodeType: string, nodeId: string, mouseX?: number, mouseY?: number): void {
     // Validate inputs and state
     if (!nodeType || !this.tooltipContainer) {
       console.warn("Cannot show tooltip: missing nodeType or tooltip not initialized");
@@ -4183,7 +4191,7 @@ ${potion.description}`, {
     this.tooltipDescriptionText.setText(enemyInfo.description);
     
     // Update size and position immediately - no delayed call
-    this.updateTooltipSizeAndPositionImmediate();
+    this.updateTooltipSizeAndPositionImmediate(mouseX, mouseY);
     
     // Show tooltip
     this.tooltipContainer.setVisible(true);
@@ -4193,7 +4201,7 @@ ${potion.description}`, {
   /**
    * Update tooltip size and position - immediate version
    */
-  private updateTooltipSizeAndPositionImmediate(): void {
+  private updateTooltipSizeAndPositionImmediate(mouseX?: number, mouseY?: number): void {
     if (!this.tooltipContainer || !this.tooltipBackground) {
       return;
     }
@@ -4255,25 +4263,43 @@ ${potion.description}`, {
     const descY = descSeparatorY + 15;
     this.tooltipDescriptionText?.setPosition(15, descY);
     
-    // Position tooltip next to the status UI panel (left side)
+    // Position tooltip dynamically based on mouse position or fallback to center
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Status panel is at x=20, width=320, so place tooltip right next to it
-    const statusPanelWidth = 320;
-    const statusPanelX = 20;
-    const marginBetween = 20; // Gap between status panel and tooltip
+    let tooltipX: number;
+    let tooltipY: number;
     
-    const tooltipX = statusPanelX + statusPanelWidth + marginBetween; // Position right of status panel
-    const tooltipY = Math.max(20, (screenHeight - tooltipHeight) / 2); // Vertically centered, with minimum margin
-    
-    // Ensure tooltip doesn't go off-screen
-    const maxTooltipX = screenWidth - tooltipWidth - 20;
-    const finalX = Math.min(tooltipX, maxTooltipX);
-    const finalY = Math.max(20, Math.min(tooltipY, screenHeight - tooltipHeight - 20));
+    if (mouseX !== undefined && mouseY !== undefined) {
+      // Position tooltip near mouse cursor
+      const offset = 20; // Offset from cursor to avoid overlap
+      tooltipX = mouseX + offset;
+      tooltipY = mouseY - tooltipHeight / 2; // Center vertically on cursor
+      
+      // Ensure tooltip doesn't go off-screen (right edge)
+      if (tooltipX + tooltipWidth > screenWidth - 20) {
+        tooltipX = mouseX - tooltipWidth - offset; // Position to the left of cursor
+      }
+      
+      // Ensure tooltip doesn't go off-screen (vertical bounds)
+      tooltipY = Math.max(20, Math.min(tooltipY, screenHeight - tooltipHeight - 20));
+      
+    } else {
+      // Fallback to status panel positioning if no mouse coordinates
+      const statusPanelWidth = 320;
+      const statusPanelX = 20;
+      const marginBetween = 20;
+      
+      tooltipX = statusPanelX + statusPanelWidth + marginBetween;
+      tooltipY = Math.max(20, (screenHeight - tooltipHeight) / 2);
+      
+      // Ensure fallback doesn't go off-screen
+      const maxTooltipX = screenWidth - tooltipWidth - 20;
+      tooltipX = Math.min(tooltipX, maxTooltipX);
+    }
     
     // Position tooltip
-    this.tooltipContainer.setPosition(finalX, finalY);
+    this.tooltipContainer.setPosition(tooltipX, tooltipY);
   }
   
   /**
