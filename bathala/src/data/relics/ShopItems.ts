@@ -19,59 +19,74 @@ export interface ShopItem {
 // Common shop relics (updated to match Act 1 relics)
 export const shopRelics: ShopItem[] = [
   {
-    id: "shop_tikbalangs_hoof",
-    name: "Tikbalang's Hoof",
-    description: "Gain 10% chance to dodge attacks. Inspiration: Trickery (Ramos, 1990)",
+    id: "shop_earthwardens_plate",
+    name: "Earthwarden's Plate",
+    description: "Forged from the sacred linga stones of the mountain spirits. Start each combat with 5 Block that cannot be broken by non-attack damage.",
     type: "relic",
     item: {
-      id: "tikbalangs_hoof",
-      name: "Tikbalang's Hoof",
-      description: "Gain 10% chance to dodge attacks. Inspiration: Trickery (Ramos, 1990)",
-      emoji: "🐴"
+      id: "earthwardens_plate",
+      name: "Earthwarden's Plate",
+      description: "Forged from the sacred linga stones of the mountain spirits. Start each combat with 5 Block that cannot be broken by non-attack damage.",
+      emoji: "🛡️"
     },
     price: 150,
     currency: "ginto",
-    emoji: "🐴"
+    emoji: "🛡️"
   },
   {
-    id: "shop_balete_root",
-    name: "Balete Root",
-    description: "Gain 2 Block for each Lupa card played. Inspiration: Portals (Samar, 2019)",
+    id: "shop_swift_wind_agimat",
+    name: "Agimat of the Swift Wind",
+    description: "A blessed talisman that captures the essence of Tikbalang's speed. Start each combat with 1 additional discard charge.",
     type: "relic",
     item: {
-      id: "balete_root",
-      name: "Balete Root",
-      description: "Gain 2 Block for each Lupa card played. Inspiration: Portals (Samar, 2019)",
-      emoji: "🌳"
+      id: "swift_wind_agimat",
+      name: "Agimat of the Swift Wind",
+      description: "A blessed talisman that captures the essence of Tikbalang's speed. Start each combat with 1 additional discard charge.",
+      emoji: "💨"
     },
     price: 120,
     currency: "ginto",
-    emoji: "🌳"
+    emoji: "💨"
   },
   {
-    id: "shop_sigbin_heart",
-    name: "Sigbin Heart",
-    description: "Deal 5 additional damage when you Burst. Inspiration: Amulets (Eugenio, 2001)",
+    id: "shop_ember_fetish",
+    name: "Ember Fetish",
+    description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 3 Strength.",
     type: "relic",
     item: {
-      id: "sigbin_heart",
-      name: "Sigbin Heart",
-      description: "Deal 5 additional damage when you Burst. Inspiration: Amulets (Eugenio, 2001)",
-      emoji: "❤️"
+      id: "ember_fetish",
+      name: "Ember Fetish",
+      description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 3 Strength.",
+      emoji: "🔥"
     },
     price: 100,
     currency: "ginto",
-    emoji: "❤️"
+    emoji: "🔥"
+  },
+  {
+    id: "shop_umalagad_spirit",
+    name: "Umalagad's Spirit",
+    description: "The protective essence of a sea serpent that guides travelers. Gain 1 temporary Dexterity at the start of each combat.",
+    type: "relic",
+    item: {
+      id: "umalagad_spirit",
+      name: "Umalagad's Spirit",
+      description: "The protective essence of a sea serpent that guides travelers. Gain 1 temporary Dexterity at the start of each combat.",
+      emoji: "🐍"
+    },
+    price: 130,
+    currency: "ginto",
+    emoji: "🐍"
   },
   {
     id: "shop_merchants_scale",
     name: "Merchant's Scale",
-    description: "All shop items are 20% cheaper.",
+    description: "A balance blessed by Lakambini to ensure fair trade. All shop items are 20% cheaper.",
     type: "relic",
     item: {
       id: "merchants_scale",
       name: "Merchant's Scale",
-      description: "All shop items are 20% cheaper.",
+      description: "A balance blessed by Lakambini to ensure fair trade. All shop items are 20% cheaper.",
       emoji: "⚖️"
     },
     price: 200,
@@ -79,49 +94,64 @@ export const shopRelics: ShopItem[] = [
     emoji: "⚖️"
   },
   {
-    id: "shop_forest_wardens_bark",
-    name: "Forest Warden's Bark",
-    description: "Gain 1 Strength for each Hangin card played.",
+    id: "shop_babaylans_talisman",
+    name: "Babaylan's Talisman",
+    description: "A sacred amulet blessed by the ancient shamans. Your hand is always considered one tier higher when evaluating poker hands.",
     type: "relic",
     item: {
-      id: "forest_wardens_bark",
-      name: "Forest Warden's Bark",
-      description: "Gain 1 Strength for each Hangin card played.",
-      emoji: "🌿"
+      id: "babaylans_talisman",
+      name: "Babaylan's Talisman",
+      description: "A sacred amulet blessed by the ancient shamans. Your hand is always considered one tier higher when evaluating poker hands.",
+      emoji: "📿"
     },
     price: 160,
     currency: "ginto",
-    emoji: "🌿"
+    emoji: "📿"
   },
   {
-    id: "shop_wind_dancers_tassel",
-    name: "Wind Dancer's Tassel",
-    description: "Gain 1 additional discard charge each combat.",
+    id: "shop_ancestral_blade",
+    name: "Ancestral Blade",
+    description: "A kampilan blessed by the spirits of your ancestors. Each time you play a Flush, gain 2 temporary Strength.",
     type: "relic",
     item: {
-      id: "wind_dancers_tassel",
-      name: "Wind Dancer's Tassel",
-      description: "Gain 1 additional discard charge each combat.",
-      emoji: "🎐"
+      id: "ancestral_blade",
+      name: "Ancestral Blade",
+      description: "A kampilan blessed by the spirits of your ancestors. Each time you play a Flush, gain 2 temporary Strength.",
+      emoji: "⚔️"
     },
     price: 140,
     currency: "ginto",
-    emoji: "🎐"
+    emoji: "⚔️"
   },
   {
-    id: "shop_anito_stone",
-    name: "Anito Stone",
-    description: "At the start of combat, gain Block equal to 3 times the number of different suits in your hand.",
+    id: "shop_tidal_amulet",
+    name: "Tidal Amulet",
+    description: "An enchanted piece of coral that pulses with the rhythm of the sea. At the end of your turn, heal 2 HP for each card in your hand.",
     type: "relic",
     item: {
-      id: "anito_stone",
-      name: "Anito Stone",
-      description: "At the start of combat, gain Block equal to 3 times the number of different suits in your hand.",
-      emoji: "🗿"
+      id: "tidal_amulet",
+      name: "Tidal Amulet",
+      description: "An enchanted piece of coral that pulses with the rhythm of the sea. At the end of your turn, heal 2 HP for each card in your hand.",
+      emoji: "🌊"
     },
     price: 180,
     currency: "ginto",
-    emoji: "🗿"
+    emoji: "🌊"
+  },
+  {
+    id: "shop_sarimanok_feather",
+    name: "Sarimanok Feather",
+    description: "A radiant feather from the mythical bird that brings prosperity. Whenever you play a Straight or better, gain 1 Ginto.",
+    type: "relic",
+    item: {
+      id: "sarimanok_feather",
+      name: "Sarimanok Feather",
+      description: "A radiant feather from the mythical bird that brings prosperity. Whenever you play a Straight or better, gain 1 Ginto.",
+      emoji: "🦚"
+    },
+    price: 170,
+    currency: "ginto",
+    emoji: "🦚"
   }
 ];
 
@@ -130,12 +160,12 @@ export const premiumShopItems: ShopItem[] = [
   {
     id: "shop_bargain_talisman",
     name: "Bargain Talisman",
-    description: "The first shop item you buy each act is free.",
+    description: "A gemstone that negotiates with shopkeepers on your behalf. The first shop item you buy each act is free.",
     type: "relic",
     item: {
       id: "bargain_talisman",
       name: "Bargain Talisman",
-      description: "The first shop item you buy each act is free.",
+      description: "A gemstone that negotiates with shopkeepers on your behalf. The first shop item you buy each act is free.",
       emoji: "💎"
     },
     price: 3,
@@ -143,64 +173,94 @@ export const premiumShopItems: ShopItem[] = [
     emoji: "💎"
   },
   {
-    id: "shop_kapres_cigar",
-    name: "Kapre's Cigar",
-    description: "Summon a 5 HP minion at the start of combat. Inspiration: Smoke (Ramos, 1990)",
+    id: "shop_lucky_charm",
+    name: "Lucky Charm",
+    description: "A mutya jewel that brings fortune to its bearer. Whenever you play a Straight or better, gain 1 Ginto.",
     type: "relic",
     item: {
-      id: "kapres_cigar",
-      name: "Kapre's Cigar",
-      description: "Summon a 5 HP minion at the start of combat. Inspiration: Smoke (Ramos, 1990)",
-      emoji: " Maduro"
+      id: "lucky_charm",
+      name: "Lucky Charm",
+      description: "A mutya jewel that brings fortune to its bearer. Whenever you play a Straight or better, gain 1 Ginto.",
+      emoji: "🍀"
     },
     price: 4,
     currency: "diamante",
-    emoji: " Maduro"
+    emoji: "🍀"
   },
   {
-    id: "shop_mangangaway_wand",
-    name: "Mangangaway Wand",
-    description: "Ignore 1 curse card each combat. Inspiration: Hexes (Eugenio, 2001)",
+    id: "shop_echo_ancestors",
+    name: "Echo of the Ancestors",
+    description: "The whispered wisdom of your forebears that unlocks hidden potential. Enables Five of a Kind poker hands.",
     type: "relic",
     item: {
-      id: "mangangaway_wand",
-      name: "Mangangaway Wand",
-      description: "Ignore 1 curse card each combat. Inspiration: Hexes (Eugenio, 2001)",
-      emoji: "🪄"
+      id: "echo_ancestors",
+      name: "Echo of the Ancestors",
+      description: "The whispered wisdom of your forebears that unlocks hidden potential. Enables Five of a Kind poker hands.",
+      emoji: "🌟"
     },
     price: 5,
     currency: "diamante",
-    emoji: "🪄"
+    emoji: "🌟"
   },
   {
-    id: "shop_lupa_diwa_shard",
-    name: "Lupa Diwa Shard",
-    description: "Purify 1 additional card when visiting the shrine. Post-Boss Resolution: 'Hexes lift; earth stirs.'",
+    id: "shop_diwatas_crown",
+    name: "Diwata's Crown",
+    description: "A crown blessed by the benevolent nature spirits. Start each combat with 10 Block and gain 1 temporary Dexterity.",
     type: "relic",
     item: {
-      id: "lupa_diwa_shard",
-      name: "Lupa Diwa Shard",
-      description: "Purify 1 additional card when visiting the shrine. Post-Boss Resolution: 'Hexes lift; earth stirs.'",
-      emoji: "🔶"
+      id: "diwatas_crown",
+      name: "Diwata's Crown",
+      description: "A crown blessed by the benevolent nature spirits. Start each combat with 10 Block and gain 1 temporary Dexterity.",
+      emoji: "👑"
     },
     price: 6,
     currency: "diamante",
-    emoji: "🔶"
+    emoji: "👑"
   },
   {
-    id: "shop_engkanto_whisper",
-    name: "Engkanto Whisper",
-    description: "When you play a Flush, draw 1 card. Gain 1 curse card.",
+    id: "shop_stone_golem_heart",
+    name: "Stone Golem's Heart",
+    description: "The eternal heart of an earth guardian. Gain 10 Max HP. At the start of combat, gain 2 Block.",
     type: "relic",
     item: {
-      id: "engkanto_whisper",
-      name: "Engkanto Whisper",
-      description: "When you play a Flush, draw 1 card. Gain 1 curse card.",
-      emoji: "👻"
+      id: "stone_golem_heart",
+      name: "Stone Golem's Heart",
+      description: "The eternal heart of an earth guardian. Gain 10 Max HP. At the start of combat, gain 2 Block.",
+      emoji: "❤️"
     },
     price: 3,
     currency: "diamante",
-    emoji: "👻"
+    emoji: "❤️"
+  },
+  {
+    id: "shop_bakunawa_scale",
+    name: "Bakunawa Scale",
+    description: "A scale from the great serpent that devours the moon. Reduces all incoming damage by 1 and gain 5 Max HP.",
+    type: "relic",
+    item: {
+      id: "bakunawa_scale",
+      name: "Bakunawa Scale",
+      description: "A scale from the great serpent that devours the moon. Reduces all incoming damage by 1 and gain 5 Max HP.",
+      emoji: "🌙"
+    },
+    price: 5,
+    currency: "diamante",
+    emoji: "🌙"
+  },
+  {
+    id: "shop_tigmamanukan_eye",
+    name: "Tigmamanukan's Eye",
+    description: "The all-seeing eye of the prophetic bird. Draw 1 additional card at the start of each combat.",
+    type: "relic",
+    item: {
+      id: "tigmamanukan_eye",
+      name: "Tigmamanukan's Eye",
+      description: "The all-seeing eye of the prophetic bird. Draw 1 additional card at the start of each combat.",
+      emoji: "👁️"
+    },
+    price: 3,
+    currency: "diamante",
+    emoji: "👁️"
   },
   // Diamante shop items
   {
