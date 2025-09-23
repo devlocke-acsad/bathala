@@ -5,12 +5,22 @@ import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { GameState } from "../../core/managers/GameState";
 import { Player } from "../../core/types/CombatTypes";
 import { Potion } from "../../data/potions/Act1Potions";
+import { 
+  TIKBALANG, DWENDE, KAPRE, SIGBIN, TIYANAK,
+  MANANANGGAL, ASWANG, DUWENDE_CHIEF, BAKUNAWA
+} from "../../data/enemies/Act1Enemies";
+import {
+  TIKBALANG_LORE, DWENDE_LORE, KAPRE_LORE, SIGBIN_LORE, 
+  TIYANAK_LORE, MANANANGGAL_LORE, ASWANG_LORE, DUWENDE_CHIEF_LORE,
+  BAKUNAWA_LORE
+} from "../../data/lore/EnemyLore";
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: { [key: string]: Phaser.Input.Keyboard.Key };
   private nodes: MapNode[] = [];
+  private nodeSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
   private gridSize: number = 32;
   private isMoving: boolean = false;
@@ -41,6 +51,18 @@ export class Overworld extends Scene {
   private relicInventoryButton!: Phaser.GameObjects.Container;
   private potionInventoryButton!: Phaser.GameObjects.Container;
   private playerData: Player;
+  
+  // Enemy Info Tooltip
+  private tooltipContainer!: Phaser.GameObjects.Container;
+  private tooltipBackground!: Phaser.GameObjects.Rectangle;
+  private tooltipNameText!: Phaser.GameObjects.Text;
+  private tooltipTypeText!: Phaser.GameObjects.Text;
+  private tooltipSymbolText!: Phaser.GameObjects.Text;
+  private tooltipStatsText!: Phaser.GameObjects.Text;
+  private tooltipDescriptionText!: Phaser.GameObjects.Text;
+  private isTooltipVisible: boolean = false;
+  private currentTooltipTimer?: Phaser.Time.TimerEvent;
+  private lastHoveredNodeId?: string;
 
   constructor() {
     super({ key: "Overworld" });
@@ -198,6 +220,9 @@ export class Overworld extends Scene {
     
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
+    
+    // Create enemy info tooltip
+    this.createEnemyTooltip();
     
     // Create UI elements with a slight delay to ensure camera is ready
     this.time.delayedCall(10, this.createUI, [], this);
@@ -1117,6 +1142,61 @@ export class Overworld extends Scene {
     nodeSprite.setDepth(501); // Above the maze
     nodeSprite.setScale(1.5); // Scale up a bit for better visibility
     
+    // Store sprite reference for tracking
+    this.nodeSprites.set(node.id, nodeSprite);
+    
+    // Add hover functionality for enemy nodes
+    if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
+      nodeSprite.setInteractive();
+      
+      nodeSprite.on('pointerover', () => {
+        console.log(`🖱️ Hovering over ${node.type} enemy at ${node.id}`);
+        
+        // Cancel any pending tooltip timer
+        if (this.currentTooltipTimer) {
+          this.currentTooltipTimer.destroy();
+        }
+        
+        // Set current hovered node
+        this.lastHoveredNodeId = node.id;
+        
+        // Show enemy tooltip immediately with better state management
+        this.showEnemyTooltipImmediate(node.type, node.id);
+        
+        // Add hover effect to sprite
+        this.tweens.add({
+          targets: nodeSprite,
+          scale: 1.7,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
+      nodeSprite.on('pointerout', () => {
+        console.log(`🖱️ Stopped hovering over ${node.type} enemy at ${node.id}`);
+        
+        // Clear current hovered node
+        this.lastHoveredNodeId = undefined;
+        
+        // Cancel any pending tooltip timer
+        if (this.currentTooltipTimer) {
+          this.currentTooltipTimer.destroy();
+          this.currentTooltipTimer = undefined;
+        }
+        
+        // Hide enemy tooltip immediately
+        this.hideEnemyTooltip();
+        
+        // Reset sprite scale
+        this.tweens.add({
+          targets: nodeSprite,
+          scale: 1.5,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+    }
+    
     // Play the animation if it exists
     if (this.anims.exists(animKey)) {
       nodeSprite.play(animKey);
@@ -1170,12 +1250,34 @@ export class Overworld extends Scene {
         case "elite":
           // Remove the node from the list so it doesn't trigger again
           this.nodes.splice(nodeIndex, 1);
+          
+          // Clean up the corresponding sprite
+          const sprite = this.nodeSprites.get(node.id);
+          if (sprite) {
+            sprite.destroy();
+            this.nodeSprites.delete(node.id);
+          }
+          
+          // Hide tooltip if it's visible
+          this.hideEnemyTooltip();
+          
           this.startCombat(node.type);
           break;
           
         case "boss":
           // Remove the node from the list so it doesn't trigger again
           this.nodes.splice(nodeIndex, 1);
+          
+          // Clean up the corresponding sprite
+          const bossSprite = this.nodeSprites.get(node.id);
+          if (bossSprite) {
+            bossSprite.destroy();
+            this.nodeSprites.delete(node.id);
+          }
+          
+          // Hide tooltip if it's visible
+          this.hideEnemyTooltip();
+          
           this.startCombat("boss");
           break;
           
@@ -3932,6 +4034,352 @@ ${potion.description}`, {
         return "A navigational tool blessed by Lakapati, goddess of fertility and navigation. It guides the bearer through the most treacherous waters and helps them find their way even in the darkest storms.";
       default:
         return "An ancient artifact of great power, its origins lost to time but its effects undeniable. Those who wield it are forever changed by its mystical properties.";
+    }
+  }
+  
+  /**
+   * Create enemy info tooltip system
+   */
+  private createEnemyTooltip(): void {
+    console.log("Creating enemy tooltip system...");
+    
+    // Create tooltip container (initially hidden) - FIXED TO CAMERA
+    this.tooltipContainer = this.add.container(0, 0).setVisible(false).setDepth(2000).setScrollFactor(0);
+    
+    // Tooltip background with shadow effect
+    const shadowOffset = 3;
+    const tooltipShadow = this.add.rectangle(shadowOffset, shadowOffset, 300, 200, 0x000000)
+      .setAlpha(0.4)
+      .setOrigin(0);
+    
+    // Main tooltip background (will be resized dynamically)
+    this.tooltipBackground = this.add.rectangle(0, 0, 300, 200, 0x1d151a)
+      .setStrokeStyle(2, 0x4a3a40)
+      .setOrigin(0);
+      
+    // Header background for enemy name/type
+    const headerBackground = this.add.rectangle(0, 0, 300, 50, 0x2a1f24)
+      .setStrokeStyle(1, 0x4a3a40)
+      .setOrigin(0);
+      
+    // Enemy name
+    this.tooltipNameText = this.add.text(15, 12, "", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: "#e8eced",
+      fontStyle: "bold"
+    }).setOrigin(0);
+    
+    // Enemy type
+    this.tooltipTypeText = this.add.text(15, 30, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 10,
+      color: "#77888C",
+      fontStyle: "bold"
+    }).setOrigin(0);
+    
+    // Enemy symbol/emoji
+    this.tooltipSymbolText = this.add.text(270, 25, "", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 24,
+      color: "#e8eced"
+    }).setOrigin(0.5);
+    
+    // Stats section separator
+    const statsSeparator = this.add.rectangle(10, 60, 280, 1, 0x4a3a40).setOrigin(0);
+    
+    // Enemy stats
+    this.tooltipStatsText = this.add.text(15, 70, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: "#c9a74a",
+      wordWrap: { width: 270 },
+      lineSpacing: 2,
+      fontStyle: "bold"
+    }).setOrigin(0);
+    
+    // Description section separator  
+    const descSeparator = this.add.rectangle(10, 110, 280, 1, 0x4a3a40).setOrigin(0);
+    
+    // Enemy description
+    this.tooltipDescriptionText = this.add.text(15, 120, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 10,
+      color: "#8a9a9f",
+      wordWrap: { width: 270 },
+      lineSpacing: 3,
+      fontStyle: "italic"
+    }).setOrigin(0);
+    
+    // Store references to dynamic elements for resizing
+    this.tooltipContainer.setData({
+      shadow: tooltipShadow,
+      header: headerBackground,
+      statsSeparator: statsSeparator,
+      descSeparator: descSeparator
+    });
+    
+    // Add all elements to tooltip container
+    this.tooltipContainer.add([
+      tooltipShadow,
+      this.tooltipBackground,
+      headerBackground,
+      this.tooltipNameText,
+      this.tooltipTypeText,
+      this.tooltipSymbolText,
+      statsSeparator,
+      this.tooltipStatsText,
+      descSeparator,
+      this.tooltipDescriptionText
+    ]);
+    
+    console.log("Enemy tooltip system created successfully - FIXED TO CAMERA");
+  }
+  
+  /**
+   * Show enemy tooltip with information - immediate version without timing issues
+   */
+  private showEnemyTooltipImmediate(nodeType: string, nodeId: string): void {
+    // Validate inputs and state
+    if (!nodeType || !this.tooltipContainer) {
+      console.warn("Cannot show tooltip: missing nodeType or tooltip not initialized");
+      return;
+    }
+    
+    const enemyInfo = this.getEnemyInfoForNodeType(nodeType);
+    if (!enemyInfo) {
+      console.warn("Cannot show tooltip: no enemy info for type", nodeType);
+      return;
+    }
+    
+    // Validate all tooltip elements exist
+    if (!this.tooltipNameText || !this.tooltipTypeText || !this.tooltipSymbolText || 
+        !this.tooltipStatsText || !this.tooltipDescriptionText || !this.tooltipBackground) {
+      console.warn("Cannot show tooltip: tooltip elements not properly initialized");
+      return;
+    }
+    
+    // Update tooltip content
+    this.tooltipNameText.setText(enemyInfo.name);
+    this.tooltipTypeText.setText(enemyInfo.type.toUpperCase());
+    this.tooltipSymbolText.setText(enemyInfo.symbol);
+    this.tooltipStatsText.setText(`Health: ${enemyInfo.health}\nDamage: ${enemyInfo.damage}\nAbilities: ${enemyInfo.abilities.join(", ")}`);
+    this.tooltipDescriptionText.setText(enemyInfo.description);
+    
+    // Update size and position immediately - no delayed call
+    this.updateTooltipSizeAndPositionImmediate();
+    
+    // Show tooltip
+    this.tooltipContainer.setVisible(true);
+    this.isTooltipVisible = true;
+  }
+  
+  /**
+   * Update tooltip size and position - immediate version
+   */
+  private updateTooltipSizeAndPositionImmediate(): void {
+    if (!this.tooltipContainer || !this.tooltipBackground) {
+      return;
+    }
+    
+    // Calculate dynamic tooltip size based on content
+    const padding = 15;
+    const headerHeight = 50;
+    const minWidth = 320;
+    const maxWidth = 450;
+    
+    // Get actual text bounds (these should be available immediately after setText)
+    const statsHeight = this.tooltipStatsText?.height || 60;
+    const descHeight = this.tooltipDescriptionText?.height || 80;
+    
+    // Calculate required height with proper spacing
+    const separatorSpacing = 15;
+    const totalHeight = headerHeight + separatorSpacing + statsHeight + separatorSpacing + descHeight + padding * 2;
+    
+    // Calculate required width (ensure all content fits)
+    const nameWidth = this.tooltipNameText?.width || 100;
+    const statsWidth = this.tooltipStatsText?.width || 100;
+    const descWidth = this.tooltipDescriptionText?.width || 100;
+    const maxContentWidth = Math.max(nameWidth, statsWidth, descWidth);
+    const tooltipWidth = Math.max(minWidth, Math.min(maxWidth, maxContentWidth + padding * 2));
+    const tooltipHeight = Math.max(200, totalHeight); // Minimum height
+    
+    // Get dynamic elements from container data
+    const shadow = this.tooltipContainer.getData('shadow') as Phaser.GameObjects.Rectangle;
+    const header = this.tooltipContainer.getData('header') as Phaser.GameObjects.Rectangle;
+    const statsSeparator = this.tooltipContainer.getData('statsSeparator') as Phaser.GameObjects.Rectangle;
+    const descSeparator = this.tooltipContainer.getData('descSeparator') as Phaser.GameObjects.Rectangle;
+    
+    // Update background sizes (with null checks)
+    this.tooltipBackground.setSize(tooltipWidth, tooltipHeight);
+    shadow?.setSize(tooltipWidth, tooltipHeight);
+    header?.setSize(tooltipWidth, headerHeight);
+    
+    // Update separator widths and positions (with null checks)
+    statsSeparator?.setSize(tooltipWidth - 20, 1);
+    statsSeparator?.setPosition(10, headerHeight + 10);
+    
+    // Reposition symbol based on new width
+    this.tooltipSymbolText?.setPosition(tooltipWidth - 25, 25);
+    
+    // Update text wrapping for the new width
+    const textWidth = tooltipWidth - 30; // Account for padding
+    this.tooltipStatsText?.setWordWrapWidth(textWidth);
+    this.tooltipDescriptionText?.setWordWrapWidth(textWidth);
+    
+    // Reposition stats and description elements
+    const statsY = headerHeight + 20;
+    this.tooltipStatsText?.setPosition(15, statsY);
+    
+    const descSeparatorY = statsY + statsHeight + 10;
+    descSeparator?.setSize(tooltipWidth - 20, 1);
+    descSeparator?.setPosition(10, descSeparatorY);
+    
+    const descY = descSeparatorY + 15;
+    this.tooltipDescriptionText?.setPosition(15, descY);
+    
+    // Position tooltip next to the status UI panel (left side)
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Status panel is at x=20, width=320, so place tooltip right next to it
+    const statusPanelWidth = 320;
+    const statusPanelX = 20;
+    const marginBetween = 20; // Gap between status panel and tooltip
+    
+    const tooltipX = statusPanelX + statusPanelWidth + marginBetween; // Position right of status panel
+    const tooltipY = Math.max(20, (screenHeight - tooltipHeight) / 2); // Vertically centered, with minimum margin
+    
+    // Ensure tooltip doesn't go off-screen
+    const maxTooltipX = screenWidth - tooltipWidth - 20;
+    const finalX = Math.min(tooltipX, maxTooltipX);
+    const finalY = Math.max(20, Math.min(tooltipY, screenHeight - tooltipHeight - 20));
+    
+    // Position tooltip
+    this.tooltipContainer.setPosition(finalX, finalY);
+  }
+  
+  /**
+   * Hide enemy tooltip with improved state management
+   */
+  private hideEnemyTooltip(): void {
+    // Cancel any pending tooltip operations
+    if (this.currentTooltipTimer) {
+      this.currentTooltipTimer.destroy();
+      this.currentTooltipTimer = undefined;
+    }
+    
+    // Hide tooltip safely
+    if (this.tooltipContainer) {
+      this.tooltipContainer.setVisible(false);
+    }
+    
+    this.isTooltipVisible = false;
+    this.lastHoveredNodeId = undefined;
+  }
+  
+  /**
+   * Get enemy information for a given node type
+   */
+  private getEnemyInfoForNodeType(nodeType: string): any {
+    switch (nodeType) {
+      case "combat":
+        // Randomly select a common enemy
+        const commonEnemies = [
+          {
+            name: TIKBALANG.name,
+            type: "Combat",
+            symbol: "🐴",
+            health: TIKBALANG.maxHealth,
+            damage: TIKBALANG.damage,
+            abilities: ["Forest Navigation", "Illusion Casting"],
+            description: TIKBALANG_LORE.description
+          },
+          {
+            name: DWENDE.name,
+            type: "Combat", 
+            symbol: "👤",
+            health: DWENDE.maxHealth,
+            damage: DWENDE.damage,
+            abilities: ["Invisibility", "Mischief"],
+            description: DWENDE_LORE.description
+          },
+          {
+            name: KAPRE.name,
+            type: "Combat",
+            symbol: "🚬", 
+            health: KAPRE.maxHealth,
+            damage: KAPRE.damage,
+            abilities: ["Smoke Manipulation", "Tree Dwelling"],
+            description: KAPRE_LORE.description
+          },
+          {
+            name: SIGBIN.name,
+            type: "Combat",
+            symbol: "🐕",
+            health: SIGBIN.maxHealth, 
+            damage: SIGBIN.damage,
+            abilities: ["Invisibility", "Shadow Draining"],
+            description: SIGBIN_LORE.description
+          },
+          {
+            name: TIYANAK.name,
+            type: "Combat",
+            symbol: "👶",
+            health: TIYANAK.maxHealth,
+            damage: TIYANAK.damage, 
+            abilities: ["Shapeshifting", "Deception"],
+            description: TIYANAK_LORE.description
+          }
+        ];
+        return commonEnemies[Math.floor(Math.random() * commonEnemies.length)];
+        
+      case "elite":
+        // Randomly select an elite enemy
+        const eliteEnemies = [
+          {
+            name: MANANANGGAL.name,
+            type: "Elite",
+            symbol: "🦇",
+            health: MANANANGGAL.maxHealth,
+            damage: MANANANGGAL.damage,
+            abilities: ["Flight", "Body Segmentation", "Blood Draining"],
+            description: MANANANGGAL_LORE.description
+          },
+          {
+            name: ASWANG.name,
+            type: "Elite", 
+            symbol: "🧟",
+            health: ASWANG.maxHealth,
+            damage: ASWANG.damage,
+            abilities: ["Shapeshifting", "Cannibalism", "Night Vision"],
+            description: ASWANG_LORE.description
+          },
+          {
+            name: DUWENDE_CHIEF.name,
+            type: "Elite",
+            symbol: "👑",
+            health: DUWENDE_CHIEF.maxHealth,
+            damage: DUWENDE_CHIEF.damage,
+            abilities: ["Command", "Magic", "Earth Control"],
+            description: DUWENDE_CHIEF_LORE.description
+          }
+        ];
+        return eliteEnemies[Math.floor(Math.random() * eliteEnemies.length)];
+        
+      case "boss":
+        return {
+          name: BAKUNAWA.name,
+          type: "Boss",
+          symbol: "🐍",
+          health: BAKUNAWA.maxHealth,
+          damage: BAKUNAWA.damage,
+          abilities: ["Eclipse Creation", "Massive Size", "Elemental Control"],
+          description: BAKUNAWA_LORE.description
+        };
+        
+      default:
+        return null;
     }
   }
 }
