@@ -5,12 +5,22 @@ import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { GameState } from "../../core/managers/GameState";
 import { Player } from "../../core/types/CombatTypes";
 import { Potion } from "../../data/potions/Act1Potions";
+import { 
+  TIKBALANG, DWENDE, KAPRE, SIGBIN, TIYANAK,
+  MANANANGGAL, ASWANG, DUWENDE_CHIEF, BAKUNAWA
+} from "../../data/enemies/Act1Enemies";
+import {
+  TIKBALANG_LORE, DWENDE_LORE, KAPRE_LORE, SIGBIN_LORE, 
+  TIYANAK_LORE, MANANANGGAL_LORE, ASWANG_LORE, DUWENDE_CHIEF_LORE,
+  BAKUNAWA_LORE
+} from "../../data/lore/EnemyLore";
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: { [key: string]: Phaser.Input.Keyboard.Key };
   private nodes: MapNode[] = [];
+  private nodeSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
   private gridSize: number = 32;
   private isMoving: boolean = false;
@@ -41,6 +51,18 @@ export class Overworld extends Scene {
   private relicInventoryButton!: Phaser.GameObjects.Container;
   private potionInventoryButton!: Phaser.GameObjects.Container;
   private playerData: Player;
+  
+  // Enemy Info Tooltip
+  private tooltipContainer!: Phaser.GameObjects.Container;
+  private tooltipBackground!: Phaser.GameObjects.Rectangle;
+  private tooltipNameText!: Phaser.GameObjects.Text;
+  private tooltipTypeText!: Phaser.GameObjects.Text;
+  private tooltipSpriteContainer!: Phaser.GameObjects.Container;
+  private tooltipStatsText!: Phaser.GameObjects.Text;
+  private tooltipDescriptionText!: Phaser.GameObjects.Text;
+  private isTooltipVisible: boolean = false;
+  private currentTooltipTimer?: Phaser.Time.TimerEvent;
+  private lastHoveredNodeId?: string;
 
   constructor() {
     super({ key: "Overworld" });
@@ -198,6 +220,9 @@ export class Overworld extends Scene {
     
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
+    
+    // Create enemy info tooltip
+    this.createEnemyTooltip();
     
     // Create UI elements with a slight delay to ensure camera is ready
     this.time.delayedCall(10, this.createUI, [], this);
@@ -1117,6 +1142,69 @@ export class Overworld extends Scene {
     nodeSprite.setDepth(501); // Above the maze
     nodeSprite.setScale(1.5); // Scale up a bit for better visibility
     
+    // Store sprite reference for tracking
+    this.nodeSprites.set(node.id, nodeSprite);
+    
+    // Add hover functionality for enemy nodes
+    if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
+      nodeSprite.setInteractive();
+      
+      nodeSprite.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+        console.log(`🖱️ Hovering over ${node.type} enemy at ${node.id}`);
+        
+        // Cancel any pending tooltip timer
+        if (this.currentTooltipTimer) {
+          this.currentTooltipTimer.destroy();
+        }
+        
+        // Set current hovered node
+        this.lastHoveredNodeId = node.id;
+        
+        // Show enemy tooltip immediately with mouse position for dynamic placement
+        this.showEnemyTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+        
+        // Add hover effect to sprite
+        this.tweens.add({
+          targets: nodeSprite,
+          scale: 1.7,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
+      // Update tooltip position on mouse move while hovering
+      nodeSprite.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+        // Only update if tooltip is currently visible and this is the active node
+        if (this.isTooltipVisible && this.lastHoveredNodeId === node.id) {
+          this.updateTooltipSizeAndPositionImmediate(pointer.x, pointer.y);
+        }
+      });
+      
+      nodeSprite.on('pointerout', () => {
+        console.log(`🖱️ Stopped hovering over ${node.type} enemy at ${node.id}`);
+        
+        // Clear current hovered node
+        this.lastHoveredNodeId = undefined;
+        
+        // Cancel any pending tooltip timer
+        if (this.currentTooltipTimer) {
+          this.currentTooltipTimer.destroy();
+          this.currentTooltipTimer = undefined;
+        }
+        
+        // Hide enemy tooltip immediately
+        this.hideEnemyTooltip();
+        
+        // Reset sprite scale
+        this.tweens.add({
+          targets: nodeSprite,
+          scale: 1.5,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+    }
+    
     // Play the animation if it exists
     if (this.anims.exists(animKey)) {
       nodeSprite.play(animKey);
@@ -1170,12 +1258,34 @@ export class Overworld extends Scene {
         case "elite":
           // Remove the node from the list so it doesn't trigger again
           this.nodes.splice(nodeIndex, 1);
+          
+          // Clean up the corresponding sprite
+          const sprite = this.nodeSprites.get(node.id);
+          if (sprite) {
+            sprite.destroy();
+            this.nodeSprites.delete(node.id);
+          }
+          
+          // Hide tooltip if it's visible
+          this.hideEnemyTooltip();
+          
           this.startCombat(node.type);
           break;
           
         case "boss":
           // Remove the node from the list so it doesn't trigger again
           this.nodes.splice(nodeIndex, 1);
+          
+          // Clean up the corresponding sprite
+          const bossSprite = this.nodeSprites.get(node.id);
+          if (bossSprite) {
+            bossSprite.destroy();
+            this.nodeSprites.delete(node.id);
+          }
+          
+          // Hide tooltip if it's visible
+          this.hideEnemyTooltip();
+          
           this.startCombat("boss");
           break;
           
@@ -3932,6 +4042,396 @@ ${potion.description}`, {
         return "A navigational tool blessed by Lakapati, goddess of fertility and navigation. It guides the bearer through the most treacherous waters and helps them find their way even in the darkest storms.";
       default:
         return "An ancient artifact of great power, its origins lost to time but its effects undeniable. Those who wield it are forever changed by its mystical properties.";
+    }
+  }
+  
+  /**
+   * Create enemy info tooltip system
+   */
+  private createEnemyTooltip(): void {
+    console.log("Creating enemy tooltip system...");
+    
+    // Create tooltip container (initially hidden) - FIXED TO CAMERA
+    this.tooltipContainer = this.add.container(0, 0).setVisible(false).setDepth(2000).setScrollFactor(0);
+    
+    // Tooltip background with shadow effect
+    const shadowOffset = 3;
+    const tooltipShadow = this.add.rectangle(shadowOffset, shadowOffset, 400, 240, 0x000000)
+      .setAlpha(0.4)
+      .setOrigin(0);
+    
+    // Main tooltip background (will be resized dynamically)
+    this.tooltipBackground = this.add.rectangle(0, 0, 400, 240, 0x1d151a)
+      .setStrokeStyle(2, 0x4a3a40)
+      .setOrigin(0);
+      
+    // Header background for enemy name/type
+    const headerBackground = this.add.rectangle(0, 0, 400, 60, 0x2a1f24)
+      .setStrokeStyle(1, 0x4a3a40)
+      .setOrigin(0);
+      
+    // Enemy name
+    this.tooltipNameText = this.add.text(15, 12, "", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: "#e8eced",
+      fontStyle: "bold"
+    }).setOrigin(0);
+    
+    // Enemy type
+    this.tooltipTypeText = this.add.text(15, 30, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 10,
+      color: "#77888C",
+      fontStyle: "bold"
+    }).setOrigin(0);
+    
+    // Enemy sprite (will be created dynamically)
+    this.tooltipSpriteContainer = this.add.container(320, 30);
+    this.tooltipSpriteContainer.setSize(60, 60); // Set a larger size for the sprite area
+    
+    // Stats section separator
+    const statsSeparator = this.add.rectangle(10, 70, 380, 1, 0x4a3a40).setOrigin(0);
+    
+    // Enemy stats
+    this.tooltipStatsText = this.add.text(15, 80, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: "#c9a74a",
+      wordWrap: { width: 360 },
+      lineSpacing: 2,
+      fontStyle: "bold"
+    }).setOrigin(0);
+    
+    // Description section separator  
+    const descSeparator = this.add.rectangle(10, 130, 380, 1, 0x4a3a40).setOrigin(0);
+    
+    // Enemy description
+    this.tooltipDescriptionText = this.add.text(15, 140, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 10,
+      color: "#8a9a9f",
+      wordWrap: { width: 360 },
+      lineSpacing: 3,
+      fontStyle: "italic"
+    }).setOrigin(0);
+    
+    // Store references to dynamic elements for resizing
+    this.tooltipContainer.setData({
+      shadow: tooltipShadow,
+      header: headerBackground,
+      statsSeparator: statsSeparator,
+      descSeparator: descSeparator
+    });
+    
+    // Add all elements to tooltip container
+    this.tooltipContainer.add([
+      tooltipShadow,
+      this.tooltipBackground,
+      headerBackground,
+      this.tooltipNameText,
+      this.tooltipTypeText,
+      this.tooltipSpriteContainer,
+      statsSeparator,
+      this.tooltipStatsText,
+      descSeparator,
+      this.tooltipDescriptionText
+    ]);
+    
+    console.log("Enemy tooltip system created successfully - FIXED TO CAMERA");
+  }
+  
+  /**
+   * Show enemy tooltip with information - immediate version without timing issues
+   */
+  private showEnemyTooltipImmediate(nodeType: string, nodeId: string, mouseX?: number, mouseY?: number): void {
+    // Validate inputs and state
+    if (!nodeType || !this.tooltipContainer) {
+      console.warn("Cannot show tooltip: missing nodeType or tooltip not initialized");
+      return;
+    }
+    
+    const enemyInfo = this.getEnemyInfoForNodeType(nodeType);
+    if (!enemyInfo) {
+      console.warn("Cannot show tooltip: no enemy info for type", nodeType);
+      return;
+    }
+    
+    // Validate all tooltip elements exist
+    if (!this.tooltipNameText || !this.tooltipTypeText || !this.tooltipSpriteContainer || 
+        !this.tooltipStatsText || !this.tooltipDescriptionText || !this.tooltipBackground) {
+      console.warn("Cannot show tooltip: tooltip elements not properly initialized");
+      return;
+    }
+    
+    // Update tooltip content
+    this.tooltipNameText.setText(enemyInfo.name);
+    this.tooltipTypeText.setText(enemyInfo.type.toUpperCase());
+    
+    // Clear previous sprite and add new one
+    this.tooltipSpriteContainer.removeAll(true);
+    if (enemyInfo.spriteKey) {
+      const sprite = this.add.sprite(0, 0, enemyInfo.spriteKey);
+      sprite.setOrigin(0.5, 0.5);
+      
+      // Scale to fit the larger container nicely
+      const targetSize = 48; // Increased from 32 to 48 for better visibility
+      const scale = targetSize / Math.max(sprite.width, sprite.height);
+      sprite.setScale(scale);
+      
+      // If it's an animated sprite, play the idle animation
+      if (enemyInfo.animationKey && this.anims.exists(enemyInfo.animationKey)) {
+        sprite.play(enemyInfo.animationKey);
+      }
+      
+      this.tooltipSpriteContainer.add(sprite);
+    }
+    
+    this.tooltipStatsText.setText(`Health: ${enemyInfo.health}\nDamage: ${enemyInfo.damage}\nAbilities: ${enemyInfo.abilities.join(", ")}`);
+    this.tooltipDescriptionText.setText(enemyInfo.description);
+    
+    // Update size and position immediately - no delayed call
+    this.updateTooltipSizeAndPositionImmediate(mouseX, mouseY);
+    
+    // Show tooltip
+    this.tooltipContainer.setVisible(true);
+    this.isTooltipVisible = true;
+  }
+  
+  /**
+   * Update tooltip size and position - immediate version
+   */
+  private updateTooltipSizeAndPositionImmediate(mouseX?: number, mouseY?: number): void {
+    if (!this.tooltipContainer || !this.tooltipBackground) {
+      return;
+    }
+    
+    // Calculate dynamic tooltip size based on content
+    const padding = 20;
+    const headerHeight = 60;
+    const minWidth = 420;
+    const maxWidth = 550;
+    
+    // Get actual text bounds (these should be available immediately after setText)
+    const statsHeight = this.tooltipStatsText?.height || 70;
+    const descHeight = this.tooltipDescriptionText?.height || 90;
+    
+    // Calculate required height with proper spacing
+    const separatorSpacing = 15;
+    const totalHeight = headerHeight + separatorSpacing + statsHeight + separatorSpacing + descHeight + padding * 2;
+    
+    // Calculate required width (ensure all content fits including sprite)
+    const nameWidth = this.tooltipNameText?.width || 100;
+    const statsWidth = this.tooltipStatsText?.width || 100;
+    const descWidth = this.tooltipDescriptionText?.width || 100;
+    const spriteAreaWidth = 80; // Account for sprite area
+    const maxContentWidth = Math.max(nameWidth + spriteAreaWidth, statsWidth, descWidth);
+    const tooltipWidth = Math.max(minWidth, Math.min(maxWidth, maxContentWidth + padding * 2));
+    const tooltipHeight = Math.max(260, totalHeight); // Increased minimum height
+    
+    // Get dynamic elements from container data
+    const shadow = this.tooltipContainer.getData('shadow') as Phaser.GameObjects.Rectangle;
+    const header = this.tooltipContainer.getData('header') as Phaser.GameObjects.Rectangle;
+    const statsSeparator = this.tooltipContainer.getData('statsSeparator') as Phaser.GameObjects.Rectangle;
+    const descSeparator = this.tooltipContainer.getData('descSeparator') as Phaser.GameObjects.Rectangle;
+    
+    // Update background sizes (with null checks)
+    this.tooltipBackground.setSize(tooltipWidth, tooltipHeight);
+    shadow?.setSize(tooltipWidth, tooltipHeight);
+    header?.setSize(tooltipWidth, headerHeight);
+    
+    // Update separator widths and positions (with null checks)
+    statsSeparator?.setSize(tooltipWidth - 20, 1);
+    statsSeparator?.setPosition(10, headerHeight + 10);
+    
+    // Reposition sprite container based on new width (more room for larger sprite)
+    this.tooltipSpriteContainer?.setPosition(tooltipWidth - 50, 30);
+    
+    // Update text wrapping for the new width (account for sprite area)
+    const textWidth = tooltipWidth - 100; // More space for sprite
+    this.tooltipStatsText?.setWordWrapWidth(textWidth);
+    this.tooltipDescriptionText?.setWordWrapWidth(textWidth);
+    
+    // Reposition stats and description elements
+    const statsY = headerHeight + 20;
+    this.tooltipStatsText?.setPosition(15, statsY);
+    
+    const descSeparatorY = statsY + statsHeight + 10;
+    descSeparator?.setSize(tooltipWidth - 20, 1);
+    descSeparator?.setPosition(10, descSeparatorY);
+    
+    const descY = descSeparatorY + 15;
+    this.tooltipDescriptionText?.setPosition(15, descY);
+    
+    // Position tooltip dynamically based on mouse position or fallback to center
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    let tooltipX: number;
+    let tooltipY: number;
+    
+    if (mouseX !== undefined && mouseY !== undefined) {
+      // Position tooltip near mouse cursor
+      const offset = 20; // Offset from cursor to avoid overlap
+      tooltipX = mouseX + offset;
+      tooltipY = mouseY - tooltipHeight / 2; // Center vertically on cursor
+      
+      // Ensure tooltip doesn't go off-screen (right edge)
+      if (tooltipX + tooltipWidth > screenWidth - 20) {
+        tooltipX = mouseX - tooltipWidth - offset; // Position to the left of cursor
+      }
+      
+      // Ensure tooltip doesn't go off-screen (vertical bounds)
+      tooltipY = Math.max(20, Math.min(tooltipY, screenHeight - tooltipHeight - 20));
+      
+    } else {
+      // Fallback to status panel positioning if no mouse coordinates
+      const statusPanelWidth = 320;
+      const statusPanelX = 20;
+      const marginBetween = 20;
+      
+      tooltipX = statusPanelX + statusPanelWidth + marginBetween;
+      tooltipY = Math.max(20, (screenHeight - tooltipHeight) / 2);
+      
+      // Ensure fallback doesn't go off-screen
+      const maxTooltipX = screenWidth - tooltipWidth - 20;
+      tooltipX = Math.min(tooltipX, maxTooltipX);
+    }
+    
+    // Position tooltip
+    this.tooltipContainer.setPosition(tooltipX, tooltipY);
+  }
+  
+  /**
+   * Hide enemy tooltip with improved state management
+   */
+  private hideEnemyTooltip(): void {
+    // Cancel any pending tooltip operations
+    if (this.currentTooltipTimer) {
+      this.currentTooltipTimer.destroy();
+      this.currentTooltipTimer = undefined;
+    }
+    
+    // Hide tooltip safely
+    if (this.tooltipContainer) {
+      this.tooltipContainer.setVisible(false);
+    }
+    
+    this.isTooltipVisible = false;
+    this.lastHoveredNodeId = undefined;
+  }
+  
+  /**
+   * Get enemy information for a given node type
+   */
+  private getEnemyInfoForNodeType(nodeType: string): any {
+    switch (nodeType) {
+      case "combat":
+        // Randomly select a common enemy
+        const commonEnemies = [
+          {
+            name: TIKBALANG.name,
+            type: "Combat",
+            spriteKey: "tikbalang",
+            animationKey: "tikbalang_idle",
+            health: TIKBALANG.maxHealth,
+            damage: TIKBALANG.damage,
+            abilities: ["Forest Navigation", "Illusion Casting"],
+            description: TIKBALANG_LORE.description
+          },
+          {
+            name: DWENDE.name,
+            type: "Combat", 
+            spriteKey: "chort_f0", // Using overworld sprite since no dwende combat sprite
+            animationKey: null,
+            health: DWENDE.maxHealth,
+            damage: DWENDE.damage,
+            abilities: ["Invisibility", "Mischief"],
+            description: DWENDE_LORE.description
+          },
+          {
+            name: KAPRE.name,
+            type: "Combat",
+            spriteKey: "chort_f0", // Using overworld sprite since no kapre combat sprite
+            animationKey: null,
+            health: KAPRE.maxHealth,
+            damage: KAPRE.damage,
+            abilities: ["Smoke Manipulation", "Tree Dwelling"],
+            description: KAPRE_LORE.description
+          },
+          {
+            name: SIGBIN.name,
+            type: "Combat",
+            spriteKey: "sigbin",
+            animationKey: "sigbin_idle",
+            health: SIGBIN.maxHealth, 
+            damage: SIGBIN.damage,
+            abilities: ["Invisibility", "Shadow Draining"],
+            description: SIGBIN_LORE.description
+          },
+          {
+            name: TIYANAK.name,
+            type: "Combat",
+            spriteKey: "chort_f0", // Using overworld sprite since no tiyanak combat sprite
+            animationKey: null,
+            health: TIYANAK.maxHealth,
+            damage: TIYANAK.damage, 
+            abilities: ["Shapeshifting", "Deception"],
+            description: TIYANAK_LORE.description
+          }
+        ];
+        return commonEnemies[Math.floor(Math.random() * commonEnemies.length)];
+        
+      case "elite":
+        // Randomly select an elite enemy
+        const eliteEnemies = [
+          {
+            name: MANANANGGAL.name,
+            type: "Elite",
+            spriteKey: "big_demon_f0", // Using overworld elite sprite since no manananggal combat sprite
+            animationKey: null,
+            health: MANANANGGAL.maxHealth,
+            damage: MANANANGGAL.damage,
+            abilities: ["Flight", "Body Segmentation", "Blood Draining"],
+            description: MANANANGGAL_LORE.description
+          },
+          {
+            name: ASWANG.name,
+            type: "Elite", 
+            spriteKey: "big_demon_f0", // Using overworld elite sprite since no aswang combat sprite
+            animationKey: null,
+            health: ASWANG.maxHealth,
+            damage: ASWANG.damage,
+            abilities: ["Shapeshifting", "Cannibalism", "Night Vision"],
+            description: ASWANG_LORE.description
+          },
+          {
+            name: DUWENDE_CHIEF.name,
+            type: "Elite",
+            spriteKey: "big_demon_f0", // Using overworld elite sprite since no duwende_chief combat sprite
+            animationKey: null,
+            health: DUWENDE_CHIEF.maxHealth,
+            damage: DUWENDE_CHIEF.damage,
+            abilities: ["Command", "Magic", "Earth Control"],
+            description: DUWENDE_CHIEF_LORE.description
+          }
+        ];
+        return eliteEnemies[Math.floor(Math.random() * eliteEnemies.length)];
+        
+      case "boss":
+        return {
+          name: BAKUNAWA.name,
+          type: "Boss",
+          spriteKey: "balete", // Using balete sprite for boss since no bakunawa sprite available
+          animationKey: "balete_idle",
+          health: BAKUNAWA.maxHealth,
+          damage: BAKUNAWA.damage,
+          abilities: ["Eclipse Creation", "Massive Size", "Elemental Control"],
+          description: BAKUNAWA_LORE.description
+        };
+        
+      default:
+        return null;
     }
   }
 }
