@@ -30,10 +30,7 @@ export class OverworldGameState {
       this.toggleDayNight();
     }
 
-    // Check if boss should appear (after 5 full cycles)
-    if (this.actionsTaken >= this.totalActionsUntilBoss && !this.bossAppeared) {
-      this.bossAppeared = true;
-    }
+    // Note: bossAppeared flag is now managed by the Overworld scene when boss actually triggers
   }
 
   /**
@@ -52,6 +49,13 @@ export class OverworldGameState {
    */
   shouldBossAppear(): boolean {
     return this.actionsTaken >= this.totalActionsUntilBoss && !this.bossAppeared;
+  }
+
+  /**
+   * Mark that the boss encounter has been triggered
+   */
+  markBossTriggered(): void {
+    this.bossAppeared = true;
   }
 
   /**
