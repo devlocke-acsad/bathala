@@ -803,9 +803,15 @@ export class Overworld extends Scene {
     // Calculate progress (0 to 1)
     const totalProgress = Math.min(this.gameState.actionsTaken / this.gameState.totalActionsUntilBoss, 1);
     
+    
     // Update player indicator position (below the bar)
     this.dayNightIndicator.x = progressBarX + (progressBarWidth * totalProgress);
     this.dayNightIndicator.y = progressBarY + 25; // Position below the bar
+    
+    // Additional check for boss encounter when updating UI
+    if (totalProgress >= 1.0 && !this.isTransitioningToCombat) {
+      this.checkBossEncounter();
+    }
     
     // Handle night overlay
     if (!this.gameState.isDay && !this.nightOverlay) {
@@ -947,6 +953,10 @@ export class Overworld extends Scene {
           
           // Record the action for day/night cycle after movement completes
           this.gameState.recordAction();
+          
+          // Check if boss should appear after recording action
+          this.checkBossEncounter();
+          
           // Update UI to reflect day/night cycle changes
           this.updateUI();
           
@@ -1004,6 +1014,208 @@ export class Overworld extends Scene {
       this.nightOverlay.destroy();
       this.nightOverlay = null;
     }
+  }
+
+  /**
+   * Check if boss encounter should be triggered
+   */
+  checkBossEncounter(): void {
+    if (this.gameState.shouldBossAppear()) {
+      this.triggerBossEncounter();
+    }
+  }
+
+  /**
+   * Trigger the boss encounter
+   */
+  triggerBossEncounter(): void {
+    // Prevent multiple triggers
+    if (this.isTransitioningToCombat) {
+      return;
+    }
+
+    this.isTransitioningToCombat = true;
+    
+    // Mark boss as triggered to prevent future triggers
+    this.gameState.markBossTriggered();
+    
+    // Hide any visible tooltips
+    this.hideNodeTooltip();
+    
+    // Create dramatic effect for boss appearance
+    this.createBossAppearanceEffect();
+    
+    // Delay the actual combat transition for dramatic effect
+    this.time.delayedCall(3000, () => {
+      this.startBossEncounter();
+    });
+  }
+
+  /**
+   * Create dramatic visual effects for boss appearance
+   */
+  createBossAppearanceEffect(): void {
+    // Screen shake effect
+    this.cameras.main.shake(2000, 0.02);
+    
+    // Screen flash effect
+    const flashOverlay = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0xff0000
+    ).setAlpha(0).setScrollFactor(0).setDepth(3000);
+    
+    // Flash sequence
+    this.tweens.add({
+      targets: flashOverlay,
+      alpha: 0.7,
+      duration: 200,
+      yoyo: true,
+      repeat: 5,
+      onComplete: () => {
+        flashOverlay.destroy();
+      }
+    });
+    
+    // Dramatic text announcement
+    const bossText = this.add.text(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      "THE FINAL BOSS AWAKENS!",
+      {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 48,
+        color: "#ff0000",
+        fontStyle: "bold",
+        stroke: "#000000",
+        strokeThickness: 4
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(3001).setAlpha(0);
+    
+    // Animate text appearance
+    this.tweens.add({
+      targets: bossText,
+      alpha: 1,
+      scale: { from: 0.5, to: 1.2 },
+      duration: 1000,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Fade out after showing
+        this.tweens.add({
+          targets: bossText,
+          alpha: 0,
+          scale: 1.5,
+          duration: 1500,
+          delay: 500,
+          onComplete: () => {
+            bossText.destroy();
+          }
+        });
+      }
+    });
+    
+    // Darken the entire screen progressively
+    const darkOverlay = this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x000000
+    ).setAlpha(0).setScrollFactor(0).setDepth(2999);
+    
+    this.tweens.add({
+      targets: darkOverlay,
+      alpha: 0.8,
+      duration: 2500,
+      ease: 'Power2'
+    });
+  }
+
+  /**
+   * Start the actual boss encounter
+   */
+  startBossEncounter(): void {
+    // Save player position
+    const gameState = GameState.getInstance();
+    gameState.savePlayerPosition(this.player.x, this.player.y);
+    
+    // Start the epic boss transition animation (from debug boss button)
+    this.startEpicBossTransition();
+  }
+
+  /**
+   * Epic boss transition animation (same as debug boss button)
+   */
+  startEpicBossTransition(): void {
+    // Get camera dimensions
+    const camera = this.cameras.main;
+    const cameraWidth = camera.width;
+    const cameraHeight = camera.height;
+    
+    // Create epic boss transition effect
+    const overlay = this.add.rectangle(
+      cameraWidth / 2,
+      cameraHeight / 2,
+      cameraWidth,
+      cameraHeight,
+      0x000000
+    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
+    
+    // Epic fade in
+    this.tweens.add({
+      targets: overlay,
+      alpha: 1,
+      duration: 1000,
+      ease: 'Power2'
+    });
+    
+    // Create epic radial effect
+    this.time.delayedCall(500, () => {
+      // Create expanding circles
+      const circles = [];
+      for (let i = 0; i < 5; i++) {
+        const circle = this.add.circle(
+          cameraWidth / 2,
+          cameraHeight / 2,
+          10,
+          0xff0000,
+          0.7
+        ).setScrollFactor(0).setDepth(2001);
+        
+        circles.push(circle);
+        
+        // Animate circle expansion
+        this.tweens.add({
+          targets: circle,
+          radius: cameraWidth,
+          alpha: 0,
+          duration: 2000,
+          delay: i * 200,
+          ease: 'Power2'
+        });
+      }
+      
+      // Final transition
+      this.time.delayedCall(2500, () => {
+        // Final zoom and transition
+        this.tweens.add({
+          targets: camera,
+          zoom: 2,
+          duration: 1000,
+          ease: 'Power2',
+          onComplete: () => {
+            // Pause this scene and launch boss combat
+            this.scene.pause();
+            this.scene.launch("Combat", { 
+              nodeType: "boss",
+              transitionOverlay: overlay
+            });
+          }
+        });
+      });
+    });
   }
 
   /**
@@ -2138,11 +2350,16 @@ export class Overworld extends Scene {
           player: this.playerData
         });
       }
-
-      // Check for B key to trigger boss fight (for testing)
-      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.B))) {
-        this.startCombat("boss");
+      
+      // Debug: Add actions with P key for testing (adds 100 actions to test boss trigger faster)
+      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P))) {
+        for (let i = 0; i < 100; i++) {
+          this.gameState.recordAction();
+        }
+        this.updateUI();
+        this.checkBossEncounter();
       }
+
       
       // Check for C key to trigger combat (for testing)
       if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.C))) {
