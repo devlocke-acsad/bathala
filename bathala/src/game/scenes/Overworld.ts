@@ -4353,6 +4353,12 @@ ${potion.description}`, {
       return;
     }
     
+    // Reset colors to default enemy colors
+    this.tooltipNameText.setColor("#e8eced");    // Default white
+    this.tooltipTypeText.setColor("#77888C");    // Default gray
+    this.tooltipStatsText.setColor("#c9a74a");   // Default yellow
+    this.tooltipDescriptionText.setColor("#b8a082"); // Default beige
+    
     // Update tooltip content
     this.tooltipNameText.setText(enemyInfo.name);
     this.tooltipTypeText.setText(enemyInfo.type.toUpperCase());
@@ -4532,9 +4538,15 @@ ${potion.description}`, {
       return;
     }
     
-    // Update tooltip content
+    // Get color scheme for this node type
+    const colors = this.getNodeColorScheme(nodeType);
+    
+    // Update tooltip content with node-specific colors
     this.tooltipNameText.setText(nodeInfo.name);
+    this.tooltipNameText.setColor(colors.name);
+    
     this.tooltipTypeText.setText(nodeInfo.type.toUpperCase());
+    this.tooltipTypeText.setColor(colors.type);
     
     // Clear previous sprite and add new one
     this.tooltipSpriteContainer.removeAll(true);
@@ -4556,7 +4568,10 @@ ${potion.description}`, {
     }
     
     this.tooltipStatsText.setText(nodeInfo.stats || "");
+    this.tooltipStatsText.setColor(colors.stats);
+    
     this.tooltipDescriptionText.setText(nodeInfo.description);
+    this.tooltipDescriptionText.setColor(colors.description);
     
     // Update size and position immediately
     this.updateTooltipSizeAndPositionImmediate(mouseX, mouseY);
@@ -4564,6 +4579,45 @@ ${potion.description}`, {
     // Show tooltip
     this.tooltipContainer.setVisible(true);
     this.isTooltipVisible = true;
+  }
+
+  /**
+   * Get color scheme for different node types
+   */
+  private getNodeColorScheme(nodeType: string): { name: string, type: string, stats: string, description: string } {
+    const colorSchemes = {
+      shop: {
+        name: "#ffd700",        // Gold - for merchant/commerce
+        type: "#ffcc00",        // Bright gold
+        stats: "#e6b800",       // Golden yellow
+        description: "#f0e68c"  // Light golden
+      },
+      event: {
+        name: "#da70d6",        // Orchid - for mystery/magic
+        type: "#ba55d3",        // Medium orchid
+        stats: "#9370db",       // Medium slate blue
+        description: "#dda0dd"  // Plum
+      },
+      campfire: {
+        name: "#ff6347",        // Tomato red - for fire/warmth
+        type: "#ff4500",        // Orange red
+        stats: "#ff8c00",       // Dark orange
+        description: "#ffa07a"  // Light salmon
+      },
+      treasure: {
+        name: "#00ced1",        // Dark turquoise - for precious items
+        type: "#20b2aa",        // Light sea green
+        stats: "#48d1cc",       // Medium turquoise
+        description: "#afeeee"  // Pale turquoise
+      }
+    };
+
+    return colorSchemes[nodeType as keyof typeof colorSchemes] || {
+      name: "#e8eced",    // Default white
+      type: "#77888C",    // Default gray
+      stats: "#c9a74a",   // Default yellow
+      description: "#b8a082" // Default beige
+    };
   }
 
   /**
