@@ -1329,12 +1329,13 @@ export class Overworld extends Scene {
     // Store sprite reference for tracking
     this.nodeSprites.set(node.id, nodeSprite);
     
-    // Add hover functionality for enemy nodes
-    if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
+    // Add hover functionality for all interactive nodes
+    if (node.type === "combat" || node.type === "elite" || node.type === "boss" || 
+        node.type === "shop" || node.type === "event" || node.type === "campfire" || node.type === "treasure") {
       nodeSprite.setInteractive();
       
       nodeSprite.on('pointerover', (pointer: Phaser.Input.Pointer) => {
-        console.log(`🖱️ Hovering over ${node.type} enemy at ${node.id}`);
+        console.log(`🖱️ Hovering over ${node.type} node at ${node.id}`);
         
         // Cancel any pending tooltip timer
         if (this.currentTooltipTimer) {
@@ -1344,8 +1345,12 @@ export class Overworld extends Scene {
         // Set current hovered node
         this.lastHoveredNodeId = node.id;
         
-        // Show enemy tooltip immediately with mouse position for dynamic placement
-        this.showEnemyTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+        // Show appropriate tooltip based on node type
+        if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
+          this.showEnemyTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+        } else {
+          this.showNodeTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+        }
         
         // Add hover effect to sprite
         this.tweens.add({
@@ -1365,7 +1370,7 @@ export class Overworld extends Scene {
       });
       
       nodeSprite.on('pointerout', () => {
-        console.log(`🖱️ Stopped hovering over ${node.type} enemy at ${node.id}`);
+        console.log(`🖱️ Stopped hovering over ${node.type} node at ${node.id}`);
         
         // Clear current hovered node
         this.lastHoveredNodeId = undefined;
@@ -1376,8 +1381,8 @@ export class Overworld extends Scene {
           this.currentTooltipTimer = undefined;
         }
         
-        // Hide enemy tooltip immediately
-        this.hideEnemyTooltip();
+        // Hide tooltip immediately
+        this.hideNodeTooltip();
         
         // Reset sprite scale
         this.tweens.add({
@@ -4348,6 +4353,12 @@ ${potion.description}`, {
       return;
     }
     
+    // Reset colors to default enemy colors
+    this.tooltipNameText.setColor("#e8eced");    // Default white
+    this.tooltipTypeText.setColor("#77888C");    // Default gray
+    this.tooltipStatsText.setColor("#c9a74a");   // Default yellow
+    this.tooltipDescriptionText.setColor("#b8a082"); // Default beige
+    
     // Update tooltip content
     this.tooltipNameText.setText(enemyInfo.name);
     this.tooltipTypeText.setText(enemyInfo.type.toUpperCase());
@@ -4490,6 +4501,13 @@ ${potion.description}`, {
    * Hide enemy tooltip with improved state management
    */
   private hideEnemyTooltip(): void {
+    this.hideNodeTooltip();
+  }
+
+  /**
+   * Hide node tooltip with improved state management
+   */
+  private hideNodeTooltip(): void {
     // Cancel any pending tooltip operations
     if (this.currentTooltipTimer) {
       this.currentTooltipTimer.destroy();
@@ -4505,6 +4523,145 @@ ${potion.description}`, {
     this.lastHoveredNodeId = undefined;
   }
   
+  /**
+   * Show node tooltip for non-enemy nodes
+   */
+  private showNodeTooltipImmediate(nodeType: string, nodeId: string, mouseX: number, mouseY: number): void {
+    if (!this.tooltipContainer) {
+      console.warn("Tooltip container not available");
+      return;
+    }
+    
+    const nodeInfo = this.getNodeInfoForType(nodeType);
+    if (!nodeInfo) {
+      console.warn(`No info available for node type: ${nodeType}`);
+      return;
+    }
+    
+    // Get color scheme for this node type
+    const colors = this.getNodeColorScheme(nodeType);
+    
+    // Update tooltip content with node-specific colors
+    this.tooltipNameText.setText(nodeInfo.name);
+    this.tooltipNameText.setColor(colors.name);
+    
+    this.tooltipTypeText.setText(nodeInfo.type.toUpperCase());
+    this.tooltipTypeText.setColor(colors.type);
+    
+    // Clear previous sprite and add new one
+    this.tooltipSpriteContainer.removeAll(true);
+    if (nodeInfo.spriteKey) {
+      const sprite = this.add.sprite(0, 0, nodeInfo.spriteKey);
+      sprite.setOrigin(0.5, 0.5);
+      
+      // Scale to fit the larger container nicely
+      const targetSize = 48;
+      const scale = targetSize / Math.max(sprite.width, sprite.height);
+      sprite.setScale(scale);
+      
+      // If it's an animated sprite, play the idle animation
+      if (nodeInfo.animationKey && this.anims.exists(nodeInfo.animationKey)) {
+        sprite.play(nodeInfo.animationKey);
+      }
+      
+      this.tooltipSpriteContainer.add(sprite);
+    }
+    
+    this.tooltipStatsText.setText(nodeInfo.stats || "");
+    this.tooltipStatsText.setColor(colors.stats);
+    
+    this.tooltipDescriptionText.setText(nodeInfo.description);
+    this.tooltipDescriptionText.setColor(colors.description);
+    
+    // Update size and position immediately
+    this.updateTooltipSizeAndPositionImmediate(mouseX, mouseY);
+    
+    // Show tooltip
+    this.tooltipContainer.setVisible(true);
+    this.isTooltipVisible = true;
+  }
+
+  /**
+   * Get color scheme for different node types
+   */
+  private getNodeColorScheme(nodeType: string): { name: string, type: string, stats: string, description: string } {
+    const colorSchemes = {
+      shop: {
+        name: "#ffd700",        // Gold - for merchant/commerce
+        type: "#ffcc00",        // Bright gold
+        stats: "#e6b800",       // Golden yellow
+        description: "#f0e68c"  // Light golden
+      },
+      event: {
+        name: "#da70d6",        // Orchid - for mystery/magic
+        type: "#ba55d3",        // Medium orchid
+        stats: "#9370db",       // Medium slate blue
+        description: "#dda0dd"  // Plum
+      },
+      campfire: {
+        name: "#ff6347",        // Tomato red - for fire/warmth
+        type: "#ff4500",        // Orange red
+        stats: "#ff8c00",       // Dark orange
+        description: "#ffa07a"  // Light salmon
+      },
+      treasure: {
+        name: "#00ced1",        // Dark turquoise - for precious items
+        type: "#20b2aa",        // Light sea green
+        stats: "#48d1cc",       // Medium turquoise
+        description: "#afeeee"  // Pale turquoise
+      }
+    };
+
+    return colorSchemes[nodeType as keyof typeof colorSchemes] || {
+      name: "#e8eced",    // Default white
+      type: "#77888C",    // Default gray
+      stats: "#c9a74a",   // Default yellow
+      description: "#b8a082" // Default beige
+    };
+  }
+
+  /**
+   * Get node information for different node types
+   */
+  private getNodeInfoForType(nodeType: string): any {
+    const nodeData = {
+      shop: {
+        name: "Merchant's Shop",
+        type: "shop",
+        spriteKey: "necromancer_f0",
+        animationKey: "necromancer_idle",
+        stats: "Services: Buy/Sell Items\nCurrency: Gold Coins\nSpecialty: Rare Relics & Potions",
+        description: "A mystical merchant offers powerful relics and potions to aid your journey. Browse their wares and strengthen your deck with ancient artifacts and magical brews."
+      },
+      event: {
+        name: "Mysterious Event",
+        type: "event", 
+        spriteKey: "doc_f0",
+        animationKey: "doc_idle",
+        stats: "Outcome: Variable\nRisk: Medium\nReward: Unique Benefits",
+        description: "Strange occurrences and mysterious encounters await. These events may offer unique opportunities, challenging choices, or unexpected rewards for the brave."
+      },
+      campfire: {
+        name: "Sacred Campfire",
+        type: "campfire",
+        spriteKey: "angel_f0", 
+        animationKey: "angel_idle",
+        stats: "Healing: Full Health\nOptions: Rest or Upgrade\nSafety: Complete Protection",
+        description: "A blessed sanctuary where weary travelers can rest and recover. Choose to restore your health completely or upgrade one of your cards to become more powerful."
+      },
+      treasure: {
+        name: "Ancient Treasure",
+        type: "treasure",
+        spriteKey: "chest_f0",
+        animationKey: "chest_open", 
+        stats: "Contents: Random Rewards\nRarity: Varies\nValue: High",
+        description: "A forgotten chest containing valuable treasures from ages past. May hold gold, rare relics, powerful cards, or other precious artifacts to aid your quest."
+      }
+    };
+
+    return nodeData[nodeType as keyof typeof nodeData] || null;
+  }
+
   /**
    * Get enemy information for a given node type
    */
