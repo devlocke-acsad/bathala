@@ -1141,10 +1141,80 @@ export class Overworld extends Scene {
     const gameState = GameState.getInstance();
     gameState.savePlayerPosition(this.player.x, this.player.y);
     
-    // Transition to combat with boss - use same format as debug boss
-    this.scene.pause();
-    this.scene.launch("Combat", { 
-      nodeType: "boss"
+    // Start the epic boss transition animation (from debug boss button)
+    this.startEpicBossTransition();
+  }
+
+  /**
+   * Epic boss transition animation (same as debug boss button)
+   */
+  startEpicBossTransition(): void {
+    // Get camera dimensions
+    const camera = this.cameras.main;
+    const cameraWidth = camera.width;
+    const cameraHeight = camera.height;
+    
+    // Create epic boss transition effect
+    const overlay = this.add.rectangle(
+      cameraWidth / 2,
+      cameraHeight / 2,
+      cameraWidth,
+      cameraHeight,
+      0x000000
+    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
+    
+    // Epic fade in
+    this.tweens.add({
+      targets: overlay,
+      alpha: 1,
+      duration: 1000,
+      ease: 'Power2'
+    });
+    
+    // Create epic radial effect
+    this.time.delayedCall(500, () => {
+      // Create expanding circles
+      const circles = [];
+      for (let i = 0; i < 5; i++) {
+        const circle = this.add.circle(
+          cameraWidth / 2,
+          cameraHeight / 2,
+          10,
+          0xff0000,
+          0.7
+        ).setScrollFactor(0).setDepth(2001);
+        
+        circles.push(circle);
+        
+        // Animate circle expansion
+        this.tweens.add({
+          targets: circle,
+          radius: cameraWidth,
+          alpha: 0,
+          duration: 2000,
+          delay: i * 200,
+          ease: 'Power2'
+        });
+      }
+      
+      // Final transition
+      this.time.delayedCall(2500, () => {
+        // Final zoom and transition
+        this.tweens.add({
+          targets: camera,
+          zoom: 2,
+          duration: 1000,
+          ease: 'Power2',
+          onComplete: () => {
+            // Pause this scene and launch boss combat
+            this.scene.pause();
+            this.scene.launch("Combat", { 
+              nodeType: "boss",
+              transitionOverlay: overlay
+            });
+          }
+        });
+      });
     });
   }
 
