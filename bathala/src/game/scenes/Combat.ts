@@ -23,6 +23,7 @@ import {
   getBossEnemy,
 } from "../../data/enemies/Act1Enemies";
 import { ENEMY_LORE_DATA, EnemyLore } from "../../data/lore/EnemyLore";
+import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -80,6 +81,8 @@ export class Combat extends Scene {
   private handEvaluationText!: Phaser.GameObjects.Text;
   private relicInventory!: Phaser.GameObjects.Container;
   private currentRelicTooltip!: Phaser.GameObjects.Container | null;
+  private pokerHandInfoButton!: Phaser.GameObjects.Container;
+  private pokerHandInfoPanel!: Phaser.GameObjects.Container | null;
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
@@ -1256,7 +1259,430 @@ export class Combat extends Scene {
       color: "#4ecdc4",
     });
 
+    // Create info button for poker hand reference
+    this.createPokerHandInfoButton();
+
     this.updateTurnUI();
+  }
+
+  /**
+   * Create poker hand info button
+   */
+  private createPokerHandInfoButton(): void {
+    const screenWidth = this.cameras.main.width;
+    
+    // Create a circular button with an "i" for information
+    this.pokerHandInfoButton = this.add.container(screenWidth - 50, 50);
+    
+    const infoButton = this.add.circle(0, 0, 20, 0x2f3542);
+    infoButton.setStrokeStyle(2, 0x57606f);
+    
+    // Add the "i" text
+    const infoText = this.add.text(0, 0, "i", {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#e8eced",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    // Make the button interactive
+    infoButton.setInteractive();
+    
+    // Add hover effects
+    infoButton.on("pointerover", () => {
+      infoButton.setFillStyle(0x3d4454);
+    });
+    
+    infoButton.on("pointerout", () => {
+      infoButton.setFillStyle(0x2f3542);
+    });
+    
+    // Add click event to show poker hand info
+    infoButton.on("pointerdown", () => {
+      this.togglePokerHandInfo();
+    });
+    
+    // Also make the text interactive and link it to the same event
+    infoText.setInteractive();
+    infoText.on("pointerdown", () => {
+      this.togglePokerHandInfo();
+    });
+    
+    this.pokerHandInfoButton.add([infoButton, infoText]);
+  }
+
+  /**
+   * Toggle the poker hand info panel
+   */
+  private togglePokerHandInfo(): void {
+    if (this.pokerHandInfoPanel) {
+      // If panel exists, hide it
+      this.hidePokerHandInfo();
+    } else {
+      // Otherwise, show it
+      this.showPokerHandInfo();
+    }
+  }
+
+  /**
+   * Show the poker hand info panel
+   */
+  private showPokerHandInfo(): void {
+    if (this.pokerHandInfoPanel) {
+      // If already shown, just return
+      return;
+    }
+
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Create semi-transparent overlay
+    const overlay = this.add.rectangle(
+      screenWidth / 2,
+      screenHeight / 2,
+      screenWidth,
+      screenHeight,
+      0x000000
+    ).setAlpha(0.7).setScrollFactor(0).setDepth(6000);
+    
+    // Create info box
+    const infoBoxWidth = Math.min(950, screenWidth * 0.9);
+    const infoBoxHeight = Math.min(750, screenHeight * 0.9);
+    const infoBox = this.add.rectangle(
+      screenWidth / 2,
+      screenHeight / 2,
+      infoBoxWidth,
+      infoBoxHeight,
+      0x1a1a2a
+    ).setStrokeStyle(4, 0x4a4a8a).setScrollFactor(0).setDepth(6001);
+    
+    // Create title
+    const title = this.add.text(
+      screenWidth / 2,
+      screenHeight / 2 - infoBoxHeight / 2 + 40,
+      "Poker Hand Reference",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 36,
+        color: "#ffd700",
+        align: "center",
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(6002);
+    
+    // Create subtitle
+    const subtitle = this.add.text(
+      screenWidth / 2,
+      screenHeight / 2 - infoBoxHeight / 2 + 75,
+      "Select cards to form these hands and unleash elemental powers!",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#a0a0ff",
+        align: "center",
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(6002);
+    
+    // Create close button
+    const closeButton = this.add.circle(
+      screenWidth / 2 + infoBoxWidth / 2 - 40,
+      screenHeight / 2 - infoBoxHeight / 2 + 40,
+      25,
+      0xc53a3a
+    ).setScrollFactor(0).setDepth(6002);
+    
+    const closeText = this.add.text(
+      screenWidth / 2 + infoBoxWidth / 2 - 40,
+      screenHeight / 2 - infoBoxHeight / 2 + 40,
+      "X",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 24,
+        color: "#ffffff",
+        align: "center",
+      }
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(6003);
+    
+    // Create scrollable content area
+    const contentY = screenHeight / 2 - infoBoxHeight / 2 + 120;
+    
+    // Create a container for all hand info
+    const handInfoContainer = this.add.container(0, 0);
+    
+    let currentY = contentY;
+    const ySpacing = 150; // Spacing between each hand info block
+    
+    // Scale factor for card display
+    const cardScale = 0.6;
+    const cardWidth = 80 * cardScale;
+    const cardHeight = 112 * cardScale;
+    
+    // Draw each poker hand info
+    POKER_HAND_LIST.forEach((handInfo, index) => {
+      // Visual representation for each hand type
+      const visualContainer = this.add.container(
+        screenWidth / 2 - infoBoxWidth / 2 + 30,
+        currentY + 20
+      );
+      
+      // Add sample cards based on hand type for visual representation
+      switch (handInfo.handType) {
+        case 'high_card':
+          this.addSampleCard(visualContainer, '1', 'Apoy', 0, 0, cardScale); // Ace of Fire
+          break;
+        case 'pair':
+          this.addSampleCard(visualContainer, '7', 'Lupa', 0, 0, cardScale); // Two 7s of Earth
+          this.addSampleCard(visualContainer, '7', 'Lupa', cardWidth + 10, 0, cardScale);
+          break;
+        case 'two_pair':
+          this.addSampleCard(visualContainer, '5', 'Hangin', 0, 0, cardScale); // Two 5s of Air
+          this.addSampleCard(visualContainer, '5', 'Hangin', cardWidth + 10, 0, cardScale);
+          this.addSampleCard(visualContainer, 'Mandirigma', 'Tubig', (cardWidth + 10) * 2, 0, cardScale); // Two Mandirigmas of Water
+          this.addSampleCard(visualContainer, 'Mandirigma', 'Tubig', (cardWidth + 10) * 3, 0, cardScale);
+          break;
+        case 'three_of_a_kind':
+          this.addSampleCard(visualContainer, '8', 'Apoy', 0, 0, cardScale); // Three 8s of Fire
+          this.addSampleCard(visualContainer, '8', 'Apoy', cardWidth + 10, 0, cardScale);
+          this.addSampleCard(visualContainer, '8', 'Apoy', (cardWidth + 10) * 2, 0, cardScale);
+          break;
+        case 'straight':
+          this.addSampleCard(visualContainer, '4', 'Lupa', 0, 0, cardScale); // Straight 4,5,6,7,8 of Earth
+          this.addSampleCard(visualContainer, '5', 'Lupa', cardWidth + 10, 0, cardScale);
+          this.addSampleCard(visualContainer, '6', 'Lupa', (cardWidth + 10) * 2, 0, cardScale);
+          this.addSampleCard(visualContainer, '7', 'Lupa', (cardWidth + 10) * 3, 0, cardScale);
+          this.addSampleCard(visualContainer, '8', 'Lupa', (cardWidth + 10) * 4, 0, cardScale);
+          break;
+        case 'flush':
+          this.addSampleCard(visualContainer, '2', 'Tubig', 0, 0, cardScale); // All Tubig (Water)
+          this.addSampleCard(visualContainer, '5', 'Tubig', cardWidth + 10, 0, cardScale);
+          this.addSampleCard(visualContainer, '9', 'Tubig', (cardWidth + 10) * 2, 0, cardScale);
+          this.addSampleCard(visualContainer, 'Mandirigma', 'Tubig', (cardWidth + 10) * 3, 0, cardScale);
+          this.addSampleCard(visualContainer, 'Datu', 'Tubig', (cardWidth + 10) * 4, 0, cardScale);
+          break;
+        case 'full_house':
+          this.addSampleCard(visualContainer, '3', 'Apoy', 0, 0, cardScale); // Three 3s and two Babaylans
+          this.addSampleCard(visualContainer, '3', 'Apoy', cardWidth + 10, 0, cardScale);
+          this.addSampleCard(visualContainer, '3', 'Apoy', (cardWidth + 10) * 2, 0, cardScale);
+          this.addSampleCard(visualContainer, 'Babaylan', 'Lupa', (cardWidth + 10) * 3, 0, cardScale);
+          this.addSampleCard(visualContainer, 'Babaylan', 'Lupa', (cardWidth + 10) * 4, 0, cardScale);
+          break;
+        case 'four_of_a_kind':
+          this.addSampleCard(visualContainer, '10', 'Hangin', 0, 0, cardScale); // Four 10s of Air
+          this.addSampleCard(visualContainer, '10', 'Hangin', cardWidth + 10, 0, cardScale);
+          this.addSampleCard(visualContainer, '10', 'Hangin', (cardWidth + 10) * 2, 0, cardScale);
+          this.addSampleCard(visualContainer, '10', 'Hangin', (cardWidth + 10) * 3, 0, cardScale);
+          break;
+        case 'straight_flush':
+          this.addSampleCard(visualContainer, '6', 'Apoy', 0, 0, cardScale); // Straight of Apoy (Fire)
+          this.addSampleCard(visualContainer, '7', 'Apoy', cardWidth + 10, 0, cardScale);
+          this.addSampleCard(visualContainer, '8', 'Apoy', (cardWidth + 10) * 2, 0, cardScale);
+          this.addSampleCard(visualContainer, '9', 'Apoy', (cardWidth + 10) * 3, 0, cardScale);
+          this.addSampleCard(visualContainer, '10', 'Apoy', (cardWidth + 10) * 4, 0, cardScale);
+          break;
+        case 'royal_flush':
+          this.addSampleCard(visualContainer, '1', 'Apoy', 0, 0, cardScale); // Royal flush of Apoy (Fire)
+          this.addSampleCard(visualContainer, 'Mandirigma', 'Apoy', cardWidth + 10, 0, cardScale);
+          this.addSampleCard(visualContainer, 'Babaylan', 'Apoy', (cardWidth + 10) * 2, 0, cardScale);
+          this.addSampleCard(visualContainer, 'Datu', 'Apoy', (cardWidth + 10) * 3, 0, cardScale);
+          this.addSampleCard(visualContainer, '10', 'Apoy', (cardWidth + 10) * 4, 0, cardScale);
+          break;
+        case 'five_of_a_kind':
+          this.addSampleCard(visualContainer, 'King', 'Lupa', 0, 0, cardScale); // Five Kings of Earth (using King as placeholder)
+          this.addSampleCard(visualContainer, 'King', 'Lupa', cardWidth + 10, 0, cardScale);
+          this.addSampleCard(visualContainer, 'King', 'Lupa', (cardWidth + 10) * 2, 0, cardScale);
+          this.addSampleCard(visualContainer, 'King', 'Lupa', (cardWidth + 10) * 3, 0, cardScale);
+          this.addSampleCard(visualContainer, 'King', 'Lupa', (cardWidth + 10) * 4, 0, cardScale);
+          break;
+      }
+      
+      // Hand title with value
+      const handTitle = this.add.text(
+        screenWidth / 2 - infoBoxWidth / 2 + 30 + (cardWidth * 6), // Position text after sample cards
+        currentY,
+        `${handInfo.name}`,
+        {
+          fontFamily: "dungeon-mode",
+          fontSize: 22,
+          color: "#ffd93d",
+          align: "left",
+        }
+      ).setScrollFactor(0).setDepth(6002);
+      
+      // Value display
+      const valueText = this.add.text(
+        screenWidth / 2 - infoBoxWidth / 2 + 30 + (cardWidth * 6),
+        currentY + 25,
+        `Value: ${handInfo.value}`,
+        {
+          fontFamily: "dungeon-mode",
+          fontSize: 16,
+          color: "#4ecdc4",
+          align: "left",
+        }
+      ).setScrollFactor(0).setDepth(6002);
+      
+      // Action-specific values
+      const actionValues = this.add.text(
+        screenWidth / 2 - infoBoxWidth / 2 + 30 + (cardWidth * 6),
+        currentY + 50,
+        `Attack: ${handInfo.attackValue} | Defense: ${handInfo.defenseValue} | Special: ${handInfo.specialValue}`,
+        {
+          fontFamily: "dungeon-mode",
+          fontSize: 14,
+          color: "#a0a0ff",
+          align: "left",
+        }
+      ).setScrollFactor(0).setDepth(6002);
+      
+      // Hand description
+      const handDescription = this.add.text(
+        screenWidth / 2 - infoBoxWidth / 2 + 30,
+        currentY + 80,
+        handInfo.description,
+        {
+          fontFamily: "dungeon-mode",
+          fontSize: 14,
+          color: "#e8eced",
+          wordWrap: { width: infoBoxWidth - 60 },
+          align: "left",
+        }
+      ).setScrollFactor(0).setDepth(6002);
+      
+      // How to make text
+      const howToMake = this.add.text(
+        screenWidth / 2 - infoBoxWidth / 2 + 30,
+        currentY + 110,
+        `How to make: ${handInfo.howToMake}`,
+        {
+          fontFamily: "dungeon-mode",
+          fontSize: 14,
+          color: "#ff6b6b",
+          wordWrap: { width: infoBoxWidth - 60 },
+          align: "left",
+        }
+      ).setScrollFactor(0).setDepth(6002);
+      
+      handInfoContainer.add([visualContainer, handTitle, valueText, actionValues, handDescription, howToMake]);
+      currentY += ySpacing;
+    });
+    
+    // Create a mask for scrolling if needed
+    const maskShape = this.make.graphics(this.game.config);
+    maskShape.fillStyle(0xffffff);
+    maskShape.fillRect(
+      screenWidth / 2 - infoBoxWidth / 2 + 10,
+      contentY - 10,
+      infoBoxWidth - 20,
+      infoBoxHeight - 140
+    );
+    
+    const mask = maskShape.createGeometryMask();
+    handInfoContainer.setMask(mask);
+    
+    // Collect all elements to destroy when closing
+    const allElements = [
+      overlay, 
+      infoBox, 
+      title, 
+      subtitle,
+      closeButton, 
+      closeText,
+      handInfoContainer
+    ];
+    
+    // Make close button interactive
+    closeButton.setInteractive();
+    closeButton.on("pointerdown", () => {
+      this.hidePokerHandInfo();
+    });
+    
+    closeText.setInteractive();
+    closeText.on("pointerdown", () => {
+      this.hidePokerHandInfo();
+    });
+    
+    // Make the overlay close the panel when clicked
+    overlay.setInteractive();
+    overlay.on('pointerdown', () => {
+      this.hidePokerHandInfo();
+    });
+    
+    // Create container for the panel
+    this.pokerHandInfoPanel = this.add.container(0, 0, allElements);
+    this.pokerHandInfoPanel.setDepth(6000);
+  }
+
+  /**
+   * Hide the poker hand info panel
+   */
+  private hidePokerHandInfo(): void {
+    if (this.pokerHandInfoPanel) {
+      this.pokerHandInfoPanel.destroy();
+      this.pokerHandInfoPanel = null;
+    }
+  }
+
+  /**
+   * Add a sample card to the visual representation container
+   */
+  private addSampleCard(
+    container: Phaser.GameObjects.Container,
+    rank: string,
+    suit: string,
+    x: number,
+    y: number,
+    scale: number = 1
+  ): void {
+    // Convert card rank to sprite rank (1-13)
+    const rankMap: Record<string, string> = {
+      "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
+      "6": "6", "7": "7", "8": "8", "9": "9", "10": "10",
+      "Mandirigma": "11", "Babaylan": "12", "Datu": "13", "King": "13" // Added King as placeholder for 5 of a kind
+    };
+    const spriteRank = rankMap[rank] || "1";
+    
+    // Convert suit to lowercase for sprite naming
+    const suitMap: Record<string, string> = {
+      "Apoy": "apoy", "Tubig": "tubig", "Lupa": "lupa", "Hangin": "hangin"
+    };
+    const spriteSuit = suitMap[suit] || "apoy";
+    
+    // Create card sprite using the loaded image
+    const textureKey = `card_${spriteRank}_${spriteSuit}`;
+    
+    let cardSprite;
+    
+    // Check if texture exists, fallback to generated card if not
+    if (this.textures.exists(textureKey)) {
+      cardSprite = this.add.image(x, y, textureKey);
+    } else {
+      // Fallback to generated card
+      cardSprite = this.add.rectangle(x, y, 80 * scale, 112 * scale, 0xffffff);
+      
+      // Add rank text
+      const rankText = this.add.text(x - 35 * scale, y - 45 * scale, rank, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(12 * scale),
+        color: "#000000",
+      }).setOrigin(0, 0);
+      container.add(rankText);
+      
+      // Add suit symbol
+      const suitSymbolMap: Record<string, string> = {
+        "Apoy": "🔥", "Tubig": "💧", "Lupa": "🌿", "Hangin": "💨"
+      };
+      const suitSymbol = suitSymbolMap[suit] || "🔥";
+      
+      const suitText = this.add.text(x + 30 * scale, y - 45 * scale, suitSymbol, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(14 * scale),
+        color: "#000000",
+      }).setOrigin(1, 0);
+      container.add(suitText);
+    }
+    
+    cardSprite.setDisplaySize(80 * scale, 112 * scale);
+    
+    container.add(cardSprite);
   }
 
   /**
@@ -2373,6 +2799,9 @@ export class Combat extends Scene {
       return;
     }
     
+    // Hide poker hand info panel if it's open
+    this.hidePokerHandInfo();
+    
     this.combatEnded = true;
     this.combatState.phase = "post_combat";
     
@@ -2873,6 +3302,9 @@ export class Combat extends Scene {
   private returnToOverworld(): void {
     try {
       console.log("Returning to overworld...");
+      
+      // Hide poker hand info panel if it's open
+      this.hidePokerHandInfo();
       
       // Save player state to GameState manager
       const gameState = GameState.getInstance();
@@ -4041,6 +4473,11 @@ export class Combat extends Scene {
     
     if (this.actionResultText) {
       this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
+    }
+    
+    // Update poker hand info button position
+    if (this.pokerHandInfoButton) {
+      this.pokerHandInfoButton.setPosition(screenWidth - 50, 50);
     }
     
     // Update player and enemy positions
