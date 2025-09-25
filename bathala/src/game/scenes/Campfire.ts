@@ -271,8 +271,22 @@ export class Campfire extends Scene {
       // Add bonfire sound effect placeholder
       console.log("Bonfire - Leaving...");
       
-      // Complete the campfire node and return to overworld
+      // Save updated player data to GameState
       const gameState = GameState.getInstance();
+      gameState.updatePlayerData({
+        currentHealth: this.player.currentHealth,
+        maxHealth: this.player.maxHealth,
+        landasScore: this.player.landasScore,
+        ginto: this.player.ginto,
+        diamante: this.player.diamante,
+        relics: this.player.relics,
+        potions: this.player.potions,
+        discardCharges: this.player.discardCharges,
+        maxDiscardCharges: this.player.maxDiscardCharges,
+        deck: this.player.deck
+      });
+      
+      // Complete the campfire node and return to overworld
       gameState.completeCurrentNode(true);
       this.scene.stop();
       this.scene.resume("Overworld");

@@ -2459,9 +2459,9 @@ export class Combat extends Scene {
         })
         .setOrigin(0.5);
 
-      // Return to overworld after 3 seconds
+      // Return to overworld after 3 seconds and save player state
       this.time.delayedCall(3000, () => {
-        this.scene.start("Overworld");
+        this.returnToOverworld();
       });
     }
   }
