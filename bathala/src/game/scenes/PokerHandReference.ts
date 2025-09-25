@@ -1,59 +1,132 @@
 import { Scene } from "phaser";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
+import { Suit } from "../../core/types/CombatTypes";
+
+type Tab = 'poker' | 'elements';
 
 export class PokerHandReference extends Scene {
-  private scrollContainer!: Phaser.GameObjects.Container;
+  private pokerHandsContainer!: Phaser.GameObjects.Container;
+  private elementalEffectsContainer!: Phaser.GameObjects.Container;
   private backButton!: Phaser.GameObjects.Container;
-  private lastPointerY: number = 0;
+  private activeTab: Tab = 'poker';
+  private pokerTabButton!: Phaser.GameObjects.Container;
+  private elementsTabButton!: Phaser.GameObjects.Container;
+  private scrollContainer!: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: "PokerHandReference" });
   }
 
-  init() {
-    // Initialize any variables if needed
-  }
-
   create() {
+    // Create a proper background that doesn't cover elements
+    this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x1a1a2a,  // Dark blue background
+      1           // Fully opaque
+    ).setDepth(0); // Lowest depth
+
     // Create title
     this.add.text(
       this.cameras.main.width / 2,
       50,
-      "POKER HAND REFERENCE",
+      "REFERENCE",
       {
         fontFamily: "dungeon-mode",
         fontSize: 40,
-        color: "#ffd700", // Gold color like in the previous design
+        color: "#ffd700",
         align: "center",
         fontStyle: "bold"
       }
-    ).setOrigin(0.5).setDepth(5); // Set depth to ensure visibility
+    ).setOrigin(0.5).setDepth(5);
 
-    // Create scrollable content area - full screen with margins
-    const contentY = 120; // Increased top margin to avoid blocking back button
-    const ySpacing = 200; // More space between entries for cleaner look
+    this.createBackButton();
+    this.createTabs();
+    this.createPokerHandContent();
+    this.createElementalEffectsContent();
+    this.showTab('poker');
+  }
+
+  private createTabs(): void {
+    const tabY = 120;
+    this.pokerTabButton = this.createTabButton("Poker Hands", -100, tabY, () => this.showTab('poker'));
+    this.elementsTabButton = this.createTabButton("Elemental Effects", 100, tabY, () => this.showTab('elements'));
+  }
+
+  private createTabButton(text: string, x: number, y: number, onClick: () => void): Phaser.GameObjects.Container {
+    const button = this.add.container(this.cameras.main.width / 2 + x, y).setDepth(21);
+    const bg = this.add.rectangle(0, 0, 180, 50, 0x2f3542);
+    bg.setStrokeStyle(2, 0x57606f);
+    const buttonText = this.add.text(0, 0, text, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#e8eced",
+      align: "center",
+    }).setOrigin(0.5);
+
+    button.add([bg, buttonText]);
+    button.setInteractive(new Phaser.Geom.Rectangle(-90, -25, 180, 50), Phaser.Geom.Rectangle.Contains);
+    button.on("pointerdown", onClick);
+    button.on("pointerover", () => bg.setFillStyle(0x3d4454));
+    button.on("pointerout", () => {
+        if (this.activeTab !== (text === "Poker Hands" ? 'poker' : 'elements')) {
+            bg.setFillStyle(0x2f3542);
+        }
+    });
+
+    return button;
+  }
+
+  private showTab(tab: Tab): void {
+    this.activeTab = tab;
+
+    // Instantly set visibility to avoid graphical glitches
+    this.pokerHandsContainer.setVisible(tab === 'poker');
+    this.elementalEffectsContainer.setVisible(tab === 'elements');
+
+    // Then fade in the correct container
+    if (tab === 'poker') {
+        this.tweens.add({
+            targets: this.pokerHandsContainer,
+            alpha: 1,
+            duration: 300,
+            ease: 'Power2'
+        });
+        this.elementalEffectsContainer.setAlpha(0);
+    } else {
+        this.tweens.add({
+            targets: this.elementalEffectsContainer,
+            alpha: 1,
+            duration: 300,
+            ease: 'Power2'
+        });
+        this.pokerHandsContainer.setAlpha(0);
+    }
+
+    const pokerBg = this.pokerTabButton.first as Phaser.GameObjects.Rectangle;
+    const elementsBg = this.elementsTabButton.first as Phaser.GameObjects.Rectangle;
+
+    pokerBg.setFillStyle(tab === 'poker' ? 0x4a4a4a : 0x2f3542);
+    elementsBg.setFillStyle(tab === 'elements' ? 0x4a4a4a : 0x2f3542);
+}
+
+  private createPokerHandContent(): void {
+    const contentY = 180;
+    const ySpacing = 200;
     const totalContentHeight = POKER_HAND_LIST.length * ySpacing;
 
-    // Create a container for all hand info that can be scrolled
-    this.scrollContainer = this.add.container(
-      this.cameras.main.width / 2,
-      contentY
-    ).setDepth(10); // Set depth higher than background but below scroll area
+    this.pokerHandsContainer = this.add.container(0, 0);
+    this.scrollContainer = this.add.container(this.cameras.main.width / 2, contentY);
+    this.pokerHandsContainer.add(this.scrollContainer);
 
-    // Scale factor for card display
-    const cardScale = 0.5; // Slightly larger for better visibility
+    const cardScale = 0.5;
     const cardWidth = 80 * cardScale;
-    const cardHeight = 112 * cardScale;
 
-    // Draw each poker hand info
     POKER_HAND_LIST.forEach((handInfo, index) => {
       const currentY = index * ySpacing;
-
-      // Visual representation for each hand type (sample cards)
-      const visualContainer = this.add.container(
-        -this.cameras.main.width/2 + 50, // Start from left margin
-        currentY + 30
-      ).setDepth(11);
+      const visualContainer = this.add.container(-this.cameras.main.width/2 + 50, currentY + 30).setDepth(11);
 
       // Add sample cards based on hand type for visual representation
       switch (handInfo.handType) {
@@ -125,125 +198,76 @@ export class PokerHandReference extends Scene {
           break;
       }
 
-      // Hand name with better styling
-      const handName = this.add.text(
-        -this.cameras.main.width/2 + 50 + (cardWidth * 6) + 20, // Positioned to the right of cards with extra space
-        currentY + 10,
-        `${handInfo.name}`,
-        {
-          fontFamily: "dungeon-mode",
-          fontSize: 22,
-          color: "#ffd700", // Gold color for better visibility
-          align: "left",
-        }
-      ).setDepth(12);
-
-      // Value and action-specific values on the same line
-      const valueAndActions = this.add.text(
-        -this.cameras.main.width/2 + 50 + (cardWidth * 6) + 20,
-        currentY + 45,
-        `VALUE: ${handInfo.value} | ATK: ${handInfo.attackValue} | DEF: ${handInfo.defenseValue} | SPC: ${handInfo.specialValue}`,
-        {
-          fontFamily: "dungeon-mode",
-          fontSize: 14,
-          color: "#a0a0ff",
-          align: "left",
-        }
-      ).setDepth(12);
-
-      // How to make text - more concise
-      const howToMake = this.add.text(
-        -this.cameras.main.width/2 + 50,
-        currentY + 100,
-        `• ${handInfo.howToMake}`,
-        {
-          fontFamily: "dungeon-mode",
-          fontSize: 14,
-          color: "#e8eced",
-          wordWrap: { width: this.cameras.main.width - 100 }, // Use full width minus margins
-          align: "left",
-        }
-      ).setDepth(12);
+      const handName = this.add.text(-this.cameras.main.width/2 + 50 + (cardWidth * 6) + 20, currentY + 10, `${handInfo.name}`, { fontFamily: "dungeon-mode", fontSize: 22, color: "#ffd700", align: "left" }).setDepth(12);
+      const valueAndActions = this.add.text(-this.cameras.main.width/2 + 50 + (cardWidth * 6) + 20, currentY + 45, `VALUE: ${handInfo.value} | ATK: ${handInfo.attackValue} | DEF: ${handInfo.defenseValue} | SPC: ${handInfo.specialValue}`, { fontFamily: "dungeon-mode", fontSize: 14, color: "#a0a0ff", align: "left" }).setDepth(12);
+      const howToMake = this.add.text(-this.cameras.main.width/2 + 50, currentY + 100, `• ${handInfo.howToMake}`, { fontFamily: "dungeon-mode", fontSize: 14, color: "#e8eced", wordWrap: { width: this.cameras.main.width - 100 }, align: "left" }).setDepth(12);
 
       this.scrollContainer.add([visualContainer, handName, valueAndActions, howToMake]);
     });
 
-    // Create a proper background that doesn't cover elements
-    const backgroundRect = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x1a1a2a,  // Dark blue background
-      1           // Fully opaque
-    ).setDepth(0); // Lowest depth
+    const scrollArea = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.01).setOrigin(0.5).setDepth(20).setInteractive();
 
-    // Create scroll area that captures pointer events - full screen, higher depth to ensure interaction
-    const scrollArea = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x000000,
-      0.01 // Very slight transparency to make it interactive but not visually visible
-    ).setOrigin(0.5).setDepth(20); // High depth to ensure it receives events
-
-    scrollArea.setInteractive();
-
-    // Mouse wheel and drag scrolling
     scrollArea.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number, deltaZ: number) => {
-      if (Math.abs(deltaY) > 0) { // Only scroll vertically
-        const maxScroll = Math.max(0, totalContentHeight - (this.cameras.main.height - 120)); // Adjusted for title and margin
-        const newY = Math.max(-(maxScroll), Math.min(0, this.scrollContainer.y - (deltaY * 3))); // Increased sensitivity
-        this.scrollContainer.y = newY;
-        
-        // Prevent default scrolling behavior
-        if (pointer.event && pointer.event.preventDefault) {
-          pointer.event.preventDefault();
+        if (this.activeTab === 'poker') {
+            const maxScroll = Math.max(0, totalContentHeight - (this.cameras.main.height - contentY));
+            const newY = this.scrollContainer.y - (deltaY * 3);
+            this.scrollContainer.y = Phaser.Math.Clamp(newY, -maxScroll, 0);
         }
-      }
     });
 
     let isDragging = false;
     let startY = 0;
-    let initialY = contentY; // Use contentY as initial position
 
     scrollArea.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      isDragging = true;
-      startY = pointer.y;
-      initialY = this.scrollContainer.y;
+        isDragging = true;
+        startY = pointer.y;
     });
 
     scrollArea.on('pointerup', () => {
-      isDragging = false;
+        isDragging = false;
     });
 
     scrollArea.on('pointerout', () => {
-      isDragging = false;
+        isDragging = false;
     });
 
     scrollArea.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      if (isDragging && pointer.isDown) {
-        const deltaY = pointer.y - startY;
-        const newY = initialY + (deltaY * 2); // Multiply for smoother scrolling
-
-        // Calculate max scroll distance (how much we can scroll down)
-        const maxScroll = Math.max(0, totalContentHeight - (this.cameras.main.height - 120));
-
-        // Apply bounds: prevent scrolling beyond the content
-        this.scrollContainer.y = Math.max(-(maxScroll), Math.min(0, newY));
-      }
+        if (isDragging && this.activeTab === 'poker') {
+            const newY = this.scrollContainer.y + (pointer.y - startY);
+            const maxScroll = Math.max(0, totalContentHeight - (this.cameras.main.height - contentY));
+            this.scrollContainer.y = Phaser.Math.Clamp(newY, -maxScroll, 0);
+            startY = pointer.y;
+        }
     });
+  }
 
-    // Create back button in top-left corner
-    this.createBackButton();
+  private createElementalEffectsContent(): void {
+    this.elementalEffectsContainer = this.add.container(this.cameras.main.width / 2, 250).setDepth(10).setVisible(false);
+    const elementalInfo = [
+      { suit: "Apoy", icon: "🔥", name: "Fire", description: "Deals 50% of hand value as AoE damage and applies 2 Burn to all enemies." },
+      { suit: "Tubig", icon: "💧", name: "Water", description: "Heals for 80% of hand value and cleanses 1 debuff from the player." },
+      { suit: "Lupa", icon: "🌿", name: "Earth", description: "Gains 120% of hand value as Block and grants 1 Strength." },
+      { suit: "Hangin", icon: "💨", name: "Air", description: "Draws 2 cards and grants 2 Dexterity." }
+    ];
+
+    let yPos = 0;
+    elementalInfo.forEach(info => {
+      const container = this.add.container(0, yPos);
+      const bg = this.add.rectangle(0, 0, 600, 100, 0x2f3542, 0.5).setStrokeStyle(2, 0x57606f);
+      const icon = this.add.text(-250, 0, info.icon, { fontSize: 48 }).setOrigin(0.5);
+      const name = this.add.text(-200, -15, `${info.suit} (${info.name})`, { fontFamily: "dungeon-mode", fontSize: 24, color: "#ffd700" }).setOrigin(0, 0.5);
+      const description = this.add.text(-200, 25, info.description, { fontFamily: "dungeon-mode", fontSize: 16, color: "#e8eced", wordWrap: { width: 450 } }).setOrigin(0, 0);
+      container.add([bg, icon, name, description]);
+      this.elementalEffectsContainer.add(container);
+      yPos += 120;
+    });
   }
 
   private createBackButton(): void {
     const buttonX = 80;
     const buttonY = 50;
 
-    this.backButton = this.add.container(buttonX, buttonY).setDepth(15); // Higher depth to ensure visibility
+    this.backButton = this.add.container(buttonX, buttonY).setDepth(21);
 
     const bg = this.add.rectangle(0, 0, 120, 40, 0x2f3542);
     bg.setStrokeStyle(2, 0x57606f);
@@ -267,9 +291,6 @@ export class PokerHandReference extends Scene {
     this.backButton.on("pointerout", () => bg.setFillStyle(0x2f3542));
   }
 
-  /**
-   * Add a sample card to the visual representation container
-   */
   private addSampleCard(
     container: Phaser.GameObjects.Container,
     rank: string,
@@ -294,22 +315,16 @@ export class PokerHandReference extends Scene {
 
     // The actual file names follow the pattern card_<rank>_<suit> (e.g., card_1_apoy)
     const textureKey = `card_${spriteRank}_${spriteSuit}`;
-    
-    // Log all available textures for debugging
-    console.log("Available textures:", this.textures.getTextureKeys());
-    console.log(`Looking for texture: ${textureKey}`);
 
     let cardSprite;
 
     // Check if texture exists, fallback to generated card if not
     if (this.textures.exists(textureKey)) {
-      console.log(`Loading texture: ${textureKey}`); // Debug: check if texture is found
       cardSprite = this.add.image(x, y, textureKey);
       cardSprite.setDisplaySize(80 * scale, 112 * scale);
       cardSprite.setDepth(5); // Higher depth to make sure it's visible
       container.add(cardSprite);
     } else {
-      console.log(`Texture not found: ${textureKey}, using fallback. Available textures:`, this.textures.getTextureKeys()); // Debug: texture not found
       // Always create a generated card with border and visual indicators
       cardSprite = this.add.rectangle(x, y, 80 * scale, 112 * scale, 0xffffff);
       cardSprite.setStrokeStyle(3 * scale, 0x333333); // Add border for visibility (darker gray)
@@ -354,9 +369,5 @@ export class PokerHandReference extends Scene {
 
       container.add(cardSprite);
     }
-  }
-
-  update(time: number, delta: number): void {
-    // Update logic if needed
   }
 }
