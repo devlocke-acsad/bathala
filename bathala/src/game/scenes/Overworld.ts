@@ -311,8 +311,9 @@ export class Overworld extends Scene {
       
       // Pause this scene and launch campfire scene
       this.scene.pause();
+      const playerData = gameState.getPlayerData();
       this.scene.launch("Campfire", { 
-        player: {
+        player: playerData || {
           id: "player",
           name: "Hero",
           maxHealth: 80,
@@ -327,14 +328,10 @@ export class Overworld extends Scene {
           landasScore: 0,
           ginto: 100,
           diamante: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
+          relics: [],
+          potions: [],
+          discardCharges: 1,
+          maxDiscardCharges: 1
         }
       });
     }, this.testButtonsContainer);
@@ -416,8 +413,9 @@ export class Overworld extends Scene {
       
       // Pause this scene and launch campfire scene
       this.scene.pause();
+      const playerData = gameState.getPlayerData();
       this.scene.launch("Campfire", { 
-        player: {
+        player: playerData || {
           id: "player",
           name: "Hero",
           maxHealth: 80,
@@ -432,14 +430,10 @@ export class Overworld extends Scene {
           landasScore: 0,
           ginto: 100,
           diamante: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
+          relics: [],
+          potions: [],
+          discardCharges: 1,
+          maxDiscardCharges: 1
         }
       });
     }, this.testButtonsContainer);
@@ -1709,8 +1703,9 @@ export class Overworld extends Scene {
           
           // Pause this scene and launch campfire scene
           this.scene.pause();
+          const playerData2 = gameState2.getPlayerData();
           this.scene.launch("Campfire", { 
-            player: {
+            player: playerData2 || {
               id: "player",
               name: "Hero",
               maxHealth: 80,
@@ -1725,14 +1720,10 @@ export class Overworld extends Scene {
               landasScore: 0,
               ginto: 100,
               diamante: 0,
-              relics: [
-                {
-                  id: "placeholder_relic",
-                  name: "Placeholder Relic",
-                  description: "This is a placeholder relic.",
-                  emoji: "⚙️",
-                },
-              ],
+              relics: [],
+              potions: [],
+              discardCharges: 1,
+              maxDiscardCharges: 1
             }
           });
           break;

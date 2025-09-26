@@ -195,6 +195,15 @@ export class Treasure extends Scene {
   private hideTooltip(): void {
     this.tooltipBox.setVisible(false);
   }
+  
+  /** 
+   * Get Landas tier from score 
+   */
+  private getLandasTier(landasScore: number): "Mercy" | "Balance" | "Conquest" {
+    if (landasScore <= -5) return "Conquest";
+    if (landasScore >= 5) return "Mercy";
+    return "Balance";
+  }
 
   private createBackButton(): void {
     const screenWidth = this.cameras.main.width;
@@ -225,8 +234,13 @@ export class Treasure extends Scene {
     );
     
     backButton.on("pointerdown", () => {
-      // Complete the treasure node and return to overworld
+      // Update player data in GameState
       const gameState = GameState.getInstance();
+      gameState.updatePlayerData({
+        ...this.player
+      });
+      
+      // Complete the treasure node and return to overworld
       gameState.completeCurrentNode(true);
       this.scene.stop();
       this.scene.resume("Overworld");
@@ -240,8 +254,30 @@ export class Treasure extends Scene {
     // Add relic to player
     this.player.relics.push(relic);
     
+    // Determine Landas tier and provide additional rewards
+    const landasTier = this.getLandasTier(this.player.landasScore);
+    let additionalRewardMessage = "";
+    
+    // Provide additional rewards based on Landas tier
+    if (landasTier === "Mercy") {
+      // Mercy path - more Spirit Fragments (diamante)
+      const bonusDiamante = 2; // Fixed bonus for mercy
+      this.player.diamante += bonusDiamante;
+      additionalRewardMessage = `+${bonusDiamante} Spirit Fragments (Mercy Bonus)`;
+    } else if (landasTier === "Conquest") {
+      // Conquest path - more gold (ginto)
+      const bonusGinto = 15; // Fixed bonus for conquest
+      this.player.ginto += bonusGinto;
+      additionalRewardMessage = `+${bonusGinto} Ginto (Conquest Bonus)`;
+    } 
+    // Balance path gets standard rewards (no bonus)
+    
     // Update UI
-    this.descriptionText.setText(`You take the ${relic.name}!`);
+    let rewardText = `You take the ${relic.name}!`;
+    if (additionalRewardMessage) {
+      rewardText += `\n${additionalRewardMessage}`;
+    }
+    this.descriptionText.setText(rewardText);
     this.descriptionText.setColor("#2ed573");
     
     // Disable all relic buttons to prevent multiple selections
@@ -293,8 +329,13 @@ export class Treasure extends Scene {
     );
     
     continueButton.on("pointerdown", () => {
-      // Complete the treasure node and return to overworld
+      // Update player data in GameState with new values
       const gameState = GameState.getInstance();
+      gameState.updatePlayerData({
+        ...this.player
+      });
+      
+      // Complete the treasure node and return to overworld
       gameState.completeCurrentNode(true);
       this.scene.stop();
       this.scene.resume("Overworld");
@@ -333,34 +374,34 @@ export class Treasure extends Scene {
     });
   }
 
-  /**
-   * Handle scene resize
-   */
-  private handleResize(): void {
-    // Clear and recreate UI
-    this.children.removeAll();
+  /** 
+   * Handle scene resize 
+   */ 
+  private handleResize(): void { 
+    // Clear and recreate UI 
+    this.children.removeAll(); 
     
-    // Recreate all elements
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
+    // Recreate all elements 
+    const screenWidth = this.cameras.main.width; 
+    const screenHeight = this.cameras.main.height; 
     
-    this.add.text(
-      screenWidth / 2,
-      30,
-      "Treasure Chest",
-      {
-        fontFamily: "Centrion",
-        fontSize: 32,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
+    this.add.text( 
+      screenWidth / 2, 
+      30, 
+      "Treasure Chest", 
+      { 
+        fontFamily: "dungeon-mode-inverted", 
+        fontSize: 32, 
+        color: "#e8eced", 
+        align: "center", 
+      } 
+    ).setOrigin(0.5); 
     
-    this.treasureChest.setPosition(screenWidth / 2, screenHeight / 2 - 100);
-    this.descriptionText.setPosition(screenWidth / 2, screenHeight / 2);
+    this.treasureChest.setPosition(screenWidth / 2, screenHeight / 2 - 100); 
+    this.descriptionText.setPosition(screenWidth / 2, screenHeight / 2 + 100); 
     
-    this.createRelicOptions();
-    this.createTooltipBox();
-    this.createBackButton();
+    this.createRelicOptions(); 
+    this.createTooltipBox(); 
+    this.createBackButton(); 
   }
 }

@@ -12,6 +12,9 @@ export class Campfire extends Scene {
   private actionText!: Phaser.GameObjects.Text;
   private cardSprites: Phaser.GameObjects.Container[] = [];
   private tooltipBox!: Phaser.GameObjects.Container;
+  private healthBarBg!: Phaser.GameObjects.Rectangle;
+  private healthBarFill!: Phaser.GameObjects.Rectangle;
+  private healthText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "Campfire" });
@@ -149,18 +152,18 @@ export class Campfire extends Scene {
     const screenHeight = this.cameras.main.height;
     
     // Create health bar background
-    const healthBarBg = this.add.rectangle(
+    this.healthBarBg = this.add.rectangle(
       screenWidth / 2,
       screenHeight / 2 - 100,
       300,
       20,
       0x333333
     );
-    healthBarBg.setStrokeStyle(2, 0x555555);
+    this.healthBarBg.setStrokeStyle(2, 0x555555);
     
     // Create health bar fill
     const healthPercent = this.player.currentHealth / this.player.maxHealth;
-    const healthBarFill = this.add.rectangle(
+    this.healthBarFill = this.add.rectangle(
       screenWidth / 2 - (300 * (1 - healthPercent)) / 2,
       screenHeight / 2 - 100,
       300 * healthPercent,
@@ -169,7 +172,7 @@ export class Campfire extends Scene {
     );
     
     // Create health text
-    this.add.text(
+    this.healthText = this.add.text(
       screenWidth / 2,
       screenHeight / 2 - 130,
       `Health: ${this.player.currentHealth}/${this.player.maxHealth}`,
@@ -180,6 +183,25 @@ export class Campfire extends Scene {
         align: "center",
       }
     ).setOrigin(0.5);
+  }
+
+  private updatePlayerHealthDisplay(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const healthPercent = this.player.currentHealth / this.player.maxHealth;
+    
+    // Update health bar fill
+    this.healthBarFill.setSize(300 * healthPercent, 20);
+    this.healthBarFill.setPosition(
+      screenWidth / 2 - (300 * (1 - healthPercent)) / 2,
+      screenHeight / 2 - 100
+    );
+    this.healthBarFill.setFillStyle(
+      healthPercent > 0.5 ? 0x2ed573 : healthPercent > 0.25 ? 0xff9f43 : 0xff4757
+    );
+    
+    // Update health text
+    this.healthText.setText(`Health: ${this.player.currentHealth}/${this.player.maxHealth}`);
   }
 
   private createDarkSoulsActionButtons(): void {
@@ -396,7 +418,7 @@ export class Campfire extends Scene {
     );
     
     // Update health display
-    this.createPlayerHealthDisplay();
+    this.updatePlayerHealthDisplay();
     
     // Show healing effect
     const screenWidth = this.cameras.main.width;
