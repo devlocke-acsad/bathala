@@ -14,11 +14,11 @@ import {
   TIYANAK_LORE, MANANANGGAL_LORE, ASWANG_LORE, DUWENDE_CHIEF_LORE,
   BAKUNAWA_LORE
 } from "../../data/lore/EnemyLore";
+import { OverworldUIManager } from "./Overworld_UIManager";
+import { OverworldMovementManager } from "./Overworld_MovementManager";
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private wasdKeys!: { [key: string]: Phaser.Input.Keyboard.Key };
   private nodes: MapNode[] = [];
   private nodeSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
@@ -26,15 +26,8 @@ export class Overworld extends Scene {
   private isMoving: boolean = false;
   private isTransitioningToCombat: boolean = false;
   private gameState: OverworldGameState;
-  private dayNightProgressFill!: Phaser.GameObjects.Rectangle;
-  private dayNightIndicator!: Phaser.GameObjects.Triangle;
-  private nightOverlay!: Phaser.GameObjects.Rectangle | null;
-  private bossText!: Phaser.GameObjects.Text;
-  private actionButtons: Phaser.GameObjects.Container[] = [];
-  private shopKey!: Phaser.Input.Keyboard.Key;
-  private testButtonsVisible: boolean = false;
-  private testButtonsContainer!: Phaser.GameObjects.Container;
-  private toggleButton!: Phaser.GameObjects.Container;
+  private uiManager!: OverworldUIManager;
+  private movementManager!: OverworldMovementManager;
   
   // Overworld UI elements
   private uiContainer!: Phaser.GameObjects.Container;
@@ -194,38 +187,22 @@ export class Overworld extends Scene {
     console.log("Playing avatar_idle_down animation");
     this.player.play("avatar_idle_down"); // Initial animation
 
-    // Enable keyboard input
-    this.cursors = this.input.keyboard.createCursorKeys();
-    this.wasdKeys = this.input.keyboard.addKeys({
-      'W': Phaser.Input.Keyboard.KeyCodes.W,
-      'A': Phaser.Input.Keyboard.KeyCodes.A,
-      'S': Phaser.Input.Keyboard.KeyCodes.S,
-      'D': Phaser.Input.Keyboard.KeyCodes.D
-    }) as { [key: string]: Phaser.Input.Keyboard.Key };
-    
-    // Add shop key (M for Mysterious Merchant)
-    this.shopKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
-    
-    // Debug: Add global mouse tracking
-    this.input.on('pointermove', (pointer: any) => {
-      // Only log occasionally to avoid spam
-      if (Math.random() < 0.01) { // 1% chance
-        console.log('🖱️ Global mouse move:', { x: pointer.x, y: pointer.y });
-      }
-    });
-    
-    this.input.on('pointerdown', (pointer: any) => {
-      console.log('🖱️ Global mouse DOWN:', { x: pointer.x, y: pointer.y });
-    });
+    // Initialize movement manager and input controls
+    this.movementManager = new OverworldMovementManager(this);
+    this.movementManager.initializeInput();
     
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
     
     // Create enemy info tooltip
     this.createEnemyTooltip();
-    
-    // Create UI elements with a slight delay to ensure camera is ready
-    this.time.delayedCall(10, this.createUI, [], this);
+
+    // Initialize UI manager and create UI after camera is ready
+    this.uiManager = new OverworldUIManager(this);
+    this.time.delayedCall(10, () => {
+      this.uiManager.createUI();
+      this.createOverworldUI();
+    });
     
     // Render initial chunks around player with a slight delay to ensure camera is ready
     this.time.delayedCall(20, this.updateVisibleChunks, [], this);
@@ -234,599 +211,11 @@ export class Overworld extends Scene {
     this.scale.on('resize', this.handleResize, this);
   }
 
-  createUI(): void {
-    // Ensure camera is available before proceeding
-    if (!this.cameras || !this.cameras.main) {
-      console.warn("Camera not available, scheduling UI creation for next frame");
-      // Try again on the next frame
-      this.time.delayedCall(10, this.createUI, [], this);
-      return;
-    }
-    
-    // Create day/night cycle progress bar (He is Coming style)
-    this.createDayNightProgressBar();
-    
-    // Create boss appearance indicator
-    this.bossText = this.add.text(10, 40, 
-      `Boss Progress: ${Math.round(this.gameState.getBossProgress() * 100)}%`, 
-      {
-        fontFamily: 'dungeon-mode',
-        fontSize: '16px',
-        color: '#ffffff',
-        backgroundColor: 'rgba(0,0,0,0.8)',
-        padding: { x: 10, y: 5 }
-      }
-    ).setScrollFactor(0).setDepth(1000); // Fix to camera and set depth
-    this.bossText.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Create action buttons on the top right side of the screen (fixed to camera)
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    const buttonX = screenWidth - 150; // Position from right edge
-    let buttonY = 100;
-    
-    // Combat test button
-    this.createActionButton(buttonX, buttonY, "Combat", "#ff0000", () => {
-      this.startCombat("combat");
-    }, this.testButtonsContainer);
-    buttonY += 60;
-    
-    // Elite test button
-    this.createActionButton(buttonX, buttonY, "Elite", "#ffa500", () => {
-      this.startCombat("elite");
-    }, this.testButtonsContainer);
-    buttonY += 60;
-    
-    // Boss test button
-    this.createActionButton(buttonX, buttonY, "Boss Fight", "#8b5cf6", () => {
-      this.startCombat("boss");
-    }, this.testButtonsContainer);
-    buttonY += 60;
-    
-    // Shop test button
-    this.createActionButton(buttonX, buttonY, "Shop", "#00ff00", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-      
-      // Pause this scene and launch shop scene with actual player data
-      this.scene.pause();
-      this.scene.launch("Shop", { 
-        player: this.playerData
-      });
-    }, this.testButtonsContainer);
-    buttonY += 60;
-    
-    // Event test button
-    this.createActionButton(buttonX, buttonY, "Event", "#0000ff", () => {
-      console.log("Event action triggered");
-    }, this.testButtonsContainer);
-    buttonY += 60;
-    
-    // Campfire test button
-    this.createActionButton(buttonX, buttonY, "Campfire", "#ff4500", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-      
-      // Pause this scene and launch campfire scene
-      this.scene.pause();
-      this.scene.launch("Campfire", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          diamante: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
-      });
-    }, this.testButtonsContainer);
-    buttonY += 60;
-    
-    // Treasure test button
-    this.createActionButton(buttonX, buttonY, "Treasure", "#ffff00", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-      
-      // Pause this scene and launch treasure scene
-      this.scene.pause();
-      this.scene.launch("Treasure", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          diamante: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
-      });
-    }, this.testButtonsContainer);
-    
-    // Create additional easily accessible test buttons at the bottom of the screen (fixed to camera)
-    const bottomButtonY = screenHeight - 100;
-    
-    // Calculate total width needed for all buttons to center them
-    const buttonCount = 8; // Number of bottom buttons
-    const buttonSpacing = 200; // Increased spacing between buttons
-    const totalWidth = (buttonCount - 1) * buttonSpacing; // Total width of spacing between buttons
-    const bottomButtonX = (screenWidth - totalWidth) / 2; // Center the group of buttons
-    
-    let currentButtonX = bottomButtonX;
-    
-    // Quick Boss Fight button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Boss", "#8b5cf6", () => {
-      this.startCombat("boss");
-    }, this.testButtonsContainer);
-    
-    currentButtonX += 200;
-    
-    // Quick Combat button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Combat", "#ff0000", () => {
-      this.startCombat("combat");
-    }, this.testButtonsContainer);
-    
-    currentButtonX += 200;
-    
-    // Quick Elite button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Elite", "#ffa500", () => {
-      this.startCombat("elite");
-    }, this.testButtonsContainer);
-    
-    currentButtonX += 200;
-    
-    // Quick Campfire button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Campfire", "#ff4500", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-      
-      // Pause this scene and launch campfire scene
-      this.scene.pause();
-      this.scene.launch("Campfire", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          diamante: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
-      });
-    }, this.testButtonsContainer);
-    
-    currentButtonX += 200;
-    
-    // Quick Shop button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Shop", "#00ff00", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-      
-      // Pause this scene and launch shop scene with actual player data
-      this.scene.pause();
-      this.scene.launch("Shop", { 
-        player: this.playerData
-      });
-    }, this.testButtonsContainer);
-    
-    currentButtonX += 200;
-    
-    // Quick Treasure button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Treasure", "#ffff00", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-      
-      // Pause this scene and launch treasure scene
-      this.scene.pause();
-      this.scene.launch("Treasure", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          diamante: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
-      });
-    }, this.testButtonsContainer);
-    
-    currentButtonX += 200;
-    
-    // DDA Debug button at bottom  
-    this.createActionButton(currentButtonX, bottomButtonY, "DDA Debug", "#9c27b0", () => {
-      this.scene.launch("DDADebugScene");
-      this.scene.pause();
-    }, this.testButtonsContainer);
-    
-    // Create container for all test buttons
-    this.testButtonsContainer = this.add.container(0, 0);
-    // Add all existing test buttons to the container
-    // (We'll need to modify the button creation to add them to this container)
-    
-    // Create toggle button
-    this.createToggleButton();
-    
-    // Create overworld UI panel
-    this.createOverworldUI();
-  }
-
-  createDayNightProgressBar(): void {
-    // Ensure camera is available before proceeding
-    if (!this.cameras || !this.cameras.main) {
-      console.warn("Camera not available, skipping day/night progress bar creation");
-      return;
-    }
-    
-    const screenWidth = this.cameras.main.width;
-    const progressBarWidth = screenWidth * 0.6;
-    const progressBarX = (screenWidth - progressBarWidth) / 2;
-    const progressBarY = 80; // Move down with more margin above it to prevent overflow
-    
-    // Create horizontal axis line segments with colors matching the vertical ticks
-    // Last segment should use night color, only the final tick should be red for boss
-    const segmentWidth = progressBarWidth / 10;
-    for (let i = 0; i < 10; i++) {
-      const segmentX = progressBarX + (i * segmentWidth) + (segmentWidth / 2);
-      const isDay = i % 2 === 0;
-      
-      this.add.rectangle(
-        segmentX,
-        progressBarY,
-        segmentWidth,
-        4,
-        isDay ? 0xFFD368 : 0x7144FF // Day or night color
-      ).setAlpha(1).setScrollFactor(0).setDepth(100); // Fixed to camera with depth
-    }
-    
-    // Create major ticks (taller bars) at icon positions with thicker lines and matching colors
-    for (let i = 0; i <= 10; i++) {
-      const tickX = progressBarX + (i * progressBarWidth / 10);
-      let color;
-      
-      if (i === 10) {
-        // Boss tick (red color)
-        color = 0xE54646;
-      } else {
-        // Day/night ticks
-        const isDay = i % 2 === 0;
-        color = isDay ? 0xFFD368 : 0x7144FF;
-      }
-      
-      // Major tick (taller bar) with thicker line
-      this.add.rectangle(
-        tickX,
-        progressBarY,
-        4,
-        16,
-        color
-      ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(101);
-    }
-    
-    // Create minor ticks (shorter bars) between icons with thicker lines and matching colors
-    const stepsPerSegment = 5;
-    for (let i = 0; i < 10; i++) {
-      const segmentStartX = progressBarX + (i * progressBarWidth / 10);
-      const segmentEndX = progressBarX + ((i + 1) * progressBarWidth / 10);
-      const stepWidth = (segmentEndX - segmentStartX) / stepsPerSegment;
-      let color;
-      
-      if (i === 9) {
-        // Last segment for boss (red color for final tick only)
-        // For minor ticks in the last segment, use night color
-        color = 0x7144FF; // Night color
-      } else {
-        // Day/night segments
-        const isDay = i % 2 === 0;
-        color = isDay ? 0xFFD368 : 0x7144FF;
-      }
-      
-      for (let step = 1; step < stepsPerSegment; step++) {
-        const tickX = segmentStartX + (step * stepWidth);
-        
-        // Minor tick (shorter bar) with thicker line
-        this.add.rectangle(
-          tickX,
-          progressBarY,
-          3,
-          10,
-          color
-        ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102);
-      }
-    }
-    
-    // Create icons above the axis line (5 day/night cycles = 10 icons + 1 boss)
-    // Position icons in the middle of each cycle segment
-    const iconOffset = progressBarWidth / 20; // Half of segment width to center icons
-    for (let i = 0; i < 10; i++) {
-      const iconX = progressBarX + (i * progressBarWidth / 10) + iconOffset;
-      const iconY = progressBarY - 50; // Position above the axis line (moved down to match new position)
-      
-      if (i % 2 === 0) {
-        // Day icon (sun) - even positions
-        const sunIcon = this.add.image(iconX, iconY, "bathala_sun_icon");
-        sunIcon.setScale(1.8);
-        sunIcon.setScrollFactor(0).setDepth(103);
-      } else {
-        // Night icon (moon) - odd positions
-        const moonIcon = this.add.image(iconX, iconY, "bathala_moon_icon");
-        moonIcon.setScale(1.8);
-        moonIcon.setScrollFactor(0).setDepth(103);
-      }
-    }
-    
-    // Boss icon at the end, positioned above the axis line
-    // Position it at the end of the progress bar
-    const bossIconX = progressBarX + progressBarWidth;
-    const bossIconY = progressBarY - 50; // Position above the axis line (moved down to match new position)
-    const bossIcon = this.add.image(bossIconX, bossIconY, "bathala_boss_icon");
-    bossIcon.setScale(2.0);
-    bossIcon.setScrollFactor(0).setDepth(103);
-    
-    // Create player indicator (▲ symbol pointing up from below the axis line)
-    this.dayNightIndicator = this.add.text(0, 0, "▲", {
-      fontFamily: 'dungeon-mode-inverted',
-      fontSize: '36px',
-      color: '#E54646',
-      align: 'center'
-    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(104); // Fixed to camera with depth, positioned below axis line
-    
-    // Update the progress bar
-    this.updateDayNightProgressBar();
-  }
-
-  createActionButton(x: number, y: number, text: string, color: string, callback: () => void, container?: Phaser.GameObjects.Container): void {
-    const button = this.add.container(x, y);
-    
-    // Create a temporary text object to measure the actual text width
-    const tempText = this.add.text(0, 0, text, {
-      fontFamily: 'dungeon-mode',
-      fontSize: '14px',
-      color: '#ffffff'
-    });
-    
-    // Get the actual width of the text
-    const textWidth = tempText.width;
-    const textHeight = tempText.height;
-    tempText.destroy(); // Remove the temporary text
-    
-    // Set button dimensions with proper padding
-    const padding = 20;
-    const buttonWidth = Math.max(120, textWidth + padding); // Minimum width of 120px
-    const buttonHeight = Math.max(40, textHeight + 10); // Minimum height of 40px
-    
-    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x333333);
-    background.setStrokeStyle(2, parseInt(color.replace('#', ''), 16));
-    
-    const buttonText = this.add.text(0, 0, text, {
-      fontFamily: 'dungeon-mode',
-      fontSize: '14px',
-      color: '#ffffff',
-      align: 'center'
-    }).setOrigin(0.5);
-    buttonText.setShadow(2, 2, '#000000', 2, false, true);
-    
-    button.add([background, buttonText]);
-    button.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
-    
-    // Set depth to ensure buttons are visible above other UI elements
-    button.setDepth(1000);
-    // Fix buttons to camera so they're always visible
-    button.setScrollFactor(0);
-    
-    button.on('pointerdown', callback);
-    button.on('pointerover', () => {
-      background.setFillStyle(0x555555);
-    });
-    button.on('pointerout', () => {
-      background.setFillStyle(0x333333);
-    });
-    
-    // Add to the specified container if provided, otherwise add to scene
-    if (container) {
-      container.add(button);
-    }
-    
-    this.actionButtons.push(button);
-  }
-
-  createToggleButton(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Position toggle button at top-right corner
-    const toggleX = screenWidth - 60;
-    const toggleY = 50;
-    
-    this.toggleButton = this.add.container(toggleX, toggleY);
-    
-    // Create a temporary text object to measure the actual text width
-    const tempText = this.add.text(0, 0, "Dev Mode", {
-      fontFamily: 'dungeon-mode',
-      fontSize: '12px',
-      color: '#ffffff'
-    });
-    
-    // Get the actual width of the text
-    const textWidth = tempText.width;
-    const textHeight = tempText.height;
-    tempText.destroy(); // Remove the temporary text
-    
-    // Set button dimensions with proper padding
-    const padding = 20;
-    const buttonWidth = Math.max(100, textWidth + padding); // Minimum width of 100px
-    const buttonHeight = Math.max(30, textHeight + 10); // Minimum height of 30px
-    
-    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x333333);
-    background.setStrokeStyle(2, 0xffffff);
-    
-    const buttonText = this.add.text(0, 0, "Dev Mode", {
-      fontFamily: 'dungeon-mode',
-      fontSize: '12px',
-      color: '#ffffff',
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    this.toggleButton.add([background, buttonText]);
-    this.toggleButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
-    this.toggleButton.setScrollFactor(0);
-    this.toggleButton.setDepth(2000); // Ensure it's above other UI elements
-    
-    this.toggleButton.on('pointerdown', () => {
-      this.toggleTestButtons();
-    });
-    
-    this.toggleButton.on('pointerover', () => {
-      background.setFillStyle(0x555555);
-    });
-    
-    this.toggleButton.on('pointerout', () => {
-      background.setFillStyle(0x333333);
-    });
-    
-    // Initially hide all test buttons since dev mode is off by default
-    this.hideTestButtons();
-  }
-
-  toggleTestButtons(): void {
-    this.testButtonsVisible = !this.testButtonsVisible;
-    
-    // Update toggle button text
-    const buttonText = this.toggleButton.getAt(1) as Phaser.GameObjects.Text;
-    buttonText.setText("Dev Mode");
-    
-    // Show or hide all test buttons only
-    this.actionButtons.forEach(button => {
-      button.setVisible(this.testButtonsVisible);
-    });
-  }
-  
-  hideTestButtons(): void {
-    // Hide only test buttons, not essential UI elements
-    this.actionButtons.forEach(button => {
-      button.setVisible(false);
-    });
-  }
-
   updateUI(): void {
-    // Update day/night progress bar
-    this.updateDayNightProgressBar();
-    
-    // Update boss progress
-    this.bossText.setText(`Boss Progress: ${Math.round(this.gameState.getBossProgress() * 100)}%`);
-    
-    // Show boss alert if close to appearing
-    if (this.gameState.getBossProgress() > 0.8 && !this.gameState.bossAppeared) {
-      this.bossText.setColor('#ff0000');
-    } else {
-      this.bossText.setColor('#ffffff');
-    }
-    
-    // Update overworld UI panel
+    this.uiManager?.updateUI();
+
     if (this.uiContainer) {
       this.updateOverworldUI();
-    }
-  }
-
-  updateDayNightProgressBar(): void {
-    const screenWidth = this.cameras.main.width;
-    const progressBarWidth = screenWidth * 0.6;
-    const progressBarX = (screenWidth - progressBarWidth) / 2;
-    const progressBarY = 80; // Match the Y position from createDayNightProgressBar (updated position)
-    
-    // Calculate progress (0 to 1)
-    const totalProgress = Math.min(this.gameState.actionsTaken / this.gameState.totalActionsUntilBoss, 1);
-    
-    
-    // Update player indicator position (below the bar)
-    this.dayNightIndicator.x = progressBarX + (progressBarWidth * totalProgress);
-    this.dayNightIndicator.y = progressBarY + 25; // Position below the bar
-    
-    // Additional check for boss encounter when updating UI
-    if (totalProgress >= 1.0 && !this.isTransitioningToCombat) {
-      this.checkBossEncounter();
-    }
-    
-    // Handle night overlay
-    if (!this.gameState.isDay && !this.nightOverlay) {
-      // Create night overlay
-      this.nightOverlay = this.add.rectangle(
-        this.cameras.main.width / 2,
-        this.cameras.main.height / 2,
-        this.cameras.main.width,
-        this.cameras.main.height,
-        0x000033
-      ).setAlpha(0.4).setScrollFactor(0).setDepth(999);
-    } else if (this.gameState.isDay && this.nightOverlay) {
-      // Remove night overlay
-      this.nightOverlay.destroy();
-      this.nightOverlay = null;
     }
   }
 
@@ -839,14 +228,11 @@ export class Overworld extends Scene {
     console.log("Overworld.resume() called - Re-enabling input and resetting flags");
     
     // Re-enable input when returning from other scenes
-    if (this.input && this.input.keyboard) {
-      this.input.keyboard.enabled = true;
-      console.log("Keyboard input re-enabled");
-    }
+    this.movementManager.enableInput();
     
-    this.isMoving = false;
+    this.movementManager.resetMovementFlags();
     this.isTransitioningToCombat = false;
-    console.log("Movement flags reset - isMoving:", this.isMoving, "isTransitioningToCombat:", this.isTransitioningToCombat);
+    console.log("Movement flags reset - isMoving:", this.movementManager.getIsMoving(), "isTransitioningToCombat:", this.isTransitioningToCombat);
     
     // Restore player position if saved
     const gameState = GameState.getInstance();
@@ -889,6 +275,8 @@ export class Overworld extends Scene {
       // Update UI to reflect new player data
       this.updateOverworldUI();
     }
+
+    this.uiManager?.updateUI();
     
     // Update visible chunks around player
     this.updateVisibleChunks();
@@ -896,124 +284,42 @@ export class Overworld extends Scene {
     console.log("Overworld.resume() completed successfully");
   }
 
+  public getGameState(): OverworldGameState {
+    return this.gameState;
+  }
+
+  public getPlayerData(): Player {
+    return this.playerData;
+  }
+
+  public getPlayerSprite(): Phaser.GameObjects.Sprite {
+    return this.player;
+  }
+
+  public getNodes(): MapNode[] {
+    return this.nodes;
+  }
+
+  public getNodeSprites(): Map<string, Phaser.GameObjects.Sprite> {
+    return this.nodeSprites;
+  }
+
+  public getIsTransitioningToCombat(): boolean {
+    return this.isTransitioningToCombat;
+  }
+
+  public setIsMoving(moving: boolean): void {
+    this.isMoving = moving;
+    this.movementManager?.setIsMoving(moving);
+  }
+
   /**
    * Move player to a new position with animation
    */
-  movePlayer(targetX: number, targetY: number, direction: string): void {
-    // Set moving flag to prevent input during movement
-    this.isMoving = true;
-    
-    // Play walking animation with error checking
-    let walkAnimation = "avatar_walk_down";
-    let idleAnimation = "avatar_idle_down";
-    
-    switch (direction) {
-      case "up":
-        walkAnimation = "avatar_walk_up";
-        idleAnimation = "avatar_idle_up";
-        break;
-      case "down":
-        walkAnimation = "avatar_walk_down";
-        idleAnimation = "avatar_idle_down";
-        break;
-      case "left":
-        walkAnimation = "avatar_walk_left";
-        idleAnimation = "avatar_idle_left";
-        break;
-      case "right":
-        walkAnimation = "avatar_walk_right";
-        idleAnimation = "avatar_idle_right";
-        break;
-    }
-    
-    console.log("Playing walk animation:", walkAnimation);
-    if (this.anims.exists(walkAnimation)) {
-      try {
-        this.player.play(walkAnimation, true);
-      } catch (error) {
-        console.warn("Failed to play walk animation:", walkAnimation, error);
-      }
-    } else {
-      console.warn("Walk animation not found:", walkAnimation);
-    }
-
-    // Check if the new position is valid (not a wall)
-    if (this.isValidPosition(targetX, targetY)) {
-      console.log("Position is valid, moving player");
-      
-      // Move player with tween
-      this.tweens.add({
-        targets: this.player,
-        x: targetX,
-        y: targetY,
-        duration: 150, // Slightly faster movement
-        onComplete: () => {
-          this.isMoving = false;
-          this.checkNodeInteraction();
-          
-          // Record the action for day/night cycle after movement completes
-          this.gameState.recordAction();
-          
-          // Check if boss should appear after recording action
-          this.checkBossEncounter();
-          
-          // Update UI to reflect day/night cycle changes
-          this.updateUI();
-          
-          // Play idle animation after movement
-          console.log("Playing idle animation:", idleAnimation);
-          if (this.anims.exists(idleAnimation)) {
-            try {
-              this.player.play(idleAnimation);
-            } catch (error) {
-              console.warn("Failed to play idle animation:", idleAnimation, error);
-            }
-          } else {
-            console.warn("Idle animation not found:", idleAnimation);
-          }
-          
-          // Update visible chunks as player moves
-          this.updateVisibleChunks();
-          
-          // Move nearby enemy nodes toward player during nighttime
-          this.moveEnemiesNighttime();
-        }
-      });
-    } else {
-      console.log("Position is invalid (wall or out of bounds)");
-      // Invalid move, just reset the moving flag
-      this.isMoving = false;
-      console.log("Invalid move, playing idle animation");
-      // Play appropriate idle animation based on last movement direction
-      console.log("Playing idle animation:", idleAnimation);
-      if (this.anims.exists(idleAnimation)) {
-        try {
-          this.player.play(idleAnimation);
-        } catch (error) {
-          console.warn("Failed to play idle animation:", idleAnimation, error);
-        }
-      } else {
-        console.warn("Idle animation not found:", idleAnimation);
-      }
-    }
-  }
+  // Movement methods now handled by OverworldMovementManager
 
   handleDayNightTransition(): void {
-    // Update night overlay
-    if (!this.gameState.isDay && !this.nightOverlay) {
-      // Create night overlay
-      this.nightOverlay = this.add.rectangle(
-        this.cameras.main.width / 2,
-        this.cameras.main.height / 2,
-        this.cameras.main.width,
-        this.cameras.main.height,
-        0x000033
-      ).setAlpha(0.4).setScrollFactor(0).setDepth(999);
-    } else if (this.gameState.isDay && this.nightOverlay) {
-      // Remove night overlay
-      this.nightOverlay.destroy();
-      this.nightOverlay = null;
-    }
+    this.uiManager?.updateNightOverlay();
   }
 
   /**
@@ -1221,183 +527,7 @@ export class Overworld extends Scene {
   /**
    * Move enemy nodes toward the player during nighttime
    */
-  moveEnemiesNighttime(): void {
-    // Only move enemies during nighttime
-    if (this.gameState.isDay) {
-      return;
-    }
-
-    // Define proximity threshold for enemy movement (in pixels)
-    const movementRange = this.gridSize * 10; // Reduced to 10 grid squares for more breathing room
-
-    // Get player position
-    const playerX = this.player.x;
-    const playerY = this.player.y;
-
-    // Find nearby enemy nodes that should move
-    const enemyNodes = this.nodes.filter(node => 
-      (node.type === "combat" || node.type === "elite") &&
-      Phaser.Math.Distance.Between(
-        playerX, playerY,
-        node.x + this.gridSize / 2, 
-        node.y + this.gridSize / 2
-      ) <= movementRange
-    );
-
-    // Move each enemy node with enhanced AI
-    enemyNodes.forEach(enemyNode => {
-      this.moveEnemyWithEnhancedAI(enemyNode, playerX, playerY);
-    });
-  }
-
-  /**
-   * Enhanced AI movement system for enemies
-   */
-  private moveEnemyWithEnhancedAI(enemyNode: MapNode, playerX: number, playerY: number): void {
-    const currentX = enemyNode.x + this.gridSize / 2;
-    const currentY = enemyNode.y + this.gridSize / 2;
-    const distance = Phaser.Math.Distance.Between(currentX, currentY, playerX, playerY);
-    
-    // Different movement strategies based on distance and enemy type
-    let movementSpeed = this.calculateEnemyMovementSpeed(enemyNode, distance);
-    let movements: {x: number, y: number}[] = [];
-    
-    // Calculate multiple movement steps for faster enemies
-    for (let i = 0; i < movementSpeed; i++) {
-      const stepPosition = this.calculateSingleEnemyStep(
-        currentX + (movements.length > 0 ? movements[movements.length - 1].x - currentX : 0),
-        currentY + (movements.length > 0 ? movements[movements.length - 1].y - currentY : 0),
-        playerX, 
-        playerY
-      );
-      
-      if (stepPosition && this.isValidPosition(stepPosition.x, stepPosition.y)) {
-        movements.push(stepPosition);
-      } else {
-        break; // Stop if we hit a wall or invalid position
-      }
-    }
-    
-    // Execute the movements with staggered timing
-    if (movements.length > 0) {
-      this.executeMultiStepMovement(enemyNode, movements);
-    }
-  }
-
-  /**
-   * Calculate enemy movement speed based on type and distance
-   */
-  private calculateEnemyMovementSpeed(enemyNode: MapNode, distanceToPlayer: number): number {
-    let baseSpeed = 1;
-    
-    // Elite enemies only get a small speed boost
-    if (enemyNode.type === "elite") {
-      baseSpeed = 1; // Reduced from 2 to 1
-    }
-    
-    // Much more conservative distance-based speed increases
-    const gridDistance = distanceToPlayer / this.gridSize;
-    if (gridDistance <= 2) {
-      baseSpeed += 1; // Only very close enemies (2 grids) get +1 speed
-    }
-    
-    // Reduced randomization chance and impact
-    if (Math.random() < 0.15) { // Reduced from 30% to 15%
-      baseSpeed += 1;
-    }
-    
-    return Math.min(baseSpeed, 2); // Cap at 2 movements per turn instead of 4
-  }
-
-  /**
-   * Calculate a single movement step toward the player
-   */
-  private calculateSingleEnemyStep(currentX: number, currentY: number, playerX: number, playerY: number): { x: number, y: number } | null {
-    // Calculate direction to player
-    const deltaX = playerX - currentX;
-    const deltaY = playerY - currentY;
-    
-    // If already at player position, don't move
-    if (Math.abs(deltaX) < this.gridSize / 2 && Math.abs(deltaY) < this.gridSize / 2) {
-      return null;
-    }
-    
-    // More predictable movement: mostly stick to axis-aligned movement
-    let newX = currentX;
-    let newY = currentY;
-    
-    // Reduced diagonal movement chance for more predictable behavior
-    if (Math.abs(deltaX) > this.gridSize / 2 && Math.abs(deltaY) > this.gridSize / 2 && Math.random() < 0.3) {
-      newX = currentX + (deltaX > 0 ? this.gridSize : -this.gridSize);
-      newY = currentY + (deltaY > 0 ? this.gridSize : -this.gridSize);
-    } else {
-      // Standard movement: prioritize the axis with larger distance
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        newX = currentX + (deltaX > 0 ? this.gridSize : -this.gridSize);
-      } else {
-        newY = currentY + (deltaY > 0 ? this.gridSize : -this.gridSize);
-      }
-    }
-    
-    // Convert back to node coordinates (top-left corner)
-    return {
-      x: newX - this.gridSize / 2,
-      y: newY - this.gridSize / 2
-    };
-  }
-
-  /**
-   * Execute multiple movement steps with staggered timing
-   */
-  private executeMultiStepMovement(enemyNode: MapNode, movements: {x: number, y: number}[]): void {
-    movements.forEach((movement, index) => {
-      this.time.delayedCall(index * 300, () => { // Increased to 300ms delay between each step
-        this.animateEnemyMovement(enemyNode, movement.x, movement.y);
-      });
-    });
-  }
-
-
-  /**
-   * Animate enemy movement to new position
-   */
-  private animateEnemyMovement(enemyNode: MapNode, newX: number, newY: number): void {
-    // Update node position
-    enemyNode.x = newX;
-    enemyNode.y = newY;
-    
-    // Get the corresponding sprite
-    const sprite = this.nodeSprites.get(enemyNode.id);
-    if (sprite) {
-      // Add visual feedback for aggressive movement
-      const isAggressiveMove = enemyNode.type === "elite";
-      
-      // Create a brief flash effect for elite enemies
-      if (isAggressiveMove) {
-        sprite.setTint(0xff4444); // Red tint for aggressive movement
-        this.time.delayedCall(150, () => {
-          sprite.clearTint();
-        });
-      }
-      
-      // Animate sprite movement with dynamic timing
-      this.tweens.add({
-        targets: sprite,
-        x: newX + this.gridSize / 2,
-        y: newY + this.gridSize / 2,
-        duration: isAggressiveMove ? 120 : 180, // Faster movement for elite enemies
-        ease: 'Power2',
-        onStart: () => {
-          // Slightly scale up during movement for emphasis
-          sprite.setScale(1.6);
-        },
-        onComplete: () => {
-          // Return to normal scale
-          sprite.setScale(1.5);
-        }
-      });
-    }
-  }
+  // Enemy movement methods now handled by OverworldMovementManager
 
   updateVisibleChunks(): void {
     // Ensure camera is available before proceeding
@@ -1612,28 +742,9 @@ export class Overworld extends Scene {
     }
   }
 
-  isValidPosition(x: number, y: number): boolean {
-    // Convert world coordinates to chunk and grid coordinates
-    const chunkSize = MazeOverworldGenerator['chunkSize'];
-    const chunkSizePixels = chunkSize * this.gridSize;
-    
-    const chunkX = Math.floor(x / chunkSizePixels);
-    const chunkY = Math.floor(y / chunkSizePixels);
-    const localX = x - (chunkX * chunkSizePixels);
-    const localY = y - (chunkY * chunkSizePixels);
-    const gridX = Math.floor(localX / this.gridSize);
-    const gridY = Math.floor(localY / this.gridSize);
-    
-    // Get the chunk
-    const chunk = MazeOverworldGenerator.getChunk(chunkX, chunkY, this.gridSize);
-    
-    // Check bounds
-    if (gridX < 0 || gridX >= chunk.maze[0].length || gridY < 0 || gridY >= chunk.maze.length) {
-      return false;
-    }
-    
-    // Check if it's a path (0) not a wall (1)
-    return chunk.maze[gridY][gridX] === 0;
+  // Position validation now handled by OverworldMovementManager
+  public isValidPosition(x: number, y: number): boolean {
+    return this.movementManager.isValidPosition(x, y);
   }
 
   checkNodeInteraction(): void {
@@ -2282,103 +1393,19 @@ export class Overworld extends Scene {
    * Handle scene resize
    */
   private handleResize(): void {
-    // Update UI elements on resize
-    this.updateUI();
+    this.uiManager?.handleResize();
+
+    if (this.uiContainer) {
+      this.updateOverworldUI();
+    }
   }
 
   /**
    * Update method for animation effects and player movement
    */
-  update(time: number, delta: number): void {
-    // Skip input handling if player is currently moving or transitioning to combat
-    if (this.isMoving || this.isTransitioningToCombat) {
-      return;
-    }
-    
-    // Ensure camera is available before processing input
-    if (!this.cameras || !this.cameras.main) {
-      return;
-    }
-
-    // Handle player movement if not moving or in transition
-    if (!this.isMoving && !this.isTransitioningToCombat) {
-      const gridSize = this.gridSize;
-      let moved = false;
-      
-      // Check for movement input - fix wasdKeys access pattern
-      if (this.cursors.left.isDown || this.wasdKeys['A'].isDown) {
-        const targetX = this.player.x - gridSize;
-        if (this.isValidPosition(targetX, this.player.y)) {
-          this.movePlayer(targetX, this.player.y, "left");
-          moved = true;
-        }
-      } else if (this.cursors.right.isDown || this.wasdKeys['D'].isDown) {
-        const targetX = this.player.x + gridSize;
-        if (this.isValidPosition(targetX, this.player.y)) {
-          this.movePlayer(targetX, this.player.y, "right");
-          moved = true;
-        }
-      } else if (this.cursors.up.isDown || this.wasdKeys['W'].isDown) {
-        const targetY = this.player.y - gridSize;
-        if (this.isValidPosition(this.player.x, targetY)) {
-          this.movePlayer(this.player.x, targetY, "up");
-          moved = true;
-        }
-      } else if (this.cursors.down.isDown || this.wasdKeys['S'].isDown) {
-        const targetY = this.player.y + gridSize;
-        if (this.isValidPosition(this.player.x, targetY)) {
-          this.movePlayer(this.player.x, targetY, "down");
-          moved = true;
-        }
-      }
-      
-      // Check for Enter key to interact with nodes
-      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))) {
-        this.checkNodeInteraction();
-      }
-      
-      // Check for shop key
-      if (Phaser.Input.Keyboard.JustDown(this.shopKey)) {
-        console.log("Shop key pressed");
-        // Save player position before transitioning
-        const gameState = GameState.getInstance();
-        gameState.savePlayerPosition(this.player.x, this.player.y);
-        
-        // Pause this scene and launch shop scene with actual player data
-        this.scene.pause();
-        this.scene.launch("Shop", { 
-          player: this.playerData
-        });
-      }
-      
-      // Debug: Add actions with P key for testing (adds 100 actions to test boss trigger faster)
-      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P))) {
-        for (let i = 0; i < 100; i++) {
-          this.gameState.recordAction();
-        }
-        this.updateUI();
-        this.checkBossEncounter();
-      }
-
-      
-      // Check for C key to trigger combat (for testing)
-      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.C))) {
-        this.startCombat("combat");
-      }
-      
-      // Check for E key to trigger elite combat (for testing)
-      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E))) {
-        this.startCombat("elite");
-      }
-      
-      // Update chunk rendering and day/night cycle if player moved
-      if (moved) {
-        this.updateVisibleChunks();
-        this.checkNodeInteraction();
-        // Update UI to reflect day/night cycle changes
-        this.updateUI();
-      }
-    }
+  update(_time: number, _delta: number): void {
+    // Delegate input handling to movement manager
+    this.movementManager.handleInput();
   }
 
   /**
