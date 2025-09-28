@@ -16,6 +16,7 @@ import {
 } from "../../data/lore/EnemyLore";
 import { OverworldUIManager } from "./Overworld_UIManager";
 import { OverworldMovementManager } from "./Overworld_MovementManager";
+import { OverworldGameStateManager } from "./Overworld_GameStateManager";
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
@@ -24,10 +25,9 @@ export class Overworld extends Scene {
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
   private gridSize: number = 32;
   private isMoving: boolean = false;
-  private isTransitioningToCombat: boolean = false;
-  private gameState: OverworldGameState;
   private uiManager!: OverworldUIManager;
   private movementManager!: OverworldMovementManager;
+  private gameStateManager!: OverworldGameStateManager;
   
   // Overworld UI elements
   private uiContainer!: Phaser.GameObjects.Container;
@@ -43,7 +43,6 @@ export class Overworld extends Scene {
   private discardText!: Phaser.GameObjects.Text;
   private relicInventoryButton!: Phaser.GameObjects.Container;
   private potionInventoryButton!: Phaser.GameObjects.Container;
-  private playerData: Player;
   
   // Enemy Info Tooltip
   private tooltipContainer!: Phaser.GameObjects.Container;
@@ -59,76 +58,9 @@ export class Overworld extends Scene {
 
   constructor() {
     super({ key: "Overworld" });
-    this.gameState = OverworldGameState.getInstance();
     
-    // Initialize player data with default values or from GameState
-    const gameState = GameState.getInstance();
-    const savedPlayerData = gameState.getPlayerData();
-    
-    if (savedPlayerData) {
-      this.playerData = {
-        id: savedPlayerData.id || "player",
-        name: savedPlayerData.name || "Hero",
-        maxHealth: savedPlayerData.maxHealth || 80,
-        currentHealth: savedPlayerData.currentHealth !== undefined ? savedPlayerData.currentHealth : 80,
-        block: savedPlayerData.block || 0,
-        statusEffects: savedPlayerData.statusEffects || [],
-        hand: savedPlayerData.hand || [],
-        deck: savedPlayerData.deck || [],
-        discardPile: savedPlayerData.discardPile || [],
-        drawPile: savedPlayerData.drawPile || [],
-        playedHand: savedPlayerData.playedHand || [],
-        landasScore: savedPlayerData.landasScore || 0,
-        ginto: savedPlayerData.ginto !== undefined ? savedPlayerData.ginto : 100,
-        diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : 0,
-        relics: savedPlayerData.relics || [],
-        potions: savedPlayerData.potions || [],
-        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 1,
-        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 1
-      };
-    } else {
-      // Initialize player data with default values
-      this.playerData = {
-        id: "player",
-        name: "Hero",
-        maxHealth: 80,
-        currentHealth: 80,
-        block: 0,
-        statusEffects: [],
-        hand: [],
-        deck: [],
-        discardPile: [],
-        drawPile: [],
-        playedHand: [],
-        landasScore: 0,
-        ginto: 9999,
-        diamante: 20,
-        relics: [], // No test relics - will be empty until player finds them
-        potions: [
-          {
-            id: "clarity_potion",
-            name: "Potion of Clarity",
-            description: "Draw 3 cards.",
-            effect: "draw_3_cards",
-            emoji: "🧠",
-            rarity: "common" as const
-          },
-          {
-            id: "fortitude_potion",
-            name: "Elixir of Fortitude", 
-            description: "Gain 15 Block.",
-            effect: "gain_15_block",
-            emoji: "🛡️",
-            rarity: "common" as const
-          }
-        ],
-        discardCharges: 1,
-        maxDiscardCharges: 1
-      };
-      
-      // Save initial player data to GameState
-      gameState.updatePlayerData(this.playerData);
-    }
+    // Initialize game state manager
+    this.gameStateManager = new OverworldGameStateManager(this);
   }
 
   create(): void {
@@ -229,53 +161,13 @@ export class Overworld extends Scene {
     
     // Re-enable input when returning from other scenes
     this.movementManager.enableInput();
-    
     this.movementManager.resetMovementFlags();
-    this.isTransitioningToCombat = false;
-    console.log("Movement flags reset - isMoving:", this.movementManager.getIsMoving(), "isTransitioningToCombat:", this.isTransitioningToCombat);
     
-    // Restore player position if saved
-    const gameState = GameState.getInstance();
-    const savedPosition = gameState.getPlayerPosition();
-    if (savedPosition) {
-      console.log("Restoring player position to:", savedPosition);
-      this.player.setPosition(savedPosition.x, savedPosition.y);
-      // Center camera on player
-      this.cameras.main.startFollow(this.player);
-      // Clear the saved position
-      gameState.clearPlayerPosition();
-    } else {
-      console.log("No saved position found, keeping current position");
-    }
+    // Handle scene resume via game state manager
+    this.gameStateManager.handleSceneResume();
     
-    // Update player data from GameState
-    const savedPlayerData = gameState.getPlayerData();
-    if (savedPlayerData) {
-      this.playerData = {
-        id: savedPlayerData.id || this.playerData.id,
-        name: savedPlayerData.name || this.playerData.name,
-        maxHealth: savedPlayerData.maxHealth !== undefined ? savedPlayerData.maxHealth : this.playerData.maxHealth,
-        currentHealth: savedPlayerData.currentHealth !== undefined ? savedPlayerData.currentHealth : this.playerData.currentHealth,
-        block: savedPlayerData.block !== undefined ? savedPlayerData.block : this.playerData.block,
-        statusEffects: savedPlayerData.statusEffects || this.playerData.statusEffects,
-        hand: savedPlayerData.hand || this.playerData.hand,
-        deck: savedPlayerData.deck || this.playerData.deck,
-        discardPile: savedPlayerData.discardPile || this.playerData.discardPile,
-        drawPile: savedPlayerData.drawPile || this.playerData.drawPile,
-        playedHand: savedPlayerData.playedHand || this.playerData.playedHand,
-        landasScore: savedPlayerData.landasScore !== undefined ? savedPlayerData.landasScore : this.playerData.landasScore,
-        ginto: savedPlayerData.ginto !== undefined ? savedPlayerData.ginto : this.playerData.ginto,
-        diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : this.playerData.diamante,
-        relics: savedPlayerData.relics || this.playerData.relics,
-        potions: savedPlayerData.potions || this.playerData.potions,
-        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : this.playerData.discardCharges,
-        maxDiscardCharges: savedPlayerData.maxDiscardCharges !== undefined ? savedPlayerData.maxDiscardCharges : this.playerData.maxDiscardCharges
-      };
-      
-      // Update UI to reflect new player data
-      this.updateOverworldUI();
-    }
-
+    // Update UI to reflect new player data
+    this.updateOverworldUI();
     this.uiManager?.updateUI();
     
     // Update visible chunks around player
@@ -285,11 +177,11 @@ export class Overworld extends Scene {
   }
 
   public getGameState(): OverworldGameState {
-    return this.gameState;
+    return this.gameStateManager.getGameState();
   }
 
   public getPlayerData(): Player {
-    return this.playerData;
+    return this.gameStateManager.getPlayerData();
   }
 
   public getPlayerSprite(): Phaser.GameObjects.Sprite {
@@ -305,7 +197,7 @@ export class Overworld extends Scene {
   }
 
   public getIsTransitioningToCombat(): boolean {
-    return this.isTransitioningToCombat;
+    return this.gameStateManager.getIsTransitioningToCombat();
   }
 
   public setIsMoving(moving: boolean): void {
@@ -326,24 +218,14 @@ export class Overworld extends Scene {
    * Check if boss encounter should be triggered
    */
   checkBossEncounter(): void {
-    if (this.gameState.shouldBossAppear()) {
-      this.triggerBossEncounter();
-    }
+    this.gameStateManager.checkBossEncounter();
   }
 
   /**
    * Trigger the boss encounter
    */
   triggerBossEncounter(): void {
-    // Prevent multiple triggers
-    if (this.isTransitioningToCombat) {
-      return;
-    }
-
-    this.isTransitioningToCombat = true;
-    
-    // Mark boss as triggered to prevent future triggers
-    this.gameState.markBossTriggered();
+    this.gameStateManager.triggerBossEncounter();
     
     // Hide any visible tooltips
     this.hideNodeTooltip();
@@ -809,7 +691,7 @@ export class Overworld extends Scene {
           // Pause this scene and launch shop scene with actual player data
           this.scene.pause();
           this.scene.launch("Shop", { 
-            player: this.playerData
+            player: this.getPlayerData()
           });
           break;
           
@@ -892,10 +774,7 @@ export class Overworld extends Scene {
       }
     }
     
-    // Check if boss should appear automatically
-    if (this.gameState.shouldBossAppear()) {
-      this.showBossAppearance();
-    }
+
   }
 
   showBossAppearance(): void {
@@ -1066,9 +945,18 @@ export class Overworld extends Scene {
   }
 
   startCombat(nodeType: string): void {
+    this.gameStateManager.startCombat(nodeType);
+  }
+
+  startBossCombat(): void {
+    this.gameStateManager.startBossCombat();
+  }
+
+  // Legacy method for backward compatibility
+  private startCombatOld(nodeType: string): void {
     // Prevent player from moving during combat transition
     this.isMoving = true;
-    this.isTransitioningToCombat = true;
+    this.gameStateManager.setIsTransitioningToCombat(true);
     
     // Save player position before transitioning
     const gameState = GameState.getInstance();
@@ -1315,79 +1203,7 @@ export class Overworld extends Scene {
     }
   }
 
-  startBossCombat(): void {
-    // Save player position before transitioning
-    const gameState = GameState.getInstance();
-    gameState.savePlayerPosition(this.player.x, this.player.y);
-    
-    // Get camera dimensions
-    const camera = this.cameras.main;
-    const cameraWidth = camera.width;
-    const cameraHeight = camera.height;
-    
-    // Create epic boss transition effect
-    const overlay = this.add.rectangle(
-      cameraWidth / 2,
-      cameraHeight / 2,
-      cameraWidth,
-      cameraHeight,
-      0x000000
-    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
-    
-    // Epic fade in
-    this.tweens.add({
-      targets: overlay,
-      alpha: 1,
-      duration: 1000,
-      ease: 'Power2'
-    });
-    
-    // Create epic radial effect
-    this.time.delayedCall(500, () => {
-      // Create expanding circles
-      const circles = [];
-      for (let i = 0; i < 5; i++) {
-        const circle = this.add.circle(
-          cameraWidth / 2,
-          cameraHeight / 2,
-          10,
-          0xff0000,
-          0.7
-        ).setScrollFactor(0).setDepth(2001);
-        
-        circles.push(circle);
-        
-        // Animate circle expansion
-        this.tweens.add({
-          targets: circle,
-          radius: cameraWidth,
-          alpha: 0,
-          duration: 2000,
-          delay: i * 200,
-          ease: 'Power2'
-        });
-      }
-      
-      // Final transition
-      this.time.delayedCall(2500, () => {
-        // Final zoom and transition
-        this.tweens.add({
-          targets: camera,
-          zoom: 2,
-          duration: 1000,
-          ease: 'Power2',
-          onComplete: () => {
-            // Pause this scene and launch boss combat
-            this.scene.pause();
-            this.scene.launch("Combat", { 
-              nodeType: "boss",
-              transitionOverlay: overlay
-            });
-          }
-        });
-      });
-    });
-  }
+
 
   /**
    * Handle scene resize
@@ -1563,7 +1379,8 @@ export class Overworld extends Scene {
     healthLabel.setShadow(2, 2, '#000000', 2, false, true);
     
     // Health value center-aligned
-    this.healthText = this.add.text(x + width/2 + 30, y + 8, `${this.playerData.currentHealth}/${this.playerData.maxHealth}`, {
+    const playerData = this.getPlayerData();
+    this.healthText = this.add.text(x + width/2 + 30, y + 8, `${playerData.currentHealth}/${playerData.maxHealth}`, {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
       color: "#ffffff",
@@ -1597,7 +1414,7 @@ export class Overworld extends Scene {
     gintoLabel.setShadow(2, 2, '#000000', 2, false, true);
     
     // Left-aligned GINTO value - moved further right
-    this.currencyText = this.add.text(x + 120, y + 70, `${this.playerData.ginto}`, {
+    this.currencyText = this.add.text(x + 120, y + 70, `${playerData.ginto}`, {
       fontFamily: "dungeon-mode",
       fontSize: "10px",
       color: "#ffffff",
@@ -1621,7 +1438,7 @@ export class Overworld extends Scene {
     diamanteLabel.setShadow(2, 2, '#000000', 2, false, true);
     
     // Left-aligned DIAMANTE value - moved further right
-    this.diamanteText = this.add.text(x + 120, y + 95, `${this.playerData.diamante}`, {
+    this.diamanteText = this.add.text(x + 120, y + 95, `${playerData.diamante}`, {
       fontFamily: "dungeon-mode",
       fontSize: "10px",
       color: "#ffffff",
@@ -2193,8 +2010,9 @@ export class Overworld extends Scene {
    * Use a potion
    */
   private usePotion(index: number): void {
-    if (index >= 0 && index < this.playerData.potions.length) {
-      const potion = this.playerData.potions[index];
+    const playerData = this.getPlayerData();
+    if (index >= 0 && index < playerData.potions.length) {
+      const potion = playerData.potions[index];
       console.log(`Using potion: ${potion.name}`);
       
       // Apply potion effects here
@@ -2210,7 +2028,7 @@ export class Overworld extends Scene {
       }
       
       // Remove potion after use
-      this.playerData.potions.splice(index, 1);
+      playerData.potions.splice(index, 1);
       this.updateOverworldUI();
     }
   }
@@ -2219,12 +2037,13 @@ export class Overworld extends Scene {
    * Discard a potion
    */
   private discardPotion(index: number): void {
-    if (index >= 0 && index < this.playerData.potions.length) {
-      const potion = this.playerData.potions[index];
+    const playerData = this.getPlayerData();
+    if (index >= 0 && index < playerData.potions.length) {
+      const potion = playerData.potions[index];
       console.log(`Discarding potion: ${potion.name}`);
       
       // Remove potion
-      this.playerData.potions.splice(index, 1);
+      playerData.potions.splice(index, 1);
       this.updateOverworldUI();
     }
   }
@@ -2337,7 +2156,8 @@ export class Overworld extends Scene {
    * Update health bar display with heart-shaped elements and consistent square design
    */
   private updateHealthBar(): void {
-    const healthPercent = this.playerData.currentHealth / this.playerData.maxHealth;
+    const playerData = this.getPlayerData();
+    const healthPercent = playerData.currentHealth / playerData.maxHealth;
     
     this.healthBar.clear();
     
@@ -2381,7 +2201,7 @@ export class Overworld extends Scene {
     }
     
     // Update health text - maintain center alignment
-    this.healthText.setText(`${this.playerData.currentHealth}/${this.playerData.maxHealth}`);
+    this.healthText.setText(`${playerData.currentHealth}/${playerData.maxHealth}`);
     
     // Modern low health effects
     if (healthPercent < 0.25) {
@@ -2397,15 +2217,17 @@ export class Overworld extends Scene {
    * Update currency display
    */
   private updateCurrencyDisplay(): void {
-    this.currencyText.setText(`${this.playerData.ginto}`);
-    this.diamanteText.setText(`${this.playerData.diamante}`);
+    const playerData = this.getPlayerData();
+    this.currencyText.setText(`${playerData.ginto}`);
+    this.diamanteText.setText(`${playerData.diamante}`);
   }
 
   /**
    * Update Landás score display
    */
   private updateLandasDisplay(): void {
-    const score = this.playerData.landasScore;
+    const playerData = this.getPlayerData();
+    const score = playerData.landasScore;
     let color = "#9370db";
     
     if (score >= 5) {
@@ -2446,8 +2268,9 @@ export class Overworld extends Scene {
    * Update relics display with modern Persona-style design
    */
   private updateRelicsDisplay(): void {
-    console.log('🎯 updateRelicsDisplay called with', this.playerData.relics.length, 'relics');
-    console.log('🎯 Player relics:', this.playerData.relics.map(r => r.name || r.id));
+    const playerData = this.getPlayerData();
+    console.log('🎯 updateRelicsDisplay called with', playerData.relics.length, 'relics');
+    console.log('🎯 Player relics:', playerData.relics.map((r: any) => r.name || r.id));
     this.relicsContainer.removeAll(true);
     
     const slotSize = 45; // Match the slot size from createModernRelicsSection
@@ -2462,8 +2285,8 @@ export class Overworld extends Scene {
     // Position relics relative to the container (which is already at gridStartX, gridStartY)
     // No offset needed since container is positioned correctly
     
-    for (let i = 0; i < Math.min(this.playerData.relics.length, maxRelics); i++) {
-      const relic = this.playerData.relics[i];
+    for (let i = 0; i < Math.min(playerData.relics.length, maxRelics); i++) {
+      const relic = playerData.relics[i];
       const row = Math.floor(i / slotsPerRow);
       const col = i % slotsPerRow;
       
@@ -2734,8 +2557,9 @@ export class Overworld extends Scene {
     const slotSpacing = 18;
     const maxPotions = 3;
     
-    for (let i = 0; i < Math.min(this.playerData.potions.length, maxPotions); i++) {
-      const potion = this.playerData.potions[i];
+    const playerData = this.getPlayerData();
+    for (let i = 0; i < Math.min(playerData.potions.length, maxPotions); i++) {
+      const potion = playerData.potions[i];
       const potionX = i * (slotSize + slotSpacing);
       const potionY = 0;
       
@@ -2816,7 +2640,8 @@ export class Overworld extends Scene {
     
     // Update discard charges display
     if (this.discardText) {
-      this.discardText.setText(`${this.playerData.discardCharges || 1}/${this.playerData.maxDiscardCharges || 1}`);
+      const playerData = this.getPlayerData();
+      this.discardText.setText(`${playerData.discardCharges || 1}/${playerData.maxDiscardCharges || 1}`);
     }
   }
 
@@ -2824,13 +2649,12 @@ export class Overworld extends Scene {
    * Update deck info display
    */
   private updateDeckInfoDisplay(): void {
-    const totalCards = this.playerData.deck.length;
-    const handSize = this.playerData.hand.length;
-    const discardSize = this.playerData.discardPile.length;
-    
-    const deckInfo = `Total Cards: ${totalCards}\nHand: ${handSize}\nDiscard: ${discardSize}\nDiscard Charges: ${this.playerData.discardCharges}/${this.playerData.maxDiscardCharges}`;
-    
-    this.deckInfoText.setText(deckInfo);
+    const playerData = this.getPlayerData();
+    const totalCards = playerData.deck.length;
+    const handSize = playerData.hand.length;
+    const discardSize = playerData.discardPile.length;
+
+    const deckInfo = `Total Cards: ${totalCards}\nHand: ${handSize}\nDiscard: ${discardSize}\nDiscard Charges: ${playerData.discardCharges}/${playerData.maxDiscardCharges}`;    this.deckInfoText.setText(deckInfo);
   }
 
   /**
@@ -2856,100 +2680,6 @@ export class Overworld extends Scene {
       this.showPotionInventory();
     });
     this.uiContainer.add(this.potionInventoryButton);
-  }
-
-  /**
-   * Use a potion from inventory
-   */
-  private usePotion(index: number): void {
-    if (index < 0 || index >= this.playerData.potions.length) {
-      return;
-    }
-    
-    const potion = this.playerData.potions[index];
-    
-    // Apply potion effects
-    switch (potion.effect) {
-      case "draw_3_cards":
-        // For overworld, we could show a visual effect
-        this.showPotionEffect("💙 Clarity potion will draw 3 cards in next combat!");
-        break;
-        
-      case "gain_15_block":
-        this.showPotionEffect("🛡️ Fortitude potion will grant 15 block in next combat!");
-        break;
-        
-      case "gain_1_dexterity":
-        this.showPotionEffect("💨 Swift potion will grant +1 Dexterity in next combat!");
-        break;
-        
-      case "choose_element":
-        this.showPotionEffect("🌈 Elements potion will let you choose dominant element!");
-        break;
-        
-      default:
-        this.showPotionEffect(`Used ${potion.name}!`);
-    }
-    
-    // Remove potion from inventory
-    this.playerData.potions.splice(index, 1);
-    this.updatePotionsDisplay();
-  }
-
-  /**
-   * Discard a potion from inventory
-   */
-  private discardPotion(index: number): void {
-    if (index < 0 || index >= this.playerData.potions.length) {
-      return;
-    }
-    
-    const potion = this.playerData.potions[index];
-    this.showPotionEffect(`Discarded ${potion.name}`);
-    
-    // Remove potion from inventory
-    this.playerData.potions.splice(index, 1);
-    this.updatePotionsDisplay();
-  }
-
-  /**
-   * Show visual feedback for potion actions
-   */
-  private showPotionEffect(message: string): void {
-    const effectText = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2 - 100,
-      message,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: "18px",
-        color: "#ffffff",
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        padding: { x: 15, y: 8 }
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(2000);
-    
-    // Animate the text
-    effectText.setScale(0.1);
-    this.tweens.add({
-      targets: effectText,
-      scale: 1,
-      duration: 300,
-      ease: 'Back.easeOut'
-    });
-    
-    // Fade out after delay
-    this.time.delayedCall(2000, () => {
-      this.tweens.add({
-        targets: effectText,
-        alpha: 0,
-        scale: 1.2,
-        duration: 500,
-        onComplete: () => {
-          effectText.destroy();
-        }
-      });
-    });
   }
 
   /**
@@ -2993,7 +2723,8 @@ export class Overworld extends Scene {
     const relicsPerRow = 6;
     const padding = 20;
     
-    this.playerData.relics.forEach((relic, index) => {
+    const playerData = this.getPlayerData();
+    playerData.relics.forEach((relic: any, index: number) => {
       const row = Math.floor(index / relicsPerRow);
       const col = index % relicsPerRow;
       
@@ -3130,7 +2861,8 @@ ${relic.description}`, {
     const potionsPerRow = 4;
     const padding = 30;
     
-    this.playerData.potions.forEach((potion, index) => {
+    const playerData = this.getPlayerData();
+    playerData.potions.forEach((potion: any, index: number) => {
       const row = Math.floor(index / potionsPerRow);
       const col = index % potionsPerRow;
       
