@@ -4,6 +4,7 @@ import { MapNode } from "../../core/types/MapTypes";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { GameState } from "../../core/managers/GameState";
 import { Player } from "../../core/types/CombatTypes";
+import { DeckManager } from "../../utils/DeckManager";
 import { Potion } from "../../data/potions/Act1Potions";
 import { 
   TIKBALANG, DWENDE, KAPRE, SIGBIN, TIYANAK,
@@ -73,6 +74,7 @@ export class Overworld extends Scene {
     const savedPlayerData = gameState.getPlayerData();
     
     if (savedPlayerData) {
+      const deck = savedPlayerData.deck && savedPlayerData.deck.length > 0 ? savedPlayerData.deck : DeckManager.createFullDeck();
       this.playerData = {
         id: savedPlayerData.id || "player",
         name: savedPlayerData.name || "Hero",
@@ -81,9 +83,9 @@ export class Overworld extends Scene {
         block: savedPlayerData.block || 0,
         statusEffects: savedPlayerData.statusEffects || [],
         hand: savedPlayerData.hand || [],
-        deck: savedPlayerData.deck || [],
+        deck: deck,
         discardPile: savedPlayerData.discardPile || [],
-        drawPile: savedPlayerData.drawPile || [],
+        drawPile: savedPlayerData.drawPile && savedPlayerData.drawPile.length > 0 ? savedPlayerData.drawPile : [...deck],
         playedHand: savedPlayerData.playedHand || [],
         landasScore: savedPlayerData.landasScore || 0,
         ginto: savedPlayerData.ginto !== undefined ? savedPlayerData.ginto : 100,
@@ -95,6 +97,7 @@ export class Overworld extends Scene {
       };
     } else {
       // Initialize player data with default values
+      const newDeck = DeckManager.createFullDeck();
       this.playerData = {
         id: "player",
         name: "Hero",
@@ -103,9 +106,9 @@ export class Overworld extends Scene {
         block: 0,
         statusEffects: [],
         hand: [],
-        deck: [],
+        deck: newDeck,
         discardPile: [],
-        drawPile: [],
+        drawPile: [...newDeck],
         playedHand: [],
         landasScore: 0,
         ginto: 9999,
@@ -312,30 +315,7 @@ export class Overworld extends Scene {
       // Pause this scene and launch campfire scene
       this.scene.pause();
       this.scene.launch("Campfire", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          diamante: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
+        player: this.playerData
       });
     }, this.testButtonsContainer);
     buttonY += 60;
@@ -417,30 +397,7 @@ export class Overworld extends Scene {
       // Pause this scene and launch campfire scene
       this.scene.pause();
       this.scene.launch("Campfire", { 
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 80,
-          currentHealth: 80,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          diamante: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
+        player: this.playerData
       });
     }, this.testButtonsContainer);
     
@@ -1710,30 +1667,7 @@ export class Overworld extends Scene {
           // Pause this scene and launch campfire scene
           this.scene.pause();
           this.scene.launch("Campfire", { 
-            player: {
-              id: "player",
-              name: "Hero",
-              maxHealth: 80,
-              currentHealth: 80,
-              block: 0,
-              statusEffects: [],
-              hand: [],
-              deck: [],
-              discardPile: [],
-              drawPile: [],
-              playedHand: [],
-              landasScore: 0,
-              ginto: 100,
-              diamante: 0,
-              relics: [
-                {
-                  id: "placeholder_relic",
-                  name: "Placeholder Relic",
-                  description: "This is a placeholder relic.",
-                  emoji: "⚙️",
-                },
-              ],
-            }
+            player: this.playerData
           });
           break;
           

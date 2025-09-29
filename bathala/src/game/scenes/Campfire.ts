@@ -9,9 +9,17 @@ export class Campfire extends Scene {
   private restButton!: Phaser.GameObjects.Container;
   private purifyButton!: Phaser.GameObjects.Container;
   private upgradeButton!: Phaser.GameObjects.Container;
+  private viewDeckButton!: Phaser.GameObjects.Container;
   private actionText!: Phaser.GameObjects.Text;
-  private cardSprites: Phaser.GameObjects.Container[] = [];
+  private cardSprites: Phaser.GameObjects.GameObject[] = [];
   private tooltipBox!: Phaser.GameObjects.Container;
+
+  // Pagination for deck view
+  private currentPage: number = 0;
+  private cardsPerPage: number = 16;
+  private displayedCards: PlayingCard[] = [];
+  private prevButton!: Phaser.GameObjects.Container;
+  private nextButton!: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: "Campfire" });
@@ -188,9 +196,10 @@ export class Campfire extends Scene {
     
     // Create action buttons with Dark Souls styling
     const buttonData = [
-      { x: screenWidth / 2 - 200, y: screenHeight / 2 + 50, text: "HEAL", color: "#2ed573", action: "rest" },
-      { x: screenWidth / 2, y: screenHeight / 2 + 50, text: "PURIFY", color: "#ff6b6b", action: "purify" },
-      { x: screenWidth / 2 + 200, y: screenHeight / 2 + 50, text: "ATTUNE", color: "#4ecdc4", action: "upgrade" }
+      { x: screenWidth / 2 - 250, y: screenHeight / 2 + 50, text: "HEAL", color: "#2ed573", action: "rest" },
+      { x: screenWidth / 2 - 80, y: screenHeight / 2 + 50, text: "PURIFY", color: "#ff6b6b", action: "purify" },
+      { x: screenWidth / 2 + 80, y: screenHeight / 2 + 50, text: "ATTUNE", color: "#4ecdc4", action: "upgrade" },
+      { x: screenWidth / 2 + 250, y: screenHeight / 2 + 50, text: "VIEW DECK", color: "#a8a8a8", action: "view_deck" }
     ];
     
     buttonData.forEach(data => {
@@ -222,6 +231,7 @@ export class Campfire extends Scene {
           case "rest": this.rest(); break;
           case "purify": this.showPurifyCards(); break;
           case "upgrade": this.showUpgradeCards(); break;
+          case "view_deck": this.showDeck(); break;
         }
       });
       
@@ -240,6 +250,7 @@ export class Campfire extends Scene {
         case "rest": this.restButton = button; break;
         case "purify": this.purifyButton = button; break;
         case "upgrade": this.upgradeButton = button; break;
+        case "view_deck": this.viewDeckButton = button; break;
       }
     });
   }
@@ -292,6 +303,7 @@ export class Campfire extends Scene {
   private createTooltipBox(): void {
     this.tooltipBox = this.add.container(0, 0);
     this.tooltipBox.setVisible(false);
+    this.tooltipBox.setDepth(2000);
   }
 
   private showActionTooltip(action: string, x: number, y: number): void {
@@ -309,6 +321,9 @@ export class Campfire extends Scene {
         break;
       case "ATTUNE":
         description = "Upgrade a card to a higher rank";
+        break;
+      case "VIEW DECK":
+        description = "View all the cards in your deck";
         break;
       default:
         description = "Perform this action";
@@ -424,11 +439,58 @@ export class Campfire extends Scene {
     this.hideTooltip();
   }
 
-  private showPurifyCards(): void {
-    // Clear any existing card sprites
-    this.cardSprites.forEach(sprite => sprite.destroy());
-    this.cardSprites = [];
+  private reEnableActionButtons(): void {
+    if (this.restButton.active) this.restButton.setInteractive();
+    if (this.purifyButton.active) this.purifyButton.setInteractive();
+    if (this.upgradeButton.active) this.upgradeButton.setInteractive();
+    this.viewDeckButton.setInteractive(); // Always re-enable view deck
+  }
+
+  private createCardViewBackButton(onBack: () => void): Phaser.GameObjects.Container {
+    const screenWidth = this.cameras.main.width;
+    const backButton = this.add.container(screenWidth / 2, this.cameras.main.height - 150);
+    backButton.setDepth(1002);
     
+    const background = this.add.rectangle(0, 0, 150, 50, 0x222222).setStrokeStyle(2, 0xcccccc);
+    const text = this.add.text(0, 0, "BACK", { fontFamily: "dungeon-mode", fontSize: 20, color: "#cccccc" }).setOrigin(0.5);
+    
+    backButton.add([background, text]);
+    backButton.setInteractive(new Phaser.Geom.Rectangle(-75, -25, 150, 50), Phaser.Geom.Rectangle.Contains);
+
+    backButton.on("pointerdown", onBack);
+    backButton.on("pointerover", () => background.setFillStyle(0x333333));
+    backButton.on("pointerout", () => background.setFillStyle(0x222222));
+
+    return backButton;
+  }
+
+  private createCardViewHeader(title: string, subtitle: string): Phaser.GameObjects.GameObject[] {
+    const screenWidth = this.cameras.main.width;
+    const titleText = this.add.text(screenWidth / 2, 120, title, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 32,
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5).setDepth(1001);
+
+    const subtitleText = this.add.text(screenWidth / 2, 160, subtitle, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#cccccc",
+      align: "center",
+      wordWrap: { width: screenWidth * 0.7 }
+    }).setOrigin(0.5).setDepth(1001);
+
+    return [titleText, subtitleText];
+  }
+
+  private showDeck(): void {
+    // Disable action buttons to prevent interaction while viewing deck
+    this.restButton.disableInteractive();
+    this.purifyButton.disableInteractive();
+    this.upgradeButton.disableInteractive();
+    this.viewDeckButton.disableInteractive();
+
     // Combine all cards in player's possession
     const allCards = [
       ...this.player.deck,
@@ -437,65 +499,137 @@ export class Campfire extends Scene {
       ...this.player.hand
     ];
     
-    // Remove duplicates (cards that appear in multiple locations)
-    const uniqueCards = allCards.filter(
+    // Remove duplicates and set up for pagination
+    this.displayedCards = allCards.filter(
       (card, index, self) => index === self.findIndex(c => c.id === card.id)
     );
+    this.currentPage = 0;
+
+    // Draw the first page of cards
+    this.drawCardPage("Your Deck", "This is your current collection of cards.");
+
+    // Create a back button to close the deck view
+    const backButton = this.createCardViewBackButton(() => {
+      this.clearCardDisplay();
+      this.reEnableActionButtons();
+      backButton.destroy();
+    });
+  }
+
+  private showPurifyCards(): void {
+    this.restButton.disableInteractive();
+    this.purifyButton.disableInteractive();
+    this.upgradeButton.disableInteractive();
+    this.viewDeckButton.disableInteractive();
+
+    const allCards = [
+      ...this.player.deck,
+      ...this.player.drawPile,
+      ...this.player.discardPile,
+      ...this.player.hand
+    ];
+    this.displayedCards = allCards.filter(
+      (card, index, self) => index === self.findIndex(c => c.id === card.id)
+    );
+    this.currentPage = 0;
+
+    const backButton = this.createCardViewBackButton(() => {
+        this.clearCardDisplay();
+        this.reEnableActionButtons();
+        backButton.destroy();
+    });
     
-    // Display cards
-    this.displayCardsForSelection(uniqueCards, (selectedCard) => {
+    this.drawCardPage("Purify a Card", "Permanently remove a card from your deck.", (selectedCard) => {
       this.purifyCard(selectedCard);
+      backButton.destroy();
+      this.reEnableActionButtons();
     });
   }
 
   private showUpgradeCards(): void {
-    // Clear any existing card sprites
-    this.cardSprites.forEach(sprite => sprite.destroy());
-    this.cardSprites = [];
-    
-    // Combine all cards in player's possession
+    this.restButton.disableInteractive();
+    this.purifyButton.disableInteractive();
+    this.upgradeButton.disableInteractive();
+    this.viewDeckButton.disableInteractive();
+
     const allCards = [
       ...this.player.deck,
       ...this.player.drawPile,
       ...this.player.discardPile,
       ...this.player.hand
     ];
-    
-    // Remove duplicates (cards that appear in multiple locations)
-    const uniqueCards = allCards.filter(
+    this.displayedCards = allCards.filter(
       (card, index, self) => index === self.findIndex(c => c.id === card.id)
     );
+    this.currentPage = 0;
     
-    // Display cards
-    this.displayCardsForSelection(uniqueCards, (selectedCard) => {
+    const backButton = this.createCardViewBackButton(() => {
+        this.clearCardDisplay();
+        this.reEnableActionButtons();
+        backButton.destroy();
+    });
+
+    this.drawCardPage("Attune a Card", "Upgrade a card to its next rank.", (selectedCard) => {
       this.upgradeCard(selectedCard);
+      backButton.destroy();
+      this.reEnableActionButtons();
     });
   }
 
-  private displayCardsForSelection(
-    cards: PlayingCard[],
-    onSelect: (card: PlayingCard) => void
-  ): void {
+  private clearCardDisplay(): void {
+    this.cardSprites.forEach(sprite => sprite.destroy());
+    this.cardSprites = [];
+    if (this.prevButton) this.prevButton.destroy();
+    if (this.nextButton) this.nextButton.destroy();
+  }
+
+  private drawCardPage(title: string, subtitle: string, onSelect?: (card: PlayingCard) => void): void {
+    this.clearCardDisplay();
+
+    // Add a background for the card view
     const screenWidth = this.cameras.main.width;
-    const cardWidth = 60;
-    const totalWidth = cards.length * cardWidth;
-    const maxWidth = screenWidth - 200;
-    const actualCardWidth = totalWidth > maxWidth ? (maxWidth / cards.length) : cardWidth;
-    const actualTotalWidth = cards.length * actualCardWidth;
-    const startX = (screenWidth - actualTotalWidth) / 2 + actualCardWidth / 2;
-    const y = this.cameras.main.height / 2 + 150;
+    const screenHeight = this.cameras.main.height;
+    const background = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth * 0.9, screenHeight * 0.8, 0x000000, 0.9);
+    background.setStrokeStyle(2, 0x666666);
+    background.setDepth(1000);
+    this.cardSprites.push(background);
+
+    // Add header
+    const header = this.createCardViewHeader(title, subtitle);
+    this.cardSprites.push(...header);
+
+    const startIndex = this.currentPage * this.cardsPerPage;
+    const endIndex = startIndex + this.cardsPerPage;
+    const pageCards = this.displayedCards.slice(startIndex, endIndex);
+
+    const cols = 8;
+    const cardWidth = 70;
+    const cardHeight = 100;
+    const paddingX = 20;
+    const paddingY = 20;
+    const gridWidth = cols * (cardWidth + paddingX) - paddingX;
     
-    cards.forEach((card, index) => {
-      const x = startX + index * actualCardWidth;
+    const startX = (screenWidth - gridWidth) / 2;
+    const startY = (screenHeight / 2) - 50;
+
+    pageCards.forEach((card, index) => {
+      const row = Math.floor(index / cols);
+      const col = index % cols;
+      const x = startX + col * (cardWidth + paddingX);
+      const y = startY + row * (cardHeight + paddingY);
+
       const cardSprite = this.createCardSprite(card, x, y, true);
-      cardSprite.setInteractive();
-      cardSprite.on("pointerdown", () => {
-        onSelect(card);
-        // Clear card display after selection
-        this.cardSprites.forEach(sprite => sprite.destroy());
-        this.cardSprites = [];
-        this.hideTooltip();
-      });
+      cardSprite.setDepth(1001);
+
+      if (onSelect) {
+        cardSprite.setInteractive();
+        cardSprite.on("pointerdown", () => {
+          onSelect(card);
+          this.clearCardDisplay();
+          this.hideTooltip();
+        });
+      }
+
       cardSprite.on("pointerover", () => {
         this.showCardTooltip(card, x + 40, y);
       });
@@ -504,6 +638,45 @@ export class Campfire extends Scene {
       });
       this.cardSprites.push(cardSprite);
     });
+
+    this.createPaginationButtons(title, subtitle, onSelect);
+  }
+
+  private createPaginationButtons(title: string, subtitle: string, onSelect?: (card: PlayingCard) => void): void {
+    const screenWidth = this.cameras.main.width;
+    const y = this.cameras.main.height - 250;
+
+    // Previous button
+    if (this.currentPage > 0) {
+      this.prevButton = this.add.container(screenWidth / 2 - 150, y);
+      const prevBg = this.add.rectangle(0, 0, 120, 50, 0x222222).setStrokeStyle(2, 0xcccccc);
+      const prevText = this.add.text(0, 0, "PREV", { fontFamily: "dungeon-mode", fontSize: 20, color: "#cccccc" }).setOrigin(0.5);
+      this.prevButton.add([prevBg, prevText]);
+      this.prevButton.setInteractive(new Phaser.Geom.Rectangle(-60, -25, 120, 50), Phaser.Geom.Rectangle.Contains);
+      this.prevButton.setDepth(1002);
+      this.prevButton.on('pointerdown', () => {
+        this.currentPage--;
+        this.drawCardPage(title, subtitle, onSelect);
+      });
+      this.prevButton.on('pointerover', () => prevBg.setFillStyle(0x333333));
+      this.prevButton.on('pointerout', () => prevBg.setFillStyle(0x222222));
+    }
+
+    // Next button
+    if ((this.currentPage + 1) * this.cardsPerPage < this.displayedCards.length) {
+      this.nextButton = this.add.container(screenWidth / 2 + 150, y);
+      const nextBg = this.add.rectangle(0, 0, 120, 50, 0x222222).setStrokeStyle(2, 0xcccccc);
+      const nextText = this.add.text(0, 0, "NEXT", { fontFamily: "dungeon-mode", fontSize: 20, color: "#cccccc" }).setOrigin(0.5);
+      this.nextButton.add([nextBg, nextText]);
+      this.nextButton.setInteractive(new Phaser.Geom.Rectangle(-60, -25, 120, 50), Phaser.Geom.Rectangle.Contains);
+      this.nextButton.setDepth(1002);
+      this.nextButton.on('pointerdown', () => {
+        this.currentPage++;
+        this.drawCardPage(title, subtitle, onSelect);
+      });
+      this.nextButton.on('pointerover', () => nextBg.setFillStyle(0x333333));
+      this.nextButton.on('pointerout', () => nextBg.setFillStyle(0x222222));
+    }
   }
 
   private createCardSprite(
