@@ -3652,53 +3652,47 @@ export class Combat extends Scene {
     this.deckViewContainer.list.filter(item => item.type === 'Container').forEach(item => item.destroy());
 
     const cards = this.combatState.player.drawPile;
-    const containerWidth = this.cameras.main.width * 0.7;
-    const containerHeight = this.cameras.main.height * 0.7;
+    const containerWidth = this.cameras.main.width * 0.8;
+    const containerHeight = this.cameras.main.height * 0.8;
+    const columns = 6;
+    const padding = 15;
+    const cardWidth = 100;
+    const cardHeight = 140;
+
+    const totalGridWidth = columns * (cardWidth + padding) - padding;
+    const startX = -totalGridWidth / 2 + cardWidth / 2;
+    const startY = -containerHeight / 2 + cardHeight / 2 + padding;
 
     const cardsContainer = this.add.container(0, 0);
     this.deckViewContainer.add(cardsContainer);
     cardsContainer.setDepth(1);
 
-    const fanAngle = 10;
-    const radius = 200;
-
     cards.forEach((card, index) => {
-      const angle = (index - (cards.length - 1) / 2) * fanAngle;
-      const x = radius * Math.sin(Phaser.Math.DegToRad(angle));
-      const y = radius * Math.cos(Phaser.Math.DegToRad(angle)) - radius;
-
-      const cardSprite = this.createCardSprite(card, 0, 0, false);
-      cardSprite.setDepth(index);
-      cardSprite.setAngle(angle);
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+      const x = startX + col * (cardWidth + padding);
+      const y = startY + row * (cardHeight + padding);
+      const cardSprite = this.createCardSprite(card, x, y, false);
+      cardSprite.setDepth(2);
       cardsContainer.add(cardSprite);
+    });
 
-      this.tweens.add({
-        targets: cardSprite,
-        x: x,
-        y: y,
-        duration: 300,
-        ease: "Power2",
-        delay: index * 50
-      });
+    const maskHeight = containerHeight - padding * 2;
+    const mask = this.make.graphics({});
+    mask.fillStyle(0xffffff);
+    mask.beginPath();
+    mask.fillRect(this.deckViewContainer.x - containerWidth / 2, this.deckViewContainer.y - containerHeight / 2, containerWidth, containerHeight);
+    cardsContainer.setMask(mask.createGeometryMask());
 
-      cardSprite.setInteractive();
-      cardSprite.on("pointerover", () => {
-        this.tweens.add({
-          targets: cardSprite,
-          scale: 1.2,
-          duration: 100
-        });
-        cardSprite.setDepth(cards.length);
-      });
-
-      cardSprite.on("pointerout", () => {
-        this.tweens.add({
-          targets: cardSprite,
-          scale: 1,
-          duration: 100
-        });
-        cardSprite.setDepth(index);
-      });
+    let scrollY = 0;
+    this.input.on("wheel", (pointer: any, gameObjects: any, deltaX: any, deltaY: any) => {
+      if (this.deckViewContainer.visible) {
+        scrollY -= deltaY * 0.5;
+        const maxScroll = 0;
+        const minScroll = -cardsContainer.getBounds().height + maskHeight;
+        scrollY = Phaser.Math.Clamp(scrollY, minScroll, maxScroll);
+        cardsContainer.y = scrollY;
+      }
     });
 
     this.deckViewContainer.setVisible(true);
@@ -3709,61 +3703,57 @@ export class Combat extends Scene {
 
 
 
+
+
   private showDiscardPileView(): void {
     this.discardViewContainer.list.filter(item => item.type === 'Container').forEach(item => item.destroy());
 
     const cards = this.combatState.player.discardPile;
-    const containerWidth = this.cameras.main.width * 0.7;
-    const containerHeight = this.cameras.main.height * 0.7;
+    const containerWidth = this.cameras.main.width * 0.8;
+    const containerHeight = this.cameras.main.height * 0.8;
+    const columns = 6;
+    const padding = 15;
+    const cardWidth = (containerWidth - (padding * (columns + 1))) / columns;
+    const cardHeight = cardWidth * 1.4;
+
+    const startX = -containerWidth / 2 + cardWidth / 2 + padding;
+    const startY = -containerHeight / 2 + cardHeight / 2 + padding;
 
     const cardsContainer = this.add.container(0, 0);
     this.discardViewContainer.add(cardsContainer);
     cardsContainer.setDepth(1);
 
-    const fanAngle = 10;
-    const radius = 200;
-
     cards.forEach((card, index) => {
-      const angle = (index - (cards.length - 1) / 2) * fanAngle;
-      const x = radius * Math.sin(Phaser.Math.DegToRad(angle));
-      const y = radius * Math.cos(Phaser.Math.DegToRad(angle)) - radius;
-
-      const cardSprite = this.createCardSprite(card, 0, 0, false);
-      cardSprite.setDepth(index);
-      cardSprite.setAngle(angle);
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+      const x = startX + col * (cardWidth + padding);
+      const y = startY + row * (cardHeight + padding);
+      const cardSprite = this.createCardSprite(card, x, y, false);
+      cardSprite.setDepth(2);
       cardsContainer.add(cardSprite);
+    });
 
-      this.tweens.add({
-        targets: cardSprite,
-        x: x,
-        y: y,
-        duration: 300,
-        ease: "Power2",
-        delay: index * 50
-      });
+    const maskHeight = containerHeight - padding * 2;
+    const mask = this.make.graphics({});
+    mask.fillStyle(0xffffff);
+    mask.beginPath();
+    mask.fillRect(this.discardViewContainer.x - containerWidth / 2, this.discardViewContainer.y - containerHeight / 2, containerWidth, containerHeight);
+    cardsContainer.setMask(mask.createGeometryMask());
 
-      cardSprite.setInteractive();
-      cardSprite.on("pointerover", () => {
-        this.tweens.add({
-          targets: cardSprite,
-          scale: 1.2,
-          duration: 100
-        });
-        cardSprite.setDepth(cards.length);
-      });
-
-      cardSprite.on("pointerout", () => {
-        this.tweens.add({
-          targets: cardSprite,
-          scale: 1,
-          duration: 100
-        });
-        cardSprite.setDepth(index);
-      });
+    let scrollY = 0;
+    this.input.on("wheel", (pointer: any, gameObjects: any, deltaX: any, deltaY: any) => {
+      if (this.discardViewContainer.visible) {
+        scrollY -= deltaY * 0.5;
+        const maxScroll = 0;
+        const minScroll = -cardsContainer.getBounds().height + maskHeight;
+        scrollY = Phaser.Math.Clamp(scrollY, minScroll, maxScroll);
+        cardsContainer.y = scrollY;
+      }
     });
 
     this.discardViewContainer.setVisible(true);
   }
+
 
 
 
