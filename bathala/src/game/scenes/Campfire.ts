@@ -464,6 +464,26 @@ export class Campfire extends Scene {
     return backButton;
   }
 
+  private createCardViewHeader(title: string, subtitle: string): Phaser.GameObjects.GameObject[] {
+    const screenWidth = this.cameras.main.width;
+    const titleText = this.add.text(screenWidth / 2, 120, title, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 32,
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5).setDepth(1001);
+
+    const subtitleText = this.add.text(screenWidth / 2, 160, subtitle, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#cccccc",
+      align: "center",
+      wordWrap: { width: screenWidth * 0.7 }
+    }).setOrigin(0.5).setDepth(1001);
+
+    return [titleText, subtitleText];
+  }
+
   private showDeck(): void {
     // Disable action buttons to prevent interaction while viewing deck
     this.restButton.disableInteractive();
@@ -486,7 +506,7 @@ export class Campfire extends Scene {
     this.currentPage = 0;
 
     // Draw the first page of cards
-    this.drawCardPage();
+    this.drawCardPage("Your Deck", "This is your current collection of cards.");
 
     // Create a back button to close the deck view
     const backButton = this.createCardViewBackButton(() => {
@@ -519,7 +539,7 @@ export class Campfire extends Scene {
         backButton.destroy();
     });
     
-    this.drawCardPage((selectedCard) => {
+    this.drawCardPage("Purify a Card", "Permanently remove a card from your deck.", (selectedCard) => {
       this.purifyCard(selectedCard);
       backButton.destroy();
       this.reEnableActionButtons();
@@ -549,7 +569,7 @@ export class Campfire extends Scene {
         backButton.destroy();
     });
 
-    this.drawCardPage((selectedCard) => {
+    this.drawCardPage("Attune a Card", "Upgrade a card to its next rank.", (selectedCard) => {
       this.upgradeCard(selectedCard);
       backButton.destroy();
       this.reEnableActionButtons();
@@ -563,7 +583,7 @@ export class Campfire extends Scene {
     if (this.nextButton) this.nextButton.destroy();
   }
 
-  private drawCardPage(onSelect?: (card: PlayingCard) => void): void {
+  private drawCardPage(title: string, subtitle: string, onSelect?: (card: PlayingCard) => void): void {
     this.clearCardDisplay();
 
     // Add a background for the card view
@@ -573,6 +593,10 @@ export class Campfire extends Scene {
     background.setStrokeStyle(2, 0x666666);
     background.setDepth(1000);
     this.cardSprites.push(background);
+
+    // Add header
+    const header = this.createCardViewHeader(title, subtitle);
+    this.cardSprites.push(...header);
 
     const startIndex = this.currentPage * this.cardsPerPage;
     const endIndex = startIndex + this.cardsPerPage;
@@ -586,7 +610,7 @@ export class Campfire extends Scene {
     const gridWidth = cols * (cardWidth + paddingX) - paddingX;
     
     const startX = (screenWidth - gridWidth) / 2;
-    const startY = (screenHeight / 2) - 100;
+    const startY = (screenHeight / 2) - 50;
 
     pageCards.forEach((card, index) => {
       const row = Math.floor(index / cols);
@@ -615,10 +639,10 @@ export class Campfire extends Scene {
       this.cardSprites.push(cardSprite);
     });
 
-    this.createPaginationButtons(onSelect);
+    this.createPaginationButtons(title, subtitle, onSelect);
   }
 
-  private createPaginationButtons(onSelect?: (card: PlayingCard) => void): void {
+  private createPaginationButtons(title: string, subtitle: string, onSelect?: (card: PlayingCard) => void): void {
     const screenWidth = this.cameras.main.width;
     const y = this.cameras.main.height - 250;
 
@@ -632,7 +656,7 @@ export class Campfire extends Scene {
       this.prevButton.setDepth(1002);
       this.prevButton.on('pointerdown', () => {
         this.currentPage--;
-        this.drawCardPage(onSelect);
+        this.drawCardPage(title, subtitle, onSelect);
       });
       this.prevButton.on('pointerover', () => prevBg.setFillStyle(0x333333));
       this.prevButton.on('pointerout', () => prevBg.setFillStyle(0x222222));
@@ -648,7 +672,7 @@ export class Campfire extends Scene {
       this.nextButton.setDepth(1002);
       this.nextButton.on('pointerdown', () => {
         this.currentPage++;
-        this.drawCardPage(onSelect);
+        this.drawCardPage(title, subtitle, onSelect);
       });
       this.nextButton.on('pointerover', () => nextBg.setFillStyle(0x333333));
       this.nextButton.on('pointerout', () => nextBg.setFillStyle(0x222222));
