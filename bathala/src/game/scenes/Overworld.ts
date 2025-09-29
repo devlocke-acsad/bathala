@@ -4,7 +4,6 @@ import { MapNode } from "../../core/types/MapTypes";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { GameState } from "../../core/managers/GameState";
 import { Player } from "../../core/types/CombatTypes";
-import { Potion } from "../../data/potions/Act1Potions";
 import { 
   TIKBALANG, DWENDE, KAPRE, SIGBIN, TIYANAK,
   MANANANGGAL, ASWANG, DUWENDE_CHIEF, BAKUNAWA
@@ -24,7 +23,6 @@ export class Overworld extends Scene {
   private nodeSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
   private gridSize: number = 32;
-  private isMoving: boolean = false;
   private uiManager!: OverworldUIManager;
   private movementManager!: OverworldMovementManager;
   private gameStateManager!: OverworldGameStateManager;
@@ -39,10 +37,7 @@ export class Overworld extends Scene {
   private diamanteText!: Phaser.GameObjects.Text;
   private landasText!: Phaser.GameObjects.Text;
   private landasMeterIndicator!: Phaser.GameObjects.Graphics;
-  private deckInfoText!: Phaser.GameObjects.Text;
   private discardText!: Phaser.GameObjects.Text;
-  private relicInventoryButton!: Phaser.GameObjects.Container;
-  private potionInventoryButton!: Phaser.GameObjects.Container;
   
   // Enemy Info Tooltip
   private tooltipContainer!: Phaser.GameObjects.Container;
@@ -201,7 +196,6 @@ export class Overworld extends Scene {
   }
 
   public setIsMoving(moving: boolean): void {
-    this.isMoving = moving;
     this.movementManager?.setIsMoving(moving);
   }
 
@@ -779,7 +773,7 @@ export class Overworld extends Scene {
 
   showBossAppearance(): void {
     // Disable player movement during boss appearance
-    this.isMoving = true;
+    this.setIsMoving(true);
     
     // Create overlay
     const overlay = this.add.rectangle(
@@ -838,7 +832,7 @@ export class Overworld extends Scene {
    */
   private showNodeEvent(title: string, message: string, color: number): void {
     // Disable player movement during event
-    this.isMoving = true;
+    this.setIsMoving(true);
     
     // Create overlay
     const overlay = this.add.rectangle(
@@ -932,7 +926,7 @@ export class Overworld extends Scene {
       continueButton.destroy();
       
       // Re-enable player movement
-      this.isMoving = false;
+      this.setIsMoving(false);
     });
     
     continueButton.on('pointerover', () => {
@@ -952,256 +946,7 @@ export class Overworld extends Scene {
     this.gameStateManager.startBossCombat();
   }
 
-  // Legacy method for backward compatibility
-  private startCombatOld(nodeType: string): void {
-    // Prevent player from moving during combat transition
-    this.isMoving = true;
-    this.gameStateManager.setIsTransitioningToCombat(true);
-    
-    // Save player position before transitioning
-    const gameState = GameState.getInstance();
-    gameState.savePlayerPosition(this.player.x, this.player.y);
-    
-    // Disable input during transition
-    if (this.input && this.input.keyboard) {
-      this.input.keyboard.enabled = false;
-    }
-    
-    // Check if this is a boss fight for special animation
-    if (nodeType === "boss") {
-      this.startBossCombat();
-      return;
-    }
-    
-    // Get camera dimensions
-    const camera = this.cameras.main;
-    const cameraWidth = camera.width;
-    const cameraHeight = camera.height;
-    
-    // Create a full-screen overlay that follows the camera
-    const overlay = this.add.rectangle(
-      cameraWidth / 2,
-      cameraHeight / 2,
-      cameraWidth,
-      cameraHeight,
-      0x000000
-    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
-    
-    // Different transition effects based on enemy type (Pokemon-like wild encounters with consistent red/black theme)
-    if (nodeType === "elite") {
-      // Elite enemy transition - Pokemon-like wild encounter with red/black theme
-      // Flash screen with red tint
-      const flashOverlay = this.add.rectangle(
-        cameraWidth / 2,
-        cameraHeight / 2,
-        cameraWidth,
-        cameraHeight,
-        0xff0000
-      ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2001);
-      
-      // Animate flash
-      this.tweens.add({
-        targets: flashOverlay,
-        alpha: 0.7,
-        duration: 200,
-        yoyo: true,
-        repeat: 1,
-        onComplete: () => {
-          flashOverlay.destroy();
-        }
-      });
-      
-      // Shake player sprite
-      const originalPlayerX = this.player.x;
-      const originalPlayerY = this.player.y;
-      
-      // More intense shaking for elite enemies
-      this.tweens.add({
-        targets: this.player,
-        x: originalPlayerX + Phaser.Math.Between(-5, 5),
-        y: originalPlayerY + Phaser.Math.Between(-5, 5),
-        duration: 100,
-        repeat: 5,
-        yoyo: true,
-        onComplete: () => {
-          this.player.setX(originalPlayerX);
-          this.player.setY(originalPlayerY);
-        }
-      });
-      
-      // Create elite enemy encounter effect
-      this.time.delayedCall(500, () => {
-        // Create expanding circles with red color
-        for (let i = 0; i < 3; i++) {
-          const circle = this.add.circle(
-            cameraWidth / 2,
-            cameraHeight / 2,
-            10,
-            0xff0000, // Red color for elite enemies
-            0.3
-          ).setScrollFactor(0).setDepth(2001);
-          
-          // Animate circle expansion
-          this.tweens.add({
-            targets: circle,
-            radius: cameraWidth / 3,
-            alpha: 0,
-            duration: 1000,
-            delay: i * 100,
-            ease: 'Power2',
-            onComplete: () => {
-              circle.destroy();
-            }
-          });
-        }
-        
-        // Create red sparkle effects
-        for (let i = 0; i < 20; i++) {
-          const sparkle = this.add.rectangle(
-            Phaser.Math.Between(cameraWidth/2 - 100, cameraWidth/2 + 100),
-            Phaser.Math.Between(cameraHeight/2 - 100, cameraHeight/2 + 100),
-            Phaser.Math.Between(2, 5),
-            Phaser.Math.Between(2, 5),
-            0xff0000,
-            1
-          ).setScrollFactor(0).setDepth(2001);
-          
-          // Animate sparkles
-          this.tweens.add({
-            targets: sparkle,
-            alpha: 0,
-            duration: 800,
-            delay: Phaser.Math.Between(0, 500),
-            onComplete: () => {
-              sparkle.destroy();
-            }
-          });
-        }
-      });
-      
-      // Fade to black and transition
-      this.time.delayedCall(1500, () => {
-        this.tweens.add({
-          targets: overlay,
-          alpha: 1,
-          duration: 800,
-          ease: 'Power2',
-          onComplete: () => {
-            // Pause this scene and start combat scene
-            this.scene.pause();
-            this.scene.launch("Combat", { 
-              nodeType: nodeType,
-              transitionOverlay: overlay // Pass overlay to combat scene
-            });
-          }
-        });
-      });
-    } else {
-      // Common enemy transition - Pokemon-like wild encounter with red/black theme
-      // Flash screen red
-      const flashOverlay = this.add.rectangle(
-        cameraWidth / 2,
-        cameraHeight / 2,
-        cameraWidth,
-        cameraHeight,
-        0xff0000
-      ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2001);
-      
-      // Animate flash
-      this.tweens.add({
-        targets: flashOverlay,
-        alpha: 0.8,
-        duration: 150,
-        yoyo: true,
-        repeat: 1,
-        onComplete: () => {
-          flashOverlay.destroy();
-        }
-      });
-      
-      // Shake player sprite slightly
-      const originalPlayerX = this.player.x;
-      const originalPlayerY = this.player.y;
-      
-      this.tweens.add({
-        targets: this.player,
-        x: originalPlayerX + Phaser.Math.Between(-3, 3),
-        y: originalPlayerY + Phaser.Math.Between(-3, 3),
-        duration: 100,
-        repeat: 3,
-        yoyo: true,
-        onComplete: () => {
-          this.player.setX(originalPlayerX);
-          this.player.setY(originalPlayerY);
-        }
-      });
-      
-      // Create common enemy encounter effect
-      this.time.delayedCall(400, () => {
-        // Create simple expanding circle in red
-        const circle = this.add.circle(
-          cameraWidth / 2,
-          cameraHeight / 2,
-          10,
-          0xff0000, // Red color for common enemies
-          0.2
-        ).setScrollFactor(0).setDepth(2001);
-        
-        // Animate circle expansion
-        this.tweens.add({
-          targets: circle,
-          radius: cameraWidth / 4,
-          alpha: 0,
-          duration: 800,
-          ease: 'Power2',
-          onComplete: () => {
-            circle.destroy();
-          }
-        });
-        
-        // Create small red sparkle effects
-        for (let i = 0; i < 10; i++) {
-          const sparkle = this.add.rectangle(
-            Phaser.Math.Between(cameraWidth/2 - 50, cameraWidth/2 + 50),
-            Phaser.Math.Between(cameraHeight/2 - 50, cameraHeight/2 + 50),
-            2,
-            2,
-            0xff0000,
-            1
-          ).setScrollFactor(0).setDepth(2001);
-          
-          // Animate sparkles
-          this.tweens.add({
-            targets: sparkle,
-            alpha: 0,
-            duration: 600,
-            delay: Phaser.Math.Between(0, 300),
-            onComplete: () => {
-              sparkle.destroy();
-            }
-          });
-        }
-      });
-      
-      // Fade to black and transition
-      this.time.delayedCall(1200, () => {
-        this.tweens.add({
-          targets: overlay,
-          alpha: 1,
-          duration: 600,
-          ease: 'Power2',
-          onComplete: () => {
-            // Pause this scene and start combat scene
-            this.scene.pause();
-            this.scene.launch("Combat", { 
-              nodeType: nodeType,
-              transitionOverlay: overlay // Pass overlay to combat scene
-            });
-          }
-        });
-      });
-    }
-  }
+
 
 
 
@@ -1550,245 +1295,17 @@ export class Overworld extends Scene {
     this.uiContainer.add(this.potionsContainer);
   }
 
-  /**
-   * Create top stats section with health bar and key stats
-   */
-  private createTopStatsSection(x: number, y: number): void {
-    // Enhanced health section with gradient background
-    const healthSectionBg = this.add.graphics();
-    healthSectionBg.fillGradientStyle(0x1a0000, 0x1a0000, 0x000000, 0x000000, 0.95);
-    healthSectionBg.lineStyle(3, 0xff0000, 0.8);
-    healthSectionBg.fillRoundedRect(x - 10, y - 10, 270, 240, 12);
-    healthSectionBg.strokeRoundedRect(x - 10, y - 10, 270, 240, 12);
-    
-    // Add subtle inner glow
-    const healthGlow = this.add.graphics();
-    healthGlow.lineStyle(1, 0xff0000, 0.3);
-    healthGlow.strokeRoundedRect(x - 7, y - 7, 264, 234, 9);
-    
-    this.uiContainer.add([healthSectionBg, healthGlow]);
-    
-    // Enhanced health header with glow effect
-    const healthIcon = this.add.text(x, y, "❤️", {
-      fontSize: "24px",
-      fontStyle: "bold"
-    });
-    healthIcon.setShadow(1, 1, '#ff0000', 3, false, true);
-    
-    const healthLabel = this.add.text(x + 35, y + 2, "HEALTH", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: "16px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    healthLabel.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Enhanced health value with larger font
-    this.healthText = this.add.text(x + 35, y + 26, "80/80", {
-      fontFamily: "dungeon-mode",
-      fontSize: "18px",
-      color: "#ff3333",
-      fontStyle: "bold"
-    });
-    this.healthText.setShadow(2, 2, '#000000', 3, false, true);
-    
-    // Enhanced health bar with better styling
-    const healthBarContainer = this.add.graphics();
-    healthBarContainer.fillStyle(0x1a1a1a, 0.9);
-    healthBarContainer.lineStyle(2, 0x666666, 1);
-    healthBarContainer.fillRoundedRect(x, y + 55, 250, 24, 12);
-    healthBarContainer.strokeRoundedRect(x, y + 55, 250, 24, 12);
-    this.uiContainer.add(healthBarContainer);
-    
-    this.healthBar = this.add.graphics();
-    this.uiContainer.add(this.healthBar);
-    
-    // Enhanced separator with gradient effect
-    const healthSeparator = this.add.graphics();
-    healthSeparator.lineStyle(2, 0x666666, 0.6);
-    healthSeparator.beginPath();
-    healthSeparator.moveTo(x - 5, y + 88);
-    healthSeparator.lineTo(x + 255, y + 88);
-    healthSeparator.closePath();
-    healthSeparator.strokePath();
-    this.uiContainer.add(healthSeparator);
-    
-    // Enhanced currency display with wider container to prevent overlap
-    const currencyBg = this.add.graphics();
-    currencyBg.fillGradientStyle(0x1a1a00, 0x1a1a00, 0x000000, 0x000000, 0.95);
-    currencyBg.lineStyle(2, 0xffd700, 0.9);
-    currencyBg.fillRoundedRect(x, y + 98, 250, 45, 8);
-    currencyBg.strokeRoundedRect(x, y + 98, 250, 45, 8);
-    
-    // Add currency inner glow
-    const currencyGlow = this.add.graphics();
-    currencyGlow.lineStyle(1, 0xffd700, 0.3);
-    currencyGlow.strokeRoundedRect(x + 2, y + 100, 246, 41, 6);
-    
-    this.uiContainer.add([currencyBg, currencyGlow]);
-    
-    const gintoIcon = this.add.text(x + 10, y + 108, "💰", {
-      fontSize: "20px"
-    });
-    gintoIcon.setShadow(1, 1, '#ffd700', 2, false, true);
-    
-    const gintoLabel = this.add.text(x + 38, y + 103, "GINTO", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: "12px",
-      color: "#ffd700",
-      fontStyle: "bold"
-    });
-    gintoLabel.setShadow(1, 1, '#000000', 2, false, true);
-    
-    this.currencyText = this.add.text(x + 38, y + 120, "100", {
-      fontFamily: "dungeon-mode",
-      fontSize: "16px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    this.currencyText.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Diamante currency display - positioned further right to prevent overlap
-    const diamanteIcon = this.add.text(x + 125, y + 108, "💎", {
-      fontSize: "20px"
-    });
-    diamanteIcon.setShadow(1, 1, '#00ffff', 2, false, true);
-    
-    const diamanteLabel = this.add.text(x + 153, y + 103, "DIAMANTE", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: "12px",
-      color: "#00ffff",
-      fontStyle: "bold"
-    });
-    diamanteLabel.setShadow(1, 1, '#000000', 2, false, true);
-    
-    this.diamanteText = this.add.text(x + 153, y + 120, "0", {
-      fontFamily: "dungeon-mode",
-      fontSize: "16px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    this.diamanteText.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Enhanced separator
-    const currencySeparator = this.add.graphics();
-    currencySeparator.lineStyle(2, 0x666666, 0.6);
-    currencySeparator.beginPath();
-    currencySeparator.moveTo(x - 5, y + 152);
-    currencySeparator.lineTo(x + 255, y + 152);
-    currencySeparator.closePath();
-    currencySeparator.strokePath();
-    this.uiContainer.add(currencySeparator);
-    
-    // Enhanced Landás meter
-    this.createLandasMeter(x, y + 162, 250, 28);
-    
-    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel]);
-  }
+
 
   /**
    * Create grid-based inventory section (4x2 grid like reference image)
    */
-  private createGridInventorySection(x: number, y: number): void {
-    const slotSize = 50;
-    const slotSpacing = 8; // Reduced back to reasonable spacing
-    const slotsPerRow = 4;
-    const rows = 2;
-    
-    // Create inventory grid background with proper size calculation
-    const gridPadding = 10;
-    const gridWidth = slotsPerRow * slotSize + (slotsPerRow - 1) * slotSpacing + (gridPadding * 2);
-    const gridHeight = rows * slotSize + (rows - 1) * slotSpacing + (gridPadding * 2);
-    
-    const gridBg = this.add.graphics();
-    gridBg.fillStyle(0x000000, 0.9);
-    gridBg.lineStyle(2, 0x444444, 1);
-    gridBg.fillRoundedRect(x - gridPadding, y - gridPadding, gridWidth, gridHeight, 10);
-    gridBg.strokeRoundedRect(x - gridPadding, y - gridPadding, gridWidth, gridHeight, 10);
-    this.uiContainer.add(gridBg);
-    
-    // Create section header positioned properly above the grid
-    const relicsHeaderBg = this.add.graphics();
-    relicsHeaderBg.fillStyle(0x000000, 0.9);
-    relicsHeaderBg.fillRoundedRect(x - 5, y - 35, 100, 25, 6);
-    this.uiContainer.add(relicsHeaderBg);
-    
-    const relicsTitle = this.add.text(x, y - 22, "RELICS", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: "14px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    this.uiContainer.add(relicsTitle);
-    this.uiContainer.add(gridBg);
-    
-    // Create inventory slots with proper spacing
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < slotsPerRow; col++) {
-        const slotX = x + col * (slotSize + slotSpacing);
-        const slotY = y + row * (slotSize + slotSpacing);
-        
-        // Create slot background
-        const slotBg = this.add.graphics();
-        slotBg.fillStyle(0x222222, 0.9);
-        slotBg.lineStyle(1, 0x555555, 1);
-        slotBg.fillRoundedRect(slotX, slotY, slotSize, slotSize, 6);
-        slotBg.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 6);
-        this.uiContainer.add(slotBg);
-      }
-    }
-    
-    // Create relics container for the grid
-    this.relicsContainer = this.add.container(x, y);
-    this.uiContainer.add(this.relicsContainer);
-  }
+
 
   /**
    * Create bottom actions section for potions and controls
    */
-  private createBottomActionsSection(x: number, y: number): void {
-    // Create potions section title with much more spacing above
-    const potionsTitle = this.add.text(x - 5, y - 50, "POTIONS", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: "16px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    this.uiContainer.add(potionsTitle);
-    
-    // Create Persona-style potions section background - adjusted size
-    const potionsBg = this.add.graphics();
-    potionsBg.fillStyle(0x000000, 0.85); // Black background
-    potionsBg.lineStyle(2, 0xff0000, 1); // Red border
-    potionsBg.fillRoundedRect(x - 10, y - 10, 140, 60, 8); // Width calculated for 3 slots properly
-    potionsBg.strokeRoundedRect(x - 10, y - 10, 140, 60, 8);
-    this.uiContainer.add(potionsBg);
-    
-    // Potions section with 3 slots - calculate spacing to fit properly
-    const potionSlotSize = 38; // Slightly smaller slots
-    const totalSlotsWidth = 3 * potionSlotSize; // 114px
-    const availableWidth = 120; // Background width (140) minus padding (20)
-    const totalSpacingWidth = availableWidth - totalSlotsWidth; // 6px total
-    const potionSpacing = totalSpacingWidth / 2; // 3px between slots
-    
-    // Create Persona-style potion slots with proper spacing
-    for (let i = 0; i < 3; i++) {
-      const slotX = x + i * (potionSlotSize + potionSpacing);
-      const slotY = y;
-      
-      // Create Persona-style slot background
-      const slotBg = this.add.graphics();
-      slotBg.fillStyle(0x1a1a1a, 0.9); // Dark gray background
-      slotBg.lineStyle(1, 0xff0000, 1); // Red border
-      slotBg.fillRoundedRect(slotX, slotY, potionSlotSize, potionSlotSize, 6);
-      slotBg.strokeRoundedRect(slotX, slotY, potionSlotSize, potionSlotSize, 6);
-      this.uiContainer.add(slotBg);
-    }
-    
-    // Create potions container
-    this.potionsContainer = this.add.container(x, y);
-    this.uiContainer.add(this.potionsContainer);
-  }
+
 
   /**
    * Create a Persona-style Landás meter display
@@ -1880,52 +1397,7 @@ export class Overworld extends Scene {
     this.uiContainer.add(this.landasText);
   }
 
-  /**
-   * Create a small button (He Is Coming style) for UI actions
-   */
-  private createSmallButton(x: number, y: number, text: string, callback: () => void): Phaser.GameObjects.Container {
-    const button = this.add.container(x, y);
-    
-    const padding = 8;
-    const buttonWidth = 70;
-    const buttonHeight = 20;
-    
-    const background = this.add.graphics();
-    background.fillStyle(0x333333, 0.9);
-    background.lineStyle(1, 0x555555, 1);
-    background.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
-    background.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
-    
-    const buttonText = this.add.text(0, 0, text, {
-      fontFamily: 'dungeon-mode',
-      fontSize: '10px',
-      color: '#ffffff',
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    button.add([background, buttonText]);
-    button.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
-    
-    button.on('pointerdown', callback);
-    button.on('pointerover', () => {
-      background.clear();
-      background.fillStyle(0x555555, 0.9);
-      background.lineStyle(1, 0x777777, 1);
-      background.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
-      background.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
-      buttonText.setColor('#ffff00');
-    });
-    button.on('pointerout', () => {
-      background.clear();
-      background.fillStyle(0x333333, 0.9);
-      background.lineStyle(1, 0x555555, 1);
-      background.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
-      background.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 3);
-      buttonText.setColor('#ffffff');
-    });
-    
-    return button;
-  }
+
 
   /**
    * Create a small button for potion actions with consistent square design
@@ -2048,98 +1520,14 @@ export class Overworld extends Scene {
     }
   }
 
-  /**
-   * Create discard charges display
-   */
-  private createDiscardChargesUI(): void {
-    // Removed discard charges display as requested
-  }
+
 
   /**
    * Create relics display
    */
-  private createRelicsUI(): void {
-    const relicsY = 70;
-    
-    // Relics label
-    const relicsLabel = this.add.text(15, relicsY, "Relics:", {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px",
-      color: "#ffffff"
-    });
-    this.uiContainer.add(relicsLabel);
-    
-    // Create relics container with proper positioning to avoid overlap
-    this.relicsContainer = this.add.container(75, relicsY + 40);
-    this.uiContainer.add(this.relicsContainer);
-    
-    // Create relic inventory button
-    this.relicInventoryButton = this.createInventoryButton(250, relicsY, "Relics", () => {
-      this.showRelicInventory();
-    });
-    this.uiContainer.add(this.relicInventoryButton);
-  }
 
-  /**
-   * Create a button to open inventory with consistent square design
-   */
-  private createInventoryButton(x: number, y: number, text: string, callback: () => void): Phaser.GameObjects.Container {
-    const button = this.add.container(x, y);
-    
-    // Create a temporary text object to measure the actual text width
-    const tempText = this.add.text(0, 0, text, {
-      fontFamily: 'dungeon-mode',
-      fontSize: '10px',
-      color: '#ffffff'
-    });
-    
-    // Get the actual width of the text
-    const textWidth = tempText.width;
-    const textHeight = tempText.height;
-    tempText.destroy(); // Remove the temporary text
-    
-    // Set button dimensions with proper padding
-    const padding = 10;
-    const buttonWidth = Math.max(60, textWidth + padding); // Minimum width of 60px
-    const buttonHeight = Math.max(20, textHeight + 5); // Minimum height of 20px
-    
-    // Create button background with consistent square design
-    const buttonBg = this.add.graphics();
-    buttonBg.fillStyle(0x333333, 0.9);
-    buttonBg.lineStyle(1, 0xffffff, 1);
-    buttonBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 4);
-    buttonBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 4);
-    
-    const buttonText = this.add.text(0, 0, text, {
-      fontFamily: 'dungeon-mode',
-      fontSize: '10px',
-      color: '#ffffff',
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    button.add([buttonBg, buttonText]);
-    button.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
-    
-    button.on('pointerdown', callback);
-    button.on('pointerover', () => {
-      // Highlight button on hover
-      buttonBg.clear();
-      buttonBg.fillStyle(0x555555, 0.9);
-      buttonBg.lineStyle(1, 0xffffff, 1);
-      buttonBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 4);
-      buttonBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 4);
-    });
-    button.on('pointerout', () => {
-      // Reset button style
-      buttonBg.clear();
-      buttonBg.fillStyle(0x333333, 0.9);
-      buttonBg.lineStyle(1, 0xffffff, 1);
-      buttonBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 4);
-      buttonBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 4);
-    });
-    
-    return button;
-  }
+
+
 
   /**
    * Update all overworld UI elements
@@ -2277,10 +1665,6 @@ export class Overworld extends Scene {
     const slotSpacing = 12; // Slightly reduced spacing to better fit
     const slotsPerRow = 4;
     const maxRelics = 8; // 4x2 grid
-    
-    // Calculate total grid dimensions for reference
-    const totalGridWidth = (slotsPerRow * slotSize) + ((slotsPerRow - 1) * slotSpacing); // 213px total for 45px slots
-    const totalGridHeight = (2 * slotSize) + (1 * slotSpacing); // 102px total for 45px slots
     
     // Position relics relative to the container (which is already at gridStartX, gridStartY)
     // No offset needed since container is positioned correctly
@@ -2645,325 +2029,13 @@ export class Overworld extends Scene {
     }
   }
 
-  /**
-   * Update deck info display
-   */
-  private updateDeckInfoDisplay(): void {
-    const playerData = this.getPlayerData();
-    const totalCards = playerData.deck.length;
-    const handSize = playerData.hand.length;
-    const discardSize = playerData.discardPile.length;
 
-    const deckInfo = `Total Cards: ${totalCards}\nHand: ${handSize}\nDiscard: ${discardSize}\nDiscard Charges: ${playerData.discardCharges}/${playerData.maxDiscardCharges}`;    this.deckInfoText.setText(deckInfo);
-  }
 
-  /**
-   * Create potions display with use/discard functionality
-   */
-  private createPotionsUI(): void {
-    const potionsY = 100;
-    
-    // Potions label
-    const potionsLabel = this.add.text(15, potionsY, "Potions:", {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px",
-      color: "#ffffff"
-    });
-    this.uiContainer.add(potionsLabel);
-    
-    // Create potions container
-    this.potionsContainer = this.add.container(85, potionsY);
-    this.uiContainer.add(this.potionsContainer);
-    
-    // Create potion inventory button
-    this.potionInventoryButton = this.createInventoryButton(250, potionsY, "Potions", () => {
-      this.showPotionInventory();
-    });
-    this.uiContainer.add(this.potionInventoryButton);
-  }
 
-  /**
-   * Show relic inventory in a modal window
-   */
-  private showRelicInventory(): void {
-    // Create overlay
-    const overlay = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x000000
-    ).setAlpha(0.7).setScrollFactor(0).setDepth(3000);
-    
-    // Create inventory window
-    const windowWidth = 600;
-    const windowHeight = 400;
-    const inventoryWindow = this.add.container(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2
-    ).setScrollFactor(0).setDepth(3001);
-    
-    // Create window background
-    const windowBg = this.add.graphics();
-    windowBg.fillStyle(0x1a1a1a, 0.95);
-    windowBg.lineStyle(3, 0x4a4a4a);
-    windowBg.fillRoundedRect(-windowWidth/2, -windowHeight/2, windowWidth, windowHeight, 10);
-    windowBg.strokeRoundedRect(-windowWidth/2, -windowHeight/2, windowWidth, windowHeight, 10);
-    
-    // Create title
-    const title = this.add.text(0, -windowHeight/2 + 30, "Relic Inventory", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: "24px",
-      color: "#ffffff"
-    }).setOrigin(0.5);
-    
-    // Create relic grid
-    const relicGrid = this.add.container(0, 0);
-    const relicSize = 60;
-    const relicsPerRow = 6;
-    const padding = 20;
-    
-    const playerData = this.getPlayerData();
-    playerData.relics.forEach((relic: any, index: number) => {
-      const row = Math.floor(index / relicsPerRow);
-      const col = index % relicsPerRow;
-      
-      const x = col * (relicSize + padding) - (relicsPerRow - 1) * (relicSize + padding) / 2;
-      const y = row * (relicSize + padding) - 20;
-      
-      // Create relic square with improved styling
-      const relicSquare = this.add.container(x, y);
-      const squareBg = this.add.graphics();
-      squareBg.fillStyle(0x333333);
-      squareBg.lineStyle(2, 0x555555);
-      squareBg.fillRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
-      squareBg.strokeRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
-      
-      // Create relic icon
-      const relicIcon = this.add.text(0, 0, relic.emoji, {
-        fontSize: "32px"
-      }).setOrigin(0.5);
-      
-      // Create tooltip
-      const tooltip = this.add.container(0, -70).setVisible(false);
-      const tooltipBg = this.add.graphics();
-      tooltipBg.fillStyle(0x000000, 0.9);
-      tooltipBg.lineStyle(2, 0x4a4a4a);
-      
-      const tooltipText = this.add.text(0, 0, `${relic.name}
-${relic.description}`, {
-        fontFamily: "dungeon-mode",
-        fontSize: "14px",
-        color: "#ffffff",
-        wordWrap: { width: 200 },
-        align: "center"
-      }).setOrigin(0.5);
-      
-      const bounds = tooltipText.getBounds();
-      tooltipBg.fillRoundedRect(-bounds.width/2 - 10, -bounds.height/2 - 5, bounds.width + 20, bounds.height + 10, 5);
-      tooltipBg.strokeRoundedRect(-bounds.width/2 - 10, -bounds.height/2 - 5, bounds.width + 20, bounds.height + 10, 5);
-      
-      tooltip.add([tooltipBg, tooltipText]);
-      
-      relicSquare.add([squareBg, relicIcon, tooltip]);
-      
-      // Add hover events
-      relicSquare.setInteractive(new Phaser.Geom.Rectangle(-relicSize/2, -relicSize/2, relicSize, relicSize), Phaser.Geom.Rectangle.Contains);
-      relicSquare.on('pointerover', () => {
-        squareBg.clear();
-        squareBg.fillStyle(0x555555);
-        squareBg.lineStyle(2, 0x777777);
-        squareBg.fillRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
-        squareBg.strokeRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
-        tooltip.setVisible(true);
-      });
-      
-      relicSquare.on('pointerout', () => {
-        squareBg.clear();
-        squareBg.fillStyle(0x333333);
-        squareBg.lineStyle(2, 0x555555);
-        squareBg.fillRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
-        squareBg.strokeRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
-        tooltip.setVisible(false);
-      });
-      
-      relicGrid.add(relicSquare);
-    });
-    
-    // Create close button
-    const closeBtn = this.add.container(windowWidth/2 - 30, -windowHeight/2 + 30);
-    const closeBtnBg = this.add.graphics();
-    closeBtnBg.fillStyle(0xaa0000, 0.8);
-    closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
-    const closeBtnText = this.add.text(0, 0, "X", {
-      fontFamily: "dungeon-mode",
-      fontSize: "20px",
-      color: "#ffffff"
-    }).setOrigin(0.5);
-    closeBtn.add([closeBtnBg, closeBtnText]);
-    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-20, -20, 40, 40), Phaser.Geom.Rectangle.Contains);
-    closeBtn.on('pointerdown', () => {
-      overlay.destroy();
-      inventoryWindow.destroy();
-    });
-    closeBtn.on('pointerover', () => {
-      closeBtnBg.clear();
-      closeBtnBg.fillStyle(0xff0000, 0.9);
-      closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
-    });
-    closeBtn.on('pointerout', () => {
-      closeBtnBg.clear();
-      closeBtnBg.fillStyle(0xaa0000, 0.8);
-      closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
-    });
-    
-    inventoryWindow.add([windowBg, title, relicGrid, closeBtn]);
-  }
 
-  /**
-   * Show potion inventory in a modal window
-   */
-  private showPotionInventory(): void {
-    // Create overlay
-    const overlay = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x000000
-    ).setAlpha(0.7).setScrollFactor(0).setDepth(3000);
-    
-    // Create inventory window
-    const windowWidth = 600;
-    const windowHeight = 400;
-    const inventoryWindow = this.add.container(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2
-    ).setScrollFactor(0).setDepth(3001);
-    
-    // Create window background
-    const windowBg = this.add.graphics();
-    windowBg.fillStyle(0x1a1a1a, 0.95);
-    windowBg.lineStyle(3, 0x4a4a4a);
-    windowBg.fillRoundedRect(-windowWidth/2, -windowHeight/2, windowWidth, windowHeight, 10);
-    windowBg.strokeRoundedRect(-windowWidth/2, -windowHeight/2, windowWidth, windowHeight, 10);
-    
-    // Create title
-    const title = this.add.text(0, -windowHeight/2 + 30, "Potion Inventory", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: "24px",
-      color: "#ffffff"
-    }).setOrigin(0.5);
-    
-    // Create potion grid
-    const potionGrid = this.add.container(0, 0);
-    const potionSize = 80;
-    const potionsPerRow = 4;
-    const padding = 30;
-    
-    const playerData = this.getPlayerData();
-    playerData.potions.forEach((potion: any, index: number) => {
-      const row = Math.floor(index / potionsPerRow);
-      const col = index % potionsPerRow;
-      
-      const x = col * (potionSize + padding) - (potionsPerRow - 1) * (potionSize + padding) / 2;
-      const y = row * (potionSize + padding) - 20;
-      
-      // Create potion square with improved styling
-      const potionSquare = this.add.container(x, y);
-      const squareBg = this.add.graphics();
-      squareBg.fillStyle(0x333333);
-      squareBg.lineStyle(2, 0x555555);
-      squareBg.fillRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
-      squareBg.strokeRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
-      
-      // Create potion icon
-      const potionIcon = this.add.text(0, -10, potion.emoji, {
-        fontSize: "36px"
-      }).setOrigin(0.5);
-      
-      // Create potion name
-      const potionName = this.add.text(0, 25, potion.name, {
-        fontFamily: "dungeon-mode",
-        fontSize: "12px",
-        color: "#ffffff"
-      }).setOrigin(0.5);
-      
-      // Create tooltip
-      const tooltip = this.add.container(0, -90).setVisible(false);
-      const tooltipBg = this.add.graphics();
-      tooltipBg.fillStyle(0x000000, 0.9);
-      tooltipBg.lineStyle(2, 0x4a4a4a);
-      
-      const tooltipText = this.add.text(0, 0, `${potion.name}
-${potion.description}`, {
-        fontFamily: "dungeon-mode",
-        fontSize: "14px",
-        color: "#ffffff",
-        wordWrap: { width: 200 },
-        align: "center"
-      }).setOrigin(0.5);
-      
-      const bounds = tooltipText.getBounds();
-      tooltipBg.fillRoundedRect(-bounds.width/2 - 10, -bounds.height/2 - 5, bounds.width + 20, bounds.height + 10, 5);
-      tooltipBg.strokeRoundedRect(-bounds.width/2 - 10, -bounds.height/2 - 5, bounds.width + 20, bounds.height + 10, 5);
-      
-      tooltip.add([tooltipBg, tooltipText]);
-      
-      potionSquare.add([squareBg, potionIcon, potionName, tooltip]);
-      
-      // Add hover events
-      potionSquare.setInteractive(new Phaser.Geom.Rectangle(-potionSize/2, -potionSize/2, potionSize, potionSize), Phaser.Geom.Rectangle.Contains);
-      potionSquare.on('pointerover', () => {
-        squareBg.clear();
-        squareBg.fillStyle(0x555555);
-        squareBg.lineStyle(2, 0x777777);
-        squareBg.fillRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
-        squareBg.strokeRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
-        tooltip.setVisible(true);
-      });
-      
-      potionSquare.on('pointerout', () => {
-        squareBg.clear();
-        squareBg.fillStyle(0x333333);
-        squareBg.lineStyle(2, 0x555555);
-        squareBg.fillRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
-        squareBg.strokeRoundedRect(-potionSize/2, -potionSize/2, potionSize, potionSize, 5);
-        tooltip.setVisible(false);
-      });
-      
-      potionGrid.add(potionSquare);
-    });
-    
-    // Create close button
-    const closeBtn = this.add.container(windowWidth/2 - 30, -windowHeight/2 + 30);
-    const closeBtnBg = this.add.graphics();
-    closeBtnBg.fillStyle(0xaa0000, 0.8);
-    closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
-    const closeBtnText = this.add.text(0, 0, "X", {
-      fontFamily: "dungeon-mode",
-      fontSize: "20px",
-      color: "#ffffff"
-    }).setOrigin(0.5);
-    closeBtn.add([closeBtnBg, closeBtnText]);
-    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-20, -20, 40, 40), Phaser.Geom.Rectangle.Contains);
-    closeBtn.on('pointerdown', () => {
-      overlay.destroy();
-      inventoryWindow.destroy();
-    });
-    closeBtn.on('pointerover', () => {
-      closeBtnBg.clear();
-      closeBtnBg.fillStyle(0xff0000, 0.9);
-      closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
-    });
-    closeBtn.on('pointerout', () => {
-      closeBtnBg.clear();
-      closeBtnBg.fillStyle(0xaa0000, 0.8);
-      closeBtnBg.fillRoundedRect(-20, -20, 40, 40, 5);
-    });
-    
-    inventoryWindow.add([windowBg, title, potionGrid, closeBtn]);
-  }
+
+
+
 
   /**
    * Show detailed relic information in a popup similar to shop style
@@ -3502,7 +2574,7 @@ ${potion.description}`, {
   /**
    * Show node tooltip for non-enemy nodes
    */
-  private showNodeTooltipImmediate(nodeType: string, nodeId: string, mouseX: number, mouseY: number): void {
+  private showNodeTooltipImmediate(nodeType: string, _nodeId: string, mouseX: number, mouseY: number): void {
     if (!this.tooltipContainer) {
       console.warn("Tooltip container not available");
       return;
