@@ -23,6 +23,7 @@ import {
   getBossEnemy,
 } from "../../data/enemies/Act1Enemies";
 import { ENEMY_LORE_DATA, EnemyLore } from "../../data/lore/EnemyLore";
+import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -56,6 +57,8 @@ export class Combat extends Scene {
   private landasChoiceContainer!: Phaser.GameObjects.Container;
   private rewardsContainer!: Phaser.GameObjects.Container;
   private gameOverContainer!: Phaser.GameObjects.Container;
+  private deckViewContainer!: Phaser.GameObjects.Container;
+  private discardViewContainer!: Phaser.GameObjects.Container;
   private actionResultText!: Phaser.GameObjects.Text;
   private enemyAttackPreviewText!: Phaser.GameObjects.Text;
   private isDrawingCards: boolean = false;
@@ -80,6 +83,7 @@ export class Combat extends Scene {
   private handEvaluationText!: Phaser.GameObjects.Text;
   private relicInventory!: Phaser.GameObjects.Container;
   private currentRelicTooltip!: Phaser.GameObjects.Container | null;
+  private pokerHandInfoButton!: Phaser.GameObjects.Container;
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
@@ -303,6 +307,10 @@ export class Combat extends Scene {
     
     // Create discard pile sprite
     this.createDiscardSprite();
+
+    // Create deck and discard views
+    this.createDeckView();
+    this.createDiscardView();
 
     // Draw initial hand
     this.drawInitialHand();
@@ -1256,7 +1264,139 @@ export class Combat extends Scene {
       color: "#4ecdc4",
     });
 
+    // Create info button for poker hand reference
+    this.createPokerHandInfoButton();
+
     this.updateTurnUI();
+  }
+
+  /**
+   * Create poker hand info button
+   */
+  private createPokerHandInfoButton(): void {
+    const screenWidth = this.cameras.main.width;
+    
+    // Create a circular button with an "i" for information
+    this.pokerHandInfoButton = this.add.container(screenWidth - 50, 50);
+    
+    const infoButton = this.add.circle(0, 0, 20, 0x2f3542);
+    infoButton.setStrokeStyle(2, 0x57606f);
+    
+    // Add the "i" text
+    const infoText = this.add.text(0, 0, "i", {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#e8eced",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    // Make the button interactive
+    infoButton.setInteractive();
+    
+    // Add hover effects
+    infoButton.on("pointerover", () => {
+      infoButton.setFillStyle(0x3d4454);
+    });
+    
+    infoButton.on("pointerout", () => {
+      infoButton.setFillStyle(0x2f3542);
+    });
+    
+    // Add click event to navigate to poker hand reference scene
+    infoButton.on("pointerdown", () => {
+      this.scene.start("PokerHandReference");
+    });
+    
+    // Also make the text interactive and link it to the same event
+    infoText.setInteractive();
+    infoText.on("pointerdown", () => {
+      this.scene.start("PokerHandReference");
+    });
+    
+    this.pokerHandInfoButton.add([infoButton, infoText]);
+  }
+
+  /**
+   * Add a sample card to the visual representation container
+   */
+  private addSampleCard(
+    container: Phaser.GameObjects.Container,
+    rank: string,
+    suit: string,
+    x: number,
+    y: number,
+    scale: number = 1
+  ): void {
+    // Convert card rank to sprite rank (1-13)
+    const rankMap: Record<string, string> = {
+      "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
+      "6": "6", "7": "7", "8": "8", "9": "9", "10": "10",
+      "Mandirigma": "11", "Babaylan": "12", "Datu": "13", "King": "13" // Added King as placeholder for 5 of a kind
+    };
+    const spriteRank = rankMap[rank] || "1";
+    
+    // Convert suit to lowercase for sprite naming following the actual file naming convention
+    const suitMap: Record<string, string> = {
+      "Apoy": "apoy", "Tubig": "tubig", "Lupa": "lupa", "Hangin": "hangin"
+    };
+    const spriteSuit = suitMap[suit] || "apoy";
+    
+    // The actual file names follow the pattern <rank><suit>.png (e.g., 1apoy.png)
+    const textureKey = `${spriteRank}${spriteSuit}`;
+    
+    let cardSprite;
+    
+    // Check if texture exists, fallback to generated card if not
+    if (this.textures.exists(textureKey)) {
+      cardSprite = this.add.image(x, y, textureKey);
+      cardSprite.setDisplaySize(80 * scale, 112 * scale);
+      cardSprite.setDepth(6060); // Ensure card is visible
+      container.add(cardSprite);
+    } else {
+      // Always create a generated card with border and visual indicators
+      cardSprite = this.add.rectangle(x, y, 80 * scale, 112 * scale, 0xffffff);
+      cardSprite.setStrokeStyle(3 * scale, 0x444444); // Add border for visibility
+      cardSprite.setDepth(6060); // Ensure card is visible
+      
+      // Add rank text at top-left
+      const rankText = this.add.text(x - 30 * scale, y - 40 * scale, rank, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(16 * scale),
+        color: "#000000",
+      }).setOrigin(0, 0).setDepth(6061);
+      container.add(rankText);
+      
+      // Add suit symbol next to rank
+      const suitSymbolMap: Record<string, string> = {
+        "Apoy": "🔥", "Tubig": "💧", "Lupa": "🌿", "Hangin": "💨"
+      };
+      const suitSymbol = suitSymbolMap[suit] || "🔥";
+      
+      const suitText = this.add.text(x + 25 * scale, y - 40 * scale, suitSymbol, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(18 * scale),
+        color: "#000000",
+      }).setOrigin(1, 0).setDepth(6061);
+      container.add(suitText);
+      
+      // Add rank text at bottom-right (rotated 180)
+      const bottomRankText = this.add.text(x + 25 * scale, y + 40 * scale, rank, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(16 * scale),
+        color: "#000000",
+      }).setOrigin(1, 1).setRotation(Math.PI).setDepth(6061); // Rotate 180 degrees
+      container.add(bottomRankText);
+      
+      // Add suit symbol at bottom-right (rotated 180)
+      const bottomSuitText = this.add.text(x - 30 * scale, y + 40 * scale, suitSymbol, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(18 * scale),
+        color: "#000000",
+      }).setOrigin(0, 1).setRotation(Math.PI).setDepth(6061); // Rotate 180 degrees
+      container.add(bottomSuitText);
+      
+      container.add(cardSprite);
+    }
   }
 
   /**
@@ -2373,6 +2513,8 @@ export class Combat extends Scene {
       return;
     }
     
+    
+    
     this.combatEnded = true;
     this.combatState.phase = "post_combat";
     
@@ -2873,6 +3015,8 @@ export class Combat extends Scene {
   private returnToOverworld(): void {
     try {
       console.log("Returning to overworld...");
+      
+      
       
       // Save player state to GameState manager
       const gameState = GameState.getInstance();
@@ -3416,6 +3560,10 @@ export class Combat extends Scene {
     }).setOrigin(0.5);
     
     this.deckSprite.add(deckLabel);
+    this.deckSprite.setInteractive(new Phaser.Geom.Rectangle(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight), Phaser.Geom.Rectangle.Contains);
+    this.deckSprite.on("pointerdown", () => {
+      this.showDeckView();
+    });
   }
 
   /**
@@ -3424,47 +3572,197 @@ export class Combat extends Scene {
   private createDiscardSprite(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
-    // Position discard pile on the left side, below the player area
-    this.discardPosition = {
-      x: screenWidth * 0.15,
-      y: screenHeight * 0.75
-    };
-    
-    this.discardSprite = this.add.container(this.discardPosition.x, this.discardPosition.y);
-    
-    // Calculate card dimensions based on screen size (same as hand cards)
-    const baseCardWidth = 80;
-    const baseCardHeight = 112;
-    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    const cardWidth = baseCardWidth * scaleFactor;
-    const cardHeight = baseCardHeight * scaleFactor;
-    
-    // Create discard pile visual (stack of card backs)
-    const discardCardCount = Math.min(3, this.combatState.player.discardPile.length); // Show max 3 cards in stack
-    
-    for (let i = 0; i < discardCardCount; i++) {
-      const cardBack = this.add.rectangle(
-        i * 3, // Slight offset for stack effect
-        -i * 3,
-        cardWidth,
-        cardHeight,
-        0x2a2a2a // Darker color for discard pile
-      );
-      cardBack.setStrokeStyle(2, 0x444444);
-      this.discardSprite.add(cardBack);
-    }
-    
-    // Add discard label
-    const discardLabel = this.add.text(0, 50, `Discard: ${this.combatState.player.discardPile.length}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#ffffff",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    this.discardSprite.add(discardLabel);
+
+    this.discardPilePosition = { x: screenWidth - 100, y: screenHeight - 200 };
+
+    this.discardPileSprite = this.add.sprite(
+      this.discardPilePosition.x,
+      this.discardPilePosition.y,
+      "card_back"
+    );
+    this.discardPileSprite.setInteractive();
+    this.discardPileSprite.on("pointerdown", () => {
+      this.showDiscardPileView();
+    });
   }
+
+  private createDeckView(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+
+    this.deckViewContainer = this.add.container(screenWidth / 2, screenHeight / 2).setVisible(false).setDepth(6000);
+
+    const bg = this.add.rectangle(0, 0, screenWidth * 0.7, screenHeight * 0.7, 0x1a1a1a, 0.95);
+    bg.setStrokeStyle(2, 0x8b4513, 0.8);
+
+    const title = this.add.text(0, -screenHeight * 0.3, "Draw Pile", {
+      fontFamily: "dungeon-mode",
+      fontSize: 28,
+      color: "#ffffff",
+      align: "center",
+    }).setOrigin(0.5);
+
+    const closeButton = this.add.text(screenWidth * 0.3, -screenHeight * 0.3, "[X]", {
+      fontFamily: "dungeon-mode",
+      fontSize: 24,
+      color: "#ff6b6b",
+      align: "center",
+    }).setOrigin(0.5).setInteractive();
+
+    closeButton.on("pointerdown", () => {
+      this.deckViewContainer.setVisible(false);
+    });
+
+    this.deckViewContainer.add([bg, title, closeButton]);
+  }
+
+
+  private createDiscardView(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+
+    this.discardViewContainer = this.add.container(screenWidth / 2, screenHeight / 2).setVisible(false).setDepth(6000);
+
+    const bg = this.add.rectangle(0, 0, screenWidth * 0.7, screenHeight * 0.7, 0x1a1a1a, 0.95);
+    bg.setStrokeStyle(2, 0x8b4513, 0.8);
+
+    const title = this.add.text(0, -screenHeight * 0.3, "Discard Pile", {
+      fontFamily: "dungeon-mode",
+      fontSize: 28,
+      color: "#ffffff",
+      align: "center",
+    }).setOrigin(0.5);
+
+    const closeButton = this.add.text(screenWidth * 0.3, -screenHeight * 0.3, "[X]", {
+      fontFamily: "dungeon-mode",
+      fontSize: 24,
+      color: "#ff6b6b",
+      align: "center",
+    }).setOrigin(0.5).setInteractive();
+
+    closeButton.on("pointerdown", () => {
+      this.discardViewContainer.setVisible(false);
+    });
+
+    this.discardViewContainer.add([bg, title, closeButton]);
+  }
+
+
+  private showDeckView(): void {
+    this.deckViewContainer.list.filter(item => item.type === 'Container').forEach(item => item.destroy());
+
+    const cards = this.combatState.player.drawPile;
+    const containerWidth = this.cameras.main.width * 0.8;
+    const containerHeight = this.cameras.main.height * 0.8;
+    const columns = 6;
+    const padding = 15;
+    const cardWidth = 100;
+    const cardHeight = 140;
+
+    const totalGridWidth = columns * (cardWidth + padding) - padding;
+    const startX = -totalGridWidth / 2 + cardWidth / 2;
+    const startY = -containerHeight / 2 + cardHeight / 2 + padding;
+
+    const cardsContainer = this.add.container(0, 0);
+    this.deckViewContainer.add(cardsContainer);
+    cardsContainer.setDepth(1);
+
+    cards.forEach((card, index) => {
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+      const x = startX + col * (cardWidth + padding);
+      const y = startY + row * (cardHeight + padding);
+      const cardSprite = this.createCardSprite(card, x, y, false);
+      cardSprite.setDepth(2);
+      cardsContainer.add(cardSprite);
+    });
+
+    const maskHeight = containerHeight - padding * 2;
+    const mask = this.make.graphics({});
+    mask.fillStyle(0xffffff);
+    mask.beginPath();
+    mask.fillRect(this.deckViewContainer.x - containerWidth / 2, this.deckViewContainer.y - containerHeight / 2, containerWidth, containerHeight);
+    cardsContainer.setMask(mask.createGeometryMask());
+
+    let scrollY = 0;
+    this.input.on("wheel", (pointer: any, gameObjects: any, deltaX: any, deltaY: any) => {
+      if (this.deckViewContainer.visible) {
+        scrollY -= deltaY * 0.5;
+        const maxScroll = 0;
+        const minScroll = -cardsContainer.getBounds().height + maskHeight;
+        scrollY = Phaser.Math.Clamp(scrollY, minScroll, maxScroll);
+        cardsContainer.y = scrollY;
+      }
+    });
+
+    this.deckViewContainer.setVisible(true);
+  }
+
+
+
+
+
+
+
+
+  private showDiscardPileView(): void {
+    this.discardViewContainer.list.filter(item => item.type === 'Container').forEach(item => item.destroy());
+
+    const cards = this.combatState.player.discardPile;
+    const containerWidth = this.cameras.main.width * 0.8;
+    const containerHeight = this.cameras.main.height * 0.8;
+    const columns = 6;
+    const padding = 15;
+    const cardWidth = (containerWidth - (padding * (columns + 1))) / columns;
+    const cardHeight = cardWidth * 1.4;
+
+    const startX = -containerWidth / 2 + cardWidth / 2 + padding;
+    const startY = -containerHeight / 2 + cardHeight / 2 + padding;
+
+    const cardsContainer = this.add.container(0, 0);
+    this.discardViewContainer.add(cardsContainer);
+    cardsContainer.setDepth(1);
+
+    cards.forEach((card, index) => {
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+      const x = startX + col * (cardWidth + padding);
+      const y = startY + row * (cardHeight + padding);
+      const cardSprite = this.createCardSprite(card, x, y, false);
+      cardSprite.setDepth(2);
+      cardsContainer.add(cardSprite);
+    });
+
+    const maskHeight = containerHeight - padding * 2;
+    const mask = this.make.graphics({});
+    mask.fillStyle(0xffffff);
+    mask.beginPath();
+    mask.fillRect(this.discardViewContainer.x - containerWidth / 2, this.discardViewContainer.y - containerHeight / 2, containerWidth, containerHeight);
+    cardsContainer.setMask(mask.createGeometryMask());
+
+    let scrollY = 0;
+    this.input.on("wheel", (pointer: any, gameObjects: any, deltaX: any, deltaY: any) => {
+      if (this.discardViewContainer.visible) {
+        scrollY -= deltaY * 0.5;
+        const maxScroll = 0;
+        const minScroll = -cardsContainer.getBounds().height + maskHeight;
+        scrollY = Phaser.Math.Clamp(scrollY, minScroll, maxScroll);
+        cardsContainer.y = scrollY;
+      }
+    });
+
+    this.discardViewContainer.setVisible(true);
+  }
+
+
+
+
+
+
+
+
+
+
 
   /**
    * Animate drawing cards from deck to hand positions (Balatro style)
@@ -4041,6 +4339,11 @@ export class Combat extends Scene {
     
     if (this.actionResultText) {
       this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
+    }
+    
+    // Update poker hand info button position
+    if (this.pokerHandInfoButton) {
+      this.pokerHandInfoButton.setPosition(screenWidth - 50, 50);
     }
     
     // Update player and enemy positions
