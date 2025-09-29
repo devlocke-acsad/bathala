@@ -9,6 +9,7 @@ export class Campfire extends Scene {
   private restButton!: Phaser.GameObjects.Container;
   private purifyButton!: Phaser.GameObjects.Container;
   private upgradeButton!: Phaser.GameObjects.Container;
+  private viewDeckButton!: Phaser.GameObjects.Container;
   private actionText!: Phaser.GameObjects.Text;
   private cardSprites: Phaser.GameObjects.Container[] = [];
   private tooltipBox!: Phaser.GameObjects.Container;
@@ -188,9 +189,10 @@ export class Campfire extends Scene {
     
     // Create action buttons with Dark Souls styling
     const buttonData = [
-      { x: screenWidth / 2 - 200, y: screenHeight / 2 + 50, text: "HEAL", color: "#2ed573", action: "rest" },
-      { x: screenWidth / 2, y: screenHeight / 2 + 50, text: "PURIFY", color: "#ff6b6b", action: "purify" },
-      { x: screenWidth / 2 + 200, y: screenHeight / 2 + 50, text: "ATTUNE", color: "#4ecdc4", action: "upgrade" }
+      { x: screenWidth / 2 - 250, y: screenHeight / 2 + 50, text: "HEAL", color: "#2ed573", action: "rest" },
+      { x: screenWidth / 2 - 80, y: screenHeight / 2 + 50, text: "PURIFY", color: "#ff6b6b", action: "purify" },
+      { x: screenWidth / 2 + 80, y: screenHeight / 2 + 50, text: "ATTUNE", color: "#4ecdc4", action: "upgrade" },
+      { x: screenWidth / 2 + 250, y: screenHeight / 2 + 50, text: "VIEW DECK", color: "#a8a8a8", action: "view_deck" }
     ];
     
     buttonData.forEach(data => {
@@ -222,6 +224,7 @@ export class Campfire extends Scene {
           case "rest": this.rest(); break;
           case "purify": this.showPurifyCards(); break;
           case "upgrade": this.showUpgradeCards(); break;
+          case "view_deck": this.showDeck(); break;
         }
       });
       
@@ -240,6 +243,7 @@ export class Campfire extends Scene {
         case "rest": this.restButton = button; break;
         case "purify": this.purifyButton = button; break;
         case "upgrade": this.upgradeButton = button; break;
+        case "view_deck": this.viewDeckButton = button; break;
       }
     });
   }
@@ -309,6 +313,9 @@ export class Campfire extends Scene {
         break;
       case "ATTUNE":
         description = "Upgrade a card to a higher rank";
+        break;
+      case "VIEW DECK":
+        description = "View all the cards in your deck";
         break;
       default:
         description = "Perform this action";
@@ -424,6 +431,69 @@ export class Campfire extends Scene {
     this.hideTooltip();
   }
 
+  private showDeck(): void {
+    // Disable action buttons to prevent interaction while viewing deck
+    this.restButton.disableInteractive();
+    this.purifyButton.disableInteractive();
+    this.upgradeButton.disableInteractive();
+    this.viewDeckButton.disableInteractive();
+
+    // Clear any existing card sprites
+    this.cardSprites.forEach(sprite => sprite.destroy());
+    this.cardSprites = [];
+
+    // Combine all cards in player's possession
+    const allCards = [
+      ...this.player.deck,
+      ...this.player.drawPile,
+      ...this.player.discardPile,
+      ...this.player.hand
+    ];
+    
+    // Remove duplicates
+    const uniqueCards = allCards.filter(
+      (card, index, self) => index === self.findIndex(c => c.id === card.id)
+    );
+
+    // Display cards without a selection action
+    this.displayCardsForSelection(uniqueCards);
+
+    // Create a back button to close the deck view
+    const screenWidth = this.cameras.main.width;
+    const backButton = this.add.container(screenWidth / 2, this.cameras.main.height - 150);
+    backButton.setDepth(1002);
+    
+    const background = this.add.rectangle(0, 0, 150, 50, 0x222222);
+    background.setStrokeStyle(2, 0xcccccc);
+    
+    const text = this.add.text(0, 0, "BACK", { 
+      fontFamily: "dungeon-mode", 
+      fontSize: 20, 
+      color: "#cccccc" 
+    }).setOrigin(0.5);
+    
+    backButton.add([background, text]);
+    backButton.setInteractive(new Phaser.Geom.Rectangle(-75, -25, 150, 50), Phaser.Geom.Rectangle.Contains);
+
+    backButton.on("pointerdown", () => {
+      // Clear card display
+      this.cardSprites.forEach(sprite => sprite.destroy());
+      this.cardSprites = [];
+      
+      // Re-enable action buttons if they are still active
+      if (this.restButton.active) this.restButton.setInteractive();
+      if (this.purifyButton.active) this.purifyButton.setInteractive();
+      if (this.upgradeButton.active) this.upgradeButton.setInteractive();
+      this.viewDeckButton.setInteractive();
+
+      // Remove the back button
+      backButton.destroy();
+    });
+
+    backButton.on("pointerover", () => background.setFillStyle(0x333333));
+    backButton.on("pointerout", () => background.setFillStyle(0x222222));
+  }
+
   private showPurifyCards(): void {
     // Clear any existing card sprites
     this.cardSprites.forEach(sprite => sprite.destroy());
@@ -474,7 +544,7 @@ export class Campfire extends Scene {
 
   private displayCardsForSelection(
     cards: PlayingCard[],
-    onSelect: (card: PlayingCard) => void
+    onSelect?: (card: PlayingCard) => void
   ): void {
     const screenWidth = this.cameras.main.width;
     const cardWidth = 60;
@@ -488,14 +558,19 @@ export class Campfire extends Scene {
     cards.forEach((card, index) => {
       const x = startX + index * actualCardWidth;
       const cardSprite = this.createCardSprite(card, x, y, true);
-      cardSprite.setInteractive();
-      cardSprite.on("pointerdown", () => {
-        onSelect(card);
-        // Clear card display after selection
-        this.cardSprites.forEach(sprite => sprite.destroy());
-        this.cardSprites = [];
-        this.hideTooltip();
-      });
+      cardSprite.setDepth(1001);
+      
+      if (onSelect) {
+        cardSprite.setInteractive();
+        cardSprite.on("pointerdown", () => {
+          onSelect(card);
+          // Clear card display after selection
+          this.cardSprites.forEach(sprite => sprite.destroy());
+          this.cardSprites = [];
+          this.hideTooltip();
+        });
+      }
+
       cardSprite.on("pointerover", () => {
         this.showCardTooltip(card, x + 40, y);
       });
