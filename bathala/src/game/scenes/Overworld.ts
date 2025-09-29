@@ -27,19 +27,7 @@ export class Overworld extends Scene {
   private movementManager!: OverworldMovementManager;
   private gameStateManager!: OverworldGameStateManager;
   
-  // Tooltip state (minimal state kept for compatibility)
-  private isTooltipVisible: boolean = false;
-  private currentTooltipTimer?: Phaser.Time.TimerEvent;
-  private lastHoveredNodeId?: string;
-  
-  // Tooltip elements (managed by UIManager but needed for compatibility)
-  private tooltipContainer?: Phaser.GameObjects.Container;
-  private tooltipBackground?: Phaser.GameObjects.Rectangle;
-  private tooltipNameText?: Phaser.GameObjects.Text;
-  private tooltipTypeText?: Phaser.GameObjects.Text;
-  private tooltipSpriteContainer?: Phaser.GameObjects.Container;
-  private tooltipStatsText?: Phaser.GameObjects.Text;
-  private tooltipDescriptionText?: Phaser.GameObjects.Text;
+
 
   constructor() {
     super({ key: "Overworld" });
@@ -112,7 +100,7 @@ export class Overworld extends Scene {
     this.cameras.main.startFollow(this.player);
     
     // Create enemy info tooltip
-    this.createEnemyTooltip();
+
 
     // Initialize UI manager and create UI after camera is ready
     this.uiManager = new OverworldUIManager(this);
@@ -207,10 +195,10 @@ export class Overworld extends Scene {
     this.gameStateManager.triggerBossEncounter();
     
     // Hide any visible tooltips
-    this.hideNodeTooltip();
+    this.uiManager.hideTooltip();
     
     // Create dramatic effect for boss appearance
-    this.createBossAppearanceEffect();
+    this.uiManager.createBossAppearanceEffect();
     
     // Delay the actual combat transition for dramatic effect
     this.time.delayedCall(3000, () => {
@@ -218,87 +206,7 @@ export class Overworld extends Scene {
     });
   }
 
-  /**
-   * Create dramatic visual effects for boss appearance
-   */
-  createBossAppearanceEffect(): void {
-    // Screen shake effect
-    this.cameras.main.shake(2000, 0.02);
-    
-    // Screen flash effect
-    const flashOverlay = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0xff0000
-    ).setAlpha(0).setScrollFactor(0).setDepth(3000);
-    
-    // Flash sequence
-    this.tweens.add({
-      targets: flashOverlay,
-      alpha: 0.7,
-      duration: 200,
-      yoyo: true,
-      repeat: 5,
-      onComplete: () => {
-        flashOverlay.destroy();
-      }
-    });
-    
-    // Dramatic text announcement
-    const bossText = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      "THE FINAL BOSS AWAKENS!",
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 48,
-        color: "#ff0000",
-        fontStyle: "bold",
-        stroke: "#000000",
-        strokeThickness: 4
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(3001).setAlpha(0);
-    
-    // Animate text appearance
-    this.tweens.add({
-      targets: bossText,
-      alpha: 1,
-      scale: { from: 0.5, to: 1.2 },
-      duration: 1000,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        // Fade out after showing
-        this.tweens.add({
-          targets: bossText,
-          alpha: 0,
-          scale: 1.5,
-          duration: 1500,
-          delay: 500,
-          onComplete: () => {
-            bossText.destroy();
-          }
-        });
-      }
-    });
-    
-    // Darken the entire screen progressively
-    const darkOverlay = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x000000
-    ).setAlpha(0).setScrollFactor(0).setDepth(2999);
-    
-    this.tweens.add({
-      targets: darkOverlay,
-      alpha: 0.8,
-      duration: 2500,
-      ease: 'Power2'
-    });
-  }
+
 
   /**
    * Start the actual boss encounter
@@ -541,18 +449,18 @@ export class Overworld extends Scene {
         console.log(`🖱️ Hovering over ${node.type} node at ${node.id}`);
         
         // Cancel any pending tooltip timer
-        if (this.currentTooltipTimer) {
-          this.currentTooltipTimer.destroy();
+        if (this.uiManager.getTooltipTimer()) {
+          this.uiManager.getTooltipTimer()?.destroy();
         }
         
         // Set current hovered node
-        this.lastHoveredNodeId = node.id;
+        this.uiManager.setLastHoveredNodeId(node.id);
         
         // Show appropriate tooltip based on node type
         if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
-          this.showEnemyTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+          this.uiManager.showEnemyTooltip(node.type, node.id, pointer.x, pointer.y);
         } else {
-          this.showNodeTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+          this.uiManager.showNodeTooltip(node.type, node.id, pointer.x, pointer.y);
         }
         
         // Add hover effect to sprite
@@ -567,8 +475,8 @@ export class Overworld extends Scene {
       // Update tooltip position on mouse move while hovering
       nodeSprite.on('pointermove', (pointer: Phaser.Input.Pointer) => {
         // Only update if tooltip is currently visible and this is the active node
-        if (this.isTooltipVisible && this.lastHoveredNodeId === node.id) {
-          this.updateTooltipSizeAndPositionImmediate(pointer.x, pointer.y);
+        if (this.uiManager.getTooltipVisibility() && this.uiManager.getLastHoveredNodeId() === node.id) {
+          this.uiManager.updateTooltipSizeAndPosition(pointer.x, pointer.y);
         }
       });
       
@@ -576,16 +484,16 @@ export class Overworld extends Scene {
         console.log(`🖱️ Stopped hovering over ${node.type} node at ${node.id}`);
         
         // Clear current hovered node
-        this.lastHoveredNodeId = undefined;
+        this.uiManager.setLastHoveredNodeId(undefined);
         
         // Cancel any pending tooltip timer
-        if (this.currentTooltipTimer) {
-          this.currentTooltipTimer.destroy();
-          this.currentTooltipTimer = undefined;
+        if (this.uiManager.getTooltipTimer()) {
+          this.uiManager.getTooltipTimer()?.destroy();
+          this.uiManager.setTooltipTimer(undefined);
         }
         
         // Hide tooltip immediately
-        this.hideNodeTooltip();
+        this.uiManager.hideTooltip();
         
         // Reset sprite scale
         this.tweens.add({
@@ -640,7 +548,7 @@ export class Overworld extends Scene {
           }
           
           // Hide tooltip if it's visible
-          this.hideEnemyTooltip();
+          this.uiManager.hideTooltip();
           
           this.startCombat(node.type);
           break;
@@ -657,7 +565,7 @@ export class Overworld extends Scene {
           }
           
           // Hide tooltip if it's visible
-          this.hideEnemyTooltip();
+          this.uiManager.hideTooltip();
           
           this.startCombat("boss");
           break;
@@ -746,7 +654,7 @@ export class Overworld extends Scene {
           
         case "event":
           // Test event for random event
-          this.showNodeEvent("Mysterious Event", "You encounter a mysterious figure who offers you a choice...", 0x0000ff);
+          this.uiManager.showNodeEvent("Mysterious Event", "You encounter a mysterious figure who offers you a choice...", 0x0000ff);
           // Remove the node from the list so it doesn't trigger again
           this.nodes.splice(nodeIndex, 1);
           break;
@@ -756,172 +664,9 @@ export class Overworld extends Scene {
 
   }
 
-  showBossAppearance(): void {
-    // Disable player movement during boss appearance
-    this.setIsMoving(true);
-    
-    // Create overlay
-    const overlay = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x000000
-    ).setAlpha(0).setScrollFactor(0).setDepth(3000);
-    
-    // Fade in overlay
-    this.tweens.add({
-      targets: overlay,
-      alpha: 0.8,
-      duration: 1000,
-      ease: 'Power2'
-    });
-    
-    // Create boss appearance text
-    const bossText = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      "THE BOSS APPROACHES...",
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 48,
-        color: "#ff0000",
-        align: "center"
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(3001).setScale(0.1);
-    
-    // Animate text scaling
-    this.tweens.add({
-      targets: bossText,
-      scale: 1,
-      duration: 1500,
-      ease: 'Elastic.easeOut'
-    });
-    
-    // Shake camera for dramatic effect
-    this.cameras.main.shake(2000, 0.02);
-    
-    // After delay, start boss combat
-    this.time.delayedCall(3000, () => {
-      // Clean up
-      overlay.destroy();
-      bossText.destroy();
-      
-      // Start boss combat
-      this.startCombat("boss");
-    });
-  }
 
-  /**
-   * Show a simple event dialog for node interactions
-   */
-  private showNodeEvent(title: string, message: string, color: number): void {
-    // Disable player movement during event
-    this.setIsMoving(true);
-    
-    // Create overlay
-    const overlay = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x000000
-    ).setAlpha(0.7).setScrollFactor(0).setDepth(2000);
-    
-    // Create dialog box
-    const dialogBox = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      600,
-      300,
-      0x2f3542
-    ).setStrokeStyle(3, color).setScrollFactor(0).setDepth(2001);
-    
-    // Create title
-    const titleText = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2 - 100,
-      title,
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 32,
-        color: `#${color.toString(16).padStart(6, '0')}`,
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(2002);
-    
-    // Create message
-    const messageText = this.add.text(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      message,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-        wordWrap: { width: 500 }
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(2002);
-    
-    // Create continue button
-    const buttonTextContent = "Continue";
-    
-    // Create a temporary text object to measure the actual text width
-    const tempText = this.add.text(0, 0, buttonTextContent, {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#e8eced"
-    });
-    
-    // Get the actual width of the text
-    const textWidth = tempText.width;
-    const textHeight = tempText.height;
-    tempText.destroy(); // Remove the temporary text
-    
-    // Set button dimensions with proper padding
-    const padding = 20;
-    const buttonWidth = Math.max(150, textWidth + padding); // Minimum width of 150px
-    const buttonHeight = Math.max(40, textHeight + 10); // Minimum height of 40px
-    
-    const continueButton = this.add.container(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2 + 100
-    ).setScrollFactor(0).setDepth(2002);
-    
-    const buttonBg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x3d4454)
-      .setStrokeStyle(2, color);
-    const buttonText = this.add.text(0, 0, buttonTextContent, {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#e8eced"
-    }).setOrigin(0.5);
-    
-    continueButton.add([buttonBg, buttonText]);
-    continueButton.setInteractive(
-      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
-      Phaser.Geom.Rectangle.Contains
-    );
-    
-    continueButton.on('pointerdown', () => {
-      // Clean up dialog elements
-      overlay.destroy();
-      dialogBox.destroy();
-      titleText.destroy();
-      messageText.destroy();
-      continueButton.destroy();
-      
-      // Re-enable player movement
-      this.setIsMoving(false);
-    });
-    
-    continueButton.on('pointerover', () => {
-      buttonBg.setFillStyle(0x4a5464);
-    });
-    
-    continueButton.on('pointerout', () => {
-      buttonBg.setFillStyle(0x3d4454);
-    });
-  }
+
+
 
   startCombat(nodeType: string): void {
     this.gameStateManager.startCombat(nodeType);
@@ -1285,356 +1030,9 @@ export class Overworld extends Scene {
   }
   
   /**
-   * Create enemy info tooltip system
-   */
-  private createEnemyTooltip(): void {
-    console.log("Creating enemy tooltip system...");
-    
-    // Create tooltip container (initially hidden) - FIXED TO CAMERA
-    this.tooltipContainer = this.add.container(0, 0).setVisible(false).setDepth(2000).setScrollFactor(0);
-    
-    // Tooltip background with shadow effect
-    const shadowOffset = 3;
-    const tooltipShadow = this.add.rectangle(shadowOffset, shadowOffset, 400, 240, 0x000000)
-      .setAlpha(0.4)
-      .setOrigin(0);
-    
-    // Main tooltip background (will be resized dynamically)
-    this.tooltipBackground = this.add.rectangle(0, 0, 400, 240, 0x1d151a)
-      .setStrokeStyle(2, 0x4a3a40)
-      .setOrigin(0);
-      
-    // Header background for enemy name/type
-    const headerBackground = this.add.rectangle(0, 0, 400, 60, 0x2a1f24)
-      .setStrokeStyle(1, 0x4a3a40)
-      .setOrigin(0);
-      
-    // Enemy name
-    this.tooltipNameText = this.add.text(15, 12, "", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 16,
-      color: "#e8eced",
-      fontStyle: "bold"
-    }).setOrigin(0);
-    
-    // Enemy type
-    this.tooltipTypeText = this.add.text(15, 30, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#77888C",
-      fontStyle: "bold"
-    }).setOrigin(0);
-    
-    // Enemy sprite (will be created dynamically)
-    this.tooltipSpriteContainer = this.add.container(320, 30);
-    this.tooltipSpriteContainer.setSize(60, 60); // Set a larger size for the sprite area
-    
-    // Stats section separator
-    const statsSeparator = this.add.rectangle(10, 70, 380, 1, 0x4a3a40).setOrigin(0);
-    
-    // Enemy stats
-    this.tooltipStatsText = this.add.text(15, 80, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: 11,
-      color: "#c9a74a",
-      wordWrap: { width: 360 },
-      lineSpacing: 2,
-      fontStyle: "bold"
-    }).setOrigin(0);
-    
-    // Description section separator  
-    const descSeparator = this.add.rectangle(10, 130, 380, 1, 0x4a3a40).setOrigin(0);
-    
-    // Enemy description
-    this.tooltipDescriptionText = this.add.text(15, 140, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#8a9a9f",
-      wordWrap: { width: 360 },
-      lineSpacing: 3,
-      fontStyle: "italic"
-    }).setOrigin(0);
-    
-    // Store references to dynamic elements for resizing
-    this.tooltipContainer.setData({
-      shadow: tooltipShadow,
-      header: headerBackground,
-      statsSeparator: statsSeparator,
-      descSeparator: descSeparator
-    });
-    
-    // Add all elements to tooltip container
-    this.tooltipContainer.add([
-      tooltipShadow,
-      this.tooltipBackground,
-      headerBackground,
-      this.tooltipNameText,
-      this.tooltipTypeText,
-      this.tooltipSpriteContainer,
-      statsSeparator,
-      this.tooltipStatsText,
-      descSeparator,
-      this.tooltipDescriptionText
-    ]);
-    
-    console.log("Enemy tooltip system created successfully - FIXED TO CAMERA");
-  }
-  
-  /**
-   * Show enemy tooltip with information - immediate version without timing issues
-   */
-  private showEnemyTooltipImmediate(nodeType: string, nodeId: string, mouseX?: number, mouseY?: number): void {
-    // Validate inputs and state
-    if (!nodeType || !this.tooltipContainer) {
-      console.warn("Cannot show tooltip: missing nodeType or tooltip not initialized");
-      return;
-    }
-    
-    const enemyInfo = this.getEnemyInfoForNodeType(nodeType, nodeId);
-    if (!enemyInfo) {
-      console.warn("Cannot show tooltip: no enemy info for type", nodeType);
-      return;
-    }
-    
-    // Validate all tooltip elements exist
-    if (!this.tooltipNameText || !this.tooltipTypeText || !this.tooltipSpriteContainer || 
-        !this.tooltipStatsText || !this.tooltipDescriptionText || !this.tooltipBackground) {
-      console.warn("Cannot show tooltip: tooltip elements not properly initialized");
-      return;
-    }
-    
-    // Reset colors to default enemy colors
-    this.tooltipNameText.setColor("#e8eced");    // Default white
-    this.tooltipTypeText.setColor("#77888C");    // Default gray
-    this.tooltipStatsText.setColor("#c9a74a");   // Default yellow
-    this.tooltipDescriptionText.setColor("#b8a082"); // Default beige
-    
-    // Update tooltip content
-    this.tooltipNameText.setText(enemyInfo.name);
-    this.tooltipTypeText.setText(enemyInfo.type.toUpperCase());
-    
-    // Clear previous sprite and add new one
-    this.tooltipSpriteContainer.removeAll(true);
-    if (enemyInfo.spriteKey) {
-      const sprite = this.add.sprite(0, 0, enemyInfo.spriteKey);
-      sprite.setOrigin(0.5, 0.5);
-      
-      // Scale to fit the larger container nicely
-      const targetSize = 48; // Increased from 32 to 48 for better visibility
-      const scale = targetSize / Math.max(sprite.width, sprite.height);
-      sprite.setScale(scale);
-      
-      // If it's an animated sprite, play the idle animation
-      if (enemyInfo.animationKey && this.anims.exists(enemyInfo.animationKey)) {
-        sprite.play(enemyInfo.animationKey);
-      }
-      
-      this.tooltipSpriteContainer.add(sprite);
-    }
-    
-    this.tooltipStatsText.setText(`Health: ${enemyInfo.health}\nDamage: ${enemyInfo.damage}\nAbilities: ${enemyInfo.abilities.join(", ")}`);
-    this.tooltipDescriptionText.setText(enemyInfo.description);
-    
-    // Update size and position immediately - no delayed call
-    this.updateTooltipSizeAndPositionImmediate(mouseX, mouseY);
-    
-    // Show tooltip
-    this.tooltipContainer.setVisible(true);
-    this.isTooltipVisible = true;
-  }
-  
-  /**
-   * Update tooltip size and position - immediate version
-   */
-  private updateTooltipSizeAndPositionImmediate(mouseX?: number, mouseY?: number): void {
-    if (!this.tooltipContainer || !this.tooltipBackground) {
-      return;
-    }
-    
-    // Calculate dynamic tooltip size based on content
-    const padding = 20;
-    const headerHeight = 60;
-    const minWidth = 420;
-    const maxWidth = 550;
-    
-    // Get actual text bounds (these should be available immediately after setText)
-    const statsHeight = this.tooltipStatsText?.height || 70;
-    const descHeight = this.tooltipDescriptionText?.height || 90;
-    
-    // Calculate required height with proper spacing
-    const separatorSpacing = 15;
-    const totalHeight = headerHeight + separatorSpacing + statsHeight + separatorSpacing + descHeight + padding * 2;
-    
-    // Calculate required width (ensure all content fits including sprite)
-    const nameWidth = this.tooltipNameText?.width || 100;
-    const statsWidth = this.tooltipStatsText?.width || 100;
-    const descWidth = this.tooltipDescriptionText?.width || 100;
-    const spriteAreaWidth = 80; // Account for sprite area
-    const maxContentWidth = Math.max(nameWidth + spriteAreaWidth, statsWidth, descWidth);
-    const tooltipWidth = Math.max(minWidth, Math.min(maxWidth, maxContentWidth + padding * 2));
-    const tooltipHeight = Math.max(260, totalHeight); // Increased minimum height
-    
-    // Get dynamic elements from container data
-    const shadow = this.tooltipContainer.getData('shadow') as Phaser.GameObjects.Rectangle;
-    const header = this.tooltipContainer.getData('header') as Phaser.GameObjects.Rectangle;
-    const statsSeparator = this.tooltipContainer.getData('statsSeparator') as Phaser.GameObjects.Rectangle;
-    const descSeparator = this.tooltipContainer.getData('descSeparator') as Phaser.GameObjects.Rectangle;
-    
-    // Update background sizes (with null checks)
-    this.tooltipBackground.setSize(tooltipWidth, tooltipHeight);
-    shadow?.setSize(tooltipWidth, tooltipHeight);
-    header?.setSize(tooltipWidth, headerHeight);
-    
-    // Update separator widths and positions (with null checks)
-    statsSeparator?.setSize(tooltipWidth - 20, 1);
-    statsSeparator?.setPosition(10, headerHeight + 10);
-    
-    // Reposition sprite container based on new width (more room for larger sprite)
-    this.tooltipSpriteContainer?.setPosition(tooltipWidth - 50, 30);
-    
-    // Update text wrapping for the new width (account for sprite area)
-    const textWidth = tooltipWidth - 100; // More space for sprite
-    this.tooltipStatsText?.setWordWrapWidth(textWidth);
-    this.tooltipDescriptionText?.setWordWrapWidth(textWidth);
-    
-    // Reposition stats and description elements
-    const statsY = headerHeight + 20;
-    this.tooltipStatsText?.setPosition(15, statsY);
-    
-    const descSeparatorY = statsY + statsHeight + 10;
-    descSeparator?.setSize(tooltipWidth - 20, 1);
-    descSeparator?.setPosition(10, descSeparatorY);
-    
-    const descY = descSeparatorY + 15;
-    this.tooltipDescriptionText?.setPosition(15, descY);
-    
-    // Position tooltip dynamically based on mouse position or fallback to center
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    let tooltipX: number;
-    let tooltipY: number;
-    
-    if (mouseX !== undefined && mouseY !== undefined) {
-      // Position tooltip near mouse cursor
-      const offset = 20; // Offset from cursor to avoid overlap
-      tooltipX = mouseX + offset;
-      tooltipY = mouseY - tooltipHeight / 2; // Center vertically on cursor
-      
-      // Ensure tooltip doesn't go off-screen (right edge)
-      if (tooltipX + tooltipWidth > screenWidth - 20) {
-        tooltipX = mouseX - tooltipWidth - offset; // Position to the left of cursor
-      }
-      
-      // Ensure tooltip doesn't go off-screen (vertical bounds)
-      tooltipY = Math.max(20, Math.min(tooltipY, screenHeight - tooltipHeight - 20));
-      
-    } else {
-      // Fallback to status panel positioning if no mouse coordinates
-      const statusPanelWidth = 320;
-      const statusPanelX = 20;
-      const marginBetween = 20;
-      
-      tooltipX = statusPanelX + statusPanelWidth + marginBetween;
-      tooltipY = Math.max(20, (screenHeight - tooltipHeight) / 2);
-      
-      // Ensure fallback doesn't go off-screen
-      const maxTooltipX = screenWidth - tooltipWidth - 20;
-      tooltipX = Math.min(tooltipX, maxTooltipX);
-    }
-    
-    // Position tooltip
-    this.tooltipContainer.setPosition(tooltipX, tooltipY);
-  }
-  
-  /**
-   * Hide enemy tooltip with improved state management
-   */
-  private hideEnemyTooltip(): void {
-    this.hideNodeTooltip();
-  }
-
-  /**
-   * Hide node tooltip with improved state management
-   */
-  private hideNodeTooltip(): void {
-    // Cancel any pending tooltip operations
-    if (this.currentTooltipTimer) {
-      this.currentTooltipTimer.destroy();
-      this.currentTooltipTimer = undefined;
-    }
-    
-    // Hide tooltip safely
-    if (this.tooltipContainer) {
-      this.tooltipContainer.setVisible(false);
-    }
-    
-    this.isTooltipVisible = false;
-    this.lastHoveredNodeId = undefined;
-  }
-  
-  /**
-   * Show node tooltip for non-enemy nodes
-   */
-  private showNodeTooltipImmediate(nodeType: string, _nodeId: string, mouseX: number, mouseY: number): void {
-    if (!this.tooltipContainer) {
-      console.warn("Tooltip container not available");
-      return;
-    }
-    
-    const nodeInfo = this.getNodeInfoForType(nodeType);
-    if (!nodeInfo) {
-      console.warn(`No info available for node type: ${nodeType}`);
-      return;
-    }
-    
-    // Get color scheme for this node type
-    const colors = this.getNodeColorScheme(nodeType);
-    
-    // Update tooltip content with node-specific colors
-    this.tooltipNameText?.setText(nodeInfo.name);
-    this.tooltipNameText?.setColor(colors.name);
-    
-    this.tooltipTypeText?.setText(nodeInfo.type.toUpperCase());
-    this.tooltipTypeText?.setColor(colors.type);
-    
-    // Clear previous sprite and add new one
-    this.tooltipSpriteContainer?.removeAll(true);
-    if (nodeInfo.spriteKey) {
-      const sprite = this.add.sprite(0, 0, nodeInfo.spriteKey);
-      sprite.setOrigin(0.5, 0.5);
-      
-      // Scale to fit the larger container nicely
-      const targetSize = 48;
-      const scale = targetSize / Math.max(sprite.width, sprite.height);
-      sprite.setScale(scale);
-      
-      // If it's an animated sprite, play the idle animation
-      if (nodeInfo.animationKey && this.anims.exists(nodeInfo.animationKey)) {
-        sprite.play(nodeInfo.animationKey);
-      }
-      
-      this.tooltipSpriteContainer?.add(sprite);
-    }
-    
-    this.tooltipStatsText?.setText(nodeInfo.stats || "");
-    this.tooltipStatsText?.setColor(colors.stats);
-    
-    this.tooltipDescriptionText?.setText(nodeInfo.description);
-    this.tooltipDescriptionText?.setColor(colors.description);
-    
-    // Update size and position immediately
-    this.updateTooltipSizeAndPositionImmediate(mouseX, mouseY);
-    
-    // Show tooltip
-    this.tooltipContainer.setVisible(true);
-    this.isTooltipVisible = true;
-  }
-
-  /**
    * Get color scheme for different node types
    */
-  private getNodeColorScheme(nodeType: string): { name: string, type: string, stats: string, description: string } {
+  public getNodeColorScheme(nodeType: string): { name: string, type: string, stats: string, description: string } {
     const colorSchemes = {
       shop: {
         name: "#ffd700",        // Gold - for merchant/commerce
@@ -1673,7 +1071,7 @@ export class Overworld extends Scene {
   /**
    * Get node information for different node types
    */
-  private getNodeInfoForType(nodeType: string): any {
+  public getNodeInfoForType(nodeType: string): any {
     const nodeData = {
       shop: {
         name: "Merchant's Shop",
@@ -1715,7 +1113,7 @@ export class Overworld extends Scene {
   /**
    * Get enemy information for a given node type
    */
-  private getEnemyInfoForNodeType(nodeType: string, nodeId?: string): any {
+  public getEnemyInfoForNodeType(nodeType: string, nodeId?: string): any {
     // Create a simple hash from nodeId for consistent enemy selection
     const getNodeHash = (id: string): number => {
       let hash = 0;
