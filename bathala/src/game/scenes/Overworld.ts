@@ -27,29 +27,19 @@ export class Overworld extends Scene {
   private movementManager!: OverworldMovementManager;
   private gameStateManager!: OverworldGameStateManager;
   
-  // Overworld UI elements
-  private uiContainer!: Phaser.GameObjects.Container;
-  private healthBar!: Phaser.GameObjects.Graphics;
-  private healthText!: Phaser.GameObjects.Text;
-  private relicsContainer!: Phaser.GameObjects.Container;
-  private potionsContainer!: Phaser.GameObjects.Container;
-  private currencyText!: Phaser.GameObjects.Text;
-  private diamanteText!: Phaser.GameObjects.Text;
-  private landasText!: Phaser.GameObjects.Text;
-  private landasMeterIndicator!: Phaser.GameObjects.Graphics;
-  private discardText!: Phaser.GameObjects.Text;
-  
-  // Enemy Info Tooltip
-  private tooltipContainer!: Phaser.GameObjects.Container;
-  private tooltipBackground!: Phaser.GameObjects.Rectangle;
-  private tooltipNameText!: Phaser.GameObjects.Text;
-  private tooltipTypeText!: Phaser.GameObjects.Text;
-  private tooltipSpriteContainer!: Phaser.GameObjects.Container;
-  private tooltipStatsText!: Phaser.GameObjects.Text;
-  private tooltipDescriptionText!: Phaser.GameObjects.Text;
+  // Tooltip state (minimal state kept for compatibility)
   private isTooltipVisible: boolean = false;
   private currentTooltipTimer?: Phaser.Time.TimerEvent;
   private lastHoveredNodeId?: string;
+  
+  // Tooltip elements (managed by UIManager but needed for compatibility)
+  private tooltipContainer?: Phaser.GameObjects.Container;
+  private tooltipBackground?: Phaser.GameObjects.Rectangle;
+  private tooltipNameText?: Phaser.GameObjects.Text;
+  private tooltipTypeText?: Phaser.GameObjects.Text;
+  private tooltipSpriteContainer?: Phaser.GameObjects.Container;
+  private tooltipStatsText?: Phaser.GameObjects.Text;
+  private tooltipDescriptionText?: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "Overworld" });
@@ -128,7 +118,7 @@ export class Overworld extends Scene {
     this.uiManager = new OverworldUIManager(this);
     this.time.delayedCall(10, () => {
       this.uiManager.createUI();
-      this.createOverworldUI();
+      // UI creation is now handled by UIManager
     });
     
     // Render initial chunks around player with a slight delay to ensure camera is ready
@@ -140,10 +130,6 @@ export class Overworld extends Scene {
 
   updateUI(): void {
     this.uiManager?.updateUI();
-
-    if (this.uiContainer) {
-      this.updateOverworldUI();
-    }
   }
 
   // No need for resume method since we handle state restoration in create()
@@ -162,7 +148,6 @@ export class Overworld extends Scene {
     this.gameStateManager.handleSceneResume();
     
     // Update UI to reflect new player data
-    this.updateOverworldUI();
     this.uiManager?.updateUI();
     
     // Update visible chunks around player
@@ -955,10 +940,7 @@ export class Overworld extends Scene {
    */
   private handleResize(): void {
     this.uiManager?.handleResize();
-
-    if (this.uiContainer) {
-      this.updateOverworldUI();
-    }
+    this.uiManager?.updateUI();
   }
 
   /**
@@ -972,328 +954,17 @@ export class Overworld extends Scene {
   /**
    * Create the overworld UI panel with health, relics, and potions
    */
-  private createOverworldUI(): void {
-    const screenHeight = this.cameras.main.height;
-    
-    // Create main UI container positioned at top-left
-    this.uiContainer = this.add.container(0, 0);
-    this.uiContainer.setScrollFactor(0).setDepth(1500);
-    
-    // Create compact left panel for all UI elements
-    this.createCompactLeftPanel(screenHeight);
-    
-    // Update all UI elements
-    this.updateOverworldUI();
-  }
 
-  /**
-   * Create modern styled left panel with improved visual design
-   */
-  private createCompactLeftPanel(screenHeight: number): void {
-    const panelWidth = 320;
-    const panelHeight = Math.min(screenHeight - 40, 720);
-    const panelX = 20;
-    const panelY = screenHeight / 2 - panelHeight / 2;
-    
-    // Modern glass-morphism style background
-    const panelBg = this.add.graphics();
-    panelBg.fillStyle(0x0a0a0a, 0.85);
-    panelBg.lineStyle(1, 0x404040, 0.6);
-    panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
-    panelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
-    
-    // Subtle inner border for depth
-    const innerBorder = this.add.graphics();
-    innerBorder.lineStyle(1, 0x606060, 0.3);
-    innerBorder.strokeRoundedRect(panelX + 2, panelY + 2, panelWidth - 4, panelHeight - 4, 18);
-    
-    // Accent line on the left
-    const accentLine = this.add.graphics();
-    accentLine.lineStyle(3, 0x00bcd4, 0.8);
-    accentLine.beginPath();
-    accentLine.moveTo(panelX + 8, panelY + 20);
-    accentLine.lineTo(panelX + 8, panelY + panelHeight - 20);
-    accentLine.strokePath();
-    
-    this.uiContainer.add([panelBg, innerBorder, accentLine]);
-    
-    // Modern header without heavy box
-    const headerText = this.add.text(panelX + 25, panelY + 25, "STATUS", {
-      fontFamily: "dungeon-mode",
-      fontSize: "20px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    headerText.setShadow(1, 1, '#000000', 2, false, true);
-    this.uiContainer.add(headerText);
-    
-    // Calculate organized spacing for sections with more breathing room
-    const contentStartY = panelY + 80; // More space from header
-    const sectionSpacing = 25; // Increased space between sections
-    
-    // Organized section heights for better proportions
-    const healthSectionHeight = 155; // Increased to accommodate diamante spacing
-    const relicsSectionHeight = 170;
-    
-    let currentY = contentStartY;
-    
-    // Health section with organized spacing
-    this.createModernHealthSection(panelX + 20, currentY, panelWidth - 40);
-    currentY += healthSectionHeight + sectionSpacing;
-    
-    // Add section separator with more prominent styling
-    this.createSectionSeparator(panelX + 25, currentY - (sectionSpacing / 2), panelWidth - 50);
-    
-    // Relics section with organized spacing
-    this.createModernRelicsSection(panelX + 20, currentY, panelWidth - 40);
-    currentY += relicsSectionHeight + sectionSpacing;
-    
-    // Add section separator with more prominent styling
-    this.createSectionSeparator(panelX + 25, currentY - (sectionSpacing / 2), panelWidth - 50);
-    
-    // Potions section with organized spacing
-    this.createModernPotionsSection(panelX + 20, currentY, panelWidth - 40);
-    currentY += 120 + sectionSpacing; // Height for potions section
-    
-    // Final separator for bottom closure
-    this.createSectionSeparator(panelX + 25, currentY - (sectionSpacing / 2), panelWidth - 50);
-  }
 
-  /**
-   * Creates an enhanced section separator with visual flair
-   */
-  private createSectionSeparator(x: number, y: number, width: number): void {
-    // Create a container for the separator elements
-    const separatorContainer = this.add.container(0, 0);
-    
-    // Background glow effect
-    const glow = this.add.graphics();
-    glow.fillStyle(0x4A90E2, 0.15);
-    glow.fillRect(x + width * 0.2, y - 1, width * 0.6, 3);
-    separatorContainer.add(glow);
-    
-    // Main separator line
-    const separator = this.add.graphics();
-    separator.lineStyle(1, 0x4A90E2, 0.6);
-    separator.beginPath();
-    separator.moveTo(x + width * 0.1, y);
-    separator.lineTo(x + width * 0.9, y);
-    separator.strokePath();
-    separatorContainer.add(separator);
-    
-    // Accent dots for visual interest
-    const leftDot = this.add.graphics();
-    leftDot.fillStyle(0x4A90E2, 0.8);
-    leftDot.fillCircle(x + width * 0.1, y, 2);
-    separatorContainer.add(leftDot);
-    
-    const rightDot = this.add.graphics();
-    rightDot.fillStyle(0x4A90E2, 0.8);
-    rightDot.fillCircle(x + width * 0.9, y, 2);
-    separatorContainer.add(rightDot);
-    
-    this.uiContainer.add(separatorContainer);
-  }
 
-  /**
-   * Create modern health section with sleek design
-   */
-  private createModernHealthSection(x: number, y: number, width: number): void {
-    // Section container with subtle background - shortened to fit only currency section
-    const sectionBg = this.add.graphics();
-    sectionBg.fillStyle(0x1a1a1a, 0.4);
-    sectionBg.lineStyle(1, 0x333333, 0.5);
-    sectionBg.fillRoundedRect(x - 5, y - 5, width + 10, 115, 12);
-    sectionBg.strokeRoundedRect(x - 5, y - 5, width + 10, 115, 12);
-    this.uiContainer.add(sectionBg);
-    
-    // Health header with properly aligned elements
-    const healthIcon = this.add.text(x, y + 8, "♥", {
-      fontSize: "18px",
-      color: "#e74c3c",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    healthIcon.setShadow(2, 2, '#000000', 2, false, true);
-    
-    const healthLabel = this.add.text(x + 25, y + 8, "HEALTH", {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    healthLabel.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Health value center-aligned
-    const playerData = this.getPlayerData();
-    this.healthText = this.add.text(x + width/2 + 30, y + 8, `${playerData.currentHealth}/${playerData.maxHealth}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px",
-      color: "#ffffff",
-      fontStyle: "bold",
-      align: "center"
-    }).setOrigin(0.5, 0.5);
-    this.healthText.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Modern health bar container with organized spacing
-    const healthBarBg = this.add.graphics();
-    healthBarBg.fillStyle(0x2c2c2c, 0.8);
-    healthBarBg.fillRoundedRect(x, y + 40, width - 10, 12, 6);
-    this.uiContainer.add(healthBarBg);
-    
-    // Health bar fill
-    this.healthBar = this.add.graphics();
-    this.uiContainer.add(this.healthBar);
-    
-    // Currency section with properly aligned elements
-    const gintoIcon = this.add.text(x, y + 70, "💰", {
-      fontSize: "16px"
-    }).setOrigin(0, 0.5);
-    gintoIcon.setShadow(2, 2, '#000000', 2, false, true);
-    
-    const gintoLabel = this.add.text(x + 25, y + 70, "GINTO", {
-      fontFamily: "dungeon-mode",
-      fontSize: "10px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    gintoLabel.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Left-aligned GINTO value - moved further right
-    this.currencyText = this.add.text(x + 120, y + 70, `${playerData.ginto}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: "10px",
-      color: "#ffffff",
-      fontStyle: "bold",
-      align: "left"
-    }).setOrigin(0, 0.5);
-    this.currencyText.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Diamante currency display with properly aligned elements
-    const diamanteIcon = this.add.text(x, y + 95, "💎", {
-      fontSize: "16px"
-    }).setOrigin(0, 0.5);
-    diamanteIcon.setShadow(2, 2, '#000000', 2, false, true);
-    
-    const diamanteLabel = this.add.text(x + 25, y + 95, "DIAMANTE", {
-      fontFamily: "dungeon-mode",
-      fontSize: "10px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    diamanteLabel.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Left-aligned DIAMANTE value - moved further right
-    this.diamanteText = this.add.text(x + 120, y + 95, `${playerData.diamante}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: "10px",
-      color: "#ffffff",
-      fontStyle: "bold",
-      align: "left"
-    }).setOrigin(0, 0.5);
-    this.diamanteText.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Landás meter with more spacing from currency section
-    this.createLandasMeter(x, y + 140, width - 10, 18);
-    
-    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel, this.healthText, this.currencyText, this.diamanteText]);
-  }
 
-  /**
-   * Create modern relics section with grid layout
-   */
-  private createModernRelicsSection(x: number, y: number, width: number): void {
-    // Section header with organized spacing
-    const relicsLabel = this.add.text(x, y + 8, "RELICS", {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    relicsLabel.setShadow(2, 2, '#000000', 2, false, true);
-    this.uiContainer.add(relicsLabel);
-    
-    // Grid container with organized spacing
-    const gridBg = this.add.graphics();
-    gridBg.fillStyle(0x1a1a1a, 0.4);
-    gridBg.lineStyle(1, 0x333333, 0.5);
-    gridBg.fillRoundedRect(x - 5, y + 25, width + 10, 130, 12);
-    gridBg.strokeRoundedRect(x - 5, y + 25, width + 10, 130, 12);
-    this.uiContainer.add(gridBg);
-    
-    // Create 4x2 grid of relic slots with organized spacing
-    const slotSize = 45;
-    const slotSpacing = 12;
-    const slotsPerRow = 4;
-    const rows = 2;
-    const gridStartX = x + 15;
-    const gridStartY = y + 40;
-    
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < slotsPerRow; col++) {
-        const slotX = gridStartX + col * (slotSize + slotSpacing);
-        const slotY = gridStartY + row * (slotSize + slotSpacing);
-        
-        const slot = this.add.graphics();
-        slot.fillStyle(0x2c2c2c, 0.6);
-        slot.lineStyle(1, 0x404040, 0.8);
-        slot.fillRoundedRect(slotX, slotY, slotSize, slotSize, 8);
-        slot.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 8);
-        slot.setDepth(-10); // Set slots behind relics
-        this.uiContainer.add(slot);
-      }
-    }
-    
-    // Create relics container for items
-    this.relicsContainer = this.add.container(gridStartX, gridStartY);
-    this.relicsContainer.setDepth(10); // Ensure relics appear above slots
-    this.uiContainer.add(this.relicsContainer);
-    
-    console.log('🎯 Created relicsContainer at:', { x: gridStartX, y: gridStartY, depth: this.relicsContainer.depth });
-  }
 
-  /**
-   * Create modern potions section
-   */
-  private createModernPotionsSection(x: number, y: number, width: number): void {
-    // Section header with organized spacing
-    const potionsLabel = this.add.text(x, y + 8, "POTIONS", {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    potionsLabel.setShadow(2, 2, '#000000', 2, false, true);
-    this.uiContainer.add(potionsLabel);
-    
-    // Potions container with organized spacing
-    const potionsBg = this.add.graphics();
-    potionsBg.fillStyle(0x1a1a1a, 0.4);
-    potionsBg.lineStyle(1, 0x333333, 0.5);
-    potionsBg.fillRoundedRect(x - 5, y + 25, width + 10, 65, 12);
-    potionsBg.strokeRoundedRect(x - 5, y + 25, width + 10, 65, 12);
-    this.uiContainer.add(potionsBg);
-    
-    // Create 3 potion slots with organized spacing
-    const slotSize = 40;
-    const slotSpacing = 18;
-    const potionStartX = x + 20;
-    const potionStartY = y + 38;
-    
-    for (let i = 0; i < 3; i++) {
-      const slotX = potionStartX + i * (slotSize + slotSpacing);
-      
-      const slot = this.add.graphics();
-      slot.fillStyle(0x2c2c2c, 0.6);
-      slot.lineStyle(1, 0x404040, 0.8);
-      slot.fillRoundedRect(slotX, potionStartY, slotSize, slotSize, 8);
-      slot.strokeRoundedRect(slotX, potionStartY, slotSize, slotSize, 8);
-      this.uiContainer.add(slot);
-    }
-    
-    // Create potions container for items
-    this.potionsContainer = this.add.container(potionStartX, potionStartY);
-    this.uiContainer.add(this.potionsContainer);
-  }
+
+
+
+
+
+
 
 
 
@@ -1307,727 +978,56 @@ export class Overworld extends Scene {
    */
 
 
-  /**
-   * Create a Persona-style Landás meter display
-   */
-  private createLandasMeter(x: number, y: number, width: number, height: number): void {
-    // Enhanced "LANDAS" label positioned above the meter
-    const landasLabel = this.add.text(x + width / 2, y - 5, "LANDAS", {
-      fontFamily: "dungeon-mode",
-      fontSize: "10px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0.5, 1);
-    landasLabel.setShadow(1, 1, '#000000', 2, false, true);
-    this.uiContainer.add(landasLabel);
-    
-    // Enhanced meter background with gradient
-    const meterBg = this.add.graphics();
-    meterBg.fillGradientStyle(0x0a0a0a, 0x0a0a0a, 0x000000, 0x000000, 0.95);
-    meterBg.lineStyle(2, 0x666666, 0.8);
-    meterBg.fillRoundedRect(x, y, width, height, 6);
-    meterBg.strokeRoundedRect(x, y, width, height, 6);
-    
-    // Add inner border for depth
-    const innerBorder = this.add.graphics();
-    innerBorder.lineStyle(1, 0x444444, 0.5);
-    innerBorder.strokeRoundedRect(x + 1, y + 1, width - 2, height - 2, 5);
-    
-    this.uiContainer.add([meterBg, innerBorder]);
-    
-    // Enhanced gradient meter fill with smoother transition
-    const gradientFill = this.add.graphics();
-    // Conquest side with enhanced red gradient
-    gradientFill.fillGradientStyle(0xff0000, 0xdc143c, 0xb71c1c, 0x8b0000, 0.7);
-    gradientFill.fillRoundedRect(x + 2, y + 2, (width - 4) / 2, height - 4, 4);
-    
-    // Mercy side with enhanced blue gradient
-    gradientFill.fillGradientStyle(0x0080ff, 0x1e90ff, 0x4169e1, 0x0047ab, 0.7);
-    gradientFill.fillRoundedRect(x + 2 + (width - 4) / 2, y + 2, (width - 4) / 2, height - 4, 4);
-    
-    this.uiContainer.add(gradientFill);
-    
-    // Enhanced indicator line with glow effect
-    this.landasMeterIndicator = this.add.graphics();
-    this.landasMeterIndicator.lineStyle(3, 0xffffff, 1);
-    this.landasMeterIndicator.beginPath();
-    this.landasMeterIndicator.moveTo(x + width / 2, y);
-    this.landasMeterIndicator.lineTo(x + width / 2, y + height);
-    this.landasMeterIndicator.closePath();
-    this.landasMeterIndicator.strokePath();
-    
-    // Add glow effect to indicator
-    const indicatorGlow = this.add.graphics();
-    indicatorGlow.lineStyle(1, 0xffffff, 0.4);
-    indicatorGlow.beginPath();
-    indicatorGlow.moveTo(x + width / 2, y);
-    indicatorGlow.lineTo(x + width / 2, y + height);
-    indicatorGlow.closePath();
-    indicatorGlow.strokePath();
-    
-    this.uiContainer.add([this.landasMeterIndicator, indicatorGlow]);
-    
-    // Enhanced labels with better positioning and smaller font
-    const conquestLabel = this.add.text(x + 8, y + height / 2, "CONQUEST", {
-      fontFamily: "dungeon-mode",
-      fontSize: "8px",
-      color: "#ff6b6b",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    conquestLabel.setShadow(1, 1, '#000000', 1, false, true);
-    
-    const mercyLabel = this.add.text(x + width - 8, y + height / 2, "MERCY", {
-      fontFamily: "dungeon-mode",
-      fontSize: "8px",
-      color: "#74c0fc",
-      fontStyle: "bold"
-    }).setOrigin(1, 0.5);
-    mercyLabel.setShadow(1, 1, '#000000', 1, false, true);
-    
-    this.uiContainer.add([conquestLabel, mercyLabel]);
-    
-    // Enhanced value text - positioned in center
-    this.landasText = this.add.text(x + width / 2, y + height / 2, "0", {
-      fontFamily: "dungeon-mode",
-      fontSize: "10px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0.5, 0.5);
-    this.landasText.setShadow(1, 1, '#000000', 2, false, true);
-    this.uiContainer.add(this.landasText);
-  }
-
-
-
-  /**
-   * Create a small button for potion actions with consistent square design
-   */
-  private createSmallPotionButton(x: number, y: number, text: string, color: number, callback: () => void): Phaser.GameObjects.Container {
-    const button = this.add.container(x, y);
-    
-    const buttonSize = 12;
-    const background = this.add.graphics();
-    background.fillStyle(color, 0.8);
-    background.lineStyle(1, 0xffffff, 0.6);
-    background.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 2);
-    background.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 2);
-    
-    const buttonText = this.add.text(0, 0, text, {
-      fontFamily: 'dungeon-mode',
-      fontSize: '7px',
-      color: '#ffffff',
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    button.add([background, buttonText]);
-    button.setInteractive(new Phaser.Geom.Rectangle(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize), Phaser.Geom.Rectangle.Contains);
-    
-    button.on('pointerdown', callback);
-    button.on('pointerover', () => {
-      background.clear();
-      background.fillStyle(color, 0.95);
-      background.lineStyle(1, 0xffffff, 0.8);
-      background.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 2);
-      background.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 2);
-      buttonText.setColor('#ffff00');
-    });
-    button.on('pointerout', () => {
-      background.clear();
-      background.fillStyle(color, 0.8);
-      background.lineStyle(1, 0xffffff, 0.6);
-      background.fillRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 2);
-      background.strokeRoundedRect(-buttonSize/2, -buttonSize/2, buttonSize, buttonSize, 2);
-      buttonText.setColor('#ffffff');
-    });
-    
-    return button;
-  }
-
-  /**
-   * Create tooltip for items (relics, potions) in refined game-like style
-   */
-  private createItemTooltip(targetObject: Phaser.GameObjects.Text, title: string, description: string): void {
-    const tooltip = this.add.container(0, 0).setVisible(false).setDepth(2000);
-    const tooltipBg = this.add.graphics();
-    tooltipBg.fillStyle(0x000000, 0.85);
-    tooltipBg.lineStyle(0.5, 0x555555);
-    
-    const tooltipText = this.add.text(0, 0, `${title}\n${description}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: "9px",
-      color: "#ffffff",
-      wordWrap: { width: 160 },
-      align: "center"
-    }).setOrigin(0.5);
-    
-    const bounds = tooltipText.getBounds();
-    tooltipBg.fillRoundedRect(-bounds.width/2 - 6, -bounds.height/2 - 3, bounds.width + 12, bounds.height + 6, 3);
-    tooltipBg.strokeRoundedRect(-bounds.width/2 - 6, -bounds.height/2 - 3, bounds.width + 12, bounds.height + 6, 3);
-    
-    tooltip.add([tooltipBg, tooltipText]);
-    this.uiContainer.add(tooltip);
-    
-    targetObject.on('pointerover', () => {
-      const globalPos = targetObject.getWorldTransformMatrix();
-      tooltip.setPosition(globalPos.tx + 20, globalPos.ty - 20);
-      tooltip.setVisible(true);
-    });
-    
-    targetObject.on('pointerout', () => {
-      tooltip.setVisible(false);
-    });
-  }
-
-  /**
-   * Use a potion
-   */
-  private usePotion(index: number): void {
-    const playerData = this.getPlayerData();
-    if (index >= 0 && index < playerData.potions.length) {
-      const potion = playerData.potions[index];
-      console.log(`Using potion: ${potion.name}`);
-      
-      // Apply potion effects here
-      switch (potion.effect) {
-        case "draw_3_cards":
-          console.log("Would draw 3 cards");
-          break;
-        case "gain_15_block":
-          console.log("Would gain 15 block");
-          break;
-        default:
-          console.log(`Unknown potion effect: ${potion.effect}`);
-      }
-      
-      // Remove potion after use
-      playerData.potions.splice(index, 1);
-      this.updateOverworldUI();
-    }
-  }
-
-  /**
-   * Discard a potion
-   */
-  private discardPotion(index: number): void {
-    const playerData = this.getPlayerData();
-    if (index >= 0 && index < playerData.potions.length) {
-      const potion = playerData.potions[index];
-      console.log(`Discarding potion: ${potion.name}`);
-      
-      // Remove potion
-      playerData.potions.splice(index, 1);
-      this.updateOverworldUI();
-    }
-  }
-
-
-
-  /**
-   * Create relics display
-   */
 
 
 
 
-  /**
-   * Update all overworld UI elements
-   */
-  private updateOverworldUI(): void {
-    this.updateHealthBar();
-    this.updateCurrencyDisplay();
-    this.updateLandasDisplay();
-    this.updateRelicsDisplay();
-    this.updatePotionsDisplay();
-  }
 
-  /**
-   * Update health bar display with heart-shaped elements and consistent square design
-   */
-  private updateHealthBar(): void {
-    const playerData = this.getPlayerData();
-    const healthPercent = playerData.currentHealth / playerData.maxHealth;
-    
-    this.healthBar.clear();
-    
-    // Modern health bar position calculation - updated to match new layout
-    const panelX = 20;
-    const panelWidth = 320;
-    const screenHeight = this.cameras.main.height;
-    const panelHeight = Math.min(screenHeight - 40, 720);
-    const panelY = screenHeight / 2 - panelHeight / 2;
-    
-    const healthSectionY = panelY + 70; // After header with organized spacing
-    const barX = panelX + 20; // Health section x position
-    const barY = healthSectionY + 40; // Health bar y position within section (adjusted from 50 to 40)
-    const barWidth = panelWidth - 50; // Available width for health bar
-    const barHeight = 12; // Modern thin health bar
-    
-    // Modern health color progression
-    let healthColor = 0x2ecc71; // Modern green
-    
-    if (healthPercent < 0.75) {
-      healthColor = 0x27ae60; // Darker green
-    }
-    if (healthPercent < 0.5) {
-      healthColor = 0xf39c12; // Orange
-    }
-    if (healthPercent < 0.25) {
-      healthColor = 0xe74c3c; // Modern red
-    }
-    
-    // Draw modern health bar fill with rounded corners
-    const fillWidth = barWidth * healthPercent;
-    if (fillWidth > 4) {
-      this.healthBar.fillStyle(healthColor, 1.0);
-      this.healthBar.fillRoundedRect(barX, barY, fillWidth, barHeight, 6);
-      
-      // Add subtle glow effect for low health
-      if (healthPercent < 0.25) {
-        this.healthBar.fillStyle(healthColor, 0.3);
-        this.healthBar.fillRoundedRect(barX - 2, barY - 1, fillWidth + 4, barHeight + 2, 7);
-      }
-    }
-    
-    // Update health text - maintain center alignment
-    this.healthText.setText(`${playerData.currentHealth}/${playerData.maxHealth}`);
-    
-    // Modern low health effects
-    if (healthPercent < 0.25) {
-      this.healthText.setShadow(1, 1, '#e74c3c', 2, false, true);
-    } else {
-      this.healthText.setShadow(2, 2, '#000000', 2, false, true);
-      this.tweens.killTweensOf(this.healthText);
-      this.healthText.setScale(1, 1);
-    }
-  }
 
-  /**
-   * Update currency display
-   */
-  private updateCurrencyDisplay(): void {
-    const playerData = this.getPlayerData();
-    this.currencyText.setText(`${playerData.ginto}`);
-    this.diamanteText.setText(`${playerData.diamante}`);
-  }
 
-  /**
-   * Update Landás score display
-   */
-  private updateLandasDisplay(): void {
-    const playerData = this.getPlayerData();
-    const score = playerData.landasScore;
-    let color = "#9370db";
-    
-    if (score >= 5) {
-      color = "#87ceeb";
-    } else if (score <= -5) {
-      color = "#ff6347";
-    }
-    
-    // Update the meter indicator position based on score
-    // Score ranges from -10 to +10, map to 0-250 (meter width)
-    const meterWidth = 250;
-    // Calculate dynamic coordinates matching the layout
-    const screenHeight = this.cameras.main.height;
-    const panelHeight = 700;
-    const panelY = screenHeight / 2 - panelHeight / 2;
-    const meterX = 45; // panelX + 20 + 5 = 20 + 20 + 5 = 45
-    const meterY = panelY + 60 + 148 + 10; // panelY + health section offset + landas meter offset + padding
-    const normalizedScore = (score + 10) / 20; // Normalize to 0-1
-    const indicatorX = meterX + (normalizedScore * meterWidth);
-    
-    // Update indicator position
-    if (this.landasMeterIndicator) {
-      this.landasMeterIndicator.clear();
-      this.landasMeterIndicator.lineStyle(3, 0xffffff, 1);
-      this.landasMeterIndicator.beginPath();
-      this.landasMeterIndicator.moveTo(indicatorX, meterY);
-      this.landasMeterIndicator.lineTo(indicatorX, meterY + 20);
-      this.landasMeterIndicator.closePath();
-      this.landasMeterIndicator.strokePath();
-    }
-    
-    // Update text display
-    this.landasText.setText(`${score >= 0 ? '+' : ''}${score}`);
-    this.landasText.setColor(color);
-  }
 
-  /**
-   * Update relics display with modern Persona-style design
-   */
-  private updateRelicsDisplay(): void {
-    const playerData = this.getPlayerData();
-    console.log('🎯 updateRelicsDisplay called with', playerData.relics.length, 'relics');
-    console.log('🎯 Player relics:', playerData.relics.map((r: any) => r.name || r.id));
-    this.relicsContainer.removeAll(true);
-    
-    const slotSize = 45; // Match the slot size from createModernRelicsSection
-    const slotSpacing = 12; // Slightly reduced spacing to better fit
-    const slotsPerRow = 4;
-    const maxRelics = 8; // 4x2 grid
-    
-    // Position relics relative to the container (which is already at gridStartX, gridStartY)
-    // No offset needed since container is positioned correctly
-    
-    for (let i = 0; i < Math.min(playerData.relics.length, maxRelics); i++) {
-      const relic = playerData.relics[i];
-      const row = Math.floor(i / slotsPerRow);
-      const col = i % slotsPerRow;
+
+
+
+
+
+
+
       
-      // Position relative to container origin - matches slot positioning exactly
-      const relicX = col * (slotSize + slotSpacing);
-      const relicY = row * (slotSize + slotSpacing);
+
       
-      // Create modern Persona-style relic container
-      const relicContainer = this.add.container(relicX, relicY);
-      // Don't set depth here - let it inherit from parent uiContainer
+
+
       
-      // Relic background with modern gradient (no border)
-      const relicBg = this.add.graphics();
-      relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
-      relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
+
+
+
       
-      // Inner glow effect (subtle, no blue)
-      const innerGlow = this.add.graphics();
-      innerGlow.lineStyle(1, 0x333344, 0.4);
-      innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
+
+
+
+
       
-      // Relic icon with size adjusted for 45px slots
-      const relicIcon = this.add.text(slotSize/2, slotSize/2, relic.emoji, {
-        fontSize: "24px", // Reduced to fit better in 45px slots
-        align: "center"
-      }).setOrigin(0.5);
-      relicIcon.setShadow(1, 1, '#000000', 2, false, true);
+
       
-      relicContainer.add([relicBg, innerGlow, relicIcon]);
+
       
-      // Create hover tooltip container (initially hidden)
-      const tooltipContainer = this.add.container(slotSize/2, -50);
-      
-      const tooltipBg = this.add.graphics();
-      tooltipBg.fillStyle(0x0a0a0a, 0.95);
-      tooltipBg.lineStyle(2, 0x00d4ff, 1);
-      
-      const tooltipText = this.add.text(0, 0, relic.name, {
-        fontFamily: "dungeon-mode",
-        fontSize: "12px", // Better readable size
-        color: "#00d4ff",
-        fontStyle: "bold",
-        align: "center"
-      }).setOrigin(0.5);
-      tooltipText.setShadow(1, 1, '#000000', 2, false, true);
-      
-      // Dynamically size tooltip based on text
-      const textBounds = tooltipText.getBounds();
-      const tooltipWidth = Math.max(textBounds.width + 16, 80);
-      const tooltipHeight = textBounds.height + 12;
-      
-      tooltipBg.fillRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 6);
-      tooltipBg.strokeRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 6);
-      
-      tooltipContainer.add([tooltipBg, tooltipText]);
-      tooltipContainer.setVisible(false);
-      tooltipContainer.setAlpha(0);
-      
-      relicContainer.add(tooltipContainer);
-      
-      // Make the entire container interactive with proper hit area
-      relicContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
-      
-      // Debug: Log interactive setup
-      console.log('🎯 Setting up interactive for:', relic.name, {
-        position: { x: relicX, y: relicY },
-        hitArea: { width: slotSize, height: slotSize },
-        inputEnabled: relicContainer.input?.enabled,
-        depth: relicContainer.depth
-      });
-      
-      // Enable input events
-      relicContainer.input!.enabled = true;
-      
-      // Set proper interactivity for the relic container
-      relicContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
-      relicContainer.setScrollFactor(0); // Ensure container stays screen-fixed
-      relicContainer.setDepth(15); // Higher than slots but lower than tooltips
-      
-      console.log(`🎯 Making relic container interactive at (${relicX}, ${relicY}) with size ${slotSize}x${slotSize}`);
-      relicContainer.on('pointerover', () => {
-        console.log('🔥 Relic hover START:', relic.name);
-        
-        // Enhanced background on hover
-        relicBg.clear();
-        relicBg.fillGradientStyle(0x2a2a4e, 0x2a2a4e, 0x1f2439, 0x1f2439, 1);
-        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-        
-        // Scale animation
-        this.tweens.add({
-          targets: relicContainer,
-          scale: 1.1,
-          duration: 200,
-          ease: 'Back.easeOut'
-        });
-        
-        // Show tooltip
-        const tooltipY = -60;
-        tooltipContainer.setPosition(slotSize/2, tooltipY);
-        tooltipContainer.setVisible(true);
-        this.tweens.add({
-          targets: tooltipContainer,
-          alpha: 1,
-          duration: 200,
-          ease: 'Back.easeOut'
-        });
-        
-        this.input.setDefaultCursor('pointer');
-      });
-      
-      relicContainer.on('pointerout', () => {
-        console.log('❄️ Relic hover END:', relic.name);
-        
-        // Restore original background
-        relicBg.clear();
-        relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
-        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-        
-        // Scale back to normal
-        this.tweens.add({
-          targets: relicContainer,
-          scale: 1,
-          duration: 200,
-          ease: 'Power2'
-        });
-        
-        // Hide tooltip
-        this.tweens.add({
-          targets: tooltipContainer,
-          alpha: 0,
-          duration: 200,
-          ease: 'Power2',
-          onComplete: () => {
-            tooltipContainer.setVisible(false);
-          }
-        });
-        
-        this.input.setDefaultCursor('default');
-      });
-      
-      relicContainer.on('pointerdown', () => {
-        console.log('�️ Relic CLICKED:', relic.name);
-        this.showRelicDetails(relic);
-      });
-      
-      // Modern hover effects
-      relicContainer.on('pointerover', () => {
-        console.log('🔥 Relic hover START:', relic.name, 'at position:', relicX, relicY); // Enhanced debug log
-        
-        // Enhanced background on hover (no blue border)
-        relicBg.clear();
-        relicBg.fillGradientStyle(0x2a2a4e, 0x2a2a4e, 0x1f2439, 0x1f2439, 1);
-        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-        
-        // Enhanced glow (subtle highlight)
-        innerGlow.clear();
-        innerGlow.lineStyle(2, 0x555566, 0.8);
-        innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        
-        // Scale animation
-        this.tweens.add({
-          targets: relicContainer,
-          scale: 1.1,
-          duration: 200,
-          ease: 'Back.easeOut'
-        });
-        
-        // Position tooltip above the relic
-        tooltipContainer.y = -tooltipHeight - 10;
-        
-        // Show tooltip with fade in and slide up animation
-        tooltipContainer.setVisible(true);
-        tooltipContainer.y += 10; // Start slightly below the final position
-        this.tweens.add({
-          targets: tooltipContainer,
-          alpha: 1,
-          y: -tooltipHeight - 10,
-          duration: 200,
-          ease: 'Back.easeOut'
-        });
-        
-        // Change cursor
-        this.input.setDefaultCursor('pointer');
-      });
-      
-      relicContainer.on('pointerout', () => {
-        console.log('❄️ Relic hover END:', relic.name); // Enhanced debug log
-        
-        // Restore original background (no blue border)
-        relicBg.clear();
-        relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
-        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-        
-        // Restore glow (subtle)
-        innerGlow.clear();
-        innerGlow.lineStyle(1, 0x333344, 0.4);
-        innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        
-        // Scale back to normal
-        this.tweens.add({
-          targets: relicContainer,
-          scale: 1,
-          duration: 200,
-          ease: 'Power2'
-        });
-        
-        // Hide tooltip with fade out and slide down animation
-        this.tweens.add({
-          targets: tooltipContainer,
-          alpha: 0,
-          y: -tooltipHeight,
-          duration: 200,
-          ease: 'Power2',
-          onComplete: () => {
-            tooltipContainer.setVisible(false);
-          }
-        });
-        
-        // Reset cursor
-        this.input.setDefaultCursor('default');
-      });
+
+
       
       
       // Removed duplicate click handler - keeping the main one at the end
       
-      // Debug: Add visual indicator that container is interactive
-      relicContainer.on('pointerup', () => {
-        console.log('✋ Relic pointer UP:', relic.name);
-      });
-      
-      // Add simple test event to verify input works at all
-      relicContainer.on('pointermove', () => {
-        console.log('🚀 BASIC MOVE EVENT for:', relic.name);
-      });
-      
-      // Add subtle debug border to show interactive area (can be removed later)
-      const debugBorder = this.add.graphics();
-      debugBorder.lineStyle(1, 0x00ff00, 0.3);
-      debugBorder.strokeRoundedRect(0, 0, slotSize, slotSize, 8);
-      relicContainer.add(debugBorder);
-      
-      // Calculate world position for debugging
-      const worldPos = relicContainer.parentContainer ? 
-        relicContainer.parentContainer.getWorldTransformMatrix().transformPoint(relicX, relicY) :
-        { x: relicX, y: relicY };
-      
-      console.log('✅ Created interactive relic:', relic.name, {
-        localPos: { x: relicX, y: relicY },
-        worldPos: worldPos,
-        containerDepth: relicContainer.depth,
-        parentDepth: this.relicsContainer.depth,
-        uiContainerDepth: this.uiContainer.depth,
-        inputEnabled: relicContainer.input?.enabled
-      });
-      
-      this.relicsContainer.add(relicContainer);
-    }
-  }
 
-  /**
-   * Update potions display in bottom action slots
-   */
-  private updatePotionsDisplay(): void {
-    this.potionsContainer.removeAll(true);
-    
-    // Match the calculations from createModernPotionsSection
-    const slotSize = 40;
-    const slotSpacing = 18;
-    const maxPotions = 3;
-    
-    const playerData = this.getPlayerData();
-    for (let i = 0; i < Math.min(playerData.potions.length, maxPotions); i++) {
-      const potion = playerData.potions[i];
-      const potionX = i * (slotSize + slotSpacing);
-      const potionY = 0;
+
       
-      // Create potion container
-      const potionContainer = this.add.container(potionX, potionY);
+
+
       
-      // Potion background (slightly smaller than slot to create padding effect)
-      const potionBg = this.add.graphics();
-      potionBg.fillStyle(0x000000, 0.6);
-      potionBg.lineStyle(1, 0x555555, 0.8);
-      potionBg.fillRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-      potionBg.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
+
       
-      // Potion icon - centered in the slot
-      const potionIcon = this.add.text(slotSize/2, slotSize/2, "🧪", {
-        fontSize: "20px",
-        align: "center"
-      }).setOrigin(0.5);
-      
-      potionContainer.add([potionBg, potionIcon]);
-      
-      // Make interactive for tooltip and actions
-      potionContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
-      this.createItemTooltip(potionIcon, potion.name, potion.description);
-      
-      // Add hover effects
-      potionContainer.on('pointerover', () => {
-        potionBg.clear();
-        potionBg.fillStyle(0x333333, 0.8);
-        potionBg.lineStyle(2, 0x44aa44, 1);
-        potionBg.fillRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        potionBg.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        
-        // Scale up on hover
-        this.tweens.add({
-          targets: potionContainer,
-          scale: 1.1,
-          duration: 150,
-          ease: 'Power2'
-        });
-      });
-      
-      potionContainer.on('pointerout', () => {
-        potionBg.clear();
-        potionBg.fillStyle(0x000000, 0.6);
-        potionBg.lineStyle(1, 0x555555, 0.8);
-        potionBg.fillRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        potionBg.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        
-        // Scale back to normal
-        this.tweens.add({
-          targets: potionContainer,
-          scale: 1,
-          duration: 150,
-          ease: 'Power2'
-        });
-      });
-      
-      // Add use/discard buttons
-      const useButton = this.createSmallPotionButton(
-        potionX + slotSize - 8,
-        potionY + 8,
-        "U",
-        0x00aa00,
-        () => this.usePotion(i)
-      );
-      
-      const discardButton = this.createSmallPotionButton(
-        potionX + slotSize - 8,
-        potionY + 24,
-        "D",
-        0xaa0000,
-        () => this.discardPotion(i)
-      );
-      
-      this.potionsContainer.add([potionContainer, useButton, discardButton]);
-    }
-    
-    // Update discard charges display
-    if (this.discardText) {
-      const playerData = this.getPlayerData();
-      this.discardText.setText(`${playerData.discardCharges || 1}/${playerData.maxDiscardCharges || 1}`);
-    }
-  }
+
+
 
 
 
@@ -2039,7 +1039,9 @@ export class Overworld extends Scene {
 
   /**
    * Show detailed relic information in a popup similar to shop style
+   * @deprecated This method is unused - UI functionality moved to UIManager
    */
+  // @ts-ignore - method unused but kept for reference
   private showRelicDetails(relic: any): void {
     // Prevent multiple detail windows from opening
     if ((this as any).relicDetailsOpen) {
@@ -2590,14 +1592,14 @@ export class Overworld extends Scene {
     const colors = this.getNodeColorScheme(nodeType);
     
     // Update tooltip content with node-specific colors
-    this.tooltipNameText.setText(nodeInfo.name);
-    this.tooltipNameText.setColor(colors.name);
+    this.tooltipNameText?.setText(nodeInfo.name);
+    this.tooltipNameText?.setColor(colors.name);
     
-    this.tooltipTypeText.setText(nodeInfo.type.toUpperCase());
-    this.tooltipTypeText.setColor(colors.type);
+    this.tooltipTypeText?.setText(nodeInfo.type.toUpperCase());
+    this.tooltipTypeText?.setColor(colors.type);
     
     // Clear previous sprite and add new one
-    this.tooltipSpriteContainer.removeAll(true);
+    this.tooltipSpriteContainer?.removeAll(true);
     if (nodeInfo.spriteKey) {
       const sprite = this.add.sprite(0, 0, nodeInfo.spriteKey);
       sprite.setOrigin(0.5, 0.5);
@@ -2612,14 +1614,14 @@ export class Overworld extends Scene {
         sprite.play(nodeInfo.animationKey);
       }
       
-      this.tooltipSpriteContainer.add(sprite);
+      this.tooltipSpriteContainer?.add(sprite);
     }
     
-    this.tooltipStatsText.setText(nodeInfo.stats || "");
-    this.tooltipStatsText.setColor(colors.stats);
+    this.tooltipStatsText?.setText(nodeInfo.stats || "");
+    this.tooltipStatsText?.setColor(colors.stats);
     
-    this.tooltipDescriptionText.setText(nodeInfo.description);
-    this.tooltipDescriptionText.setColor(colors.description);
+    this.tooltipDescriptionText?.setText(nodeInfo.description);
+    this.tooltipDescriptionText?.setColor(colors.description);
     
     // Update size and position immediately
     this.updateTooltipSizeAndPositionImmediate(mouseX, mouseY);
