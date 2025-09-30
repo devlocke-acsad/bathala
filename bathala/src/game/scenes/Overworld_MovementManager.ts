@@ -1,3 +1,54 @@
+/**
+ * OVERWORLD MOVEMENT MANAGER
+ * ==========================
+ * 
+ * Handles all player movement, input processing, and enemy AI movement systems
+ * within the Overworld scene. This manager ensures smooth, grid-based movement
+ * with proper collision detection and interactive gameplay elements.
+ * 
+ * CORE RESPONSIBILITIES:
+ * • Player input handling (keyboard: WASD, arrows, special keys)
+ * • Grid-based movement system with animation support
+ * • Collision detection with maze walls and boundaries
+ * • Enemy AI movement during nighttime phases
+ * • Movement state management and transition handling
+ * • Debug input commands for testing and development
+ * 
+ * PLAYER MOVEMENT FEATURES:
+ * • Smooth grid-based movement (32px grid system)
+ * • Direction-aware sprite animations (walk/idle states)
+ * • Collision detection with procedurally generated maze walls
+ * • Movement blocking during scene transitions
+ * • Position validation against maze geometry
+ * • Interactive node detection and collision handling
+ * 
+ * INPUT SYSTEM:
+ * • Arrow keys and WASD for directional movement
+ * • Enter key for node interaction
+ * • M key for quick shop access
+ * • Debug keys (P for action boost, C for combat test)
+ * • Mouse tracking for UI interaction support
+ * • Input state management for scene transitions
+ * 
+ * ENEMY AI MOVEMENT:
+ * • Nighttime enemy pursuit behavior
+ * • Distance-based movement speed calculation
+ * • Enhanced AI with multiple movement strategies
+ * • Elite enemy movement bonuses
+ * • Collision-aware pathfinding
+ * • Staggered multi-step movement execution
+ * • Predictable movement patterns for gameplay balance
+ * 
+ * MOVEMENT VALIDATION:
+ * • Real-time maze collision detection
+ * • Chunk-based coordinate system handling
+ * • Grid alignment and boundary checking
+ * • Movement animation coordination
+ * 
+ * This manager ensures responsive player control while providing challenging
+ * but fair enemy AI behavior that enhances the exploration experience.
+ */
+
 import type { Overworld } from "./Overworld";
 import type { MapNode } from "../../core/types/MapTypes";
 import { MazeOverworldGenerator } from "../../utils/MazeOverworldGenerator";

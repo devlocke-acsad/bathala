@@ -1,3 +1,62 @@
+/**
+ * OVERWORLD MAZE GENERATION MANAGER
+ * =================================
+ * 
+ * Manages procedural world generation, chunk-based rendering, and node placement
+ * for the Overworld scene. This manager creates the explorable world that players
+ * navigate, ensuring smooth performance and engaging exploration experiences.
+ * 
+ * CORE RESPONSIBILITIES:
+ * • Procedural maze generation using chunk-based system
+ * • Dynamic chunk loading and unloading for performance
+ * • Interactive node placement and management
+ * • Sprite rendering and animation for world objects
+ * • Position validation and collision detection
+ * • World initialization for new games
+ * 
+ * CHUNK SYSTEM:
+ * • Dynamic chunk generation based on camera position
+ * • Efficient memory management with chunk cleanup
+ * • Seamless world streaming for infinite exploration
+ * • Grid-based coordinate system (32px grid cells)
+ * • Optimized rendering for visible areas only
+ * 
+ * NODE MANAGEMENT:
+ * • Strategic placement of interactive nodes
+ * • Node type variety (combat, elite, boss, shop, campfire, treasure, events)
+ * • Sprite creation and animation coordination
+ * • Interactive hover effects and tooltip integration
+ * • Node removal after interaction completion
+ * 
+ * WORLD GENERATION:
+ * • Maze-based pathfinding ensuring connected areas
+ * • Balanced distribution of different node types
+ * • Progressive difficulty scaling based on player progress
+ * • Procedural variety ensuring unique exploration each playthrough
+ * 
+ * RENDERING SYSTEM:
+ * • Graphics-based maze wall and floor rendering
+ * • Sprite-based node visualization with animations
+ * • Depth management for proper layering
+ * • Performance optimization through selective rendering
+ * • Visual theming matching game atmosphere
+ * 
+ * INTERACTION SYSTEMS:
+ * • Node proximity detection for player interaction
+ * • Hover effects with smooth scaling animations
+ * • Mouse event handling and tooltip coordination
+ * • Interactive feedback for player engagement
+ * 
+ * POSITION VALIDATION:
+ * • Real-time collision detection with maze geometry
+ * • Coordinate conversion between world and chunk systems
+ * • Boundary checking and movement validation
+ * • Grid alignment enforcement for consistent movement
+ * 
+ * This manager creates the foundation for exploration gameplay,
+ * providing a dynamic, performant world that feels alive and engaging.
+ */
+
 import type { Overworld } from "./Overworld";
 import { MazeOverworldGenerator } from "../../utils/MazeOverworldGenerator";
 import { MapNode } from "../../core/types/MapTypes";

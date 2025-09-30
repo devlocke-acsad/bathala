@@ -1,3 +1,47 @@
+/**
+ * OVERWORLD UI MANAGER
+ * ===================
+ * 
+ * Manages all user interface elements and visual feedback systems for the Overworld scene.
+ * This manager handles the complex UI requirements of the overworld exploration experience,
+ * providing players with essential information and interactive elements.
+ * 
+ * CORE RESPONSIBILITIES:
+ * • Player status display (health, currency, relics, potions)
+ * • Day/night cycle visual indicators and progress tracking
+ * • Boss encounter countdown and visual effects
+ * • Interactive tooltip system for world objects and enemies
+ * • Test/debug button management for development
+ * • Scene transition visual effects and overlays
+ * • Responsive UI that adapts to screen resizing
+ * 
+ * UI COMPONENTS:
+ * • Compact left panel with player stats and inventory
+ * • Dynamic health bar with visual feedback
+ * • Currency display (Ginto/Diamante) with real-time updates
+ * • Landás morality meter with visual alignment indicators
+ * • Relic showcase with detailed information tooltips
+ * • Potions quick-access bar with usage tracking
+ * • Day/night progress bar with atmospheric overlay effects
+ * • Boss encounter warning system with dramatic effects
+ * 
+ * TOOLTIP SYSTEM:
+ * • Context-aware tooltips for enemies, nodes, and items
+ * • Dynamic positioning to stay within screen bounds
+ * • Rich content display with stats, descriptions, and lore
+ * • Smooth show/hide animations with proper state management
+ * • Mouse tracking for optimal tooltip placement
+ * 
+ * VISUAL EFFECTS:
+ * • Night overlay with atmospheric darkening
+ * • Boss appearance dramatic effects with screen shakes
+ * • Smooth UI animations and transitions
+ * • Responsive feedback for player interactions
+ * 
+ * This manager ensures the UI provides all necessary information while maintaining
+ * clean visual design and smooth user experience throughout world exploration.
+ */
+
 import type { Overworld } from "./Overworld";
 import { GameState } from "../../core/managers/GameState";
 

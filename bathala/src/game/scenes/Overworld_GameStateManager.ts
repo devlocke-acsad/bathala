@@ -1,3 +1,59 @@
+/**
+ * OVERWORLD GAME STATE MANAGER
+ * ============================
+ * 
+ * Manages all game state persistence, scene transitions, and player data
+ * for the Overworld scene. This manager ensures seamless state management
+ * across scene transitions and maintains data integrity throughout gameplay.
+ * 
+ * CORE RESPONSIBILITIES:
+ * • Player data initialization and persistence
+ * • Game state synchronization between scenes
+ * • Combat encounter setup and enemy selection
+ * • Scene transition management and data passing
+ * • Boss encounter triggering and special effects
+ * • Player position saving and restoration
+ * • Cross-scene data integrity maintenance
+ * 
+ * PLAYER DATA MANAGEMENT:
+ * • Default player stats initialization
+ * • Saved state restoration from previous sessions
+ * • Real-time player data updates and synchronization
+ * • Health, currency, relics, and potions tracking
+ * • Landás morality score management
+ * • Deck state and card collection persistence
+ * 
+ * SCENE TRANSITION SYSTEM:
+ * • Combat scene launching with proper enemy data
+ * • Shop, campfire, and treasure scene coordination
+ * • Player position preservation across transitions
+ * • Scene pause/resume state management
+ * • Data payload preparation for target scenes
+ * • Transition animation coordination
+ * 
+ * COMBAT ENCOUNTER MANAGEMENT:
+ * • Enemy selection based on node types and player progress
+ * • Boss encounter detection and triggering
+ * • Combat difficulty scaling and enemy rotation
+ * • Special encounter effects and transitions
+ * • Dramatic boss appearance animations
+ * 
+ * BOSS ENCOUNTER SYSTEM:
+ * • Action threshold tracking for boss appearance
+ * • Epic boss transition effects with camera manipulation
+ * • Multi-stage dramatic reveal animations
+ * • Boss combat data preparation and launch
+ * 
+ * STATE PERSISTENCE:
+ * • Position saving before scene transitions
+ * • Player data backup and restoration
+ * • Scene resume handling with state validation
+ * • Cross-scene communication protocols
+ * 
+ * This manager ensures smooth gameplay flow and maintains consistent
+ * player progression throughout the entire game experience.
+ */
+
 import type { Overworld } from "./Overworld";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { GameState } from "../../core/managers/GameState";

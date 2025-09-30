@@ -12,11 +12,58 @@ import {
 } from "../../data/lore/EnemyLore";
 
 /**
- * Manages core gameplay mechanics for the Overworld scene including:
- * - Node interactions and scene transitions
- * - Player progression and game flow
- * - Game data and metadata for UI systems
- * - Combat initiation and special encounters
+ * OVERWORLD GAME MECHANIC MANAGER
+ * ===============================
+ * 
+ * Manages all core gameplay mechanics, node interactions, and game rules
+ * for the Overworld scene. This manager handles the interactive elements
+ * that drive gameplay progression and player engagement.
+ * 
+ * CORE RESPONSIBILITIES:
+ * • Node interaction detection and handling
+ * • Scene transition coordination for all node types
+ * • Combat encounter initiation and enemy selection
+ * • Game data provision for UI systems and tooltips
+ * • Player progression validation and flow control
+ * • Special encounter management (boss fights, events)
+ * 
+ * NODE INTERACTION SYSTEM:
+ * • Proximity-based interaction detection
+ * • Context-sensitive node behavior based on type
+ * • Automatic node cleanup after interaction
+ * • Scene transition coordination with proper data passing
+ * • Visual feedback coordination with UI manager
+ * 
+ * SUPPORTED NODE TYPES:
+ * • Combat nodes - Regular enemy encounters
+ * • Elite nodes - Challenging enemies with better rewards
+ * • Boss nodes - Climactic encounters with dramatic effects
+ * • Shop nodes - Merchant interactions for buying/selling
+ * • Campfire nodes - Rest and card upgrade opportunities
+ * • Treasure nodes - Reward chests with valuable items
+ * • Event nodes - Random encounters and story moments
+ * 
+ * GAME DATA SERVICES:
+ * • Node color schemes for consistent UI theming
+ * • Enemy information with stats, abilities, and lore
+ * • Node metadata for tooltip generation
+ * • Relic lore and description services
+ * • Dynamic content generation based on game state
+ * 
+ * ENEMY DATABASE MANAGEMENT:
+ * • Comprehensive enemy data for all encounter types
+ * • Difficulty-appropriate enemy selection algorithms
+ * • Boss encounter special data and mechanics
+ * • Lore integration for rich storytelling experience
+ * 
+ * GAMEPLAY FLOW CONTROL:
+ * • Interaction validation and state checking
+ * • Progressive difficulty and encounter scaling
+ * • Special encounter triggers and conditions
+ * • Cross-scene data integrity maintenance
+ * 
+ * This manager ensures engaging gameplay mechanics while maintaining
+ * clean separation between game rules and presentation logic.
  */
 export class OverworldGameMechanicManager {
   constructor(private readonly scene: Overworld) {}

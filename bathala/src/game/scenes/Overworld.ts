@@ -1,3 +1,40 @@
+/**
+ * OVERWORLD SCENE - Main Scene Coordinator
+ * =====================================
+ * 
+ * The Overworld scene serves as the primary hub of Bathala, managing the player's
+ * journey through a procedurally generated world filled with encounters, shops,
+ * treasures, and mysteries. This scene acts as a coordinator, delegating specific
+ * responsibilities to specialized manager classes for clean architecture.
+ * 
+ * ARCHITECTURE PATTERN:
+ * This scene implements a manager-based delegation pattern where all major
+ * functionality is handled by specialized managers:
+ * 
+ * • OverworldUIManager - All user interface elements, tooltips, and visual feedback
+ * • OverworldMovementManager - Player movement, input handling, and enemy AI movement
+ * • OverworldGameStateManager - Game state persistence, scene transitions, and data management
+ * • OverworldMazeGeneration - Procedural world generation, chunk management, and node placement
+ * • OverworldGameMechanicManager - Core gameplay mechanics, node interactions, and game rules
+ * 
+ * CORE RESPONSIBILITIES:
+ * • Scene lifecycle management (create, resume, update)
+ * • Manager coordination and initialization
+ * • Public API for cross-scene communication
+ * • Event handling and delegation to appropriate managers
+ * 
+ * GAMEPLAY FEATURES:
+ * • Procedural maze-based world exploration
+ * • Day/night cycle affecting enemy behavior
+ * • Various node types: combat, elite, boss, shop, campfire, treasure, events
+ * • Dynamic tooltip system for interactive elements
+ * • Persistent player progression and state management
+ * • Boss encounter triggers after set action thresholds
+ * 
+ * This scene maintains zero business logic and focuses purely on coordination,
+ * ensuring clean separation of concerns and maintainable code architecture.
+ */
+
 import { Scene } from "phaser";
 import { MapNode } from "../../core/types/MapTypes";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
@@ -80,8 +117,6 @@ export class Overworld extends Scene {
     this.uiManager?.updateUI();
   }
 
-  // No need for resume method since we handle state restoration in create()
-  
   /**
    * Called when the scene resumes from another scene
    */
@@ -132,9 +167,6 @@ export class Overworld extends Scene {
     this.movementManager?.setIsMoving(moving);
   }
 
-  /**
-   * Move player to a new position with animation
-   */
   // Movement methods now handled by OverworldMovementManager
 
   handleDayNightTransition(): void {
@@ -253,16 +285,7 @@ export class Overworld extends Scene {
     });
   }
 
-  /**
-   * Move enemy nodes toward the player during nighttime
-   */
   // Enemy movement methods now handled by OverworldMovementManager
-
-
-
-
-
-
 
   // Position validation now handled by OverworldMazeGeneration
   public isValidPosition(x: number, y: number): boolean {
@@ -310,92 +333,6 @@ export class Overworld extends Scene {
     // Delegate input handling to movement manager
     this.movementManager.handleInput();
   }
-
-  /**
-   * Create the overworld UI panel with health, relics, and potions
-   */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  /**
-   * Create grid-based inventory section (4x2 grid like reference image)
-   */
-
-
-  /**
-   * Create bottom actions section for potions and controls
-   */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      
-
-      
-
-
-      
-
-
-
-      
-
-
-
-
-      
-
-      
-
-      
-
-
-      
-      
-      // Removed duplicate click handler - keeping the main one at the end
-      
-
-
-      
-
-
-      
-
-      
-
-
-
-
-
-
-
-
-
-
 
   /**
    * Show detailed relic information in a popup similar to shop style
