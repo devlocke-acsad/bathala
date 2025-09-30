@@ -3,26 +3,19 @@ import { MapNode } from "../../core/types/MapTypes";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { GameState } from "../../core/managers/GameState";
 import { Player } from "../../core/types/CombatTypes";
-import { 
-  TIKBALANG, DWENDE, KAPRE, SIGBIN, TIYANAK,
-  MANANANGGAL, ASWANG, DUWENDE_CHIEF, BAKUNAWA
-} from "../../data/enemies/Act1Enemies";
-import {
-  TIKBALANG_LORE, DWENDE_LORE, KAPRE_LORE, SIGBIN_LORE, 
-  TIYANAK_LORE, MANANANGGAL_LORE, ASWANG_LORE, DUWENDE_CHIEF_LORE,
-  BAKUNAWA_LORE
-} from "../../data/lore/EnemyLore";
 import { OverworldUIManager } from "./Overworld_UIManager";
 import { OverworldMovementManager } from "./Overworld_MovementManager";
 import { OverworldGameStateManager } from "./Overworld_GameStateManager";
 import { OverworldMazeGeneration } from "./Overworld_MazeGeneration";
+import { OverworldGameMechanicManager } from "./Overworld_GameMechanicManager";
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   public uiManager!: OverworldUIManager;
   private movementManager!: OverworldMovementManager;
   private gameStateManager!: OverworldGameStateManager;
-  private mazeGeneration!: OverworldMazeGeneration;
+  public mazeGeneration!: OverworldMazeGeneration;
+  private gameMechanicManager!: OverworldGameMechanicManager;
   
 
 
@@ -36,6 +29,9 @@ export class Overworld extends Scene {
   create(): void {
     // Initialize maze generation manager
     this.mazeGeneration = new OverworldMazeGeneration(this);
+    
+    // Initialize game mechanic manager
+    this.gameMechanicManager = new OverworldGameMechanicManager(this);
     
     // Check if we're returning from another scene
     const gameState = GameState.getInstance();
@@ -279,127 +275,8 @@ export class Overworld extends Scene {
   }
 
   checkNodeInteraction(): void {
-    // Check if player is close to any node using maze generation manager
-    const nearNode = this.mazeGeneration.findNodeNear(this.player.x, this.player.y);
-
-    if (nearNode) {
-      const node = nearNode;
-      
-      // Handle different node types
-      switch (node.type) {
-        case "combat":
-        case "elite":
-          // Remove the node from the world
-          this.mazeGeneration.removeNode(node.id);
-          
-          // Hide tooltip if it's visible
-          this.uiManager.hideTooltip();
-          
-          this.startCombat(node.type);
-          break;
-          
-        case "boss":
-          // Remove the node from the world
-          this.mazeGeneration.removeNode(node.id);
-          
-          // Hide tooltip if it's visible
-          this.uiManager.hideTooltip();
-          
-          this.startCombat("boss");
-          break;
-          
-        case "shop":
-          // Save player position before transitioning
-          const gameState = GameState.getInstance();
-          gameState.savePlayerPosition(this.player.x, this.player.y);
-          
-          // Pause this scene and launch shop scene with actual player data
-          this.scene.pause();
-          this.scene.launch("Shop", { 
-            player: this.getPlayerData()
-          });
-          break;
-          
-        case "campfire":
-          // Save player position before transitioning
-          const gameState2 = GameState.getInstance();
-          gameState2.savePlayerPosition(this.player.x, this.player.y);
-          
-          // Pause this scene and launch campfire scene
-          this.scene.pause();
-          this.scene.launch("Campfire", { 
-            player: {
-              id: "player",
-              name: "Hero",
-              maxHealth: 80,
-              currentHealth: 80,
-              block: 0,
-              statusEffects: [],
-              hand: [],
-              deck: [],
-              discardPile: [],
-              drawPile: [],
-              playedHand: [],
-              landasScore: 0,
-              ginto: 100,
-              diamante: 0,
-              relics: [
-                {
-                  id: "placeholder_relic",
-                  name: "Placeholder Relic",
-                  description: "This is a placeholder relic.",
-                  emoji: "⚙️",
-                },
-              ],
-            }
-          });
-          break;
-          
-        case "treasure":
-          // Save player position before transitioning
-          const gameState3 = GameState.getInstance();
-          gameState3.savePlayerPosition(this.player.x, this.player.y);
-          
-          // Pause this scene and launch treasure scene
-          this.scene.pause();
-          this.scene.launch("Treasure", { 
-            player: {
-              id: "player",
-              name: "Hero",
-              maxHealth: 80,
-              currentHealth: 80,
-              block: 0,
-              statusEffects: [],
-              hand: [],
-              deck: [],
-              discardPile: [],
-              drawPile: [],
-              playedHand: [],
-              landasScore: 0,
-              ginto: 100,
-              diamante: 0,
-              relics: [
-                {
-                  id: "placeholder_relic",
-                  name: "Placeholder Relic",
-                  description: "This is a placeholder relic.",
-                  emoji: "⚙️",
-                },
-              ],
-            }
-          });
-          break;
-          
-        case "event":
-          // Test event for random event
-          this.uiManager.showNodeEvent("Mysterious Event", "You encounter a mysterious figure who offers you a choice...", 0x0000ff);
-          // Remove the node from the world
-          this.mazeGeneration.removeNode(node.id);
-          break;
-      }
-    }
-    
-
+    // Delegate to game mechanic manager
+    this.gameMechanicManager.checkNodeInteraction();
   }
 
 
@@ -748,234 +625,27 @@ export class Overworld extends Scene {
    * Get lore text for a relic
    */
   private getRelicLore(relic: any): string {
-    // Return lore based on relic ID or name
-    switch(relic.id) {
-      case "earthwardens_plate":
-        return "Forged by the ancient Earthwardens who protected the first settlements from natural disasters. This mystical armor channels the strength of the mountains themselves, providing unwavering protection to those who wear it.";
-      case "swift_wind_agimat":
-        return "An enchanted talisman blessed by the spirits of the wind. It enhances the agility of its bearer, allowing them to move with the swiftness of the breeze and react faster than the eye can see.";
-      case "ember_fetish":
-        return "A relic imbued with the essence of volcanic fire. When the bearer's defenses are low, the fetish awakens and grants the fury of the forge, empowering them with the strength of molten rock.";
-      case "babaylans_talisman":
-        return "Once worn by the most revered Babaylan of the ancient tribes. This sacred talisman enhances the spiritual connection of its bearer, allowing them to channel greater power through their rituals and incantations.";
-      case "echo_of_ancestors":
-        return "A mystical artifact that resonates with the wisdom of those who came before. It breaks the natural limitations of the physical world, allowing for impossible feats that should not exist.";
-      case "seafarers_compass":
-        return "A navigational tool blessed by Lakapati, goddess of fertility and navigation. It guides the bearer through the most treacherous waters and helps them find their way even in the darkest storms.";
-      default:
-        return "An ancient artifact of great power, its origins lost to time but its effects undeniable. Those who wield it are forever changed by its mystical properties.";
-    }
+    return this.gameMechanicManager.getRelicLore(relic);
   }
   
   /**
    * Get color scheme for different node types
    */
   public getNodeColorScheme(nodeType: string): { name: string, type: string, stats: string, description: string } {
-    const colorSchemes = {
-      shop: {
-        name: "#ffd700",        // Gold - for merchant/commerce
-        type: "#ffcc00",        // Bright gold
-        stats: "#e6b800",       // Golden yellow
-        description: "#f0e68c"  // Light golden
-      },
-      event: {
-        name: "#da70d6",        // Orchid - for mystery/magic
-        type: "#ba55d3",        // Medium orchid
-        stats: "#9370db",       // Medium slate blue
-        description: "#dda0dd"  // Plum
-      },
-      campfire: {
-        name: "#ff6347",        // Tomato red - for fire/warmth
-        type: "#ff4500",        // Orange red
-        stats: "#ff8c00",       // Dark orange
-        description: "#ffa07a"  // Light salmon
-      },
-      treasure: {
-        name: "#00ced1",        // Dark turquoise - for precious items
-        type: "#20b2aa",        // Light sea green
-        stats: "#48d1cc",       // Medium turquoise
-        description: "#afeeee"  // Pale turquoise
-      }
-    };
-
-    return colorSchemes[nodeType as keyof typeof colorSchemes] || {
-      name: "#e8eced",    // Default white
-      type: "#77888C",    // Default gray
-      stats: "#c9a74a",   // Default yellow
-      description: "#b8a082" // Default beige
-    };
+    return this.gameMechanicManager.getNodeColorScheme(nodeType);
   }
 
   /**
    * Get node information for different node types
    */
   public getNodeInfoForType(nodeType: string): any {
-    const nodeData = {
-      shop: {
-        name: "Merchant's Shop",
-        type: "shop",
-        spriteKey: "necromancer_f0",
-        animationKey: "necromancer_idle",
-        stats: "Services: Buy/Sell Items\nCurrency: Gold Coins\nSpecialty: Rare Relics & Potions",
-        description: "A mystical merchant offers powerful relics and potions to aid your journey. Browse their wares and strengthen your deck with ancient artifacts and magical brews."
-      },
-      event: {
-        name: "Mysterious Event",
-        type: "event", 
-        spriteKey: "doc_f0",
-        animationKey: "doc_idle",
-        stats: "Outcome: Variable\nRisk: Medium\nReward: Unique Benefits",
-        description: "Strange occurrences and mysterious encounters await. These events may offer unique opportunities, challenging choices, or unexpected rewards for the brave."
-      },
-      campfire: {
-        name: "Sacred Campfire",
-        type: "campfire",
-        spriteKey: "angel_f0", 
-        animationKey: "angel_idle",
-        stats: "Healing: Full Health\nOptions: Rest or Upgrade\nSafety: Complete Protection",
-        description: "A blessed sanctuary where weary travelers can rest and recover. Choose to restore your health completely or upgrade one of your cards to become more powerful."
-      },
-      treasure: {
-        name: "Ancient Treasure",
-        type: "treasure",
-        spriteKey: "chest_f0",
-        animationKey: "chest_open", 
-        stats: "Contents: Random Rewards\nRarity: Varies\nValue: High",
-        description: "A forgotten chest containing valuable treasures from ages past. May hold gold, rare relics, powerful cards, or other precious artifacts to aid your quest."
-      }
-    };
-
-    return nodeData[nodeType as keyof typeof nodeData] || null;
+    return this.gameMechanicManager.getNodeInfoForType(nodeType);
   }
 
   /**
    * Get enemy information for a given node type
    */
   public getEnemyInfoForNodeType(nodeType: string, nodeId?: string): any {
-    // Create a simple hash from nodeId for consistent enemy selection
-    const getNodeHash = (id: string): number => {
-      let hash = 0;
-      for (let i = 0; i < id.length; i++) {
-        const char = id.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-      }
-      return Math.abs(hash);
-    };
-
-    switch (nodeType) {
-      case "combat":
-        // Randomly select a common enemy
-        const commonEnemies = [
-          {
-            name: TIKBALANG.name,
-            type: "Combat",
-            spriteKey: "tikbalang",
-            animationKey: "tikbalang_idle",
-            health: TIKBALANG.maxHealth,
-            damage: TIKBALANG.damage,
-            abilities: ["Forest Navigation", "Illusion Casting"],
-            description: TIKBALANG_LORE.description
-          },
-          {
-            name: DWENDE.name,
-            type: "Combat", 
-            spriteKey: "chort_f0", // Using overworld sprite since no dwende combat sprite
-            animationKey: null,
-            health: DWENDE.maxHealth,
-            damage: DWENDE.damage,
-            abilities: ["Invisibility", "Mischief"],
-            description: DWENDE_LORE.description
-          },
-          {
-            name: KAPRE.name,
-            type: "Combat",
-            spriteKey: "chort_f0", // Using overworld sprite since no kapre combat sprite
-            animationKey: null,
-            health: KAPRE.maxHealth,
-            damage: KAPRE.damage,
-            abilities: ["Smoke Manipulation", "Tree Dwelling"],
-            description: KAPRE_LORE.description
-          },
-          {
-            name: SIGBIN.name,
-            type: "Combat",
-            spriteKey: "sigbin",
-            animationKey: "sigbin_idle",
-            health: SIGBIN.maxHealth, 
-            damage: SIGBIN.damage,
-            abilities: ["Invisibility", "Shadow Draining"],
-            description: SIGBIN_LORE.description
-          },
-          {
-            name: TIYANAK.name,
-            type: "Combat",
-            spriteKey: "chort_f0", // Using overworld sprite since no tiyanak combat sprite
-            animationKey: null,
-            health: TIYANAK.maxHealth,
-            damage: TIYANAK.damage, 
-            abilities: ["Shapeshifting", "Deception"],
-            description: TIYANAK_LORE.description
-          }
-        ];
-        
-        // Use node ID to consistently select the same enemy for this node
-        const combatIndex = nodeId ? getNodeHash(nodeId) % commonEnemies.length : 0;
-        return commonEnemies[combatIndex];
-        
-      case "elite":
-        // Randomly select an elite enemy
-        const eliteEnemies = [
-          {
-            name: MANANANGGAL.name,
-            type: "Elite",
-            spriteKey: "big_demon_f0", // Using overworld elite sprite since no manananggal combat sprite
-            animationKey: null,
-            health: MANANANGGAL.maxHealth,
-            damage: MANANANGGAL.damage,
-            abilities: ["Flight", "Body Segmentation", "Blood Draining"],
-            description: MANANANGGAL_LORE.description
-          },
-          {
-            name: ASWANG.name,
-            type: "Elite", 
-            spriteKey: "big_demon_f0", // Using overworld elite sprite since no aswang combat sprite
-            animationKey: null,
-            health: ASWANG.maxHealth,
-            damage: ASWANG.damage,
-            abilities: ["Shapeshifting", "Cannibalism", "Night Vision"],
-            description: ASWANG_LORE.description
-          },
-          {
-            name: DUWENDE_CHIEF.name,
-            type: "Elite",
-            spriteKey: "big_demon_f0", // Using overworld elite sprite since no duwende_chief combat sprite
-            animationKey: null,
-            health: DUWENDE_CHIEF.maxHealth,
-            damage: DUWENDE_CHIEF.damage,
-            abilities: ["Command", "Magic", "Earth Control"],
-            description: DUWENDE_CHIEF_LORE.description
-          }
-        ];
-        
-        // Use node ID to consistently select the same elite enemy for this node
-        const eliteIndex = nodeId ? getNodeHash(nodeId) % eliteEnemies.length : 0;
-        return eliteEnemies[eliteIndex];
-        
-      case "boss":
-        return {
-          name: BAKUNAWA.name,
-          type: "Boss",
-          spriteKey: "balete", // Using balete sprite for boss since no bakunawa sprite available
-          animationKey: "balete_idle",
-          health: BAKUNAWA.maxHealth,
-          damage: BAKUNAWA.damage,
-          abilities: ["Eclipse Creation", "Massive Size", "Elemental Control"],
-          description: BAKUNAWA_LORE.description
-        };
-        
-      default:
-        return null;
-    }
+    return this.gameMechanicManager.getEnemyInfoForNodeType(nodeType, nodeId);
   }
 }
