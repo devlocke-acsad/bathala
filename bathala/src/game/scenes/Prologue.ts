@@ -25,7 +25,6 @@ export class Prologue extends Scene {
         this.startStoryPhase();
     }
 
-    // --- Story Phase Logic ---
     private startStoryPhase() {
         this.isStoryPhase = true;
         const slides = [
@@ -43,7 +42,6 @@ export class Prologue extends Scene {
 
         const showNextSlide = () => {
             if (this.isTransitioning) return;
-
             if (currentSlide >= slides.length) {
                 this.isStoryPhase = false;
                 this.input.off('pointerdown', showNextSlide);
@@ -67,7 +65,6 @@ export class Prologue extends Scene {
         showNextSlide();
     }
 
-    // --- Tutorial Phase Logic ---
     private startTutorial() {
         this.tutorialContainer = this.add.container(0, 0);
         this.renderTutorialStep(TutorialStep.START);
@@ -88,7 +85,7 @@ export class Prologue extends Scene {
                 break;
 
             case TutorialStep.PAIR_HAND:
-                this.typeText(tutorialText, 'To fight, select 5 cards to form a poker hand.\nThis hand has a PAIR.');
+                this.typeText(tutorialText, 'To fight, select 5 cards to form a poker hand.\nThis hand has a PAIR.').then(() => this.isTransitioning = false);
                 this.drawCards('pair', (selected) => {
                     if (HandEvaluator.evaluateHand(selected, 'attack').type === 'pair') {
                         this.renderTutorialStep(TutorialStep.PAIR_ACTION);
@@ -99,10 +96,10 @@ export class Prologue extends Scene {
                 break;
 
             case TutorialStep.PAIR_ACTION:
-                this.typeText(tutorialText, 'A PAIR! Now choose an action.\nAttack deals damage. For now, let\'s ATTACK.');
+                this.typeText(tutorialText, 'A PAIR! Now choose an action.\nAttack deals damage. For now, let\'s ATTACK.').then(() => this.isTransitioning = false);
                 this.showActionButtons((action) => {
                     if (action === 'attack') {
-                        this.playAttackAnimation(tikbalang, '2', () => this.showDialogue("Is that all you\'ve got?", () => this.renderTutorialStep(TutorialStep.FLUSH_HAND)));
+                        this.playAttackAnimation(tikbalang, '2', () => this.showDialogue("Is that all you've got?", () => this.renderTutorialStep(TutorialStep.FLUSH_HAND)));
                     } else {
                         this.typeText(tutorialText, 'Let\'s stick to ATTACK for now.');
                     }
@@ -110,7 +107,7 @@ export class Prologue extends Scene {
                 break;
 
             case TutorialStep.FLUSH_HAND:
-                this.typeText(tutorialText, 'Good! Now for a stronger hand.\nForm a FLUSH (5 cards of the same suit).');
+                this.typeText(tutorialText, 'Good! Now for a stronger hand.\nForm a FLUSH (5 cards of the same suit).').then(() => this.isTransitioning = false);
                 this.drawCards('flush', (selected) => {
                     if (HandEvaluator.evaluateHand(selected, 'attack').type === 'flush') {
                         this.renderTutorialStep(TutorialStep.FLUSH_ACTION);
@@ -121,7 +118,7 @@ export class Prologue extends Scene {
                 break;
 
             case TutorialStep.FLUSH_ACTION:
-                this.typeText(tutorialText, 'A FLUSH! This unlocks a powerful SPECIAL attack.');
+                this.typeText(tutorialText, 'A FLUSH! This unlocks a powerful SPECIAL attack.').then(() => this.isTransitioning = false);
                 this.showActionButtons((action) => {
                     if (action === 'special') {
                         this.playAttackAnimation(tikbalang, '14', () => this.showDialogue("Argh! The flames... I am defeated...", () => this.renderTutorialStep(TutorialStep.END)));
@@ -134,12 +131,11 @@ export class Prologue extends Scene {
             case TutorialStep.END:
                 this.typeText(tutorialText, 'You have learned the basics. Your journey begins now.');
                 this.tweens.add({ targets: this.tutorialContainer, alpha: 0, duration: 1000, delay: 1000 });
-                this.cameras.main.fadeOut(2000, 1000, 0, 0, 0, (camera, progress) => {
+                this.cameras.main.fadeOut(3000, 0, 0, 0, (camera, progress) => {
                     if (progress === 1) this.scene.start('Overworld');
                 });
                 break;
         }
-        this.isTransitioning = false;
     }
 
     private drawCards(type: 'pair' | 'flush', onHandComplete: (selected: PlayingCard[]) => void) {
@@ -155,7 +151,7 @@ export class Prologue extends Scene {
         const cardWidth = 200 * 0.35;
         const handWidth = hand.length * (cardWidth * 0.9);
         const startX = this.cameras.main.width / 2 - handWidth / 2;
-        const y = this.cameras.main.height - 220;
+        const y = this.cameras.main.height - 250; // Increased gap
 
         const playHandButton = this.createButton(this.cameras.main.width / 2, this.cameras.main.height - 100, 'Play Hand', () => {});
         playHandButton.setVisible(false);
@@ -204,28 +200,39 @@ export class Prologue extends Scene {
         const actionButtons = this.add.container(this.cameras.main.width / 2, this.cameras.main.height - 100);
         this.tutorialContainer.add(actionButtons);
         actions.forEach((action, i) => {
-            const button = this.createButton(-220 + i * 220, 0, action, () => onAction(action.toLowerCase()));
+            const button = this.createButton(-220 + i * 220, 0, action, () => {
+                if (this.isTransitioning) return;
+                onAction(action.toLowerCase());
+            });
             actionButtons.add(button);
         });
     }
 
     private playAttackAnimation(target: GameObjects.Sprite, damage: string, onComplete: () => void) {
+        this.isTransitioning = true;
         this.cameras.main.shake(100, 0.01);
         target.setTint(0xff0000);
         const damageText = this.add.text(target.x, target.y, damage, { fontFamily: 'dungeon-mode', fontSize: 48, color: '#ff0000' }).setOrigin(0.5);
+        this.tutorialContainer.add(damageText);
         this.tweens.add({ targets: damageText, y: target.y - 100, alpha: 0, duration: 1000, ease: 'Power1' });
         this.time.delayedCall(200, () => target.clearTint());
         this.time.delayedCall(1000, onComplete);
     }
 
     private showDialogue(text: string, onComplete: () => void) {
+        this.isTransitioning = true;
         const dialogueContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height - 180);
         this.tutorialContainer.add(dialogueContainer);
-        const bg = this.add.rectangle(0, 0, this.cameras.main.width * 0.8, 100, 0x000000, 0.8).setStrokeStyle(2, 0xFFFFFF);
+        const bg = this.add.rectangle(0, 0, this.cameras.main.width * 0.8, 100, 0x000000, 0.8).setStrokeStyle(2, 0xFFFFFF).setInteractive();
         const dialogueText = this.add.text(0, 0, '', { fontFamily: 'dungeon-mode', fontSize: 20, color: '#FFFFFF', align: 'center', wordWrap: { width: this.cameras.main.width * 0.75 } }).setOrigin(0.5);
-        dialogueContainer.add([bg, dialogueText]);
+        const continueIndicator = this.add.text(bg.width/2 - 30, bg.height/2 - 20, '▼', { fontSize: 24 }).setOrigin(0.5).setVisible(false);
+        dialogueContainer.add([bg, dialogueText, continueIndicator]);
+        
         this.typeText(dialogueText, text).then(() => {
-            this.input.once('pointerdown', () => {
+            this.isTransitioning = false;
+            continueIndicator.setVisible(true);
+            this.tweens.add({ targets: continueIndicator, y: '+=5', duration: 500, yoyo: true, repeat: -1 });
+            bg.once('pointerdown', () => {
                 this.tweens.add({ targets: dialogueContainer, alpha: 0, duration: 300, onComplete: () => {
                     dialogueContainer.destroy();
                     onComplete();
@@ -258,7 +265,10 @@ export class Prologue extends Scene {
         const buttonText = this.add.text(0, 0, text, { fontFamily: "dungeon-mode", fontSize: 24, color: "#e8eced", align: "center" }).setOrigin(0.5);
         button.add([bg, buttonText]);
         button.setSize(200, 50);
-        button.setInteractive(new Phaser.Geom.Rectangle(-100, -25, 200, 50), Phaser.Geom.Rectangle.Contains).on('pointerdown', callback);
+        button.setInteractive(new Phaser.Geom.Rectangle(-100, -25, 200, 50), Phaser.Geom.Rectangle.Contains)
+            .on('pointerdown', callback)
+            .on('pointerover', () => bg.setFillStyle(0x3d4454))
+            .on('pointerout', () => bg.setFillStyle(0x2f3542));
         return button;
     }
 }
