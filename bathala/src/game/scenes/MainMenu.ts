@@ -119,7 +119,7 @@ export class MainMenu extends Scene {
         .on("pointerdown", () => {
           switch (option) {
             case "Play":
-              this.scene.start("Overworld");
+              this.scene.start("Prologue");
               break;
             case "Discover":
               this.scene.start("Discover");
