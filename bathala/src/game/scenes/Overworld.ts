@@ -302,7 +302,37 @@ export class Overworld extends Scene {
     
     // Event test button
     this.createActionButton(buttonX, buttonY, "Event", "#0000ff", () => {
-      console.log("Event action triggered");
+      // Check if player data exists, if not create a default one
+      const safePlayerData = this.playerData || {
+        id: "player",
+        name: "Hero",
+        maxHealth: 80,
+        currentHealth: 80,
+        block: 0,
+        statusEffects: [],
+        hand: [],
+        deck: [],
+        discardPile: [],
+        drawPile: [],
+        playedHand: [],
+        landasScore: 0,
+        ginto: 100,
+        diamante: 0,
+        relics: [],
+        potions: [],
+        discardCharges: 1,
+        maxDiscardCharges: 1
+      };
+      
+      // Save player position before transitioning
+      const gameState4 = GameState.getInstance();
+      gameState4.savePlayerPosition(this.player.x, this.player.y);
+      
+      // Pause this scene and launch event scene with player data
+      this.scene.pause();
+      this.scene.launch("EventScene", { 
+        player: safePlayerData
+      });
     }, this.testButtonsContainer);
     buttonY += 60;
     
@@ -451,6 +481,43 @@ export class Overworld extends Scene {
             },
           ],
         }
+      });
+    }, this.testButtonsContainer);
+    
+    currentButtonX += 200;
+    
+    // Quick Event button at bottom
+    this.createActionButton(currentButtonX, bottomButtonY, "Quick Event", "#0000ff", () => {
+      // Check if player data exists, if not create a default one
+      const safePlayerData = this.playerData || {
+        id: "player",
+        name: "Hero",
+        maxHealth: 80,
+        currentHealth: 80,
+        block: 0,
+        statusEffects: [],
+        hand: [],
+        deck: [],
+        discardPile: [],
+        drawPile: [],
+        playedHand: [],
+        landasScore: 0,
+        ginto: 100,
+        diamante: 0,
+        relics: [],
+        potions: [],
+        discardCharges: 1,
+        maxDiscardCharges: 1
+      };
+      
+      // Save player position before transitioning
+      const gameState4 = GameState.getInstance();
+      gameState4.savePlayerPosition(this.player.x, this.player.y);
+      
+      // Pause this scene and launch event scene with player data
+      this.scene.pause();
+      this.scene.launch("EventScene", { 
+        player: safePlayerData
       });
     }, this.testButtonsContainer);
     
@@ -1594,6 +1661,11 @@ export class Overworld extends Scene {
   }
 
   checkNodeInteraction(): void {
+    // Check if player is currently moving or transitioning to prevent multiple triggers
+    if (this.isMoving || this.isTransitioningToCombat) {
+      return;
+    }
+    
     // Check if player is close to any node
     const threshold = this.gridSize;
 
@@ -1648,6 +1720,9 @@ export class Overworld extends Scene {
           break;
           
         case "shop":
+          // Set moving flag to prevent additional interactions during transition
+          this.isMoving = true;
+          
           // Save player position before transitioning
           const gameState = GameState.getInstance();
           gameState.savePlayerPosition(this.player.x, this.player.y);
@@ -1660,6 +1735,9 @@ export class Overworld extends Scene {
           break;
           
         case "campfire":
+          // Set moving flag to prevent additional interactions during transition
+          this.isMoving = true;
+          
           // Save player position before transitioning
           const gameState2 = GameState.getInstance();
           gameState2.savePlayerPosition(this.player.x, this.player.y);
@@ -1672,6 +1750,9 @@ export class Overworld extends Scene {
           break;
           
         case "treasure":
+          // Set moving flag to prevent additional interactions during transition
+          this.isMoving = true;
+          
           // Save player position before transitioning
           const gameState3 = GameState.getInstance();
           gameState3.savePlayerPosition(this.player.x, this.player.y);
@@ -1707,10 +1788,53 @@ export class Overworld extends Scene {
           break;
           
         case "event":
-          // Test event for random event
-          this.showNodeEvent("Mysterious Event", "You encounter a mysterious figure who offers you a choice...", 0x0000ff);
+          // Set moving flag to prevent additional interactions during transition
+          this.isMoving = true;
+          
           // Remove the node from the list so it doesn't trigger again
           this.nodes.splice(nodeIndex, 1);
+          
+          // Clean up the corresponding sprite
+          const eventSprite = this.nodeSprites.get(node.id);
+          if (eventSprite) {
+            eventSprite.destroy();
+            this.nodeSprites.delete(node.id);
+          }
+          
+          // Hide tooltip if it's visible
+          this.hideNodeTooltip();
+          
+          // Check if player data exists, if not create a default one
+          const safePlayerData = this.playerData || {
+            id: "player",
+            name: "Hero",
+            maxHealth: 80,
+            currentHealth: 80,
+            block: 0,
+            statusEffects: [],
+            hand: [],
+            deck: [],
+            discardPile: [],
+            drawPile: [],
+            playedHand: [],
+            landasScore: 0,
+            ginto: 100,
+            diamante: 0,
+            relics: [],
+            potions: [],
+            discardCharges: 1,
+            maxDiscardCharges: 1
+          };
+          
+          // Save player position before transitioning
+          const gameState4 = GameState.getInstance();
+          gameState4.savePlayerPosition(this.player.x, this.player.y);
+          
+          // Pause this scene and launch event scene with player data
+          this.scene.pause();
+          this.scene.launch("EventScene", { 
+            player: safePlayerData
+          });
           break;
       }
     }
