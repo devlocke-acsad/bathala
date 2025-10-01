@@ -4,11 +4,12 @@ import { PlayingCard, HandEvaluation, Suit, Rank } from '../../core/types/Combat
 
 enum TutorialStep {
     START,
-    HIGH_CARD_HAND,
-    HIGH_CARD_ACTION,
     PAIR_HAND,
     PAIR_ACTION,
     TIP_PAIR,
+    HIGH_CARD_HAND,
+    HIGH_CARD_ACTION,
+    TIP_HIGH_CARD,
     TWO_PAIR_HAND,
     TWO_PAIR_ACTION,
     TIP_TWO_PAIR,
@@ -194,56 +195,11 @@ export class Prologue extends Scene {
 
         switch (step) {
             case TutorialStep.START:
-                this.showDialogue("You dare challenge me, mortal? Let's see if you understand the sacred cards!", () => this.renderTutorialStep(TutorialStep.HIGH_CARD_HAND));
-                break;
-
-            case TutorialStep.HIGH_CARD_HAND:
-                this.typeText(tutorialText, 'First, let\'s understand card values.\nThis hand has no combinations - just a HIGH CARD.\nCards form poker hands when they create combinations.\nTry selecting 5 cards with different values and suits.').then(() => this.isTransitioning = false);
-                this.drawCards('high_card', (selected) => {
-                    const evaluation = HandEvaluator.evaluateHand(selected, 'attack');
-                    if (evaluation.type === 'high_card') {
-                        // Add visual feedback for successful selection
-                        this.tweens.add({
-                            targets: tikbalang,
-                            scale: 1.5,
-                            duration: 200,
-                            yoyo: true,
-                            repeat: 0,
-                            ease: 'Sine.easeInOut'
-                        });
-                        this.renderTutorialStep(TutorialStep.HIGH_CARD_ACTION);
-                    } else {
-                        // Add visual feedback for incorrect selection
-                        this.tweens.add({
-                            targets: tutorialText,
-                            tint: 0xff3300,
-                            duration: 300,
-                            yoyo: true,
-                            repeat: 0,
-                            ease: 'Sine.easeInOut',
-                            onComplete: () => tutorialText.clearTint()
-                        });
-                        this.typeText(tutorialText, `That's a ${evaluation.type.replace('_', ' ')}! Try for a HIGH CARD with no combinations.`).then(() => this.time.delayedCall(1500, () => this.renderTutorialStep(TutorialStep.HIGH_CARD_HAND)));
-                    }
-                });
-                break;
-
-            case TutorialStep.HIGH_CARD_ACTION:
-                this.typeText(tutorialText, 'A HIGH CARD! This is the weakest hand.\nYou can still ATTACK with it, but it won\'t be very effective.\nLet\'s try a stronger hand - choose ATTACK to continue.').then(() => this.isTransitioning = false);
-                this.showActionButtons((action) => {
-                    if (action === 'attack') {
-                        this.playAttackAnimation(tikbalang, '1', () => this.showDialogue("Is that all you've got? Try a PAIR next time.", () => this.renderTutorialStep(TutorialStep.PAIR_HAND)));
-                    } else {
-                        this.typeText(tutorialText, 'Choose ATTACK to continue learning.').then(() => {
-                            this.isTransitioning = false;
-                            this.renderTutorialStep(TutorialStep.HIGH_CARD_ACTION);
-                        });
-                    }
-                });
+                this.showDialogue("You dare challenge me, mortal? Let's see if you understand the sacred cards!", () => this.renderTutorialStep(TutorialStep.PAIR_HAND));
                 break;
 
             case TutorialStep.PAIR_HAND:
-                this.typeText(tutorialText, 'Now let\'s try a PAIR - two cards of the same rank.\nA PAIR beats a high card.\nYou can also form TWO PAIR (two different pairs) or THREE OF A KIND.\nTry forming a PAIR now.').then(() => this.isTransitioning = false);
+                this.typeText(tutorialText, 'First, let\'s try a PAIR - two cards of the same rank.\nThis is the most basic combination in poker.\nTry forming a PAIR now.').then(() => this.isTransitioning = false);
                 this.drawCards('pair', (selected) => {
                     const evaluation = HandEvaluator.evaluateHand(selected, 'attack');
                     if (evaluation.type === 'pair') {
@@ -274,10 +230,10 @@ export class Prologue extends Scene {
                 break;
 
             case TutorialStep.PAIR_ACTION:
-                this.typeText(tutorialText, 'A PAIR! Stronger than a high card.\nNow choose an action.').then(() => this.isTransitioning = false);
+                this.typeText(tutorialText, 'A PAIR! This is the foundation of poker strategy.\nNow choose an action.').then(() => this.isTransitioning = false);
                 this.showActionButtons((action) => {
                     if (action === 'attack') {
-                        this.playAttackAnimation(tikbalang, '2', () => this.showDialogue("Is that all you've got? I\'ve seen stronger from a kapre!", () => this.renderTutorialStep(TutorialStep.TIP_PAIR)));
+                        this.playAttackAnimation(tikbalang, '2', () => this.showDialogue("Not bad for a start. Let me show you other hands.", () => this.renderTutorialStep(TutorialStep.TIP_PAIR)));
                     } else {
                         this.typeText(tutorialText, 'Choose ATTACK to continue learning.').then(() => {
                             this.isTransitioning = false;
@@ -288,7 +244,60 @@ export class Prologue extends Scene {
                 break;
                 
             case TutorialStep.TIP_PAIR:
-                this.typeText(tutorialText, 'TIP: A PAIR beats a high card.\nTWO PAIR beats a PAIR.\nTHREE OF A KIND beats TWO PAIR.\nLet\'s explore TWO PAIR next.').then(() => {
+                this.typeText(tutorialText, 'TIP: A PAIR is the most basic combination.\nTWO PAIR beats a PAIR.\nTHREE OF A KIND beats TWO PAIR.\nBut not all hands need combinations - let\'s look at HIGH CARD.').then(() => {
+                    this.time.delayedCall(2000, () => {
+                        this.renderTutorialStep(TutorialStep.HIGH_CARD_HAND);
+                    });
+                });
+                break;
+
+            case TutorialStep.HIGH_CARD_HAND:
+                this.typeText(tutorialText, 'Now let\'s understand the weakest hand - HIGH CARD.\nThis has no combinations, just the highest card value.\nThis is weaker than any combination.\nTry selecting 5 cards with different values and suits.').then(() => this.isTransitioning = false);
+                this.drawCards('high_card', (selected) => {
+                    const evaluation = HandEvaluator.evaluateHand(selected, 'attack');
+                    if (evaluation.type === 'high_card') {
+                        // Add visual feedback for successful selection
+                        this.tweens.add({
+                            targets: tikbalang,
+                            scale: 1.5,
+                            duration: 200,
+                            yoyo: true,
+                            repeat: 0,
+                            ease: 'Sine.easeInOut'
+                        });
+                        this.renderTutorialStep(TutorialStep.HIGH_CARD_ACTION);
+                    } else {
+                        // Add visual feedback for incorrect selection
+                        this.tweens.add({
+                            targets: tutorialText,
+                            tint: 0xff3300,
+                            duration: 300,
+                            yoyo: true,
+                            repeat: 0,
+                            ease: 'Sine.easeInOut',
+                            onComplete: () => tutorialText.clearTint()
+                        });
+                        this.typeText(tutorialText, `That's a ${evaluation.type.replace('_', ' ')}! Try for a HIGH CARD with no combinations.`).then(() => this.time.delayedCall(1500, () => this.renderTutorialStep(TutorialStep.HIGH_CARD_HAND)));
+                    }
+                });
+                break;
+
+            case TutorialStep.HIGH_CARD_ACTION:
+                this.typeText(tutorialText, 'A HIGH CARD! This is the weakest possible hand.\nYou can still ATTACK with it, but it won\'t be very effective.\nLet\'s try a stronger hand - choose ATTACK to continue.').then(() => this.isTransitioning = false);
+                this.showActionButtons((action) => {
+                    if (action === 'attack') {
+                        this.playAttackAnimation(tikbalang, '1', () => this.showDialogue("Is that all you've got? Try forming combinations next time.", () => this.renderTutorialStep(TutorialStep.TIP_HIGH_CARD)));
+                    } else {
+                        this.typeText(tutorialText, 'Choose ATTACK to continue learning.').then(() => {
+                            this.isTransitioning = false;
+                            this.renderTutorialStep(TutorialStep.HIGH_CARD_ACTION);
+                        });
+                    }
+                });
+                break;
+                
+            case TutorialStep.TIP_HIGH_CARD:
+                this.typeText(tutorialText, 'TIP: HIGH CARD is the weakest hand.\nA PAIR beats a HIGH CARD.\nNow let\'s look at stronger hands - TWO PAIR.').then(() => {
                     this.time.delayedCall(2000, () => {
                         this.renderTutorialStep(TutorialStep.TWO_PAIR_HAND);
                     });
