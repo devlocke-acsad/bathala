@@ -3,6 +3,7 @@ import { HandEvaluator } from '../../utils/HandEvaluator';
 import { PlayingCard, HandEvaluation, Suit, Rank } from '../../core/types/CombatTypes';
 
 enum TutorialStep {
+    START,
     PAIR_HAND,
     PAIR_ACTION,
     FLUSH_HAND,
@@ -11,17 +12,8 @@ enum TutorialStep {
 }
 
 export class Prologue extends Scene {
-    private slides: { text: string }[];
-    private currentSlideIndex: number = 0;
-    private displayedText: GameObjects.Text;
-    private imagePlaceholder: GameObjects.Rectangle;
-    private continuePrompt: GameObjects.Text;
-
-    private tutorialStep: TutorialStep;
     private isStoryPhase: boolean = true;
     private isTransitioning: boolean = false;
-
-    // Game Objects that are frequently recreated
     private tutorialContainer: GameObjects.Container;
 
     constructor() {
@@ -30,152 +22,119 @@ export class Prologue extends Scene {
 
     create() {
         this.cameras.main.setBackgroundColor(0x000000);
+        this.startStoryPhase();
+    }
+
+    // --- Story Phase Logic ---
+    private startStoryPhase() {
         this.isStoryPhase = true;
-
-        this.slides = [
-            { text: "Long ago, two gods, Bathala, the sky-father, and Amihan, the sea-mother, created the islands." },
-            { text: "These islands were a paradise for the anito, spirits of nature, who lived in harmony." },
-            { text: "But the engkanto, spirits of deceit, grew jealous. They wove lies and discord, turning the anito against each other." },
-            { text: "A hero is needed to restore balance." },
-            { text: "You must channel the power of the four elements - Apoy, Tubig, Lupa, and Hangin - through sacred cards." },
-            { text: "Combine these cards to form powerful hands, and vanquish the corrupted spirits." },
+        const slides = [
+            "Long ago, two gods, Bathala, the sky-father, and Amihan, the sea-mother, created the islands.",
+            "These islands were a paradise for the anito, spirits of nature, who lived in harmony.",
+            "But the engkanto, spirits of deceit, grew jealous. They wove lies and discord, turning the anito against each other.",
+            "A hero is needed to restore balance.",
+            "You must channel the power of the four elements - Apoy, Tubig, Lupa, and Hangin - through sacred cards.",
+            "Combine these cards to form powerful hands, and vanquish the corrupted spirits."
         ];
+        let currentSlide = 0;
 
-        this.imagePlaceholder = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, this.cameras.main.width * 0.6, this.cameras.main.height * 0.4, 0x222222).setAlpha(0);
-        this.displayedText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2 + 150, '', { fontFamily: 'dungeon-mode', fontSize: 32, color: '#FFFFFF', align: 'center', wordWrap: { width: this.cameras.main.width - 100 } }).setOrigin(0.5).setAlpha(0);
-        this.continuePrompt = this.add.text(this.cameras.main.width / 2, this.cameras.main.height - 50, 'Click to continue...', { fontFamily: 'dungeon-mode', fontSize: 24, color: '#888888', align: 'center' }).setOrigin(0.5).setVisible(false);
-        
-        this.showSlide(0);
+        const imagePlaceholder = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, this.cameras.main.width * 0.6, this.cameras.main.height * 0.4, 0x222222).setAlpha(0);
+        const displayedText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2 + 150, '', { fontFamily: 'dungeon-mode', fontSize: 32, color: '#FFFFFF', align: 'center', wordWrap: { width: this.cameras.main.width - 100 } }).setOrigin(0.5);
 
-        this.input.on('pointerdown', () => {
-            if (this.isStoryPhase) {
-                this.nextSlide();
+        const showNextSlide = () => {
+            if (this.isTransitioning) return;
+
+            if (currentSlide >= slides.length) {
+                this.isStoryPhase = false;
+                this.input.off('pointerdown', showNextSlide);
+                this.tweens.add({ targets: [imagePlaceholder, displayedText], alpha: 0, duration: 500, onComplete: () => {
+                    imagePlaceholder.destroy();
+                    displayedText.destroy();
+                    this.startTutorial();
+                }});
+                return;
             }
-        });
+
+            this.isTransitioning = true;
+            this.tweens.add({ targets: imagePlaceholder, alpha: 1, duration: 500 });
+            this.typeText(displayedText, slides[currentSlide]).then(() => {
+                this.isTransitioning = false;
+            });
+            currentSlide++;
+        };
+
+        this.input.on('pointerdown', showNextSlide);
+        showNextSlide();
     }
 
-    private showSlide(index: number) {
-        if (index >= this.slides.length) {
-            this.startTutorial();
-            return;
-        }
-        this.currentSlideIndex = index;
-        this.displayedText.setText(this.slides[index].text);
-        this.tweens.add({ targets: [this.imagePlaceholder, this.displayedText], alpha: 1, duration: 500 });
-    }
-
-    private nextSlide() {
-        this.currentSlideIndex++;
-        if (this.currentSlideIndex >= this.slides.length) {
-            this.isStoryPhase = false;
-            this.startTutorial();
-        } else {
-            this.showSlide(this.currentSlideIndex);
-        }
-    }
-
+    // --- Tutorial Phase Logic ---
     private startTutorial() {
-        this.tweens.add({
-            targets: [this.imagePlaceholder, this.displayedText, this.continuePrompt],
-            alpha: 0, duration: 500,
-            onComplete: () => {
-                this.imagePlaceholder.destroy();
-                this.displayedText.destroy();
-                this.continuePrompt.destroy();
-                this.tutorialContainer = this.add.container(0, 0);
-                this.renderTutorialStep(TutorialStep.PAIR_HAND);
-            }
-        });
+        this.tutorialContainer = this.add.container(0, 0);
+        this.renderTutorialStep(TutorialStep.START);
     }
 
     private renderTutorialStep(step: TutorialStep) {
         this.isTransitioning = true;
-        this.tutorialStep = step;
         this.tutorialContainer.removeAll(true);
 
-        // --- Create Static UI ---
         const tikbalang = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, 'tikbalang').setScale(1.5);
         this.anims.play('tikbalang_idle', tikbalang);
         const tutorialText = this.add.text(this.cameras.main.width / 2, 50, '', { fontFamily: 'dungeon-mode', fontSize: 24, color: '#FFFFFF', align: 'center' }).setOrigin(0.5);
         this.tutorialContainer.add([tikbalang, tutorialText]);
 
-        let handConfig: {rank: Rank, suit: Suit}[];
-        let hand: PlayingCard[];
-        const selectedCards: PlayingCard[] = [];
-
-        const rankMap: Record<string, string> = {"1":"1","2":"2","3":"3","4":"4","5":"5","6":"6","7":"7","8":"8","9":"9","10":"10","Mandirigma":"11","Babaylan":"12","Datu":"13"};
-
-        const playHandButton = this.createButton(this.cameras.main.width / 2, this.cameras.main.height - 100, 'Play Hand', () => {});
-        playHandButton.setVisible(false);
-        this.tutorialContainer.add(playHandButton);
-
-        const showActionButtons = (onAction: (action: string) => void) => {
-            const actions = ['Attack', 'Defend', 'Special'];
-            const actionButtons = this.add.container(this.cameras.main.width / 2, this.cameras.main.height - 100);
-            this.tutorialContainer.add(actionButtons);
-            actions.forEach((action, i) => {
-                const button = this.createButton(-220 + i * 220, 0, action, () => onAction(action.toLowerCase()));
-                actionButtons.add(button);
-            });
-        };
-
         switch (step) {
+            case TutorialStep.START:
+                this.showDialogue("You dare challenge me, mortal?", () => this.renderTutorialStep(TutorialStep.PAIR_HAND));
+                break;
+
             case TutorialStep.PAIR_HAND:
-                tutorialText.setText('To fight, select 5 cards to form a poker hand.\nThis hand has a PAIR.');
-                handConfig = [{rank: '5', suit: 'Apoy'}, {rank: '5', suit: 'Tubig'}, {rank: '2', suit: 'Lupa'}, {rank: '7', suit: 'Hangin'}, {rank: '9', suit: 'Apoy'}, {rank: 'Datu', suit: 'Tubig'}, {rank: '3', suit: 'Lupa'}, {rank: '4', suit: 'Hangin'}];
-                hand = handConfig.map((def, i) => ({...def, id: `p_${i}`, selected: false, playable: true, element: 'neutral'}));
-                this.drawCards(hand, (selectedSprites) => {
-                    const evaluation = HandEvaluator.evaluateHand(selectedSprites.map(s => s.getData('card')), 'attack');
-                    if (evaluation.type === 'pair') {
+                this.typeText(tutorialText, 'To fight, select 5 cards to form a poker hand.\nThis hand has a PAIR.');
+                this.drawCards('pair', (selected) => {
+                    if (HandEvaluator.evaluateHand(selected, 'attack').type === 'pair') {
                         this.renderTutorialStep(TutorialStep.PAIR_ACTION);
                     } else {
-                        tutorialText.setText('That\'s not a PAIR. Try again.');
-                        this.time.delayedCall(1500, () => this.renderTutorialStep(TutorialStep.PAIR_HAND));
+                        this.typeText(tutorialText, 'That\'s not a PAIR. Try again.').then(() => this.time.delayedCall(1500, () => this.renderTutorialStep(TutorialStep.PAIR_HAND)));
                     }
                 });
                 break;
 
             case TutorialStep.PAIR_ACTION:
-                tutorialText.setText('A PAIR! Now choose an action.\nAttack deals damage. For now, let\'s ATTACK.');
-                showActionButtons((action) => {
+                this.typeText(tutorialText, 'A PAIR! Now choose an action.\nAttack deals damage. For now, let\'s ATTACK.');
+                this.showActionButtons((action) => {
                     if (action === 'attack') {
-                        this.renderTutorialStep(TutorialStep.FLUSH_HAND);
+                        this.playAttackAnimation(tikbalang, '2', () => this.showDialogue("Is that all you\'ve got?", () => this.renderTutorialStep(TutorialStep.FLUSH_HAND)));
                     } else {
-                        tutorialText.setText('Let\'s stick to ATTACK for now.');
+                        this.typeText(tutorialText, 'Let\'s stick to ATTACK for now.');
                     }
                 });
                 break;
 
             case TutorialStep.FLUSH_HAND:
-                tutorialText.setText('Good! Now for a stronger hand.\nForm a FLUSH (5 cards of the same suit).');
-                handConfig = [{rank: '2', suit: 'Apoy'}, {rank: '5', suit: 'Apoy'}, {rank: '7', suit: 'Apoy'}, {rank: '9', suit: 'Apoy'}, {rank: 'Datu', suit: 'Apoy'}, {rank: '3', suit: 'Tubig'}, {rank: '8', suit: 'Lupa'}, {rank: '6', suit: 'Hangin'}];
-                hand = handConfig.map((def, i) => ({...def, id: `f_${i}`, selected: false, playable: true, element: 'neutral'}));
-                this.drawCards(hand, (selectedSprites) => {
-                    const evaluation = HandEvaluator.evaluateHand(selectedSprites.map(s => s.getData('card')), 'attack');
-                    if (evaluation.type === 'flush') {
+                this.typeText(tutorialText, 'Good! Now for a stronger hand.\nForm a FLUSH (5 cards of the same suit).');
+                this.drawCards('flush', (selected) => {
+                    if (HandEvaluator.evaluateHand(selected, 'attack').type === 'flush') {
                         this.renderTutorialStep(TutorialStep.FLUSH_ACTION);
                     } else {
-                        tutorialText.setText('That\'s not a FLUSH. Try again.');
-                        this.time.delayedCall(1500, () => this.renderTutorialStep(TutorialStep.FLUSH_HAND));
+                        this.typeText(tutorialText, 'That\'s not a FLUSH. Try again.').then(() => this.time.delayedCall(1500, () => this.renderTutorialStep(TutorialStep.FLUSH_HAND)));
                     }
                 });
                 break;
 
             case TutorialStep.FLUSH_ACTION:
-                tutorialText.setText('A FLUSH! This unlocks a powerful SPECIAL attack.');
-                showActionButtons((action) => {
+                this.typeText(tutorialText, 'A FLUSH! This unlocks a powerful SPECIAL attack.');
+                this.showActionButtons((action) => {
                     if (action === 'special') {
-                        this.renderTutorialStep(TutorialStep.END);
+                        this.playAttackAnimation(tikbalang, '14', () => this.showDialogue("Argh! The flames... I am defeated...", () => this.renderTutorialStep(TutorialStep.END)));
                     } else {
-                        tutorialText.setText('Use the SPECIAL attack!');
+                        this.typeText(tutorialText, 'Use the SPECIAL attack!');
                     }
                 });
                 break;
 
             case TutorialStep.END:
-                tutorialText.setText('You have learned the basics. Your journey begins now.');
-                this.tweens.add({ targets: this.tutorialContainer, alpha: 0, duration: 1000 });
-                this.cameras.main.fadeOut(2000, 0, 0, 0, (camera, progress) => {
+                this.typeText(tutorialText, 'You have learned the basics. Your journey begins now.');
+                this.tweens.add({ targets: this.tutorialContainer, alpha: 0, duration: 1000, delay: 1000 });
+                this.cameras.main.fadeOut(2000, 1000, 0, 0, 0, (camera, progress) => {
                     if (progress === 1) this.scene.start('Overworld');
                 });
                 break;
@@ -183,15 +142,24 @@ export class Prologue extends Scene {
         this.isTransitioning = false;
     }
 
-    private drawCards(hand: PlayingCard[], onHandComplete: (selected: GameObjects.Sprite[]) => void) {
-        const rankMap: Record<string, string> = {"1":"1","2":"2","3":"3","4":"4","5":"5","6":"6","7":"7","8":"8","9":"9","10":"10","Mandirigma":"11","Babaylan":"12","Datu":"13"};
-        const handSprites: GameObjects.Sprite[] = [];
-        const selectedSprites: GameObjects.Sprite[] = [];
+    private drawCards(type: 'pair' | 'flush', onHandComplete: (selected: PlayingCard[]) => void) {
+        const handConfig = type === 'pair'
+            ? [{r: '5', s: 'Apoy'}, {r: '5', s: 'Tubig'}, {r: '2', s: 'Lupa'}, {r: '7', s: 'Hangin'}, {r: '9', s: 'Apoy'}, {r: 'Datu', s: 'Tubig'}, {r: '3', s: 'Lupa'}, {r: '4', s: 'Hangin'}]
+            : [{r: '2', s: 'Apoy'}, {r: '5', s: 'Apoy'}, {r: '7', s: 'Apoy'}, {r: '9', s: 'Apoy'}, {r: 'Datu', s: 'Apoy'}, {r: '3', s: 'Tubig'}, {r: '8', s: 'Lupa'}, {r: '6', s: 'Hangin'}];
         
+        const hand = handConfig.map((def, i) => ({ id: `p_${i}`, rank: def.r as Rank, suit: def.s as Suit, selected: false, playable: true, element: 'neutral' }));
+        const selectedCards: PlayingCard[] = [];
+        const handSprites: GameObjects.Sprite[] = [];
+
+        const rankMap: Record<string, string> = {"1":"1","2":"2","3":"3","4":"4","5":"5","6":"6","7":"7","8":"8","9":"9","10":"10","Mandirigma":"11","Babaylan":"12","Datu":"13"};
         const cardWidth = 200 * 0.35;
         const handWidth = hand.length * (cardWidth * 0.9);
         const startX = this.cameras.main.width / 2 - handWidth / 2;
         const y = this.cameras.main.height - 220;
+
+        const playHandButton = this.createButton(this.cameras.main.width / 2, this.cameras.main.height - 100, 'Play Hand', () => {});
+        playHandButton.setVisible(false);
+        this.tutorialContainer.add(playHandButton);
 
         hand.forEach((card, i) => {
             const spriteRank = rankMap[card.rank] || "1";
@@ -205,30 +173,81 @@ export class Prologue extends Scene {
                 if (this.isTransitioning) return;
 
                 const cardData = cardSprite.getData('card') as PlayingCard;
-                cardData.selected = !cardData.selected;
+                card.selected = !card.selected;
 
-                if (cardData.selected) {
-                    if (selectedSprites.length < 5) {
+                if (card.selected) {
+                    if (selectedCards.length < 5) {
                         cardSprite.y -= 30;
-                        selectedSprites.push(cardSprite);
+                        selectedCards.push(card);
                     }
                 } else {
                     cardSprite.y += 30;
-                    const index = selectedSprites.findIndex(s => s.getData('card').id === cardData.id);
-                    if (index > -1) selectedSprites.splice(index, 1);
+                    const index = selectedCards.findIndex(c => c.id === card.id);
+                    if (index > -1) selectedCards.splice(index, 1);
                 }
 
-                if (selectedSprites.length === 5) {
-                    const playButton = this.tutorialContainer.getAt(2) as GameObjects.Container; // Assuming it's the 3rd element
-                    playButton.setVisible(true);
-                    playButton.setInteractive().once('pointerdown', () => {
+                if (selectedCards.length === 5) {
+                    playHandButton.setVisible(true).setInteractive().once('pointerdown', () => {
                         if(this.isTransitioning) return;
                         this.isTransitioning = true;
-                        playButton.disableInteractive().setVisible(false);
+                        playHandButton.destroy();
                         handSprites.forEach(s => s.disableInteractive());
-                        onHandComplete(selectedSprites);
+                        onHandComplete(selectedCards);
                     });
                 }
+            });
+        });
+    }
+
+    private showActionButtons(onAction: (action: string) => void) {
+        const actions = ['Attack', 'Defend', 'Special'];
+        const actionButtons = this.add.container(this.cameras.main.width / 2, this.cameras.main.height - 100);
+        this.tutorialContainer.add(actionButtons);
+        actions.forEach((action, i) => {
+            const button = this.createButton(-220 + i * 220, 0, action, () => onAction(action.toLowerCase()));
+            actionButtons.add(button);
+        });
+    }
+
+    private playAttackAnimation(target: GameObjects.Sprite, damage: string, onComplete: () => void) {
+        this.cameras.main.shake(100, 0.01);
+        target.setTint(0xff0000);
+        const damageText = this.add.text(target.x, target.y, damage, { fontFamily: 'dungeon-mode', fontSize: 48, color: '#ff0000' }).setOrigin(0.5);
+        this.tweens.add({ targets: damageText, y: target.y - 100, alpha: 0, duration: 1000, ease: 'Power1' });
+        this.time.delayedCall(200, () => target.clearTint());
+        this.time.delayedCall(1000, onComplete);
+    }
+
+    private showDialogue(text: string, onComplete: () => void) {
+        const dialogueContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height - 180);
+        this.tutorialContainer.add(dialogueContainer);
+        const bg = this.add.rectangle(0, 0, this.cameras.main.width * 0.8, 100, 0x000000, 0.8).setStrokeStyle(2, 0xFFFFFF);
+        const dialogueText = this.add.text(0, 0, '', { fontFamily: 'dungeon-mode', fontSize: 20, color: '#FFFFFF', align: 'center', wordWrap: { width: this.cameras.main.width * 0.75 } }).setOrigin(0.5);
+        dialogueContainer.add([bg, dialogueText]);
+        this.typeText(dialogueText, text).then(() => {
+            this.input.once('pointerdown', () => {
+                this.tweens.add({ targets: dialogueContainer, alpha: 0, duration: 300, onComplete: () => {
+                    dialogueContainer.destroy();
+                    onComplete();
+                }});
+            });
+        });
+    }
+
+    private typeText(textObject: GameObjects.Text, text: string): Promise<void> {
+        return new Promise(resolve => {
+            textObject.setText('').setAlpha(1);
+            let charIndex = 0;
+            const timer = this.time.addEvent({
+                delay: 20,
+                callback: () => {
+                    textObject.setText(textObject.text + text[charIndex++]);
+                    if (charIndex === text.length) {
+                        timer.remove();
+                        resolve();
+                    }
+                },
+                repeat: text.length - 1
             });
         });
     }
