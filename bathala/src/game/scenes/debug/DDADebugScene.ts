@@ -402,6 +402,12 @@ export class DDADebugScene extends Scene {
     
     backBtn.setInteractive();
     backBtn.on("pointerdown", () => {
+      // Manually call the Overworld resume method to reset movement flags
+      const overworldScene = this.scene.get("Overworld");
+      if (overworldScene) {
+        (overworldScene as any).resume();
+      }
+      
       this.scene.stop();
       this.scene.resume("Overworld");
     });

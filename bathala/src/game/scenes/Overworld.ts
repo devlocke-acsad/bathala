@@ -860,30 +860,24 @@ export class Overworld extends Scene {
    * Called when the scene resumes from another scene
    */
   resume(): void {
-    console.log("Overworld.resume() called - Re-enabling input and resetting flags");
-    
     // Re-enable input when returning from other scenes
     if (this.input && this.input.keyboard) {
       this.input.keyboard.enabled = true;
-      console.log("Keyboard input re-enabled");
     }
     
+    // Reset movement flags
     this.isMoving = false;
     this.isTransitioningToCombat = false;
-    console.log("Movement flags reset - isMoving:", this.isMoving, "isTransitioningToCombat:", this.isTransitioningToCombat);
     
     // Restore player position if saved
     const gameState = GameState.getInstance();
     const savedPosition = gameState.getPlayerPosition();
     if (savedPosition) {
-      console.log("Restoring player position to:", savedPosition);
       this.player.setPosition(savedPosition.x, savedPosition.y);
       // Center camera on player
       this.cameras.main.startFollow(this.player);
       // Clear the saved position
       gameState.clearPlayerPosition();
-    } else {
-      console.log("No saved position found, keeping current position");
     }
     
     // Update player data from GameState
@@ -916,8 +910,6 @@ export class Overworld extends Scene {
     
     // Update visible chunks around player
     this.updateVisibleChunks();
-    
-    console.log("Overworld.resume() completed successfully");
   }
 
   /**
@@ -1723,6 +1715,16 @@ export class Overworld extends Scene {
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
           
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          
+          // Clean up the corresponding sprite
+          const shopSprite = this.nodeSprites.get(node.id);
+          if (shopSprite) {
+            shopSprite.destroy();
+            this.nodeSprites.delete(node.id);
+          }
+          
           // Save player position before transitioning
           const gameState = GameState.getInstance();
           gameState.savePlayerPosition(this.player.x, this.player.y);
@@ -1738,6 +1740,16 @@ export class Overworld extends Scene {
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
           
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          
+          // Clean up the corresponding sprite
+          const campfireSprite = this.nodeSprites.get(node.id);
+          if (campfireSprite) {
+            campfireSprite.destroy();
+            this.nodeSprites.delete(node.id);
+          }
+          
           // Save player position before transitioning
           const gameState2 = GameState.getInstance();
           gameState2.savePlayerPosition(this.player.x, this.player.y);
@@ -1752,6 +1764,16 @@ export class Overworld extends Scene {
         case "treasure":
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
+          
+          // Remove the node from the list so it doesn't trigger again
+          this.nodes.splice(nodeIndex, 1);
+          
+          // Clean up the corresponding sprite
+          const treasureSprite = this.nodeSprites.get(node.id);
+          if (treasureSprite) {
+            treasureSprite.destroy();
+            this.nodeSprites.delete(node.id);
+          }
           
           // Save player position before transitioning
           const gameState3 = GameState.getInstance();
