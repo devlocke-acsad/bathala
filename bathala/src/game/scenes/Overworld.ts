@@ -15,11 +15,10 @@ import {
   TIYANAK_LORE, MANANANGGAL_LORE, ASWANG_LORE, DUWENDE_CHIEF_LORE,
   BAKUNAWA_LORE
 } from "../../data/lore/EnemyLore";
+import { OverworldMovementManager } from "./OverworldMovementManager";
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private wasdKeys!: { [key: string]: Phaser.Input.Keyboard.Key };
   private nodes: MapNode[] = [];
   private nodeSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
@@ -32,10 +31,12 @@ export class Overworld extends Scene {
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
   private bossText!: Phaser.GameObjects.Text;
   private actionButtons: Phaser.GameObjects.Container[] = [];
-  private shopKey!: Phaser.Input.Keyboard.Key;
   private testButtonsVisible: boolean = false;
   private testButtonsContainer!: Phaser.GameObjects.Container;
   private toggleButton!: Phaser.GameObjects.Container;
+  
+  // Movement Manager
+  private movementManager!: OverworldMovementManager;
   
   // Overworld UI elements
   private uiContainer!: Phaser.GameObjects.Container;
@@ -141,6 +142,30 @@ export class Overworld extends Scene {
     }
   }
 
+  /**
+   * Helper methods for MovementManager integration
+   */
+  public handleShopKeyPress(): void {
+    console.log("Shop key pressed");
+    // Save player position before transitioning
+    const gameState = GameState.getInstance();
+    gameState.savePlayerPosition(this.player.x, this.player.y);
+    
+    // Pause this scene and launch shop scene with actual player data
+    this.scene.pause();
+    this.scene.launch("Shop", { 
+      player: this.playerData
+    });
+  }
+
+  public handleDebugActionsKey(): void {
+    for (let i = 0; i < 100; i++) {
+      this.gameState.recordAction();
+    }
+    this.updateUI();
+    this.checkBossEncounter();
+  }
+
   create(): void {
     // Check if we're returning from another scene
     const gameState = GameState.getInstance();
@@ -197,17 +222,9 @@ export class Overworld extends Scene {
     console.log("Playing avatar_idle_down animation");
     this.player.play("avatar_idle_down"); // Initial animation
 
-    // Enable keyboard input
-    this.cursors = this.input.keyboard.createCursorKeys();
-    this.wasdKeys = this.input.keyboard.addKeys({
-      'W': Phaser.Input.Keyboard.KeyCodes.W,
-      'A': Phaser.Input.Keyboard.KeyCodes.A,
-      'S': Phaser.Input.Keyboard.KeyCodes.S,
-      'D': Phaser.Input.Keyboard.KeyCodes.D
-    }) as { [key: string]: Phaser.Input.Keyboard.Key };
-    
-    // Add shop key (M for Mysterious Merchant)
-    this.shopKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+    // Initialize movement manager
+    this.movementManager = new OverworldMovementManager(this);
+    this.movementManager.initializeInput();
     
     // Debug: Add global mouse tracking
     this.input.on('pointermove', (pointer: any) => {
@@ -920,107 +937,7 @@ export class Overworld extends Scene {
     console.log("Overworld.resume() completed successfully");
   }
 
-  /**
-   * Move player to a new position with animation
-   */
-  movePlayer(targetX: number, targetY: number, direction: string): void {
-    // Set moving flag to prevent input during movement
-    this.isMoving = true;
-    
-    // Play walking animation with error checking
-    let walkAnimation = "avatar_walk_down";
-    let idleAnimation = "avatar_idle_down";
-    
-    switch (direction) {
-      case "up":
-        walkAnimation = "avatar_walk_up";
-        idleAnimation = "avatar_idle_up";
-        break;
-      case "down":
-        walkAnimation = "avatar_walk_down";
-        idleAnimation = "avatar_idle_down";
-        break;
-      case "left":
-        walkAnimation = "avatar_walk_left";
-        idleAnimation = "avatar_idle_left";
-        break;
-      case "right":
-        walkAnimation = "avatar_walk_right";
-        idleAnimation = "avatar_idle_right";
-        break;
-    }
-    
-    console.log("Playing walk animation:", walkAnimation);
-    if (this.anims.exists(walkAnimation)) {
-      try {
-        this.player.play(walkAnimation, true);
-      } catch (error) {
-        console.warn("Failed to play walk animation:", walkAnimation, error);
-      }
-    } else {
-      console.warn("Walk animation not found:", walkAnimation);
-    }
 
-    // Check if the new position is valid (not a wall)
-    if (this.isValidPosition(targetX, targetY)) {
-      console.log("Position is valid, moving player");
-      
-      // Move player with tween
-      this.tweens.add({
-        targets: this.player,
-        x: targetX,
-        y: targetY,
-        duration: 150, // Slightly faster movement
-        onComplete: () => {
-          this.isMoving = false;
-          this.checkNodeInteraction();
-          
-          // Record the action for day/night cycle after movement completes
-          this.gameState.recordAction();
-          
-          // Check if boss should appear after recording action
-          this.checkBossEncounter();
-          
-          // Update UI to reflect day/night cycle changes
-          this.updateUI();
-          
-          // Play idle animation after movement
-          console.log("Playing idle animation:", idleAnimation);
-          if (this.anims.exists(idleAnimation)) {
-            try {
-              this.player.play(idleAnimation);
-            } catch (error) {
-              console.warn("Failed to play idle animation:", idleAnimation, error);
-            }
-          } else {
-            console.warn("Idle animation not found:", idleAnimation);
-          }
-          
-          // Update visible chunks as player moves
-          this.updateVisibleChunks();
-          
-          // Move nearby enemy nodes toward player during nighttime
-          this.moveEnemiesNighttime();
-        }
-      });
-    } else {
-      console.log("Position is invalid (wall or out of bounds)");
-      // Invalid move, just reset the moving flag
-      this.isMoving = false;
-      console.log("Invalid move, playing idle animation");
-      // Play appropriate idle animation based on last movement direction
-      console.log("Playing idle animation:", idleAnimation);
-      if (this.anims.exists(idleAnimation)) {
-        try {
-          this.player.play(idleAnimation);
-        } catch (error) {
-          console.warn("Failed to play idle animation:", idleAnimation, error);
-        }
-      } else {
-        console.warn("Idle animation not found:", idleAnimation);
-      }
-    }
-  }
 
   handleDayNightTransition(): void {
     // Update night overlay
@@ -1295,7 +1212,7 @@ export class Overworld extends Scene {
         playerY
       );
       
-      if (stepPosition && this.isValidPosition(stepPosition.x, stepPosition.y)) {
+      if (stepPosition && this.movementManager.isValidPosition(stepPosition.x, stepPosition.y)) {
         movements.push(stepPosition);
       } else {
         break; // Stop if we hit a wall or invalid position
@@ -1636,29 +1553,7 @@ export class Overworld extends Scene {
     }
   }
 
-  isValidPosition(x: number, y: number): boolean {
-    // Convert world coordinates to chunk and grid coordinates
-    const chunkSize = MazeOverworldGenerator['chunkSize'];
-    const chunkSizePixels = chunkSize * this.gridSize;
-    
-    const chunkX = Math.floor(x / chunkSizePixels);
-    const chunkY = Math.floor(y / chunkSizePixels);
-    const localX = x - (chunkX * chunkSizePixels);
-    const localY = y - (chunkY * chunkSizePixels);
-    const gridX = Math.floor(localX / this.gridSize);
-    const gridY = Math.floor(localY / this.gridSize);
-    
-    // Get the chunk
-    const chunk = MazeOverworldGenerator.getChunk(chunkX, chunkY, this.gridSize);
-    
-    // Check bounds
-    if (gridX < 0 || gridX >= chunk.maze[0].length || gridY < 0 || gridY >= chunk.maze.length) {
-      return false;
-    }
-    
-    // Check if it's a path (0) not a wall (1)
-    return chunk.maze[gridY][gridX] === 0;
-  }
+
 
   checkNodeInteraction(): void {
     // Check if player is currently moving or transitioning to prevent multiple triggers
@@ -2348,95 +2243,16 @@ export class Overworld extends Scene {
    * Update method for animation effects and player movement
    */
   update(time: number, delta: number): void {
-    // Skip input handling if player is currently moving or transitioning to combat
-    if (this.isMoving || this.isTransitioningToCombat) {
-      return;
-    }
-    
     // Ensure camera is available before processing input
     if (!this.cameras || !this.cameras.main) {
       return;
     }
 
-    // Handle player movement if not moving or in transition
-    if (!this.isMoving && !this.isTransitioningToCombat) {
-      const gridSize = this.gridSize;
-      let moved = false;
-      
-      // Check for movement input - fix wasdKeys access pattern
-      if (this.cursors.left.isDown || this.wasdKeys['A'].isDown) {
-        const targetX = this.player.x - gridSize;
-        if (this.isValidPosition(targetX, this.player.y)) {
-          this.movePlayer(targetX, this.player.y, "left");
-          moved = true;
-        }
-      } else if (this.cursors.right.isDown || this.wasdKeys['D'].isDown) {
-        const targetX = this.player.x + gridSize;
-        if (this.isValidPosition(targetX, this.player.y)) {
-          this.movePlayer(targetX, this.player.y, "right");
-          moved = true;
-        }
-      } else if (this.cursors.up.isDown || this.wasdKeys['W'].isDown) {
-        const targetY = this.player.y - gridSize;
-        if (this.isValidPosition(this.player.x, targetY)) {
-          this.movePlayer(this.player.x, targetY, "up");
-          moved = true;
-        }
-      } else if (this.cursors.down.isDown || this.wasdKeys['S'].isDown) {
-        const targetY = this.player.y + gridSize;
-        if (this.isValidPosition(this.player.x, targetY)) {
-          this.movePlayer(this.player.x, targetY, "down");
-          moved = true;
-        }
-      }
-      
-      // Check for Enter key to interact with nodes
-      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))) {
-        this.checkNodeInteraction();
-      }
-      
-      // Check for shop key
-      if (Phaser.Input.Keyboard.JustDown(this.shopKey)) {
-        console.log("Shop key pressed");
-        // Save player position before transitioning
-        const gameState = GameState.getInstance();
-        gameState.savePlayerPosition(this.player.x, this.player.y);
-        
-        // Pause this scene and launch shop scene with actual player data
-        this.scene.pause();
-        this.scene.launch("Shop", { 
-          player: this.playerData
-        });
-      }
-      
-      // Debug: Add actions with P key for testing (adds 100 actions to test boss trigger faster)
-      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.P))) {
-        for (let i = 0; i < 100; i++) {
-          this.gameState.recordAction();
-        }
-        this.updateUI();
-        this.checkBossEncounter();
-      }
-
-      
-      // Check for C key to trigger combat (for testing)
-      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.C))) {
-        this.startCombat("combat");
-      }
-      
-      // Check for E key to trigger elite combat (for testing)
-      if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E))) {
-        this.startCombat("elite");
-      }
-      
-      // Update chunk rendering and day/night cycle if player moved
-      if (moved) {
-        this.updateVisibleChunks();
-        this.checkNodeInteraction();
-        // Update UI to reflect day/night cycle changes
-        this.updateUI();
-      }
-    }
+    // Handle all movement input through MovementManager
+    this.movementManager.handleMovementInput();
+    
+    // Handle special key inputs through MovementManager
+    this.movementManager.handleSpecialInput();
   }
 
   /**
