@@ -198,7 +198,7 @@ export class Campfire extends Scene {
     const buttonData = [
       { x: screenWidth / 2 - 250, y: screenHeight / 2 + 50, text: "HEAL", color: "#2ed573", action: "rest" },
       { x: screenWidth / 2 - 80, y: screenHeight / 2 + 50, text: "PURIFY", color: "#ff6b6b", action: "purify" },
-      { x: screenWidth / 2 + 80, y: screenHeight / 2 + 50, text: "ATTUNE", color: "#4ecdc4", action: "upgrade" },
+      { x: screenWidth / 2 + 80, y: screenHeight / 2 + 50, text: "ATTUNE", color: "#ff6b6b", action: "upgrade" }, // Special red color to highlight importance
       { x: screenWidth / 2 + 250, y: screenHeight / 2 + 50, text: "VIEW DECK", color: "#a8a8a8", action: "view_deck" }
     ];
     
@@ -218,6 +218,27 @@ export class Campfire extends Scene {
       }).setOrigin(0.5);
       
       button.add([background, buttonText]);
+      
+      // Create special highlighting for the ATTUNE button
+      if (data.action === "upgrade") {
+        // Add a pulsing animation to the background to make it stand out
+        this.tweens.add({
+          targets: background,
+          scale: 1.05,
+          duration: 1000,
+          ease: 'Sine.easeInOut',
+          yoyo: true,
+          repeat: -1
+        });
+        
+        // Add a subtle glow effect
+        const glow = this.add.circle(0, 0, 80, 0xff6b6b, 0.3);
+        glow.setStrokeStyle(2, 0xff6b6b, 0.5);
+        button.addAt(glow, 0); // Add as first element (behind)
+        
+        // Make text slightly bolder
+        buttonText.setFontStyle('bold');
+      }
       
       // Set interactivity
       button.setInteractive(
