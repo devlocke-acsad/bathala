@@ -628,13 +628,6 @@ export class Shop extends Scene {
       const gameState = GameState.getInstance();
       gameState.updatePlayerData(this.player);
       gameState.completeCurrentNode(true);
-      
-      // Manually call the Overworld resume method to reset movement flags
-      const overworldScene = this.scene.get("Overworld");
-      if (overworldScene) {
-        (overworldScene as any).resume();
-      }
-      
       this.scene.stop();
       this.scene.resume("Overworld");
     });

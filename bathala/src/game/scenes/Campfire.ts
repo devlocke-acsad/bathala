@@ -279,16 +279,12 @@ export class Campfire extends Scene {
     );
     
     backButton.on("pointerdown", () => {
+      // Add bonfire sound effect placeholder
+      console.log("Bonfire - Leaving...");
+      
       // Complete the campfire node and return to overworld
       const gameState = GameState.getInstance();
       gameState.completeCurrentNode(true);
-      
-      // Manually call the Overworld resume method to reset movement flags
-      const overworldScene = this.scene.get("Overworld");
-      if (overworldScene) {
-        (overworldScene as any).resume();
-      }
-      
       this.scene.stop();
       this.scene.resume("Overworld");
     });

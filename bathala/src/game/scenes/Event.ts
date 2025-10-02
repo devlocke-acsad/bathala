@@ -1,11 +1,11 @@
 
 import { Scene } from 'phaser';
 import { GameState } from '../../core/managers/GameState';
-import { Player, Relic } from '../../core/types/CombatTypes';
-import { Potion } from '../../data/potions/Act1Potions';
+import { Player, Potion } from '../../core/types/CombatTypes';
 import { GameEvent } from '../../data/events/EventTypes';
 import { Act1Events } from '../../data/events/Act1Events';
 import { OverworldGameState } from '../../core/managers/OverworldGameState';
+import { Relic } from '../../core/types/CombatTypes';
 
 export class EventScene extends Scene {
   private player!: Player;
@@ -277,16 +277,6 @@ export class EventScene extends Scene {
       ease: 'Power2',
       onComplete: () => {
         this.time.delayedCall(1500, () => {
-          // Complete the event node and return to overworld
-          const gameState = GameState.getInstance();
-          gameState.completeCurrentNode(true);
-          
-          // Manually call the Overworld resume method to reset movement flags
-          const overworldScene = this.scene.get("Overworld");
-          if (overworldScene) {
-            (overworldScene as any).resume();
-          }
-          
           this.scene.stop('EventScene');
           this.scene.resume('Overworld');
         });
