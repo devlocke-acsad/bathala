@@ -2209,9 +2209,21 @@ export class Combat extends Scene {
    * Execute enemy turn
    */
   private executeEnemyTurn(): void {
+    // Check if enemy is already defeated - if so, don't execute turn
+    if (this.combatState.enemy.currentHealth <= 0 || this.combatEnded) {
+      console.log("Enemy is defeated or combat ended, skipping enemy turn");
+      return;
+    }
+
     this.applyStatusEffects(this.combatState.enemy);
 
     const enemy = this.combatState.enemy;
+
+    // Double-check enemy health after status effects
+    if (enemy.currentHealth <= 0 || this.combatEnded) {
+      console.log("Enemy defeated after status effects, skipping attack");
+      return;
+    }
 
     // Apply enemy action based on intent
     if (enemy.intent.type === "attack") {
@@ -2348,6 +2360,10 @@ export class Combat extends Scene {
       this.combatState.enemy.currentHealth = 0;
       this.updateEnemyUI();
       console.log("Enemy defeated!");
+      
+      // Play death animation
+      this.animateEnemyDeath();
+      
       this.time.delayedCall(500, () => {
         this.endCombat(true);
       });
@@ -3345,6 +3361,13 @@ export class Combat extends Scene {
     // Process enemy turn after a short delay to allow player to see results
     this.time.delayedCall(1000, () => {
       console.log("Processing enemy turn");
+      // Check if combat has ended or enemy is defeated before processing turn
+      if (this.combatEnded || this.combatState.enemy.currentHealth <= 0) {
+        console.log("Combat ended or enemy defeated, skipping delayed enemy turn");
+        this.isActionProcessing = false;
+        this.setActionButtonsEnabled(true);
+        return;
+      }
       // Process enemy action - the enemy turn will handle resetting the processing flag
       this.executeEnemyTurn();
     });
@@ -4155,6 +4178,56 @@ export class Combat extends Scene {
       onComplete: () => {
         this.playerSprite.setX(originalX);
       },
+    });
+  }
+
+  /**
+   * Animate enemy death (fade out, scale down, and fall)
+   */
+  private animateEnemyDeath(): void {
+    if (!this.enemySprite) return;
+
+    const originalX = this.enemySprite.x;
+    const originalY = this.enemySprite.y;
+    const originalScale = this.enemySprite.scaleX;
+
+    // Create a dramatic death sequence
+    this.tweens.add({
+      targets: this.enemySprite,
+      // Fade out
+      alpha: 0,
+      // Scale down
+      scaleX: originalScale * 0.3,
+      scaleY: originalScale * 0.3,
+      // Fall down
+      y: originalY + 100,
+      // Slight rotation for dramatic effect
+      rotation: Math.PI * 0.5,
+      duration: 800,
+      ease: "Power2",
+      // Don't reset properties - keep enemy in death state
+    });
+
+    // Add a brief red flash before fading
+    this.tweens.add({
+      targets: this.enemySprite,
+      tint: 0xff0000,
+      duration: 150,
+      yoyo: true,
+      repeat: 1,
+      onComplete: () => {
+        this.enemySprite.clearTint();
+      },
+    });
+
+    // Add a subtle shake effect during death
+    this.tweens.add({
+      targets: this.enemySprite,
+      x: originalX + 3,
+      duration: 100,
+      yoyo: true,
+      repeat: 3,
+      ease: "Power2",
     });
   }
 

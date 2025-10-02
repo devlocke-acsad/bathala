@@ -1674,33 +1674,10 @@ export class Overworld extends Scene {
           const gameState3 = GameState.getInstance();
           gameState3.savePlayerPosition(this.player.x, this.player.y);
           
-          // Pause this scene and launch treasure scene
+          // Pause this scene and launch treasure scene with current player data
           this.scene.pause();
           this.scene.launch("Treasure", { 
-            player: {
-              id: "player",
-              name: "Hero",
-              maxHealth: 80,
-              currentHealth: 80,
-              block: 0,
-              statusEffects: [],
-              hand: [],
-              deck: [],
-              discardPile: [],
-              drawPile: [],
-              playedHand: [],
-              landasScore: 0,
-              ginto: 100,
-              diamante: 0,
-              relics: [
-                {
-                  id: "placeholder_relic",
-                  name: "Placeholder Relic",
-                  description: "This is a placeholder relic.",
-                  emoji: "⚙️",
-                },
-              ],
-            }
+            player: this.playerData
           });
           break;
           

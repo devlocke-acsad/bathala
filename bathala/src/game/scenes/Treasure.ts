@@ -38,9 +38,10 @@ export class Treasure extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    this.add.text(
+    const titleY = Math.max(24, screenHeight * 0.06);
+    const title = this.add.text(
       screenWidth / 2,
-      30,
+      titleY,
       "Treasure Chest",
       {
         fontFamily: "dungeon-mode-inverted",
@@ -49,9 +50,12 @@ export class Treasure extends Scene {
         align: "center",
       }
     ).setOrigin(0.5);
+    // Add a soft shadow like in Shop for better readability
+    title.setShadow(2, 2, '#000000', 3, false, true);
 
     // Create treasure chest
-    this.treasureChest = this.add.sprite(screenWidth / 2, screenHeight / 2 - 100, "chest");
+    const chestY = Math.min(screenHeight * 0.42, screenHeight / 2 - 80);
+    this.treasureChest = this.add.sprite(screenWidth / 2, chestY, "chest");
     this.treasureChest.setScale(2);
     
     // Try to play animation, fallback if it fails
@@ -61,16 +65,28 @@ export class Treasure extends Scene {
       console.warn("Chest animation not found, using static sprite");
     }
 
+    // Entrance animation to match Shop feel
+    this.treasureChest.setScale(1.8).setAlpha(0.85);
+    this.tweens.add({
+      targets: this.treasureChest,
+      scale: 2,
+      alpha: 1,
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
+
     // Create description text
+    const descY = Math.min(chestY + 110, screenHeight * 0.6);
     this.descriptionText = this.add.text(
       screenWidth / 2,
-      screenHeight / 2 + 100,
+      descY,
       "Choose a relic to add to your collection",
       {
         fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#ffd93d",
         align: "center",
+        wordWrap: { width: Math.max(240, Math.floor(screenWidth * 0.8)) }
       }
     ).setOrigin(0.5);
 
@@ -99,12 +115,13 @@ export class Treasure extends Scene {
   private createRelicOptions(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    const buttonWidth = 100;
-    const buttonHeight = 100;
-    const spacing = 50;
+    const isNarrow = screenWidth < 520;
+    const buttonWidth = isNarrow ? 84 : 100;
+    const buttonHeight = isNarrow ? 84 : 100;
+    const spacing = isNarrow ? 28 : 50;
     const totalWidth = this.relicOptions.length * buttonWidth + (this.relicOptions.length - 1) * spacing;
     const startX = (screenWidth - totalWidth) / 2 + buttonWidth / 2;
-    const y = screenHeight / 2 + 100;
+    const y = Math.min(this.descriptionText.y + (isNarrow ? 110 : 130), screenHeight - (isNarrow ? 90 : 110));
 
     this.relicButtons = [];
 
@@ -113,16 +130,19 @@ export class Treasure extends Scene {
       
       const button = this.add.container(x, y);
       
-      // Background
-      const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x2f3542);
-      background.setStrokeStyle(2, 0x57606f);
+      // Background styled similar to Shop's slots (gradient and rounded corners via Graphics)
+      const slotBg = this.add.graphics();
+      slotBg.fillGradientStyle(0x2f3542, 0x2f3542, 0x1a1d26, 0x1a1d26, 0.95);
+      slotBg.lineStyle(2, 0x57606f, 0.9);
+      slotBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
+      slotBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
       
       // Relic emoji
       const emoji = this.add.text(0, 0, relic.emoji, {
-        fontSize: 48,
+        fontSize: isNarrow ? 40 : 48,
       }).setOrigin(0.5);
       
-      button.add([background, emoji]);
+      button.add([slotBg, emoji]);
       
       // Make interactive
       button.setInteractive(
@@ -133,18 +153,40 @@ export class Treasure extends Scene {
       button.on("pointerdown", () => this.selectRelic(relic, button));
       button.on("pointerover", () => {
         if (button.active) {
-          background.setFillStyle(0x3d4454);
+          // Hover glow and scale like Shop
+          this.tweens.add({ targets: button, scale: 1.05, duration: 120, ease: 'Power2' });
+          slotBg.clear();
+          slotBg.fillGradientStyle(0x3d4454, 0x3d4454, 0x232735, 0x232735, 1);
+          slotBg.lineStyle(3, 0xa78bfa, 0.9);
+          slotBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
+          slotBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
           this.showTooltip(relic, x + buttonWidth/2 + 10, y);
         }
       });
       button.on("pointerout", () => {
         if (button.active) {
-          background.setFillStyle(0x2f3542);
+          this.tweens.add({ targets: button, scale: 1, duration: 150, ease: 'Power2' });
+          slotBg.clear();
+          slotBg.fillGradientStyle(0x2f3542, 0x2f3542, 0x1a1d26, 0x1a1d26, 0.95);
+          slotBg.lineStyle(2, 0x57606f, 0.9);
+          slotBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
+          slotBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
           this.hideTooltip();
         }
       });
       
       this.relicButtons.push(button);
+
+      // Entrance animation (staggered) for each option
+      button.setScale(0.85).setAlpha(0);
+      this.tweens.add({
+        targets: button,
+        scale: 1,
+        alpha: 1,
+        duration: 250,
+        ease: 'Back.easeOut',
+        delay: 100 + index * 80
+      });
     });
   }
 
@@ -157,38 +199,76 @@ export class Treasure extends Scene {
     // Clear previous tooltip
     this.tooltipBox.removeAll(true);
     
-    // Create tooltip background
-    const tooltipBg = this.add.rectangle(0, 0, 250, 120, 0x000000);
-    tooltipBg.setAlpha(0.9);
-    tooltipBg.setStrokeStyle(2, 0x57606f);
-    
-    // Relic name
-    const nameText = this.add.text(0, -60, relic.name, {
+    // Determine dynamic width based on screen size
+    const camW = this.cameras.main.width;
+    const camH = this.cameras.main.height;
+    const minWidth = 240;
+    const maxWidth = Math.max(300, Math.floor(camW * 0.55));
+    const tooltipWidth = Phaser.Math.Clamp(280, minWidth, maxWidth);
+    const horizontalPadding = 16;
+    const verticalPadding = 14;
+    const spacingSmall = 8;
+    const spacingLarge = 12;
+
+    // Relic name (allow wrap if long)
+    const nameText = this.add.text(0, 0, relic.name, {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 20,
       color: "#ffd93d",
       align: "center",
-    }).setOrigin(0.5);
-    
-    // Relic description
-    const descText = this.add.text(0, -20, relic.description, {
+      wordWrap: { width: tooltipWidth - horizontalPadding * 2 }
+    }).setOrigin(0.5, 0);
+    nameText.setShadow(1, 1, '#000000', 2, false, true);
+
+    // Relic description with wrap to the computed width
+    const descText = this.add.text(0, 0, relic.description, {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#e8eced",
       align: "center",
-      wordWrap: { width: 180 }
-    }).setOrigin(0.5);
-    
-    // Instruction
-    const instruction = this.add.text(-115, 30, "Click to acquire", {
+      wordWrap: { width: tooltipWidth - horizontalPadding * 2 }
+    }).setOrigin(0.5, 0);
+
+    // Instruction line
+    const instruction = this.add.text(0, 0, "Click to acquire", {
       fontFamily: "dungeon-mode",
       fontSize: 14,
       color: "#2ed573",
-      align: "left",
-    }).setOrigin(0, 0);
-    
+      align: "center",
+    }).setOrigin(0.5, 0);
+
+    // Measure content heights after wrapping
+    const nameHeight = nameText.getBounds().height;
+    const descHeight = descText.getBounds().height;
+    const instrHeight = instruction.getBounds().height;
+
+    // Compute dynamic height
+    const contentHeight = nameHeight + spacingSmall + descHeight + spacingLarge + instrHeight;
+    const tooltipHeight = Math.ceil(contentHeight + verticalPadding * 2);
+
+    // Position texts vertically within the tooltip
+    let currentY = -tooltipHeight / 2 + verticalPadding;
+    nameText.setY(currentY);
+    currentY += nameHeight + spacingSmall;
+    descText.setY(currentY);
+    currentY += descHeight + spacingLarge;
+    instruction.setY(currentY);
+
+    // Background styled like Shop (rounded graphics + slight gradient)
+    const tooltipBg = this.add.graphics();
+    tooltipBg.fillGradientStyle(0x1a1a1a, 0x1a1a1a, 0x0a0a0a, 0x0a0a0a, 0.95);
+    tooltipBg.lineStyle(2, 0x57606f, 1);
+    tooltipBg.fillRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 10);
+    tooltipBg.strokeRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 10);
+
+    // Add in correct drawing order
     this.tooltipBox.add([tooltipBg, nameText, descText, instruction]);
-    this.tooltipBox.setPosition(x, y);
+
+    // Clamp tooltip position to screen bounds with margin
+    const margin = 14;
+    const clampedX = Math.min(Math.max(margin + tooltipWidth/2, x), camW - margin - tooltipWidth/2);
+    const clampedY = Math.min(Math.max(margin + tooltipHeight/2, y), camH - margin - tooltipHeight/2);
+    this.tooltipBox.setPosition(clampedX, clampedY);
     this.tooltipBox.setVisible(true);
   }
 
@@ -202,21 +282,26 @@ export class Treasure extends Scene {
     
     const buttonText = "Leave Treasure";
     const baseWidth = 180;
-    const textWidth = buttonText.length * 10; // Approximate width per character
-    const buttonWidth = Math.max(baseWidth, textWidth + 20); // Add padding
     const buttonHeight = 50;
+    const fontSize = screenWidth < 480 ? 18 : 20;
+    const horizontalPadding = 28;
     
     const backButton = this.add.container(screenWidth / 2, screenHeight - 120);
+    
+    // Create text first to measure its width
+    const text = this.add.text(0, 0, buttonText, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: fontSize,
+      color: "#ffffff",
+    }).setOrigin(0.5);
+    
+    const measuredTextWidth = Math.ceil(text.width);
+    const buttonWidth = Math.max(baseWidth, measuredTextWidth + horizontalPadding);
     
     const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0xff4757);
     background.setStrokeStyle(2, 0xffffff);
     
-    const text = this.add.text(0, 0, buttonText, {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 20,
-      color: "#ffffff",
-    }).setOrigin(0.5);
-    
+    // Add to container with background behind text
     backButton.add([background, text]);
     
     backButton.setInteractive(
@@ -247,6 +332,10 @@ export class Treasure extends Scene {
     // Add relic to player
     this.player.relics.push(relic);
     
+    // Persist updated player data so relic is kept after leaving the scene
+    const gameState = GameState.getInstance();
+    gameState.updatePlayerData(this.player);
+    
     // Update UI
     this.descriptionText.setText(`You take the ${relic.name}!`);
     this.descriptionText.setColor("#2ed573");
@@ -255,17 +344,18 @@ export class Treasure extends Scene {
     this.relicButtons.forEach(button => {
       button.disableInteractive();
       button.setActive(false);
-      const background = button.getAt(0) as Phaser.GameObjects.Rectangle;
-      if (background) {
-        background.setFillStyle(0x1a1d26);
+      // Redraw slot background (Graphics) to a dimmed state
+      const slotBg = button.getAt(0) as Phaser.GameObjects.Graphics | undefined;
+      if (slotBg && slotBg.clear) {
+        slotBg.clear();
+        const buttonWidth = 100;
+        const buttonHeight = 100;
+        slotBg.fillGradientStyle(0x1a1d26, 0x1a1d26, 0x0a0d16, 0x0a0d16, 0.8);
+        slotBg.lineStyle(2, 0x3a3d3f, 1);
+        slotBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
+        slotBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
       }
     });
-    
-    // Highlight the selected relic
-    const background = selectedButton.getAt(0) as Phaser.GameObjects.Rectangle;
-    if (background) {
-      background.setFillStyle(0x2ed573);
-    }
     
     // Show message
     this.showMessage(`Acquired: ${relic.name}`, "#2ed573");
@@ -273,58 +363,26 @@ export class Treasure extends Scene {
     // Hide tooltip
     this.hideTooltip();
     
-    // Create a continue button
-    this.createContinueButton();
+    // Immediately return to Overworld
+    gameState.updatePlayerData(this.player);
+    gameState.completeCurrentNode(true);
+    const overworldScene = this.scene.get("Overworld");
+    if (overworldScene) {
+      (overworldScene as any).resume();
+    }
+    this.scene.stop();
+    this.scene.resume("Overworld");
   }
 
-  private createContinueButton(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    const continueButton = this.add.container(screenWidth / 2, screenHeight - 50);
-    
-    const background = this.add.rectangle(0, 0, 180, 50, 0x2ed573);
-    background.setStrokeStyle(2, 0xffffff);
-    
-    const text = this.add.text(0, 0, "Continue Journey", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 20,
-      color: "#000000",
-    }).setOrigin(0.5);
-    
-    continueButton.add([background, text]);
-    
-    continueButton.setInteractive(
-      new Phaser.Geom.Rectangle(-90, -25, 180, 50),
-      Phaser.Geom.Rectangle.Contains
-    );
-    
-    continueButton.on("pointerdown", () => {
-      // Complete the treasure node and return to overworld
-      const gameState = GameState.getInstance();
-      gameState.completeCurrentNode(true);
-      
-      // Manually call the Overworld resume method to reset movement flags
-      const overworldScene = this.scene.get("Overworld");
-      if (overworldScene) {
-        (overworldScene as any).resume();
-      }
-      
-      this.scene.stop();
-      this.scene.resume("Overworld");
-    });
-    
-    continueButton.on("pointerover", () => background.setFillStyle(0x4efc9d));
-    continueButton.on("pointerout", () => background.setFillStyle(0x2ed573));
-  }
+  // (continue button removed: we auto-return after selection)
 
   private showMessage(message: string, color: string): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
     // Remove any existing message
-    this.children.getArray().forEach(child => {
-      if (child instanceof Phaser.GameObjects.Text && child.y === screenHeight - 100) {
+    this.children.getChildren().forEach((child: Phaser.GameObjects.GameObject) => {
+      if (child instanceof Phaser.GameObjects.Text && (child as Phaser.GameObjects.Text).y === screenHeight - 100) {
         child.destroy();
       }
     });
@@ -351,30 +409,8 @@ export class Treasure extends Scene {
    * Handle scene resize
    */
   private handleResize(): void {
-    // Clear and recreate UI
+    // Rebuild UI with the same logic used in create()
     this.children.removeAll();
-    
-    // Recreate all elements
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    this.add.text(
-      screenWidth / 2,
-      30,
-      "Treasure Chest",
-      {
-        fontFamily: "Centrion",
-        fontSize: 32,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.treasureChest.setPosition(screenWidth / 2, screenHeight / 2 - 100);
-    this.descriptionText.setPosition(screenWidth / 2, screenHeight / 2);
-    
-    this.createRelicOptions();
-    this.createTooltipBox();
-    this.createBackButton();
+    this.create();
   }
 }

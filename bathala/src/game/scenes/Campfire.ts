@@ -281,6 +281,8 @@ export class Campfire extends Scene {
     backButton.on("pointerdown", () => {
       // Complete the campfire node and return to overworld
       const gameState = GameState.getInstance();
+      // Save latest player data before leaving bonfire
+      gameState.updatePlayerData(this.player);
       gameState.completeCurrentNode(true);
       
       // Manually call the Overworld resume method to reset movement flags
@@ -399,6 +401,13 @@ export class Campfire extends Scene {
       this.player.maxHealth,
       this.player.currentHealth + healAmount
     );
+    
+    // Persist healed HP to global GameState so it carries back to Overworld
+    const gameState = GameState.getInstance();
+    gameState.updatePlayerData({
+      currentHealth: this.player.currentHealth,
+      maxHealth: this.player.maxHealth
+    });
     
     // Update health display
     this.createPlayerHealthDisplay();
