@@ -28,3 +28,24 @@ export interface ChunkRegion {
   widthInChunks: number;
   heightInChunks: number;
 }
+
+/** Grid coordinate tuple [x, y]. */
+export type Pos = [number, number];
+
+/**
+ * Context for the dead-end analyzer to operate without duplicating game-specific logic.
+ *
+ * PATH_TILE / REGION_TILE: tile ID values used in the IntGrid
+ * levelSize: [width, height]
+ * inBounds: returns true if position lies inside the grid bounds
+ * getNeighbors: returns 4-connected neighbors in any order
+ * wouldCreateDoubleWideAt: returns true if placing PATH at pos would form a 2x2 block
+ */
+export interface AnalyzerContext {
+  PATH_TILE: number;
+  REGION_TILE: number;
+  levelSize: [number, number];
+  inBounds(pos: Pos): boolean;
+  getNeighbors(pos: Pos): Pos[];
+  wouldCreateDoubleWideAt(pos: Pos, intGrid: any): boolean;
+}
