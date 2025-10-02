@@ -247,6 +247,10 @@ export class Treasure extends Scene {
     // Add relic to player
     this.player.relics.push(relic);
     
+    // Persist updated player data so relic is kept after leaving the scene
+    const gameState = GameState.getInstance();
+    gameState.updatePlayerData(this.player);
+    
     // Update UI
     this.descriptionText.setText(`You take the ${relic.name}!`);
     this.descriptionText.setColor("#2ed573");
@@ -273,58 +277,26 @@ export class Treasure extends Scene {
     // Hide tooltip
     this.hideTooltip();
     
-    // Create a continue button
-    this.createContinueButton();
+    // Immediately return to Overworld after selection
+    gameState.updatePlayerData(this.player);
+    gameState.completeCurrentNode(true);
+    const overworldScene = this.scene.get("Overworld");
+    if (overworldScene) {
+      (overworldScene as any).resume();
+    }
+    this.scene.stop();
+    this.scene.resume("Overworld");
   }
 
-  private createContinueButton(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    const continueButton = this.add.container(screenWidth / 2, screenHeight - 50);
-    
-    const background = this.add.rectangle(0, 0, 180, 50, 0x2ed573);
-    background.setStrokeStyle(2, 0xffffff);
-    
-    const text = this.add.text(0, 0, "Continue Journey", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 20,
-      color: "#000000",
-    }).setOrigin(0.5);
-    
-    continueButton.add([background, text]);
-    
-    continueButton.setInteractive(
-      new Phaser.Geom.Rectangle(-90, -25, 180, 50),
-      Phaser.Geom.Rectangle.Contains
-    );
-    
-    continueButton.on("pointerdown", () => {
-      // Complete the treasure node and return to overworld
-      const gameState = GameState.getInstance();
-      gameState.completeCurrentNode(true);
-      
-      // Manually call the Overworld resume method to reset movement flags
-      const overworldScene = this.scene.get("Overworld");
-      if (overworldScene) {
-        (overworldScene as any).resume();
-      }
-      
-      this.scene.stop();
-      this.scene.resume("Overworld");
-    });
-    
-    continueButton.on("pointerover", () => background.setFillStyle(0x4efc9d));
-    continueButton.on("pointerout", () => background.setFillStyle(0x2ed573));
-  }
+  // (continue button removed: we auto-return after selection)
 
   private showMessage(message: string, color: string): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
     // Remove any existing message
-    this.children.getArray().forEach(child => {
-      if (child instanceof Phaser.GameObjects.Text && child.y === screenHeight - 100) {
+    this.children.getChildren().forEach((child: Phaser.GameObjects.GameObject) => {
+      if (child instanceof Phaser.GameObjects.Text && (child as Phaser.GameObjects.Text).y === screenHeight - 100) {
         child.destroy();
       }
     });
