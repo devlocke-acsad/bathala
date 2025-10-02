@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { HandEvaluator } from '../../utils/HandEvaluator';
-import { PlayingCard, Suit, Rank } from '../../core/types/CombatTypes';
+import { PlayingCard, Suit, Rank, Element } from '../../core/types/CombatTypes';
 
 enum TutorialStage {
     INTRODUCTION,
@@ -144,7 +144,7 @@ export class Prologue extends Scene {
                 this.showDialogue('Good. Now, Attack the illusion.', () => {
                     const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'tikbalang').setAlpha(0.5).setScale(1.2);
                     this.tutorialContainer.add(illusion);
-                    this.showActionButtons((action) => {
+                    this.showActionButtons(() => {
                         this.playAttackAnimation(illusion, '2', () => {
                             illusion.destroy();
                             this.currentTutorialStage = TutorialStage.FORM_STRAIGHT;
@@ -165,7 +165,7 @@ export class Prologue extends Scene {
                 }
                 const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'tikbalang').setAlpha(0.5).setScale(1.2);
                 this.tutorialContainer.add(illusion);
-                this.showActionButtons((action) => {
+                this.showActionButtons(() => {
                     this.playAttackAnimation(illusion, '10', () => {
                         illusion.destroy();
                         this.currentTutorialStage = TutorialStage.FORM_FLUSH;
@@ -185,7 +185,7 @@ export class Prologue extends Scene {
                 }
                 const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'tikbalang').setAlpha(0.5).setScale(1.2);
                 this.tutorialContainer.add(illusion);
-                this.showActionButtons((action) => {
+                this.showActionButtons(() => {
                     this.playAttackAnimation(illusion, '14', () => {
                         illusion.destroy();
                         this.currentTutorialStage = TutorialStage.FORM_FULL_HOUSE;
@@ -205,7 +205,7 @@ export class Prologue extends Scene {
                 }
                 const strongIllusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'tikbalang').setScale(1.4);
                 this.tutorialContainer.add(strongIllusion);
-                this.showActionButtons((action) => {
+                this.showActionButtons(() => {
                     this.playAttackAnimation(strongIllusion, '18', () => {
                         this.tutorialContainer.bringToTop(strongIllusion);
                         this.currentTutorialStage = TutorialStage.FORM_HIGH_CARD_DEFEND;
@@ -218,7 +218,7 @@ export class Prologue extends Scene {
 
     private handleFormHighCardAndDefend() {
         this.showDialogue('But what if there is no pattern? Then, your highest card is your guide. This is a High Card hand.', () => {
-            this.drawCards('high_card', (selected) => {
+            this.drawCards('high_card', (_selected) => {
                 this.showDialogue('A High Card hand is weak. It is best used for Defense when you are desperate. The illusion will strike. Defend!', () => {
                     const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'tikbalang').setAlpha(0.5).setScale(1.2);
                     this.tutorialContainer.add(illusion);
@@ -238,7 +238,13 @@ export class Prologue extends Scene {
     }
 
     private handleMoralChoice() {
-        const defeatedSpirit = this.tutorialContainer.list.find(go => go.type === 'Sprite' && (go as GameObjects.Sprite).texture.key === 'tikbalang' && go.scaleX === 1.4) as GameObjects.Sprite;
+        const defeatedSpirit = this.tutorialContainer.list.find(go => {
+            if (go.type === 'Sprite') {
+                const sprite = go as GameObjects.Sprite;
+                return sprite.texture.key === 'tikbalang' && sprite.scaleX === 1.4;
+            }
+            return false;
+        }) as GameObjects.Sprite;
         if (defeatedSpirit) defeatedSpirit.setTint(0xff0000);
 
         this.showDialogue('The illusion is gone, but the choice it represents is real. When you defeat a corrupted spirit, you are left with its essence.', () => {
@@ -292,7 +298,24 @@ export class Prologue extends Scene {
             default: handConfig = [{r: '2', s: 'Apoy'}, {r: '5', s: 'Tubig'}, {r: '7', s: 'Lupa'}, {r: '9', s: 'Hangin'}, {r: 'Datu', s: 'Apoy'}, {r: '3', s: 'Tubig'}, {r: '4', s: 'Lupa'}, {r: '6', s: 'Hangin'}]; break;
         }
         
-        const hand = handConfig.map((def, i) => ({ id: `p_${i}`, rank: def.r, suit: def.s, selected: false, playable: true, element: 'neutral' }));
+        const suitToElement = (suit: Suit): Element => {
+            switch (suit) {
+                case 'Apoy': return 'fire';
+                case 'Tubig': return 'water';
+                case 'Lupa': return 'earth';
+                case 'Hangin': return 'air';
+                default: return 'neutral';
+            }
+        };
+        
+        const hand = handConfig.map((def, i) => ({ 
+            id: `p_${i}`, 
+            rank: def.r, 
+            suit: def.s, 
+            selected: false, 
+            playable: true, 
+            element: suitToElement(def.s)
+        }));
         const selectedCards: PlayingCard[] = [];
         const handSprites: GameObjects.Sprite[] = [];
 
@@ -440,7 +463,7 @@ export class Prologue extends Scene {
         
         button.setSize(220, 60);
         button.setInteractive(new Phaser.Geom.Rectangle(-110, -30, 220, 60), Phaser.Geom.Rectangle.Contains)
-            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+            .on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
                 event.stopPropagation();
                 if (!button.active) return;
                 button.disableInteractive();
