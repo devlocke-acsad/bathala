@@ -1,21 +1,25 @@
 import { Scene, GameObjects } from 'phaser';
 import { HandEvaluator } from '../../utils/HandEvaluator';
-import { PlayingCard, HandEvaluation, Suit, Rank } from '../../core/types/CombatTypes';
+import { PlayingCard, Suit, Rank } from '../../core/types/CombatTypes';
 
-enum TutorialStep {
-    START,
-    TUTORIAL_ATTACK,
-    TUTORIAL_DEFEND,
-    TUTORIAL_SPECIAL,
-    FINAL_BATTLE,
-    END
+// Represents the linear progression through the new tutorial
+enum TutorialStage {
+    INTRODUCTION,
+    FORM_PAIR,      // Player learns to make a Pair
+    ATTACK,         // Player learns to Attack
+    DEFEND,         // Player learns to Defend
+    FORM_STRONGER,  // Player learns about stronger hands (3-of-a-kind)
+    SPECIAL,        // Player learns to use Special
+    MORAL_CHOICE,   // Player learns about Slay/Spare
+    CONCLUSION
 }
 
 export class Prologue extends Scene {
     private isStoryPhase: boolean = true;
-    private isTransitioning: boolean = false;
     private tutorialContainer: GameObjects.Container;
     private skipButton: GameObjects.Container;
+    private typingTimer: Phaser.Time.TimerEvent | null = null;
+    private currentTutorialStage: TutorialStage;
 
     constructor() {
         super('Prologue');
@@ -25,6 +29,8 @@ export class Prologue extends Scene {
         this.cameras.main.setBackgroundColor(0x000000);
         this.startStoryPhase();
     }
+
+    // --- STORY PHASE --- //
 
     private startStoryPhase() {
         this.isStoryPhase = true;
@@ -38,201 +44,221 @@ export class Prologue extends Scene {
         ];
         let currentSlide = 0;
 
-        const imagePlaceholder = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, this.cameras.main.width * 0.6, this.cameras.main.height * 0.4, 0x222222)
-            .setStrokeStyle(3, 0x4a90e2)
-            .setAlpha(0);
-        const border = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, this.cameras.main.width * 0.6, this.cameras.main.height * 0.4, undefined, 0)
-            .setStrokeStyle(6, 0x8e44ad)
-            .setAlpha(0);
-        
-        const displayedText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2 + 150, '', { 
-            fontFamily: 'dungeon-mode', 
-            fontSize: 28, 
-            color: '#FFFFFF', 
-            align: 'center', 
-            wordWrap: { width: this.cameras.main.width - 100 } 
-        }).setOrigin(0.5);
+        const imagePlaceholder = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, this.cameras.main.width * 0.6, this.cameras.main.height * 0.4, 0x222222).setStrokeStyle(3, 0x4a90e2).setAlpha(0);
+        const border = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, this.cameras.main.width * 0.6, this.cameras.main.height * 0.4, undefined, 0).setStrokeStyle(6, 0x8e44ad).setAlpha(0);
+        const displayedText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2 + 150, '', { fontFamily: 'dungeon-mode', fontSize: 28, color: '#FFFFFF', align: 'center', wordWrap: { width: this.cameras.main.width - 100 } }).setOrigin(0.5);
+        const controlsText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height - 50, 'Click or press SPACE to continue', { fontFamily: 'dungeon-mode', fontSize: 18, color: '#AAAAAA', align: 'center' }).setOrigin(0.5);
 
-        const controlsText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height - 50, 'Click or press SPACE to continue', { 
-            fontFamily: 'dungeon-mode', 
-            fontSize: 18, 
-            color: '#AAAAAA', 
-            align: 'center' 
-        }).setOrigin(0.5);
+        const storyElements = [imagePlaceholder, border, displayedText, controlsText];
 
-        this.skipButton = this.createButton(this.cameras.main.width - 120, 40, 'Skip Intro', () => {
+        const transitionToTutorial = () => {
             this.isStoryPhase = false;
             this.input.off('pointerdown', showNextSlide);
             this.input.keyboard?.off('keydown-SPACE');
-            this.tweens.add({ 
-                targets: [imagePlaceholder, border, displayedText, controlsText, this.skipButton], 
-                alpha: 0, 
-                duration: 500, 
+
+            this.tweens.add({
+                targets: [...storyElements, this.skipButton],
+                alpha: 0,
+                duration: 500,
                 ease: 'Power2',
                 onComplete: () => {
-                    imagePlaceholder.destroy();
-                    border.destroy();
-                    displayedText.destroy();
-                    controlsText.destroy();
+                    storyElements.forEach(el => el.destroy());
                     this.skipButton.destroy();
                     this.startTutorial();
                 }
             });
-        });
+        };
+
+        const skipCallback = () => {
+            // Forcefully stop all ongoing animations and timers related to the story phase
+            if (this.typingTimer) {
+                this.typingTimer.remove();
+                this.typingTimer = null;
+            }
+            this.tweens.killTweensOf(storyElements);
+            transitionToTutorial();
+        };
+
+        this.skipButton = this.createButton(this.cameras.main.width - 120, this.cameras.main.height - 60, 'Skip Intro', skipCallback);
         this.skipButton.setAlpha(0);
-        
-        const self = this;
-        const showNextSlide = function() {
-            if (self.isTransitioning) return;
-            if (currentSlide >= slides.length) {
-                self.isStoryPhase = false;
-                self.input.off('pointerdown', showNextSlide);
-                self.input.keyboard?.off('keydown-SPACE');
-                
-                self.tweens.add({ 
-                    targets: [imagePlaceholder, border, displayedText, controlsText, self.skipButton], 
-                    alpha: 0, 
-                    duration: 1000, 
-                    ease: 'Power2',
-                    onComplete: () => {
-                        imagePlaceholder.destroy();
-                        border.destroy();
-                        displayedText.destroy();
-                        controlsText.destroy();
-                        self.skipButton.destroy();
-                        self.startTutorial();
-                    }
-                });
+
+        const showNextSlide = () => {
+            if (this.isStoryPhase && currentSlide >= slides.length) {
+                transitionToTutorial();
                 return;
             }
 
-            self.isTransitioning = true;
-            
-            self.tweens.add({ 
-                targets: [imagePlaceholder, border, self.skipButton], 
-                alpha: 1, 
-                duration: 500,
-                ease: 'Power2'
-            });
-            
-            self.typeText(displayedText, slides[currentSlide]).then(() => {
-                self.isTransitioning = false;
-            });
-            currentSlide++;
+            this.tweens.add({ targets: [imagePlaceholder, border, this.skipButton], alpha: 1, duration: 500, ease: 'Power2' });
+            this.typeText(displayedText, slides[currentSlide++]);
         };
 
-        this.input.keyboard?.on('keydown-SPACE', showNextSlide);
         this.input.on('pointerdown', showNextSlide);
+        this.input.keyboard?.on('keydown-SPACE', showNextSlide);
         showNextSlide();
     }
 
+    // --- TUTORIAL PHASE --- //
+
     private startTutorial() {
-        const fadeInOverlay = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x000000)
-            .setAlpha(0.7);
-        
-        this.tweens.add({
-            targets: fadeInOverlay,
-            alpha: 0,
-            duration: 800,
-            ease: 'Power2',
-            onComplete: () => {
-                fadeInOverlay.destroy();
-                this.tutorialContainer = this.add.container(0, 0);
-                this.skipButton = this.createButton(this.cameras.main.width - 120, 40, 'Skip Tutorial', () => {
-                    this.endTutorial(true);
-                });
-                this.renderTutorialStep(TutorialStep.START);
-            }
-        });
-    }
+        this.tutorialContainer = this.add.container(0, 0);
+        this.skipButton = this.createButton(this.cameras.main.width - 120, this.cameras.main.height - 60, 'Skip Tutorial', () => this.endTutorial(true));
+        this.tutorialContainer.add(this.skipButton);
 
-    private renderTutorialStep(step: TutorialStep) {
-        this.isTransitioning = true;
-        this.tutorialContainer.removeAll(true);
-
-        const tutorialBg = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x1a1a2a).setAlpha(0.7);
+        const tutorialBg = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x1a1a2a).setAlpha(0.9);
         this.tutorialContainer.add(tutorialBg);
 
-        const tikbalang = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, 'tikbalang').setScale(1.5);
-        this.anims.play('tikbalang_idle', tikbalang);
-        const tutorialText = this.add.text(this.cameras.main.width / 2, 50, '', { 
-            fontFamily: 'dungeon-mode', 
-            fontSize: 24, 
-            color: '#FFFFFF', 
-            align: 'center',
-            wordWrap: { width: this.cameras.main.width - 100 }
-        }).setOrigin(0.5);
-        this.tutorialContainer.add([tikbalang, tutorialText]);
+        this.currentTutorialStage = TutorialStage.INTRODUCTION;
+        this.runTutorialStage();
+    }
 
-        switch (step) {
-            case TutorialStep.START:
-                this.showDialogue("You dare challenge me, spirit-touched one? Show me your skill with the sacred cards!", () => this.renderTutorialStep(TutorialStep.TUTORIAL_ATTACK));
+    private runTutorialStage() {
+        switch (this.currentTutorialStage) {
+            case TutorialStage.INTRODUCTION:
+                this.handleIntroduction();
                 break;
-
-            case TutorialStep.TUTORIAL_ATTACK:
-                this.typeText(tutorialText, 'First, let\'s ATTACK. Form a PAIR by selecting two cards of the same rank.').then(() => this.isTransitioning = false);
-                this.drawCards('pair', (selected) => {
-                    const evaluation = HandEvaluator.evaluateHand(selected, 'attack');
-                    if (evaluation.type === 'pair') {
-                        this.showActionButtons((action) => {
-                            if (action === 'attack') {
-                                this.playAttackAnimation(tikbalang, '2', () => this.showDialogue("Weak! Your attack barely scratched me! Now, prepare to DEFEND!", () => this.renderTutorialStep(TutorialStep.TUTORIAL_DEFEND)));
-                            }
-                        }, ['attack']);
-                    } else {
-                        this.typeText(tutorialText, 'Not quite. Select two cards with the same rank to form a PAIR.').then(() => this.time.delayedCall(1500, () => this.renderTutorialStep(TutorialStep.TUTORIAL_ATTACK)));
-                    }
-                });
+            case TutorialStage.FORM_PAIR:
+                this.handleFormPair();
                 break;
-
-            case TutorialStep.TUTORIAL_DEFEND:
-                this.typeText(tutorialText, 'The enemy prepares to strike! Form a hand and DEFEND to gain block.').then(() => this.isTransitioning = false);
-                this.drawCards('pair', (selected) => {
-                    this.showActionButtons((action) => {
-                        if (action === 'defend') {
-                            this.typeText(tutorialText, 'You gained 2 protective block!').then(() => {
-                                this.time.delayedCall(1500, () => {
-                                    this.showDialogue("Hah! A measly defense won't save you forever!", () => this.renderTutorialStep(TutorialStep.TUTORIAL_SPECIAL));
-                                });
-                            });
-                        }
-                    }, ['defend']);
-                });
+            case TutorialStage.ATTACK:
+                this.handleAttack();
                 break;
-
-            case TutorialStep.TUTORIAL_SPECIAL:
-                this.typeText(tutorialText, 'Time for a powerful move! Form a THREE OF A KIND to unlock a SPECIAL action.').then(() => this.isTransitioning = false);
-                this.drawCards('three_of_a_kind', (selected) => {
-                    const evaluation = HandEvaluator.evaluateHand(selected, 'special');
-                    if (evaluation.type === 'three_of_a_kind') {
-                        this.showActionButtons((action) => {
-                            if (action === 'special') {
-                                this.playAttackAnimation(tikbalang, '10', () => this.showDialogue("Argh! A powerful blow!", () => this.renderTutorialStep(TutorialStep.FINAL_BATTLE)));
-                            }
-                        }, ['special']);
-                    } else {
-                        this.typeText(tutorialText, 'Almost. Select three cards with the same rank for a THREE OF A KIND.').then(() => this.time.delayedCall(1500, () => this.renderTutorialStep(TutorialStep.TUTORIAL_SPECIAL)));
-                    }
-                });
+            case TutorialStage.DEFEND:
+                this.handleDefend();
                 break;
-
-            case TutorialStep.FINAL_BATTLE:
-                this.typeText(tutorialText, "You have learned the sacred arts! The spirit is weakened. Now, you must choose: Will you Slay for power, or Spare to restore their spirit?").then(() => {
-                    this.isTransitioning = false;
-                    this.showMoralChoiceAfterDefeat(() => {
-                        this.renderTutorialStep(TutorialStep.END);
-                    });
-                });
+            case TutorialStage.FORM_STRONGER:
+                this.handleFormStronger();
                 break;
-
-            case TutorialStep.END:
-                this.endTutorial();
+            case TutorialStage.SPECIAL:
+                this.handleSpecial();
+                break;
+            case TutorialStage.MORAL_CHOICE:
+                this.handleMoralChoice();
+                break;
+            case TutorialStage.CONCLUSION:
+                this.handleConclusion();
                 break;
         }
     }
 
+    private handleIntroduction() {
+        const duwende = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, 'duwende').setScale(2);
+        this.tutorialContainer.add(duwende);
+        this.showDialogue('Halt, traveler! The woods are twisted, but I can show you the way of the cards. First, let\'s see your strength. Form a hand of 5 cards.', () => {
+            this.currentTutorialStage = TutorialStage.FORM_PAIR;
+            this.runTutorialStage();
+        });
+    }
+
+    private handleFormPair() {
+        this.showDialogue('Find a connection. Two cards of the same rank make a Pair. This is the simplest way to focus your power.', () => {
+            this.drawCards('pair', (selected) => {
+                const evaluation = HandEvaluator.evaluateHand(selected, 'attack');
+                if (evaluation.type === 'pair') {
+                    this.currentTutorialStage = TutorialStage.ATTACK;
+                    this.runTutorialStage();
+                } else {
+                    this.showDialogue('Not quite. Try again. Select two cards with the same rank to form a Pair.', () => this.handleFormPair());
+                }
+            });
+        });
+    }
+
+    private handleAttack() {
+        this.showDialogue('You\'ve formed a Pair! Now, use it to Attack.', () => {
+            this.showActionButtons((action) => {
+                if (action === 'attack') {
+                    this.playAttackAnimation(this.tutorialContainer.getAt(2) as GameObjects.Sprite, '2', () => {
+                        this.currentTutorialStage = TutorialStage.DEFEND;
+                        this.runTutorialStage();
+                    });
+                }
+            }, ['attack']);
+        });
+    }
+
+    private handleDefend() {
+        this.showDialogue('Not bad! But defense is just as important. I will strike now. Form another hand and Defend!', () => {
+            // Here you could add a "charge up" animation for the duwende
+            this.drawCards('pair', (selected) => {
+                this.showActionButtons((action) => {
+                    if (action === 'defend') {
+                        this.showDialogue('You gained 10 block, absorbing my attack! Good.', () => {
+                            this.currentTutorialStage = TutorialStage.FORM_STRONGER;
+                            this.runTutorialStage();
+                        });
+                    }
+                }, ['defend']);
+            });
+        });
+    }
+
+    private handleFormStronger() {
+        this.showDialogue('To cleanse the corruption, you need greater power. Three cards of the same rank make a powerful trio.', () => {
+            this.drawCards('three_of_a_kind', (selected) => {
+                const evaluation = HandEvaluator.evaluateHand(selected, 'special');
+                if (evaluation.type === 'three_of_a_kind') {
+                    this.currentTutorialStage = TutorialStage.SPECIAL;
+                    this.runTutorialStage();
+                } else {
+                    this.showDialogue('Almost. Select the three cards with the same rank.', () => this.handleFormStronger());
+                }
+            });
+        });
+    }
+
+    private handleSpecial() {
+        this.showDialogue('Excellent! A hand this strong unlocks a Special ability. Use it!', () => {
+            this.showActionButtons((action) => {
+                if (action === 'special') {
+                    this.playAttackAnimation(this.tutorialContainer.getAt(2) as GameObjects.Sprite, '10', () => {
+                        this.currentTutorialStage = TutorialStage.MORAL_CHOICE;
+                        this.runTutorialStage();
+                    });
+                }
+            }, ['special']);
+        });
+    }
+
+    private handleMoralChoice() {
+        const duwende = this.tutorialContainer.getAt(2) as GameObjects.Sprite;
+        duwende.setTint(0xff0000); // Show the spirit is weakened
+
+        this.showDialogue('The spirit is defeated. Your path is now yours to choose...', () => {
+            const choices = ['Slay (Gain Power)', 'Spare (Restore Spirit)'];
+            const choiceContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height - 100);
+            this.tutorialContainer.add(choiceContainer);
+
+            choices.forEach((choiceText, i) => {
+                const choice = i === 0 ? 'slay' : 'spare';
+                const button = this.createButton(-220 + i * 440, 0, choiceText, () => {
+                    choiceContainer.destroy();
+                    if (choice === 'slay') {
+                        this.showDialogue('You chose the path of power. You feel stronger.', () => {
+                            this.currentTutorialStage = TutorialStage.CONCLUSION;
+                            this.runTutorialStage();
+                        });
+                    } else {
+                        this.playSpareAnimation(duwende, () => {
+                            this.showDialogue('You chose to restore the spirit. The forest feels a little brighter.', () => {
+                                this.currentTutorialStage = TutorialStage.CONCLUSION;
+                                this.runTutorialStage();
+                            });
+                        });
+                    }
+                });
+                choiceContainer.add(button);
+            });
+        });
+    }
+
+    private handleConclusion() {
+        this.showDialogue('Your journey begins now. Remember what you have learned. Go forth.', () => {
+            this.endTutorial();
+        });
+    }
+
     private async endTutorial(skipped = false) {
-        if (this.skipButton) {
+        if (this.skipButton && this.skipButton.active) {
             this.skipButton.destroy();
         }
         if (skipped) {
@@ -240,63 +266,18 @@ export class Prologue extends Scene {
             return;
         }
 
-        const tutorialText = this.tutorialContainer.getAt(2) as GameObjects.Text;
-        const tikbalang = this.tutorialContainer.getAt(1) as GameObjects.Sprite;
-        
-        tutorialText.setFontSize(26).setWordWrap({ width: this.cameras.main.width * 0.8 });
-        
-        await this.typeText(tutorialText, "You have vanquished the corrupted spirit...");
-        this.tweens.add({
-            targets: tikbalang,
-            alpha: 0.5,
-            duration: 500,
-            ease: 'Power2'
-        });
-        await this.waitForClick();
-        
-        await this.typeText(tutorialText, "But the engkanto's deceit runs deep. Many more anito are twisted by their lies.");
-        await this.waitForClick();
-        
-        await this.typeText(tutorialText, "Your mission: Journey through the islands, from the Shattered Grove to the Skyward Citadel.");
-        await this.waitForClick();
-        
-        await this.typeText(tutorialText, "Face the corrupted. You may Slay them for power, or Spare them to restore their spirit.");
-        await this.waitForClick();
-        
-        await this.typeText(tutorialText, "The choice will shape your journey. Now, go forth.");
-        await this.waitForClick();
-
-        const transitionOverlay = this.add.graphics();
-        this.tutorialContainer.add(transitionOverlay);
-        
         this.tweens.add({
             targets: this.tutorialContainer,
             alpha: 0,
             duration: 1000,
-            ease: 'Power2'
-        });
-        
-        this.time.delayedCall(500, () => {
-            let radius = 0;
-            const centerX = this.cameras.main.width / 2;
-            const centerY = this.cameras.main.height / 2;
-            
-            this.tweens.addCounter({
-                from: 0,
-                to: Math.max(this.cameras.main.width, this.cameras.main.height) * 0.7,
-                duration: 1000,
-                onUpdate: (tween) => {
-                    radius = tween.getValue();
-                    transitionOverlay.clear();
-                    transitionOverlay.fillStyle(0x000000, 1);
-                    transitionOverlay.fillCircle(centerX, centerY, radius);
-                },
-                onComplete: () => {
-                    this.scene.start('Overworld');
-                }
-            });
+            ease: 'Power2',
+            onComplete: () => {
+                this.scene.start('Overworld');
+            }
         });
     }
+
+    // --- HELPER FUNCTIONS --- //
 
     private drawCards(type: 'pair' | 'three_of_a_kind', onHandComplete: (selected: PlayingCard[]) => void) {
         let handConfig;
@@ -319,15 +300,22 @@ export class Prologue extends Scene {
         const startX = this.cameras.main.width / 2 - handWidth / 2;
         const y = this.cameras.main.height - 250;
 
-        const cardAreaBg = this.add.rectangle(this.cameras.main.width / 2, y, handWidth + 50, cardWidth * 0.5 + 80, 0x2c3e50).setAlpha(0.3);
-        this.tutorialContainer.add(cardAreaBg);
+        const cardAreaBg = this.add.rectangle(this.cameras.main.width / 2, y, handWidth + 50, cardWidth * 1.5 + 80, 0x2c3e50).setAlpha(0.3);
+        const selectionIndicator = this.add.text(this.cameras.main.width / 2, y + 120, 'Selected: 0/5', { fontFamily: 'dungeon-mode', fontSize: 18, color: '#FFFFFF' }).setOrigin(0.5);
+        
+        const cardElements: GameObjects.GameObject[] = [cardAreaBg, selectionIndicator];
 
-        const playHandButton = this.createButton(this.cameras.main.width / 2, this.cameras.main.height - 100, 'Play Hand', () => {});
+        const playHandCallback = () => {
+            if (selectedCards.length !== 5) return;
+            cardElements.forEach(el => el.destroy());
+            handSprites.forEach(s => s.destroy());
+            playHandButton.destroy();
+            onHandComplete(selectedCards);
+        };
+
+        const playHandButton = this.createButton(this.cameras.main.width / 2, this.cameras.main.height - 100, 'Play Hand', playHandCallback);
         playHandButton.setVisible(false);
-        this.tutorialContainer.add(playHandButton);
-
-        const selectionIndicator = this.add.text(this.cameras.main.width / 2, y + 80, 'Selected: 0/5', { fontFamily: 'dungeon-mode', fontSize: 18, color: '#FFFFFF' }).setOrigin(0.5);
-        this.tutorialContainer.add(selectionIndicator);
+        cardElements.push(playHandButton);
 
         hand.forEach((card, i) => {
             const spriteRank = rankMap[card.rank] || "1";
@@ -335,21 +323,16 @@ export class Prologue extends Scene {
             const cardSprite = this.add.sprite(startX + i * (cardWidth * 0.9), y, `card_${spriteRank}_${spriteSuit}`).setInteractive().setScale(0.35);
             cardSprite.setData('card', card);
             handSprites.push(cardSprite);
-            this.tutorialContainer.add(cardSprite);
 
             cardSprite.on('pointerdown', () => {
-                if (this.isTransitioning) return;
-
-                const cardData = cardSprite.getData('card') as PlayingCard;
                 card.selected = !card.selected;
-
                 if (card.selected) {
                     if (selectedCards.length < 5) {
                         cardSprite.y -= 30;
                         cardSprite.setTint(0x4a90e2);
                         selectedCards.push(card);
                     } else {
-                        card.selected = false; // deselect if trying to select more than 5
+                        card.selected = false;
                     }
                 } else {
                     cardSprite.y += 30;
@@ -359,68 +342,42 @@ export class Prologue extends Scene {
                 }
 
                 selectionIndicator.setText(`Selected: ${selectedCards.length}/5`);
-                
-                if (selectedCards.length === 5) {
-                    selectionIndicator.setColor('#4ade80');
-                    playHandButton.setVisible(true).setInteractive().once('pointerdown', () => {
-                        if(this.isTransitioning) return;
-                        this.isTransitioning = true;
-                        playHandButton.destroy();
-                        selectionIndicator.destroy();
-                        cardAreaBg.destroy();
-                        handSprites.forEach(s => s.destroy());
-                        onHandComplete(selectedCards);
-                    });
-                } else {
-                    selectionIndicator.setColor('#ffffff');
-                    playHandButton.setVisible(false);
-                }
+                playHandButton.setVisible(selectedCards.length === 5);
             });
         });
+
+        this.tutorialContainer.add([...cardElements, ...handSprites]);
     }
 
     private showActionButtons(onAction: (action: string) => void, enabled: string[] = ['attack', 'defend', 'special']) {
         const actions = ['Attack', 'Defend', 'Special'];
-        const actionButtons = this.add.container(this.cameras.main.width / 2, this.cameras.main.height - 100);
-        this.tutorialContainer.add(actionButtons);
-        
-        const actionAreaBg = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height - 100, 700, 80, 0x2c3e50).setAlpha(0.3);
-        this.tutorialContainer.add(actionAreaBg);
+        const actionButtonsContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height - 100);
+        this.tutorialContainer.add(actionButtonsContainer);
         
         actions.forEach((action, i) => {
             const lowerCaseAction = action.toLowerCase();
             const isEnabled = enabled.includes(lowerCaseAction);
             const button = this.createButton(-220 + i * 220, 0, action, () => {
-                if (this.isTransitioning || !isEnabled) return;
-                
-                this.cameras.main.shake(50, 0.005);
-                
-                this.isTransitioning = true;
-                actionButtons.destroy();
-                actionAreaBg.destroy();
+                if (!isEnabled) return;
+                actionButtonsContainer.destroy();
                 onAction(lowerCaseAction);
             });
+
             if (!isEnabled) {
                 (button.getAt(0) as GameObjects.Rectangle).setFillStyle(0x1a1a1a, 0.5);
                 (button.getAt(1) as GameObjects.Text).setAlpha(0.5);
             } else {
-                // Highlight enabled buttons
-                this.tweens.add({
-                    targets: button.getAt(0),
-                    scaleX: 1.05,
-                    scaleY: 1.05,
-                    yoyo: true,
-                    repeat: -1,
-                    ease: 'Sine.easeInOut',
-                    duration: 700
-                });
+                this.tweens.add({ targets: button, scale: 1.05, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', duration: 700 });
             }
-            actionButtons.add(button);
+            actionButtonsContainer.add(button);
         });
     }
 
     private playAttackAnimation(target: GameObjects.Sprite, damage: string, onComplete: () => void) {
-        this.isTransitioning = true;
+        if (!target || !target.active) {
+            onComplete();
+            return;
+        }
         this.cameras.main.shake(100, 0.01);
         target.setTint(0xff0000);
         const damageText = this.add.text(target.x, target.y, damage, { fontFamily: 'dungeon-mode', fontSize: 48, color: '#ff0000' }).setOrigin(0.5);
@@ -430,86 +387,50 @@ export class Prologue extends Scene {
         this.time.delayedCall(1000, onComplete);
     }
 
+    private playSpareAnimation(target: GameObjects.Sprite, onComplete: () => void) {
+        if (!target || !target.active) {
+            onComplete();
+            return;
+        }
+        const spareEffect = this.add.particles(0, 0, 'pixel', { x: target.x, y: target.y, speed: { min: -100, max: 100 }, angle: { min: 0, max: 360 }, scale: { start: 0.5, end: 0 }, blendMode: 'add', frequency: 20, lifespan: 800, quantity: 5, tint: 0x2ecc71 });
+        this.tweens.add({ targets: target, tint: 0x2ecc71, duration: 200, yoyo: true, repeat: 4, onComplete: () => { target.clearTint(); spareEffect.destroy(); onComplete(); } });
+    }
+
     private showDialogue(text: string, onComplete: () => void) {
-        this.isTransitioning = true;
-        const dialogueContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height - 180);
+        const dialogueContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2);
         this.tutorialContainer.add(dialogueContainer);
         
         const bg = this.add.rectangle(0, 0, this.cameras.main.width * 0.8, 120, 0x1a1a2e, 0.9).setStrokeStyle(3, 0x8e44ad).setInteractive();
-        const dialogueText = this.add.text(0, -20, '', { 
-            fontFamily: 'dungeon-mode', 
-            fontSize: 22, 
-            color: '#ecf0f1', 
-            align: 'center', 
-            wordWrap: { width: this.cameras.main.width * 0.75 } 
-        }).setOrigin(0.5);
+        const dialogueText = this.add.text(0, 0, '', { fontFamily: 'dungeon-mode', fontSize: 22, color: '#ecf0f1', align: 'center', wordWrap: { width: this.cameras.main.width * 0.75 } }).setOrigin(0.5);
+        const continueIndicator = this.add.text(bg.width/2 - 40, bg.height/2 - 20, '▼', { fontSize: 28, color: '#e74c3c' }).setOrigin(0.5).setVisible(false);
+        dialogueContainer.add([bg, dialogueText, continueIndicator]);
         
-        const speakerIcon = this.add.sprite(-bg.width/2 + 50, 0, 'tikbalang').setScale(0.4);
-        
-        const continueIndicator = this.add.text(bg.width/2 - 40, bg.height/2 - 10, '▼', { 
-            fontSize: 28, 
-            color: '#e74c3c'
-        }).setOrigin(0.5).setVisible(false);
-        
-        dialogueContainer.add([bg, speakerIcon, dialogueText, continueIndicator]);
-        
-        dialogueContainer.setScale(0).setAlpha(0);
-        this.tweens.add({
-            targets: dialogueContainer,
-            scale: 1,
-            alpha: 1,
-            duration: 400,
-            ease: 'Back.Out'
-        });
+        dialogueContainer.setAlpha(0);
+        this.tweens.add({ targets: dialogueContainer, alpha: 1, duration: 400, ease: 'Power2' });
         
         this.typeText(dialogueText, text).then(() => {
-            this.isTransitioning = false;
             continueIndicator.setVisible(true);
+            this.tweens.add({ targets: continueIndicator, y: '+=8', duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
             
-            this.tweens.add({
-                targets: continueIndicator,
-                y: '+=8',
-                duration: 600,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-            
-            const onContinue = () => {
-                this.cameras.main.shake(20, 0.005);
-                
-                this.tweens.add({ 
-                    targets: dialogueContainer, 
-                    alpha: 0, 
-                    scale: 0.8,
-                    duration: 300, 
-                    ease: 'Power2',
-                    onComplete: () => {
-                        dialogueContainer.destroy();
-                        onComplete();
-                    }
-                });
-            };
-
-            bg.once('pointerdown', onContinue);
-            const spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-            spaceKey.once('down', () => {
-                this.input.keyboard?.removeKey(spaceKey);
-                bg.emit('pointerdown');
+            bg.once('pointerdown', () => {
+                this.tweens.add({ targets: dialogueContainer, alpha: 0, duration: 300, ease: 'Power2', onComplete: () => { dialogueContainer.destroy(); onComplete(); } });
             });
         });
     }
 
     private typeText(textObject: GameObjects.Text, text: string): Promise<void> {
+        if (this.typingTimer) {
+            this.typingTimer.remove();
+        }
         return new Promise(resolve => {
-            textObject.setText('').setAlpha(1);
+            textObject.setText('');
             let charIndex = 0;
-            const timer = this.time.addEvent({
+            this.typingTimer = this.time.addEvent({
                 delay: 30,
                 callback: () => {
                     textObject.setText(textObject.text + text[charIndex++]);
                     if (charIndex === text.length) {
-                        timer.remove();
+                        this.typingTimer = null;
                         resolve();
                     }
                 },
@@ -518,108 +439,43 @@ export class Prologue extends Scene {
         });
     }
 
-    private waitForClick(): Promise<void> {
-        return new Promise(resolve => {
-            this.input.once('pointerdown', resolve);
-        });
-    }
-
     private createButton(x: number, y: number, text: string, callback: () => void): GameObjects.Container {
         const button = this.add.container(x, y);
-        const bg = this.add.rectangle(0, 0, 200, 50, 0x2f3542).setStrokeStyle(2, 0x57606f);
+        const bg = this.add.rectangle(0, 0, 220, 60, 0x2f3542).setStrokeStyle(2, 0x57606f);
         const buttonText = this.add.text(0, 0, text, { fontFamily: "dungeon-mode", fontSize: 24, color: "#e8eced", align: "center" }).setOrigin(0.5);
         button.add([bg, buttonText]);
         
-        button.setSize(200, 50);
-        button.setInteractive(new Phaser.Geom.Rectangle(-100, -25, 200, 50), Phaser.Geom.Rectangle.Contains)
-            .on('pointerdown', () => {
-                if (button.getData('isPressed')) return;
-                button.setData('isPressed', true);
-                bg.setFillStyle(0x1e2a38);
+        button.setSize(220, 60);
+        button.setInteractive(new Phaser.Geom.Rectangle(-110, -30, 220, 60), Phaser.Geom.Rectangle.Contains)
+            .on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
+                event.stopPropagation();
+                if (!button.active) return;
+                button.disableInteractive();
+
+                this.tweens.add({
+                    targets: button,
+                    scale: 0.95,
+                    duration: 100,
+                    ease: 'Power1',
+                    onComplete: () => {
+                        callback();
+                    }
+                });
                 this.cameras.main.shake(30, 0.01);
-                this.time.delayedCall(100, () => bg.setFillStyle(0x2f3542));
-                this.time.delayedCall(200, () => button.setData('isPressed', false));
-                callback();
             })
-            .on('pointerover', () => bg.setFillStyle(0x3d4454))
-            .on('pointerout', () => bg.setFillStyle(0x2f3542));
+            .on('pointerover', () => {
+                if (!button.active) return;
+                this.input.manager.canvas.style.cursor = 'pointer';
+                this.tweens.add({ targets: button, scale: 1.05, duration: 200, ease: 'Power2' });
+                bg.setFillStyle(0x3d4454);
+            })
+            .on('pointerout', () => {
+                if (!button.active) return;
+                this.input.manager.canvas.style.cursor = 'default';
+                this.tweens.add({ targets: button, scale: 1, duration: 200, ease: 'Power2' });
+                bg.setFillStyle(0x2f3542);
+            });
             
         return button;
-    }
-
-    private showMoralChoiceAfterDefeat(onComplete: () => void) {
-        let tutorialText: GameObjects.Text | null = this.tutorialContainer.list.find(obj => obj.type === 'Text') as GameObjects.Text || null;
-        
-        if (!tutorialText) {
-            console.error("Could not find tutorial text object");
-            onComplete();
-            return;
-        }
-        
-        const choices = ['Slay (Gain Power)', 'Spare (Restore Spirit)'];
-        const choiceContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height - 100);
-        this.tutorialContainer.add(choiceContainer);
-        
-        const choiceAreaBg = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height - 100, 700, 80, 0x2c3e50).setAlpha(0.3);
-        this.tutorialContainer.add(choiceAreaBg);
-        
-        choices.forEach((choiceText, i) => {
-            const choice = i === 0 ? 'slay' : 'spare';
-            const button = this.createButton(-220 + i * 440, 0, choiceText, () => {
-                if (this.isTransitioning) return;
-                
-                this.cameras.main.shake(50, 0.005);
-                
-                this.isTransitioning = true;
-                choiceContainer.destroy();
-                choiceAreaBg.destroy();
-                
-                if (choice === 'slay') {
-                    this.showDialogue(`You chose the path of power.`, () => {
-                        this.typeText(tutorialText, "You have gained power from the defeated spirit.").then(onComplete);
-                    });
-                } else {
-                    let tikbalang = this.tutorialContainer.list.find(obj => obj.type === 'Sprite') as GameObjects.Sprite;
-                    if (tikbalang) {
-                        this.playSpareAnimation(tikbalang, () => {
-                            this.typeText(tutorialText, "You have restored the spirit and gained their respect.").then(onComplete);
-                        });
-                    } else {
-                        this.typeText(tutorialText, "You have restored the spirit and gained their respect.").then(onComplete);
-                    }
-                }
-            });
-            choiceContainer.add(button);
-        });
-    }
-
-    private playSpareAnimation(target: GameObjects.Sprite, onComplete: () => void) {
-        this.isTransitioning = true;
-        
-        const spareEffect = this.add.particles(0, 0, 'pixel', {
-            x: target.x,
-            y: target.y,
-            speed: { min: -100, max: 100 },
-            angle: { min: 0, max: 360 },
-            scale: { start: 0.5, end: 0 },
-            blendMode: 'add',
-            frequency: 20,
-            lifespan: 800,
-            quantity: 5,
-            tint: 0x2ecc71
-        });
-        
-        this.tweens.add({
-            targets: target,
-            tint: 0x2ecc71,
-            duration: 200,
-            yoyo: true,
-            repeat: 4,
-            onComplete: () => {
-                target.clearTint();
-                spareEffect.destroy();
-                onComplete();
-            }
-        });
     }
 }
