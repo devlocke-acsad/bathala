@@ -15,7 +15,7 @@ import {
   TIYANAK_LORE, MANANANGGAL_LORE, ASWANG_LORE, DUWENDE_CHIEF_LORE,
   BAKUNAWA_LORE
 } from "../../data/lore/EnemyLore";
-import { OverworldMovementManager } from "./OverworldMovementManager";
+import { OverworldMovementManager } from "./Overworld_MovementManager";
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
