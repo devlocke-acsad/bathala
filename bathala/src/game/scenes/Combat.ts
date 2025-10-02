@@ -24,6 +24,7 @@ import {
 } from "../../data/enemies/Act1Enemies";
 import { ENEMY_LORE_DATA, EnemyLore } from "../../data/lore/EnemyLore";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
+import { RelicManager } from "../../core/managers/RelicManager";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -886,6 +887,9 @@ export class Combat extends Scene {
     } catch (error) {
       console.warn("DDA not available, skipping DDA initialization:", error);
     }
+    
+    // Apply start-of-combat relic effects
+    RelicManager.applyStartOfCombatEffects(this.combatState.player);
   }
 
   /**
@@ -1769,13 +1773,28 @@ export class Combat extends Scene {
       // Calculate x and y positions with a very gentle arch curve
       const x = startX + index * actualCardWidth;
       // Create a very subtle arch that peaks in the middle
-      const y = -Math.sin(positionRatio * Math.PI) * curveHeight;
+      let y = -Math.sin(positionRatio * Math.PI) * curveHeight;
+      
+      // If card is selected, maintain elevated position (like Balatro)
+      if (card.selected) {
+        y -= 60; // Keep selected cards elevated higher like Balatro
+      }
       
       const cardSprite = this.createCardSprite(
         card,
         x,
         y
       );
+      
+      // Apply selected state styling if needed
+      if (card.selected) {
+        cardSprite.setScale(1.15);
+        const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+        if (cardImage && 'setTint' in cardImage) {
+          cardImage.setTint(0xffe6cc);
+        }
+      }
+      
       this.handContainer.add(cardSprite);
       this.cardSprites.push(cardSprite);
     });
@@ -1972,27 +1991,27 @@ export class Combat extends Scene {
       const baseY = -Math.sin(positionRatio * Math.PI) * curveHeight;
       const baseX = startX + cardIndex * actualCardWidth;
       
-      // Animate the card with a bounce effect and pop up
+      // Instantly set elevated position when selected (no animation)
       if (card.selected) {
-        // Pop up animation - move card up slightly and scale slightly
-        this.tweens.add({
-          targets: cardSprite,
-          x: baseX,
-          y: baseY - 20, // Reduced popup height
-          scale: 1.05,
-          duration: 200,
-          ease: 'Power2'
-        });
+        // Instantly move to elevated position and stay there
+        cardSprite.setPosition(cardSprite.x, baseY - 60);
+        cardSprite.setScale(1.15);
+        
+        // Add a subtle glow effect to the card image/sprite
+        const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+        if (cardImage && 'setTint' in cardImage) {
+          cardImage.setTint(0xffe6cc);
+        }
       } else {
-        // Return to original position
-        this.tweens.add({
-          targets: cardSprite,
-          x: baseX,
-          y: baseY,
-          scale: 1.0,
-          duration: 200,
-          ease: 'Power2'
-        });
+        // Instantly return to hand level when deselected
+        cardSprite.setPosition(cardSprite.x, baseY);
+        cardSprite.setScale(1.0);
+        
+        // Remove tint
+        const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+        if (cardImage && 'clearTint' in cardImage) {
+          cardImage.clearTint();
+        }
       }
     }
 
@@ -2198,6 +2217,9 @@ export class Combat extends Scene {
    * End player turn
    */
   private endPlayerTurn(): void {
+    // Apply end-of-turn relic effects
+    RelicManager.applyEndOfTurnEffects(this.combatState.player);
+    
     this.combatState.phase = "enemy_turn";
     this.selectedCards = [];
 
@@ -2284,6 +2306,9 @@ export class Combat extends Scene {
     this.updateHandDisplay();
     this.updatePlayedHandDisplay(); // Clear the played hand display
     this.updateActionButtons(); // Reset to card selection buttons
+    
+    // Apply start-of-turn relic effects
+    RelicManager.applyStartOfTurnEffects(this.combatState.player);
     
     // Ensure action processing is reset
     this.isActionProcessing = false;
@@ -3298,7 +3323,8 @@ export class Combat extends Scene {
     
     const evaluation = HandEvaluator.evaluateHand(
       this.combatState.player.playedHand,
-      actionType
+      actionType,
+      this.combatState.player
     );
     console.log(`Hand evaluation:`, evaluation);
     
@@ -3306,6 +3332,9 @@ export class Combat extends Scene {
     if (this.isHandBetterThan(evaluation.type, this.bestHandAchieved)) {
       this.bestHandAchieved = evaluation.type;
     }
+    
+    // Apply relic effects after playing a hand
+    RelicManager.applyAfterHandPlayedEffects(this.combatState.player, this.combatState.player.playedHand, evaluation);
     
     const dominantSuit = this.getDominantSuit(
       this.combatState.player.playedHand
