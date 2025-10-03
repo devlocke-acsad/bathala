@@ -1,6 +1,6 @@
 import { Scene } from "phaser";
-import { MazeOverworldGenerator } from "../../utils/MazeOverworldGenerator";
 import { MapNode } from "../../core/types/MapTypes";
+import { OverworldMazeGenerationManager } from "./Overworld_MazeGenerationManager";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { GameState } from "../../core/managers/GameState";
 import { Player } from "../../core/types/CombatTypes";
@@ -20,10 +20,7 @@ export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: { [key: string]: Phaser.Input.Keyboard.Key };
-  private nodes: MapNode[] = [];
-  private nodeSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
-  private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
-  private gridSize: number = 32;
+  private mazeManager: OverworldMazeGenerationManager;
   private isMoving: boolean = false;
   private isTransitioningToCombat: boolean = false;
   private gameState: OverworldGameState;
@@ -68,6 +65,7 @@ export class Overworld extends Scene {
   constructor() {
     super({ key: "Overworld" });
     this.gameState = OverworldGameState.getInstance();
+    this.mazeManager = new OverworldMazeGenerationManager(this);
     
     // Initialize player data with default values or from GameState
     const gameState = GameState.getInstance();
@@ -146,48 +144,13 @@ export class Overworld extends Scene {
     const gameState = GameState.getInstance();
     const savedPosition = gameState.getPlayerPosition();
     
+    // Get player starting position from maze manager
+    const startPosition = this.mazeManager.initializeMaze(savedPosition);
+    this.player = this.add.sprite(startPosition.x, startPosition.y, "overworld_player");
+    
     if (savedPosition) {
-      // Restore player at saved position
-      this.player = this.add.sprite(savedPosition.x, savedPosition.y, "overworld_player");
       // Clear the saved position so it's not used again
       gameState.clearPlayerPosition();
-    } else {
-      // Reset the maze generator cache for a new game
-      MazeOverworldGenerator.clearCache();
-      
-      // Get the initial chunk to ensure player starts in a valid position
-      const initialChunk = MazeOverworldGenerator.getChunk(0, 0, this.gridSize);
-      
-      // Find a valid starting position in the center of the initial chunk
-      const chunkCenterX = Math.floor(MazeOverworldGenerator['chunkSize'] / 2);
-      const chunkCenterY = Math.floor(MazeOverworldGenerator['chunkSize'] / 2);
-      
-      // Ensure the center position is a path
-      let startX = chunkCenterX * this.gridSize + this.gridSize / 2;
-      let startY = chunkCenterY * this.gridSize + this.gridSize / 2;
-      
-      // If center is a wall, find the nearest path
-      if (initialChunk.maze[chunkCenterY][chunkCenterX] === 1) {
-        // Search for nearby paths
-        let foundPath = false;
-        for (let distance = 1; distance < 5 && !foundPath; distance++) {
-          for (let dy = -distance; dy <= distance && !foundPath; dy++) {
-            for (let dx = -distance; dx <= distance && !foundPath; dx++) {
-              const newY = chunkCenterY + dy;
-              const newX = chunkCenterX + dx;
-              if (newY >= 0 && newY < initialChunk.maze.length && 
-                  newX >= 0 && newX < initialChunk.maze[0].length && 
-                  initialChunk.maze[newY][newX] === 0) {
-                startX = newX * this.gridSize + this.gridSize / 2;
-                startY = newY * this.gridSize + this.gridSize / 2;
-                foundPath = true;
-              }
-            }
-          }
-        }
-      }
-      
-      this.player = this.add.sprite(startX, startY, "overworld_player");
     }
     
     this.player.setScale(2); // Scale up from 16x16 to 32x32
@@ -231,7 +194,10 @@ export class Overworld extends Scene {
     this.time.delayedCall(10, this.createUI, [], this);
     
     // Render initial chunks around player with a slight delay to ensure camera is ready
-    this.time.delayedCall(20, this.updateVisibleChunks, [], this);
+    this.time.delayedCall(20, () => this.mazeManager.updateVisibleChunks(), [], this);
+    
+    // Set up event listeners for node interactions
+    this.setupNodeEventListeners();
 
     // Listen for resize events
     this.scale.on('resize', this.handleResize, this);
@@ -1244,19 +1210,20 @@ export class Overworld extends Scene {
     }
 
     // Define proximity threshold for enemy movement (in pixels)
-    const movementRange = this.gridSize * 10; // Reduced to 10 grid squares for more breathing room
+    const gridSize = this.mazeManager.getGridSize();
+    const movementRange = gridSize * 10; // Reduced to 10 grid squares for more breathing room
 
     // Get player position
     const playerX = this.player.x;
     const playerY = this.player.y;
 
     // Find nearby enemy nodes that should move
-    const enemyNodes = this.nodes.filter(node => 
+    const enemyNodes = this.mazeManager.getNodes().filter(node => 
       (node.type === "combat" || node.type === "elite") &&
       Phaser.Math.Distance.Between(
         playerX, playerY,
-        node.x + this.gridSize / 2, 
-        node.y + this.gridSize / 2
+        node.x + gridSize / 2, 
+        node.y + gridSize / 2
       ) <= movementRange
     );
 
@@ -1270,8 +1237,9 @@ export class Overworld extends Scene {
    * Enhanced AI movement system for enemies
    */
   private moveEnemyWithEnhancedAI(enemyNode: MapNode, playerX: number, playerY: number): void {
-    const currentX = enemyNode.x + this.gridSize / 2;
-    const currentY = enemyNode.y + this.gridSize / 2;
+    const gridSize = this.mazeManager.getGridSize();
+    const currentX = enemyNode.x + gridSize / 2;
+    const currentY = enemyNode.y + gridSize / 2;
     const distance = Phaser.Math.Distance.Between(currentX, currentY, playerX, playerY);
     
     // Different movement strategies based on distance and enemy type
@@ -1312,7 +1280,8 @@ export class Overworld extends Scene {
     }
     
     // Much more conservative distance-based speed increases
-    const gridDistance = distanceToPlayer / this.gridSize;
+    const gridSize = this.mazeManager.getGridSize();
+    const gridDistance = distanceToPlayer / gridSize;
     if (gridDistance <= 2) {
       baseSpeed += 1; // Only very close enemies (2 grids) get +1 speed
     }
@@ -1329,12 +1298,13 @@ export class Overworld extends Scene {
    * Calculate a single movement step toward the player
    */
   private calculateSingleEnemyStep(currentX: number, currentY: number, playerX: number, playerY: number): { x: number, y: number } | null {
+    const gridSize = this.mazeManager.getGridSize();
     // Calculate direction to player
     const deltaX = playerX - currentX;
     const deltaY = playerY - currentY;
     
     // If already at player position, don't move
-    if (Math.abs(deltaX) < this.gridSize / 2 && Math.abs(deltaY) < this.gridSize / 2) {
+    if (Math.abs(deltaX) < gridSize / 2 && Math.abs(deltaY) < gridSize / 2) {
       return null;
     }
     
@@ -1343,22 +1313,22 @@ export class Overworld extends Scene {
     let newY = currentY;
     
     // Reduced diagonal movement chance for more predictable behavior
-    if (Math.abs(deltaX) > this.gridSize / 2 && Math.abs(deltaY) > this.gridSize / 2 && Math.random() < 0.3) {
-      newX = currentX + (deltaX > 0 ? this.gridSize : -this.gridSize);
-      newY = currentY + (deltaY > 0 ? this.gridSize : -this.gridSize);
+    if (Math.abs(deltaX) > gridSize / 2 && Math.abs(deltaY) > gridSize / 2 && Math.random() < 0.3) {
+      newX = currentX + (deltaX > 0 ? gridSize : -gridSize);
+      newY = currentY + (deltaY > 0 ? gridSize : -gridSize);
     } else {
       // Standard movement: prioritize the axis with larger distance
       if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        newX = currentX + (deltaX > 0 ? this.gridSize : -this.gridSize);
+        newX = currentX + (deltaX > 0 ? gridSize : -gridSize);
       } else {
-        newY = currentY + (deltaY > 0 ? this.gridSize : -this.gridSize);
+        newY = currentY + (deltaY > 0 ? gridSize : -gridSize);
       }
     }
     
     // Convert back to node coordinates (top-left corner)
     return {
-      x: newX - this.gridSize / 2,
-      y: newY - this.gridSize / 2
+      x: newX - gridSize / 2,
+      y: newY - gridSize / 2
     };
   }
 
@@ -1378,278 +1348,28 @@ export class Overworld extends Scene {
    * Animate enemy movement to new position
    */
   private animateEnemyMovement(enemyNode: MapNode, newX: number, newY: number): void {
-    // Update node position
-    enemyNode.x = newX;
-    enemyNode.y = newY;
-    
-    // Get the corresponding sprite
-    const sprite = this.nodeSprites.get(enemyNode.id);
-    if (sprite) {
-      // Add visual feedback for aggressive movement
-      const isAggressiveMove = enemyNode.type === "elite";
-      
-      // Create a brief flash effect for elite enemies
-      if (isAggressiveMove) {
-        sprite.setTint(0xff4444); // Red tint for aggressive movement
-        this.time.delayedCall(150, () => {
-          sprite.clearTint();
-        });
-      }
-      
-      // Animate sprite movement with dynamic timing
-      this.tweens.add({
-        targets: sprite,
-        x: newX + this.gridSize / 2,
-        y: newY + this.gridSize / 2,
-        duration: isAggressiveMove ? 120 : 180, // Faster movement for elite enemies
-        ease: 'Power2',
-        onStart: () => {
-          // Slightly scale up during movement for emphasis
-          sprite.setScale(1.6);
-        },
-        onComplete: () => {
-          // Return to normal scale
-          sprite.setScale(1.5);
-        }
-      });
-    }
+    // Delegate to maze manager which handles the animation
+    this.mazeManager.animateEnemyMovement(enemyNode, newX, newY);
   }
 
   updateVisibleChunks(): void {
-    // Ensure camera is available before proceeding
-    if (!this.cameras || !this.cameras.main) {
-      console.warn("Camera not available, skipping chunk update");
-      return;
-    }
-    
-    // Determine which chunks are visible based on camera position
-    const camera = this.cameras.main;
-    const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
-    
-    const startX = Math.floor((camera.scrollX - chunkSizePixels) / chunkSizePixels);
-    const endX = Math.ceil((camera.scrollX + camera.width + chunkSizePixels) / chunkSizePixels);
-    const startY = Math.floor((camera.scrollY - chunkSizePixels) / chunkSizePixels);
-    const endY = Math.ceil((camera.scrollY + camera.height + chunkSizePixels) / chunkSizePixels);
-    
-    // Remove chunks that are no longer visible
-    for (const [key, chunk] of this.visibleChunks) {
-      const [chunkX, chunkY] = key.split(',').map(Number);
-      if (chunkX < startX || chunkX > endX || chunkY < startY || chunkY > endY) {
-        chunk.graphics.destroy();
-        this.visibleChunks.delete(key);
-      }
-    }
-    
-    // Add new chunks that are now visible
-    for (let x = startX; x <= endX; x++) {
-      for (let y = startY; y <= endY; y++) {
-        const key = `${x},${y}`;
-        if (!this.visibleChunks.has(key)) {
-          const chunk = MazeOverworldGenerator.getChunk(x, y, this.gridSize);
-          const graphics = this.renderChunk(x, y, chunk.maze);
-          this.visibleChunks.set(key, { maze: chunk.maze, graphics });
-          
-          // Add nodes from this chunk
-          chunk.nodes.forEach(node => {
-            // Check if node already exists to avoid duplicates
-            if (!this.nodes.some(n => n.id === node.id)) {
-              this.nodes.push(node);
-              this.renderNode(node);
-            }
-          });
-        }
-      }
-    }
+    // Delegate to maze manager
+    this.mazeManager.updateVisibleChunks();
   }
 
   renderChunk(chunkX: number, chunkY: number, maze: number[][]): Phaser.GameObjects.Graphics {
-    const graphics = this.add.graphics();
-    const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
-    const offsetX = chunkX * chunkSizePixels;
-    const offsetY = chunkY * chunkSizePixels;
-    
-    for (let y = 0; y < maze.length; y++) {
-      for (let x = 0; x < maze[0].length; x++) {
-        if (maze[y][x] === 1) { // Wall
-          // Rich dark brown stone walls
-          graphics.fillStyle(0x3d291f);
-          graphics.fillRect(
-            offsetX + x * this.gridSize,
-            offsetY + y * this.gridSize,
-            this.gridSize,
-            this.gridSize
-          );
-        } else { // Path
-          // Weathered stone path
-          graphics.fillStyle(0x5a4a3f);
-          graphics.fillRect(
-            offsetX + x * this.gridSize,
-            offsetY + y * this.gridSize,
-            this.gridSize,
-            this.gridSize
-          );
-        }
-      }
-    }
-    
-    return graphics;
+    // This method is now handled by the maze manager
+    throw new Error("renderChunk should not be called directly - use mazeManager instead");
   }
 
   renderNode(node: MapNode): void {
-    // Create sprite based on node type
-    let spriteKey = "";
-    let animKey = "";
-    
-    switch (node.type) {
-      case "combat":
-        spriteKey = "chort_f0";
-        animKey = "chort_idle";
-        break;
-      case "elite":
-        spriteKey = "big_demon_f0";
-        animKey = "big_demon_idle";
-        break;
-      case "boss":
-        // For now, use the elite sprite as placeholder for boss
-        spriteKey = "big_demon_f0";
-        animKey = "big_demon_idle";
-        break;
-      case "shop":
-        spriteKey = "necromancer_f0";
-        animKey = "necromancer_idle";
-        break;
-      case "event":
-        spriteKey = "doc_f0";
-        animKey = "doc_idle";
-        break;
-      case "campfire":
-        spriteKey = "angel_f0";
-        animKey = "angel_idle";
-        break;
-      case "treasure":
-        spriteKey = "chest_f0";
-        animKey = "chest_open";
-        break;
-      default:
-        // Fallback to a simple circle if no sprite is available
-        const fallbackCircle = this.add.circle(
-          node.x + this.gridSize / 2, 
-          node.y + this.gridSize / 2, 
-          this.gridSize / 4, 
-          0xffffff, 
-          1
-        );
-        fallbackCircle.setOrigin(0.5);
-        fallbackCircle.setDepth(501);
-        return;
-    }
-    
-    // Create the sprite
-    const nodeSprite = this.add.sprite(
-      node.x + this.gridSize / 2, 
-      node.y + this.gridSize / 2, 
-      spriteKey
-    );
-    nodeSprite.setOrigin(0.5);
-    nodeSprite.setDepth(501); // Above the maze
-    nodeSprite.setScale(1.5); // Scale up a bit for better visibility
-    
-    // Store sprite reference for tracking
-    this.nodeSprites.set(node.id, nodeSprite);
-    
-    // Add hover functionality for all interactive nodes
-    if (node.type === "combat" || node.type === "elite" || node.type === "boss" || 
-        node.type === "shop" || node.type === "event" || node.type === "campfire" || node.type === "treasure") {
-      nodeSprite.setInteractive();
-      
-      nodeSprite.on('pointerover', (pointer: Phaser.Input.Pointer) => {
-        console.log(`🖱️ Hovering over ${node.type} node at ${node.id}`);
-        
-        // Cancel any pending tooltip timer
-        if (this.currentTooltipTimer) {
-          this.currentTooltipTimer.destroy();
-        }
-        
-        // Set current hovered node
-        this.lastHoveredNodeId = node.id;
-        
-        // Show appropriate tooltip based on node type
-        if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
-          this.showEnemyTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
-        } else {
-          this.showNodeTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
-        }
-        
-        // Add hover effect to sprite
-        this.tweens.add({
-          targets: nodeSprite,
-          scale: 1.7,
-          duration: 150,
-          ease: 'Power2'
-        });
-      });
-      
-      // Update tooltip position on mouse move while hovering
-      nodeSprite.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-        // Only update if tooltip is currently visible and this is the active node
-        if (this.isTooltipVisible && this.lastHoveredNodeId === node.id) {
-          this.updateTooltipSizeAndPositionImmediate(pointer.x, pointer.y);
-        }
-      });
-      
-      nodeSprite.on('pointerout', () => {
-        console.log(`🖱️ Stopped hovering over ${node.type} node at ${node.id}`);
-        
-        // Clear current hovered node
-        this.lastHoveredNodeId = undefined;
-        
-        // Cancel any pending tooltip timer
-        if (this.currentTooltipTimer) {
-          this.currentTooltipTimer.destroy();
-          this.currentTooltipTimer = undefined;
-        }
-        
-        // Hide tooltip immediately
-        this.hideNodeTooltip();
-        
-        // Reset sprite scale
-        this.tweens.add({
-          targets: nodeSprite,
-          scale: 1.5,
-          duration: 150,
-          ease: 'Power2'
-        });
-      });
-    }
-    
-    // Play the animation if it exists
-    if (this.anims.exists(animKey)) {
-      nodeSprite.play(animKey);
-    }
+    // This method is now handled by the maze manager
+    throw new Error("renderNode should not be called directly - use mazeManager instead");
   }
 
   isValidPosition(x: number, y: number): boolean {
-    // Convert world coordinates to chunk and grid coordinates
-    const chunkSize = MazeOverworldGenerator['chunkSize'];
-    const chunkSizePixels = chunkSize * this.gridSize;
-    
-    const chunkX = Math.floor(x / chunkSizePixels);
-    const chunkY = Math.floor(y / chunkSizePixels);
-    const localX = x - (chunkX * chunkSizePixels);
-    const localY = y - (chunkY * chunkSizePixels);
-    const gridX = Math.floor(localX / this.gridSize);
-    const gridY = Math.floor(localY / this.gridSize);
-    
-    // Get the chunk
-    const chunk = MazeOverworldGenerator.getChunk(chunkX, chunkY, this.gridSize);
-    
-    // Check bounds
-    if (gridX < 0 || gridX >= chunk.maze[0].length || gridY < 0 || gridY >= chunk.maze.length) {
-      return false;
-    }
-    
-    // Check if it's a path (0) not a wall (1)
-    return chunk.maze[gridY][gridX] === 0;
+    // Delegate to maze manager
+    return this.mazeManager.isValidPosition(x, y);
   }
 
   checkNodeInteraction(): void {
@@ -1658,35 +1378,18 @@ export class Overworld extends Scene {
       return;
     }
     
-    // Check if player is close to any node
-    const threshold = this.gridSize;
+    // Use manager to find nearby node
+    const nearbyNode = this.mazeManager.findNearbyNode(this.player.x, this.player.y);
 
-    const nodeIndex = this.nodes.findIndex((n) => {
-      const distance = Phaser.Math.Distance.Between(
-        this.player.x, 
-        this.player.y, 
-        n.x + this.gridSize / 2, 
-        n.y + this.gridSize / 2
-      );
-      return distance < threshold;
-    });
-
-    if (nodeIndex !== -1) {
-      const node = this.nodes[nodeIndex];
+    if (nearbyNode) {
+      const node = nearbyNode;
       
       // Handle different node types
       switch (node.type) {
         case "combat":
         case "elite":
-          // Remove the node from the list so it doesn't trigger again
-          this.nodes.splice(nodeIndex, 1);
-          
-          // Clean up the corresponding sprite
-          const sprite = this.nodeSprites.get(node.id);
-          if (sprite) {
-            sprite.destroy();
-            this.nodeSprites.delete(node.id);
-          }
+          // Remove the node from the manager
+          this.mazeManager.removeNode(node.id);
           
           // Hide tooltip if it's visible
           this.hideEnemyTooltip();
@@ -1695,15 +1398,8 @@ export class Overworld extends Scene {
           break;
           
         case "boss":
-          // Remove the node from the list so it doesn't trigger again
-          this.nodes.splice(nodeIndex, 1);
-          
-          // Clean up the corresponding sprite
-          const bossSprite = this.nodeSprites.get(node.id);
-          if (bossSprite) {
-            bossSprite.destroy();
-            this.nodeSprites.delete(node.id);
-          }
+          // Remove the node from the manager
+          this.mazeManager.removeNode(node.id);
           
           // Hide tooltip if it's visible
           this.hideEnemyTooltip();
@@ -1715,15 +1411,8 @@ export class Overworld extends Scene {
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
           
-          // Remove the node from the list so it doesn't trigger again
-          this.nodes.splice(nodeIndex, 1);
-          
-          // Clean up the corresponding sprite
-          const shopSprite = this.nodeSprites.get(node.id);
-          if (shopSprite) {
-            shopSprite.destroy();
-            this.nodeSprites.delete(node.id);
-          }
+          // Remove the node from the manager
+          this.mazeManager.removeNode(node.id);
           
           // Save player position before transitioning
           const gameState = GameState.getInstance();
@@ -1740,15 +1429,8 @@ export class Overworld extends Scene {
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
           
-          // Remove the node from the list so it doesn't trigger again
-          this.nodes.splice(nodeIndex, 1);
-          
-          // Clean up the corresponding sprite
-          const campfireSprite = this.nodeSprites.get(node.id);
-          if (campfireSprite) {
-            campfireSprite.destroy();
-            this.nodeSprites.delete(node.id);
-          }
+          // Remove the node from the manager
+          this.mazeManager.removeNode(node.id);
           
           // Save player position before transitioning
           const gameState2 = GameState.getInstance();
@@ -1765,15 +1447,8 @@ export class Overworld extends Scene {
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
           
-          // Remove the node from the list so it doesn't trigger again
-          this.nodes.splice(nodeIndex, 1);
-          
-          // Clean up the corresponding sprite
-          const treasureSprite = this.nodeSprites.get(node.id);
-          if (treasureSprite) {
-            treasureSprite.destroy();
-            this.nodeSprites.delete(node.id);
-          }
+          // Remove the node from the manager
+          this.mazeManager.removeNode(node.id);
           
           // Save player position before transitioning
           const gameState3 = GameState.getInstance();
@@ -1790,15 +1465,8 @@ export class Overworld extends Scene {
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
           
-          // Remove the node from the list so it doesn't trigger again
-          this.nodes.splice(nodeIndex, 1);
-          
-          // Clean up the corresponding sprite
-          const eventSprite = this.nodeSprites.get(node.id);
-          if (eventSprite) {
-            eventSprite.destroy();
-            this.nodeSprites.delete(node.id);
-          }
+          // Remove the node from the manager
+          this.mazeManager.removeNode(node.id);
           
           // Hide tooltip if it's visible
           this.hideNodeTooltip();
@@ -2359,7 +2027,7 @@ export class Overworld extends Scene {
 
     // Handle player movement if not moving or in transition
     if (!this.isMoving && !this.isTransitioningToCombat) {
-      const gridSize = this.gridSize;
+      const gridSize = this.mazeManager.getGridSize();
       let moved = false;
       
       // Check for movement input - fix wasdKeys access pattern
@@ -4511,6 +4179,89 @@ ${potion.description}`, {
   /**
    * Create enemy info tooltip system
    */
+  private setupNodeEventListeners(): void {
+    // Listen to node events from the maze manager
+    this.events.on('nodeHover', (node: MapNode, pointer: Phaser.Input.Pointer) => {
+      this.handleNodeHover(node, pointer);
+    });
+    
+    this.events.on('nodeMove', (node: MapNode, pointer: Phaser.Input.Pointer) => {
+      this.handleNodeMove(node, pointer);
+    });
+    
+    this.events.on('nodeHoverEnd', (node: MapNode) => {
+      this.handleNodeHoverEnd(node);
+    });
+    
+    this.events.on('nodeClick', (node: MapNode) => {
+      this.checkNodeInteraction();
+    });
+  }
+
+  private handleNodeHover(node: MapNode, pointer: Phaser.Input.Pointer): void {
+    console.log(`🖱️ Hovering over ${node.type} node at ${node.id}`);
+    
+    // Cancel any pending tooltip timer
+    if (this.currentTooltipTimer) {
+      this.currentTooltipTimer.destroy();
+    }
+    
+    // Set current hovered node
+    this.lastHoveredNodeId = node.id;
+    
+    // Show appropriate tooltip based on node type
+    if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
+      this.showEnemyTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+    } else {
+      this.showNodeTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+    }
+    
+    // Add hover effect to sprite
+    const sprite = this.mazeManager.getNodeSprites().get(node.id);
+    if (sprite) {
+      this.tweens.add({
+        targets: sprite,
+        scale: 1.7,
+        duration: 150,
+        ease: 'Power2'
+      });
+    }
+  }
+
+  private handleNodeMove(node: MapNode, pointer: Phaser.Input.Pointer): void {
+    // Only update if tooltip is currently visible and this is the active node
+    if (this.isTooltipVisible && this.lastHoveredNodeId === node.id) {
+      this.updateTooltipSizeAndPositionImmediate(pointer.x, pointer.y);
+    }
+  }
+
+  private handleNodeHoverEnd(node: MapNode): void {
+    console.log(`🖱️ Stopped hovering over ${node.type} node at ${node.id}`);
+    
+    // Clear current hovered node
+    this.lastHoveredNodeId = undefined;
+    
+    // Cancel any pending tooltip timer
+    if (this.currentTooltipTimer) {
+      this.currentTooltipTimer.destroy();
+      this.currentTooltipTimer = undefined;
+    }
+    
+    // Hide tooltip immediately
+    this.hideNodeTooltip();
+    
+    // Reset sprite scale
+    const sprite = this.mazeManager.getNodeSprites().get(node.id);
+    if (sprite) {
+      this.tweens.add({
+        targets: sprite,
+        scale: 1.5,
+        duration: 150,
+        ease: 'Power2'
+      });
+    }
+  }
+
   private createEnemyTooltip(): void {
     console.log("Creating enemy tooltip system...");
     
