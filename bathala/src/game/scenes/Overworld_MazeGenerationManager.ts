@@ -12,6 +12,10 @@ export class OverworldMazeGenerationManager {
   private nodeSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map();
   private gridSize: number = 32;
+  
+  // Player tracking for automatic chunk updates
+  private lastPlayerPosition: { x: number, y: number } = { x: 0, y: 0 };
+  private chunkUpdateThreshold: number = 64; // Update chunks when player moves this far
 
   constructor(scene: Scene) {
     this.scene = scene;
@@ -378,6 +382,116 @@ export class OverworldMazeGenerationManager {
       );
       return distance < threshold;
     }) || null;
+  }
+
+  /**
+   * Update player position and automatically update chunks if needed
+   */
+  updatePlayerPosition(x: number, y: number): void {
+    const distance = Phaser.Math.Distance.Between(
+      x, y, 
+      this.lastPlayerPosition.x, this.lastPlayerPosition.y
+    );
+    
+    // Only update chunks if player has moved significantly
+    if (distance >= this.chunkUpdateThreshold) {
+      this.lastPlayerPosition = { x, y };
+      this.updateVisibleChunks();
+      
+      // Periodically clean up distant chunks for memory management
+      if (Math.random() < 0.1) { // 10% chance to clean up each significant move
+        this.cleanupDistantChunks(x, y);
+      }
+    }
+  }
+
+  /**
+   * Force update chunks regardless of player movement
+   */
+  forceUpdateChunks(): void {
+    this.updateVisibleChunks();
+  }
+
+  /**
+   * Get current chunk coordinates for a world position
+   */
+  getChunkCoordinates(x: number, y: number): { chunkX: number, chunkY: number } {
+    const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
+    return {
+      chunkX: Math.floor(x / chunkSizePixels),
+      chunkY: Math.floor(y / chunkSizePixels)
+    };
+  }
+
+  /**
+   * Preload chunks around a specific position
+   */
+  preloadChunksAround(centerX: number, centerY: number, radius: number = 2): void {
+    const { chunkX: centerChunkX, chunkY: centerChunkY } = this.getChunkCoordinates(centerX, centerY);
+    
+    for (let x = centerChunkX - radius; x <= centerChunkX + radius; x++) {
+      for (let y = centerChunkY - radius; y <= centerChunkY + radius; y++) {
+        const key = `${x},${y}`;
+        if (!this.visibleChunks.has(key)) {
+          const chunk = MazeOverworldGenerator.getChunk(x, y, this.gridSize);
+          const graphics = this.renderChunk(x, y, chunk.maze);
+          this.visibleChunks.set(key, { maze: chunk.maze, graphics });
+          
+          // Add nodes from this chunk
+          chunk.nodes.forEach(node => {
+            // Check if node already exists to avoid duplicates
+            if (!this.nodes.some(n => n.id === node.id)) {
+              this.nodes.push(node);
+              this.renderNode(node);
+            }
+          });
+        }
+      }
+    }
+  }
+
+  /**
+   * Clean up chunks that are too far from player
+   */
+  cleanupDistantChunks(playerX: number, playerY: number, maxDistance: number = 3): void {
+    const { chunkX: playerChunkX, chunkY: playerChunkY } = this.getChunkCoordinates(playerX, playerY);
+    
+    for (const [key, chunk] of this.visibleChunks) {
+      const [chunkX, chunkY] = key.split(',').map(Number);
+      const distance = Math.abs(chunkX - playerChunkX) + Math.abs(chunkY - playerChunkY);
+      
+      if (distance > maxDistance) {
+        chunk.graphics.destroy();
+        this.visibleChunks.delete(key);
+        
+        // Remove nodes from this chunk
+        this.nodes = this.nodes.filter(node => {
+          const nodeChunk = this.getChunkCoordinates(node.x, node.y);
+          if (nodeChunk.chunkX === chunkX && nodeChunk.chunkY === chunkY) {
+            const sprite = this.nodeSprites.get(node.id);
+            if (sprite) {
+              sprite.destroy();
+              this.nodeSprites.delete(node.id);
+            }
+            return false;
+          }
+          return true;
+        });
+      }
+    }
+  }
+
+  /**
+   * Initialize chunk system with smart preloading
+   */
+  initializeChunkSystem(playerX: number, playerY: number): void {
+    this.lastPlayerPosition = { x: playerX, y: playerY };
+    
+    // Preload initial chunks around player
+    this.preloadChunksAround(playerX, playerY, 2);
+    
+    // Set up automatic chunk management
+    this.forceUpdateChunks();
   }
 
 }

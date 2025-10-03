@@ -25,7 +25,7 @@ export class Overworld extends Scene {
   private isTransitioningToCombat: boolean = false;
   private gameState: OverworldGameState;
   private dayNightProgressFill!: Phaser.GameObjects.Rectangle;
-  private dayNightIndicator!: Phaser.GameObjects.Triangle;
+  private dayNightIndicator!: Phaser.GameObjects.Text;
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
   private bossText!: Phaser.GameObjects.Text;
   private actionButtons: Phaser.GameObjects.Container[] = [];
@@ -145,8 +145,11 @@ export class Overworld extends Scene {
     const savedPosition = gameState.getPlayerPosition();
     
     // Get player starting position from maze manager
-    const startPosition = this.mazeManager.initializeMaze(savedPosition);
+    const startPosition = this.mazeManager.initializeMaze(savedPosition || undefined);
     this.player = this.add.sprite(startPosition.x, startPosition.y, "overworld_player");
+    
+    // Initialize the chunk system with player position
+    this.mazeManager.initializeChunkSystem(startPosition.x, startPosition.y);
     
     if (savedPosition) {
       // Clear the saved position so it's not used again
@@ -193,8 +196,8 @@ export class Overworld extends Scene {
     // Create UI elements with a slight delay to ensure camera is ready
     this.time.delayedCall(10, this.createUI, [], this);
     
-    // Render initial chunks around player with a slight delay to ensure camera is ready
-    this.time.delayedCall(20, () => this.mazeManager.updateVisibleChunks(), [], this);
+    // Force initial chunk update after camera is ready
+    this.time.delayedCall(20, () => this.mazeManager.forceUpdateChunks(), [], this);
     
     // Set up event listeners for node interactions
     this.setupNodeEventListeners();
@@ -874,8 +877,8 @@ export class Overworld extends Scene {
       this.updateOverworldUI();
     }
     
-    // Update visible chunks around player
-    this.updateVisibleChunks();
+    // Update visible chunks around player using manager
+    this.mazeManager.updatePlayerPosition(this.player.x, this.player.y);
   }
 
   /**
@@ -954,8 +957,8 @@ export class Overworld extends Scene {
             console.warn("Idle animation not found:", idleAnimation);
           }
           
-          // Update visible chunks as player moves
-          this.updateVisibleChunks();
+          // Update player position in manager (will auto-update chunks if needed)
+          this.mazeManager.updatePlayerPosition(targetX, targetY);
           
           // Move nearby enemy nodes toward player during nighttime
           this.moveEnemiesNighttime();
@@ -1352,20 +1355,11 @@ export class Overworld extends Scene {
     this.mazeManager.animateEnemyMovement(enemyNode, newX, newY);
   }
 
-  updateVisibleChunks(): void {
-    // Delegate to maze manager
-    this.mazeManager.updateVisibleChunks();
-  }
 
-  renderChunk(chunkX: number, chunkY: number, maze: number[][]): Phaser.GameObjects.Graphics {
-    // This method is now handled by the maze manager
-    throw new Error("renderChunk should not be called directly - use mazeManager instead");
-  }
 
-  renderNode(node: MapNode): void {
-    // This method is now handled by the maze manager
-    throw new Error("renderNode should not be called directly - use mazeManager instead");
-  }
+
+
+
 
   isValidPosition(x: number, y: number): boolean {
     // Delegate to maze manager
@@ -2096,9 +2090,10 @@ export class Overworld extends Scene {
         this.startCombat("elite");
       }
       
-      // Update chunk rendering and day/night cycle if player moved
+      // Update player position and UI if player moved
       if (moved) {
-        this.updateVisibleChunks();
+        // Manager will automatically handle chunk updates based on player movement
+        this.mazeManager.updatePlayerPosition(this.player.x, this.player.y);
         this.checkNodeInteraction();
         // Update UI to reflect day/night cycle changes
         this.updateUI();
@@ -4193,7 +4188,7 @@ ${potion.description}`, {
       this.handleNodeHoverEnd(node);
     });
     
-    this.events.on('nodeClick', (node: MapNode) => {
+    this.events.on('nodeClick', () => {
       this.checkNodeInteraction();
     });
   }
@@ -4551,7 +4546,7 @@ ${potion.description}`, {
   /**
    * Show node tooltip for non-enemy nodes
    */
-  private showNodeTooltipImmediate(nodeType: string, nodeId: string, mouseX: number, mouseY: number): void {
+  private showNodeTooltipImmediate(nodeType: string, _nodeId: string, mouseX: number, mouseY: number): void {
     if (!this.tooltipContainer) {
       console.warn("Tooltip container not available");
       return;
