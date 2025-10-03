@@ -44,7 +44,7 @@ export class HandEvaluator {
   /**
    * Evaluate a hand of cards and return damage value
    */
-  static evaluateHand(cards: PlayingCard[], action: "attack" | "defend" | "special"): HandEvaluation {
+  static evaluateHand(cards: PlayingCard[], action: "attack" | "defend" | "special", player: any = null): HandEvaluation {
     if (cards.length === 0) {
       return {
         type: "high_card",
@@ -55,7 +55,19 @@ export class HandEvaluator {
       };
     }
 
-    const handType = this.determineHandType(cards);
+    // Check if player has Echo of the Ancestors relic to enable Five of a Kind
+    let enableFiveOfAKind = false;
+    if (player) {
+      enableFiveOfAKind = player.relics.some((r: any) => r.id === "echo_ancestors");
+    }
+    
+    let handType = this.determineHandType(cards, enableFiveOfAKind);
+    
+    // Apply Babaylan's Talisman effect: Hand is considered one tier higher
+    if (player) {
+      handType = this.applyBabaylansTalismanEffect(handType, player);
+    }
+    
     const baseValue = this.HAND_BONUSES[handType][action];
     const totalValue = baseValue; // Elemental bonus is now handled in Combat.ts
 
@@ -71,7 +83,7 @@ export class HandEvaluator {
   /**
    * Determine the poker hand type
    */
-  private static determineHandType(cards: PlayingCard[]): HandType {
+  private static determineHandType(cards: PlayingCard[], enableFiveOfAKind: boolean = false): HandType {
     if (cards.length === 1) return "high_card";
 
     const ranks = cards.map((card) => card.rank);
@@ -88,7 +100,12 @@ export class HandEvaluator {
 
     const counts = Object.values(rankCounts).sort((a, b) => b - a);
 
-    if (counts[0] === 5) return "five_of_a_kind";
+    if (counts[0] === 5) {
+      // Only return Five of a Kind if the Echo of the Ancestors relic is active
+      if (enableFiveOfAKind) return "five_of_a_kind";
+      // Otherwise, it's still a Four of a Kind, but with an extra card
+      return "four_of_a_kind";
+    }
     if (counts[0] === 4) return "four_of_a_kind";
     if (counts[0] === 3 && counts[1] === 2) return "full_house";
     if (isFlush) return "flush";
@@ -98,6 +115,52 @@ export class HandEvaluator {
     if (counts[0] === 2) return "pair";
 
     return "high_card";
+  }
+
+  /**
+   * Apply the Babaylan's Talisman effect: Hand is considered one tier higher
+   */
+  private static applyBabaylansTalismanEffect(handType: HandType, player: any): HandType {
+    // Check if player has Babaylan's Talisman relic
+    const hasBabaylansTalisman = player.relics.some((r: any) => r.id === "babaylans_talisman");
+    
+    if (!hasBabaylansTalisman) {
+      return handType;
+    }
+
+    // Only apply if it would result in a valid hand type
+    const handRankings: Record<HandType, number> = {
+      "high_card": 1,
+      "pair": 2,
+      "two_pair": 3,
+      "three_of_a_kind": 4,
+      "straight": 5,
+      "flush": 6,
+      "full_house": 7,
+      "four_of_a_kind": 8,
+      "straight_flush": 9,
+      "royal_flush": 10,
+      "five_of_a_kind": 11
+    };
+
+    // Create a reverse mapping from ranking to hand type
+    const reverseRankings: Record<number, HandType> = {
+      1: "high_card",
+      2: "pair",
+      3: "two_pair",
+      4: "three_of_a_kind",
+      5: "straight",
+      6: "flush",
+      7: "full_house",
+      8: "four_of_a_kind",
+      9: "straight_flush",
+      10: "royal_flush",
+      11: "five_of_a_kind"
+    };
+
+    const currentRank = handRankings[handType];
+    const nextRank = Math.min(currentRank + 1, 11); // Cap at 11 for five_of_a_kind
+    return reverseRankings[nextRank] || handType;
   }
 
   /**
