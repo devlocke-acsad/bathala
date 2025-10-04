@@ -46,6 +46,10 @@ export interface PlayerPerformanceScore {
   lastUpdated: number;
   combatHistory: CombatMetrics[];
   sessionStartTime: number;
+  totalCombatsCompleted: number;    // Track total combats for calibration
+  isCalibrating: boolean;           // Currently in calibration period
+  consecutiveVictories: number;     // Track consecutive wins for comeback bonus
+  consecutiveDefeats: number;       // Track consecutive losses for analysis
 }
 
 export interface DifficultyAdjustment {

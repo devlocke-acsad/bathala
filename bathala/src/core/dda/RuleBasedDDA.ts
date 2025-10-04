@@ -12,7 +12,6 @@ import {
   HAND_QUALITY_SCORES 
 } from "./DDATypes";
 import { DEFAULT_DDA_CONFIG, DDAModifiers } from "./DDAConfig";
-import { HandType } from "../types/CombatTypes";
 
 export class RuleBasedDDA {
   private static instance: RuleBasedDDA;
@@ -44,6 +43,10 @@ export class RuleBasedDDA {
       lastUpdated: Date.now(),
       combatHistory: [],
       sessionStartTime: Date.now(),
+      totalCombatsCompleted: 0,
+      isCalibrating: this.config.calibration.enabled,
+      consecutiveVictories: 0,
+      consecutiveDefeats: 0,
     };
   }
 
@@ -61,6 +64,9 @@ export class RuleBasedDDA {
   public processCombatResults(metrics: CombatMetrics): PlayerPerformanceScore {
     if (!this.enabled) return this.playerPPS;
 
+    // Increment total combats completed
+    this.playerPPS.totalCombatsCompleted++;
+
     // Store combat in history
     this.playerPPS.combatHistory.push(metrics);
     
@@ -69,17 +75,39 @@ export class RuleBasedDDA {
       this.playerPPS.combatHistory.shift();
     }
 
+    // Check if calibration period has ended
+    const wasCalibrating = this.playerPPS.isCalibrating;
+    if (this.config.calibration.enabled && 
+        this.playerPPS.totalCombatsCompleted >= this.config.calibration.combatCount) {
+      this.playerPPS.isCalibrating = false;
+    }
+
     // Calculate PPS adjustments
     const ppsAdjustment = this.calculatePPSAdjustment(metrics);
     
-    // Update PPS
+    // Update PPS (always track, even during calibration if configured)
     this.playerPPS.previousPPS = this.playerPPS.currentPPS;
-    this.playerPPS.currentPPS = Math.max(0, Math.min(5, this.playerPPS.currentPPS + ppsAdjustment));
+    if (this.config.calibration.trackPPSDuringCalibration || !this.playerPPS.isCalibrating) {
+      this.playerPPS.currentPPS = Math.max(0, Math.min(5, this.playerPPS.currentPPS + ppsAdjustment));
+    }
     this.playerPPS.lastUpdated = Date.now();
 
-    // Update difficulty tier
-    const newTier = this.calculateDifficultyTier(this.playerPPS.currentPPS);
-    const tierChanged = newTier !== this.playerPPS.tier;
+    // Log calibration end
+    if (wasCalibrating && !this.playerPPS.isCalibrating) {
+      this.logEvent("tier_change", {
+        fromTier: "learning",
+        toTier: this.calculateDifficultyTier(this.playerPPS.currentPPS),
+        ppsChange: 0,
+        trigger: `calibration_complete_after_${this.config.calibration.combatCount}_combats`,
+      });
+    }
+
+    // Update difficulty tier (but only after calibration)
+    const newTier = this.playerPPS.isCalibrating 
+      ? "learning"  // Keep at learning tier during calibration
+      : this.calculateDifficultyTier(this.playerPPS.currentPPS);
+    
+    const tierChanged = newTier !== this.playerPPS.tier && !this.playerPPS.isCalibrating;
     
     if (tierChanged) {
       this.logEvent("tier_change", {
@@ -96,6 +124,9 @@ export class RuleBasedDDA {
     this.logEvent("pps_update", {
       adjustment: ppsAdjustment,
       newPPS: this.playerPPS.currentPPS,
+      isCalibrating: this.playerPPS.isCalibrating,
+      combatsCompleted: this.playerPPS.totalCombatsCompleted,
+      combatsUntilDDA: Math.max(0, this.config.calibration.combatCount - this.playerPPS.totalCombatsCompleted),
       metrics: {
         healthPercentage: metrics.healthPercentage,
         turnCount: metrics.turnCount,
@@ -109,43 +140,83 @@ export class RuleBasedDDA {
 
   /**
    * Calculate PPS adjustment based on combat performance
+   * Now includes tier-based scaling and comeback bonuses
    */
   private calculatePPSAdjustment(metrics: CombatMetrics): number {
     let adjustment = 0;
     const config = this.config.ppsModifiers;
+    const currentTier = this.playerPPS.tier;
 
-    // Health retention bonus/penalty
+    // Get tier scaling multipliers
+    const tierScale = this.config.tierScaling[currentTier];
+
+    // 1. VICTORY/DEFEAT BASE (Solution 1)
+    if (metrics.victory) {
+      adjustment += config.victoryBonus;
+      
+      // Track consecutive victories for comeback bonus
+      this.playerPPS.consecutiveVictories++;
+      this.playerPPS.consecutiveDefeats = 0;
+    } else {
+      adjustment += config.defeatPenalty;
+      
+      // Track consecutive defeats
+      this.playerPPS.consecutiveDefeats++;
+      this.playerPPS.consecutiveVictories = 0;
+    }
+
+    // 2. HEALTH-BASED MODIFIERS
+    let healthAdjustment = 0;
     if (metrics.healthPercentage > 0.9) {
-      adjustment += config.highHealthBonus;
+      healthAdjustment += config.highHealthBonus;
     } else if (metrics.healthPercentage < 0.2) {
-      adjustment += config.lowHealthPenalty;
+      healthAdjustment += config.lowHealthPenalty;
     }
 
-    // Perfect combat bonus (no damage taken)
+    // 3. PERFECT COMBAT BONUS
     if (metrics.damageReceived === 0 && metrics.victory) {
-      adjustment += config.perfectCombatBonus;
+      healthAdjustment += config.perfectCombatBonus;
     }
 
-    // Hand quality bonus
+    // Apply tier scaling to health adjustments
+    if (healthAdjustment > 0) {
+      healthAdjustment *= tierScale.bonusMultiplier;
+    } else {
+      healthAdjustment *= tierScale.penaltyMultiplier;
+    }
+    adjustment += healthAdjustment;
+
+    // 4. HAND QUALITY BONUS
     const bestHandQuality = HAND_QUALITY_SCORES[metrics.bestHandAchieved] || 0;
     if (bestHandQuality >= HAND_QUALITY_SCORES.four_of_a_kind) {
-      adjustment += config.goodHandBonus;
+      adjustment += config.goodHandBonus * tierScale.bonusMultiplier;
     }
 
-    // Combat duration penalty (GDD specifies >8 turns)
+    // 5. COMBAT DURATION PENALTY (with tier scaling)
     if (metrics.turnCount > 8) {
-      adjustment += config.longCombatPenalty;
+      adjustment += config.longCombatPenalty * tierScale.penaltyMultiplier;
     }
 
-    // Resource efficiency bonus
+    // 6. RESOURCE EFFICIENCY BONUS
     const discardEfficiency = 1 - (metrics.discardsUsed / Math.max(1, metrics.maxDiscardsAvailable));
     if (discardEfficiency > 0.8) {
-      adjustment += config.resourceEfficiencyBonus;
+      adjustment += config.resourceEfficiencyBonus * tierScale.bonusMultiplier;
     }
 
-    // Victory/defeat modifier
-    if (!metrics.victory) {
-      adjustment -= 0.3; // Additional penalty for losing
+    // 7. COMEBACK BONUS SYSTEM (Solution 3)
+    if (this.config.comebackBonus.enabled && 
+        metrics.victory && 
+        this.playerPPS.currentPPS < this.config.comebackBonus.ppsThreshold) {
+      
+      // Base comeback bonus
+      adjustment += this.config.comebackBonus.bonusPerVictory;
+      
+      // Consecutive win bonus (capped)
+      const consecutiveBonus = Math.min(
+        (this.playerPPS.consecutiveVictories - 1) * this.config.comebackBonus.consecutiveWinBonus,
+        this.config.comebackBonus.maxConsecutiveBonus
+      );
+      adjustment += consecutiveBonus;
     }
 
     return adjustment;
@@ -192,6 +263,11 @@ export class RuleBasedDDA {
    * Get narrative context for difficulty changes
    */
   private getNarrativeContext(tier: DifficultyTier): string {
+    // During calibration, always show learning context
+    if (this.playerPPS.isCalibrating) {
+      return `Observing your technique... (${this.playerPPS.totalCombatsCompleted}/${this.config.calibration.combatCount} calibration combats)`;
+    }
+
     const contexts = {
       struggling: "The spirits sense your struggle and offer gentle guidance...",
       learning: "You walk the balanced path, learning the ways of combat...",
