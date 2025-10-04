@@ -165,7 +165,7 @@ export class PokerHandReference extends Scene {
 
     button.add([bg, buttonText]);
     button.setInteractive(new Phaser.Geom.Rectangle(-60, -20, 120, 40), Phaser.Geom.Rectangle.Contains);
-    button.on("pointerdown", () => this.scene.start("Combat"));
+    button.on("pointerdown", () => this.scene.stop());
     button.on("pointerover", () => bg.setFillStyle(0x3d4454));
     button.on("pointerout", () => bg.setFillStyle(0x2f3542));
     this.backButton = button;
