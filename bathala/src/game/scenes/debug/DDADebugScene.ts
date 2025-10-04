@@ -55,10 +55,25 @@ export class DDADebugScene extends Scene {
   private simulationPanel!: Phaser.GameObjects.Container;
   private configPanel!: Phaser.GameObjects.Container;
   private analyticsPanel!: Phaser.GameObjects.Container;
+  private testingModeIndicator!: Phaser.GameObjects.Text;
   
   // Current configuration
   private currentConfig: DDAModifiers = DEFAULT_DDA_CONFIG;
   private isSimulating = false;
+  
+  // State management for isolation
+  private gameplayStateBackup: any = null;
+  
+  // Responsive layout properties
+  private layout = {
+    screenWidth: 0,
+    screenHeight: 0,
+    contentWidth: 0,
+    marginX: 0,
+    marginY: 0,
+    gutterX: 20,
+    gutterY: 30  // Increased from 20 to 30 for better spacing
+  };
 
   constructor() {
     super({ key: "DDADebugScene" });
@@ -84,12 +99,19 @@ export class DDADebugScene extends Scene {
   create(): void {
     this.cameras.main.setBackgroundColor(0x0a0a0a);
     
-    // Initialize DDA systems
-    this.dda = RuleBasedDDA.getInstance(this.currentConfig);
-    this.analytics = DDAAnalyticsManager.getInstance();
+    // Calculate responsive layout
+    this.calculateLayout();
+    
+    // Backup gameplay DDA state before testing
+    const gameplayDDA = RuleBasedDDA.getInstance();
+    this.gameplayStateBackup = gameplayDDA.getStateSnapshot();
+    
+    // Start in isolated testing mode
+    this.startFreshTest(this.currentConfig);
     
     // Create clean, readable UI
     this.createTitle();
+    this.createTestingModeIndicator();
     this.createMainGraph();
     this.createStatusPanel();
     this.createTestingPanel();
@@ -99,6 +121,48 @@ export class DDADebugScene extends Scene {
     
     // Initialize with current data
     this.updateDisplay();
+  }
+  
+  /**
+   * Calculate responsive layout based on screen size
+   */
+  private calculateLayout(): void {
+    this.layout.screenWidth = this.cameras.main.width;
+    this.layout.screenHeight = this.cameras.main.height;
+    
+    // Max content width: 90% of screen or 1400px, whichever is smaller
+    this.layout.contentWidth = Math.min(this.layout.screenWidth * 0.9, 1400);
+    
+    // Center content horizontally
+    this.layout.marginX = (this.layout.screenWidth - this.layout.contentWidth) / 2;
+    this.layout.marginY = 120; // Top margin - increased for more breathing room
+    
+    console.log(`📐 Responsive Layout: Screen ${this.layout.screenWidth}×${this.layout.screenHeight}, Content ${this.layout.contentWidth}px, Margins ${this.layout.marginX}px`);
+  }
+  
+  /**
+   * Start fresh isolated test with clean DDA state
+   */
+  private startFreshTest(config: DDAModifiers): void {
+    // Clear singleton and create fresh instance
+    RuleBasedDDA.forceClearSingleton();
+    this.dda = RuleBasedDDA.getInstance(config);
+    this.analytics = DDAAnalyticsManager.getInstance();
+    this.analytics.resetSession();
+    
+    console.log("🧪 DEBUG MODE: Started fresh isolated test with clean DDA state");
+  }
+  
+  /**
+   * Restore gameplay DDA state (called when leaving debug scene)
+   */
+  private restoreGameplayState(): void {
+    if (this.gameplayStateBackup) {
+      RuleBasedDDA.forceClearSingleton();
+      const restoredDDA = RuleBasedDDA.getInstance();
+      restoredDDA.restoreStateSnapshot(this.gameplayStateBackup);
+      console.log("✅ Restored gameplay DDA state");
+    }
   }
 
   /**
@@ -131,15 +195,45 @@ export class DDADebugScene extends Scene {
       }
     ).setOrigin(0.5);
   }
+  
+  /**
+   * Create testing mode indicator
+   */
+  private createTestingModeIndicator(): void {
+    const screenWidth = this.cameras.main.width;
+    
+    this.testingModeIndicator = this.add.text(
+      screenWidth / 2,
+      90,
+      "🧪 ISOLATED TESTING MODE - Gameplay DDA Not Affected",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#00ff00",
+        backgroundColor: "#1a1a1a",
+        padding: { x: 15, y: 5 },
+        align: "center"
+      }
+    ).setOrigin(0.5);
+    
+    // Pulse animation
+    this.tweens.add({
+      targets: this.testingModeIndicator,
+      alpha: 0.6,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1
+    });
+  }
 
   /**
    * Create main performance graph
    */
   private createMainGraph(): void {
-    const graphX = 50;
-    const graphY = 120;
-    const graphWidth = 800;
-    const graphHeight = 300;
+    const graphWidth = Math.floor(this.layout.contentWidth * 0.6);
+    const graphHeight = 250;
+    const graphX = this.layout.marginX;
+    const graphY = this.layout.marginY;
     
     // Graph container
     const container = this.add.container(graphX, graphY);
@@ -150,21 +244,24 @@ export class DDADebugScene extends Scene {
     bg.setOrigin(0);
     container.add(bg);
     
-    // Title
-    const title = this.add.text(graphWidth / 2, -40, "Player Performance Score", {
+    // Title - moved inside the panel to avoid overlap
+    const title = this.add.text(graphWidth / 2, 12, "📈 PPS Over Time", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 24,
+      fontSize: 16,
       color: "#ffffff",
     }).setOrigin(0.5);
     container.add(title);
     
-    // Y-axis labels
+    // Y-axis labels - adjusted to accommodate title inside panel
+    const graphContentY = 30; // Start graph content below title
+    const graphContentHeight = graphHeight - graphContentY - 10;
+    
     for (let i = 0; i <= 5; i++) {
-      const y = graphHeight - (i / 5) * graphHeight;
+      const y = graphHeight - 10 - (i / 5) * graphContentHeight;
       
       // Label
-      const label = this.add.text(-20, y, i.toString(), {
-        fontSize: 16,
+      const label = this.add.text(-25, y, `${i.toFixed(1)}`, {
+        fontSize: 12,
         color: "#cccccc",
         fontFamily: "dungeon-mode",
       }).setOrigin(1, 0.5);
@@ -182,6 +279,9 @@ export class DDADebugScene extends Scene {
     // Graph for data
     this.ppsGraph = this.add.graphics();
     container.add(this.ppsGraph);
+    
+    // Add legend
+    this.createGraphLegend(container, graphWidth);
   }
 
   /**
@@ -189,30 +289,65 @@ export class DDADebugScene extends Scene {
    */
   private createTierBackgrounds(container: Phaser.GameObjects.Container, width: number, height: number): void {
     const tiers = [
-      { name: "Struggling", range: [0, 1], color: 0xff4757 },
-      { name: "Learning", range: [1.1, 2.5], color: 0xffa502 },
-      { name: "Thriving", range: [2.6, 4], color: 0x2ed573 },
-      { name: "Mastering", range: [4.1, 5], color: 0x5352ed },
+      { name: "Struggling", range: [0, 1], color: 0xff4757, desc: "0-1.0" },
+      { name: "Learning", range: [1.1, 2.5], color: 0xffa502, desc: "1.1-2.5" },
+      { name: "Thriving", range: [2.6, 4], color: 0x2ed573, desc: "2.6-4.0" },
+      { name: "Mastering", range: [4.1, 5], color: 0x5352ed, desc: "4.1-5.0" },
     ];
     
+    // Adjust for title space
+    const graphContentY = 30;
+    const graphContentHeight = height - graphContentY - 10;
+    
     tiers.forEach(tier => {
-      const yStart = height - (tier.range[0] / 5) * height;
-      const yEnd = height - (tier.range[1] / 5) * height;
+      const yStart = height - 10 - (tier.range[0] / 5) * graphContentHeight;
+      const yEnd = height - 10 - (tier.range[1] / 5) * graphContentHeight;
       const tierHeight = yStart - yEnd;
       
       // Background
-      const bg = this.add.rectangle(0, yEnd, width, tierHeight, tier.color, 0.1);
+      const bg = this.add.rectangle(0, yEnd, width, tierHeight, tier.color, 0.08);
       bg.setOrigin(0);
       container.add(bg);
+    });
+  }
+  
+  /**
+   * Create legend for the graph
+   */
+  private createGraphLegend(container: Phaser.GameObjects.Container, width: number): void {
+    const legendX = width + 10;
+    const legendY = 35; // Moved down to avoid title overlap
+    
+    const tiers = [
+      { name: "Struggling", color: 0xff4757, range: "0-1.0" },
+      { name: "Learning", color: 0xffa502, range: "1.1-2.5" },
+      { name: "Thriving", color: 0x2ed573, range: "2.6-4.0" },
+      { name: "Mastering", color: 0x5352ed, range: "4.1-5.0" },
+    ];
+    
+    tiers.forEach((tier, index) => {
+      const y = legendY + (index * 30);
       
-      // Label
-      const label = this.add.text(width + 20, yEnd + tierHeight / 2, tier.name, {
-        fontSize: 16,
-        color: `#${tier.color.toString(16)}`,
+      // Color box
+      const box = this.add.rectangle(legendX, y, 15, 15, tier.color);
+      box.setOrigin(0, 0.5);
+      container.add(box);
+      
+      // Label with better spacing
+      const label = this.add.text(legendX + 20, y - 5, `${tier.name}`, {
+        fontSize: 11,
+        color: "#ffffff",
         fontFamily: "dungeon-mode",
-        fontStyle: "bold"
       }).setOrigin(0, 0.5);
       container.add(label);
+      
+      // Range on separate line
+      const range = this.add.text(legendX + 20, y + 8, tier.range, {
+        fontSize: 9,
+        color: "#999999",
+        fontFamily: "dungeon-mode",
+      }).setOrigin(0, 0.5);
+      container.add(range);
     });
   }
 
@@ -220,10 +355,11 @@ export class DDADebugScene extends Scene {
    * Create status information panel
    */
   private createStatusPanel(): void {
-    const panelX = 1000;  // Moved further right to avoid tier labels
-    const panelY = 120;
-    const panelWidth = 350;
-    const panelHeight = 300;
+    const graphWidth = Math.floor(this.layout.contentWidth * 0.6);
+    const panelWidth = Math.floor(this.layout.contentWidth * 0.37);
+    const panelHeight = 250;
+    const panelX = this.layout.marginX + graphWidth + this.layout.gutterX;
+    const panelY = this.layout.marginY;
     
     this.infoPanel = this.add.container(panelX, panelY);
     
@@ -234,9 +370,9 @@ export class DDADebugScene extends Scene {
     this.infoPanel.add(bg);
     
     // Title
-    const title = this.add.text(panelWidth / 2, 20, "Current Status", {
+    const title = this.add.text(panelWidth / 2, 15, "📊 Current DDA State", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 24,
+      fontSize: 20,
       color: "#ffffff",
     }).setOrigin(0.5);
     this.infoPanel.add(title);
@@ -246,10 +382,10 @@ export class DDADebugScene extends Scene {
    * Create testing controls panel
    */
   private createTestingPanel(): void {
-    const panelX = 50;
-    const panelY = 480;
-    const panelWidth = 800;
-    const panelHeight = 180;
+    const panelWidth = this.layout.contentWidth;
+    const panelHeight = 160;
+    const panelX = this.layout.marginX;
+    const panelY = this.layout.marginY + 250 + this.layout.gutterY;
     
     this.simulationPanel = this.add.container(panelX, panelY);
     
@@ -260,9 +396,9 @@ export class DDADebugScene extends Scene {
     this.simulationPanel.add(bg);
     
     // Title
-    const title = this.add.text(panelWidth / 2, 20, "Combat Testing", {
+    const title = this.add.text(panelWidth / 2, 15, "🎮 Combat Simulation Controls", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 24,
+      fontSize: 20,
       color: "#ffffff",
     }).setOrigin(0.5);
     this.simulationPanel.add(title);
@@ -275,18 +411,84 @@ export class DDADebugScene extends Scene {
    * Create test buttons with clear, readable layout
    */
   private createTestButtons(): void {
-    const buttons = [
-      { text: "Perfect\nWin", color: 0x2ed573, x: 80, action: () => this.testPerfectCombat() },
-      { text: "Average\nFight", color: 0xffa502, x: 200, action: () => this.testAverageCombat() },
-      { text: "Difficult\nWin", color: 0xff6b35, x: 320, action: () => this.testDifficultCombat() },
-      { text: "Major\nLoss", color: 0xff4757, x: 440, action: () => this.testMajorLoss() },
-      { text: "Auto\nTest", color: 0x5352ed, x: 560, action: () => this.toggleAutoTest() },
-      { text: "Reset\nData", color: 0x747d8c, x: 680, action: () => this.resetData() },
+    const buttonSpacing = Math.floor((this.layout.contentWidth - 120) / 8);
+    const startX = 60;
+    
+    // Combat simulation buttons (top row)
+    const combatButtons = [
+      { 
+        text: "Perfect Win", 
+        desc: "100% HP, 3 turns\nFour of a Kind", 
+        color: 0x2ed573, 
+        x: startX + buttonSpacing * 0, 
+        y: 50,
+        action: () => this.testPerfectCombat() 
+      },
+      { 
+        text: "Average Fight", 
+        desc: "70% HP, 6 turns\nPair", 
+        color: 0xffa502, 
+        x: startX + buttonSpacing * 1, 
+        y: 50,
+        action: () => this.testAverageCombat() 
+      },
+      { 
+        text: "Difficult Win", 
+        desc: "30% HP, 10 turns\nHigh Card", 
+        color: 0xff6b35, 
+        x: startX + buttonSpacing * 2, 
+        y: 50,
+        action: () => this.testDifficultCombat() 
+      },
+      { 
+        text: "Major Loss", 
+        desc: "0% HP, 15 turns\nDefeated", 
+        color: 0xff4757, 
+        x: startX + buttonSpacing * 3, 
+        y: 50,
+        action: () => this.testMajorLoss() 
+      },
     ];
     
-    buttons.forEach(btn => {
-      const button = this.createButton(btn.x, 70, btn.text, btn.color, btn.action);
-      this.simulationPanel.add(button);
+    // Control buttons (bottom row)
+    const controlButtons = [
+      { 
+        text: "Auto Test", 
+        desc: "Random combats\nevery 1s", 
+        color: 0x5352ed, 
+        x: startX + buttonSpacing * 4, 
+        y: 50,
+        action: () => this.toggleAutoTest() 
+      },
+      { 
+        text: "Fresh Start", 
+        desc: "New isolated\ntest (PPS 2.5)", 
+        color: 0x1dd1a1, 
+        x: startX + buttonSpacing * 5, 
+        y: 50,
+        action: () => this.startFreshTest(this.currentConfig) 
+      },
+      { 
+        text: "Reset Data", 
+        desc: "Clear graphs\nKeep PPS", 
+        color: 0x747d8c, 
+        x: startX + buttonSpacing * 6, 
+        y: 50,
+        action: () => this.resetData() 
+      },
+      { 
+        text: "Export CSV", 
+        desc: "Download all\ntest data", 
+        color: 0xffa502, 
+        x: startX + buttonSpacing * 7, 
+        y: 50,
+        action: () => this.exportCSVData() 
+      },
+    ];
+    
+    [...combatButtons, ...controlButtons].forEach(btn => {
+      const container = this.createEnhancedButton(btn.x, btn.y, btn.text, btn.desc, btn.color, btn.action);
+      this.simulationPanel.add(container);
     });
   }
 
@@ -294,10 +496,10 @@ export class DDADebugScene extends Scene {
    * Create configuration panel
    */
   private createConfigPanel(): void {
-    const panelX = 1000;  // Aligned with status panel
-    const panelY = 480;
-    const panelWidth = 350;
-    const panelHeight = 180;
+    const panelWidth = this.layout.contentWidth;
+    const panelHeight = 100;
+    const panelX = this.layout.marginX;
+    const panelY = this.layout.marginY + 250 + this.layout.gutterY + 160 + this.layout.gutterY;
     
     this.configPanel = this.add.container(panelX, panelY);
     
@@ -308,38 +510,62 @@ export class DDADebugScene extends Scene {
     this.configPanel.add(bg);
     
     // Title
-    const title = this.add.text(panelWidth / 2, 20, "Configuration", {
+    const title = this.add.text(panelWidth / 2, 15, "⚙️ DDA Configuration Presets", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 24,
+      fontSize: 20,
       color: "#ffffff",
     }).setOrigin(0.5);
     this.configPanel.add(title);
     
-    // Config buttons
+    // Config buttons - responsive spacing
+    const buttonSpacing = Math.floor(this.layout.contentWidth / 4);
     const configs = [
-      { text: "Default", color: 0x2ed573, x: 60, config: DEFAULT_DDA_CONFIG },
-      { text: "Aggressive", color: 0xff4757, x: 170, config: AGGRESSIVE_DDA_CONFIG },
-      { text: "Conservative", color: 0x5352ed, x: 280, config: CONSERVATIVE_DDA_CONFIG },
+      { 
+        text: "Default", 
+        desc: "Standard DDA\nBalanced", 
+        color: 0x2ed573, 
+        x: buttonSpacing * 0.75, 
+        config: DEFAULT_DDA_CONFIG 
+      },
+      { 
+        text: "Aggressive", 
+        desc: "Quick changes\nFaster adapt", 
+        color: 0xff4757, 
+        x: buttonSpacing * 1.75, 
+        config: AGGRESSIVE_DDA_CONFIG 
+      },
+      { 
+        text: "Conservative", 
+        desc: "Slow changes\nStable diff", 
+        color: 0x5352ed, 
+        x: buttonSpacing * 2.75, 
+        config: CONSERVATIVE_DDA_CONFIG 
+      },
     ];
     
     configs.forEach(cfg => {
-      const button = this.createButton(cfg.x, 70, cfg.text, cfg.color, () => this.setConfig(cfg.config));
+      const button = this.createEnhancedButton(cfg.x, 55, cfg.text, cfg.desc, cfg.color, () => this.setConfig(cfg.config));
       this.configPanel.add(button);
     });
     
-    // Export button
-    const exportButton = this.createButton(170, 120, "Export\nCSV", 0xffa502, () => this.exportCSVData());
-    this.configPanel.add(exportButton);
+    // Info text - positioned on the right
+    const infoText = this.add.text(buttonSpacing * 3.5, 55, "Select a preset to test\ndifferent DDA behaviors", {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: "#999999",
+      align: "left"
+    });
+    this.configPanel.add(infoText);
   }
 
   /**
    * Create analytics panel for F1 Score and Confusion Matrix
    */
   private createAnalyticsPanel(): void {
-    const panelX = 50;
-    const panelY = 680;
-    const panelWidth = 1300;
-    const panelHeight = 200;
+    const panelWidth = this.layout.contentWidth;
+    const panelHeight = 180;
+    const panelX = this.layout.marginX;
+    const panelY = this.layout.marginY + 250 + this.layout.gutterY + 160 + this.layout.gutterY + 100 + this.layout.gutterY;
     
     this.analyticsPanel = this.add.container(panelX, panelY);
     
@@ -350,42 +576,89 @@ export class DDADebugScene extends Scene {
     this.analyticsPanel.add(bg);
     
     // Title
-    const title = this.add.text(panelWidth / 2, 20, "Advanced Analytics - F1 Score & Confusion Matrix", {
-      fontFamily: "Centrion",
-      fontSize: 24,
+    const title = this.add.text(panelWidth / 2, 15, "📈 Advanced Analytics - F1 Score & Confusion Matrix", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 20,
       color: "#ffffff",
     }).setOrigin(0.5);
     this.analyticsPanel.add(title);
   }
 
   /**
-   * Create a clean, readable button
+   * Create an enhanced button with description tooltip
    */
-  private createButton(x: number, y: number, text: string, color: number, callback: () => void): Phaser.GameObjects.Container {
-    const button = this.add.container(x, y);
+  private createEnhancedButton(
+    x: number,
+    y: number,
+    text: string,
+    description: string,
+    color: number,
+    callback: () => void
+  ): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
     
-    // Button background
-    const bg = this.add.rectangle(0, 0, 80, 50, color, 0.8);
-    bg.setStrokeStyle(2, color);
-    button.add(bg);
+    // Button background with dark overlay for better contrast
+    const bg = this.add.rectangle(0, 0, 110, 60, color);
+    bg.setStrokeStyle(2, 0xffffff, 0.8);
+    bg.setInteractive({ useHandCursor: true });
+    container.add(bg);
     
-    // Button text
-    const buttonText = this.add.text(0, 0, text, {
+    // Dark overlay for text readability
+    const overlay = this.add.rectangle(0, 0, 110, 60, 0x000000, 0.3);
+    container.add(overlay);
+    
+    // Button text (main label) - with shadow for contrast
+    const label = this.add.text(0, -12, text, {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 11,
       color: "#ffffff",
       align: "center",
-      fontStyle: "bold"
+      fontStyle: "bold",
+      stroke: "#000000",
+      strokeThickness: 3
     }).setOrigin(0.5);
-    button.add(buttonText);
+    container.add(label);
     
-    // Make interactive
-    bg.setInteractive();
-    bg.on("pointerdown", callback);
-    bg.on("pointerover", () => bg.setAlpha(1));
-    bg.on("pointerout", () => bg.setAlpha(0.8));
+    // Description text (smaller, below) - with shadow
+    const desc = this.add.text(0, 10, description, {
+      fontFamily: "dungeon-mode",
+      fontSize: 8,
+      color: "#ffffff",
+      align: "center",
+      lineSpacing: 1,
+      stroke: "#000000",
+      strokeThickness: 2
+    }).setOrigin(0.5);
+    container.add(desc);
     
-    return button;
+    // Hover effects
+    bg.on("pointerover", () => {
+      bg.setFillStyle(color, 0.9);
+      container.setScale(1.05);
+    });
+    
+    bg.on("pointerout", () => {
+      bg.setFillStyle(color, 1);
+      container.setScale(1);
+    });
+    
+    bg.on("pointerdown", () => {
+      container.setScale(0.95);
+      callback();
+    });
+    
+    bg.on("pointerup", () => {
+      container.setScale(1.05);
+    });
+    
+    return container;
+  }
+  
+  /**
+   * Create a clean, readable button (legacy support)
+   */
+  private createButton(x: number, y: number, text: string, color: number, callback: () => void): Phaser.GameObjects.Container {
+    return this.createEnhancedButton(x, y, text, "", color, callback);
   }
 
   /**
@@ -402,6 +675,9 @@ export class DDADebugScene extends Scene {
     
     backBtn.setInteractive();
     backBtn.on("pointerdown", () => {
+      // CRITICAL: Restore gameplay DDA state before leaving
+      this.restoreGameplayState();
+      
       // Manually call the Overworld resume method to reset movement flags
       const overworldScene = this.scene.get("Overworld");
       if (overworldScene) {
@@ -611,14 +887,23 @@ export class DDADebugScene extends Scene {
       accuracy: 0
     };
     
+    // Reset current test instance
     this.dda.resetSession();
+    this.analytics.resetSession();
     this.updateDisplay();
+    
+    console.log("🔄 Reset test data (DDA state preserved)");
   }
 
   private setConfig(config: DDAModifiers): void {
     this.currentConfig = config;
-    this.dda = RuleBasedDDA.getInstance(config);
+    
+    // Start fresh test with new config
+    this.resetData();
+    this.startFreshTest(config);
     this.updateDisplay();
+    
+    console.log("⚙️ Switched to new config and started fresh test");
   }
 
   /**
@@ -773,94 +1058,170 @@ export class DDADebugScene extends Scene {
     
     this.ppsGraph.lineStyle(3, 0x00ff00);
     
-    const graphWidth = 800;
-    const graphHeight = 300;
+    const graphWidth = Math.floor(this.layout.contentWidth * 0.6);
+    const graphHeight = 250;
+    const graphContentY = 30; // Match title space
+    const graphContentHeight = graphHeight - graphContentY - 10;
     
     for (let i = 1; i < this.simulationData.length; i++) {
       const prev = this.simulationData[i - 1];
       const curr = this.simulationData[i];
       
       const x1 = ((i - 1) / (this.simulationData.length - 1)) * graphWidth;
-      const y1 = graphHeight - (prev.pps / 5) * graphHeight;
+      const y1 = graphHeight - 10 - (prev.pps / 5) * graphContentHeight;
       const x2 = (i / (this.simulationData.length - 1)) * graphWidth;
-      const y2 = graphHeight - (curr.pps / 5) * graphHeight;
+      const y2 = graphHeight - 10 - (curr.pps / 5) * graphContentHeight;
       
       this.ppsGraph.lineBetween(x1, y1, x2, y2);
     }
   }
 
   private updateStatusPanel(): void {
-    // Clear existing status text
+    // Clear existing info
     this.infoPanel.removeAll(true);
     
-    // Recreate background and title
-    const bg = this.add.rectangle(0, 0, 350, 300, 0x111111);
+    // Recreate background - responsive width
+    const panelWidth = Math.floor(this.layout.contentWidth * 0.37);
+    const panelHeight = 250;
+    const bg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x111111);
     bg.setStrokeStyle(2, 0x555555);
     bg.setOrigin(0);
     this.infoPanel.add(bg);
     
     // Panel title
-    const title = this.add.text(10, 10, "Current Status", {
+    const title = this.add.text(panelWidth / 2, 15, "📊 Current DDA State", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 20,
-      color: "#4ecdc4"
-    });
+      color: "#ffffff",
+    }).setOrigin(0.5);
     this.infoPanel.add(title);
     
-    // Current stats using correct API
-    const playerPPS = this.dda.getPlayerPPS();
-    const currentPPS = playerPPS.currentPPS;
-    const currentTier = playerPPS.tier;
-    
-    // Get session metrics from analytics manager
-    const sessionMetrics = this.analytics.getAnalytics().sessionMetrics;
-    const combatCount = sessionMetrics.totalCombats;
-    
-    // Get win rate information
-    const winRateInfo = this.analytics.checkWinRateTargetBand();
-    const winRateText = combatCount > 0 ? 
-      `Win Rate: ${winRateInfo.winRate}% (${winRateInfo.withinTarget ? "Within" : "Outside"} target)` :
-      "Win Rate: N/A";
-    
-    const stats = [
-      `PPS: ${currentPPS.toFixed(2)}`,
-      `Tier: ${currentTier}`,
-      `Combats: ${combatCount}`,
-      winRateText,
-    ];
-    
-    stats.forEach((stat, index) => {
-      const text = this.add.text(20, 60 + index * 30, stat, {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#ffffff",
-      });
-      this.infoPanel.add(text);
-    });
-    
-    // Show current difficulty modifiers using correct API
+    // Get current PPS data
+    const pps = this.dda.getPlayerPPS();
     const adjustment = this.dda.getCurrentDifficultyAdjustment();
-    const modText = this.add.text(20, 190, "Difficulty Modifiers:", {
-      fontFamily: "dungeon-mode",
-      fontSize: 16,
-      color: "#cccccc",
-    });
-    this.infoPanel.add(modText);
     
-    const modDetails = [
-      `Enemy HP: ${Math.round(adjustment.enemyHealthMultiplier * 100)}%`,
-      `Enemy DMG: ${Math.round(adjustment.enemyDamageMultiplier * 100)}%`,
-      `Shop Prices: ${Math.round(adjustment.shopPriceMultiplier * 100)}%`,
+    // Display info sections
+    let yPos = 45;
+    
+    // === SECTION 1: Player Performance ===
+    const section1Title = this.add.text(panelWidth / 2, yPos, "─── Player Status ───", {
+      fontSize: 11,
+      color: "#888888",
+      fontFamily: "dungeon-mode",
+    }).setOrigin(0.5);
+    this.infoPanel.add(section1Title);
+    yPos += 18;
+    
+    const playerLines = [
+      { label: "PPS Score:", value: pps.currentPPS.toFixed(3), color: "#ffffff" },
+      { label: "Difficulty:", value: pps.tier.toUpperCase(), color: this.getTierColor(pps.tier) },
+      { label: "Combats:", value: pps.totalCombatsCompleted.toString(), color: "#cccccc" },
+      { label: "Calibration:", value: pps.isCalibrating ? "ACTIVE" : "Done", color: pps.isCalibrating ? "#ffa502" : "#2ed573" },
     ];
     
-    modDetails.forEach((detail, index) => {
-      const text = this.add.text(20, 215 + index * 20, detail, {
-        fontFamily: "dungeon-mode",
-        fontSize: 14,
+    playerLines.forEach(line => {
+      const labelText = this.add.text(15, yPos, line.label, {
+        fontSize: 11,
         color: "#aaaaaa",
+        fontFamily: "dungeon-mode",
       });
-      this.infoPanel.add(text);
+      this.infoPanel.add(labelText);
+      
+      const valueText = this.add.text(panelWidth - 15, yPos, line.value, {
+        fontSize: 11,
+        color: line.color,
+        fontFamily: "dungeon-mode",
+        fontStyle: "bold"
+      }).setOrigin(1, 0);
+      this.infoPanel.add(valueText);
+      yPos += 15;
     });
+    
+    yPos += 5;
+    
+    // === SECTION 2: Streaks ===
+    const section2Title = this.add.text(panelWidth / 2, yPos, "─── Combat Record ───", {
+      fontSize: 11,
+      color: "#888888",
+      fontFamily: "dungeon-mode",
+    }).setOrigin(0.5);
+    this.infoPanel.add(section2Title);
+    yPos += 18;
+    
+    // Only show wins - losses removed since players restart on defeat
+    const labelText = this.add.text(15, yPos, "Win Streak:", {
+      fontSize: 11,
+      color: "#aaaaaa",
+      fontFamily: "dungeon-mode",
+    });
+    this.infoPanel.add(labelText);
+    
+    const valueText = this.add.text(panelWidth - 15, yPos, `${pps.consecutiveVictories}`, {
+      fontSize: 11,
+      color: pps.consecutiveVictories > 0 ? "#2ed573" : "#666666",
+      fontFamily: "dungeon-mode",
+      fontStyle: "bold"
+    }).setOrigin(1, 0);
+    this.infoPanel.add(valueText);
+    yPos += 15;
+    
+    yPos += 5;
+    
+    // === SECTION 3: DDA Modifiers ===
+    const section3Title = this.add.text(panelWidth / 2, yPos, "─── Active Modifiers ───", {
+      fontSize: 11,
+      color: "#888888",
+      fontFamily: "dungeon-mode",
+    }).setOrigin(0.5);
+    this.infoPanel.add(section3Title);
+    yPos += 18;
+    
+    const modifierLines = [
+      { label: "HP:", value: `×${adjustment.enemyHealthMultiplier.toFixed(2)}`, color: this.getModifierColor(adjustment.enemyHealthMultiplier) },
+      { label: "DMG:", value: `×${adjustment.enemyDamageMultiplier.toFixed(2)}`, color: this.getModifierColor(adjustment.enemyDamageMultiplier) },
+      { label: "Shop:", value: `×${adjustment.shopPriceMultiplier.toFixed(2)}`, color: this.getModifierColor(adjustment.shopPriceMultiplier) },
+      { label: "Gold:", value: `×${adjustment.goldRewardMultiplier.toFixed(2)}`, color: this.getModifierColor(adjustment.goldRewardMultiplier, true) },
+    ];
+    
+    modifierLines.forEach(line => {
+      const labelText = this.add.text(15, yPos, line.label, {
+        fontSize: 11,
+        color: "#aaaaaa",
+        fontFamily: "dungeon-mode",
+      });
+      this.infoPanel.add(labelText);
+      
+      const valueText = this.add.text(panelWidth - 15, yPos, line.value, {
+        fontSize: 11,
+        color: line.color,
+        fontFamily: "dungeon-mode",
+        fontStyle: "bold"
+      }).setOrigin(1, 0);
+      this.infoPanel.add(valueText);
+      yPos += 15;
+    });
+  }
+  
+  /**
+   * Get color for modifier based on value (higher = harder for player)
+   */
+  private getModifierColor(value: number, inverse: boolean = false): string {
+    const isHarder = inverse ? value < 1 : value > 1;
+    if (Math.abs(value - 1) < 0.05) return "#cccccc"; // Near baseline
+    return isHarder ? "#ff6b6b" : "#51cf66";
+  }
+  
+  /**
+   * Get color for difficulty tier
+   */
+  private getTierColor(tier: DifficultyTier): string {
+    const tierColors = {
+      struggling: "#ff4757",
+      learning: "#ffa502",
+      thriving: "#2ed573",
+      mastering: "#5352ed"
+    };
+    return tierColors[tier];
   }
 
   /**
@@ -870,72 +1231,79 @@ export class DDADebugScene extends Scene {
     // Clear existing analytics display
     this.analyticsPanel.removeAll(true);
     
-    // Recreate background and title
-    const panelWidth = 1300;
-    const panelHeight = 200;
+    // Recreate background and title - responsive width
+    const panelWidth = this.layout.contentWidth;
+    const panelHeight = 180;
     
     const bg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x111111);
     bg.setStrokeStyle(2, 0x555555);
     bg.setOrigin(0);
     this.analyticsPanel.add(bg);
     
-    const title = this.add.text(panelWidth / 2, 20, "Advanced Analytics - F1 Score & Confusion Matrix", {
-      fontFamily: "Centrion",
-      fontSize: 24,
+    const title = this.add.text(panelWidth / 2, 15, "📈 Analytics Dashboard", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 18,
       color: "#ffffff",
     }).setOrigin(0.5);
     this.analyticsPanel.add(title);
 
     // F1 Score Display
-    const f1Title = this.add.text(50, 60, "F1 Score Metrics:", {
-      fontFamily: "Chivo",
-      fontSize: 18,
+    const f1Title = this.add.text(20, 45, "F1 Metrics:", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
       color: "#00ff00",
       fontStyle: "bold"
     });
     this.analyticsPanel.add(f1Title);
 
-    let yOffset = 85;
+    let yOffset = 68;
     const tiers: DifficultyTier[] = ['struggling', 'learning', 'thriving', 'mastering'];
+    
+    // Calculate responsive spacing
+    const tierSpacing = Math.floor(panelWidth * 0.15);
     
     tiers.forEach((tier, index) => {
       const f1Score = this.f1Metrics.f1Score[tier];
       const precision = this.f1Metrics.precision[tier];
       const recall = this.f1Metrics.recall[tier];
       
-      const tierText = this.add.text(50 + (index * 150), yOffset, 
-        `${tier.charAt(0).toUpperCase() + tier.slice(1)}\nF1: ${f1Score.toFixed(3)}\nP: ${precision.toFixed(3)}\nR: ${recall.toFixed(3)}`, {
-        fontFamily: "Chivo",
-        fontSize: 12,
+      const tierText = this.add.text(30 + (index * tierSpacing), yOffset, 
+        `${tier.charAt(0).toUpperCase() + tier.slice(1)}\nF1: ${f1Score.toFixed(2)}\nP: ${precision.toFixed(2)}\nR: ${recall.toFixed(2)}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 10,
         color: "#ffffff",
-        align: "center"
+        align: "left",
+        lineSpacing: 2
       });
       this.analyticsPanel.add(tierText);
     });
 
-    // Overall metrics
-    const overallText = this.add.text(700, 70, 
-      `Overall Accuracy: ${(this.f1Metrics.accuracy * 100).toFixed(1)}%\nOverall F1 Score: ${this.f1Metrics.overallF1Score.toFixed(3)}\nTotal Predictions: ${this.predictionResults.length}`, {
-      fontFamily: "Chivo",
-      fontSize: 14,
+    // Overall metrics - responsive positioning
+    const overallX = Math.floor(panelWidth * 0.65);
+    const overallText = this.add.text(overallX, 55, 
+      `Accuracy: ${(this.f1Metrics.accuracy * 100).toFixed(1)}%\nF1: ${this.f1Metrics.overallF1Score.toFixed(3)}\nPredictions: ${this.predictionResults.length}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
       color: "#ffff00",
-      fontStyle: "bold"
+      fontStyle: "bold",
+      lineSpacing: 3
     });
     this.analyticsPanel.add(overallText);
 
     // Confusion Matrix Visualization
-    const matrixTitle = this.add.text(950, 60, "Confusion Matrix:", {
-      fontFamily: "Chivo",
-      fontSize: 16,
+    const matrixX = Math.floor(panelWidth * 0.8);
+    const matrixTitle = this.add.text(matrixX, 45, "Confusion:", {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
       color: "#ff6b35",
       fontStyle: "bold"
     });
     this.analyticsPanel.add(matrixTitle);
 
     // Create a mini confusion matrix display
-    const cellSize = 30;
-    const startX = 950;
-    const startY = 85;
+    const cellSize = 22;
+    const startX = matrixX + 5;
+    const startY = 75;
     
     tiers.forEach((actualTier, row) => {
       tiers.forEach((predictedTier, col) => {
@@ -953,10 +1321,12 @@ export class DDADebugScene extends Scene {
         
         if (count > 0) {
           const countText = this.add.text(x, y, count.toString(), {
-            fontFamily: "Chivo",
-            fontSize: 10,
+            fontFamily: "dungeon-mode",
+            fontSize: 9,
             color: "#ffffff",
-            fontStyle: "bold"
+            fontStyle: "bold",
+            stroke: "#000000",
+            strokeThickness: 2
           }).setOrigin(0.5);
           this.analyticsPanel.add(countText);
         }

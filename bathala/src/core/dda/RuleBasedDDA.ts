@@ -33,6 +33,29 @@ export class RuleBasedDDA {
   }
 
   /**
+   * Force clear singleton instance (FOR TESTING ONLY)
+   * WARNING: This will destroy the current DDA state!
+   * Only use this in debug/testing scenarios.
+   */
+  static forceClearSingleton(): void {
+    RuleBasedDDA.instance = undefined as any;
+  }
+
+  /**
+   * Get a snapshot of current DDA state for backup/restore
+   */
+  public getStateSnapshot(): PlayerPerformanceScore {
+    return JSON.parse(JSON.stringify(this.playerPPS));
+  }
+
+  /**
+   * Restore DDA state from a snapshot
+   */
+  public restoreStateSnapshot(snapshot: PlayerPerformanceScore): void {
+    this.playerPPS = JSON.parse(JSON.stringify(snapshot));
+  }
+
+  /**
    * Initialize player performance score
    */
   private initializePlayerPPS(): PlayerPerformanceScore {
@@ -338,6 +361,17 @@ export class RuleBasedDDA {
     this.playerPPS = this.initializePlayerPPS();
     this.events = [];
     this.logEvent("session_reset", { timestamp: Date.now() });
+  }
+
+  /**
+   * Reset DDA system with a specific configuration
+   * Useful for testing different configs
+   */
+  public resetWithConfig(newConfig: DDAModifiers): void {
+    this.config = newConfig;
+    this.playerPPS = this.initializePlayerPPS();
+    this.events = [];
+    this.logEvent("config_reset", { config: newConfig, timestamp: Date.now() });
   }
 
   /**

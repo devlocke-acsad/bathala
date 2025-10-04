@@ -114,7 +114,7 @@ export interface FlowStateMetrics {
 
 export interface DDAEvent {
   timestamp: number;
-  type: "pps_update" | "tier_change" | "difficulty_adjustment" | "combat_complete" | "config_update" | "session_reset" | "dda_toggle";
+  type: "pps_update" | "tier_change" | "difficulty_adjustment" | "combat_complete" | "config_update" | "session_reset" | "config_reset" | "dda_toggle";
   data: any;
   pps: number;
   tier: DifficultyTier;
