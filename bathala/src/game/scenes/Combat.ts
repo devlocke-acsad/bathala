@@ -1308,13 +1308,13 @@ export class Combat extends Scene {
     
     // Add click event to navigate to poker hand reference scene
     infoButton.on("pointerdown", () => {
-      this.scene.start("PokerHandReference");
+      this.scene.launch("PokerHandReference");
     });
     
     // Also make the text interactive and link it to the same event
     infoText.setInteractive();
     infoText.on("pointerdown", () => {
-      this.scene.start("PokerHandReference");
+      this.scene.launch("PokerHandReference");
     });
     
     this.pokerHandInfoButton.add([infoButton, infoText]);
