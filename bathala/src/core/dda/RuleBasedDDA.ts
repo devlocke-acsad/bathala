@@ -132,6 +132,16 @@ export class RuleBasedDDA {
     
     const tierChanged = newTier !== this.playerPPS.tier && !this.playerPPS.isCalibrating;
     
+    // Debug logging for tier calculation
+    console.log("🎯 Tier Calculation:", {
+      currentPPS: this.playerPPS.currentPPS.toFixed(3),
+      isCalibrating: this.playerPPS.isCalibrating,
+      calculatedTier: this.calculateDifficultyTier(this.playerPPS.currentPPS),
+      assignedTier: newTier,
+      previousTier: this.playerPPS.tier,
+      tierChanged: tierChanged
+    });
+    
     if (tierChanged) {
       this.logEvent("tier_change", {
         fromTier: this.playerPPS.tier,
@@ -188,11 +198,23 @@ export class RuleBasedDDA {
       this.playerPPS.consecutiveVictories = 0;
     }
 
-    // 2. HEALTH-BASED MODIFIERS
+    // 2. HEALTH-BASED MODIFIERS (Gradient system for better feedback)
     let healthAdjustment = 0;
-    if (metrics.healthPercentage > 0.9) {
+    
+    if (metrics.healthPercentage >= 0.9) {
+      // Excellent health (90-100%)
       healthAdjustment += config.highHealthBonus;
-    } else if (metrics.healthPercentage < 0.2) {
+    } else if (metrics.healthPercentage >= 0.7) {
+      // Good health (70-89%) - small bonus
+      healthAdjustment += config.highHealthBonus * 0.5;
+    } else if (metrics.healthPercentage >= 0.5) {
+      // Moderate health (50-69%) - neutral (no adjustment)
+      healthAdjustment += 0;
+    } else if (metrics.healthPercentage >= 0.3) {
+      // Poor health (30-49%) - small penalty
+      healthAdjustment += config.lowHealthPenalty * 0.5;
+    } else {
+      // Very poor health (<30%) - full penalty
       healthAdjustment += config.lowHealthPenalty;
     }
 
@@ -215,10 +237,37 @@ export class RuleBasedDDA {
       adjustment += config.goodHandBonus * tierScale.bonusMultiplier;
     }
 
-    // 5. COMBAT DURATION PENALTY (with tier scaling)
-    if (metrics.turnCount > 8) {
-      adjustment += config.longCombatPenalty * tierScale.penaltyMultiplier;
+    // 5. COMBAT DURATION PENALTY (Tier-based thresholds calibrated to actual damage output)
+    // Calibrated based on: Common enemies ~18HP, Player damage ranges from 2-22 per turn
+    let turnPenalty = 0;
+    
+    if (currentTier === "mastering") {
+      // Mastering tier: High damage (10-22), expected 1-3 turns
+      // Penalty if taking too long (struggling to finish quickly)
+      if (metrics.turnCount > 4) {
+        turnPenalty = config.longCombatPenalty * tierScale.penaltyMultiplier;
+      }
+    } else if (currentTier === "thriving") {
+      // Thriving tier: Good damage (7-10), expected 2-4 turns
+      // Penalty if combat drags on
+      if (metrics.turnCount > 5) {
+        turnPenalty = config.longCombatPenalty * tierScale.penaltyMultiplier;
+      }
+    } else if (currentTier === "learning") {
+      // Learning tier: Moderate damage (3-7), expected 3-6 turns
+      // Penalty if combat is inefficient
+      if (metrics.turnCount > 7) {
+        turnPenalty = config.longCombatPenalty * tierScale.penaltyMultiplier;
+      }
+    } else {
+      // Struggling tier: Low damage (0-3), expected 6-9 turns
+      // Very lenient threshold
+      if (metrics.turnCount > 9) {
+        turnPenalty = config.longCombatPenalty * tierScale.penaltyMultiplier;
+      }
     }
+    
+    adjustment += turnPenalty;
 
     // 6. RESOURCE EFFICIENCY BONUS
     const discardEfficiency = 1 - (metrics.discardsUsed / Math.max(1, metrics.maxDiscardsAvailable));
@@ -226,21 +275,49 @@ export class RuleBasedDDA {
       adjustment += config.resourceEfficiencyBonus * tierScale.bonusMultiplier;
     }
 
+    // 6.5. CLUTCH VICTORY BONUS (Context-aware difficulty)
+    // Reward players who win despite entering combat at a disadvantage
+    let clutchBonus = 0;
+    const startingHealthRatio = metrics.startHealth / metrics.startMaxHealth;
+    if (startingHealthRatio < 0.5 && metrics.victory) {
+      // Player entered with <50% HP and still won - that's impressive!
+      // Bonus scales with how low their starting HP was (max +0.15 at 0% starting HP)
+      clutchBonus = 0.15 * (1 - startingHealthRatio * 2); // 0.15 at 0%, 0.0 at 50%
+      adjustment += clutchBonus * tierScale.bonusMultiplier;
+    }
+
     // 7. COMEBACK BONUS SYSTEM (Solution 3)
+    let comebackBonus = 0;
     if (this.config.comebackBonus.enabled && 
         metrics.victory && 
         this.playerPPS.currentPPS < this.config.comebackBonus.ppsThreshold) {
       
       // Base comeback bonus
-      adjustment += this.config.comebackBonus.bonusPerVictory;
+      comebackBonus += this.config.comebackBonus.bonusPerVictory;
       
       // Consecutive win bonus (capped)
       const consecutiveBonus = Math.min(
         (this.playerPPS.consecutiveVictories - 1) * this.config.comebackBonus.consecutiveWinBonus,
         this.config.comebackBonus.maxConsecutiveBonus
       );
-      adjustment += consecutiveBonus;
+      comebackBonus += consecutiveBonus;
+      adjustment += comebackBonus;
     }
+
+    // Log PPS calculation breakdown for debugging
+    console.log("📊 PPS Calculation Breakdown:", {
+      victory: metrics.victory ? `+${config.victoryBonus}` : `${config.defeatPenalty}`,
+      startHP: `${(startingHealthRatio * 100).toFixed(0)}%`,
+      endHP: `${(metrics.healthPercentage * 100).toFixed(0)}%`,
+      health: `${(healthAdjustment / (tierScale.bonusMultiplier || tierScale.penaltyMultiplier)).toFixed(2)}`,
+      healthScaled: `${healthAdjustment.toFixed(2)}`,
+      turns: turnPenalty !== 0 ? `${turnPenalty.toFixed(2)} (${metrics.turnCount} turns)` : "0",
+      clutch: clutchBonus > 0 ? `+${(clutchBonus * tierScale.bonusMultiplier).toFixed(2)} (low HP start)` : "0",
+      comeback: comebackBonus > 0 ? `+${comebackBonus.toFixed(2)}` : "0",
+      totalAdjustment: adjustment.toFixed(3),
+      currentPPS: this.playerPPS.currentPPS.toFixed(3),
+      newPPS: Math.max(0, Math.min(5, this.playerPPS.currentPPS + adjustment)).toFixed(3)
+    });
 
     return adjustment;
   }
@@ -251,15 +328,29 @@ export class RuleBasedDDA {
   private calculateDifficultyTier(pps: number): DifficultyTier {
     const tiers = this.config.difficultyTiers;
     
+    let calculatedTier: DifficultyTier;
+    
     if (pps >= tiers.mastering.min && pps <= tiers.mastering.max) {
-      return "mastering";
+      calculatedTier = "mastering";
     } else if (pps >= tiers.thriving.min && pps <= tiers.thriving.max) {
-      return "thriving";
+      calculatedTier = "thriving";
     } else if (pps >= tiers.learning.min && pps <= tiers.learning.max) {
-      return "learning";
+      calculatedTier = "learning";
     } else {
-      return "struggling";
+      calculatedTier = "struggling";
     }
+    
+    // Debug logging to catch tier calculation issues
+    console.log(`🎯 calculateDifficultyTier: PPS=${pps.toFixed(3)} → Tier=${calculatedTier}`, {
+      thresholds: {
+        struggling: `${tiers.struggling.min}-${tiers.struggling.max}`,
+        learning: `${tiers.learning.min}-${tiers.learning.max}`,
+        thriving: `${tiers.thriving.min}-${tiers.thriving.max}`,
+        mastering: `${tiers.mastering.min}-${tiers.mastering.max}`
+      }
+    });
+    
+    return calculatedTier;
   }
 
   /**
