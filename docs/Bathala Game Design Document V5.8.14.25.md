@@ -291,12 +291,44 @@ The Landás system is the core moral and narrative framework of the game. After 
   * **Combat Efficiency**: HP lost, turns taken, damage ratio.  
   * **Resource Management**: Gold spent, potions used, discard charges used.  
   * **Strategic Acumen**: Quality of poker hands played over time.  
-* **PPS Calculation (Example Logic)**: The PPS starts at a baseline (e.g., 2.5). After each combat, it is adjusted: IF player ends combat with \>90% HP, PPS \+= 0.3. IF player ends combat with \<20% HP, PPS \-= 0.4. IF player uses a Four of a Kind or better, PPS \+= 0.2. IF player takes more than 8 turns in a standard fight, PPS \-= 0.25.  
+* **Calibration Period**: To ensure fair difficulty adaptation and establish a baseline, the DDA system observes the **first 3 combats** without applying difficulty adjustments. During this calibration period:
+  * Player Performance Score is still tracked and updated.
+  * Difficulty tier remains locked at "Learning" tier (1.0x enemy stats).
+  * Enemies have standard baseline stats to establish a consistent measurement point.
+  * After the calibration period ends (post-combat #3), the system applies the calculated difficulty tier based on accumulated PPS.
+  * This prevents premature difficulty spikes and allows players to understand baseline mechanics.
+  * **Design Rationale**: Provides a "wind-up" phase for player skill assessment, improving perceived fairness and player experience.
+* **Anti-Death-Spiral Design**: Initial playtesting revealed that struggling players could enter a "death spiral" where even winning combats resulted in negative PPS due to accumulated penalties (low HP, long combat duration). This prevented the DDA system from effectively helping struggling players recover. The following systems were implemented to address this:
+  * **Victory/Defeat Mechanics**: Base victory bonus (+0.3 PPS) ensures winning is always rewarding. Defeat penalty (-0.5 PPS) is only applied on loss. This creates asymmetric rewards where victory always results in net positive or near-zero PPS.
+  * **Comeback System**: When PPS drops below 1.5 (deep in "Struggling" tier), players receive an additional comeback bonus (+0.4 PPS) per victory. Consecutive wins grant stacking bonuses (+0.2 per win, max +0.6) to build positive momentum and enable recovery from difficult situations.
+  * **Tier-Based Penalty Scaling**: Modifiers are scaled based on current difficulty tier. Struggling players receive reduced penalties (50% reduction) and increased bonuses (50% increase) to prevent further decline. Conversely, thriving/mastering players receive increased penalties to maintain challenge. This prevents the system from punishing players while they're down.
+* **PPS Calculation (Updated Logic)**: The PPS starts at a baseline (2.5). After each combat, it is adjusted with the following modifiers, scaled by current tier:
+  * **Base modifiers**: Victory +0.3, Defeat -0.5
+  * **Health-based (Gradient System)**: Provides continuous feedback across all performance levels to prevent PPS inflation:
+    * **90-100% HP**: +0.3 (full bonus) - Excellent performance
+    * **70-89% HP**: +0.15 (half bonus) - Good performance
+    * **50-69% HP**: 0 (neutral) - Moderate performance
+    * **30-49% HP**: -0.15 (half penalty) - Poor performance
+    * **<30% HP**: -0.3 (full penalty) - Very poor performance
+  * **Hand quality**: Four of a Kind or better +0.2
+  * **Combat efficiency (Tier-based turn thresholds)**: -0.15 penalty applied based on skill tier
+    * **Mastering tier**: Penalty if >4 turns (expected 1-3 turns, high damage 10-22)
+    * **Thriving tier**: Penalty if >5 turns (expected 2-4 turns, good damage 7-10)
+    * **Learning tier**: Penalty if >7 turns (expected 3-6 turns, moderate damage 3-7)
+    * **Struggling tier**: Penalty if >9 turns (expected 6-9 turns, low damage 0-3)
+    * **Design Rationale**: Calibrated to actual damage output per tier. Common enemies have ~18 HP. Higher-skilled players deal significantly more damage per turn (Three of a Kind = 7, Four of a Kind = 22) and are expected to win much faster than struggling players (High Card = 0, Pair = 2).
+  * **Perfect combat**: No damage taken +0.5
+  * **Resource efficiency**: <80% discard usage +0.1
+  * **Clutch victory bonus**: Up to +0.15 when entering combat with <50% HP and winning (scales with starting HP disadvantage)
+    * **Design Rationale**: Rewards players who win despite being at a disadvantage from previous combats. Recognizes that winning with 20% starting HP is more impressive than winning with 100% starting HP. Prevents punishing players for resource management decisions across multiple combats.
+  * **Comeback bonus**: +0.4 when PPS <1.5 and victory (plus +0.2 per consecutive win, max +0.6)
+  * **Tier scaling**: Struggling (penalties ×0.5, bonuses ×1.5), Learning (×1.0), Thriving (penalties ×1.2, bonuses ×0.8), Mastering (penalties ×1.5, bonuses ×0.5)
+  * **Design Rationale**: The gradient health system was implemented to address PPS inflation where players at moderate health (30-80%) received only victory bonuses, causing PPS to constantly increase regardless of performance quality. The 5-tier gradient ensures that all performance levels receive appropriate feedback.
 * **Adaptive Modifiers**:  
-  * **Enemy Stats**: HP and Damage scale subtly (±25%) based on PPS thresholds.  
+  * **Enemy Stats**: HP and Damage scale based on PPS thresholds (-20% to +15%).  
   * **Economic Tuning**: Shop prices and gold rewards adjust slightly.  
   * **Map Generation**: If PPS is very low, the system can be weighted to generate a Rest node.  
-  * **Narrative Framing**: The DDA is framed in-world. A high PPS might trigger an event where "The spirits, sensing your power, send a greater challenge." A low PPS might trigger an event where "An ancestor's spirit offers a blessing."
+  * **Narrative Framing**: The DDA is framed in-world. During calibration: "Observing your technique..." After calibration, context changes based on tier: "The spirits, sensing your power, send a greater challenge" (high PPS) or "An ancestor's spirit offers gentle guidance" (low PPS).
 
 
 #### **8.3. DDA Difficulty Tiers**
@@ -308,4 +340,15 @@ The Landás system is the core moral and narrative framework of the game. After 
 | **3-4** | **Thriving** | Enemies receive bonus stats (+15% HP/DMG) and are more likely to use their advanced abilities or more complex attack patterns. |
 | **5** | **Mastering** | Maximum difficulty. Enemies have the highest stat bonuses, use their most complex AI, and fewer safety nets (like healing nodes) appear. |
 
-**Note:** DDA is independent of Landás — it responds to skill, not morality.  
+**Note:** DDA is independent of Landás — it responds to skill, not morality.
+
+#### **8.4. DDA Testing & Validation Tools**
+* **DDA Debug Scene**: A comprehensive testing environment for validating DDA behavior:
+  * **Individual Combat Tests**: Simulate Perfect Win, Average Fight, Difficult Win, and Poor Performance scenarios
+  * **Calibration Testing**: Skip calibration period or test calibration behavior
+  * **Realistic Run Simulation**: Test 11-combat progression with varying performance
+  * **Regression Metrics**: MAE, RMSE, R² for PPS prediction accuracy
+  * **Validation Tests**: Tier transitions, modifier application, edge cases
+  * **Ground Truth Testing**: Compare expected vs actual PPS adjustments
+  * **CSV Export**: Export all test data for statistical analysis
+* **Design Rationale**: These tools enable empirical validation of the DDA system's effectiveness and provide data for thesis research on adaptive difficulty in roguelike games.  

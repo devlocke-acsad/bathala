@@ -4,14 +4,57 @@
  */
 
 export interface DDAModifiers {
+  // Calibration Settings
+  calibration: {
+    enabled: boolean;              // Enable calibration period
+    combatCount: number;           // Number of combats before DDA activates
+    trackPPSDuringCalibration: boolean; // Track PPS but don't apply adjustments
+  };
+
   // PPS Update Rules
   ppsModifiers: {
+    // Victory/Defeat (Solution 1)
+    victoryBonus: number;         // +PPS for winning (always positive)
+    defeatPenalty: number;        // -PPS for losing
+    
+    // Health-based
     highHealthBonus: number;      // +PPS when ending combat with >90% HP
     lowHealthPenalty: number;     // -PPS when ending combat with <20% HP
+    
+    // Performance-based
     goodHandBonus: number;        // +PPS for Four of a Kind or better
     longCombatPenalty: number;    // -PPS when combat takes >8 turns
     perfectCombatBonus: number;   // +PPS for taking no damage
     resourceEfficiencyBonus: number; // +PPS for using few discard charges
+  };
+
+  // Tier-Based Modifier Scaling (Solution 2)
+  tierScaling: {
+    struggling: {
+      penaltyMultiplier: number;  // Scale penalties when struggling
+      bonusMultiplier: number;    // Scale bonuses when struggling
+    };
+    learning: {
+      penaltyMultiplier: number;
+      bonusMultiplier: number;
+    };
+    thriving: {
+      penaltyMultiplier: number;
+      bonusMultiplier: number;
+    };
+    mastering: {
+      penaltyMultiplier: number;
+      bonusMultiplier: number;
+    };
+  };
+
+  // Comeback Bonus System (Solution 3)
+  comebackBonus: {
+    enabled: boolean;
+    ppsThreshold: number;         // PPS level that triggers comeback bonus
+    bonusPerVictory: number;      // Extra bonus for wins while struggling
+    consecutiveWinBonus: number;  // Bonus per consecutive win
+    maxConsecutiveBonus: number;  // Cap on consecutive win bonuses
   };
 
   // Difficulty Tier Thresholds
@@ -96,13 +139,53 @@ export interface DDAModifiers {
  * These values can be modified for A/B testing and experimentation
  */
 export const DEFAULT_DDA_CONFIG: DDAModifiers = {
+  calibration: {
+    enabled: true,
+    combatCount: 3,                 // First 3 combats are calibration
+    trackPPSDuringCalibration: true // Track PPS but lock difficulty tier
+  },
+
   ppsModifiers: {
+    // Victory/Defeat - ensures winning is always rewarding
+    victoryBonus: 0.3,
+    defeatPenalty: -0.5,
+    
+    // Health-based - reduced penalties to prevent death spiral
     highHealthBonus: 0.3,
-    lowHealthPenalty: -0.4,
+    lowHealthPenalty: -0.3,        // Reduced from -0.4
+    
+    // Performance-based
     goodHandBonus: 0.2,
-    longCombatPenalty: -0.25,
+    longCombatPenalty: -0.15,      // Reduced from -0.25
     perfectCombatBonus: 0.5,
     resourceEfficiencyBonus: 0.1,
+  },
+
+  tierScaling: {
+    struggling: {
+      penaltyMultiplier: 0.5,      // Half penalties when struggling
+      bonusMultiplier: 1.5,        // 50% more bonuses for improvement
+    },
+    learning: {
+      penaltyMultiplier: 1.0,      // Standard
+      bonusMultiplier: 1.0,
+    },
+    thriving: {
+      penaltyMultiplier: 1.2,      // Slightly harsher penalties
+      bonusMultiplier: 0.8,        // Smaller bonuses (already doing well)
+    },
+    mastering: {
+      penaltyMultiplier: 1.5,      // Full penalties at high skill
+      bonusMultiplier: 0.5,        // Minimal bonuses
+    },
+  },
+
+  comebackBonus: {
+    enabled: true,
+    ppsThreshold: 1.5,             // Trigger when deep in struggling tier
+    bonusPerVictory: 0.4,          // Strong bonus to help recovery
+    consecutiveWinBonus: 0.2,      // Additional per consecutive win
+    maxConsecutiveBonus: 0.6,      // Cap at 3 consecutive wins
   },
 
   difficultyTiers: {
@@ -183,26 +266,74 @@ export const DEFAULT_DDA_CONFIG: DDAModifiers = {
  */
 export const AGGRESSIVE_DDA_CONFIG: DDAModifiers = {
   ...DEFAULT_DDA_CONFIG,
+  calibration: {
+    enabled: false,              // No calibration - immediate response
+    combatCount: 0,
+    trackPPSDuringCalibration: false
+  },
   ppsModifiers: {
-    ...DEFAULT_DDA_CONFIG.ppsModifiers,
+    victoryBonus: 0.4,
+    defeatPenalty: -0.7,
     highHealthBonus: 0.5,     // More aggressive bonuses
-    lowHealthPenalty: -0.6,   // Harsher penalties
+    lowHealthPenalty: -0.5,   // Harsher penalties
     goodHandBonus: 0.3,
-    longCombatPenalty: -0.4,
+    longCombatPenalty: -0.3,
     perfectCombatBonus: 0.7,
     resourceEfficiencyBonus: 0.2,
+  },
+  tierScaling: {
+    ...DEFAULT_DDA_CONFIG.tierScaling,
+    struggling: {
+      penaltyMultiplier: 0.7,  // Less help - more aggressive
+      bonusMultiplier: 1.3,
+    },
+  },
+  comebackBonus: {
+    ...DEFAULT_DDA_CONFIG.comebackBonus,
+    enabled: false,            // No comeback help in aggressive mode
   },
 };
 
 export const CONSERVATIVE_DDA_CONFIG: DDAModifiers = {
   ...DEFAULT_DDA_CONFIG,
+  calibration: {
+    enabled: true,
+    combatCount: 5,              // Longer calibration period
+    trackPPSDuringCalibration: true
+  },
   ppsModifiers: {
-    ...DEFAULT_DDA_CONFIG.ppsModifiers,
+    victoryBonus: 0.4,           // Higher victory reward
+    defeatPenalty: -0.3,         // Lower defeat penalty
     highHealthBonus: 0.2,     // Gentler adjustments
-    lowHealthPenalty: -0.3,
+    lowHealthPenalty: -0.2,   // Even gentler penalties
     goodHandBonus: 0.15,
-    longCombatPenalty: -0.2,
+    longCombatPenalty: -0.1,  // Minimal penalty
     perfectCombatBonus: 0.4,
     resourceEfficiencyBonus: 0.05,
+  },
+  tierScaling: {
+    struggling: {
+      penaltyMultiplier: 0.3,    // Very light penalties
+      bonusMultiplier: 2.0,      // Double bonuses for struggling players
+    },
+    learning: {
+      penaltyMultiplier: 0.8,
+      bonusMultiplier: 1.2,
+    },
+    thriving: {
+      penaltyMultiplier: 1.0,
+      bonusMultiplier: 1.0,
+    },
+    mastering: {
+      penaltyMultiplier: 1.2,
+      bonusMultiplier: 0.8,
+    },
+  },
+  comebackBonus: {
+    enabled: true,
+    ppsThreshold: 2.0,           // Trigger earlier
+    bonusPerVictory: 0.5,        // Stronger comeback bonus
+    consecutiveWinBonus: 0.3,    // Bigger consecutive bonus
+    maxConsecutiveBonus: 0.9,    // Higher cap
   },
 };
