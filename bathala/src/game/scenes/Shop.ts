@@ -25,6 +25,7 @@ export class Shop extends Scene {
   }
 
   create(): void {
+    if (!this.cameras.main) return;
     this.cameras.main.setBackgroundColor(0x0a0a0f);
 
     // Persona-style fast transition effect

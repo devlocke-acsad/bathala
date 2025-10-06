@@ -25,7 +25,9 @@ export class Prologue extends Scene {
     }
 
     create() {
-        this.cameras.main.setBackgroundColor(0x000000);
+        if (this.cameras.main) {
+            this.cameras.main.setBackgroundColor(0x000000);
+        }
         this.startStoryPhase();
     }
 

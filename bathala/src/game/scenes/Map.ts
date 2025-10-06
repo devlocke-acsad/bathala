@@ -39,6 +39,7 @@ export class Map extends Scene {
   }
 
   create(): void {
+    if (!this.cameras.main) return;
     this.cameras.main.setBackgroundColor(0x0e1112);
 
     const gameState = GameState.getInstance();

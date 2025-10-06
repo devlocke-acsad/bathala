@@ -31,7 +31,9 @@ export class Boot extends Scene
     create ()
     {
         // Set background color
-        this.cameras.main.setBackgroundColor(0x150E10);
+        if (this.cameras.main) {
+            this.cameras.main.setBackgroundColor(0x150E10);
+        }
         
         // Create loading UI with dark fantasy theme
         this.createLoadingUI();

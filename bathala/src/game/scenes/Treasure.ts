@@ -32,6 +32,11 @@ export class Treasure extends Scene {
   }
 
   create(): void {
+    // Safety check for camera
+    if (!this.cameras.main) {
+      return;
+    }
+    
     this.cameras.main.setBackgroundColor(0x0e1112);
 
     // Create title
@@ -409,6 +414,11 @@ export class Treasure extends Scene {
    * Handle scene resize
    */
   private handleResize(): void {
+    // Safety check for camera
+    if (!this.cameras.main) {
+      return;
+    }
+    
     // Rebuild UI with the same logic used in create()
     this.children.removeAll();
     this.create();
