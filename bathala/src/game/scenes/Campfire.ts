@@ -30,6 +30,7 @@ export class Campfire extends Scene {
   }
 
   create(): void {
+    if (!this.cameras.main) return;
     this.cameras.main.setBackgroundColor(0x0a0a0a);
 
     // Create atmospheric background

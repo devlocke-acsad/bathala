@@ -62,10 +62,14 @@ export class Combat extends Scene {
   private discardViewContainer!: Phaser.GameObjects.Container;
   private actionResultText!: Phaser.GameObjects.Text;
   private enemyAttackPreviewText!: Phaser.GameObjects.Text;
+  private damagePreviewContainer!: Phaser.GameObjects.Container;
+  private damagePreviewText!: Phaser.GameObjects.Text;
+  private damagePreviewBackground!: Phaser.GameObjects.Rectangle;
   private isDrawingCards: boolean = false;
   private isActionProcessing: boolean = false;
   private combatEnded: boolean = false;
   private turnCount: number = 0;
+  private kapresCigarUsed: boolean = false; // Track if Kapre's Cigar minion summon has been used this combat
   private deckPosition!: { x: number; y: number };
   private discardPilePosition!: { x: number; y: number };
   private shopKey!: Phaser.Input.Keyboard.Key;
@@ -294,6 +298,11 @@ export class Combat extends Scene {
   }
 
   create(data: { nodeType: string, transitionOverlay?: any }): void {
+    // Safety check for camera
+    if (!this.cameras.main) {
+      return;
+    }
+    
     // Add forest background
     const bg = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, "forest_bg");
     bg.setDisplaySize(this.cameras.main.width, this.cameras.main.height);
@@ -897,6 +906,9 @@ export class Combat extends Scene {
     
     // Apply start-of-combat relic effects
     RelicManager.applyStartOfCombatEffects(this.combatState.player);
+    
+    // Try to summon minion with Kapre's Cigar
+    RelicManager.tryKapresCigarSummon(this, this.combatState.player);
   }
 
   /**
@@ -951,6 +963,9 @@ export class Combat extends Scene {
 
     // Played hand area (center)
     this.createPlayedHandUI();
+
+    // Damage preview display (create before action buttons so it exists when needed)
+    this.createDamagePreviewUI();
 
     // Action buttons
     this.createActionButtons();
@@ -1250,6 +1265,9 @@ export class Combat extends Scene {
 
       this.actionButtons.add([attackButton, defendButton, specialButton, specialTooltip]);
     }
+    
+    // Update damage preview based on current phase
+    this.updateDamagePreview(this.combatState.phase === "action_selection");
   }
 
   /**
@@ -2025,6 +2043,9 @@ export class Combat extends Scene {
     // Update card visuals without recreating all cards
     this.updateCardVisuals(card);
     this.updateHandIndicator(); // Update hand indicator when selection changes
+    
+    // Update damage preview if in player turn (for potential attack calculations)
+    this.updateDamagePreview(this.combatState.phase === "action_selection");
   }
 
   /**
@@ -2062,6 +2083,9 @@ export class Combat extends Scene {
     this.updatePlayedHandDisplay();
     this.updateHandIndicator();
     
+    // Update damage preview based on current phase
+    this.updateDamagePreview(this.combatState.phase === "action_selection");
+    
     // Show feedback
     this.showActionResult(`Unplayed ${card.rank} of ${card.suit}`);
   }
@@ -2095,6 +2119,9 @@ export class Combat extends Scene {
     this.updateHandDisplay();
     this.updatePlayedHandDisplay();
     this.updateActionButtons();
+    
+    // Update damage preview for the new hand
+    this.updateDamagePreview(true);
   }
 
   /**
@@ -2230,6 +2257,9 @@ export class Combat extends Scene {
     this.combatState.phase = "enemy_turn";
     this.selectedCards = [];
 
+    // Hide damage preview during enemy turn
+    this.updateDamagePreview(false);
+    
     // Enemy's turn
     this.executeEnemyTurn();
   }
@@ -2306,7 +2336,11 @@ export class Combat extends Scene {
     }
 
     // Draw cards to ensure player has 8 cards at start of turn
-    const targetHandSize = 8;
+    let targetHandSize = 8;
+    
+    // Apply "Wind Veil" effect: Additional cards drawn based on Hangin cards played in last action
+    // (this would apply if in a continuous combat system where Hangin cards from last turn matter)
+    
     const cardsNeeded = targetHandSize - this.combatState.player.hand.length;
     if (cardsNeeded > 0) {
       this.drawCards(cardsNeeded);
@@ -2323,6 +2357,9 @@ export class Combat extends Scene {
     // Ensure action processing is reset
     this.isActionProcessing = false;
     this.setActionButtonsEnabled(true);
+    
+    // Update damage preview visibility based on phase
+    this.updateDamagePreview(this.combatState.phase === "action_selection");
   }
 
   /**
@@ -2364,10 +2401,22 @@ export class Combat extends Scene {
   private damageEnemy(damage: number): void {
     console.log(`Applying ${damage} damage to enemy`);
     let finalDamage = damage;
+    let vulnerableBonus = 0;
+    
     if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
       finalDamage *= 1.5;
+      vulnerableBonus = finalDamage - damage;
       console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
     }
+    
+    // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
+    const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
+    let bakunawaBonus = 0;
+    if (bakunawaFang) {
+      finalDamage += 5;
+      bakunawaBonus = 5;
+    }
+    
     const actualDamage = Math.max(0, finalDamage - this.combatState.enemy.block);
     console.log(`Enemy has ${this.combatState.enemy.block} block, taking ${actualDamage} actual damage`);
     
@@ -2382,6 +2431,16 @@ export class Combat extends Scene {
     // Add visual feedback for enemy taking damage
     this.animateSpriteDamage(this.enemySprite);
     this.updateEnemyUI();
+
+    // Show detailed damage calculation if there are special bonuses
+    if (vulnerableBonus > 0 || bakunawaBonus > 0) {
+      let message = `Damage: ${damage}`;
+      if (vulnerableBonus > 0) message += ` + ${vulnerableBonus} (Vulnerable)`;
+      if (bakunawaBonus > 0) message += ` + ${bakunawaBonus} (Bakunawa Fang)`;
+      message += ` = ${finalDamage}`;
+      
+      this.showEnhancedActionResult(message, "#ff6b6b");
+    }
 
     // Check for 50% health trigger
     const healthPercentage = this.combatState.enemy.currentHealth / this.combatState.enemy.maxHealth;
@@ -2410,11 +2469,32 @@ export class Combat extends Scene {
    */
   private damagePlayer(damage: number): void {
     console.log(`Applying ${damage} damage to player`);
+    
+    // Check for dodge chance from "Tikbalang's Hoof"
+    const dodgeChance = RelicManager.calculateDodgeChance(this.combatState.player);
+    if (Math.random() < dodgeChance) {
+      console.log("Player dodged the attack!");
+      this.showActionResult("Tikbalang's Dodge!");
+      return; // Player dodged, take no damage
+    }
+    
     let finalDamage = damage;
     if (this.combatState.player.statusEffects.some((e) => e.name === "Vulnerable")) {
       finalDamage *= 1.5;
       console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
     }
+    
+    // Apply "Bakunawa Scale" effect: reduces all incoming damage by 1
+    const bakunawaScale = this.combatState.player.relics.find(r => r.id === "bakunawa_scale");
+    if (bakunawaScale) {
+      const reducedDamage = Math.max(0, finalDamage - 1);
+      console.log(`Bakunawa Scale reduced damage from ${finalDamage} to ${reducedDamage}`);
+      finalDamage = reducedDamage;
+      if (finalDamage < damage) {
+        this.showActionResult(`Bakunawa Scale reduced damage!`);
+      }
+    }
+    
     const actualDamage = Math.max(0, finalDamage - this.combatState.player.block);
     console.log(`Player has ${this.combatState.player.block} block, taking ${actualDamage} actual damage`);
     
@@ -2896,7 +2976,11 @@ export class Combat extends Scene {
 
       // Clear dialogue and show results
       this.children.removeAll();
-      this.cameras.main.setBackgroundColor(0x0e1112);
+      
+      // Safety check for camera
+      if (this.cameras.main) {
+        this.cameras.main.setBackgroundColor(0x0e1112);
+      }
 
       // Add small delay before showing rewards screen
       this.time.delayedCall(100, () => {
@@ -3358,6 +3442,12 @@ export class Combat extends Scene {
     let block = 0;
 
     // Apply hand bonus
+    let originalDamage = evaluation.totalValue;
+    let originalBlock = evaluation.totalValue;
+    
+    // Track relic bonuses for detailed display
+    const relicBonuses: {name: string, amount: number}[] = [];
+    
     switch (actionType) {
       case "attack":
         damage += evaluation.totalValue;
@@ -3366,7 +3456,16 @@ export class Combat extends Scene {
           damage += strength.value;
           console.log(`Strength bonus applied: +${strength.value} damage`);
         }
+        // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
+        const sigbinHeartDamage = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
+        if (sigbinHeartDamage > 0) {
+          damage += sigbinHeartDamage;
+          relicBonuses.push({name: "Sigbin Heart", amount: sigbinHeartDamage});
+        }
         console.log(`Total attack damage: ${damage}`);
+        
+        // Show detailed damage calculation
+        this.showDamageCalculation(originalDamage, strength?.value || 0, relicBonuses);
         break;
       case "defend":
         block += evaluation.totalValue;
@@ -3375,7 +3474,16 @@ export class Combat extends Scene {
           block += dexterity.value;
           console.log(`Dexterity bonus applied: +${dexterity.value} block`);
         }
+        // Apply "Balete Root" effect: +2 block per Lupa card
+        const baleteRootBonus = RelicManager.calculateBaleteRootBlock(this.combatState.player, this.combatState.player.playedHand);
+        if (baleteRootBonus > 0) {
+          block += baleteRootBonus;
+          relicBonuses.push({name: "Balete Root", amount: baleteRootBonus});
+        }
         console.log(`Total block gained: ${block}`);
+        
+        // Show detailed block calculation
+        this.showBlockCalculation(originalBlock, dexterity?.value || 0, relicBonuses);
         break;
       case "special":
         this.showActionResult(this.getSpecialActionName(dominantSuit));
@@ -3391,13 +3499,13 @@ export class Combat extends Scene {
       console.log(`Animating player attack and dealing ${damage} damage`);
       this.animatePlayerAttack(); // Add animation when attacking
       this.damageEnemy(damage);
-      this.showActionResult(`Attacked for ${damage} damage!`);
+      // Result already shown above with detailed calculation
     }
 
     if (block > 0) {
       this.combatState.player.block += block;
       this.updatePlayerUI();
-      this.showActionResult(`Gained ${block} block!`);
+      // Result already shown above with detailed calculation
     }
     
     // Process enemy turn after a short delay to allow player to see results
@@ -3408,6 +3516,8 @@ export class Combat extends Scene {
         console.log("Combat ended or enemy defeated, skipping delayed enemy turn");
         this.isActionProcessing = false;
         this.setActionButtonsEnabled(true);
+        // Hide damage preview during enemy turn
+        this.updateDamagePreview(false);
         return;
       }
       // Process enemy action - the enemy turn will handle resetting the processing flag
@@ -3445,7 +3555,9 @@ export class Combat extends Scene {
           });
         } else {
           // AoE Damage + Burn
-          this.damageEnemy(Math.floor(value * 0.5));
+          // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
+          const additionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+          this.damageEnemy(Math.floor(value * 0.5) + additionalDamage);
           this.addStatusEffect(this.combatState.enemy, {
             id: "burn",
             name: "Burn",
@@ -3492,6 +3604,12 @@ export class Combat extends Scene {
           // 50% of unspent block carries over
           // This needs to be handled at the end of the turn
         } else {
+          // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
+          const additionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+          if (additionalDamage > 0) {
+            this.damageEnemy(additionalDamage);
+          }
+          
           this.addStatusEffect(this.combatState.enemy, {
             id: "vulnerable",
             name: "Vulnerable",
@@ -3519,7 +3637,18 @@ export class Combat extends Scene {
           });
         } else {
           // Draw cards + Apply Weak
-          this.drawCards(2);
+          // Apply "Wind Veil" effect: Additional cards drawn based on Hangin cards played
+          let cardsToDraw = 2;
+          cardsToDraw += RelicManager.calculateWindVeilCardDraw(this.combatState.player.playedHand, this.combatState.player);
+          
+          this.drawCards(cardsToDraw);
+          
+          // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
+          const additionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+          if (additionalDamage > 0) {
+            this.damageEnemy(additionalDamage);
+          }
+          
           this.addStatusEffect(this.combatState.enemy, {
             id: "weak",
             name: "Weak",
@@ -4158,6 +4287,166 @@ export class Combat extends Scene {
       },
     });
   }
+  
+  /**
+   * Enhanced action result display with relic effect indicators
+   */
+  private showEnhancedActionResult(message: string, color: string = "#2ed573"): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Update position to center of screen
+    this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
+    this.actionResultText.setText(message);
+    this.actionResultText.setColor(color);
+    this.actionResultText.setVisible(true);
+
+    // Fade out after 2 seconds
+    this.tweens.add({
+      targets: this.actionResultText,
+      alpha: 0,
+      duration: 2000,
+      onComplete: () => {
+        this.actionResultText.setVisible(false);
+        this.actionResultText.setAlpha(1); // Reset alpha for next use
+      },
+    });
+  }
+  
+  /** Show detailed damage calculation including relic bonuses */
+  private showDamageCalculation(baseDamage: number, strengthBonus: number, relicBonuses: {name: string, amount: number}[]): void {
+    let message = `Damage: ${baseDamage}`;
+    let color = "#2ed573"; // Default green
+    
+    if (strengthBonus > 0) {
+      message += ` + ${strengthBonus} (Strength)`;
+    }
+    
+    for (const relicBonus of relicBonuses) {
+      if (relicBonus.amount > 0) {
+        message += ` + ${relicBonus.amount} (${relicBonus.name})`;
+        color = "#ff6b6b"; // Change to red for damage
+      }
+    }
+    
+    const totalDamage = baseDamage + strengthBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
+    message += ` = ${totalDamage}`;
+    
+    this.showEnhancedActionResult(message, color);
+  }
+  
+  /** Show detailed block calculation including relic bonuses */
+  private showBlockCalculation(baseBlock: number, dexterityBonus: number, relicBonuses: {name: string, amount: number}[]): void {
+    let message = `Block: ${baseBlock}`;
+    let color = "#4ecdc4"; // Default blue/green for block
+    
+    if (dexterityBonus > 0) {
+      message += ` + ${dexterityBonus} (Dexterity)`;
+    }
+    
+    for (const relicBonus of relicBonuses) {
+      if (relicBonus.amount > 0) {
+        message += ` + ${relicBonus.amount} (${relicBonus.name})`;
+      }
+    }
+    
+    const totalBlock = baseBlock + dexterityBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
+    message += ` = ${totalBlock}`;
+    
+    this.showEnhancedActionResult(message, color);
+  }
+  
+  /** Create damage preview UI */
+  private createDamagePreviewUI(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    
+    // Create container for the damage preview
+    this.damagePreviewContainer = this.add.container(0, 0);
+    this.damagePreviewContainer.setVisible(false); // Initially hidden
+    
+    // Background rectangle
+    this.damagePreviewBackground = this.add.rectangle(0, 0, 200, 60, 0x000000, 0.8);
+    this.damagePreviewBackground.setStrokeStyle(2, 0x4ecdc4);
+    
+    // Damage text
+    this.damagePreviewText = this.add.text(0, 0, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.floor(18 * scaleFactor),
+      color: "#ff6b6b",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    this.damagePreviewContainer.add([this.damagePreviewBackground, this.damagePreviewText]);
+    
+    // Position below the action buttons
+    this.damagePreviewContainer.setPosition(screenWidth/2, screenHeight - 40);
+  }
+  
+  /** Update damage preview with calculated damage */
+  private updateDamagePreview(isActionSelectionPhase: boolean): void {
+    // Safety check - if container doesn't exist yet, skip update
+    if (!this.damagePreviewContainer) {
+      return;
+    }
+    
+    if (!isActionSelectionPhase) {
+      this.damagePreviewContainer.setVisible(false);
+      return;
+    }
+    
+    // Calculate the potential damage based on the played hand
+    const evaluation = HandEvaluator.evaluateHand(
+      this.combatState.player.playedHand,
+      "attack",
+      this.combatState.player
+    );
+    
+    let damage = evaluation.totalValue;
+    const strength = this.combatState.player.statusEffects.find((e) => e.name === "Strength");
+    if (strength) {
+      damage += strength.value;
+    }
+    
+    // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
+    damage += RelicManager.calculateSigbinHeartDamage(this.combatState.player);
+    
+    // Apply vulnerable effect if enemy has it
+    let vulnerableBonus = 0;
+    if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
+      const originalDamage = damage;
+      damage *= 1.5;
+      vulnerableBonus = damage - originalDamage;
+    }
+    
+    // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
+    const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
+    let bakunawaBonus = 0;
+    if (bakunawaFang) {
+      damage += 5;
+      bakunawaBonus = 5;
+    }
+    
+    // Format the damage display with relic bonuses
+    let damageText = `DMG: ${evaluation.totalValue}`;
+    if (strength && strength.value > 0) {
+      damageText += ` + ${strength.value} (Str)`;
+    }
+    if (RelicManager.calculateSigbinHeartDamage(this.combatState.player) > 0) {
+      damageText += ` + ${RelicManager.calculateSigbinHeartDamage(this.combatState.player)} (Sigbin)`;
+    }
+    if (vulnerableBonus > 0) {
+      damageText += ` + ${vulnerableBonus} (Vuln)`;
+    }
+    if (bakunawaBonus > 0) {
+      damageText += ` + ${bakunawaBonus} (Bakunawa)`;
+    }
+    damageText += ` = ${Math.floor(damage)}`;
+    
+    this.damagePreviewText.setText(damageText);
+    this.damagePreviewContainer.setVisible(true);
+  }
 
   /**
    * Animate sprite taking damage (flash red and shake)
@@ -4288,6 +4577,29 @@ export class Combat extends Scene {
   }
 
   private addStatusEffect(entity: Player | Enemy, effect: StatusEffect): void {
+    // Check for relic effects that might prevent or modify status effects
+    
+    // For player entity, check relic effects
+    if (entity.id === "player") {
+      // "Duwende Charm" effect: +10% avoid Weak
+      if (effect.name === "Weak" && !RelicManager.shouldApplyWeakStatus(entity as Player)) {
+        this.showActionResult("Duwende Charm prevented Weak status!");
+        return; // Don't apply the status effect
+      }
+      
+      // "Tiyanak Tear" effect: Ignore 1 Fear
+      if (effect.name === "Fear" && !RelicManager.shouldApplyFearStatus(entity as Player)) {
+        this.showActionResult("Tiyanak Tear prevented Fear status!");
+        return; // Don't apply the status effect
+      }
+      
+      // "Mangangaway Wand" effect: Ignore curses
+      if (effect.name === "Curse" && RelicManager.shouldIgnoreCurse(entity as Player)) {
+        this.showActionResult("Mangangaway Wand prevented curse!");
+        return; // Don't apply the status effect
+      }
+    }
+    
     entity.statusEffects.push(effect);
     this.updateStatusEffectUI(entity);
   }
@@ -4416,8 +4728,15 @@ export class Combat extends Scene {
   
 
 
-  /**\n   * Handle scene resize\n   */
+  /**
+   * Handle scene resize
+   */
   private handleResize(): void {
+    // Safety check for camera
+    if (!this.cameras.main) {
+      return;
+    }
+    
     // Reposition UI elements on resize
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;

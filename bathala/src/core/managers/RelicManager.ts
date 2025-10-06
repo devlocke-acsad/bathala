@@ -84,6 +84,21 @@ export class RelicManager {
       player.currentHealth += 10; // Also heal 10 HP
       player.block += 2;
     }
+    
+    // Apply "Tikbalang's Hoof" effect: +10% dodge
+    // This is handled in Combat.ts during damage calculations
+    
+    // Apply "Balete Root" effect: +2 block per Lupa card
+    // This is handled in Combat.ts when defending
+    
+    // Apply "Duwende Charm" effect: +10% avoid Weak
+    // This is handled in Combat.ts when applying Weak status
+    
+    // Apply "Tiyanak Tear" effect: Ignore 1 Fear
+    // This is handled in Combat.ts when applying Fear status
+    
+    // Apply "Mangangaway Wand" effect: Ignore 1 curse
+    // This is handled in Combat.ts when curses are applied
   }
 
   /**
@@ -151,6 +166,127 @@ export class RelicManager {
     if (luckyCharm && RelicManager.isHandTypeAtLeast(evaluation.type, "straight")) {
       player.ginto += 1;
     }
+    
+    // Apply "Wind Veil" effect: +1 draw on Air cards
+    const windVeil = player.relics.find(r => r.id === "wind_veil");
+    const hanginCards = hand.filter(card => card.suit === "Hangin").length;
+    if (windVeil && hanginCards > 0) {
+      // Draw additional cards based on number of Hangin cards played
+      // This needs to be handled in Combat.ts since it needs to modify the hand
+    }
+    
+    // Apply "Balete Root" effect: +2 block per Lupa card (for defend action)
+    // This is handled in Combat.ts when defending
+  }
+
+  /**
+   * Calculate dodge chance with "Tikbalang's Hoof" effect
+   */
+  static calculateDodgeChance(player: Player): number {
+    // Base dodge chance is 0, but Tikbalang's Hoof adds 10%
+    let dodgeChance = 0;
+    const tikbalangsHoof = player.relics.find(r => r.id === "tikbalangs_hoof");
+    if (tikbalangsHoof) {
+      dodgeChance += 0.10; // 10% dodge chance
+    }
+    return dodgeChance;
+  }
+
+  /**
+   * Calculate additional block from "Balete Root" effect
+   */
+  static calculateBaleteRootBlock(player: Player, playedHand: PlayingCard[]): number {
+    const baleteRoot = player.relics.find(r => r.id === "balete_root");
+    if (baleteRoot) {
+      const lupaCards = playedHand.filter(card => card.suit === "Lupa").length;
+      return lupaCards * 2; // +2 block per Lupa card
+    }
+    return 0;
+  }
+
+  /**
+   * Calculate additional damage from "Sigbin Heart" effect on burst
+   */
+  static calculateSigbinHeartDamage(player: Player): number {
+    const sigbinHeart = player.relics.find(r => r.id === "sigbin_heart");
+    if (sigbinHeart) {
+      // In the context of Filipino mythology theme where certain effects happen "on burst"
+      // This would apply when the player is at low health or under specific conditions
+      if (player.currentHealth < player.maxHealth * 0.3) { // If below 30% health
+        return 5; // +5 damage
+      }
+    }
+    return 0;
+  }
+
+  /**
+   * Check if "Duwende Charm" helps avoid Weak status
+   */
+  static shouldApplyWeakStatus(player: Player): boolean {
+    const duwendeCharm = player.relics.find(r => r.id === "duwende_charm");
+    if (duwendeCharm) {
+      // 10% chance to avoid Weak status
+      return Math.random() > 0.10;
+    }
+    return true; // Apply status normally
+  }
+
+  /**
+   * Check if "Tiyanak Tear" helps ignore Fear status
+   */
+  static shouldApplyFearStatus(player: Player): boolean {
+    const tiyanakTear = player.relics.find(r => r.id === "tiyanak_tear");
+    if (tiyanakTear) {
+      // Ignore 1 Fear status
+      return Math.random() > 0.10; // Simple implementation: 10% ignore chance
+    }
+    return true; // Apply status normally
+  }
+
+  /**
+   * Calculate additional bleed damage from "Amomongo Claw" effect
+   */
+  static calculateAmomongoClawBleedDamage(baseBleedDamage: number, player: Player): number {
+    const amomongoClaw = player.relics.find(r => r.id === "amomongo_claw");
+    if (amomongoClaw) {
+      return baseBleedDamage + 3; // +3 bleed damage
+    }
+    return baseBleedDamage;
+  }
+
+  /**
+   * Calculate additional damage from "Bungisngis Grin" effect when applying debuffs
+   */
+  static calculateBungisngisGrinDamage(player: Player): number {
+    const bungisngisGrin = player.relics.find(r => r.id === "bungisngis_grin");
+    if (bungisngisGrin) {
+      return 5; // +5 damage when applying debuffs
+    }
+    return 0;
+  }
+
+  /**
+   * Check if "Mangangaway Wand" ignores curses
+   */
+  static shouldIgnoreCurse(player: Player): boolean {
+    const mangangawayWand = player.relics.find(r => r.id === "mangangaway_wand");
+    if (mangangawayWand) {
+      // For now, simple implementation: ignore 1 curse
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Calculate additional cards drawn with "Wind Veil" effect
+   */
+  static calculateWindVeilCardDraw(playedHand: PlayingCard[], player: Player): number {
+    const windVeil = player.relics.find(r => r.id === "wind_veil");
+    if (windVeil) {
+      const hanginCards = playedHand.filter(card => card.suit === "Hangin").length;
+      return hanginCards; // +1 draw per Hangin card
+    }
+    return 0;
   }
 
   /**
@@ -236,5 +372,24 @@ export class RelicManager {
    */
   static hasFiveOfAKindEnabled(player: Player): boolean {
     return player.relics.some(r => r.id === "echo_ancestors");
+  }
+  
+  /**
+   * Handle "Kapre's Cigar" effect: Summons minion once per combat
+   */
+  static tryKapresCigarSummon(combatScene: any, player: Player): boolean {
+    const kapresCigar = player.relics.find(r => r.id === "kapres_cigar");
+    if (kapresCigar && !combatScene.kapresCigarUsed) {
+      // Mark as used for this combat
+      combatScene.kapresCigarUsed = true;
+      
+      // Show result message
+      combatScene.showActionResult("Kapre's Cigar summoned aid!");
+      
+      // For now, this might provide some benefit (e.g., extra damage, block, or other effect)
+      // This would be expanded in a full implementation
+      return true;
+    }
+    return false;
   }
 }
