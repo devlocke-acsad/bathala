@@ -3433,6 +3433,9 @@ export class Combat extends Scene {
     // Apply relic effects after playing a hand
     RelicManager.applyAfterHandPlayedEffects(this.combatState.player, this.combatState.player.playedHand, evaluation);
     
+    // Add cinematic effect for special hands
+    this.addCinematicEffectForSpecialHand(evaluation.type);
+    
     const dominantSuit = this.getDominantSuit(
       this.combatState.player.playedHand
     );
@@ -3486,13 +3489,27 @@ export class Combat extends Scene {
         this.showBlockCalculation(originalBlock, dexterity?.value || 0, relicBonuses);
         break;
       case "special":
-        this.showActionResult(this.getSpecialActionName(dominantSuit));
-        console.log(`Special action executed: ${this.getSpecialActionName(dominantSuit)}`);
-        // Special actions have unique effects based on suit
-        break;
+        // Start cinematic special action animation
+        this.animateSpecialAction(dominantSuit);
+        
+        // Execute special action after animation
+        this.time.delayedCall(1500, () => {
+          this.showActionResult(this.getSpecialActionName(dominantSuit));
+          console.log(`Special action executed: ${this.getSpecialActionName(dominantSuit)}`);
+          // Special actions have unique effects based on suit
+          this.applyElementalEffects(actionType, dominantSuit, evaluation.totalValue);
+          
+          // Process enemy turn after animation completes
+          this.time.delayedCall(1000, () => {
+            this.processEnemyTurn();
+          });
+        });
+        
+        // Return here since special action has delayed processing
+        return;
     }
 
-    // Apply elemental effects
+    // Apply elemental effects for attack/defend
     this.applyElementalEffects(actionType, dominantSuit, evaluation.totalValue);
 
     if (damage > 0) {
@@ -3510,19 +3527,286 @@ export class Combat extends Scene {
     
     // Process enemy turn after a short delay to allow player to see results
     this.time.delayedCall(1000, () => {
-      console.log("Processing enemy turn");
-      // Check if combat has ended or enemy is defeated before processing turn
-      if (this.combatEnded || this.combatState.enemy.currentHealth <= 0) {
-        console.log("Combat ended or enemy defeated, skipping delayed enemy turn");
-        this.isActionProcessing = false;
-        this.setActionButtonsEnabled(true);
-        // Hide damage preview during enemy turn
-        this.updateDamagePreview(false);
-        return;
-      }
-      // Process enemy action - the enemy turn will handle resetting the processing flag
-      this.executeEnemyTurn();
+      this.processEnemyTurn();
     });
+  }
+  
+  /** Process enemy turn - extracted for reuse */
+  private processEnemyTurn(): void {
+    console.log("Processing enemy turn");
+    // Check if combat has ended or enemy is defeated before processing turn
+    if (this.combatEnded || this.combatState.enemy.currentHealth <= 0) {
+      console.log("Combat ended or enemy defeated, skipping delayed enemy turn");
+      this.isActionProcessing = false;
+      this.setActionButtonsEnabled(true);
+      // Hide damage preview during enemy turn
+      this.updateDamagePreview(false);
+      return;
+    }
+    // Process enemy action - the enemy turn will handle resetting the processing flag
+    this.executeEnemyTurn();
+  }
+  
+  /** Animate special action with cinematic effects */
+  private animateSpecialAction(suit: Suit): void {
+    // Create cinematic black bars for special action sequence
+    this.createCinematicBars();
+    
+    // Character slash animation
+    this.animateCharacterSlash(suit);
+  }
+  
+  /** Create cinematic black bars for special action sequence */
+  private createCinematicBars(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Top black bar
+    const topBar = this.add.rectangle(
+      screenWidth / 2,
+      -screenHeight / 4,
+      screenWidth,
+      screenHeight / 4,
+      0x000000
+    );
+    
+    // Bottom black bar
+    const bottomBar = this.add.rectangle(
+      screenWidth / 2,
+      screenHeight + (screenHeight / 4),
+      screenWidth,
+      screenHeight / 4,
+      0x000000
+    );
+    
+    // Animate the bars moving in
+    this.tweens.add({
+      targets: topBar,
+      y: 0,
+      duration: 300,
+      ease: 'Cubic.Out'
+    });
+    
+    this.tweens.add({
+      targets: bottomBar,
+      y: screenHeight,
+      duration: 300,
+      ease: 'Cubic.Out',
+      onComplete: () => {
+        // After the bars are in position, wait a moment then animate out
+        this.time.delayedCall(1200, () => {
+          this.tweens.add({
+            targets: topBar,
+            y: -screenHeight / 4,
+            duration: 300,
+            ease: 'Cubic.In'
+          });
+          
+          this.tweens.add({
+            targets: bottomBar,
+            y: screenHeight + (screenHeight / 4),
+            duration: 300,
+            ease: 'Cubic.In',
+            onComplete: () => {
+              topBar.destroy();
+              bottomBar.destroy();
+            }
+          });
+        });
+      }
+    });
+  }
+  
+  /** Animate character slash animation */
+  private animateCharacterSlash(suit: Suit): void {
+    const originalX = this.playerSprite.x;
+    
+    // Get the appropriate color based on suit
+    const suitColors: Record<Suit, number> = {
+      "Apoy": 0xff4500,    // Fire red/orange
+      "Tubig": 0x1e90ff,   // Water blue
+      "Lupa": 0x32cd32,    // Earth green
+      "Hangin": 0x87ceeb    // Wind light blue
+    };
+    
+    const color = suitColors[suit];
+    
+    // Move player forward with slash effect
+    this.tweens.add({
+      targets: this.playerSprite,
+      x: this.enemySprite.x - 50,
+      duration: 200,
+      ease: 'Power2',
+      onStart: () => {
+        // Add slash visual effect
+        this.createSlashEffect(this.playerSprite.x, this.playerSprite.y, color);
+      },
+      onComplete: () => {
+        // Return to original position after slash
+        this.tweens.add({
+          targets: this.playerSprite,
+          x: originalX,
+          duration: 200,
+          ease: 'Power2'
+        });
+      }
+    });
+  }
+  
+  /** Create slash effect visualization */
+  private createSlashEffect(x: number, y: number, color: number): void {
+    // Create a slash line effect
+    const slashLine = this.add.line(0, 0, 0, 0, 100, 0, color);
+    slashLine.setLineWidth(4);
+    
+    // Rotate the line based on the direction
+    slashLine.setAngle(-30); // Diagonal slash
+    
+    // Position the slash at the right place
+    slashLine.x = x;
+    slashLine.y = y - 30; // Slightly above the character
+    
+    // Animate the slash
+    this.tweens.add({
+      targets: slashLine,
+      scaleX: 1.5,
+      alpha: 0,
+      duration: 300,
+      ease: 'Power2',
+      onComplete: () => {
+        slashLine.destroy();
+      }
+    });
+    
+    // Add slash particles
+    for (let i = 0; i < 8; i++) {
+      const particle = this.add.circle(x, y - 20, 3, color);
+      
+      const angle = Phaser.Math.FloatBetween(-0.5, 0.5);
+      const distance = Phaser.Math.FloatBetween(20, 60);
+      
+      this.tweens.add({
+        targets: particle,
+        x: x + Math.cos(angle) * distance,
+        y: (y - 20) + Math.sin(angle) * distance,
+        alpha: 0,
+        duration: 600,
+        ease: 'Power2',
+        onComplete: () => {
+          particle.destroy();
+        }
+      });
+    }
+  }
+  
+  /** Add cinematic effect for special poker hands */
+  private addCinematicEffectForSpecialHand(handType: HandType): void {
+    // Define cinematic effects for special hands
+    const specialHands: HandType[] = ["straight", "flush", "full_house", "four_of_a_kind", "straight_flush", "royal_flush", "five_of_a_kind"];
+    
+    if (specialHands.includes(handType)) {
+      // Create a cinematic effect based on the hand type
+      this.createSpecialHandCinematic(handType);
+    }
+  }
+  
+  /** Create cinematic effect specific to hand type */
+  private createSpecialHandCinematic(handType: HandType): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Create top and bottom bars for cinematic effect
+    const topBar = this.add.rectangle(
+      screenWidth / 2,
+      -screenHeight / 6,
+      screenWidth,
+      screenHeight / 6,
+      0x000000
+    ).setAlpha(0);
+    
+    const bottomBar = this.add.rectangle(
+      screenWidth / 2,
+      screenHeight + (screenHeight / 6),
+      screenWidth,
+      screenHeight / 6,
+      0x000000
+    ).setAlpha(0);
+    
+    // Animate the bars in
+    this.tweens.add({
+      targets: [topBar, bottomBar],
+      alpha: 0.9,
+      duration: 200,
+      ease: 'Cubic.Out',
+      onComplete: () => {
+        // Show hand type text in the middle
+        const handText = this.add.text(
+          screenWidth / 2,
+          screenHeight / 2,
+          this.getHandTypeDisplayText(handType).toUpperCase(),
+          {
+            fontFamily: "dungeon-mode",
+            fontSize: 48,
+            color: this.getHandTypeColor(handType),
+            align: "center",
+            stroke: "#000000",
+            strokeThickness: 4
+          }
+        ).setOrigin(0.5).setAlpha(0);
+        
+        // Animate the text in
+        this.tweens.add({
+          targets: handText,
+          alpha: 1,
+          scale: 1.2,
+          duration: 300,
+          ease: 'Elastic.Out',
+          yoyo: true,
+          repeat: 0
+        });
+        
+        // After a delay, animate everything out
+        this.time.delayedCall(1500, () => {
+          // Animate text out
+          this.tweens.add({
+            targets: handText,
+            alpha: 0,
+            scale: 0.8,
+            duration: 300,
+            ease: 'Cubic.In',
+            onComplete: () => {
+              handText.destroy();
+            }
+          });
+          
+          // Animate bars out
+          this.tweens.add({
+            targets: [topBar, bottomBar],
+            alpha: 0,
+            duration: 200,
+            ease: 'Cubic.In',
+            onComplete: () => {
+              topBar.destroy();
+              bottomBar.destroy();
+            }
+          });
+        });
+      }
+    });
+  }
+  
+  /** Get appropriate color for hand type */
+  private getHandTypeColor(handType: HandType): string {
+    switch(handType) {
+      case "straight": return "#4ecdc4";      // Teal
+      case "flush": return "#1e90ff";         // Blue
+      case "full_house": return "#ff6b6b";    // Red
+      case "four_of_a_kind": return "#ff4757"; // Bright red
+      case "straight_flush": 
+      case "royal_flush": 
+      case "five_of_a_kind": return "#ffd93d"; // Gold
+      default: return "#ffffff";              // White
+    }
   }
 
   private applyElementalEffects(
