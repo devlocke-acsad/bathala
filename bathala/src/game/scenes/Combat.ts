@@ -2372,10 +2372,22 @@ export class Combat extends Scene {
   private damageEnemy(damage: number): void {
     console.log(`Applying ${damage} damage to enemy`);
     let finalDamage = damage;
+    let vulnerableBonus = 0;
+    
     if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
       finalDamage *= 1.5;
+      vulnerableBonus = finalDamage - damage;
       console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
     }
+    
+    // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
+    const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
+    let bakunawaBonus = 0;
+    if (bakunawaFang) {
+      finalDamage += 5;
+      bakunawaBonus = 5;
+    }
+    
     const actualDamage = Math.max(0, finalDamage - this.combatState.enemy.block);
     console.log(`Enemy has ${this.combatState.enemy.block} block, taking ${actualDamage} actual damage`);
     
@@ -2390,6 +2402,16 @@ export class Combat extends Scene {
     // Add visual feedback for enemy taking damage
     this.animateSpriteDamage(this.enemySprite);
     this.updateEnemyUI();
+
+    // Show detailed damage calculation if there are special bonuses
+    if (vulnerableBonus > 0 || bakunawaBonus > 0) {
+      let message = `Damage: ${damage}`;
+      if (vulnerableBonus > 0) message += ` + ${vulnerableBonus} (Vulnerable)`;
+      if (bakunawaBonus > 0) message += ` + ${bakunawaBonus} (Bakunawa Fang)`;
+      message += ` = ${finalDamage}`;
+      
+      this.showEnhancedActionResult(message, "#ff6b6b");
+    }
 
     // Check for 50% health trigger
     const healthPercentage = this.combatState.enemy.currentHealth / this.combatState.enemy.maxHealth;
@@ -2423,7 +2445,7 @@ export class Combat extends Scene {
     const dodgeChance = RelicManager.calculateDodgeChance(this.combatState.player);
     if (Math.random() < dodgeChance) {
       console.log("Player dodged the attack!");
-      this.showActionResult("DODGED!");
+      this.showActionResult("Tikbalang's Dodge!");
       return; // Player dodged, take no damage
     }
     
@@ -2436,7 +2458,12 @@ export class Combat extends Scene {
     // Apply "Bakunawa Scale" effect: reduces all incoming damage by 1
     const bakunawaScale = this.combatState.player.relics.find(r => r.id === "bakunawa_scale");
     if (bakunawaScale) {
-      finalDamage = Math.max(0, finalDamage - 1);
+      const reducedDamage = Math.max(0, finalDamage - 1);
+      console.log(`Bakunawa Scale reduced damage from ${finalDamage} to ${reducedDamage}`);
+      finalDamage = reducedDamage;
+      if (finalDamage < damage) {
+        this.showActionResult(`Bakunawa Scale reduced damage!`);
+      }
     }
     
     const actualDamage = Math.max(0, finalDamage - this.combatState.player.block);
@@ -3382,6 +3409,12 @@ export class Combat extends Scene {
     let block = 0;
 
     // Apply hand bonus
+    let originalDamage = evaluation.totalValue;
+    let originalBlock = evaluation.totalValue;
+    
+    // Track relic bonuses for detailed display
+    const relicBonuses: {name: string, amount: number}[] = [];
+    
     switch (actionType) {
       case "attack":
         damage += evaluation.totalValue;
@@ -3391,8 +3424,15 @@ export class Combat extends Scene {
           console.log(`Strength bonus applied: +${strength.value} damage`);
         }
         // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
-        damage += RelicManager.calculateSigbinHeartDamage(this.combatState.player);
+        const sigbinHeartDamage = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
+        if (sigbinHeartDamage > 0) {
+          damage += sigbinHeartDamage;
+          relicBonuses.push({name: "Sigbin Heart", amount: sigbinHeartDamage});
+        }
         console.log(`Total attack damage: ${damage}`);
+        
+        // Show detailed damage calculation
+        this.showDamageCalculation(originalDamage, strength?.value || 0, relicBonuses);
         break;
       case "defend":
         block += evaluation.totalValue;
@@ -3402,8 +3442,15 @@ export class Combat extends Scene {
           console.log(`Dexterity bonus applied: +${dexterity.value} block`);
         }
         // Apply "Balete Root" effect: +2 block per Lupa card
-        block += RelicManager.calculateBaleteRootBlock(this.combatState.player, this.combatState.player.playedHand);
+        const baleteRootBonus = RelicManager.calculateBaleteRootBlock(this.combatState.player, this.combatState.player.playedHand);
+        if (baleteRootBonus > 0) {
+          block += baleteRootBonus;
+          relicBonuses.push({name: "Balete Root", amount: baleteRootBonus});
+        }
         console.log(`Total block gained: ${block}`);
+        
+        // Show detailed block calculation
+        this.showBlockCalculation(originalBlock, dexterity?.value || 0, relicBonuses);
         break;
       case "special":
         this.showActionResult(this.getSpecialActionName(dominantSuit));
@@ -3419,13 +3466,13 @@ export class Combat extends Scene {
       console.log(`Animating player attack and dealing ${damage} damage`);
       this.animatePlayerAttack(); // Add animation when attacking
       this.damageEnemy(damage);
-      this.showActionResult(`Attacked for ${damage} damage!`);
+      // Result already shown above with detailed calculation
     }
 
     if (block > 0) {
       this.combatState.player.block += block;
       this.updatePlayerUI();
-      this.showActionResult(`Gained ${block} block!`);
+      // Result already shown above with detailed calculation
     }
     
     // Process enemy turn after a short delay to allow player to see results
@@ -4204,6 +4251,74 @@ export class Combat extends Scene {
         this.actionResultText.setAlpha(1); // Reset alpha for next use
       },
     });
+  }
+  
+  /**
+   * Enhanced action result display with relic effect indicators
+   */
+  private showEnhancedActionResult(message: string, color: string = "#2ed573"): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Update position to center of screen
+    this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
+    this.actionResultText.setText(message);
+    this.actionResultText.setColor(color);
+    this.actionResultText.setVisible(true);
+
+    // Fade out after 2 seconds
+    this.tweens.add({
+      targets: this.actionResultText,
+      alpha: 0,
+      duration: 2000,
+      onComplete: () => {
+        this.actionResultText.setVisible(false);
+        this.actionResultText.setAlpha(1); // Reset alpha for next use
+      },
+    });
+  }
+  
+  /** Show detailed damage calculation including relic bonuses */
+  private showDamageCalculation(baseDamage: number, strengthBonus: number, relicBonuses: {name: string, amount: number}[]): void {
+    let message = `Damage: ${baseDamage}`;
+    let color = "#2ed573"; // Default green
+    
+    if (strengthBonus > 0) {
+      message += ` + ${strengthBonus} (Strength)`;
+    }
+    
+    for (const relicBonus of relicBonuses) {
+      if (relicBonus.amount > 0) {
+        message += ` + ${relicBonus.amount} (${relicBonus.name})`;
+        color = "#ff6b6b"; // Change to red for damage
+      }
+    }
+    
+    const totalDamage = baseDamage + strengthBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
+    message += ` = ${totalDamage}`;
+    
+    this.showEnhancedActionResult(message, color);
+  }
+  
+  /** Show detailed block calculation including relic bonuses */
+  private showBlockCalculation(baseBlock: number, dexterityBonus: number, relicBonuses: {name: string, amount: number}[]): void {
+    let message = `Block: ${baseBlock}`;
+    let color = "#4ecdc4"; // Default blue/green for block
+    
+    if (dexterityBonus > 0) {
+      message += ` + ${dexterityBonus} (Dexterity)`;
+    }
+    
+    for (const relicBonus of relicBonuses) {
+      if (relicBonus.amount > 0) {
+        message += ` + ${relicBonus.amount} (${relicBonus.name})`;
+      }
+    }
+    
+    const totalBlock = baseBlock + dexterityBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
+    message += ` = ${totalBlock}`;
+    
+    this.showEnhancedActionResult(message, color);
   }
 
   /**
