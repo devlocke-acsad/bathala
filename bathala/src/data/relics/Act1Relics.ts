@@ -121,11 +121,76 @@ export const shopRelics: Relic[] = [
   }
 ];
 
+// Additional relics based on Filipino mythology from GDD
+export const mythologicalRelics: Relic[] = [
+  {
+    id: "tikbalangs_hoof",
+    name: "Tikbalang's Hoof",
+    description: "+10% dodge. Inspiration: Trickery (Ramos, 1990)",
+    emoji: "🐴"
+  },
+  {
+    id: "balete_root",
+    name: "Balete Root",
+    description: "+2 block per Lupa card. Inspiration: Portals (Samar, 2019)",
+    emoji: "🌳"
+  },
+  {
+    id: "sigbin_heart",
+    name: "Sigbin Heart",
+    description: "+5 damage on burst. Inspiration: Amulets (Eugenio, 2001)",
+    emoji: "🐐"
+  },
+  {
+    id: "duwende_charm",
+    name: "Duwende Charm",
+    description: "+10% avoid Weak. Inspiration: Fortune (Aswang Project)",
+    emoji: "🧚"
+  },
+  {
+    id: "tiyanak_tear",
+    name: "Tiyanak Tear",
+    description: "Ignore 1 Fear. Inspiration: Wails (Ramos, 1990)",
+    emoji: "💧"
+  },
+  {
+    id: "amomongo_claw",
+    name: "Amomongo Claw",
+    description: "+3 bleed damage. Inspiration: Nails (Samar, 2019)",
+    emoji: "🪲"
+  },
+  {
+    id: "bungisngis_grin",
+    name: "Bungisngis Grin",
+    description: "+5 damage on debuff. Inspiration: Laughter (Jocano, 1969)",
+    emoji: "👹"
+  },
+  {
+    id: "kapres_cigar",
+    name: "Kapre's Cigar",
+    description: "Summons minion once per combat. Inspiration: Smoke (Ramos, 1990)",
+    emoji: "🚬"
+  },
+  {
+    id: "wind_veil",
+    name: "Wind Veil",
+    description: "+1 draw on Air cards. Inspiration: Invisibility (Samar, 2019)",
+    emoji: "💨"
+  },
+  {
+    id: "mangangaway_wand",
+    name: "Mangangaway Wand",
+    description: "Ignore 1 curse. Inspiration: Hexes (Eugenio, 2001)",
+    emoji: "🪄"
+  }
+];
+
 // All relics combined for easy access
 export const allAct1Relics: Relic[] = [
   ...commonRelics,
   ...eliteRelics,
   ...bossRelics,
   ...treasureRelics,
-  ...shopRelics
+  ...shopRelics,
+  ...mythologicalRelics
 ];

@@ -66,6 +66,7 @@ export class Combat extends Scene {
   private isActionProcessing: boolean = false;
   private combatEnded: boolean = false;
   private turnCount: number = 0;
+  private kapresCigarUsed: boolean = false; // Track if Kapre's Cigar minion summon has been used this combat
   private deckPosition!: { x: number; y: number };
   private discardPilePosition!: { x: number; y: number };
   private shopKey!: Phaser.Input.Keyboard.Key;
@@ -897,6 +898,9 @@ export class Combat extends Scene {
     
     // Apply start-of-combat relic effects
     RelicManager.applyStartOfCombatEffects(this.combatState.player);
+    
+    // Try to summon minion with Kapre's Cigar
+    RelicManager.tryKapresCigarSummon(this, this.combatState.player);
   }
 
   /**
@@ -2306,7 +2310,11 @@ export class Combat extends Scene {
     }
 
     // Draw cards to ensure player has 8 cards at start of turn
-    const targetHandSize = 8;
+    let targetHandSize = 8;
+    
+    // Apply "Wind Veil" effect: Additional cards drawn based on Hangin cards played in last action
+    // (this would apply if in a continuous combat system where Hangin cards from last turn matter)
+    
     const cardsNeeded = targetHandSize - this.combatState.player.hand.length;
     if (cardsNeeded > 0) {
       this.drawCards(cardsNeeded);
@@ -2410,11 +2418,27 @@ export class Combat extends Scene {
    */
   private damagePlayer(damage: number): void {
     console.log(`Applying ${damage} damage to player`);
+    
+    // Check for dodge chance from "Tikbalang's Hoof"
+    const dodgeChance = RelicManager.calculateDodgeChance(this.combatState.player);
+    if (Math.random() < dodgeChance) {
+      console.log("Player dodged the attack!");
+      this.showActionResult("DODGED!");
+      return; // Player dodged, take no damage
+    }
+    
     let finalDamage = damage;
     if (this.combatState.player.statusEffects.some((e) => e.name === "Vulnerable")) {
       finalDamage *= 1.5;
       console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
     }
+    
+    // Apply "Bakunawa Scale" effect: reduces all incoming damage by 1
+    const bakunawaScale = this.combatState.player.relics.find(r => r.id === "bakunawa_scale");
+    if (bakunawaScale) {
+      finalDamage = Math.max(0, finalDamage - 1);
+    }
+    
     const actualDamage = Math.max(0, finalDamage - this.combatState.player.block);
     console.log(`Player has ${this.combatState.player.block} block, taking ${actualDamage} actual damage`);
     
@@ -3366,6 +3390,8 @@ export class Combat extends Scene {
           damage += strength.value;
           console.log(`Strength bonus applied: +${strength.value} damage`);
         }
+        // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
+        damage += RelicManager.calculateSigbinHeartDamage(this.combatState.player);
         console.log(`Total attack damage: ${damage}`);
         break;
       case "defend":
@@ -3375,6 +3401,8 @@ export class Combat extends Scene {
           block += dexterity.value;
           console.log(`Dexterity bonus applied: +${dexterity.value} block`);
         }
+        // Apply "Balete Root" effect: +2 block per Lupa card
+        block += RelicManager.calculateBaleteRootBlock(this.combatState.player, this.combatState.player.playedHand);
         console.log(`Total block gained: ${block}`);
         break;
       case "special":
@@ -3445,7 +3473,9 @@ export class Combat extends Scene {
           });
         } else {
           // AoE Damage + Burn
-          this.damageEnemy(Math.floor(value * 0.5));
+          // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
+          const additionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+          this.damageEnemy(Math.floor(value * 0.5) + additionalDamage);
           this.addStatusEffect(this.combatState.enemy, {
             id: "burn",
             name: "Burn",
@@ -3492,6 +3522,12 @@ export class Combat extends Scene {
           // 50% of unspent block carries over
           // This needs to be handled at the end of the turn
         } else {
+          // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
+          const additionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+          if (additionalDamage > 0) {
+            this.damageEnemy(additionalDamage);
+          }
+          
           this.addStatusEffect(this.combatState.enemy, {
             id: "vulnerable",
             name: "Vulnerable",
@@ -3519,7 +3555,18 @@ export class Combat extends Scene {
           });
         } else {
           // Draw cards + Apply Weak
-          this.drawCards(2);
+          // Apply "Wind Veil" effect: Additional cards drawn based on Hangin cards played
+          let cardsToDraw = 2;
+          cardsToDraw += RelicManager.calculateWindVeilCardDraw(this.combatState.player.playedHand, this.combatState.player);
+          
+          this.drawCards(cardsToDraw);
+          
+          // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
+          const additionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+          if (additionalDamage > 0) {
+            this.damageEnemy(additionalDamage);
+          }
+          
           this.addStatusEffect(this.combatState.enemy, {
             id: "weak",
             name: "Weak",
@@ -4288,6 +4335,29 @@ export class Combat extends Scene {
   }
 
   private addStatusEffect(entity: Player | Enemy, effect: StatusEffect): void {
+    // Check for relic effects that might prevent or modify status effects
+    
+    // For player entity, check relic effects
+    if (entity.id === "player") {
+      // "Duwende Charm" effect: +10% avoid Weak
+      if (effect.name === "Weak" && !RelicManager.shouldApplyWeakStatus(entity as Player)) {
+        this.showActionResult("Duwende Charm prevented Weak status!");
+        return; // Don't apply the status effect
+      }
+      
+      // "Tiyanak Tear" effect: Ignore 1 Fear
+      if (effect.name === "Fear" && !RelicManager.shouldApplyFearStatus(entity as Player)) {
+        this.showActionResult("Tiyanak Tear prevented Fear status!");
+        return; // Don't apply the status effect
+      }
+      
+      // "Mangangaway Wand" effect: Ignore curses
+      if (effect.name === "Curse" && RelicManager.shouldIgnoreCurse(entity as Player)) {
+        this.showActionResult("Mangangaway Wand prevented curse!");
+        return; // Don't apply the status effect
+      }
+    }
+    
     entity.statusEffects.push(effect);
     this.updateStatusEffectUI(entity);
   }
