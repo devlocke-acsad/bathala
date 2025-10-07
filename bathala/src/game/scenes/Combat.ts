@@ -1498,9 +1498,9 @@ export class Combat extends Scene {
       // Create a very subtle arch that peaks in the middle
       let y = -Math.sin(positionRatio * Math.PI) * curveHeight;
       
-      // If card is selected, maintain elevated position (like Balatro)
+      // If card is selected, position it elevated
       if (card.selected) {
-        y -= 60; // Keep selected cards elevated higher like Balatro
+        y -= 50; // Keep selected cards elevated
       }
       
       const cardSprite = this.createCardSprite(
@@ -1509,12 +1509,12 @@ export class Combat extends Scene {
         y
       );
       
-      // Apply selected state styling if needed
+      // Apply selected state styling with smooth animation if needed
       if (card.selected) {
-        cardSprite.setScale(1.15);
+        cardSprite.setScale(1.1);
         const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
         if (cardImage && 'setTint' in cardImage) {
-          cardImage.setTint(0xffe6cc);
+          cardImage.setTint(0xffdd44); // Consistent yellow highlight
         }
       }
       
@@ -1714,23 +1714,35 @@ export class Combat extends Scene {
       const baseY = -Math.sin(positionRatio * Math.PI) * curveHeight;
       const baseX = startX + cardIndex * actualCardWidth;
       
-      // Instantly set elevated position when selected (no animation)
+      // Smooth animation for selection highlight
       if (card.selected) {
-        // Instantly move to elevated position and stay there
-        cardSprite.setPosition(cardSprite.x, baseY - 60);
-        cardSprite.setScale(1.15);
+        // Animate to elevated position with better scaling
+        this.tweens.add({
+          targets: cardSprite,
+          y: baseY - 50, // Slightly less elevation for better visibility
+          scaleX: 1.1,
+          scaleY: 1.1,
+          duration: 200,
+          ease: 'Back.Out'
+        });
         
-        // Add a subtle glow effect to the card image/sprite
+        // Add a more visible highlight effect
         const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
         if (cardImage && 'setTint' in cardImage) {
-          cardImage.setTint(0xffe6cc);
+          cardImage.setTint(0xffdd44); // More visible yellow highlight
         }
       } else {
-        // Instantly return to hand level when deselected
-        cardSprite.setPosition(cardSprite.x, baseY);
-        cardSprite.setScale(1.0);
+        // Animate back to hand level when deselected
+        this.tweens.add({
+          targets: cardSprite,
+          y: baseY,
+          scaleX: 1.0,
+          scaleY: 1.0,
+          duration: 200,
+          ease: 'Back.Out'
+        });
         
-        // Remove tint
+        // Remove highlight
         const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
         if (cardImage && 'clearTint' in cardImage) {
           cardImage.clearTint();
@@ -2667,8 +2679,20 @@ export class Combat extends Scene {
 
       console.log("Clearing dialogue and showing results...");
 
-      // Clear dialogue and show results
-      this.children.removeAll();
+      // Clear dialogue but preserve essential game objects
+      // Remove all UI elements but keep background and camera
+      if (this.children.list) {
+        const childrenToRemove = this.children.list.filter(child => {
+          // Keep background elements and camera-related objects
+          return !(child instanceof Phaser.GameObjects.Image && child.texture?.key === 'bg');
+        });
+        
+        childrenToRemove.forEach(child => {
+          if (child && child.destroy) {
+            child.destroy();
+          }
+        });
+      }
       
       // Safety check for camera
       if (this.cameras.main) {
@@ -2676,8 +2700,14 @@ export class Combat extends Scene {
       }
 
       // Add small delay before showing rewards screen
-      this.time.delayedCall(100, () => {
-        this.showRewardsScreen(choice, choiceDialogue, reward, landasChange);
+      this.time.delayedCall(200, () => {
+        try {
+          this.showRewardsScreen(choice, choiceDialogue, reward, landasChange);
+        } catch (error) {
+          console.error("Error showing rewards screen:", error);
+          // Fallback - return to overworld immediately
+          this.returnToOverworld();
+        }
       });
       
     } catch (error) {
@@ -2759,10 +2789,10 @@ export class Combat extends Scene {
       rewardY += 25 * scaleFactor;
     }
 
-    // Baubles reward
-    if (reward.baubles > 0) {
+    // Baubles reward (check if property exists)
+    if (reward && typeof reward === 'object' && 'baubles' in reward && (reward as any).baubles > 0) {
       this.add
-        .text(screenWidth/2, rewardY, `💎 ${reward.baubles} Bathala Baubles`, {
+        .text(screenWidth/2, rewardY, `💎 ${(reward as any).baubles} Bathala Baubles`, {
           fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#4ecdc4",
@@ -2847,8 +2877,6 @@ export class Combat extends Scene {
     try {
       console.log("Returning to overworld...");
       
-      
-      
       // Save player state to GameState manager
       const gameState = GameState.getInstance();
       
@@ -2858,7 +2886,7 @@ export class Combat extends Scene {
         maxHealth: this.combatState.player.maxHealth,
         landasScore: this.combatState.player.landasScore,
         ginto: this.combatState.player.ginto,
-        baubles: this.combatState.player.baubles,
+        diamante: this.combatState.player.diamante,
         relics: this.combatState.player.relics,
         potions: this.combatState.player.potions,
         discardCharges: this.combatState.player.discardCharges,
@@ -2877,34 +2905,60 @@ export class Combat extends Scene {
         playedHand: []
       });
 
-      console.log("Player data saved to GameState");
+      console.log("Player data saved to GameState, stopping combat scene...");
 
       // Mark the current node as completed
       gameState.completeCurrentNode(true);
 
-      console.log("Node marked as completed, resuming Overworld scene...");
-
-      // Use a more explicit approach to ensure the overworld resumes properly
-      const overworldScene = this.scene.get("Overworld");
-      if (overworldScene) {
-        console.log("Overworld scene found, manually calling resume");
-        // Manually call the resume method to ensure it's called
-        (overworldScene as any).resume();
-      }
-
-      // Stop this scene and resume overworld
+      // Clean shutdown of combat scene
+      this.input.removeAllListeners();
+      this.time.removeAllEvents();
+      
+      // Stop this scene first
       this.scene.stop();
-      this.scene.resume("Overworld");
+      
+      // Small delay before resuming overworld to ensure clean transition
+      setTimeout(() => {
+        try {
+          console.log("Attempting to resume Overworld scene...");
+          
+          // Get the scene manager
+          const sceneManager = this.scene.manager;
+          
+          // Check if Overworld scene exists and is not active
+          const overworldScene = sceneManager.getScene("Overworld");
+          if (overworldScene) {
+            console.log("Overworld scene found, resuming...");
+            
+            // Resume the overworld scene
+            sceneManager.resume("Overworld");
+            
+            // Explicitly call resume method on overworld if it exists
+            if (typeof (overworldScene as any).resume === 'function') {
+              (overworldScene as any).resume();
+            }
+          } else {
+            console.warn("Overworld scene not found, starting new instance");
+            sceneManager.start("Overworld");
+          }
+        } catch (resumeError) {
+          console.error("Error resuming Overworld:", resumeError);
+          // Last resort - start overworld fresh
+          this.scene.manager.start("Overworld");
+        }
+      }, 100);
       
     } catch (error) {
       console.error("Error in returnToOverworld:", error);
-      // Even if there's an error, try to return to overworld
+      // Emergency fallback
       try {
         this.scene.stop();
-        this.scene.resume("Overworld");
+        setTimeout(() => {
+          this.scene.manager.start("Overworld");
+        }, 100);
       } catch (fallbackError) {
-        console.error("Fallback scene resume also failed:", fallbackError);
-        // Last resort - restart the game
+        console.error("Emergency fallback also failed:", fallbackError);
+        // Absolute last resort - restart the game
         this.scene.start("MainMenu");
       }
     }
@@ -3118,6 +3172,9 @@ export class Combat extends Scene {
     );
     console.log(`Hand evaluation:`, evaluation);
     
+    // Display the hand type with visual flair
+    this.displayHandType(evaluation.type);
+    
     // Track best hand for DDA
     if (this.isHandBetterThan(evaluation.type, this.bestHandAchieved)) {
       this.bestHandAchieved = evaluation.type;
@@ -3125,9 +3182,6 @@ export class Combat extends Scene {
     
     // Apply relic effects after playing a hand
     RelicManager.applyAfterHandPlayedEffects(this.combatState.player, this.combatState.player.playedHand, evaluation);
-    
-    // Add cinematic effect for special hands
-    this.addCinematicEffectForSpecialHand(evaluation.type);
     
     const dominantSuit = this.getDominantSuit(
       this.combatState.player.playedHand
@@ -3595,194 +3649,7 @@ export class Combat extends Scene {
   }
 
   /** Add cinematic effect for special poker hands */
-  private addCinematicEffectForSpecialHand(handType: HandType): void {
-    // Define cinematic effects for special hands
-    const specialHands: HandType[] = ["straight", "flush", "full_house", "four_of_a_kind", "straight_flush", "royal_flush", "five_of_a_kind"];
-    
-    if (specialHands.includes(handType)) {
-      // Create a cinematic effect based on the hand type
-      this.createSpecialHandCinematic(handType);
-    }
-  }
-  
-  /** Create cinematic effect specific to hand type */
-  private createSpecialHandCinematic(handType: HandType): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create horizontal bars at top and bottom (like Final Fantasy style)
-    const topBar = this.add.rectangle(
-      screenWidth / 2,
-      -screenHeight / 4,
-      screenWidth,
-      screenHeight / 2,
-      0x000000
-    ).setOrigin(0.5, 0).setAlpha(0);
-    
-    const bottomBar = this.add.rectangle(
-      screenWidth / 2,
-      screenHeight + screenHeight / 4,
-      screenWidth,
-      screenHeight / 2,
-      0x000000
-    ).setOrigin(0.5, 1).setAlpha(0);
-    
-    // Animate the bars sliding in from top and bottom
-    this.tweens.add({
-      targets: topBar,
-      y: screenHeight / 4, // Top bar moves to 1/4 down from top
-      alpha: 0.8,
-      duration: 500,
-      ease: 'Cubic.Out'
-    });
-    
-    this.tweens.add({
-      targets: bottomBar,
-      y: screenHeight * 0.75, // Bottom bar moves to 1/4 up from bottom
-      alpha: 0.8,
-      duration: 500,
-      ease: 'Cubic.Out'
-    });
-    
-    // Focus camera horizontally between hero and enemy without zooming
-    const combatCenterX = (this.playerSprite.x + this.enemySprite.x) / 2;
-    
-    // Move camera slightly to center the action horizontally
-    this.tweens.add({
-      targets: this.cameras.main,
-      scrollX: combatCenterX - (screenWidth / 2),
-      duration: 500,
-      ease: 'Cubic.Out',
-      hold: 1100, // Hold the horizontal focus while text is displayed
-      completeDelay: 300, // Wait before returning to normal view
-      onComplete: () => {
-        // Return to original camera position
-        this.tweens.add({
-          targets: this.cameras.main,
-          scrollX: 0,
-          duration: 300,
-          ease: 'Cubic.In'
-        });
-      }
-    });
-    
-    // Create particle effects for the special hand
-    this.createSpecialParticleEffect(screenWidth / 2, screenHeight / 2, handType);
-    
-    // Show hand type text in the middle with improved animation - formatted like a special move name
-    const handText = this.add.text(
-      screenWidth / 2,
-      screenHeight / 2,
-      `"${this.getHandTypeDisplayText(handType).toUpperCase()}"`,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 64,
-        color: this.getHandTypeColor(handType),
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 6
-      }
-    ).setOrigin(0.5).setAlpha(0).setScale(0.5);
-    
-    // Animate the text in with a more dramatic effect
-    this.tweens.add({
-      targets: handText,
-      alpha: 1,
-      scale: 1.2,
-      duration: 400,
-      ease: 'Back.Out',
-      yoyo: true,
-      repeat: 0,
-      onComplete: () => {
-        // Add a subtle pulsing effect while text is displayed
-        this.tweens.add({
-          targets: handText,
-          scale: 1.1,
-          duration: 500,
-          ease: 'Sine.InOut',
-          yoyo: true,
-          repeat: -1 // Infinite repeat until removed
-        });
-      }
-    });
-    
-    // Add a subtle screen flash for impact
-    const flash = this.add.rectangle(
-      screenWidth / 2,
-      screenHeight / 2,
-      screenWidth,
-      screenHeight,
-      0xffffff
-    ).setAlpha(0);
-    
-    this.tweens.add({
-      targets: flash,
-      alpha: [0, 0.2, 0],
-      duration: 300,
-      ease: 'Cubic.Out',
-      onComplete: () => {
-        flash.destroy();
-      }
-    });
-    
-    // After a delay, animate everything out
-    this.time.delayedCall(1800, () => {
-      // Stop the pulsing animation
-      this.tweens.killTweensOf(handText);
-      
-      // Animate text out
-      this.tweens.add({
-        targets: handText,
-        alpha: 0,
-        scale: 0.8,
-        duration: 300,
-        ease: 'Cubic.In',
-        onComplete: () => {
-          handText.destroy();
-        }
-      });
-      
-      // Animate the bars out
-      this.tweens.add({
-        targets: topBar,
-        y: -screenHeight / 4, // Top bar moves back up
-        alpha: 0,
-        duration: 500,
-        ease: 'Cubic.In',
-        onComplete: () => {
-          topBar.destroy();
-        }
-      });
-      
-      this.tweens.add({
-        targets: bottomBar,
-        y: screenHeight + screenHeight / 4, // Bottom bar moves back down
-        alpha: 0,
-        duration: 500,
-        ease: 'Cubic.In',
-        onComplete: () => {
-          bottomBar.destroy();
-        }
-      });
-    });
-    
-    // Create camera shake effect for impact
-    this.cameras.main.shake(200, 0.008);
-  }
-  
-  /** Get appropriate color for hand type */
-  private getHandTypeColor(handType: HandType): string {
-    switch(handType) {
-      case "straight": return "#4ecdc4";      // Teal
-      case "flush": return "#1e90ff";         // Blue
-      case "full_house": return "#ff6b6b";    // Red
-      case "four_of_a_kind": return "#ff4757"; // Bright red
-      case "straight_flush": 
-      case "royal_flush": 
-      case "five_of_a_kind": return "#ffd93d"; // Gold
-      default: return "#ffffff";              // White
-    }
-  }
+
 
   private applyElementalEffects(
     actionType: "attack" | "defend" | "special",
@@ -4547,6 +4414,100 @@ export class Combat extends Scene {
     });
   }
   
+  /**
+   * Display the hand type with visual flair
+   */
+  private displayHandType(handType: HandType): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Get hand type display text and color
+    const handTypeText = this.getHandTypeDisplayText(handType);
+    const handColor = this.getHandTypeColor(handType);
+    
+    // Create the hand type display text
+    const handDisplay = this.add.text(
+      screenWidth / 2,
+      screenHeight * 0.15, // Position at top of screen
+      handTypeText.toUpperCase(),
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 36,
+        color: handColor,
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 4
+      }
+    ).setOrigin(0.5).setAlpha(0).setScale(0.8).setDepth(1000);
+    
+    // Animate the text in with a bounce effect
+    this.tweens.add({
+      targets: handDisplay,
+      alpha: 1,
+      scale: 1.1,
+      duration: 300,
+      ease: 'Back.Out',
+      onComplete: () => {
+        // Hold for a moment then fade out
+        this.time.delayedCall(1200, () => {
+          this.tweens.add({
+            targets: handDisplay,
+            alpha: 0,
+            scale: 0.9,
+            duration: 400,
+            ease: 'Cubic.In',
+            onComplete: () => {
+              handDisplay.destroy();
+            }
+          });
+        });
+      }
+    });
+    
+    // Add a subtle glow effect for high-tier hands
+    const specialHands: HandType[] = ["straight", "flush", "full_house", "four_of_a_kind", "straight_flush", "royal_flush", "five_of_a_kind"];
+    if (specialHands.includes(handType)) {
+      // Create a subtle glow background
+      const glow = this.add.rectangle(
+        screenWidth / 2,
+        screenHeight * 0.15,
+        handDisplay.width + 40,
+        handDisplay.height + 20,
+        0xffffff
+      ).setOrigin(0.5).setAlpha(0).setDepth(999);
+      
+      this.tweens.add({
+        targets: glow,
+        alpha: [0, 0.15, 0],
+        duration: 600,
+        ease: 'Sine.InOut',
+        onComplete: () => {
+          glow.destroy();
+        }
+      });
+    }
+  }
+  
+  /**
+   * Get appropriate color for hand type
+   */
+  private getHandTypeColor(handType: HandType): string {
+    switch(handType) {
+      case "high_card": return "#9ca3af";      // Gray
+      case "pair": return "#10b981";           // Green
+      case "two_pair": return "#3b82f6";       // Blue
+      case "three_of_a_kind": return "#8b5cf6"; // Purple
+      case "straight": return "#06b6d4";       // Cyan
+      case "flush": return "#0ea5e9";          // Sky blue
+      case "full_house": return "#f59e0b";     // Amber
+      case "four_of_a_kind": return "#ef4444"; // Red
+      case "straight_flush": return "#f97316"; // Orange
+      case "royal_flush": return "#fbbf24";    // Gold
+      case "five_of_a_kind": return "#d946ef"; // Magenta
+      default: return "#ffffff";               // White
+    }
+  }
+
   /**
    * Enhanced action result display with relic effect indicators
    */
