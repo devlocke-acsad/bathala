@@ -156,6 +156,9 @@ export class Overworld extends Scene {
   }
 
   create(): void {
+    // Set camera background color to match forest theme
+    this.cameras.main.setBackgroundColor(0x323C39);
+    
     // Check if we're returning from another scene
     const gameState = GameState.getInstance();
     const savedPosition = gameState.getPlayerPosition();
@@ -874,6 +877,9 @@ export class Overworld extends Scene {
    * Called when the scene resumes from another scene
    */
   resume(): void {
+    // Set camera background color to match forest theme
+    this.cameras.main.setBackgroundColor(0x323C39);
+    
     // Re-enable input when returning from other scenes
     if (this.input && this.input.keyboard) {
       this.input.keyboard.enabled = true;
@@ -1495,6 +1501,8 @@ export class Overworld extends Scene {
           const wallSprite = this.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, 'wall1');
           wallSprite.setDisplaySize(this.gridSize, this.gridSize);
           wallSprite.setOrigin(0.5);
+          // Ensure no additional tint that might affect transparency
+          wallSprite.clearTint();
           container.add(wallSprite);
         } else { // Path - Use one of the floor assets with randomization
           // Randomly select one of the floor textures
@@ -1502,6 +1510,8 @@ export class Overworld extends Scene {
           const floorSprite = this.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, randomFloor);
           floorSprite.setDisplaySize(this.gridSize, this.gridSize);
           floorSprite.setOrigin(0.5);
+          // Ensure no additional tint that might affect transparency
+          floorSprite.clearTint();
           container.add(floorSprite);
         }
       }
