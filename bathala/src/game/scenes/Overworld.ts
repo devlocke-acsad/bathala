@@ -36,7 +36,7 @@ export class Overworld extends Scene {
   private wasdKeys!: { [key: string]: Phaser.Input.Keyboard.Key };
   private nodes: MapNode[] = [];
   private nodeSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
-  private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
+  private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.GameObject }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.GameObject }>();
   private gridSize: number = 32;
   private isMoving: boolean = false;
   private isTransitioningToCombat: boolean = false;
@@ -1476,37 +1476,38 @@ export class Overworld extends Scene {
     }
   }
 
-  renderChunk(chunkX: number, chunkY: number, maze: number[][]): Phaser.GameObjects.Graphics {
-    const graphics = this.add.graphics();
+  renderChunk(chunkX: number, chunkY: number, maze: number[][]): Phaser.GameObjects.GameObject {
+    // Create a container with tile sprites for better performance
+    const container = this.add.container(0, 0);
     const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
     const offsetX = chunkX * chunkSizePixels;
     const offsetY = chunkY * chunkSizePixels;
     
+    // Define available floor textures
+    const floorTextures = ['floor1', 'floor2', 'floor3'];
+    
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[0].length; x++) {
-        if (maze[y][x] === 1) { // Wall
-          // Rich dark brown stone walls
-          graphics.fillStyle(0x3d291f);
-          graphics.fillRect(
-            offsetX + x * this.gridSize,
-            offsetY + y * this.gridSize,
-            this.gridSize,
-            this.gridSize
-          );
-        } else { // Path
-          // Weathered stone path
-          graphics.fillStyle(0x5a4a3f);
-          graphics.fillRect(
-            offsetX + x * this.gridSize,
-            offsetY + y * this.gridSize,
-            this.gridSize,
-            this.gridSize
-          );
+        const tileX = offsetX + x * this.gridSize;
+        const tileY = offsetY + y * this.gridSize;
+        
+        if (maze[y][x] === 1) { // Wall - Use wall1 asset
+          const wallSprite = this.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, 'wall1');
+          wallSprite.setDisplaySize(this.gridSize, this.gridSize);
+          wallSprite.setOrigin(0.5);
+          container.add(wallSprite);
+        } else { // Path - Use one of the floor assets with randomization
+          // Randomly select one of the floor textures
+          const randomFloor = Phaser.Utils.Array.GetRandom(floorTextures);
+          const floorSprite = this.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, randomFloor);
+          floorSprite.setDisplaySize(this.gridSize, this.gridSize);
+          floorSprite.setOrigin(0.5);
+          container.add(floorSprite);
         }
       }
     }
     
-    return graphics;
+    return container;
   }
 
   renderNode(node: MapNode): void {
