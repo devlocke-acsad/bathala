@@ -1533,6 +1533,10 @@ export class Overworld extends Scene {
           if (spriteKeyBase === "tawong") {
             spriteKeyBase = "tawonglipod";
           }
+          // Additional check in case the enemyId is stored differently
+          if (node.enemyId.toLowerCase().includes("tawong")) {
+            spriteKeyBase = "tawonglipod";
+          }
           spriteKey = spriteKeyBase + "_overworld";
         } else {
           // Fallback to a generic sprite if no enemyId is present
@@ -4994,6 +4998,10 @@ ${potion.description}`, {
 
     let spriteKeyBase = enemy.name.toLowerCase().split(" ")[0];
     if (spriteKeyBase === "tawong") {
+        spriteKeyBase = "tawonglipod";
+    }
+    // Additional check in case the enemy name is stored differently
+    if (enemy.name.toLowerCase().includes("tawong")) {
         spriteKeyBase = "tawonglipod";
     }
     const spriteKey = spriteKeyBase + "_overworld";
