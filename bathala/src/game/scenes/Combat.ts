@@ -3242,77 +3242,269 @@ export class Combat extends Scene {
   
   /** Animate special action with cinematic effects */
   private animateSpecialAction(suit: Suit): void {
-    // Create cinematic black bars for special action sequence
+    // Create cinematic effect for special action sequence
     this.createCinematicBars();
     
-    // Character slash animation
-    this.animateCharacterSlash(suit);
+    // First announce the attack, then perform it
+    this.announceSpecialAttack(suit);
   }
-  
-  /** Create cinematic black bars for special action sequence */
-  private createCinematicBars(): void {
+
+  /**
+   * Announce the special attack with dramatic text and effects, then perform the attack
+   */
+  private announceSpecialAttack(suit: Suit): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Top black bar
-    const topBar = this.add.rectangle(
+    // Get suit-specific attack names
+    const attackNames: Record<Suit, string> = {
+      "Apoy": "INFERNO STRIKE!",
+      "Tubig": "TIDAL SLASH!",
+      "Lupa": "EARTH CRUSHER!",
+      "Hangin": "WIND CUTTER!"
+    };
+    
+    const attackName = attackNames[suit];
+    
+    // Create dramatic announcement text
+    const announcementText = this.add.text(
       screenWidth / 2,
-      -screenHeight / 4,
-      screenWidth,
-      screenHeight / 4,
-      0x000000
-    );
+      screenHeight / 2 - 50,
+      attackName,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 72,
+        color: '#ffffff',
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 8
+      }
+    ).setOrigin(0.5).setAlpha(0).setScale(0.3).setDepth(1003);
     
-    // Bottom black bar
-    const bottomBar = this.add.rectangle(
-      screenWidth / 2,
-      screenHeight + (screenHeight / 4),
-      screenWidth,
-      screenHeight / 4,
-      0x000000
-    );
+    // Get suit color for effects
+    const suitColors: Record<Suit, number> = {
+      "Apoy": 0xff4500,    // Fire red/orange
+      "Tubig": 0x1e90ff,   // Water blue
+      "Lupa": 0x32cd32,    // Earth green
+      "Hangin": 0x87ceeb    // Wind light blue
+    };
     
-    // Animate the bars moving in
+    const color = suitColors[suit];
+    
+    // Animate announcement text in
     this.tweens.add({
-      targets: topBar,
-      y: 0,
-      duration: 300,
-      ease: 'Cubic.Out'
-    });
-    
-    this.tweens.add({
-      targets: bottomBar,
-      y: screenHeight,
-      duration: 300,
-      ease: 'Cubic.Out',
+      targets: announcementText,
+      alpha: 1,
+      scale: 1.2,
+      duration: 600,
+      ease: 'Back.Out',
       onComplete: () => {
-        // After the bars are in position, wait a moment then animate out
-        this.time.delayedCall(1200, () => {
+        // Change text color to suit color after initial appearance
+        announcementText.setColor(`#${color.toString(16).padStart(6, '0')}`);
+        
+        // Hold for dramatic effect, then start the actual attack
+        this.time.delayedCall(800, () => {
+          // Fade out announcement
           this.tweens.add({
-            targets: topBar,
-            y: -screenHeight / 4,
-            duration: 300,
-            ease: 'Cubic.In'
-          });
-          
-          this.tweens.add({
-            targets: bottomBar,
-            y: screenHeight + (screenHeight / 4),
-            duration: 300,
+            targets: announcementText,
+            alpha: 0,
+            scale: 0.8,
+            duration: 400,
             ease: 'Cubic.In',
             onComplete: () => {
-              topBar.destroy();
-              bottomBar.destroy();
+              announcementText.destroy();
+              // Now perform the actual attack
+              this.performSpecialAttack(suit);
             }
           });
         });
       }
     });
   }
+
+  /**
+   * Perform the actual special attack animation after announcement
+   */
+  private performSpecialAttack(suit: Suit): void {
+    // Character slash animation
+    this.animateCharacterSlash(suit);
+    
+    // Add impact effects during the attack
+    this.time.delayedCall(300, () => {
+      // Screen shake for impact
+      this.cameras.main.shake(150, 0.01);
+      
+      // Create impact flash
+      const impactFlash = this.add.rectangle(
+        this.cameras.main.width / 2,
+        this.cameras.main.height / 2,
+        this.cameras.main.width,
+        this.cameras.main.height,
+        0xffffff
+      ).setAlpha(0).setDepth(1004);
+      
+      this.tweens.add({
+        targets: impactFlash,
+        alpha: [0, 0.3, 0],
+        duration: 200,
+        ease: 'Cubic.Out',
+        onComplete: () => {
+          impactFlash.destroy();
+        }
+      });
+    });
+  }
+  
+  /** Create immersive cinematic effect for special action sequence (Final Fantasy horizontal focus style) */
+  private createCinematicBars(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Focus effect only - no top/bottom bars
+    
+    // No zooming in this version - just horizontal focus on hero and enemy
+    // Focus camera horizontally between hero and enemy without zooming
+    const combatCenterX = (this.playerSprite.x + this.enemySprite.x) / 2;
+    const combatCenterY = (this.playerSprite.y + this.enemySprite.y) / 2;
+    
+    // Calculate focus area around hero and enemy - span entire screen width
+    const focusWidth = screenWidth; // Use full screen width for maximum span
+    const focusHeight = screenHeight * 0.4; // Use 40% of screen height
+    const focusX = screenWidth / 2; // Center horizontally across entire screen
+    const focusY = combatCenterY;
+    
+    // Hide all UI elements during special attack
+    this.hideUIForSpecialAttack();
+    
+    // Create focus effect using multiple rectangles instead of mask
+    // Top overlay (above focus area)
+    const topOverlay = this.add.rectangle(
+      screenWidth / 2,
+      (focusY - focusHeight / 2) / 2,
+      screenWidth,
+      focusY - focusHeight / 2,
+      0x000000
+    ).setAlpha(0).setDepth(1000);
+    
+    // Bottom overlay (below focus area)
+    const bottomOverlay = this.add.rectangle(
+      screenWidth / 2,
+      focusY + focusHeight / 2 + (screenHeight - (focusY + focusHeight / 2)) / 2,
+      screenWidth,
+      screenHeight - (focusY + focusHeight / 2),
+      0x000000
+    ).setAlpha(0).setDepth(1000);
+    
+    // Left overlay (left of focus area)
+    const leftOverlay = this.add.rectangle(
+      (focusX - focusWidth / 2) / 2,
+      focusY,
+      focusX - focusWidth / 2,
+      focusHeight,
+      0x000000
+    ).setAlpha(0).setDepth(1000);
+    
+    // Right overlay (right of focus area)
+    const rightOverlay = this.add.rectangle(
+      focusX + focusWidth / 2 + (screenWidth - (focusX + focusWidth / 2)) / 2,
+      focusY,
+      screenWidth - (focusX + focusWidth / 2),
+      focusHeight,
+      0x000000
+    ).setAlpha(0).setDepth(1000);
+    
+    // Animate all overlays to create focus effect
+    const allOverlays = [topOverlay, bottomOverlay, leftOverlay, rightOverlay];
+    this.tweens.add({
+      targets: allOverlays,
+      alpha: 0.8,
+      duration: 500,
+      ease: 'Cubic.Out'
+    });
+    
+    // Instead of zooming, we'll move the camera slightly to center the action
+    this.tweens.add({
+      targets: this.cameras.main,
+      scrollX: combatCenterX - (screenWidth / 2),
+      duration: 500,
+      ease: 'Cubic.Out',
+      hold: 1000, // Hold the horizontal focus during the special move
+      completeDelay: 300, // Wait before returning to normal view
+      onComplete: () => {
+        // Return to original camera position
+        this.tweens.add({
+          targets: this.cameras.main,
+          scrollX: 0,
+          duration: 300,
+          ease: 'Cubic.In'
+        });
+      }
+    });
+    
+    // No flash effect - just focus overlay
+    
+    // Create a "Special Move" text display like in Final Fantasy
+    const specialMoveText = this.add.text(
+      screenWidth / 2,
+      screenHeight / 3,
+      "SPECIAL ATTACK!",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 64,
+        color: '#ffd700', // Gold color like in Final Fantasy
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 6
+      }
+    ).setOrigin(0.5).setAlpha(0).setScale(0.5).setDepth(1001);
+    
+    // Animate the special move text
+    this.tweens.add({
+      targets: specialMoveText,
+      alpha: 1,
+      scale: 1.1,
+      duration: 300,
+      ease: 'Back.Out',
+      yoyo: true,
+      repeat: 0
+    });
+    
+    // Animate the bars out after the special move
+    this.time.delayedCall(1800, () => {
+      // Animate special move text out
+      this.tweens.add({
+        targets: specialMoveText,
+        alpha: 0,
+        scale: 0.8,
+        duration: 300,
+        ease: 'Cubic.In',
+        onComplete: () => {
+          specialMoveText.destroy();
+        }
+      });
+      
+      // Animate the focus overlay out
+      this.tweens.add({
+        targets: allOverlays,
+        alpha: 0,
+        duration: 500,
+        ease: 'Cubic.In',
+        onComplete: () => {
+          allOverlays.forEach(overlay => overlay.destroy());
+          // Restore UI after special attack
+          this.restoreUIAfterSpecialAttack();
+        }
+      });
+    });
+    
+    // Create camera shake effect for impact
+    this.cameras.main.shake(200, 0.008);
+  }
   
   /** Animate character slash animation */
   private animateCharacterSlash(suit: Suit): void {
     const originalX = this.playerSprite.x;
+    const originalScale = this.playerSprite.scaleX;
     
     // Get the appropriate color based on suit
     const suitColors: Record<Suit, number> = {
@@ -3324,74 +3516,84 @@ export class Combat extends Scene {
     
     const color = suitColors[suit];
     
-    // Move player forward with slash effect
+    // More dramatic movement for cinematic effect
+    const dashDistance = this.enemySprite.x - 80; // Get closer to enemy
+    
+    // Dash forward with dramatic scale and slash effect
     this.tweens.add({
       targets: this.playerSprite,
-      x: this.enemySprite.x - 50,
-      duration: 200,
-      ease: 'Power2',
+      x: dashDistance,
+      scaleX: originalScale * 1.2, // Make player slightly larger during attack
+      scaleY: originalScale * 1.2,
+      duration: 150,
+      ease: 'Power3.Out',
       onStart: () => {
-        // Add slash visual effect
-        this.createSlashEffect(this.playerSprite.x, this.playerSprite.y, color);
+        // Add multiple slash visual effects for more impact
+        this.createDramaticSlashEffect(this.playerSprite.x, this.playerSprite.y, color);
       },
       onComplete: () => {
-        // Return to original position after slash
-        this.tweens.add({
-          targets: this.playerSprite,
-          x: originalX,
-          duration: 200,
-          ease: 'Power2'
+        // Brief pause at target, then return
+        this.time.delayedCall(100, () => {
+          this.tweens.add({
+            targets: this.playerSprite,
+            x: originalX,
+            scaleX: originalScale,
+            scaleY: originalScale,
+            duration: 300,
+            ease: 'Back.Out'
+          });
         });
       }
     });
   }
   
-  /** Create slash effect visualization */
-  private createSlashEffect(x: number, y: number, color: number): void {
-    // Create a slash line effect
-    const slashLine = this.add.line(0, 0, 0, 0, 100, 0, color);
-    slashLine.setLineWidth(4);
-    
-    // Rotate the line based on the direction
-    slashLine.setAngle(-30); // Diagonal slash
-    
-    // Position the slash at the right place
-    slashLine.x = x;
-    slashLine.y = y - 30; // Slightly above the character
-    
-    // Animate the slash
-    this.tweens.add({
-      targets: slashLine,
-      scaleX: 1.5,
-      alpha: 0,
-      duration: 300,
-      ease: 'Power2',
-      onComplete: () => {
-        slashLine.destroy();
-      }
-    });
-    
-    // Add slash particles
-    for (let i = 0; i < 8; i++) {
-      const particle = this.add.circle(x, y - 20, 3, color);
-      
-      const angle = Phaser.Math.FloatBetween(-0.5, 0.5);
-      const distance = Phaser.Math.FloatBetween(20, 60);
-      
-      this.tweens.add({
-        targets: particle,
-        x: x + Math.cos(angle) * distance,
-        y: (y - 20) + Math.sin(angle) * distance,
-        alpha: 0,
-        duration: 600,
-        ease: 'Power2',
-        onComplete: () => {
-          particle.destroy();
-        }
+  /** Create dramatic slash effect visualization for cinematic special attacks */
+  private createDramaticSlashEffect(x: number, y: number, color: number): void {
+    // Create multiple slash lines for more dramatic effect
+    for (let i = 0; i < 3; i++) {
+      this.time.delayedCall(i * 50, () => {
+        // Create a slash line effect
+        const slashLine = this.add.line(0, 0, 0, 0, 120, 0, color);
+        slashLine.setLineWidth(6 + i * 2); // Varying thickness
+        slashLine.setPosition(x, y);
+        slashLine.setDepth(1002); // Above overlay
+        
+        // Different angles for each slash
+        const angles = [-45, -30, -60];
+        slashLine.setAngle(angles[i]);
+        
+        // Animate the slash
+        slashLine.setAlpha(0);
+        this.tweens.add({
+          targets: slashLine,
+          alpha: [0, 1, 0],
+          scaleX: [0.5, 1.5, 0.8],
+          scaleY: [0.5, 1.5, 0.8],
+          duration: 200,
+          ease: 'Power2.Out',
+          onComplete: () => {
+            slashLine.destroy();
+          }
+        });
       });
     }
+    
+    // Add impact flash at slash point
+    const impactFlash = this.add.circle(x, y, 30, color);
+    impactFlash.setAlpha(0).setDepth(1001);
+    
+    this.tweens.add({
+      targets: impactFlash,
+      alpha: [0, 0.8, 0],
+      scale: [0.5, 2, 0.5],
+      duration: 300,
+      ease: 'Power2.Out',
+      onComplete: () => {
+        impactFlash.destroy();
+      }
+    });
   }
-  
+
   /** Add cinematic effect for special poker hands */
   private addCinematicEffectForSpecialHand(handType: HandType): void {
     // Define cinematic effects for special hands
@@ -3408,84 +3610,164 @@ export class Combat extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Create top and bottom bars for cinematic effect
+    // Create horizontal bars at top and bottom (like Final Fantasy style)
     const topBar = this.add.rectangle(
       screenWidth / 2,
-      -screenHeight / 6,
+      -screenHeight / 4,
       screenWidth,
-      screenHeight / 6,
+      screenHeight / 2,
       0x000000
-    ).setAlpha(0);
+    ).setOrigin(0.5, 0).setAlpha(0);
     
     const bottomBar = this.add.rectangle(
       screenWidth / 2,
-      screenHeight + (screenHeight / 6),
+      screenHeight + screenHeight / 4,
       screenWidth,
-      screenHeight / 6,
+      screenHeight / 2,
       0x000000
-    ).setAlpha(0);
+    ).setOrigin(0.5, 1).setAlpha(0);
     
-    // Animate the bars in
+    // Animate the bars sliding in from top and bottom
     this.tweens.add({
-      targets: [topBar, bottomBar],
-      alpha: 0.9,
-      duration: 200,
+      targets: topBar,
+      y: screenHeight / 4, // Top bar moves to 1/4 down from top
+      alpha: 0.8,
+      duration: 500,
+      ease: 'Cubic.Out'
+    });
+    
+    this.tweens.add({
+      targets: bottomBar,
+      y: screenHeight * 0.75, // Bottom bar moves to 1/4 up from bottom
+      alpha: 0.8,
+      duration: 500,
+      ease: 'Cubic.Out'
+    });
+    
+    // Focus camera horizontally between hero and enemy without zooming
+    const combatCenterX = (this.playerSprite.x + this.enemySprite.x) / 2;
+    
+    // Move camera slightly to center the action horizontally
+    this.tweens.add({
+      targets: this.cameras.main,
+      scrollX: combatCenterX - (screenWidth / 2),
+      duration: 500,
       ease: 'Cubic.Out',
+      hold: 1100, // Hold the horizontal focus while text is displayed
+      completeDelay: 300, // Wait before returning to normal view
       onComplete: () => {
-        // Show hand type text in the middle
-        const handText = this.add.text(
-          screenWidth / 2,
-          screenHeight / 2,
-          this.getHandTypeDisplayText(handType).toUpperCase(),
-          {
-            fontFamily: "dungeon-mode",
-            fontSize: 48,
-            color: this.getHandTypeColor(handType),
-            align: "center",
-            stroke: "#000000",
-            strokeThickness: 4
-          }
-        ).setOrigin(0.5).setAlpha(0);
-        
-        // Animate the text in
+        // Return to original camera position
         this.tweens.add({
-          targets: handText,
-          alpha: 1,
-          scale: 1.2,
+          targets: this.cameras.main,
+          scrollX: 0,
           duration: 300,
-          ease: 'Elastic.Out',
-          yoyo: true,
-          repeat: 0
-        });
-        
-        // After a delay, animate everything out
-        this.time.delayedCall(1500, () => {
-          // Animate text out
-          this.tweens.add({
-            targets: handText,
-            alpha: 0,
-            scale: 0.8,
-            duration: 300,
-            ease: 'Cubic.In',
-            onComplete: () => {
-              handText.destroy();
-            }
-          });
-          
-          // Animate bars out
-          this.tweens.add({
-            targets: [topBar, bottomBar],
-            alpha: 0,
-            duration: 200,
-            ease: 'Cubic.In',
-            onComplete: () => {
-              topBar.destroy();
-              bottomBar.destroy();
-            }
-          });
+          ease: 'Cubic.In'
         });
       }
     });
+    
+    // Create particle effects for the special hand
+    this.createSpecialParticleEffect(screenWidth / 2, screenHeight / 2, handType);
+    
+    // Show hand type text in the middle with improved animation - formatted like a special move name
+    const handText = this.add.text(
+      screenWidth / 2,
+      screenHeight / 2,
+      `"${this.getHandTypeDisplayText(handType).toUpperCase()}"`,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 64,
+        color: this.getHandTypeColor(handType),
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 6
+      }
+    ).setOrigin(0.5).setAlpha(0).setScale(0.5);
+    
+    // Animate the text in with a more dramatic effect
+    this.tweens.add({
+      targets: handText,
+      alpha: 1,
+      scale: 1.2,
+      duration: 400,
+      ease: 'Back.Out',
+      yoyo: true,
+      repeat: 0,
+      onComplete: () => {
+        // Add a subtle pulsing effect while text is displayed
+        this.tweens.add({
+          targets: handText,
+          scale: 1.1,
+          duration: 500,
+          ease: 'Sine.InOut',
+          yoyo: true,
+          repeat: -1 // Infinite repeat until removed
+        });
+      }
+    });
+    
+    // Add a subtle screen flash for impact
+    const flash = this.add.rectangle(
+      screenWidth / 2,
+      screenHeight / 2,
+      screenWidth,
+      screenHeight,
+      0xffffff
+    ).setAlpha(0);
+    
+    this.tweens.add({
+      targets: flash,
+      alpha: [0, 0.2, 0],
+      duration: 300,
+      ease: 'Cubic.Out',
+      onComplete: () => {
+        flash.destroy();
+      }
+    });
+    
+    // After a delay, animate everything out
+    this.time.delayedCall(1800, () => {
+      // Stop the pulsing animation
+      this.tweens.killTweensOf(handText);
+      
+      // Animate text out
+      this.tweens.add({
+        targets: handText,
+        alpha: 0,
+        scale: 0.8,
+        duration: 300,
+        ease: 'Cubic.In',
+        onComplete: () => {
+          handText.destroy();
+        }
+      });
+      
+      // Animate the bars out
+      this.tweens.add({
+        targets: topBar,
+        y: -screenHeight / 4, // Top bar moves back up
+        alpha: 0,
+        duration: 500,
+        ease: 'Cubic.In',
+        onComplete: () => {
+          topBar.destroy();
+        }
+      });
+      
+      this.tweens.add({
+        targets: bottomBar,
+        y: screenHeight + screenHeight / 4, // Bottom bar moves back down
+        alpha: 0,
+        duration: 500,
+        ease: 'Cubic.In',
+        onComplete: () => {
+          bottomBar.destroy();
+        }
+      });
+    });
+    
+    // Create camera shake effect for impact
+    this.cameras.main.shake(200, 0.008);
   }
   
   /** Get appropriate color for hand type */
@@ -5495,5 +5777,69 @@ export class Combat extends Scene {
     
     // Default dialogue
     return "You have encountered a fearsome creature! Prepare for battle!";
+  }
+
+  /**
+   * Hide all UI elements during special attack for cinematic effect
+   */
+  private hideUIForSpecialAttack(): void {
+    // Hide card-related UI
+    if (this.handContainer) this.handContainer.setVisible(false);
+    if (this.playedHandContainer) this.playedHandContainer.setVisible(false);
+    if (this.actionButtons) this.actionButtons.setVisible(false);
+    if (this.damagePreviewContainer) this.damagePreviewContainer.setVisible(false);
+    
+    // Hide deck and discard piles
+    if (this.deckSprite) this.deckSprite.setVisible(false);
+    if (this.discardPileSprite) this.discardPileSprite.setVisible(false);
+    
+    // Hide status containers
+    if (this.playerStatusContainer) this.playerStatusContainer.setVisible(false);
+    if (this.enemyStatusContainer) this.enemyStatusContainer.setVisible(false);
+    
+    // Hide relics and other UI elements
+    if (this.relicsContainer) this.relicsContainer.setVisible(false);
+    if (this.pokerHandInfoButton) this.pokerHandInfoButton.setVisible(false);
+    
+    // Hide text elements
+    if (this.turnText) this.turnText.setVisible(false);
+    if (this.actionsText) this.actionsText.setVisible(false);
+    if (this.handIndicatorText) this.handIndicatorText.setVisible(false);
+    if (this.handEvaluationText) this.handEvaluationText.setVisible(false);
+    if (this.enemyIntentText) this.enemyIntentText.setVisible(false);
+    if (this.actionResultText) this.actionResultText.setVisible(false);
+    if (this.enemyAttackPreviewText) this.enemyAttackPreviewText.setVisible(false);
+  }
+
+  /**
+   * Restore all UI elements after special attack sequence
+   */
+  private restoreUIAfterSpecialAttack(): void {
+    // Restore card-related UI
+    if (this.handContainer) this.handContainer.setVisible(true);
+    if (this.playedHandContainer) this.playedHandContainer.setVisible(true);
+    if (this.actionButtons) this.actionButtons.setVisible(true);
+    if (this.damagePreviewContainer) this.damagePreviewContainer.setVisible(true);
+    
+    // Restore deck and discard piles
+    if (this.deckSprite) this.deckSprite.setVisible(true);
+    if (this.discardPileSprite) this.discardPileSprite.setVisible(true);
+    
+    // Restore status containers
+    if (this.playerStatusContainer) this.playerStatusContainer.setVisible(true);
+    if (this.enemyStatusContainer) this.enemyStatusContainer.setVisible(true);
+    
+    // Restore relics and other UI elements
+    if (this.relicsContainer) this.relicsContainer.setVisible(true);
+    if (this.pokerHandInfoButton) this.pokerHandInfoButton.setVisible(true);
+    
+    // Restore text elements
+    if (this.turnText) this.turnText.setVisible(true);
+    if (this.actionsText) this.actionsText.setVisible(true);
+    if (this.handIndicatorText) this.handIndicatorText.setVisible(true);
+    if (this.handEvaluationText) this.handEvaluationText.setVisible(true);
+    if (this.enemyIntentText) this.enemyIntentText.setVisible(true);
+    if (this.actionResultText) this.actionResultText.setVisible(true);
+    if (this.enemyAttackPreviewText) this.enemyAttackPreviewText.setVisible(true);
   }
 }
