@@ -79,7 +79,6 @@ export class Preloader extends Scene {
     this.load.image("forest_bg", "forest_bg.png");
 
     // Fonts
-    this.loadFont("Centrion", "fonts/centrion/Centrion-Regular.otf");
     this.loadFont("Chivo", "fonts/chivo/Chivo-Medium.ttf");
     this.loadFont("dungeon-mode", "fonts/dungeon-mode/dungeon-mode.ttf");
     this.loadFont("dungeon-mode-inverted", "fonts/dungeon-mode/dungeon-mode-inverted.ttf");
@@ -98,21 +97,17 @@ export class Preloader extends Scene {
       frameHeight: 16,
     });
 
-    // Enemy sprite sheets for Combat - 75x100 each
-    this.load.spritesheet("balete", "sprites/combat/enemy/balete_sprite.png", {
-      frameWidth: 75,
-      frameHeight: 100,
-    });
-    
-    this.load.spritesheet("sigbin", "sprites/combat/enemy/sigbin_sprite.png", {
-      frameWidth: 75,
-      frameHeight: 100,
-    });
-    
-    this.load.spritesheet("tikbalang", "sprites/combat/enemy/tikbalang_sprite.png", {
-      frameWidth: 75,
-      frameHeight: 100,
-    });
+    // Enemy sprites for Combat
+    this.load.image("amomongo", "sprites/combat/enemy/chap1/amomongo_combat.png");
+    this.load.image("balete", "sprites/combat/enemy/chap1/balete_combat.png");
+    this.load.image("bungisngis", "sprites/combat/enemy/chap1/bungisngis_combat.png");
+    this.load.image("duwende", "sprites/combat/enemy/chap1/duwende_combat.png");
+    this.load.image("kapre", "sprites/combat/enemy/chap1/kapre_combat.png");
+    this.load.image("mangangaway", "sprites/combat/enemy/chap1/mangangaway_combat.png");
+    this.load.image("sigbin", "sprites/combat/enemy/chap1/sigbin_combat.png");
+    this.load.image("tawong_lipod", "sprites/combat/enemy/chap1/tawonglipod_combat.png");
+    this.load.image("tikbalang", "sprites/combat/enemy/chap1/tikbalang_combat.png");
+    this.load.image("tiyanak", "sprites/combat/enemy/chap1/tiyanak_combat.png");
     
     // Overworld node sprites
     // Combat node sprites (chort)
@@ -187,14 +182,35 @@ export class Preloader extends Scene {
     if (this.textures.exists("combat_player")) {
       this.textures.get("combat_player").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
+    if (this.textures.exists("amomongo")) {
+      this.textures.get("amomongo").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
     if (this.textures.exists("balete")) {
       this.textures.get("balete").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("bungisngis")) {
+      this.textures.get("bungisngis").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("duwende")) {
+      this.textures.get("duwende").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("kapre")) {
+      this.textures.get("kapre").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("mangangaway")) {
+      this.textures.get("mangangaway").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
     if (this.textures.exists("sigbin")) {
       this.textures.get("sigbin").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
+    if (this.textures.exists("tawong_lipod")) {
+      this.textures.get("tawong_lipod").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
     if (this.textures.exists("tikbalang")) {
       this.textures.get("tikbalang").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("tiyanak")) {
+      this.textures.get("tiyanak").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
     if (this.textures.exists("overworld_player")) {
       this.textures.get("overworld_player").setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -205,7 +221,6 @@ export class Preloader extends Scene {
       //  Create animations for the sprites
       try {
         this.createPlayerAnimations();
-        this.createEnemyAnimations();
         this.createAvatarAnimations();
         this.createNodeAnimations(); // Add this line
       } catch (error) {
@@ -347,39 +362,7 @@ export class Preloader extends Scene {
     console.log("Created avatar_walk_right animation");
   }
 
-  /**
-   * Create enemy animations for Combat
-   */
-  private createEnemyAnimations(): void {
-    console.log("Creating enemy animations");
-    
-    // Balete idle animation
-    this.anims.create({
-      key: "balete_idle",
-      frames: this.anims.generateFrameNumbers("balete", { start: 0, end: 3 }),
-      frameRate: 8,
-      repeat: -1,
-    });
-    console.log("Created balete_idle animation");
-    
-    // Sigbin idle animation
-    this.anims.create({
-      key: "sigbin_idle",
-      frames: this.anims.generateFrameNumbers("sigbin", { start: 0, end: 3 }),
-      frameRate: 8,
-      repeat: -1,
-    });
-    console.log("Created sigbin_idle animation");
-    
-    // Tikbalang idle animation
-    this.anims.create({
-      key: "tikbalang_idle",
-      frames: this.anims.generateFrameNumbers("tikbalang", { start: 0, end: 3 }),
-      frameRate: 8,
-      repeat: -1,
-    });
-    console.log("Created tikbalang_idle animation");
-  }
+
 
   /**
    * Create overworld node animations

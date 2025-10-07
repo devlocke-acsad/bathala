@@ -1,8 +1,15 @@
 import { Scene, GameObjects } from "phaser";
 import { 
-  TIKBALANG, DWENDE, KAPRE, SIGBIN, TIYANAK,
-  MANANANGGAL, ASWANG, DUWENDE_CHIEF,
-  BAKUNAWA
+  TIKBALANG_SCOUT,
+  BALETE_WRAITH,
+  SIGBIN_CHARGER,
+  DUWENDE_TRICKSTER,
+  TIYANAK_AMBUSHER,
+  AMOMONGO,
+  BUNGISNGIS,
+  KAPRE_SHADE,
+  TAWONG_LIPOD,
+  MANGNANGAWAY
 } from "../../data/enemies/Act1Enemies";
 
 export class Discover extends Scene {
@@ -176,97 +183,106 @@ export class Discover extends Scene {
    * Load compendium data from existing enemy definitions
    */
   private loadCompendiumData(): void {
-    // Using the imported enemy data and adding more detailed lore information
     this.compendiumEntries = [
       {
-        id: "tikbalang",
-        name: TIKBALANG.name,
-        description: "A creature with the head and torso of a human and the lower body of a horse. Known to lead travelers astray in the forests and mountains.",
+        id: "tikbalang_scout",
+        name: TIKBALANG_SCOUT.name,
+        description: "A creature with the head of a horse that misleads travelers.",
         type: "Common",
-        health: TIKBALANG.maxHealth,
-        attack: TIKBALANG.damage,
-        abilities: ["Confuse", "Mischief"],
-        lore: "Tikbalangs are benevolent creatures when treated with respect but can be mischievous to those who show them disrespect. They are protectors of the forest and punish those who harm nature. These beings are often seen as guardians of sacred groves and are known for their incredible strength and speed. In some tales, they challenge humans to riddles or races, rewarding those who show wit and respect."
+        health: TIKBALANG_SCOUT.maxHealth,
+        attack: TIKBALANG_SCOUT.damage,
+        abilities: ["Confuse"],
+        lore: "Tikbalang were forest protectors, now they mislead with backward hooves."
       },
       {
-        id: "dwende",
-        name: DWENDE.name,
-        description: "Tiny people who live in houses, trees, and mounds. They are often seen as protectors of nature.",
+        id: "balete_wraith",
+        name: BALETE_WRAITH.name,
+        description: "A spirit inhabiting a Balete tree, a portal to the spirit world.",
         type: "Common",
-        health: DWENDE.maxHealth,
-        attack: DWENDE.damage,
-        abilities: ["Mischief", "Deceive"],
-        lore: "Dwendes are household spirits that can be either helpful or harmful depending on how they are treated. They are known to play tricks on people but can also be kind to those who show them respect. These tiny beings are often associated with specific locations, such as anthills, termite mounds, or large trees. They are believed to have the power to influence luck, both good and bad, in the lives of those around them."
+        health: BALETE_WRAITH.maxHealth,
+        attack: BALETE_WRAITH.damage,
+        abilities: ["Strengthen"],
+        lore: "Balete trees are anito portals, haunted by engkanto-twisted spirits."
       },
       {
-        id: "kapre",
-        name: KAPRE.name,
-        description: "A giant tree-dwelling creature that smokes enormous cigars. They are known to be mostly harmless unless provoked.",
+        id: "sigbin_charger",
+        name: SIGBIN_CHARGER.name,
+        description: "A creature that steals hearts for its amulets.",
         type: "Common",
-        health: KAPRE.maxHealth,
-        attack: KAPRE.damage,
-        abilities: ["Smoke", "Hide"],
-        lore: "Kapres are gentle giants that live in large trees, particularly bamboo groves and old mango trees. They are known for their love of tobacco and are often heard laughing in the woods at night. Despite their intimidating size, kapres are generally peaceful and can even be helpful to humans who treat them kindly. They are said to possess great strength and can move trees and rocks with ease."
+        health: SIGBIN_CHARGER.maxHealth,
+        attack: SIGBIN_CHARGER.damage,
+        abilities: ["Charge"],
+        lore: "Sigbin steal hearts for amulets, once loyal to Bathala."
       },
       {
-        id: "sigbin",
-        name: SIGBIN.name,
-        description: "A dog-like creature with a taste for human blood and filth. They can become invisible and travel backwards.",
+        id: "duwende_trickster",
+        name: DUWENDE_TRICKSTER.name,
+        description: "A goblin-like creature that can grant boons or curses.",
         type: "Common",
-        health: SIGBIN.maxHealth,
-        attack: SIGBIN.damage,
-        abilities: ["Invisibility", "Backwards Movement"],
-        lore: "Sigbins are evil creatures that feed on human blood and waste. They are known for their ability to become invisible and travel backwards, making them difficult to track. They are often associated with witches and dark magic. In some stories, sigbins are said to be the familiars of witches, doing their bidding in exchange for offerings of blood or other dark substances."
+        health: DUWENDE_TRICKSTER.maxHealth,
+        attack: DUWENDE_TRICKSTER.damage,
+        abilities: ["Steal Block", "Disrupt Draw"],
+        lore: "Duwende grant boons/curses, warped by engkanto lies."
       },
       {
-        id: "tiyanak",
-        name: TIYANAK.name,
-        description: "A baby vampire that appears as a crying infant to lure victims into caring for it, then attacks.",
+        id: "tiyanak_ambusher",
+        name: TIYANAK_AMBUSHER.name,
+        description: "A lost infant spirit that mimics a baby's cry to lure its victims.",
         type: "Common",
-        health: TIYANAK.maxHealth,
-        attack: TIYANAK.damage,
-        abilities: ["Deceive", "Lure"],
-        lore: "Tiyanak appears as a lost, crying baby to take advantage of people's compassion. Once picked up, it reveals its true form and attacks. It is considered a punishment for those who abandon their children. This creature represents the consequences of neglecting one's responsibilities, particularly those towards the vulnerable. In some tales, tiyanaks are said to be the spirits of stillborn children who were not given proper burial rites."
+        health: TIYANAK_AMBUSHER.maxHealth,
+        attack: TIYANAK_AMBUSHER.damage,
+        abilities: ["Fear", "Critical Attack"],
+        lore: "Tiyanak, lost infant spirits mimicking babies to attack."
       },
       {
-        id: "manananggal",
-        name: MANANANGGAL.name,
-        description: "A vampire-like creature that can sever its upper torso from its lower body to fly around.",
+        id: "amomongo",
+        name: AMOMONGO.name,
+        description: "An ape-like creature with long nails that attacks livestock.",
+        type: "Common",
+        health: AMOMONGO.maxHealth,
+        attack: AMOMONGO.damage,
+        abilities: ["Bleed"],
+        lore: "Amomongo, ape-like with long nails, attacking livestock."
+      },
+      {
+        id: "bungisngis",
+        name: BUNGISNGIS.name,
+        description: "A one-eyed laughing giant.",
+        type: "Common",
+        health: BUNGISNGIS.maxHealth,
+        attack: BUNGISNGIS.damage,
+        abilities: ["Laugh Debuff"],
+        lore: "Bungisngis, one-eyed laughing giants, once jovial."
+      },
+      {
+        id: "kapre_shade",
+        name: KAPRE_SHADE.name,
+        description: "A tree giant that smokes a large cigar.",
         type: "Elite",
-        health: MANANANGGAL.maxHealth,
-        attack: MANANANGGAL.damage,
-        abilities: ["Flight", "Split"],
-        lore: "Manananggals are among the most feared creatures in Filipino mythology. They appear as beautiful women during the day but transform into winged vampires at night. They use their long tongue to suck blood from sleeping victims. These creatures are said to be created when a woman's intense hatred or desire for revenge becomes so powerful that it physically transforms her. They are particularly dangerous during pregnancy, as they are believed to target unborn children."
+        health: KAPRE_SHADE.maxHealth,
+        attack: KAPRE_SHADE.damage,
+        abilities: ["AoE Burn", "Summon Minions"],
+        lore: "Kapre, tree giants smoking cigars, loyal to Bathala."
       },
       {
-        id: "aswang",
-        name: ASWANG.name,
-        description: "A shapeshifting monster that can take the form of humans or animals to hunt for prey.",
+        id: "tawong_lipod",
+        name: TAWONG_LIPOD.name,
+        description: "An invisible wind being.",
         type: "Elite",
-        health: ASWANG.maxHealth,
-        attack: ASWANG.damage,
-        abilities: ["Shapeshift", "Hunt"],
-        lore: "Aswangs are perhaps the most versatile and dangerous creatures in Filipino folklore. They can take many forms and specialize in eating fetuses and internal organs. They are known for their ability to stretch their necks unnaturally long. These creatures represent the darker aspects of human nature, particularly greed and the desire to consume at the expense of others. In some stories, aswangs are said to be created through dark rituals or curses."
+        health: TAWONG_LIPOD.maxHealth,
+        attack: TAWONG_LIPOD.damage,
+        abilities: ["Invisible", "Stun"],
+        lore: "Tawong Lipod, invisible Bikol wind beings, once harmonious."
       },
       {
-        id: "duwende-chief",
-        name: DUWENDE_CHIEF.name,
-        description: "A powerful leader of the dwende community with enhanced abilities and commanding presence.",
-        type: "Elite",
-        health: DUWENDE_CHIEF.maxHealth,
-        attack: DUWENDE_CHIEF.damage,
-        abilities: ["Command", "Leadership"],
-        lore: "The Duwende Chief rules over the dwende community and has powers beyond ordinary dwendes. They are both feared and respected by other mythical beings. They protect their territories fiercely and can command other nature spirits. Unlike regular dwendes, the chief is often depicted as being more humanoid in appearance, though still small in stature. They are known for their wisdom and are sometimes sought out by humans for advice, though gaining their favor requires great respect and proper offerings."
-      },
-      {
-        id: "bakunawa",
-        name: BAKUNAWA.name,
-        description: "A giant sea serpent that causes eclipses by attempting to devour the sun or moon.",
+        id: "mangangaway",
+        name: MANGNANGAWAY.name,
+        description: "A sorcerer who casts evil spells.",
         type: "Boss",
-        health: BAKUNAWA.maxHealth,
-        attack: BAKUNAWA.damage,
-        abilities: ["Eclipse", "Devour"],
-        lore: "Bakunawa is a massive serpent that circles the earth, occasionally trying to eat the sun or moon, causing eclipses. It is said to be so large that it can swallow the moon whole. Ancient Filipinos would make loud noises during eclipses to scare the beast away. This creature represents the eternal struggle between light and darkness, order and chaos. In some myths, Bakunawa was once a beautiful woman transformed into a serpent as punishment for her vanity or defiance of the gods."
+        health: MANGNANGAWAY.maxHealth,
+        attack: MANGNANGAWAY.damage,
+        abilities: ["Mimic Elements", "Curse Cards"],
+        lore: "Mangangaway, sorcerers casting evil spells."
       }
     ];
   }
@@ -394,15 +410,16 @@ export class Discover extends Scene {
    */
   private getCharacterSymbol(id: string): string {
     switch (id) {
-      case "tikbalang": return "🐴";
-      case "dwende": return "👤";
-      case "kapre": return "🚬";
-      case "sigbin": return "🐕";
-      case "tiyanak": return "👶";
-      case "manananggal": return "🦇";
-      case "aswang": return "🧟";
-      case "duwende-chief": return "👑";
-      case "bakunawa": return "🐍";
+      case "tikbalang_scout": return "🐴";
+      case "balete_wraith": return "🌳";
+      case "sigbin_charger": return "🐕";
+      case "duwende_trickster": return "👤";
+      case "tiyanak_ambusher": return "👶";
+      case "amomongo": return "🦍";
+      case "bungisngis": return "😄";
+      case "kapre_shade": return "🚬";
+      case "tawong_lipod": return "💨";
+      case "mangangaway": return "🧙";
       default: return "👹";
     }
   }

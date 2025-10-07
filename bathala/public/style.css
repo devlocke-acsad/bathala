@@ -7,13 +7,6 @@
 }
 
 @font-face {
-    font-family: 'Centrion';
-    src: url('./assets/fonts/centrion/Centrion-Regular.otf') format('opentype');
-    font-weight: normal;
-    font-style: normal;
-}
-
-@font-face {
     font-family: 'Chivo';
     src: url('./assets/fonts/chivo/Chivo-Medium.ttf') format('truetype');
     font-weight: normal;
@@ -64,7 +57,7 @@ html, body {
 }
 
 body {
-    font-family: 'Centrion', Arial, sans-serif;
+    font-family: Arial, sans-serif;
     color: rgba(255, 255, 255, 0.87);
     background-color: #150E10; /* Changed to our main background color */
     margin: 0;

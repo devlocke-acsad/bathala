@@ -7,15 +7,29 @@ import { Player } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { Potion } from "../../data/potions/Act1Potions";
 import { 
-  TIKBALANG, DWENDE, KAPRE, SIGBIN, TIYANAK,
-  MANANANGGAL, ASWANG, DUWENDE_CHIEF, BAKUNAWA
+  TIKBALANG_SCOUT,
+  BALETE_WRAITH,
+  SIGBIN_CHARGER,
+  DUWENDE_TRICKSTER,
+  TIYANAK_AMBUSHER,
+  AMOMONGO,
+  BUNGISNGIS,
+  KAPRE_SHADE,
+  TAWONG_LIPOD,
+  MANGNANGAWAY
 } from "../../data/enemies/Act1Enemies";
-import {
-  TIKBALANG_LORE, DWENDE_LORE, KAPRE_LORE, SIGBIN_LORE, 
-  TIYANAK_LORE, MANANANGGAL_LORE, ASWANG_LORE, DUWENDE_CHIEF_LORE,
-  BAKUNAWA_LORE
+import { 
+  TIKBALANG_SCOUT_LORE,
+  BALETE_WRAITH_LORE,
+  SIGBIN_CHARGER_LORE,
+  DUWENDE_TRICKSTER_LORE,
+  TIYANAK_AMBUSHER_LORE,
+  AMOMONGO_LORE,
+  BUNGISNGIS_LORE,
+  KAPRE_SHADE_LORE,
+  TAWONG_LIPOD_LORE,
+  MANGNANGAWAY_LORE
 } from "../../data/lore/EnemyLore";
-
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -4953,113 +4967,119 @@ ${potion.description}`, {
 
     switch (nodeType) {
       case "combat":
-        // Randomly select a common enemy
         const commonEnemies = [
           {
-            name: TIKBALANG.name,
+            name: TIKBALANG_SCOUT.name,
             type: "Combat",
             spriteKey: "tikbalang",
             animationKey: "tikbalang_idle",
-            health: TIKBALANG.maxHealth,
-            damage: TIKBALANG.damage,
-            abilities: ["Forest Navigation", "Illusion Casting"],
-            description: TIKBALANG_LORE.description
+            health: TIKBALANG_SCOUT.maxHealth,
+            damage: TIKBALANG_SCOUT.damage,
+            abilities: ["Confuse"],
+            description: TIKBALANG_SCOUT_LORE.description
           },
           {
-            name: DWENDE.name,
+            name: BALETE_WRAITH.name,
             type: "Combat", 
-            spriteKey: "chort_f0", // Using overworld sprite since no dwende combat sprite
-            animationKey: null,
-            health: DWENDE.maxHealth,
-            damage: DWENDE.damage,
-            abilities: ["Invisibility", "Mischief"],
-            description: DWENDE_LORE.description
+            spriteKey: "balete",
+            animationKey: "balete_idle",
+            health: BALETE_WRAITH.maxHealth,
+            damage: BALETE_WRAITH.damage,
+            abilities: ["Strengthen"],
+            description: BALETE_WRAITH_LORE.description
           },
           {
-            name: KAPRE.name,
-            type: "Combat",
-            spriteKey: "chort_f0", // Using overworld sprite since no kapre combat sprite
-            animationKey: null,
-            health: KAPRE.maxHealth,
-            damage: KAPRE.damage,
-            abilities: ["Smoke Manipulation", "Tree Dwelling"],
-            description: KAPRE_LORE.description
-          },
-          {
-            name: SIGBIN.name,
+            name: SIGBIN_CHARGER.name,
             type: "Combat",
             spriteKey: "sigbin",
             animationKey: "sigbin_idle",
-            health: SIGBIN.maxHealth, 
-            damage: SIGBIN.damage,
-            abilities: ["Invisibility", "Shadow Draining"],
-            description: SIGBIN_LORE.description
+            health: SIGBIN_CHARGER.maxHealth,
+            damage: SIGBIN_CHARGER.damage,
+            abilities: ["Charge"],
+            description: SIGBIN_CHARGER_LORE.description
           },
           {
-            name: TIYANAK.name,
+            name: DUWENDE_TRICKSTER.name,
             type: "Combat",
-            spriteKey: "chort_f0", // Using overworld sprite since no tiyanak combat sprite
-            animationKey: null,
-            health: TIYANAK.maxHealth,
-            damage: TIYANAK.damage, 
-            abilities: ["Shapeshifting", "Deception"],
-            description: TIYANAK_LORE.description
+            spriteKey: "duwende",
+            animationKey: "duwende_idle",
+            health: DUWENDE_TRICKSTER.maxHealth, 
+            damage: DUWENDE_TRICKSTER.damage,
+            abilities: ["Steal Block", "Disrupt Draw"],
+            description: DUWENDE_TRICKSTER_LORE.description
+          },
+          {
+            name: TIYANAK_AMBUSHER.name,
+            type: "Combat",
+            spriteKey: "tiyanak",
+            animationKey: "tiyanak_idle",
+            health: TIYANAK_AMBUSHER.maxHealth,
+            damage: TIYANAK_AMBUSHER.damage, 
+            abilities: ["Fear", "Critical Attack"],
+            description: TIYANAK_AMBUSHER_LORE.description
+          },
+          {
+            name: AMOMONGO.name,
+            type: "Combat",
+            spriteKey: "amomongo",
+            animationKey: "amomongo_idle",
+            health: AMOMONGO.maxHealth,
+            damage: AMOMONGO.damage, 
+            abilities: ["Bleed"],
+            description: AMOMONGO_LORE.description
+          },
+          {
+            name: BUNGISNGIS.name,
+            type: "Combat",
+            spriteKey: "bungisngis",
+            animationKey: "bungisngis_idle",
+            health: BUNGISNGIS.maxHealth,
+            damage: BUNGISNGIS.damage, 
+            abilities: ["Laugh Debuff"],
+            description: BUNGISNGIS_LORE.description
           }
         ];
         
-        // Use node ID to consistently select the same enemy for this node
         const combatIndex = nodeId ? getNodeHash(nodeId) % commonEnemies.length : 0;
         return commonEnemies[combatIndex];
         
       case "elite":
-        // Randomly select an elite enemy
         const eliteEnemies = [
           {
-            name: MANANANGGAL.name,
+            name: KAPRE_SHADE.name,
             type: "Elite",
-            spriteKey: "big_demon_f0", // Using overworld elite sprite since no manananggal combat sprite
-            animationKey: null,
-            health: MANANANGGAL.maxHealth,
-            damage: MANANANGGAL.damage,
-            abilities: ["Flight", "Body Segmentation", "Blood Draining"],
-            description: MANANANGGAL_LORE.description
+            spriteKey: "kapre",
+            animationKey: "kapre_idle",
+            health: KAPRE_SHADE.maxHealth,
+            damage: KAPRE_SHADE.damage,
+            abilities: ["AoE Burn", "Summon Minions"],
+            description: KAPRE_SHADE_LORE.description
           },
           {
-            name: ASWANG.name,
+            name: TAWONG_LIPOD.name,
             type: "Elite", 
-            spriteKey: "big_demon_f0", // Using overworld elite sprite since no aswang combat sprite
-            animationKey: null,
-            health: ASWANG.maxHealth,
-            damage: ASWANG.damage,
-            abilities: ["Shapeshifting", "Cannibalism", "Night Vision"],
-            description: ASWANG_LORE.description
-          },
-          {
-            name: DUWENDE_CHIEF.name,
-            type: "Elite",
-            spriteKey: "big_demon_f0", // Using overworld elite sprite since no duwende_chief combat sprite
-            animationKey: null,
-            health: DUWENDE_CHIEF.maxHealth,
-            damage: DUWENDE_CHIEF.damage,
-            abilities: ["Command", "Magic", "Earth Control"],
-            description: DUWENDE_CHIEF_LORE.description
+            spriteKey: "tawong_lipod",
+            animationKey: "tawong_lipod_idle",
+            health: TAWONG_LIPOD.maxHealth,
+            damage: TAWONG_LIPOD.damage,
+            abilities: ["Invisible", "Stun"],
+            description: TAWONG_LIPOD_LORE.description
           }
         ];
         
-        // Use node ID to consistently select the same elite enemy for this node
         const eliteIndex = nodeId ? getNodeHash(nodeId) % eliteEnemies.length : 0;
         return eliteEnemies[eliteIndex];
         
       case "boss":
         return {
-          name: BAKUNAWA.name,
+          name: MANGNANGAWAY.name,
           type: "Boss",
-          spriteKey: "balete", // Using balete sprite for boss since no bakunawa sprite available
-          animationKey: "balete_idle",
-          health: BAKUNAWA.maxHealth,
-          damage: BAKUNAWA.damage,
-          abilities: ["Eclipse Creation", "Massive Size", "Elemental Control"],
-          description: BAKUNAWA_LORE.description
+          spriteKey: "mangangaway",
+          animationKey: "mangangaway_idle",
+          health: MANGNANGAWAY.maxHealth,
+          damage: MANGNANGAWAY.damage,
+          abilities: ["Mimic Elements", "Curse Cards"],
+          description: MANGNANGAWAY_LORE.description
         };
         
       default:
