@@ -1517,14 +1517,27 @@ export class Overworld extends Scene {
     switch (node.type) {
       case "combat":
       case "elite":
-        const enemyInfo = this.getEnemyInfoForNodeType(node.type, node.id);
-        spriteKey = enemyInfo.spriteKey;
-        animKey = enemyInfo.animationKey;
+        if (node.enemyId) {
+          let spriteKeyBase = node.enemyId.toLowerCase().split(" ")[0];
+          if (spriteKeyBase === "tawong") {
+            spriteKeyBase = "tawonglipod";
+          }
+          spriteKey = spriteKeyBase + "_overworld";
+        } else {
+          // Fallback to a generic sprite if no enemyId is present
+          spriteKey = node.type === "elite" ? "big_demon_f0" : "chort_f0";
+        }
+        animKey = null;
         break;
       case "boss":
-        // For now, use the elite sprite as placeholder for boss
-        spriteKey = "big_demon_f0";
-        animKey = "big_demon_idle";
+        if (node.enemyId) {
+          let spriteKeyBase = node.enemyId.toLowerCase().split(" ")[0];
+          spriteKey = spriteKeyBase + "_overworld";
+        } else {
+          // Fallback to a generic sprite if no enemyId is present
+          spriteKey = "big_demon_f0";
+        }
+        animKey = null;
         break;
       case "shop":
         spriteKey = "necromancer_f0";
@@ -1566,7 +1579,8 @@ export class Overworld extends Scene {
     nodeSprite.setDepth(501); // Above the maze
 
     // Scale the sprite to fit within a 32x32 box while maintaining aspect ratio
-    const targetSize = 32;
+    const biggerSprites = ["amomongo_overworld", "balete_overworld", "tawonglipod_overworld", "kapre_overworld", "mangangaway_overworld", "tikbalang_overworld"];
+    const targetSize = biggerSprites.includes(spriteKey) ? 48 : 32;
     const scale = targetSize / Math.max(nodeSprite.width, nodeSprite.height);
     nodeSprite.setScale(scale);
     
@@ -1591,9 +1605,9 @@ export class Overworld extends Scene {
         
         // Show appropriate tooltip based on node type
         if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
-          this.showEnemyTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+          this.showEnemyTooltipImmediate(node, pointer.x, pointer.y);
         } else {
-          this.showNodeTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+          this.showNodeTooltipImmediate(node, pointer.x, pointer.y);
         }
         
         // Add hover effect to sprite
@@ -4623,16 +4637,16 @@ ${potion.description}`, {
   /**
    * Show enemy tooltip with information - immediate version without timing issues
    */
-  private showEnemyTooltipImmediate(nodeType: string, nodeId: string, mouseX?: number, mouseY?: number): void {
+  private showEnemyTooltipImmediate(node: MapNode, mouseX?: number, mouseY?: number): void {
     // Validate inputs and state
-    if (!nodeType || !this.tooltipContainer) {
-      console.warn("Cannot show tooltip: missing nodeType or tooltip not initialized");
+    if (!node || !this.tooltipContainer) {
+      console.warn("Cannot show tooltip: missing node or tooltip not initialized");
       return;
     }
     
-    const enemyInfo = this.getEnemyInfoForNodeType(nodeType, nodeId);
+    const enemyInfo = this.getEnemyInfoForNodeType(node.type, node.enemyId);
     if (!enemyInfo) {
-      console.warn("Cannot show tooltip: no enemy info for type", nodeType);
+      console.warn("Cannot show tooltip: no enemy info for type", node.type);
       return;
     }
     
@@ -4816,15 +4830,15 @@ ${potion.description}`, {
   /**
    * Show node tooltip for non-enemy nodes
    */
-  private showNodeTooltipImmediate(nodeType: string, nodeId: string, mouseX: number, mouseY: number): void {
+  private showNodeTooltipImmediate(node: MapNode, mouseX: number, mouseY: number): void {
     if (!this.tooltipContainer) {
       console.warn("Tooltip container not available");
       return;
     }
     
-    const nodeInfo = this.getNodeInfoForType(nodeType);
+    const nodeInfo = this.getNodeInfoForType(node.type);
     if (!nodeInfo) {
-      console.warn(`No info available for node type: ${nodeType}`);
+      console.warn(`No info available for node type: ${node.type}`);
       return;
     }
     
@@ -4955,137 +4969,33 @@ ${potion.description}`, {
   /**
    * Get enemy information for a given node type
    */
-  private getEnemyInfoForNodeType(nodeType: string, nodeId?: string): any {
-    // Create a simple hash from nodeId for consistent enemy selection
-    const getNodeHash = (id: string): number => {
-      let hash = 0;
-      for (let i = 0; i < id.length; i++) {
-        const char = id.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-      }
-      return Math.abs(hash);
-    };
-
-    switch (nodeType) {
-      case "combat":
-        const commonEnemies = [
-          {
-            name: TIKBALANG_SCOUT.name,
-            type: "Combat",
-            spriteKey: "tikbalang_overworld",
-            animationKey: null,
-            health: TIKBALANG_SCOUT.maxHealth,
-            damage: TIKBALANG_SCOUT.damage,
-            abilities: ["Confuse"],
-            description: TIKBALANG_SCOUT_LORE.description
-          },
-          {
-            name: BALETE_WRAITH.name,
-            type: "Combat", 
-            spriteKey: "balete_overworld",
-            animationKey: null,
-            health: BALETE_WRAITH.maxHealth,
-            damage: BALETE_WRAITH.damage,
-            abilities: ["Strengthen"],
-            description: BALETE_WRAITH_LORE.description
-          },
-          {
-            name: SIGBIN_CHARGER.name,
-            type: "Combat",
-            spriteKey: "sigbin_overworld",
-            animationKey: null,
-            health: SIGBIN_CHARGER.maxHealth,
-            damage: SIGBIN_CHARGER.damage,
-            abilities: ["Charge"],
-            description: SIGBIN_CHARGER_LORE.description
-          },
-          {
-            name: DUWENDE_TRICKSTER.name,
-            type: "Combat",
-            spriteKey: "duwende_overworld",
-            animationKey: null,
-            health: DUWENDE_TRICKSTER.maxHealth, 
-            damage: DUWENDE_TRICKSTER.damage,
-            abilities: ["Steal Block", "Disrupt Draw"],
-            description: DUWENDE_TRICKSTER_LORE.description
-          },
-          {
-            name: TIYANAK_AMBUSHER.name,
-            type: "Combat",
-            spriteKey: "tiyanak_overworld",
-            animationKey: null,
-            health: TIYANAK_AMBUSHER.maxHealth,
-            damage: TIYANAK_AMBUSHER.damage, 
-            abilities: ["Fear", "Critical Attack"],
-            description: TIYANAK_AMBUSHER_LORE.description
-          },
-          {
-            name: AMOMONGO.name,
-            type: "Combat",
-            spriteKey: "amomongo_overworld",
-            animationKey: null,
-            health: AMOMONGO.maxHealth,
-            damage: AMOMONGO.damage, 
-            abilities: ["Bleed"],
-            description: AMOMONGO_LORE.description
-          },
-          {
-            name: BUNGISNGIS.name,
-            type: "Combat",
-            spriteKey: "bungisngis_overworld",
-            animationKey: null,
-            health: BUNGISNGIS.maxHealth,
-            damage: BUNGISNGIS.damage, 
-            abilities: ["Laugh Debuff"],
-            description: BUNGISNGIS_LORE.description
-          }
-        ];
-        
-        const combatIndex = nodeId ? getNodeHash(nodeId) % commonEnemies.length : 0;
-        return commonEnemies[combatIndex];
-        
-      case "elite":
-        const eliteEnemies = [
-          {
-            name: KAPRE_SHADE.name,
-            type: "Elite",
-            spriteKey: "kapre_overworld",
-            animationKey: null,
-            health: KAPRE_SHADE.maxHealth,
-            damage: KAPRE_SHADE.damage,
-            abilities: ["AoE Burn", "Summon Minions"],
-            description: KAPRE_SHADE_LORE.description
-          },
-          {
-            name: TAWONG_LIPOD.name,
-            type: "Elite", 
-            spriteKey: "tawong_lipod_overworld",
-            animationKey: null,
-            health: TAWONG_LIPOD.maxHealth,
-            damage: TAWONG_LIPOD.damage,
-            abilities: ["Invisible", "Stun"],
-            description: TAWONG_LIPOD_LORE.description
-          }
-        ];
-        
-        const eliteIndex = nodeId ? getNodeHash(nodeId) % eliteEnemies.length : 0;
-        return eliteEnemies[eliteIndex];
-        
-      case "boss":
-        return {
-          name: MANGNANGAWAY.name,
-          type: "Boss",
-          spriteKey: "mangangaway_overworld",
-          animationKey: null,
-          health: MANGNANGAWAY.maxHealth,
-          damage: MANGNANGAWAY.damage,
-          abilities: ["Mimic Elements", "Curse Cards"],
-          description: MANGNANGAWAY_LORE.description
-        };
-        
-      default:
-        return null;
+  private getEnemyInfoForNodeType(nodeType: string, enemyId?: string): any {
+    if (!enemyId) {
+      return null;
     }
+
+    const allEnemies = [...ACT1_COMMON_ENEMIES, ...ACT1_ELITE_ENEMIES, MANGNANGAWAY];
+    const enemy = allEnemies.find(e => e.name === enemyId);
+
+    if (!enemy) return null;
+
+    const lore = ENEMY_LORE_DATA[enemy.name.toLowerCase().replace(/ /g, "_")];
+
+    let spriteKeyBase = enemy.name.toLowerCase().split(" ")[0];
+    if (spriteKeyBase === "tawong") {
+        spriteKeyBase = "tawonglipod";
+    }
+    const spriteKey = spriteKeyBase + "_overworld";
+
+    return {
+      name: enemy.name,
+      type: nodeType === "elite" ? "Elite" : "Combat",
+      spriteKey: spriteKey,
+      animationKey: null,
+      health: enemy.maxHealth,
+      damage: enemy.damage,
+      abilities: [], // You can get this from lore or enemy data if available
+      description: lore ? lore.description : ""
+    };
   }
 }

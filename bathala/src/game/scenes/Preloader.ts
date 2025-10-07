@@ -117,7 +117,7 @@ export class Preloader extends Scene {
     this.load.image("kapre_overworld", "sprites/overworld/combat/chap1/kapre_overworld.png");
     this.load.image("mangangaway_overworld", "sprites/overworld/combat/chap1/mangangaway_overworld.png");
     this.load.image("sigbin_overworld", "sprites/overworld/combat/chap1/sigbin_overworld.png");
-    this.load.image("tawong_lipod_overworld", "sprites/overworld/combat/chap1/tawonglipod_overworld.png");
+    this.load.image("tawonglipod_overworld", "sprites/overworld/combat/chap1/tawonglipod_overworld.png");
     this.load.image("tikbalang_overworld", "sprites/overworld/combat/chap1/tikbalang_overworld.png");
     this.load.image("tiyanak_overworld", "sprites/overworld/combat/chap1/tiyanak_overworld.png");
     
