@@ -98,73 +98,73 @@ export class Combat extends Scene {
   private creatureDialogues: Record<string, CreatureDialogue> = {
     tikbalang_scout: {
       name: "Tikbalang Scout",
-      spareDialogue: "Spare me: Tikbalang were forest protectors, now misleading with backward hooves.",
-      killDialogue: "End me—my essence feeds shadow!",
-      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Tikbalang's protection" },
-      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Confusion immunity" },
+      spareDialogue: "Hah! You show mercy to a forest guardian turned to shadow? Once I guided lost souls to safety, but now... now I lead them astray. Still, your compassion awakens something deep in me. Take this blessing of sure footing.",
+      killDialogue: "My essence... it feeds the darkness you call shadow. You've only made the forest more treacherous, traveler!",
+      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Sure footing" },
+      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Deceptive paths" },
     },
     balete_wraith: {
-        name: "Balete Wraith",
-        spareDialogue: "Mercy reveals: Balete trees are anito portals, haunted by engkanto-twisted spirits.",
-        killDialogue: "Strike true—my form feeds impostor!",
-        spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Forest harmony" },
-        killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Gained dark essence" },
+      name: "Balete Wraith",
+      spareDialogue: "These roots once held sacred conversations between anito and Bathala, but the engkanto's lies... they poisoned our very essence. Spare me, and I'll grant you the wisdom of the sacred grove.",
+      killDialogue: "My spirit feeds the impostor's power! The forest remembers your violence, traveler!",
+      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Sacred grove wisdom" },
+      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Cursed bark" },
     },
     sigbin_charger: {
-        name: "Sigbin Charger",
-        spareDialogue: "Compassion uncovers: Sigbin steal hearts for amulets, once loyal to Bathala.",
-        killDialogue: "Slay me—claim power for shadow!",
-        spareReward: { ginto: 55, baubles: 0, healthHealing: 7, bonusEffect: "Shadow sight" },
-        killReward: { ginto: 80, baubles: 1, healthHealing: 0, bonusEffect: "Invisibility tactics" },
+      name: "Sigbin Charger",
+      spareDialogue: "We once served Bathala faithfully, our hearts pure and our purpose noble. But the false god's whispers... they corrupted us. If you spare me, I'll share the secret of the night paths.",
+      killDialogue: "Take my power, but beware—darkness flows to the one who commands shadows!",
+      spareReward: { ginto: 55, baubles: 0, healthHealing: 7, bonusEffect: "Night path secrets" },
+      killReward: { ginto: 80, baubles: 1, healthHealing: 0, bonusEffect: "Heart of shadow" },
     },
     duwende_trickster: {
-        name: "Duwende Trickster",
-        spareDialogue: "Spare, learn: Duwende grant boons/curses, warped by engkanto lies.",
-        killDialogue: "End my mischief—fuel for impostor!",
-        spareReward: { ginto: 40, baubles: 0, healthHealing: 5, bonusEffect: "Hidden treasures await" },
-        killReward: { ginto: 60, baubles: 1, healthHealing: 0, bonusEffect: "Mischief mastery" },
+      name: "Duwende Trickster",
+      spareDialogue: "You have the eyes of one who sees beyond surface, mortal. We are indeed spirits of great power, though the engkanto's web has twisted our nature. Accept this gift of hidden sight.",
+      killDialogue: "My tricks scatter to the wind, but the forest remembers! Your ruthlessness feeds the impostor's growing strength!",
+      spareReward: { ginto: 40, baubles: 0, healthHealing: 5, bonusEffect: "Hidden sight" },
+      killReward: { ginto: 60, baubles: 1, healthHealing: 0, bonusEffect: "Mischievous whispers" },
     },
     tiyanak_ambusher: {
-        name: "Tiyanak Ambusher",
-        spareDialogue: "Mercy shows: Tiyanak, lost infant spirits mimicking babies to attack.",
-        killDialogue: "Slay innocent form—fuel for shadow!",
-        spareReward: { ginto: 35, baubles: 0, healthHealing: 15, bonusEffect: "Pure heart blessing" },
-        killReward: { ginto: 55, baubles: 1, healthHealing: 0, bonusEffect: "Deception mastery" },
+      name: "Tiyanak Ambusher",
+      spareDialogue: "Innocent? Yes, once I was just a babe lost between realms... but the false god's corruption runs deep. Your mercy stirs something in my cursed heart. Take this blessing of true sight.",
+      killDialogue: "You strike at innocence, but know this—your violence feeds the shadow that corrupts all!",
+      spareReward: { ginto: 35, baubles: 0, healthHealing: 15, bonusEffect: "True sight" },
+      killReward: { ginto: 55, baubles: 1, healthHealing: 0, bonusEffect: "Crying echo" },
     },
     amomongo: {
-        name: "Amomongo",
-        spareDialogue: "Grace spares: Amomongo, ape-like with long nails, attacking livestock.",
-        killDialogue: "Crush me—shadow lives on!",
-        spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Primal fury" },
-        killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Bleeding claws" },
+      name: "Amomongo",
+      spareDialogue: "My claws once only defended the mountain folk from true threats. The engkanto's poison has changed my purpose. Your mercy awakens old memories. Take this strength.",
+      killDialogue: "My bones may break, but the shadow grows stronger with each soul you destroy!",
+      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Primal strength" },
+      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Bleeding claws" },
     },
     bungisngis: {
-        name: "Bungisngis",
-        spareDialogue: "Pity reveals: Bungisngis, one-eyed laughing giants, once jovial.",
-        killDialogue: "Silence my mirth—fuel for deceit!",
-        spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Joyful resilience" },
-        killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Maddening laughter" },
+      name: "Bungisngis",
+      spareDialogue: "Ha ha ha! You have the spirit of a true mountain dweller! Once we laughed with joy, not malice. Take this gift of hearty laughter to protect you.",
+      killDialogue: "My laughter dies, but the echo haunts... and the shadow grows stronger!",
+      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Joyful resilience" },
+      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Maddening laughter" },
     },
     kapre_shade: {
-        name: "Kapre Shade",
-        spareDialogue: "Compassion unlocks: Kapre, tree giants smoking cigars, loyal to Bathala.",
-        killDialogue: "Burn me down—shadow rises!",
-        spareReward: { ginto: 80, baubles: 1, healthHealing: 20, bonusEffect: "Forest harmony" },
-        killReward: { ginto: 120, baubles: 2, healthHealing: 0, bonusEffect: "Smoke mastery" },
+      name: "Kapre Shade",
+      spareDialogue: "In my tree, I once smoked in peace, guardian of the forest paths. The false god's corruption has made me a shadow of my former self. Your mercy stirs the old honor. Take this blessing of forest protection.",
+      killDialogue: "Burn me down, but the smoke carries the impostor's whispers! Your violence only feeds the growing shadow!",
+      spareReward: { ginto: 80, baubles: 1, healthHealing: 20, bonusEffect: "Forest protection" },
+      killReward: { ginto: 120, baubles: 2, healthHealing: 0, bonusEffect: "Smoke whispers" },
     },
     tawong_lipod: {
-        name: "Tawong Lipod",
-        spareDialogue: "Mercy whispers: Tawong Lipod, invisible Bikol wind beings, once harmonious.",
-        killDialogue: "Scatter us—impostor grows!",
-        spareReward: { ginto: 80, baubles: 1, healthHealing: 20, bonusEffect: "Wind's grace" },
-        killReward: { ginto: 120, baubles: 2, healthHealing: 0, bonusEffect: "Air superiority" },
+      name: "Tawong Lipod",
+      spareDialogue: "Ah... you move with the wind's understanding. We once brought harmony to the Bikol lands, before the false god's lies. Accept this gift of swift movement and hidden sight.",
+      killDialogue: "You cannot scatter what has no form! The wind remembers your violence, and it feeds the impostor's power!",
+      spareReward: { ginto: 80, baubles: 1, healthHealing: 20, bonusEffect: "Wind's grace" },
+      killReward: { ginto: 120, baubles: 2, healthHealing: 0, bonusEffect: "Air superiority" },
     },
     mangangaway: {
-        name: "Mangangaway",
-        spareDialogue: "Grace spares: Mangangaway, sorcerers casting evil spells.",
-        killDialogue: "End my curses—fuel for false god!",
-        spareReward: { ginto: 150, baubles: 3, healthHealing: 30, bonusEffect: "Hex protection" },
-        killReward: { ginto: 200, baubles: 5, healthHealing: 0, bonusEffect: "Curse mastery" },
+      name: "Mangangaway",
+      spareDialogue: "Wise traveler... you see through my curses to the spirit beneath. I was once a healer, a protector of the people. Take this gift of protection against the false god's influence.",
+      killDialogue: "My curses may end, but the shadow you serve grows stronger! Your power feeds the impostor's corruption!",
+      spareReward: { ginto: 150, baubles: 3, healthHealing: 30, bonusEffect: "Hex protection" },
+      killReward: { ginto: 200, baubles: 5, healthHealing: 0, bonusEffect: "Curse mastery" },
     },
   };
 
@@ -378,7 +378,7 @@ export class Combat extends Scene {
     const enemyDialogueText = this.add.text(
       (screenWidth / 2) - (screenWidth * 0.8 / 2) + 80,
       90,
-      this.getEnemyDialogue(),
+      this.getBattleStartDialogue ? this.getBattleStartDialogue() : this.getEnemyDialogue(),
       {
         fontFamily: "dungeon-mode",
         fontSize: 16,
@@ -5474,5 +5474,26 @@ export class Combat extends Scene {
       case "mastering": return "#4ecdc4";
       default: return "#ffffff";
     }
+  }
+  
+  /**
+   * Get battle start dialogue for the enemy
+   */
+  private getBattleStartDialogue(): string {
+    const enemyName = this.combatState.enemy.name.toLowerCase();
+    
+    if (enemyName.includes("tikbalang")) return "Hah! You dare enter my maze of paths? The false god's whispers have made me your obstacle, traveler. But your soul still seeks the light?";
+    if (enemyName.includes("balete")) return "Sacred roots that once blessed Bathala's children now bind your fate! The engkanto's corruption runs deep through my bark!";
+    if (enemyName.includes("sigbin")) return "I charge for the shadow throne! Once I served the divine, but now I serve the false god's dark purposes!";
+    if (enemyName.includes("duwende")) return "Tricks? Oh yes, tricks abound in mounds where the old magic sleeps! But which are blessing and which are curse?";
+    if (enemyName.includes("tiyanak")) return "My innocent wail lures you to doom! Once I was a babe, now I am a warning to the living!";
+    if (enemyName.includes("amomongo")) return "My claws rend the unworthy! The mountain remembers when I only defended its people from true threats!";
+    if (enemyName.includes("bungisngis")) return "Laughter masks the rage within! We were once merry giants, but the false god's corruption changed our song to a cackle of malice!";
+    if (enemyName.includes("kapre")) return "Smoke veils my wrath! From my sacred tree I once watched over the forest paths with honor, not malice!";
+    if (enemyName.includes("tawong lipod")) return "Winds conceal—feel fury! The invisible currents are my domain, and I bring the storm of retribution!";
+    if (enemyName.includes("mangangaway")) return "Fates reverse at my command! I was once a healer of the people, now I am their curse-bearer!";
+    
+    // Default dialogue
+    return "You have encountered a fearsome creature! Prepare for battle!";
   }
 }
