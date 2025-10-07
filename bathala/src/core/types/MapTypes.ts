@@ -22,6 +22,7 @@ export interface MapNode {
   visited: boolean;
   available: boolean;
   completed: boolean;
+  enemyId?: string;
 }
 
 export interface MapLayer {

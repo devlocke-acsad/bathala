@@ -1,5 +1,6 @@
 import { MapNode, NodeType } from "../../core/types/MapTypes";
 import { SeededRandom } from "./types";
+import { ACT1_COMMON_ENEMIES, ACT1_ELITE_ENEMIES } from "../../data/enemies/Act1Enemies";
 
 /**
  * Node generation and placement utilities
@@ -84,6 +85,17 @@ export class NodeGenerator {
       if (bestPosition) {
         const type = nodeTypes[Math.floor(rng.next() * nodeTypes.length)];
         
+        let enemyId: string | undefined = undefined;
+        if (type === "combat") {
+          const enemyIndex = Math.floor(rng.next() * ACT1_COMMON_ENEMIES.length);
+          enemyId = ACT1_COMMON_ENEMIES[enemyIndex].name;
+          console.log(`Generated combat node: ${type}-${chunkX}-${chunkY}-${i}, enemyId: ${enemyId}, enemyIndex: ${enemyIndex}`);
+        } else if (type === "elite") {
+          const enemyIndex = Math.floor(rng.next() * ACT1_ELITE_ENEMIES.length);
+          enemyId = ACT1_ELITE_ENEMIES[enemyIndex].name;
+          console.log(`Generated elite node: ${type}-${chunkX}-${chunkY}-${i}, enemyId: ${enemyId}, enemyIndex: ${enemyIndex}`);
+        }
+
         nodes.push({
           id: `${type}-${chunkX}-${chunkY}-${i}`,
           type,
@@ -94,6 +106,7 @@ export class NodeGenerator {
           visited: false,
           available: true,
           completed: false,
+          enemyId: enemyId
         });
         
         placedPositions.push(bestPosition);

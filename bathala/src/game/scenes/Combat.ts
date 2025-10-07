@@ -96,199 +96,75 @@ export class Combat extends Scene {
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
-    // Default fallback
-    goblin: {
-      name: "Forest Goblin",
-      spareDialogue:
-        "The goblin bows gratefully. 'You show mercy, warrior. The forest spirits will remember your kindness.'",
-      killDialogue:
-        "The goblin's eyes dim as it whispers, 'The darkness... grows stronger...' Its essence fades into shadow.",
-      spareReward: {
-        ginto: 50,
-        diamante: 0,
-        healthHealing: 10,
-        bonusEffect: "Forest spirits may aid you later",
-      },
-      killReward: {
-        ginto: 75,
-        diamante: 1,
-        healthHealing: 0,
-        bonusEffect: "Gained dark essence",
-      },
+    tikbalang_scout: {
+      name: "Tikbalang Scout",
+      spareDialogue: "Hah! You show mercy to a forest guardian turned to shadow? Once I guided lost souls to safety, but now... now I lead them astray. Still, your compassion awakens something deep in me. Take this blessing of sure footing.",
+      killDialogue: "My essence... it feeds the darkness you call shadow. You've only made the forest more treacherous, traveler!",
+      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Sure footing" },
+      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Deceptive paths" },
     },
-    // Act 1 Common Enemies
-    tikbalang: {
-      name: "Tikbalang",
-      spareDialogue:
-        "The Tikbalang nods with ancient wisdom. 'You understand the old ways, traveler. I shall lead others astray from your path.'",
-      killDialogue:
-        "The Tikbalang's wild laughter echoes as it fades. 'Even in death, I shall mislead your enemies...'",
-      spareReward: {
-        ginto: 45,
-        baubles: 0,
-        healthHealing: 8,
-        bonusEffect: "Tikbalang's protection",
-      },
-      killReward: {
-        ginto: 70,
-        baubles: 1,
-        healthHealing: 0,
-        bonusEffect: "Confusion immunity",
-      },
+    balete_wraith: {
+      name: "Balete Wraith",
+      spareDialogue: "These roots once held sacred conversations between anito and Bathala, but the engkanto's lies... they poisoned our very essence. Spare me, and I'll grant you the wisdom of the sacred grove.",
+      killDialogue: "My spirit feeds the impostor's power! The forest remembers your violence, traveler!",
+      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Sacred grove wisdom" },
+      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Cursed bark" },
     },
-    dwende: {
-      name: "Dwende",
-      spareDialogue:
-        "The tiny Dwende grins mischievously. 'Kind human! I will hide treasures for you to find!'",
-      killDialogue:
-        "The Dwende's last prank turns serious. 'You... you have no joy in your heart...'",
-      spareReward: {
-        ginto: 40,
-        baubles: 0,
-        healthHealing: 5,
-        bonusEffect: "Hidden treasures await",
-      },
-      killReward: {
-        ginto: 60,
-        baubles: 1,
-        healthHealing: 0,
-        bonusEffect: "Mischief mastery",
-      },
+    sigbin_charger: {
+      name: "Sigbin Charger",
+      spareDialogue: "We once served Bathala faithfully, our hearts pure and our purpose noble. But the false god's whispers... they corrupted us. If you spare me, I'll share the secret of the night paths.",
+      killDialogue: "Take my power, but beware—darkness flows to the one who commands shadows!",
+      spareReward: { ginto: 55, baubles: 0, healthHealing: 7, bonusEffect: "Night path secrets" },
+      killReward: { ginto: 80, baubles: 1, healthHealing: 0, bonusEffect: "Heart of shadow" },
     },
-    kapre: {
-      name: "Kapre",
-      spareDialogue:
-        "The Kapre blows a ring of smoke that forms into a blessing. 'Respect the forest, and it respects you.'",
-      killDialogue:
-        "The Kapre's pipe falls silent forever. 'The trees... will remember this...'",
-      spareReward: {
-        ginto: 50,
-        baubles: 0,
-        healthHealing: 12,
-        bonusEffect: "Forest harmony",
-      },
-      killReward: {
-        ginto: 75,
-        baubles: 1,
-        healthHealing: 0,
-        bonusEffect: "Smoke mastery",
-      },
+    duwende_trickster: {
+      name: "Duwende Trickster",
+      spareDialogue: "You have the eyes of one who sees beyond surface, mortal. We are indeed spirits of great power, though the engkanto's web has twisted our nature. Accept this gift of hidden sight.",
+      killDialogue: "My tricks scatter to the wind, but the forest remembers! Your ruthlessness feeds the impostor's growing strength!",
+      spareReward: { ginto: 40, baubles: 0, healthHealing: 5, bonusEffect: "Hidden sight" },
+      killReward: { ginto: 60, baubles: 1, healthHealing: 0, bonusEffect: "Mischievous whispers" },
     },
-    sigbin: {
-      name: "Sigbin",
-      spareDialogue:
-        "The Sigbin becomes visible and bows. 'You see past illusions to truth. This is rare wisdom.'",
-      killDialogue:
-        "The Sigbin flickers between visible and invisible as it dies. 'Even shadows... have hearts...'",
-      spareReward: {
-        ginto: 55,
-        baubles: 0,
-        healthHealing: 7,
-        bonusEffect: "Shadow sight",
-      },
-      killReward: {
-        ginto: 80,
-        baubles: 1,
-        healthHealing: 0,
-        bonusEffect: "Invisibility tactics",
-      },
+    tiyanak_ambusher: {
+      name: "Tiyanak Ambusher",
+      spareDialogue: "Innocent? Yes, once I was just a babe lost between realms... but the false god's corruption runs deep. Your mercy stirs something in my cursed heart. Take this blessing of true sight.",
+      killDialogue: "You strike at innocence, but know this—your violence feeds the shadow that corrupts all!",
+      spareReward: { ginto: 35, baubles: 0, healthHealing: 15, bonusEffect: "True sight" },
+      killReward: { ginto: 55, baubles: 1, healthHealing: 0, bonusEffect: "Crying echo" },
     },
-    tiyanak: {
-      name: "Tiyanak",
-      spareDialogue:
-        "The Tiyanak's false innocent form melts away, revealing gratitude. 'You showed mercy to a deceiver. Your honor shines bright.'",
-      killDialogue:
-        "The Tiyanak's cries turn real at the end. 'I was... once... innocent too...'",
-      spareReward: {
-        ginto: 35,
-        baubles: 0,
-        healthHealing: 15,
-        bonusEffect: "Pure heart blessing",
-      },
-      killReward: {
-        ginto: 55,
-        baubles: 1,
-        healthHealing: 0,
-        bonusEffect: "Deception mastery",
-      },
+    amomongo: {
+      name: "Amomongo",
+      spareDialogue: "My claws once only defended the mountain folk from true threats. The engkanto's poison has changed my purpose. Your mercy awakens old memories. Take this strength.",
+      killDialogue: "My bones may break, but the shadow grows stronger with each soul you destroy!",
+      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Primal strength" },
+      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Bleeding claws" },
     },
-    // Act 1 Elite Enemies
-    manananggal: {
-      name: "Manananggal",
-      spareDialogue:
-        "The Manananggal's severed body reunites. 'You could have ended my curse, yet chose mercy. I am... grateful.'",
-      killDialogue:
-        "The Manananggal's halves scatter to the wind. 'Finally... no more hunger... no more... pain...'",
-      spareReward: {
-        ginto: 80,
-        baubles: 1,
-        healthHealing: 20,
-        bonusEffect: "Flight blessing",
-      },
-      killReward: {
-        ginto: 120,
-        baubles: 2,
-        healthHealing: 0,
-        bonusEffect: "Vampiric strength",
-      },
+    bungisngis: {
+      name: "Bungisngis",
+      spareDialogue: "Ha ha ha! You have the spirit of a true mountain dweller! Once we laughed with joy, not malice. Take this gift of hearty laughter to protect you.",
+      killDialogue: "My laughter dies, but the echo haunts... and the shadow grows stronger!",
+      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Joyful resilience" },
+      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Maddening laughter" },
     },
-    aswang: {
-      name: "Aswang",
-      spareDialogue:
-        "The Aswang shifts to its true form. 'You see all my shapes, yet still show kindness. Perhaps there is hope for creatures like me.'",
-      killDialogue:
-        "The Aswang's many forms flicker rapidly before going still. 'I never... found my true self...'",
-      spareReward: {
-        ginto: 90,
-        baubles: 1,
-        healthHealing: 18,
-        bonusEffect: "Shapeshifter's wisdom",
-      },
-      killReward: {
-        ginto: 130,
-        baubles: 2,
-        healthHealing: 0,
-        bonusEffect: "Form mastery",
-      },
+    kapre_shade: {
+      name: "Kapre Shade",
+      spareDialogue: "In my tree, I once smoked in peace, guardian of the forest paths. The false god's corruption has made me a shadow of my former self. Your mercy stirs the old honor. Take this blessing of forest protection.",
+      killDialogue: "Burn me down, but the smoke carries the impostor's whispers! Your violence only feeds the growing shadow!",
+      spareReward: { ginto: 80, baubles: 1, healthHealing: 20, bonusEffect: "Forest protection" },
+      killReward: { ginto: 120, baubles: 2, healthHealing: 0, bonusEffect: "Smoke whispers" },
     },
-    duwende_chief: {
-      name: "Duwende Chief",
-      spareDialogue:
-        "The Duwende Chief raises his tiny staff in salute. 'Honor to you, great warrior! My people shall sing of your mercy!'",
-      killDialogue:
-        "The Duwende Chief's final command echoes sadly. 'Tell my people... to remember... the old ways...'",
-      spareReward: {
-        ginto: 85,
-        baubles: 1,
-        healthHealing: 16,
-        bonusEffect: "Duwende alliance",
-      },
-      killReward: {
-        ginto: 125,
-        baubles: 2,
-        healthHealing: 0,
-        bonusEffect: "Command authority",
-      },
+    tawong_lipod: {
+      name: "Tawong Lipod",
+      spareDialogue: "Ah... you move with the wind's understanding. We once brought harmony to the Bikol lands, before the false god's lies. Accept this gift of swift movement and hidden sight.",
+      killDialogue: "You cannot scatter what has no form! The wind remembers your violence, and it feeds the impostor's power!",
+      spareReward: { ginto: 80, baubles: 1, healthHealing: 20, bonusEffect: "Wind's grace" },
+      killReward: { ginto: 120, baubles: 2, healthHealing: 0, bonusEffect: "Air superiority" },
     },
-    // Act 1 Boss
-    bakunawa: {
-      name: "Bakunawa",
-      spareDialogue:
-        "The great dragon's eyes soften. 'You spare the devourer of moons? Your compassion illuminates even the darkest void. I shall remember this light.'",
-      killDialogue:
-        "Bakunawa's roar shakes the heavens as darkness spreads. 'The eclipse comes... eternal night... awaits...'",
-      spareReward: {
-        ginto: 150,
-        baubles: 3,
-        healthHealing: 30,
-        bonusEffect: "Dragon's blessing - Moonlight protection",
-      },
-      killReward: {
-        ginto: 200,
-        baubles: 5,
-        healthHealing: 0,
-        bonusEffect: "Eclipse power - Darkness control",
-      },
+    mangangaway: {
+      name: "Mangangaway",
+      spareDialogue: "Wise traveler... you see through my curses to the spirit beneath. I was once a healer, a protector of the people. Take this gift of protection against the false god's influence.",
+      killDialogue: "My curses may end, but the shadow you serve grows stronger! Your power feeds the impostor's corruption!",
+      spareReward: { ginto: 150, baubles: 3, healthHealing: 30, bonusEffect: "Hex protection" },
+      killReward: { ginto: 200, baubles: 5, healthHealing: 0, bonusEffect: "Curse mastery" },
     },
   };
 
@@ -472,23 +348,8 @@ export class Combat extends Scene {
       0xffffff
     ).setScrollFactor(0).setDepth(5001);
     
-    // Determine which enemy sprite to use based on enemy type
-    let enemySpriteKey = "balete"; // default
-    
-    // Check enemy name to determine sprite
-    const enemyName = this.combatState.enemy.name.toLowerCase();
-    if (enemyName.includes("balete")) {
-      enemySpriteKey = "balete";
-    } else if (enemyName.includes("sigbin")) {
-      enemySpriteKey = "sigbin";
-    } else if (enemyName.includes("tikbalang")) {
-      enemySpriteKey = "tikbalang";
-    } else {
-      // Alternate between the three sprites for other enemies
-      const spriteOptions = ["balete", "sigbin", "tikbalang"];
-      const randomIndex = Math.floor(Math.random() * spriteOptions.length);
-      enemySpriteKey = spriteOptions[randomIndex];
-    }
+    const enemyName = this.combatState.enemy.name;
+    const enemySpriteKey = this.getEnemySpriteKey(enemyName);
     
     // Create enemy icon
     let enemyIcon: Phaser.GameObjects.Sprite | null = null;
@@ -517,7 +378,7 @@ export class Combat extends Scene {
     const enemyDialogueText = this.add.text(
       (screenWidth / 2) - (screenWidth * 0.8 / 2) + 80,
       90,
-      this.getEnemyDialogue(),
+      this.getBattleStartDialogue ? this.getBattleStartDialogue() : this.getEnemyDialogue(),
       {
         fontFamily: "dungeon-mode",
         fontSize: 16,
@@ -539,14 +400,15 @@ export class Combat extends Scene {
       }
     ).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
     
-    // Create container for all enemy dialogue elements
-    const enemyDialogueContainer = this.add.container(0, 0, [
+    const containerChildren = [
       dialogueBox,
       enemyIcon,
       enemyNameText,
       enemyDialogueText,
       continueIndicator
-    ]).setScrollFactor(0).setDepth(5000);
+    ].filter(child => child !== null);
+
+    const enemyDialogueContainer = this.add.container(0, 0, containerChildren).setScrollFactor(0).setDepth(5000);
     
     // Make the dialogue box interactive so it can be clicked to continue
     enemyDialogueContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, screenWidth, 160), Phaser.Geom.Rectangle.Contains);
@@ -580,183 +442,22 @@ export class Combat extends Scene {
   private getEnemyDialogue(): string {
     const enemyName = this.combatState.enemy.name.toLowerCase();
     
-    // Specific dialogues for known enemies
-    if (enemyName.includes("balete")) {
-      return "The ancient tree spirit awakens! You dare disturb my slumber?";
-    } else if (enemyName.includes("sigbin")) {
-      return "You cannot escape my grasp, mortal! Prepare to be drained!";
-    } else if (enemyName.includes("tikbalang")) {
-      return "Lost, are you? Let me lead you to your doom!";
-    } else if (enemyName.includes("goblin")) {
-      return "You're no match for the forest goblins! Get them!";
-    } else if (enemyName.includes("manananggal")) {
-      return "My hunger knows no bounds! I will feast on your soul!";
-    } else if (enemyName.includes("aswang")) {
-      return "Fear my curse! Your flesh will be my sustenance!";
-    } else if (enemyName.includes("duwende")) {
-      return "Intruder! You shall not pass the chief's domain!";
-    } else if (enemyName.includes("kapre")) {
-      return "You dare enter my tree? Face my wrath!";
-    } else if (enemyName.includes("tiyanak")) {
-      return "Cry, baby, cry! Your tears will be my delight!";
-    } else if (enemyName.includes("bakunawa")) {
-      return "The eclipse approaches! Your world will be consumed!";
-    }
+    if (enemyName.includes("tikbalang")) return "Lost in my paths, seer? False one’s whispers guide!";
+    if (enemyName.includes("balete")) return "Roots entwine your fate!";
+    if (enemyName.includes("sigbin")) return "Charge for shadow throne!";
+    if (enemyName.includes("duwende")) return "Tricks abound in mounds!";
+    if (enemyName.includes("tiyanak")) return "Wails lure to doom!";
+    if (enemyName.includes("amomongo")) return "Nails rend unworthy!";
+    if (enemyName.includes("bungisngis")) return "Laughter masks rage!";
+    if (enemyName.includes("kapre")) return "Smoke veils my wrath!";
+    if (enemyName.includes("tawong lipod")) return "Winds conceal—feel fury!";
+    if (enemyName.includes("mangangaway")) return "Fates reverse at my command!";
     
     // Default dialogue
     return "You have encountered a fearsome creature! Prepare for battle!";
   }
 
-  /**
-   * Show Celeste-style dialogue when enemy reaches 50% health
-   */
-  private showHalfHealthDialogue(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create dialogue box at top
-    const dialogueBox = this.add.rectangle(
-      screenWidth / 2,
-      80,
-      screenWidth * 0.8,
-      100,
-      0xffffff
-    ).setScrollFactor(0).setDepth(5001);
-    
-    // Determine which enemy sprite to use based on enemy type
-    let enemySpriteKey = "balete"; // default
-    
-    // Check enemy name to determine sprite
-    const enemyName = this.combatState.enemy.name.toLowerCase();
-    if (enemyName.includes("balete")) {
-      enemySpriteKey = "balete";
-    } else if (enemyName.includes("sigbin")) {
-      enemySpriteKey = "sigbin";
-    } else if (enemyName.includes("tikbalang")) {
-      enemySpriteKey = "tikbalang";
-    } else {
-      // Alternate between the three sprites for other enemies
-      const spriteOptions = ["balete", "sigbin", "tikbalang"];
-      const randomIndex = Math.floor(Math.random() * spriteOptions.length);
-      enemySpriteKey = spriteOptions[randomIndex];
-    }
-    
-    // Create enemy icon
-    let enemyIcon: Phaser.GameObjects.Sprite | null = null;
-    if (this.textures.exists(enemySpriteKey)) {
-      enemyIcon = this.add.sprite(
-        (screenWidth / 2) - (screenWidth * 0.8 / 2) + 40,
-        80,
-        enemySpriteKey
-      ).setScale(1.5).setScrollFactor(0).setDepth(5002);
-    }
-    
-    // Create enemy name text
-    const enemyNameText = this.add.text(
-      (screenWidth / 2) - (screenWidth * 0.8 / 2) + 80,
-      60,
-      this.combatState.enemy.name,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#000000",
-        align: "left"
-      }
-    ).setOrigin(0, 0).setScrollFactor(0).setDepth(5002);
-    
-    // Create enemy dialogue text
-    const enemyDialogueText = this.add.text(
-      (screenWidth / 2) - (screenWidth * 0.8 / 2) + 80,
-      90,
-      this.getHalfHealthDialogue(),
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#000000",
-        align: "left",
-        wordWrap: { width: screenWidth * 0.8 - 100 }
-      }
-    ).setOrigin(0, 0).setScrollFactor(0).setDepth(5002);
-    
-    // Create continue indicator
-    const continueIndicator = this.add.text(
-      screenWidth / 2 + (screenWidth * 0.8 / 2) - 20,
-      110,
-      "▼",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#000000"
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(5002);
-    
-    // Create container for all enemy dialogue elements
-    const halfHealthDialogueContainer = this.add.container(0, 0, [
-      dialogueBox,
-      enemyIcon,
-      enemyNameText,
-      enemyDialogueText,
-      continueIndicator
-    ]).setScrollFactor(0).setDepth(5000);
-    
-    // Make the dialogue box interactive so it can be clicked to continue
-    halfHealthDialogueContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, screenWidth, 160), Phaser.Geom.Rectangle.Contains);
-    
-    // Add click handler to remove the dialogue
-    halfHealthDialogueContainer.on('pointerdown', () => {
-      this.tweens.add({
-        targets: halfHealthDialogueContainer,
-        alpha: 0,
-        duration: 300,
-        onComplete: () => {
-          halfHealthDialogueContainer.destroy();
-        }
-      });
-    });
-    
-    // Add blinking animation to the continue indicator
-    this.time.addEvent({
-      delay: 500,
-      callback: () => {
-        continueIndicator.setVisible(!continueIndicator.visible);
-      },
-      callbackScope: this,
-      loop: true
-    });
-  }
 
-  /**
-   * Get enemy dialogue for when they reach 50% health
-   */
-  private getHalfHealthDialogue(): string {
-    const enemyName = this.combatState.enemy.name.toLowerCase();
-    
-    // Specific dialogues for known enemies at 50% health
-    if (enemyName.includes("balete")) {
-      return "The roots of my power run deep! You cannot fell me so easily!";
-    } else if (enemyName.includes("sigbin")) {
-      return "My strength is not yet spent! I will drain you dry!";
-    } else if (enemyName.includes("tikbalang")) {
-      return "Foolish mortal! I have many tricks yet to show you!";
-    } else if (enemyName.includes("goblin")) {
-      return "We're just getting started! Feel our true power!";
-    } else if (enemyName.includes("manananggal")) {
-      return "You think you've won? My hunger only grows stronger!";
-    } else if (enemyName.includes("aswang")) {
-      return "You cannot escape my curse! I will consume your very soul!";
-    } else if (enemyName.includes("duwende")) {
-      return "The chief's power is not so easily diminished!";
-    } else if (enemyName.includes("kapre")) {
-      return "My tree grants me endless strength! You cannot prevail!";
-    } else if (enemyName.includes("tiyanak")) {
-      return "My tears of blood will be your downfall!";
-    } else if (enemyName.includes("bakunawa")) {
-      return "The eclipse strengthens me! You cannot stop the coming darkness!";
-    }
-    
-    // Default dialogue
-    return "You think you've won? I'm just getting started!";
-  }
 
   /**
    * Initialize combat state with player and enemy
@@ -934,6 +635,25 @@ export class Combat extends Scene {
     return enemyName.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now();
   }
 
+  private getEnemySpriteKey(enemyName: string): string {
+    const lowerCaseName = enemyName.toLowerCase();
+    if (lowerCaseName.includes("tikbalang")) return "tikbalang";
+    if (lowerCaseName.includes("balete")) return "balete";
+    if (lowerCaseName.includes("sigbin")) return "sigbin";
+    if (lowerCaseName.includes("duwende")) return "duwende";
+    if (lowerCaseName.includes("tiyanak")) return "tiyanak";
+    if (lowerCaseName.includes("amomongo")) return "amomongo";
+    if (lowerCaseName.includes("bungisngis")) return "bungisngis";
+    if (lowerCaseName.includes("kapre")) return "kapre";
+    if (lowerCaseName.includes("tawong lipod")) return "tawong_lipod";
+    if (lowerCaseName.includes("mangangaway")) return "mangangaway";
+    
+    // Fallback for any other case
+    const spriteOptions = ["balete", "sigbin", "tikbalang"];
+    const randomIndex = Math.floor(Math.random() * spriteOptions.length);
+    return spriteOptions[randomIndex];
+  }
+
   /**
    * Create the combat UI layout
    */
@@ -1057,43 +777,21 @@ export class Combat extends Scene {
     this.enemyShadow.fillStyle(0x000000, 0.3); // Black with 30% opacity
     this.enemyShadow.fillEllipse(enemyX, enemyY + 90, 120, 30); // Larger oval shadow below enemy
 
-    // Determine which enemy sprite to use based on enemy type
-    let enemySpriteKey = "balete"; // default
-    let enemyAnimationKey = "balete_idle"; // default
-    
-    // Check enemy name to determine sprite
-    const enemyName = this.combatState.enemy.name.toLowerCase();
-    if (enemyName.includes("balete")) {
-      enemySpriteKey = "balete";
-      enemyAnimationKey = "balete_idle";
-    } else if (enemyName.includes("sigbin")) {
-      enemySpriteKey = "sigbin";
-      enemyAnimationKey = "sigbin_idle";
-    } else if (enemyName.includes("tikbalang")) {
-      enemySpriteKey = "tikbalang";
-      enemyAnimationKey = "tikbalang_idle";
-    } else {
-      // Alternate between the three sprites for other enemies
-      const spriteOptions = [
-        { key: "balete", anim: "balete_idle" },
-        { key: "sigbin", anim: "sigbin_idle" },
-        { key: "tikbalang", anim: "tikbalang_idle" }
-      ];
-      const randomIndex = Math.floor(Math.random() * spriteOptions.length);
-      enemySpriteKey = spriteOptions[randomIndex].key;
-      enemyAnimationKey = spriteOptions[randomIndex].anim;
-    }
+    const enemyName = this.combatState.enemy.name;
+    const enemySpriteKey = this.getEnemySpriteKey(enemyName);
+    const enemyAnimationKey = `${enemySpriteKey}_idle`;
 
     // Enemy sprite with idle animation
     this.enemySprite = this.add.sprite(enemyX, enemyY, enemySpriteKey);
-    this.enemySprite.setScale(2.5); // Scale up from 75x100 to 187x250 (bigger than player)
 
-    // Try to play animation, fallback if it fails
-    try {
-      this.enemySprite.play(enemyAnimationKey);
-    } catch (error) {
-      console.warn(`Enemy idle animation ${enemyAnimationKey} not found, using static sprite`);
-    }
+    // Scale the sprite to fit within a 250x250 box while maintaining aspect ratio
+    const sprite = this.enemySprite;
+    const targetWidth = 250;
+    const targetHeight = 250;
+    const scale = Math.min(targetWidth / sprite.width, targetHeight / sprite.height);
+    sprite.setScale(scale);
+
+
 
     // Enemy name (positioned further from enemy due to larger sprite)
     this.add
@@ -2442,12 +2140,7 @@ export class Combat extends Scene {
       this.showEnhancedActionResult(message, "#ff6b6b");
     }
 
-    // Check for 50% health trigger
-    const healthPercentage = this.combatState.enemy.currentHealth / this.combatState.enemy.maxHealth;
-    if (healthPercentage <= 0.5 && !this.combatState.enemy.halfHealthTriggered) {
-      this.combatState.enemy.halfHealthTriggered = true;
-      this.showHalfHealthDialogue();
-    }
+
 
     // Check if enemy is defeated
     if (this.combatState.enemy.currentHealth <= 0) {
@@ -5781,5 +5474,26 @@ export class Combat extends Scene {
       case "mastering": return "#4ecdc4";
       default: return "#ffffff";
     }
+  }
+  
+  /**
+   * Get battle start dialogue for the enemy
+   */
+  private getBattleStartDialogue(): string {
+    const enemyName = this.combatState.enemy.name.toLowerCase();
+    
+    if (enemyName.includes("tikbalang")) return "Hah! You dare enter my maze of paths? The false god's whispers have made me your obstacle, traveler. But your soul still seeks the light?";
+    if (enemyName.includes("balete")) return "Sacred roots that once blessed Bathala's children now bind your fate! The engkanto's corruption runs deep through my bark!";
+    if (enemyName.includes("sigbin")) return "I charge for the shadow throne! Once I served the divine, but now I serve the false god's dark purposes!";
+    if (enemyName.includes("duwende")) return "Tricks? Oh yes, tricks abound in mounds where the old magic sleeps! But which are blessing and which are curse?";
+    if (enemyName.includes("tiyanak")) return "My innocent wail lures you to doom! Once I was a babe, now I am a warning to the living!";
+    if (enemyName.includes("amomongo")) return "My claws rend the unworthy! The mountain remembers when I only defended its people from true threats!";
+    if (enemyName.includes("bungisngis")) return "Laughter masks the rage within! We were once merry giants, but the false god's corruption changed our song to a cackle of malice!";
+    if (enemyName.includes("kapre")) return "Smoke veils my wrath! From my sacred tree I once watched over the forest paths with honor, not malice!";
+    if (enemyName.includes("tawong lipod")) return "Winds conceal—feel fury! The invisible currents are my domain, and I bring the storm of retribution!";
+    if (enemyName.includes("mangangaway")) return "Fates reverse at my command! I was once a healer of the people, now I am their curse-bearer!";
+    
+    // Default dialogue
+    return "You have encountered a fearsome creature! Prepare for battle!";
   }
 }

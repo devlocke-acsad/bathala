@@ -7,22 +7,36 @@ import { Player } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { Potion } from "../../data/potions/Act1Potions";
 import { 
-  TIKBALANG, DWENDE, KAPRE, SIGBIN, TIYANAK,
-  MANANANGGAL, ASWANG, DUWENDE_CHIEF, BAKUNAWA
+  TIKBALANG_SCOUT,
+  BALETE_WRAITH,
+  SIGBIN_CHARGER,
+  DUWENDE_TRICKSTER,
+  TIYANAK_AMBUSHER,
+  AMOMONGO,
+  BUNGISNGIS,
+  KAPRE_SHADE,
+  TAWONG_LIPOD,
+  MANGNANGAWAY
 } from "../../data/enemies/Act1Enemies";
-import {
-  TIKBALANG_LORE, DWENDE_LORE, KAPRE_LORE, SIGBIN_LORE, 
-  TIYANAK_LORE, MANANANGGAL_LORE, ASWANG_LORE, DUWENDE_CHIEF_LORE,
-  BAKUNAWA_LORE
+import { 
+  TIKBALANG_SCOUT_LORE,
+  BALETE_WRAITH_LORE,
+  SIGBIN_CHARGER_LORE,
+  DUWENDE_TRICKSTER_LORE,
+  TIYANAK_AMBUSHER_LORE,
+  AMOMONGO_LORE,
+  BUNGISNGIS_LORE,
+  KAPRE_SHADE_LORE,
+  TAWONG_LIPOD_LORE,
+  MANGNANGAWAY_LORE
 } from "../../data/lore/EnemyLore";
-
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: { [key: string]: Phaser.Input.Keyboard.Key };
   private nodes: MapNode[] = [];
   private nodeSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
-  private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.Graphics }>();
+  private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.GameObject }> = new Map<string, { maze: number[][], graphics: Phaser.GameObjects.GameObject }>();
   private gridSize: number = 32;
   private isMoving: boolean = false;
   private isTransitioningToCombat: boolean = false;
@@ -142,6 +156,9 @@ export class Overworld extends Scene {
   }
 
   create(): void {
+    // Set camera background color to match forest theme
+    this.cameras.main.setBackgroundColor(0x323C39);
+    
     // Check if we're returning from another scene
     const gameState = GameState.getInstance();
     const savedPosition = gameState.getPlayerPosition();
@@ -860,6 +877,9 @@ export class Overworld extends Scene {
    * Called when the scene resumes from another scene
    */
   resume(): void {
+    // Set camera background color to match forest theme
+    this.cameras.main.setBackgroundColor(0x323C39);
+    
     // Re-enable input when returning from other scenes
     if (this.input && this.input.keyboard) {
       this.input.keyboard.enabled = true;
@@ -1462,37 +1482,42 @@ export class Overworld extends Scene {
     }
   }
 
-  renderChunk(chunkX: number, chunkY: number, maze: number[][]): Phaser.GameObjects.Graphics {
-    const graphics = this.add.graphics();
+  renderChunk(chunkX: number, chunkY: number, maze: number[][]): Phaser.GameObjects.GameObject {
+    // Create a container with tile sprites for better performance
+    const container = this.add.container(0, 0);
     const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
     const offsetX = chunkX * chunkSizePixels;
     const offsetY = chunkY * chunkSizePixels;
     
+    // Define available floor textures
+    const floorTextures = ['floor1', 'floor2', 'floor3'];
+    
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[0].length; x++) {
-        if (maze[y][x] === 1) { // Wall
-          // Rich dark brown stone walls
-          graphics.fillStyle(0x3d291f);
-          graphics.fillRect(
-            offsetX + x * this.gridSize,
-            offsetY + y * this.gridSize,
-            this.gridSize,
-            this.gridSize
-          );
-        } else { // Path
-          // Weathered stone path
-          graphics.fillStyle(0x5a4a3f);
-          graphics.fillRect(
-            offsetX + x * this.gridSize,
-            offsetY + y * this.gridSize,
-            this.gridSize,
-            this.gridSize
-          );
+        const tileX = offsetX + x * this.gridSize;
+        const tileY = offsetY + y * this.gridSize;
+        
+        if (maze[y][x] === 1) { // Wall - Use wall1 asset
+          const wallSprite = this.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, 'wall1');
+          wallSprite.setDisplaySize(this.gridSize, this.gridSize);
+          wallSprite.setOrigin(0.5);
+          // Ensure no additional tint that might affect transparency
+          wallSprite.clearTint();
+          container.add(wallSprite);
+        } else { // Path - Use one of the floor assets with randomization
+          // Randomly select one of the floor textures
+          const randomFloor = Phaser.Utils.Array.GetRandom(floorTextures);
+          const floorSprite = this.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, randomFloor);
+          floorSprite.setDisplaySize(this.gridSize, this.gridSize);
+          floorSprite.setOrigin(0.5);
+          // Ensure no additional tint that might affect transparency
+          floorSprite.clearTint();
+          container.add(floorSprite);
         }
       }
     }
     
-    return graphics;
+    return container;
   }
 
   renderNode(node: MapNode): void {
@@ -1502,17 +1527,32 @@ export class Overworld extends Scene {
     
     switch (node.type) {
       case "combat":
-        spriteKey = "chort_f0";
-        animKey = "chort_idle";
-        break;
       case "elite":
-        spriteKey = "big_demon_f0";
-        animKey = "big_demon_idle";
+        if (node.enemyId) {
+          let spriteKeyBase = node.enemyId.toLowerCase().split(" ")[0];
+          if (spriteKeyBase === "tawong") {
+            spriteKeyBase = "tawonglipod";
+          }
+          // Additional check in case the enemyId is stored differently
+          if (node.enemyId.toLowerCase().includes("tawong")) {
+            spriteKeyBase = "tawonglipod";
+          }
+          spriteKey = spriteKeyBase + "_overworld";
+        } else {
+          // Fallback to a generic sprite if no enemyId is present
+          spriteKey = node.type === "elite" ? "big_demon_f0" : "chort_f0";
+        }
+        animKey = null;
         break;
       case "boss":
-        // For now, use the elite sprite as placeholder for boss
-        spriteKey = "big_demon_f0";
-        animKey = "big_demon_idle";
+        if (node.enemyId) {
+          let spriteKeyBase = node.enemyId.toLowerCase().split(" ")[0];
+          spriteKey = spriteKeyBase + "_overworld";
+        } else {
+          // Fallback to a generic sprite if no enemyId is present
+          spriteKey = "big_demon_f0";
+        }
+        animKey = null;
         break;
       case "shop":
         spriteKey = "necromancer_f0";
@@ -1552,7 +1592,12 @@ export class Overworld extends Scene {
     );
     nodeSprite.setOrigin(0.5);
     nodeSprite.setDepth(501); // Above the maze
-    nodeSprite.setScale(1.5); // Scale up a bit for better visibility
+
+    // Scale the sprite to fit within a 32x32 box while maintaining aspect ratio
+    const biggerSprites = ["amomongo_overworld", "balete_overworld", "tawonglipod_overworld", "kapre_overworld", "mangangaway_overworld", "tikbalang_overworld"];
+    const targetSize = biggerSprites.includes(spriteKey) ? 48 : 32;
+    const scale = targetSize / Math.max(nodeSprite.width, nodeSprite.height);
+    nodeSprite.setScale(scale);
     
     // Store sprite reference for tracking
     this.nodeSprites.set(node.id, nodeSprite);
@@ -1575,9 +1620,9 @@ export class Overworld extends Scene {
         
         // Show appropriate tooltip based on node type
         if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
-          this.showEnemyTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+          this.showEnemyTooltipImmediate(node, pointer.x, pointer.y);
         } else {
-          this.showNodeTooltipImmediate(node.type, node.id, pointer.x, pointer.y);
+          this.showNodeTooltipImmediate(node, pointer.x, pointer.y);
         }
         
         // Add hover effect to sprite
@@ -4607,16 +4652,16 @@ ${potion.description}`, {
   /**
    * Show enemy tooltip with information - immediate version without timing issues
    */
-  private showEnemyTooltipImmediate(nodeType: string, nodeId: string, mouseX?: number, mouseY?: number): void {
+  private showEnemyTooltipImmediate(node: MapNode, mouseX?: number, mouseY?: number): void {
     // Validate inputs and state
-    if (!nodeType || !this.tooltipContainer) {
-      console.warn("Cannot show tooltip: missing nodeType or tooltip not initialized");
+    if (!node || !this.tooltipContainer) {
+      console.warn("Cannot show tooltip: missing node or tooltip not initialized");
       return;
     }
     
-    const enemyInfo = this.getEnemyInfoForNodeType(nodeType, nodeId);
+    const enemyInfo = this.getEnemyInfoForNodeType(node.type, node.enemyId);
     if (!enemyInfo) {
-      console.warn("Cannot show tooltip: no enemy info for type", nodeType);
+      console.warn("Cannot show tooltip: no enemy info for type", node.type);
       return;
     }
     
@@ -4800,15 +4845,15 @@ ${potion.description}`, {
   /**
    * Show node tooltip for non-enemy nodes
    */
-  private showNodeTooltipImmediate(nodeType: string, nodeId: string, mouseX: number, mouseY: number): void {
+  private showNodeTooltipImmediate(node: MapNode, mouseX: number, mouseY: number): void {
     if (!this.tooltipContainer) {
       console.warn("Tooltip container not available");
       return;
     }
     
-    const nodeInfo = this.getNodeInfoForType(nodeType);
+    const nodeInfo = this.getNodeInfoForType(node.type);
     if (!nodeInfo) {
-      console.warn(`No info available for node type: ${nodeType}`);
+      console.warn(`No info available for node type: ${node.type}`);
       return;
     }
     
@@ -4939,131 +4984,37 @@ ${potion.description}`, {
   /**
    * Get enemy information for a given node type
    */
-  private getEnemyInfoForNodeType(nodeType: string, nodeId?: string): any {
-    // Create a simple hash from nodeId for consistent enemy selection
-    const getNodeHash = (id: string): number => {
-      let hash = 0;
-      for (let i = 0; i < id.length; i++) {
-        const char = id.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-      }
-      return Math.abs(hash);
-    };
-
-    switch (nodeType) {
-      case "combat":
-        // Randomly select a common enemy
-        const commonEnemies = [
-          {
-            name: TIKBALANG.name,
-            type: "Combat",
-            spriteKey: "tikbalang",
-            animationKey: "tikbalang_idle",
-            health: TIKBALANG.maxHealth,
-            damage: TIKBALANG.damage,
-            abilities: ["Forest Navigation", "Illusion Casting"],
-            description: TIKBALANG_LORE.description
-          },
-          {
-            name: DWENDE.name,
-            type: "Combat", 
-            spriteKey: "chort_f0", // Using overworld sprite since no dwende combat sprite
-            animationKey: null,
-            health: DWENDE.maxHealth,
-            damage: DWENDE.damage,
-            abilities: ["Invisibility", "Mischief"],
-            description: DWENDE_LORE.description
-          },
-          {
-            name: KAPRE.name,
-            type: "Combat",
-            spriteKey: "chort_f0", // Using overworld sprite since no kapre combat sprite
-            animationKey: null,
-            health: KAPRE.maxHealth,
-            damage: KAPRE.damage,
-            abilities: ["Smoke Manipulation", "Tree Dwelling"],
-            description: KAPRE_LORE.description
-          },
-          {
-            name: SIGBIN.name,
-            type: "Combat",
-            spriteKey: "sigbin",
-            animationKey: "sigbin_idle",
-            health: SIGBIN.maxHealth, 
-            damage: SIGBIN.damage,
-            abilities: ["Invisibility", "Shadow Draining"],
-            description: SIGBIN_LORE.description
-          },
-          {
-            name: TIYANAK.name,
-            type: "Combat",
-            spriteKey: "chort_f0", // Using overworld sprite since no tiyanak combat sprite
-            animationKey: null,
-            health: TIYANAK.maxHealth,
-            damage: TIYANAK.damage, 
-            abilities: ["Shapeshifting", "Deception"],
-            description: TIYANAK_LORE.description
-          }
-        ];
-        
-        // Use node ID to consistently select the same enemy for this node
-        const combatIndex = nodeId ? getNodeHash(nodeId) % commonEnemies.length : 0;
-        return commonEnemies[combatIndex];
-        
-      case "elite":
-        // Randomly select an elite enemy
-        const eliteEnemies = [
-          {
-            name: MANANANGGAL.name,
-            type: "Elite",
-            spriteKey: "big_demon_f0", // Using overworld elite sprite since no manananggal combat sprite
-            animationKey: null,
-            health: MANANANGGAL.maxHealth,
-            damage: MANANANGGAL.damage,
-            abilities: ["Flight", "Body Segmentation", "Blood Draining"],
-            description: MANANANGGAL_LORE.description
-          },
-          {
-            name: ASWANG.name,
-            type: "Elite", 
-            spriteKey: "big_demon_f0", // Using overworld elite sprite since no aswang combat sprite
-            animationKey: null,
-            health: ASWANG.maxHealth,
-            damage: ASWANG.damage,
-            abilities: ["Shapeshifting", "Cannibalism", "Night Vision"],
-            description: ASWANG_LORE.description
-          },
-          {
-            name: DUWENDE_CHIEF.name,
-            type: "Elite",
-            spriteKey: "big_demon_f0", // Using overworld elite sprite since no duwende_chief combat sprite
-            animationKey: null,
-            health: DUWENDE_CHIEF.maxHealth,
-            damage: DUWENDE_CHIEF.damage,
-            abilities: ["Command", "Magic", "Earth Control"],
-            description: DUWENDE_CHIEF_LORE.description
-          }
-        ];
-        
-        // Use node ID to consistently select the same elite enemy for this node
-        const eliteIndex = nodeId ? getNodeHash(nodeId) % eliteEnemies.length : 0;
-        return eliteEnemies[eliteIndex];
-        
-      case "boss":
-        return {
-          name: BAKUNAWA.name,
-          type: "Boss",
-          spriteKey: "balete", // Using balete sprite for boss since no bakunawa sprite available
-          animationKey: "balete_idle",
-          health: BAKUNAWA.maxHealth,
-          damage: BAKUNAWA.damage,
-          abilities: ["Eclipse Creation", "Massive Size", "Elemental Control"],
-          description: BAKUNAWA_LORE.description
-        };
-        
-      default:
-        return null;
+  private getEnemyInfoForNodeType(nodeType: string, enemyId?: string): any {
+    if (!enemyId) {
+      return null;
     }
+
+    const allEnemies = [...ACT1_COMMON_ENEMIES, ...ACT1_ELITE_ENEMIES, MANGNANGAWAY];
+    const enemy = allEnemies.find(e => e.name === enemyId);
+
+    if (!enemy) return null;
+
+    const lore = ENEMY_LORE_DATA[enemy.name.toLowerCase().replace(/ /g, "_")];
+
+    let spriteKeyBase = enemy.name.toLowerCase().split(" ")[0];
+    if (spriteKeyBase === "tawong") {
+        spriteKeyBase = "tawonglipod";
+    }
+    // Additional check in case the enemy name is stored differently
+    if (enemy.name.toLowerCase().includes("tawong")) {
+        spriteKeyBase = "tawonglipod";
+    }
+    const spriteKey = spriteKeyBase + "_overworld";
+
+    return {
+      name: enemy.name,
+      type: nodeType === "elite" ? "Elite" : "Combat",
+      spriteKey: spriteKey,
+      animationKey: null,
+      health: enemy.maxHealth,
+      damage: enemy.damage,
+      abilities: [], // You can get this from lore or enemy data if available
+      description: lore ? lore.description : ""
+    };
   }
 }
