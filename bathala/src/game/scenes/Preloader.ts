@@ -108,6 +108,18 @@ export class Preloader extends Scene {
     this.load.image("tawong_lipod", "sprites/combat/enemy/chap1/tawonglipod_combat.png");
     this.load.image("tikbalang", "sprites/combat/enemy/chap1/tikbalang_combat.png");
     this.load.image("tiyanak", "sprites/combat/enemy/chap1/tiyanak_combat.png");
+
+    // Overworld enemy sprites
+    this.load.image("amomongo_overworld", "sprites/overworld/combat/chap1/amomongo_overworld.png");
+    this.load.image("balete_overworld", "sprites/overworld/combat/chap1/balete_overworld.png");
+    this.load.image("bungisngis_overworld", "sprites/overworld/combat/chap1/bungisngis_overworld.png");
+    this.load.image("duwende_overworld", "sprites/overworld/combat/chap1/duwende_overworld.png");
+    this.load.image("kapre_overworld", "sprites/overworld/combat/chap1/kapre_overworld.png");
+    this.load.image("mangangaway_overworld", "sprites/overworld/combat/chap1/mangangaway_overworld.png");
+    this.load.image("sigbin_overworld", "sprites/overworld/combat/chap1/sigbin_overworld.png");
+    this.load.image("tawong_lipod_overworld", "sprites/overworld/combat/chap1/tawonglipod_overworld.png");
+    this.load.image("tikbalang_overworld", "sprites/overworld/combat/chap1/tikbalang_overworld.png");
+    this.load.image("tiyanak_overworld", "sprites/overworld/combat/chap1/tiyanak_overworld.png");
     
     // Overworld node sprites
     // Combat node sprites (chort)

@@ -1516,12 +1516,10 @@ export class Overworld extends Scene {
     
     switch (node.type) {
       case "combat":
-        spriteKey = "chort_f0";
-        animKey = "chort_idle";
-        break;
       case "elite":
-        spriteKey = "big_demon_f0";
-        animKey = "big_demon_idle";
+        const enemyInfo = this.getEnemyInfoForNodeType(node.type, node.id);
+        spriteKey = enemyInfo.spriteKey;
+        animKey = enemyInfo.animationKey;
         break;
       case "boss":
         // For now, use the elite sprite as placeholder for boss
@@ -1566,7 +1564,11 @@ export class Overworld extends Scene {
     );
     nodeSprite.setOrigin(0.5);
     nodeSprite.setDepth(501); // Above the maze
-    nodeSprite.setScale(1.5); // Scale up a bit for better visibility
+
+    // Scale the sprite to fit within a 32x32 box while maintaining aspect ratio
+    const targetSize = 32;
+    const scale = targetSize / Math.max(nodeSprite.width, nodeSprite.height);
+    nodeSprite.setScale(scale);
     
     // Store sprite reference for tracking
     this.nodeSprites.set(node.id, nodeSprite);
@@ -4971,8 +4973,8 @@ ${potion.description}`, {
           {
             name: TIKBALANG_SCOUT.name,
             type: "Combat",
-            spriteKey: "tikbalang",
-            animationKey: "tikbalang_idle",
+            spriteKey: "tikbalang_overworld",
+            animationKey: null,
             health: TIKBALANG_SCOUT.maxHealth,
             damage: TIKBALANG_SCOUT.damage,
             abilities: ["Confuse"],
@@ -4981,8 +4983,8 @@ ${potion.description}`, {
           {
             name: BALETE_WRAITH.name,
             type: "Combat", 
-            spriteKey: "balete",
-            animationKey: "balete_idle",
+            spriteKey: "balete_overworld",
+            animationKey: null,
             health: BALETE_WRAITH.maxHealth,
             damage: BALETE_WRAITH.damage,
             abilities: ["Strengthen"],
@@ -4991,8 +4993,8 @@ ${potion.description}`, {
           {
             name: SIGBIN_CHARGER.name,
             type: "Combat",
-            spriteKey: "sigbin",
-            animationKey: "sigbin_idle",
+            spriteKey: "sigbin_overworld",
+            animationKey: null,
             health: SIGBIN_CHARGER.maxHealth,
             damage: SIGBIN_CHARGER.damage,
             abilities: ["Charge"],
@@ -5001,8 +5003,8 @@ ${potion.description}`, {
           {
             name: DUWENDE_TRICKSTER.name,
             type: "Combat",
-            spriteKey: "duwende",
-            animationKey: "duwende_idle",
+            spriteKey: "duwende_overworld",
+            animationKey: null,
             health: DUWENDE_TRICKSTER.maxHealth, 
             damage: DUWENDE_TRICKSTER.damage,
             abilities: ["Steal Block", "Disrupt Draw"],
@@ -5011,8 +5013,8 @@ ${potion.description}`, {
           {
             name: TIYANAK_AMBUSHER.name,
             type: "Combat",
-            spriteKey: "tiyanak",
-            animationKey: "tiyanak_idle",
+            spriteKey: "tiyanak_overworld",
+            animationKey: null,
             health: TIYANAK_AMBUSHER.maxHealth,
             damage: TIYANAK_AMBUSHER.damage, 
             abilities: ["Fear", "Critical Attack"],
@@ -5021,8 +5023,8 @@ ${potion.description}`, {
           {
             name: AMOMONGO.name,
             type: "Combat",
-            spriteKey: "amomongo",
-            animationKey: "amomongo_idle",
+            spriteKey: "amomongo_overworld",
+            animationKey: null,
             health: AMOMONGO.maxHealth,
             damage: AMOMONGO.damage, 
             abilities: ["Bleed"],
@@ -5031,8 +5033,8 @@ ${potion.description}`, {
           {
             name: BUNGISNGIS.name,
             type: "Combat",
-            spriteKey: "bungisngis",
-            animationKey: "bungisngis_idle",
+            spriteKey: "bungisngis_overworld",
+            animationKey: null,
             health: BUNGISNGIS.maxHealth,
             damage: BUNGISNGIS.damage, 
             abilities: ["Laugh Debuff"],
@@ -5048,8 +5050,8 @@ ${potion.description}`, {
           {
             name: KAPRE_SHADE.name,
             type: "Elite",
-            spriteKey: "kapre",
-            animationKey: "kapre_idle",
+            spriteKey: "kapre_overworld",
+            animationKey: null,
             health: KAPRE_SHADE.maxHealth,
             damage: KAPRE_SHADE.damage,
             abilities: ["AoE Burn", "Summon Minions"],
@@ -5058,8 +5060,8 @@ ${potion.description}`, {
           {
             name: TAWONG_LIPOD.name,
             type: "Elite", 
-            spriteKey: "tawong_lipod",
-            animationKey: "tawong_lipod_idle",
+            spriteKey: "tawong_lipod_overworld",
+            animationKey: null,
             health: TAWONG_LIPOD.maxHealth,
             damage: TAWONG_LIPOD.damage,
             abilities: ["Invisible", "Stun"],
@@ -5074,8 +5076,8 @@ ${potion.description}`, {
         return {
           name: MANGNANGAWAY.name,
           type: "Boss",
-          spriteKey: "mangangaway",
-          animationKey: "mangangaway_idle",
+          spriteKey: "mangangaway_overworld",
+          animationKey: null,
           health: MANGNANGAWAY.maxHealth,
           damage: MANGNANGAWAY.damage,
           abilities: ["Mimic Elements", "Curse Cards"],
