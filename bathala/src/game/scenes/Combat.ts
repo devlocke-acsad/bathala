@@ -62,6 +62,7 @@ export class Combat extends Scene {
   private discardViewContainer!: Phaser.GameObjects.Container;
   private actionResultText!: Phaser.GameObjects.Text;
   private enemyAttackPreviewText!: Phaser.GameObjects.Text;
+  private damagePreviewText!: Phaser.GameObjects.Text;
   private isDrawingCards: boolean = false;
   private isActionProcessing: boolean = false;
   private combatEnded: boolean = false;
@@ -700,6 +701,9 @@ export class Combat extends Scene {
 
     // Action buttons
     this.createActionButtons();
+
+    // Damage preview
+    this.createDamagePreview();
 
     // Turn display
     this.createTurnUI();
@@ -4873,11 +4877,30 @@ export class Combat extends Scene {
     });
   }
   
+  /** Create simple damage preview display */
+  private createDamagePreview(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Create damage preview text positioned near action buttons
+    this.damagePreviewText = this.add.text(screenWidth/2, screenHeight - 150, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#ff6b6b",
+      align: "center",
+      backgroundColor: "#000000",
+      padding: { x: 10, y: 5 }
+    }).setOrigin(0.5).setVisible(false);
+  }
+  
   /** Update damage preview with calculated damage - kept for style reference */
   private updateDamagePreview(isActionSelectionPhase: boolean): void {
     // This method is kept for its calculation logic and styling approach
     // but no longer displays UI since the preview container was removed
     if (!isActionSelectionPhase) {
+      if (this.damagePreviewText) {
+        this.damagePreviewText.setVisible(false);
+      }
       return;
     }
 
@@ -4913,7 +4936,7 @@ export class Combat extends Scene {
       bakunawaBonus = 5;
     }
 
-    // Format the damage display with relic bonuses (kept for style reference)
+    // Format the damage display with relic bonuses
     let damageText = `DMG: ${evaluation.totalValue}`;
     if (strength && strength.value > 0) {
       damageText += ` + ${strength.value} (Str)`;
@@ -4929,7 +4952,11 @@ export class Combat extends Scene {
     }
     damageText += ` = ${Math.floor(damage)}`;
 
-    // UI display removed but calculation logic preserved
+    // Display the damage preview
+    if (this.damagePreviewText) {
+      this.damagePreviewText.setText(damageText);
+      this.damagePreviewText.setVisible(true);
+    }
   }  /**
    * Animate sprite taking damage (flash red and shake)
    */
