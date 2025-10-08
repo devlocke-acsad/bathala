@@ -57,8 +57,8 @@ export class Prologue extends Scene {
         const scale = Math.max(scaleX, scaleY);
         introBgImage.setScale(scale);
         
-        // Add 75% opacity overlay with #150E10
-        const introOverlay = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.75);
+        // Add 90% opacity overlay with #150E10
+        const introOverlay = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.90);
 
         // Text occupies 60% of screen width, centered vertically
         const displayedText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, '', { 
@@ -130,9 +130,9 @@ export class Prologue extends Scene {
             transitionToTutorial();
         };
 
-        // Position skip button same as tutorial - relative to viewport
+        // Position skip button same as tutorial - bottom right
         const skipButtonX = this.cameras.main.width * 0.88; // 88% from left (12% margin from right)
-        const skipButtonY = this.cameras.main.height * 0.08; // 8% from top (top right corner)
+        const skipButtonY = this.cameras.main.height * 0.92; // 92% from top (8% from bottom)
         this.skipButton = this.createButton(skipButtonX, skipButtonY, 'Skip Intro', skipCallback);
         this.skipButton.setAlpha(0);
 
@@ -182,8 +182,8 @@ export class Prologue extends Scene {
         const scale = Math.max(scaleX, scaleY);
         tutorialBgImage.setScale(scale);
         
-        // Add 75% opacity overlay with #150E10
-        const tutorialOverlay = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.75);
+        // Add 90% opacity overlay with #150E10
+        const tutorialOverlay = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.90);
         
         // Add persistent instruction text at the top
         this.instructionText = this.add.text(this.cameras.main.width / 2, 40, '', {

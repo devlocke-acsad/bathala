@@ -7,8 +7,6 @@ export class MainMenu extends Scene {
   menuTexts: GameObjects.Text[] = [];
   versionText: GameObjects.Text;
   footerText: GameObjects.Text;
-  scanlines: GameObjects.TileSprite;
-  scanlineTimer: number = 0;
 
   constructor() {
     super("MainMenu");
@@ -29,7 +27,7 @@ export class MainMenu extends Scene {
   }
 
   /**
-   * Create prominent CRT scanline effect
+   * Create epic atmospheric background effects
    */
   private createBackgroundEffects(): void {
     // Safety check for cameras
@@ -41,24 +39,81 @@ export class MainMenu extends Scene {
     const width = this.cameras.main.width;
     const height = this.cameras.main.height;
     
-    // Create more prominent scanlines using a tile sprite
-    this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
-      .setOrigin(0)
-      .setAlpha(0.15) // Increased opacity for more prominence
-      .setTint(0x77888C);
-      
-    // Create a more pronounced scanline pattern
-    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-    graphics.fillStyle(0x000000, 1);
-    graphics.fillRect(0, 0, 4, 2); // Thicker lines
-    graphics.fillStyle(0xffffff, 1);
-    graphics.fillRect(0, 2, 4, 2); // Thicker lines
+    // Add background image
+    const bgImage = this.add.image(width / 2, height / 2, 'chap1_no_leaves_boss');
     
-    const texture = graphics.generateTexture('scanline', 4, 4);
-    this.scanlines.setTexture('scanline');
+    // Scale the background to cover the screen
+    const scaleX = width / bgImage.width;
+    const scaleY = height / bgImage.height;
+    const scale = Math.max(scaleX, scaleY);
+    bgImage.setScale(scale);
+    bgImage.setDepth(-100);
     
-    // Move background to the back
-    this.scanlines.setDepth(-10);
+    // Add darker overlay - 90% opacity
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x150E10, 0.90);
+    overlay.setDepth(-90);
+    
+    // Create highly visible floating embers/spirits
+    const particles = this.add.particles(0, 0, '__WHITE', {
+      x: { min: 0, max: width },
+      y: { min: -20, max: height + 20 },
+      lifespan: 5000,
+      speed: { min: 20, max: 60 },
+      angle: { min: 75, max: 105 }, // Slight drift
+      scale: { start: 1.2, end: 0.3 }, // Much larger
+      alpha: { start: 0.7, end: 0 }, // Very visible
+      blendMode: 'ADD',
+      frequency: 80, // Spawn faster
+      tint: 0x77888C,
+      maxParticles: 100, // Many more particles
+      gravityY: 15 // Gentle downward pull
+    });
+    particles.setDepth(-70);
+    
+    // Add second layer of smaller, faster particles for depth
+    const dustParticles = this.add.particles(0, 0, '__WHITE', {
+      x: { min: 0, max: width },
+      y: { min: -10, max: height + 10 },
+      lifespan: 3000,
+      speed: { min: 30, max: 80 },
+      angle: { min: 70, max: 110 },
+      scale: { start: 0.5, end: 0.1 },
+      alpha: { start: 0.5, end: 0 },
+      blendMode: 'ADD',
+      frequency: 60,
+      tint: 0x99aabb,
+      maxParticles: 80,
+      gravityY: 20
+    });
+    dustParticles.setDepth(-75);
+    
+    // Create proper vignette effect instead of corrupted gradient
+    const vignette = this.add.graphics();
+    vignette.fillStyle(0x000000, 1);
+    
+    // Draw radial gradient manually with circles
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const maxRadius = Math.max(width, height);
+    
+    for (let i = 0; i < 20; i++) {
+      const radius = maxRadius * (1 - i / 20);
+      const alpha = (i / 20) * 0.6; // Fade from 0 to 0.6
+      vignette.fillStyle(0x000000, alpha);
+      vignette.fillCircle(centerX, centerY, radius);
+    }
+    
+    vignette.setDepth(-80);
+    
+    // Subtle vignette pulse
+    this.tweens.add({
+      targets: vignette,
+      alpha: 0.7,
+      duration: 5000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
   }
 
   /**
@@ -150,8 +205,15 @@ export class MainMenu extends Scene {
       })
       .setOrigin(0.5);
     
-    // Add subtle shadow
-    titleText.setShadow(2, 2, '#000000', 0, true, false);
+    // Add subtle pulsing glow effect (no shadow)
+    this.tweens.add({
+      targets: titleText,
+      alpha: 0.85,
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
     
     // Force refresh after a short delay
     this.time.delayedCall(50, () => {
@@ -179,11 +241,6 @@ export class MainMenu extends Scene {
    * Update method for animation effects
    */
   update(time: number, delta: number): void {
-    // Animate the scanlines
-    if (this.scanlines) {
-      this.scanlineTimer += delta;
-      // Move scanlines vertically to simulate CRT effect at a faster pace
-      this.scanlines.tilePositionY = this.scanlineTimer * 0.1; // Increased speed
-    }
+    // No scanlines to animate anymore
   }
 }
