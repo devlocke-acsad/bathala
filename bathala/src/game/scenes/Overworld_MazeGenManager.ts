@@ -27,8 +27,8 @@ export class Overworld_MazeGenManager {
   // Floor textures for randomization
   private floorTextures: string[] = ['floor1', 'floor2', 'floor3'];
   
-  // Wall textures for randomization
-  private wallTextures: string[] = ['wall1', 'wall2', 'wall3', 'wall4', 'wall5', 'wall6'];
+  // Wall textures for randomization (wall1 and wall2 appear more often as they are trees)
+  private wallTextures: string[] = ['wall1', 'wall1', 'wall1', 'wall2', 'wall2', 'wall2', 'wall3', 'wall4', 'wall5', 'wall6'];
 
   /**
    * Constructor
