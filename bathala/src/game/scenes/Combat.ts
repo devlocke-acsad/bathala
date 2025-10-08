@@ -62,9 +62,6 @@ export class Combat extends Scene {
   private discardViewContainer!: Phaser.GameObjects.Container;
   private actionResultText!: Phaser.GameObjects.Text;
   private enemyAttackPreviewText!: Phaser.GameObjects.Text;
-  private damagePreviewContainer!: Phaser.GameObjects.Container;
-  private damagePreviewText!: Phaser.GameObjects.Text;
-  private damagePreviewBackground!: Phaser.GameObjects.Rectangle;
   private isDrawingCards: boolean = false;
   private isActionProcessing: boolean = false;
   private combatEnded: boolean = false;
@@ -700,9 +697,6 @@ export class Combat extends Scene {
 
     // Played hand area (center)
     this.createPlayedHandUI();
-
-    // Damage preview display (create before action buttons so it exists when needed)
-    this.createDamagePreviewUI();
 
     // Action buttons
     this.createActionButtons();
@@ -4879,62 +4873,30 @@ export class Combat extends Scene {
     });
   }
   
-  /** Create damage preview UI */
-  private createDamagePreviewUI(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    
-    // Create container for the damage preview
-    this.damagePreviewContainer = this.add.container(0, 0);
-    this.damagePreviewContainer.setVisible(false); // Initially hidden
-    
-    // Background rectangle
-    this.damagePreviewBackground = this.add.rectangle(0, 0, 200, 60, 0x000000, 0.8);
-    this.damagePreviewBackground.setStrokeStyle(2, 0x4ecdc4);
-    
-    // Damage text
-    this.damagePreviewText = this.add.text(0, 0, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: Math.floor(18 * scaleFactor),
-      color: "#ff6b6b",
-      align: "center",
-    }).setOrigin(0.5);
-    
-    this.damagePreviewContainer.add([this.damagePreviewBackground, this.damagePreviewText]);
-    
-    // Position below the action buttons
-    this.damagePreviewContainer.setPosition(screenWidth/2, screenHeight - 40);
-  }
-  
-  /** Update damage preview with calculated damage */
+  /** Update damage preview with calculated damage - kept for style reference */
   private updateDamagePreview(isActionSelectionPhase: boolean): void {
-    // Safety check - if container doesn't exist yet, skip update
-    if (!this.damagePreviewContainer) {
-      return;
-    }
-    
+    // This method is kept for its calculation logic and styling approach
+    // but no longer displays UI since the preview container was removed
     if (!isActionSelectionPhase) {
-      this.damagePreviewContainer.setVisible(false);
       return;
     }
-    
+
     // Calculate the potential damage based on the played hand
     const evaluation = HandEvaluator.evaluateHand(
       this.combatState.player.playedHand,
       "attack",
       this.combatState.player
     );
-    
+
     let damage = evaluation.totalValue;
     const strength = this.combatState.player.statusEffects.find((e) => e.name === "Strength");
     if (strength) {
       damage += strength.value;
     }
-    
+
     // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
     damage += RelicManager.calculateSigbinHeartDamage(this.combatState.player);
-    
+
     // Apply vulnerable effect if enemy has it
     let vulnerableBonus = 0;
     if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
@@ -4942,7 +4904,7 @@ export class Combat extends Scene {
       damage *= 1.5;
       vulnerableBonus = damage - originalDamage;
     }
-    
+
     // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
     const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
     let bakunawaBonus = 0;
@@ -4950,8 +4912,8 @@ export class Combat extends Scene {
       damage += 5;
       bakunawaBonus = 5;
     }
-    
-    // Format the damage display with relic bonuses
+
+    // Format the damage display with relic bonuses (kept for style reference)
     let damageText = `DMG: ${evaluation.totalValue}`;
     if (strength && strength.value > 0) {
       damageText += ` + ${strength.value} (Str)`;
@@ -4966,12 +4928,9 @@ export class Combat extends Scene {
       damageText += ` + ${bakunawaBonus} (Bakunawa)`;
     }
     damageText += ` = ${Math.floor(damage)}`;
-    
-    this.damagePreviewText.setText(damageText);
-    this.damagePreviewContainer.setVisible(true);
-  }
 
-  /**
+    // UI display removed but calculation logic preserved
+  }  /**
    * Animate sprite taking damage (flash red and shake)
    */
   private animateSpriteDamage(sprite: Phaser.GameObjects.Sprite): void {
@@ -6099,7 +6058,6 @@ export class Combat extends Scene {
     if (this.handContainer) this.handContainer.setVisible(false);
     if (this.playedHandContainer) this.playedHandContainer.setVisible(false);
     if (this.actionButtons) this.actionButtons.setVisible(false);
-    if (this.damagePreviewContainer) this.damagePreviewContainer.setVisible(false);
     
     // Hide deck and discard piles
     if (this.deckSprite) this.deckSprite.setVisible(false);
@@ -6131,7 +6089,6 @@ export class Combat extends Scene {
     if (this.handContainer) this.handContainer.setVisible(true);
     if (this.playedHandContainer) this.playedHandContainer.setVisible(true);
     if (this.actionButtons) this.actionButtons.setVisible(true);
-    if (this.damagePreviewContainer) this.damagePreviewContainer.setVisible(true);
     
     // Restore deck and discard piles
     if (this.deckSprite) this.deckSprite.setVisible(true);
