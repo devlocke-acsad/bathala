@@ -2293,76 +2293,40 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Create modern styled left panel with improved visual design
+   * Create retro-styled left panel matching reference image exactly
    */
   private createCompactLeftPanel(screenHeight: number): void {
-    const panelWidth = 320;
-    const panelHeight = Math.min(screenHeight - 40, 720);
+    const panelWidth = 300;
+    const panelHeight = 450;
     const panelX = 20;
-    const panelY = screenHeight / 2 - panelHeight / 2;
+    const panelY = (screenHeight / 2) - (panelHeight / 2); // Center vertically
     
-    // Modern glass-morphism style background
+    // Dark retro-style background with double border like reference
     const panelBg = this.add.graphics();
-    panelBg.fillStyle(0x0a0a0a, 0.85);
-    panelBg.lineStyle(1, 0x404040, 0.6);
-    panelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
-    panelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
+    panelBg.fillStyle(0x0a0a0a, 1.0);
+    panelBg.lineStyle(2, 0x888888, 1.0);
+    panelBg.fillRect(panelX, panelY, panelWidth, panelHeight);
+    panelBg.strokeRect(panelX, panelY, panelWidth, panelHeight);
     
-    // Subtle inner border for depth
+    // Inner border exactly like reference
     const innerBorder = this.add.graphics();
-    innerBorder.lineStyle(1, 0x606060, 0.3);
-    innerBorder.strokeRoundedRect(panelX + 2, panelY + 2, panelWidth - 4, panelHeight - 4, 18);
+    innerBorder.lineStyle(1, 0x666666, 1.0);
+    innerBorder.strokeRect(panelX + 6, panelY + 6, panelWidth - 12, panelHeight - 12);
     
-    // Accent line on the left
-    const accentLine = this.add.graphics();
-    accentLine.lineStyle(3, 0x00bcd4, 0.8);
-    accentLine.beginPath();
-    accentLine.moveTo(panelX + 8, panelY + 20);
-    accentLine.lineTo(panelX + 8, panelY + panelHeight - 20);
-    accentLine.strokePath();
+    this.uiContainer.add([panelBg, innerBorder]);
     
-    this.uiContainer.add([panelBg, innerBorder, accentLine]);
+    let currentY = panelY + 30;
     
-    // Modern header without heavy box
-    const headerText = this.add.text(panelX + 25, panelY + 25, "STATUS", {
-      fontFamily: "dungeon-mode",
-      fontSize: "20px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    headerText.setShadow(1, 1, '#000000', 2, false, true);
-    this.uiContainer.add(headerText);
+    // Health section
+    this.createRetroHealthSection(panelX + 30, currentY, panelWidth - 60);
+    currentY += 110;
     
-    // Calculate organized spacing for sections with more breathing room
-    const contentStartY = panelY + 80; // More space from header
-    const sectionSpacing = 25; // Increased space between sections
+    // Relics section
+    this.createRetroRelicsSection(panelX + 30, currentY, panelWidth - 60);
+    currentY += 180;
     
-    // Organized section heights for better proportions
-    const healthSectionHeight = 155; // Increased to accommodate diamante spacing
-    const relicsSectionHeight = 170;
-    
-    let currentY = contentStartY;
-    
-    // Health section with organized spacing
-    this.createModernHealthSection(panelX + 20, currentY, panelWidth - 40);
-    currentY += healthSectionHeight + sectionSpacing;
-    
-    // Add section separator with more prominent styling
-    this.createSectionSeparator(panelX + 25, currentY - (sectionSpacing / 2), panelWidth - 50);
-    
-    // Relics section with organized spacing
-    this.createModernRelicsSection(panelX + 20, currentY, panelWidth - 40);
-    currentY += relicsSectionHeight + sectionSpacing;
-    
-    // Add section separator with more prominent styling
-    this.createSectionSeparator(panelX + 25, currentY - (sectionSpacing / 2), panelWidth - 50);
-    
-    // Potions section with organized spacing
-    this.createModernPotionsSection(panelX + 20, currentY, panelWidth - 40);
-    currentY += 120 + sectionSpacing; // Height for potions section
-    
-    // Final separator for bottom closure
-    this.createSectionSeparator(panelX + 25, currentY - (sectionSpacing / 2), panelWidth - 50);
+    // Potions section
+    this.createRetroPotionsSection(panelX + 30, currentY, panelWidth - 60);
   }
 
   /**
@@ -2402,136 +2366,89 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Create modern health section with sleek design
+   * Create retro health section matching reference image exactly
    */
-  private createModernHealthSection(x: number, y: number, width: number): void {
-    // Section container with subtle background - shortened to fit only currency section
-    const sectionBg = this.add.graphics();
-    sectionBg.fillStyle(0x1a1a1a, 0.4);
-    sectionBg.lineStyle(1, 0x333333, 0.5);
-    sectionBg.fillRoundedRect(x - 5, y - 5, width + 10, 115, 12);
-    sectionBg.strokeRoundedRect(x - 5, y - 5, width + 10, 115, 12);
-    this.uiContainer.add(sectionBg);
-    
-    // Health header with properly aligned elements
-    const healthIcon = this.add.text(x, y + 8, "♥", {
-      fontSize: "18px",
-      color: "#e74c3c",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    healthIcon.setShadow(2, 2, '#000000', 2, false, true);
-    
-    const healthLabel = this.add.text(x + 25, y + 8, "HEALTH", {
+  private createRetroHealthSection(x: number, y: number, width: number): void {
+    // Health label and value on same line
+    const healthLabel = this.add.text(x, y, "Health", {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    healthLabel.setShadow(2, 2, '#000000', 2, false, true);
+      color: "#888888"
+    });
     
-    // Health value center-aligned
-    this.healthText = this.add.text(x + width/2 + 30, y + 8, `${this.playerData.currentHealth}/${this.playerData.maxHealth}`, {
+    const healthIcon = this.add.text(x, y + 20, "♥", {
+      fontSize: "16px",
+      color: "#ff0000"
+    });
+    
+    this.healthText = this.add.text(x + 25, y + 20, `${this.playerData.currentHealth}/${this.playerData.maxHealth}`, {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
-      color: "#ffffff",
-      fontStyle: "bold",
-      align: "center"
-    }).setOrigin(0.5, 0.5);
-    this.healthText.setShadow(2, 2, '#000000', 2, false, true);
+      color: "#ffffff"
+    });
     
-    // Modern health bar container with organized spacing
-    const healthBarBg = this.add.graphics();
-    healthBarBg.fillStyle(0x2c2c2c, 0.8);
-    healthBarBg.fillRoundedRect(x, y + 40, width - 10, 12, 6);
-    this.uiContainer.add(healthBarBg);
+    // Gold label and value
+    const goldLabel = this.add.text(x, y + 45, "Gold", {
+      fontFamily: "dungeon-mode",
+      fontSize: "14px",
+      color: "#888888"
+    });
     
-    // Health bar fill
+    const goldIcon = this.add.text(x, y + 65, "♦", {
+      fontSize: "16px",
+      color: "#ffff00"
+    });
+    
+    this.currencyText = this.add.text(x + 25, y + 65, `${this.playerData.ginto}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: "14px",
+      color: "#ffffff"
+    });
+    
+    // Diamante label and value
+    const diamanteLabel = this.add.text(x + 140, y + 45, "Diamante", {
+      fontFamily: "dungeon-mode",
+      fontSize: "14px",
+      color: "#888888"
+    });
+    
+    const diamanteIcon = this.add.text(x + 140, y + 65, "💎", {
+      fontSize: "16px",
+      color: "#00ddff"
+    });
+    
+    this.diamanteText = this.add.text(x + 165, y + 65, `${this.playerData.diamante}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: "14px",
+      color: "#ffffff"
+    });
+    
+    // Create health bar graphics (required for updateHealthBar method)
     this.healthBar = this.add.graphics();
     this.uiContainer.add(this.healthBar);
     
-    // Currency section with properly aligned elements
-    const gintoIcon = this.add.text(x, y + 70, "💰", {
-      fontSize: "16px"
-    }).setOrigin(0, 0.5);
-    gintoIcon.setShadow(2, 2, '#000000', 2, false, true);
-    
-    const gintoLabel = this.add.text(x + 25, y + 70, "GINTO", {
-      fontFamily: "dungeon-mode",
-      fontSize: "10px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    gintoLabel.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Left-aligned GINTO value - moved further right
-    this.currencyText = this.add.text(x + 120, y + 70, `${this.playerData.ginto}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: "10px",
-      color: "#ffffff",
-      fontStyle: "bold",
-      align: "left"
-    }).setOrigin(0, 0.5);
-    this.currencyText.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Diamante currency display with properly aligned elements
-    const diamanteIcon = this.add.text(x, y + 95, "💎", {
-      fontSize: "16px"
-    }).setOrigin(0, 0.5);
-    diamanteIcon.setShadow(2, 2, '#000000', 2, false, true);
-    
-    const diamanteLabel = this.add.text(x + 25, y + 95, "DIAMANTE", {
-      fontFamily: "dungeon-mode",
-      fontSize: "10px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    diamanteLabel.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Left-aligned DIAMANTE value - moved further right
-    this.diamanteText = this.add.text(x + 120, y + 95, `${this.playerData.diamante}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: "10px",
-      color: "#ffffff",
-      fontStyle: "bold",
-      align: "left"
-    }).setOrigin(0, 0.5);
-    this.diamanteText.setShadow(2, 2, '#000000', 2, false, true);
-    
-    // Landás meter with more spacing from currency section
-    this.createLandasMeter(x, y + 140, width - 10, 18);
-    
-    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel, this.healthText, this.currencyText, this.diamanteText]);
+    this.uiContainer.add([healthLabel, healthIcon, this.healthText, goldLabel, goldIcon, this.currencyText, diamanteLabel, diamanteIcon, this.diamanteText]);
   }
 
   /**
-   * Create modern relics section with grid layout
+   * Create retro relics section with 2x3 grid exactly like reference
    */
-  private createModernRelicsSection(x: number, y: number, width: number): void {
-    // Section header with organized spacing
-    const relicsLabel = this.add.text(x, y + 8, "RELICS", {
+  private createRetroRelicsSection(x: number, y: number, width: number): void {
+    // Relics label
+    const relicsLabel = this.add.text(x, y, "Relics", {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
-      color: "#ffffff",
-      fontStyle: "bold"
+      color: "#888888"
     });
-    relicsLabel.setShadow(2, 2, '#000000', 2, false, true);
     this.uiContainer.add(relicsLabel);
     
-    // Grid container with organized spacing
-    const gridBg = this.add.graphics();
-    gridBg.fillStyle(0x1a1a1a, 0.4);
-    gridBg.lineStyle(1, 0x333333, 0.5);
-    gridBg.fillRoundedRect(x - 5, y + 25, width + 10, 130, 12);
-    gridBg.strokeRoundedRect(x - 5, y + 25, width + 10, 130, 12);
-    this.uiContainer.add(gridBg);
-    
-    // Create 4x2 grid of relic slots with organized spacing
-    const slotSize = 45;
-    const slotSpacing = 12;
-    const slotsPerRow = 4;
+    // Create 3x2 grid of relic slots (3 columns, 2 rows)
+    const slotSize = 60;
+    const slotSpacing = 10;
+    const slotsPerRow = 3;
     const rows = 2;
-    const gridStartX = x + 15;
-    const gridStartY = y + 40;
+    const gridStartX = x;
+    const gridStartY = y + 25;
     
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < slotsPerRow; col++) {
@@ -2539,59 +2456,45 @@ export class Overworld extends Scene {
         const slotY = gridStartY + row * (slotSize + slotSpacing);
         
         const slot = this.add.graphics();
-        slot.fillStyle(0x2c2c2c, 0.6);
-        slot.lineStyle(1, 0x404040, 0.8);
-        slot.fillRoundedRect(slotX, slotY, slotSize, slotSize, 8);
-        slot.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 8);
-        slot.setDepth(-10); // Set slots behind relics
+        slot.fillStyle(0x000000, 1.0);
+        slot.lineStyle(1, 0x666666, 1.0);
+        slot.fillRect(slotX, slotY, slotSize, slotSize);
+        slot.strokeRect(slotX, slotY, slotSize, slotSize);
         this.uiContainer.add(slot);
       }
     }
     
     // Create relics container for items
     this.relicsContainer = this.add.container(gridStartX, gridStartY);
-    this.relicsContainer.setDepth(10); // Ensure relics appear above slots
     this.uiContainer.add(this.relicsContainer);
-    
-    console.log('🎯 Created relicsContainer at:', { x: gridStartX, y: gridStartY, depth: this.relicsContainer.depth });
   }
 
   /**
-   * Create modern potions section
+   * Create retro potions section with 1x3 horizontal layout exactly like reference
    */
-  private createModernPotionsSection(x: number, y: number, width: number): void {
-    // Section header with organized spacing
-    const potionsLabel = this.add.text(x, y + 8, "POTIONS", {
+  private createRetroPotionsSection(x: number, y: number, width: number): void {
+    // Potions label
+    const potionsLabel = this.add.text(x, y, "Potions", {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
-      color: "#ffffff",
-      fontStyle: "bold"
+      color: "#888888"
     });
-    potionsLabel.setShadow(2, 2, '#000000', 2, false, true);
     this.uiContainer.add(potionsLabel);
     
-    // Potions container with organized spacing
-    const potionsBg = this.add.graphics();
-    potionsBg.fillStyle(0x1a1a1a, 0.4);
-    potionsBg.lineStyle(1, 0x333333, 0.5);
-    potionsBg.fillRoundedRect(x - 5, y + 25, width + 10, 65, 12);
-    potionsBg.strokeRoundedRect(x - 5, y + 25, width + 10, 65, 12);
-    this.uiContainer.add(potionsBg);
-    
-    // Create 3 potion slots with organized spacing
-    const slotSize = 40;
-    const slotSpacing = 18;
-    const potionStartX = x + 20;
-    const potionStartY = y + 38;
+    // Create 3 horizontal potion slots
+    const slotSize = 60;
+    const slotSpacing = 10;
+    const potionStartX = x;
+    const potionStartY = y + 25;
     
     for (let i = 0; i < 3; i++) {
       const slotX = potionStartX + i * (slotSize + slotSpacing);
       
       const slot = this.add.graphics();
-      slot.fillStyle(0x2c2c2c, 0.6);
-      slot.lineStyle(1, 0x404040, 0.8);
-      slot.fillRoundedRect(slotX, potionStartY, slotSize, slotSize, 8);
-      slot.strokeRoundedRect(slotX, potionStartY, slotSize, slotSize, 8);
+      slot.fillStyle(0x000000, 1.0);
+      slot.lineStyle(1, 0x666666, 1.0);
+      slot.fillRect(slotX, potionStartY, slotSize, slotSize);
+      slot.strokeRect(slotX, potionStartY, slotSize, slotSize);
       this.uiContainer.add(slot);
     }
     
@@ -3195,77 +3098,41 @@ export class Overworld extends Scene {
   private updateOverworldUI(): void {
     this.updateHealthBar();
     this.updateCurrencyDisplay();
-    this.updateLandasDisplay();
     this.updateRelicsDisplay();
     this.updatePotionsDisplay();
   }
 
   /**
-   * Update health bar display with heart-shaped elements and consistent square design
+   * Update health bar display for retro style
    */
   private updateHealthBar(): void {
+    if (!this.healthBar || !this.healthText) return;
+    
     const healthPercent = this.playerData.currentHealth / this.playerData.maxHealth;
     
     this.healthBar.clear();
     
-    // Modern health bar position calculation - updated to match new layout
-    const panelX = 20;
-    const panelWidth = 320;
-    const screenHeight = this.cameras.main.height;
-    const panelHeight = Math.min(screenHeight - 40, 720);
-    const panelY = screenHeight / 2 - panelHeight / 2;
-    
-    const healthSectionY = panelY + 70; // After header with organized spacing
-    const barX = panelX + 20; // Health section x position
-    const barY = healthSectionY + 40; // Health bar y position within section (adjusted from 50 to 40)
-    const barWidth = panelWidth - 50; // Available width for health bar
-    const barHeight = 12; // Modern thin health bar
-    
-    // Modern health color progression
-    let healthColor = 0x2ecc71; // Modern green
-    
-    if (healthPercent < 0.75) {
-      healthColor = 0x27ae60; // Darker green
-    }
-    if (healthPercent < 0.5) {
-      healthColor = 0xf39c12; // Orange
-    }
-    if (healthPercent < 0.25) {
-      healthColor = 0xe74c3c; // Modern red
-    }
-    
-    // Draw modern health bar fill with rounded corners
-    const fillWidth = barWidth * healthPercent;
-    if (fillWidth > 4) {
-      this.healthBar.fillStyle(healthColor, 1.0);
-      this.healthBar.fillRoundedRect(barX, barY, fillWidth, barHeight, 6);
-      
-      // Add subtle glow effect for low health
-      if (healthPercent < 0.25) {
-        this.healthBar.fillStyle(healthColor, 0.3);
-        this.healthBar.fillRoundedRect(barX - 2, barY - 1, fillWidth + 4, barHeight + 2, 7);
-      }
-    }
-    
-    // Update health text - maintain center alignment
+    // Update health text
     this.healthText.setText(`${this.playerData.currentHealth}/${this.playerData.maxHealth}`);
     
-    // Modern low health effects
+    // Change text color based on health level
     if (healthPercent < 0.25) {
-      this.healthText.setShadow(1, 1, '#e74c3c', 2, false, true);
+      this.healthText.setColor('#ff0000');
+    } else if (healthPercent < 0.5) {
+      this.healthText.setColor('#ffff00');
     } else {
-      this.healthText.setShadow(2, 2, '#000000', 2, false, true);
-      this.tweens.killTweensOf(this.healthText);
-      this.healthText.setScale(1, 1);
+      this.healthText.setColor('#ffffff');
     }
   }
 
   /**
-   * Update currency display
+   * Update currency display for retro style with separate gold and diamante
    */
   private updateCurrencyDisplay(): void {
     this.currencyText.setText(`${this.playerData.ginto}`);
-    this.diamanteText.setText(`${this.playerData.diamante}`);
+    if (this.diamanteText) {
+      this.diamanteText.setText(`${this.playerData.diamante}`);
+    }
   }
 
   /**
@@ -3317,10 +3184,10 @@ export class Overworld extends Scene {
     console.log('🎯 Player relics:', this.playerData.relics.map(r => r.name || r.id));
     this.relicsContainer.removeAll(true);
     
-    const slotSize = 45; // Match the slot size from createModernRelicsSection
-    const slotSpacing = 12; // Slightly reduced spacing to better fit
-    const slotsPerRow = 4;
-    const maxRelics = 8; // 4x2 grid
+    const slotSize = 60; // Match the new retro slot size  
+    const slotSpacing = 10; // Match the new retro spacing
+    const slotsPerRow = 3; // 3x2 grid (3 columns, 2 rows)
+    const maxRelics = 6; // 3x2 grid total
     
     // Calculate total grid dimensions for reference
     const totalGridWidth = (slotsPerRow * slotSize) + ((slotsPerRow - 1) * slotSpacing); // 213px total for 45px slots
@@ -3593,12 +3460,16 @@ export class Overworld extends Scene {
   /**
    * Update potions display in bottom action slots
    */
+  /**
+   * Update potions display in retro horizontal layout
+   */
   private updatePotionsDisplay(): void {
+    if (!this.potionsContainer) return;
+    
     this.potionsContainer.removeAll(true);
     
-    // Match the calculations from createModernPotionsSection
-    const slotSize = 40;
-    const slotSpacing = 18;
+    const slotSize = 60; // Match retro potion slot size
+    const slotSpacing = 10; // Match retro spacing
     const maxPotions = 3;
     
     for (let i = 0; i < Math.min(this.playerData.potions.length, maxPotions); i++) {
@@ -3606,84 +3477,36 @@ export class Overworld extends Scene {
       const potionX = i * (slotSize + slotSpacing);
       const potionY = 0;
       
-      // Create potion container
-      const potionContainer = this.add.container(potionX, potionY);
-      
-      // Potion background (slightly smaller than slot to create padding effect)
+      // Create potion background
       const potionBg = this.add.graphics();
-      potionBg.fillStyle(0x000000, 0.6);
-      potionBg.lineStyle(1, 0x555555, 0.8);
-      potionBg.fillRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-      potionBg.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
+      potionBg.fillStyle(0x333333, 1.0);
+      potionBg.lineStyle(1, 0xaaaaaa, 1.0);
+      potionBg.fillRect(potionX, potionY, slotSize, slotSize);
+      potionBg.strokeRect(potionX, potionY, slotSize, slotSize);
       
-      // Potion icon - centered in the slot
-      const potionIcon = this.add.text(slotSize/2, slotSize/2, "🧪", {
-        fontSize: "20px",
-        align: "center"
+      // Potion icon
+      const potionIcon = this.add.text(potionX + slotSize/2, potionY + slotSize/2, "🧪", {
+        fontSize: "16px"
       }).setOrigin(0.5);
       
-      potionContainer.add([potionBg, potionIcon]);
+      this.potionsContainer.add([potionBg, potionIcon]);
       
-      // Make interactive for tooltip and actions
-      potionContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
-      this.createItemTooltip(potionIcon, potion.name, potion.description);
+      // Make interactive
+      const hitArea = new Phaser.Geom.Rectangle(potionX, potionY, slotSize, slotSize);
+      potionIcon.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
       
-      // Add hover effects
-      potionContainer.on('pointerover', () => {
-        potionBg.clear();
-        potionBg.fillStyle(0x333333, 0.8);
-        potionBg.lineStyle(2, 0x44aa44, 1);
-        potionBg.fillRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        potionBg.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        
-        // Scale up on hover
-        this.tweens.add({
-          targets: potionContainer,
-          scale: 1.1,
-          duration: 150,
-          ease: 'Power2'
-        });
+      potionIcon.on('pointerover', () => {
+        this.createItemTooltip(potionIcon, potion.name, potion.description);
       });
       
-      potionContainer.on('pointerout', () => {
-        potionBg.clear();
-        potionBg.fillStyle(0x000000, 0.6);
-        potionBg.lineStyle(1, 0x555555, 0.8);
-        potionBg.fillRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        potionBg.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        
-        // Scale back to normal
-        this.tweens.add({
-          targets: potionContainer,
-          scale: 1,
-          duration: 150,
-          ease: 'Power2'
+      potionIcon.on('pointerout', () => {
+        // Remove tooltip
+        this.children.getChildren().forEach(child => {
+          if (child.getData && child.getData('tooltip')) {
+            child.destroy();
+          }
         });
       });
-      
-      // Add use/discard buttons
-      const useButton = this.createSmallPotionButton(
-        potionX + slotSize - 8,
-        potionY + 8,
-        "U",
-        0x00aa00,
-        () => this.usePotion(i)
-      );
-      
-      const discardButton = this.createSmallPotionButton(
-        potionX + slotSize - 8,
-        potionY + 24,
-        "D",
-        0xaa0000,
-        () => this.discardPotion(i)
-      );
-      
-      this.potionsContainer.add([potionContainer, useButton, discardButton]);
-    }
-    
-    // Update discard charges display
-    if (this.discardText) {
-      this.discardText.setText(`${this.playerData.discardCharges || 1}/${this.playerData.maxDiscardCharges || 1}`);
     }
   }
 
