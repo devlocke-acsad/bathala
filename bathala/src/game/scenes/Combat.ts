@@ -2361,6 +2361,8 @@ export class Combat extends Scene {
     console.log(`Combat ended with victory: ${victory}`);
     
     // Calculate DDA metrics and send to system
+    // NOTE: For roguelikes, healthPercentage should be based on maxHealth, not starting health
+    // This properly reflects the player's resource state for upcoming fights
     const combatMetrics: CombatMetrics = {
       combatId: `combat_${Date.now()}`,
       timestamp: Date.now(),
@@ -2372,7 +2374,7 @@ export class Combat extends Scene {
       
       // Combat performance  
       endHealth: this.combatState.player.currentHealth,
-      healthPercentage: this.combatState.player.currentHealth / this.initialPlayerHealth,
+      healthPercentage: this.combatState.player.currentHealth / this.combatState.player.maxHealth, // Fixed: Use maxHealth for roguelike HP retention
       turnCount: this.turnCount,
       damageDealt: Math.max(0, this.combatState.enemy.maxHealth - this.combatState.enemy.currentHealth),
       damageReceived: Math.max(0, this.initialPlayerHealth - this.combatState.player.currentHealth),

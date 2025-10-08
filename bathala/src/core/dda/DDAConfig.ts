@@ -11,21 +11,27 @@ export interface DDAModifiers {
     trackPPSDuringCalibration: boolean; // Track PPS but don't apply adjustments
   };
 
-  // PPS Update Rules
+  // PPS Update Rules - Performance-Based (Roguelike)
   ppsModifiers: {
-    // Victory/Defeat (Solution 1)
-    victoryBonus: number;         // +PPS for winning (always positive)
-    defeatPenalty: number;        // -PPS for losing
+    // Health Retention Performance (Gradient System)
+    excellentHealthBonus: number;     // 90-100% HP retained
+    goodHealthBonus: number;          // 70-89% HP retained
+    moderateHealthPenalty: number;    // 30-49% HP retained
+    poorHealthPenalty: number;        // <30% HP retained
+    perfectCombatBonus: number;       // 100% HP retained (no damage)
     
-    // Health-based
-    highHealthBonus: number;      // +PPS when ending combat with >90% HP
-    lowHealthPenalty: number;     // -PPS when ending combat with <20% HP
+    // Combat Efficiency Performance
+    efficientCombatBonus: number;     // Combat completed quickly for tier
+    inefficientCombatPenalty: number; // Combat took too long for tier
     
-    // Performance-based
-    goodHandBonus: number;        // +PPS for Four of a Kind or better
-    longCombatPenalty: number;    // -PPS when combat takes >8 turns
-    perfectCombatBonus: number;   // +PPS for taking no damage
-    resourceEfficiencyBonus: number; // +PPS for using few discard charges
+    // Skill Expression Performance
+    excellentHandBonus: number;       // Four of a Kind or better
+    goodHandBonus: number;            // Straight or better
+    resourceEfficiencyBonus: number;  // Used minimal discard charges
+    
+    // Damage Performance
+    highDamageEfficiencyBonus: number;  // High damage per turn ratio
+    lowDamageEfficiencyPenalty: number; // Low damage per turn ratio
   };
 
   // Tier-Based Modifier Scaling (Solution 2)
@@ -48,13 +54,13 @@ export interface DDAModifiers {
     };
   };
 
-  // Comeback Bonus System (Solution 3)
+  // Comeback Momentum System (Roguelike Recovery)
   comebackBonus: {
     enabled: boolean;
-    ppsThreshold: number;         // PPS level that triggers comeback bonus
-    bonusPerVictory: number;      // Extra bonus for wins while struggling
-    consecutiveWinBonus: number;  // Bonus per consecutive win
-    maxConsecutiveBonus: number;  // Cap on consecutive win bonuses
+    ppsThreshold: number;              // PPS level that triggers comeback momentum
+    bonusPerVictory: number;           // Extra bonus for positive performance while struggling
+    consecutiveWinBonus: number;       // Bonus per consecutive good performance
+    maxConsecutiveBonus: number;       // Cap on consecutive performance bonuses
   };
 
   // Difficulty Tier Thresholds
@@ -146,19 +152,25 @@ export const DEFAULT_DDA_CONFIG: DDAModifiers = {
   },
 
   ppsModifiers: {
-    // Victory/Defeat - ensures winning is always rewarding
-    victoryBonus: 0.3,
-    defeatPenalty: -0.5,
+    // Health Retention Performance
+    excellentHealthBonus: 0.35,         // 90-100% HP: Strong performance
+    goodHealthBonus: 0.15,              // 70-89% HP: Good performance
+    moderateHealthPenalty: -0.2,        // 30-49% HP: Struggling performance
+    poorHealthPenalty: -0.4,            // <30% HP: Very poor performance
+    perfectCombatBonus: 0.25,           // No damage taken: Mastery bonus
     
-    // Health-based - reduced penalties to prevent death spiral
-    highHealthBonus: 0.3,
-    lowHealthPenalty: -0.3,        // Reduced from -0.4
+    // Combat Efficiency Performance
+    efficientCombatBonus: 0.2,          // Quick clear for your tier
+    inefficientCombatPenalty: -0.2,     // Too slow for your tier
     
-    // Performance-based
-    goodHandBonus: 0.2,
-    longCombatPenalty: -0.15,      // Reduced from -0.25
-    perfectCombatBonus: 0.5,
-    resourceEfficiencyBonus: 0.1,
+    // Skill Expression Performance
+    excellentHandBonus: 0.25,           // Four of a Kind+: Excellent play
+    goodHandBonus: 0.1,                 // Straight+: Good play
+    resourceEfficiencyBonus: 0.15,      // Smart resource management
+    
+    // Damage Performance
+    highDamageEfficiencyBonus: 0.2,     // High damage/turn ratio
+    lowDamageEfficiencyPenalty: -0.15,  // Low damage/turn ratio
   },
 
   tierScaling: {
@@ -183,9 +195,9 @@ export const DEFAULT_DDA_CONFIG: DDAModifiers = {
   comebackBonus: {
     enabled: true,
     ppsThreshold: 1.5,             // Trigger when deep in struggling tier
-    bonusPerVictory: 0.4,          // Strong bonus to help recovery
-    consecutiveWinBonus: 0.2,      // Additional per consecutive win
-    maxConsecutiveBonus: 0.6,      // Cap at 3 consecutive wins
+    bonusPerVictory: 0.3,          // Momentum bonus for positive performance while struggling
+    consecutiveWinBonus: 0.15,     // Build momentum with consecutive good performances
+    maxConsecutiveBonus: 0.45,     // Cap at 3 consecutive good performances
   },
 
   difficultyTiers: {
@@ -272,14 +284,18 @@ export const AGGRESSIVE_DDA_CONFIG: DDAModifiers = {
     trackPPSDuringCalibration: false
   },
   ppsModifiers: {
-    victoryBonus: 0.4,
-    defeatPenalty: -0.7,
-    highHealthBonus: 0.5,     // More aggressive bonuses
-    lowHealthPenalty: -0.5,   // Harsher penalties
-    goodHandBonus: 0.3,
-    longCombatPenalty: -0.3,
-    perfectCombatBonus: 0.7,
-    resourceEfficiencyBonus: 0.2,
+    excellentHealthBonus: 0.5,
+    goodHealthBonus: 0.2,
+    moderateHealthPenalty: -0.3,
+    poorHealthPenalty: -0.6,
+    perfectCombatBonus: 0.4,
+    efficientCombatBonus: 0.3,
+    inefficientCombatPenalty: -0.3,
+    excellentHandBonus: 0.35,
+    goodHandBonus: 0.15,
+    resourceEfficiencyBonus: 0.25,
+    highDamageEfficiencyBonus: 0.3,
+    lowDamageEfficiencyPenalty: -0.25,
   },
   tierScaling: {
     ...DEFAULT_DDA_CONFIG.tierScaling,
@@ -302,14 +318,18 @@ export const CONSERVATIVE_DDA_CONFIG: DDAModifiers = {
     trackPPSDuringCalibration: true
   },
   ppsModifiers: {
-    victoryBonus: 0.4,           // Higher victory reward
-    defeatPenalty: -0.3,         // Lower defeat penalty
-    highHealthBonus: 0.2,     // Gentler adjustments
-    lowHealthPenalty: -0.2,   // Even gentler penalties
-    goodHandBonus: 0.15,
-    longCombatPenalty: -0.1,  // Minimal penalty
-    perfectCombatBonus: 0.4,
-    resourceEfficiencyBonus: 0.05,
+    excellentHealthBonus: 0.4,
+    goodHealthBonus: 0.2,
+    moderateHealthPenalty: -0.15,
+    poorHealthPenalty: -0.25,
+    perfectCombatBonus: 0.3,
+    efficientCombatBonus: 0.15,
+    inefficientCombatPenalty: -0.1,
+    excellentHandBonus: 0.2,
+    goodHandBonus: 0.1,
+    resourceEfficiencyBonus: 0.1,
+    highDamageEfficiencyBonus: 0.15,
+    lowDamageEfficiencyPenalty: -0.1,
   },
   tierScaling: {
     struggling: {
@@ -331,9 +351,9 @@ export const CONSERVATIVE_DDA_CONFIG: DDAModifiers = {
   },
   comebackBonus: {
     enabled: true,
-    ppsThreshold: 2.0,           // Trigger earlier
-    bonusPerVictory: 0.5,        // Stronger comeback bonus
-    consecutiveWinBonus: 0.3,    // Bigger consecutive bonus
-    maxConsecutiveBonus: 0.9,    // Higher cap
+    ppsThreshold: 2.0,           // Trigger earlier for more support
+    bonusPerVictory: 0.5,        // Stronger momentum bonus
+    consecutiveWinBonus: 0.25,   // Bigger consecutive performance bonus
+    maxConsecutiveBonus: 0.75,   // Higher cap for recovery momentum
   },
 };

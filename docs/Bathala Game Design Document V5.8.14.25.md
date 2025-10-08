@@ -298,37 +298,48 @@ The Landás system is the core moral and narrative framework of the game. After 
   * After the calibration period ends (post-combat #3), the system applies the calculated difficulty tier based on accumulated PPS.
   * This prevents premature difficulty spikes and allows players to understand baseline mechanics.
   * **Design Rationale**: Provides a "wind-up" phase for player skill assessment, improving perceived fairness and player experience.
-* **Anti-Death-Spiral Design**: Initial playtesting revealed that struggling players could enter a "death spiral" where even winning combats resulted in negative PPS due to accumulated penalties (low HP, long combat duration). This prevented the DDA system from effectively helping struggling players recover. The following systems were implemented to address this:
-  * **Victory/Defeat Mechanics**: Base victory bonus (+0.3 PPS) ensures winning is always rewarding. Defeat penalty (-0.5 PPS) is only applied on loss. This creates asymmetric rewards where victory always results in net positive or near-zero PPS.
-  * **Comeback System**: When PPS drops below 1.5 (deep in "Struggling" tier), players receive an additional comeback bonus (+0.4 PPS) per victory. Consecutive wins grant stacking bonuses (+0.2 per win, max +0.6) to build positive momentum and enable recovery from difficult situations.
+* **Anti-Death-Spiral Design**: Initial playtesting revealed that struggling players could enter a "death spiral" where poor performance in one combat led to disadvantaged states in subsequent combats, creating a negative feedback loop. The following systems were implemented to address this:
+  * **Performance-Based Assessment**: The system evaluates HOW players perform, not just whether they win. A player ending combat at 90% HP shows better skill than one ending at 20% HP, even if both won. This provides nuanced feedback that prevents binary win/loss thinking.
+  * **Comeback Momentum System**: When PPS drops below 1.5 (deep in "Struggling" tier), players showing positive performance receive momentum bonuses (+0.3 base, +0.15 per consecutive good performance, max +0.45) to help recover from difficult runs. Only triggers on upward performance trends.
   * **Tier-Based Penalty Scaling**: Modifiers are scaled based on current difficulty tier. Struggling players receive reduced penalties (50% reduction) and increased bonuses (50% increase) to prevent further decline. Conversely, thriving/mastering players receive increased penalties to maintain challenge. This prevents the system from punishing players while they're down.
-* **PPS Calculation (Updated Logic)**: The PPS starts at a baseline (2.5). After each combat, it is adjusted with the following modifiers, scaled by current tier:
-  * **Base modifiers**: Victory +0.3, Defeat -0.5
-  * **Health-based (Gradient System)**: Provides continuous feedback across all performance levels to prevent PPS inflation:
-    * **90-100% HP**: +0.3 (full bonus) - Excellent performance
-    * **70-89% HP**: +0.15 (half bonus) - Good performance
-    * **50-69% HP**: 0 (neutral) - Moderate performance
-    * **30-49% HP**: -0.15 (half penalty) - Poor performance
-    * **<30% HP**: -0.3 (full penalty) - Very poor performance
-  * **Hand quality**: Four of a Kind or better +0.2
-  * **Combat efficiency (Tier-based turn thresholds)**: -0.15 penalty applied based on skill tier
-    * **Mastering tier**: Penalty if >4 turns (expected 1-3 turns, high damage 10-22)
-    * **Thriving tier**: Penalty if >5 turns (expected 2-4 turns, good damage 7-10)
-    * **Learning tier**: Penalty if >7 turns (expected 3-6 turns, moderate damage 3-7)
-    * **Struggling tier**: Penalty if >9 turns (expected 6-9 turns, low damage 0-3)
-    * **Design Rationale**: Calibrated to actual damage output per tier. Common enemies have ~18 HP. Higher-skilled players deal significantly more damage per turn (Three of a Kind = 7, Four of a Kind = 22) and are expected to win much faster than struggling players (High Card = 0, Pair = 2).
-  * **Perfect combat**: No damage taken +0.5
-  * **Resource efficiency**: <80% discard usage +0.1
-  * **Clutch victory bonus**: Up to +0.15 when entering combat with <50% HP and winning (scales with starting HP disadvantage)
-    * **Design Rationale**: Rewards players who win despite being at a disadvantage from previous combats. Recognizes that winning with 20% starting HP is more impressive than winning with 100% starting HP. Prevents punishing players for resource management decisions across multiple combats.
-  * **Comeback bonus**: +0.4 when PPS <1.5 and victory (plus +0.2 per consecutive win, max +0.6)
+  * **Clutch Performance Recognition**: Players fighting at disadvantage (<50% HP) receive bonus recognition when performing well, preventing punishment for tactical decisions to fight while wounded.
+* **PPS Calculation (Roguelike Performance-Based)**: The PPS starts at a baseline (2.5). After each combat, it is adjusted based on performance quality rather than win/loss outcomes (since defeat ends the run). All modifiers are scaled by current difficulty tier:
+  * **1. Health Retention Performance** (Primary roguelike metric - HP carries between fights):
+    * **90-100% HP retained**: +0.35 - Excellent resource management
+    * **70-89% HP retained**: +0.15 - Good performance
+    * **50-69% HP retained**: 0 - Acceptable, neutral
+    * **30-49% HP retained**: -0.2 - Poor performance
+    * **<30% HP retained**: -0.4 - Critical performance issue
+    * **Perfect combat (0 damage)**: +0.25 additional bonus
+    * **Design Rationale**: Health percentage is calculated against max HP, not starting HP, to properly reflect resource state for upcoming encounters. A player at 40/80 HP (50%) is objectively more vulnerable than one at 80/80 HP (100%), regardless of combat performance.
+  * **2. Combat Efficiency Performance** (Tier-based turn expectations):
+    * **Mastering tier**: Bonus if ≤2 turns, penalty if >5 turns (expected 3 turns)
+    * **Thriving tier**: Bonus if ≤3 turns, penalty if >6 turns (expected 4 turns)
+    * **Learning tier**: Bonus if ≤4 turns, penalty if >8 turns (expected 6 turns)
+    * **Struggling tier**: Bonus if ≤6 turns, penalty if >11 turns (expected 9 turns)
+    * Efficient: +0.2, Inefficient: -0.2
+    * **Design Rationale**: Roguelikes reward speed and efficiency. Quick combat clears preserve resources for the run.
+  * **3. Damage Efficiency Performance** (Damage-per-turn ratio):
+    * **≥30% above expected DPT**: +0.2 bonus
+    * **≤30% below expected DPT**: -0.15 penalty
+    * **Design Rationale**: Measures output quality relative to tier expectations. Common enemies ~18 HP.
+  * **4. Skill Expression - Hand Quality**:
+    * **Excellent hands** (Four of a Kind or better): +0.25
+    * **Good hands** (Straight or better): +0.1
+    * **Design Rationale**: Rewards strategic poker hand construction, core skill expression.
+  * **5. Resource Management**: Using ≤30% of available discards: +0.15
+    * **Design Rationale**: Conservative resource usage is critical in roguelikes.
+  * **6. Clutch Performance Bonus**: Up to +0.2 when fighting at <50% HP disadvantage
+    * **Design Rationale**: Recognizes context-aware difficulty - performing well while wounded is more impressive than when healthy. Prevents punishing players for fighting in difficult circumstances.
+  * **7. Comeback Momentum System**: +0.3 base when PPS <1.5 and showing positive performance (plus +0.15 per consecutive good performance, max +0.45)
+    * **Design Rationale**: Helps players recover from poor runs by amplifying positive performance trends. Only triggers on upward trajectories, not failures.
   * **Tier scaling**: Struggling (penalties ×0.5, bonuses ×1.5), Learning (×1.0), Thriving (penalties ×1.2, bonuses ×0.8), Mastering (penalties ×1.5, bonuses ×0.5)
-  * **Design Rationale**: The gradient health system was implemented to address PPS inflation where players at moderate health (30-80%) received only victory bonuses, causing PPS to constantly increase regardless of performance quality. The 5-tier gradient ensures that all performance levels receive appropriate feedback.
+  * **Design Philosophy**: Performance quality over win/loss binary. Since roguelike defeats end the run, the system focuses on HOW you play during the run, not whether you survive. This encourages optimal play patterns and resource conservation.
 * **Adaptive Modifiers**:  
   * **Enemy Stats**: HP and Damage scale based on PPS thresholds (-20% to +15%).  
   * **Economic Tuning**: Shop prices and gold rewards adjust slightly.  
   * **Map Generation**: If PPS is very low, the system can be weighted to generate a Rest node.  
-  * **Narrative Framing**: The DDA is framed in-world. During calibration: "Observing your technique..." After calibration, context changes based on tier: "The spirits, sensing your power, send a greater challenge" (high PPS) or "An ancestor's spirit offers gentle guidance" (low PPS).
+  * **Narrative Framing**: The DDA is framed in-world as the spirit realm responding to your capabilities. During calibration: "The spirits assess your capabilities..." After calibration, context changes based on tier: "Your skill draws fiercer opponents to test your mettle" (Thriving), "Legends speak of your prowess - only the mightiest dare face you" (Mastering), or "The spirits temper their challenge, granting you respite" (Struggling).
 
 
 #### **8.3. DDA Difficulty Tiers**
@@ -344,11 +355,15 @@ The Landás system is the core moral and narrative framework of the game. After 
 
 #### **8.4. DDA Testing & Validation Tools**
 * **DDA Debug Scene**: A comprehensive testing environment for validating DDA behavior:
-  * **Individual Combat Tests**: Simulate Perfect Win, Average Fight, Difficult Win, and Poor Performance scenarios
+  * **Individual Combat Tests**: Simulate performance scenarios including:
+    * Excellent Performance (90%+ HP, efficient, good hands)
+    * Good Performance (70-89% HP, moderate efficiency)
+    * Poor Performance (<50% HP, inefficient, weak hands)
+    * Clutch Performance (low starting HP, good execution)
   * **Calibration Testing**: Skip calibration period or test calibration behavior
-  * **Realistic Run Simulation**: Test 11-combat progression with varying performance
+  * **Realistic Run Simulation**: Test 11-combat progression with varying performance quality
   * **Regression Metrics**: MAE, RMSE, R² for PPS prediction accuracy
   * **Validation Tests**: Tier transitions, modifier application, edge cases
-  * **Ground Truth Testing**: Compare expected vs actual PPS adjustments
+  * **Ground Truth Testing**: Compare expected vs actual PPS adjustments based on performance metrics
   * **CSV Export**: Export all test data for statistical analysis
-* **Design Rationale**: These tools enable empirical validation of the DDA system's effectiveness and provide data for thesis research on adaptive difficulty in roguelike games.  
+* **Design Rationale**: These tools enable empirical validation of the performance-based DDA system's effectiveness and provide data for thesis research on adaptive difficulty in roguelike games. Focus on performance quality rather than binary outcomes aligns with roguelike design philosophy.  

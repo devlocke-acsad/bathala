@@ -1,0 +1,379 @@
+================================================================================
+DDA ALGORITHM FLOWCHART
+Visual Flow Diagram
+================================================================================
+
+This document provides a visual representation of how the DDA algorithm
+processes combat results and updates difficulty.
+
+================================================================================
+MAIN ALGORITHM FLOW
+================================================================================
+
+                            ┌─────────────────────┐
+                            │   COMBAT ENDS       │
+                            │  Metrics Collected  │
+                            └──────────┬──────────┘
+                                       │
+                                       ▼
+                            ┌─────────────────────┐
+                            │ Increment Combat    │
+                            │ Counter             │
+                            └──────────┬──────────┘
+                                       │
+                                       ▼
+                            ┌─────────────────────┐
+                            │ Check Calibration   │
+                            │ Period              │
+                            └──────────┬──────────┘
+                                       │
+                    ┌──────────────────┴──────────────────┐
+                    │                                     │
+                    ▼                                     ▼
+        ┌───────────────────────┐            ┌───────────────────────┐
+        │ Combats < 3?          │            │ Combats ≥ 3?         │
+        │ Still Calibrating     │            │ Calibration Complete  │
+        └───────────┬───────────┘            └───────────┬───────────┘
+                    │                                     │
+                    │                                     │
+                    └──────────────────┬──────────────────┘
+                                       │
+                                       ▼
+                    ┌──────────────────────────────────────┐
+                    │   CALCULATE PPS ADJUSTMENT (ΔPPS)    │
+                    │                                      │
+                    │   Evaluate 8 Performance Factors:    │
+                    │   F₁ = Health Retention              │
+                    │   F₂ = Perfect Combat Bonus          │
+                    │   F₃ = Hand Quality                  │
+                    │   F₄ = Combat Efficiency             │
+                    │   F₅ = Damage Efficiency             │
+                    │   F₆ = Resource Management           │
+                    │   F₇ = Clutch Performance            │
+                    │   F₈ = Comeback Momentum             │
+                    │                                      │
+                    │   ΔPPS = F₁+F₂+F₃+F₄+F₅+F₆+F₇+F₈    │
+                    └──────────────────┬───────────────────┘
+                                       │
+                                       ▼
+                            ┌─────────────────────┐
+                            │ Update PPS:         │
+                            │ PPS_new =           │
+                            │ CLAMP(PPS + ΔPPS,   │
+                            │       0, 5)         │
+                            └──────────┬──────────┘
+                                       │
+                                       ▼
+                            ┌─────────────────────┐
+                            │ Determine New Tier  │
+                            │ Based on PPS        │
+                            └──────────┬──────────┘
+                                       │
+                    ┌──────────────────┴──────────────────┐
+                    │                                     │
+         ┌──────────▼────────┐               ┌───────────▼──────────┐
+         │  0.0 ≤ PPS ≤ 1.0  │               │  1.1 ≤ PPS ≤ 2.5     │
+         │  STRUGGLING       │               │  LEARNING            │
+         └───────────────────┘               └──────────────────────┘
+                    │                                     │
+         ┌──────────▼────────┐               ┌───────────▼──────────┐
+         │  2.6 ≤ PPS ≤ 4.0  │               │  4.1 ≤ PPS ≤ 5.0     │
+         │  THRIVING         │               │  MASTERING           │
+         └───────────────────┘               └──────────────────────┘
+                    │                                     │
+                    └──────────────────┬──────────────────┘
+                                       │
+                                       ▼
+                            ┌─────────────────────┐
+                            │ Apply Difficulty    │
+                            │ Modifiers to Game   │
+                            │ Systems             │
+                            └──────────┬──────────┘
+                                       │
+                                       ▼
+                            ┌─────────────────────┐
+                            │   READY FOR NEXT    │
+                            │   COMBAT            │
+                            └─────────────────────┘
+
+================================================================================
+DETAILED: PPS ADJUSTMENT CALCULATION FLOW
+================================================================================
+
+                        ┌─────────────────────────────┐
+                        │  CALCULATE ΔPPS             │
+                        │  (8 Performance Factors)    │
+                        └──────────────┬──────────────┘
+                                       │
+        ┌──────────────────────────────┴──────────────────────────────┐
+        │                                                              │
+        ▼                                                              ▼
+┌───────────────────┐                                    ┌──────────────────────┐
+│ F₁: HEALTH        │                                    │ Get Current Tier:    │
+│ RETENTION         │                                    │ - Struggling         │
+└─────────┬─────────┘                                    │ - Learning           │
+          │                                              │ - Thriving           │
+          ▼                                              │ - Mastering          │
+┌─────────────────────┐                                  └──────────┬───────────┘
+│ h_end = HP% at end  │                                             │
+└─────────┬───────────┘                                             │
+          │                                                          │
+          ▼                                                          │
+┌──────────────────────────────┐                                    │
+│ Determine Health Tier:       │                                    │
+│ ≥90%: +0.35 (Excellent)      │                                    │
+│ ≥70%: +0.15 (Good)           │◄───────────────────────────────────┤
+│ ≥50%:  0.00 (Moderate)       │ Apply Tier Multiplier:             │
+│ ≥30%: -0.20 (Poor)           │ If positive: × bonus_multiplier    │
+│ <30%: -0.40 (Very Poor)      │ If negative: × penalty_multiplier  │
+└──────────┬───────────────────┘                                    │
+           │                                                         │
+           ▼                                                         │
+┌─────────────────────┐                                              │
+│ F₂: PERFECT COMBAT  │                                              │
+│ +0.25 if dmg = 0    │──────────────────────────────────────────────┤
+└─────────┬───────────┘                                              │
+          │                                                          │
+          ▼                                                          │
+┌─────────────────────┐                                              │
+│ F₃: HAND QUALITY    │                                              │
+│ Q ≥ 7: +0.25        │◄─────────────────────────────────────────────┤
+│ Q ≥ 4: +0.10        │                                              │
+└─────────┬───────────┘                                              │
+          │                                                          │
+          ▼                                                          │
+┌─────────────────────┐                                              │
+│ F₄: COMBAT          │                                              │
+│ EFFICIENCY          │◄─────────────────────────────────────────────┤
+│ (Turn Count)        │                                              │
+└─────────┬───────────┘                                              │
+          │                                                          │
+          ▼                                                          │
+┌─────────────────────┐                                              │
+│ F₅: DAMAGE          │                                              │
+│ EFFICIENCY          │◄─────────────────────────────────────────────┤
+│ (DPT Ratio)         │                                              │
+└─────────┬───────────┘                                              │
+          │                                                          │
+          ▼                                                          │
+┌─────────────────────┐                                              │
+│ F₆: RESOURCE        │                                              │
+│ MANAGEMENT          │◄─────────────────────────────────────────────┤
+│ (Discard Usage)     │                                              │
+└─────────┬───────────┘                                              │
+          │                                                          │
+          ▼                                                          │
+┌─────────────────────┐                                              │
+│ F₇: CLUTCH          │                                              │
+│ PERFORMANCE         │◄─────────────────────────────────────────────┤
+│ (Low HP Start)      │                                              │
+└─────────┬───────────┘                                              │
+          │                                                          │
+          ▼                                                          │
+┌─────────────────────┐                                              │
+│ F₈: COMEBACK        │                                              │
+│ MOMENTUM            │                                              │
+│ (If PPS < 1.5)      │                                              │
+└─────────┬───────────┘                                              │
+          │                                                          │
+          └──────────────────────┬───────────────────────────────────┘
+                                 │
+                                 ▼
+                    ┌────────────────────────┐
+                    │ ΔPPS = SUM(F₁ to F₈)   │
+                    └────────────────────────┘
+
+================================================================================
+TIER SCALING DECISION TREE
+================================================================================
+
+                        ┌───────────────────────┐
+                        │  Calculate Factor     │
+                        │  Adjustment Value     │
+                        └──────────┬────────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │                             │
+                    ▼                             ▼
+         ┌──────────────────┐          ┌──────────────────┐
+         │ Is Adjustment    │          │ Is Adjustment    │
+         │ POSITIVE?        │          │ NEGATIVE?        │
+         │ (Bonus)          │          │ (Penalty)        │
+         └────────┬─────────┘          └────────┬─────────┘
+                  │                              │
+                  ▼                              ▼
+         ┌──────────────────┐          ┌──────────────────┐
+         │ Apply BONUS      │          │ Apply PENALTY    │
+         │ Multiplier       │          │ Multiplier       │
+         └────────┬─────────┘          └────────┬─────────┘
+                  │                              │
+    ┌─────────────┴─────────────┐    ┌──────────┴──────────┐
+    │                           │    │                     │
+    ▼                           ▼    ▼                     ▼
+┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐
+│Struggle │  │Learning │  │Thriving │  │Mastering│  │Learning │  │Thriving │
+│× 1.5    │  │× 1.0    │  │× 0.8    │  │× 0.5    │  │× 1.0    │  │× 1.2    │
+│(Easy)   │  │(Normal) │  │(Harder) │  │(Hardest)│  │(Normal) │  │(Harder) │
+└─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘  └─────────┘
+                                                                   
+Example:
+  +0.35 health bonus in Struggling tier → +0.35 × 1.5 = +0.525
+  -0.20 health penalty in Thriving tier → -0.20 × 1.2 = -0.24
+
+================================================================================
+COMEBACK MOMENTUM DECISION FLOW
+================================================================================
+
+                        ┌─────────────────────┐
+                        │  Check Comeback     │
+                        │  Conditions         │
+                        └──────────┬──────────┘
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │                             │
+                    ▼                             ▼
+         ┌──────────────────┐          ┌──────────────────┐
+         │ Is PPS < 1.5?    │  NO      │ F₈ = 0.00        │
+         │                  │─────────►│                  │
+         └────────┬─────────┘          └──────────────────┘
+                  │ YES
+                  ▼
+         ┌──────────────────┐
+         │ Is F₁-F₇ > 0?    │  NO ────►┌──────────────────┐
+         │ (Positive perf)  │          │ F₈ = 0.00        │
+         └────────┬─────────┘          └──────────────────┘
+                  │ YES
+                  ▼
+         ┌──────────────────────────────┐
+         │ Calculate Comeback Bonus:    │
+         │                              │
+         │ Base = 0.30                  │
+         │                              │
+         │ Consecutive =                │
+         │   MIN(0.45,                  │
+         │       victories × 0.15)      │
+         │                              │
+         │ F₈ = Base + Consecutive      │
+         └──────────────────────────────┘
+
+Examples:
+  1. PPS = 1.2, positive perf, 0 streak  → F₈ = 0.30 + 0.00 = +0.30
+  2. PPS = 1.0, positive perf, 1 streak  → F₈ = 0.30 + 0.15 = +0.45
+  3. PPS = 0.8, positive perf, 2 streak  → F₈ = 0.30 + 0.30 = +0.60
+  4. PPS = 0.5, positive perf, 4+ streak → F₈ = 0.30 + 0.45 = +0.75 (capped)
+
+================================================================================
+DATA FLOW DIAGRAM
+================================================================================
+
+┌─────────────┐
+│   COMBAT    │
+│   SCENE     │
+└──────┬──────┘
+       │ Collects
+       │
+       ▼
+┌──────────────────────────────────────────┐
+│        COMBAT METRICS                    │
+├──────────────────────────────────────────┤
+│ • health_percentage                      │
+│ • damage_received                        │
+│ • turn_count                             │
+│ • best_hand_achieved                     │
+│ • discards_used / max_discards_available │
+│ • damage_dealt                           │
+│ • enemy_start_health                     │
+│ • start_health / start_max_health        │
+│ • victory (boolean)                      │
+└──────────┬───────────────────────────────┘
+           │ Sends to
+           │
+           ▼
+┌────────────────────────────┐
+│   DDA ALGORITHM            │
+│   (RuleBasedDDA)           │
+├────────────────────────────┤
+│ processCombatResults()     │
+│   │                        │
+│   ├─► calculatePPSAdjust() │
+│   │     │                  │
+│   │     ├─► Factor 1-8     │
+│   │     └─► Apply Scaling  │
+│   │                        │
+│   ├─► Update PPS           │
+│   │                        │
+│   └─► Determine Tier       │
+└──────────┬─────────────────┘
+           │ Outputs
+           │
+           ▼
+┌────────────────────────────┐
+│   DIFFICULTY STATE         │
+├────────────────────────────┤
+│ • current_pps              │
+│ • tier (string)            │
+│ • total_combats_completed  │
+│ • is_calibrating           │
+└──────────┬─────────────────┘
+           │ Applied to
+           │
+           ▼
+┌────────────────────────────┐
+│   GAME SYSTEMS             │
+├────────────────────────────┤
+│ • Enemy Scaling            │
+│ • Economic Scaling         │
+│ • Map Generation Bias      │
+└────────────────────────────┘
+
+================================================================================
+TYPICAL PPS PROGRESSION EXAMPLE
+================================================================================
+
+Combat Sequence for a Typical Run:
+
+Combat #1 (Calibration):
+  Performance: Good (85% HP, efficient)  →  ΔPPS = +0.30
+  PPS: 2.5 → 2.8 (Learning tier, still calibrating)
+
+Combat #2 (Calibration):
+  Performance: Moderate (65% HP, average) →  ΔPPS = +0.05
+  PPS: 2.8 → 2.85 (Learning tier, still calibrating)
+
+Combat #3 (Calibration):
+  Performance: Poor (40% HP, slow)       →  ΔPPS = -0.25
+  PPS: 2.85 → 2.6 (Learning tier, calibration ends)
+  
+  ┌─────────────────────────────────────────┐
+  │  CALIBRATION COMPLETE                   │
+  │  Tier assignment now active: Thriving   │
+  └─────────────────────────────────────────┘
+
+Combat #4:
+  Performance: Excellent (95% HP, fast)  →  ΔPPS = +0.45 × 0.8 = +0.36
+  PPS: 2.6 → 2.96 (Thriving tier - smaller bonuses apply)
+
+Combat #5:
+  Performance: Perfect (100% HP)         →  ΔPPS = +0.60 × 0.8 = +0.48
+  PPS: 2.96 → 3.44 (Thriving tier)
+
+Combat #6:
+  Performance: Good (80% HP)             →  ΔPPS = +0.20 × 0.8 = +0.16
+  PPS: 3.44 → 3.60 (Thriving tier)
+
+Combat #7:
+  Performance: Poor (35% HP, slow)       →  ΔPPS = -0.50 × 1.2 = -0.60
+  PPS: 3.60 → 3.00 (Thriving tier - larger penalties apply)
+
+... and so on
+
+Demonstrates:
+  • Calibration period (first 3 combats)
+  • Tier changes based on PPS
+  • Tier scaling (bonuses reduced, penalties increased in higher tiers)
+  • Dynamic adjustment based on performance
+
+================================================================================
+END OF FLOWCHART
+================================================================================
+
