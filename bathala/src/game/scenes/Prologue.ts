@@ -29,6 +29,15 @@ export class Prologue extends Scene {
         if (this.cameras.main) {
             this.cameras.main.setBackgroundColor(0x000000);
         }
+        
+        // Add cleanup when scene shuts down
+        this.events.once('shutdown', () => {
+            if (this.typingTimer) {
+                this.typingTimer.remove();
+                this.typingTimer = null;
+            }
+        });
+        
         this.startStoryPhase();
     }
 
@@ -47,6 +56,9 @@ export class Prologue extends Scene {
             "The corrupted await.\n\nThe balance trembles.\n\nYour journey begins now."
         ];
         let currentSlide = 0;
+
+        // Create space key for keyboard input
+        const spaceKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
         // Add background image
         const introBgImage = this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2, 'chap1_no_leaves_boss');
@@ -83,8 +95,17 @@ export class Prologue extends Scene {
         const transitionToTutorial = () => {
             if (!this.isStoryPhase) return; // Prevent double transition
             this.isStoryPhase = false;
+            
+            // Clean up typing timer before destroying elements
+            if (this.typingTimer) {
+                this.typingTimer.remove();
+                this.typingTimer = null;
+            }
+            
             this.input.off('pointerdown', showNextSlide);
-            this.input.keyboard?.off('keydown-SPACE');
+            if (spaceKey) {
+                spaceKey.off('down', showNextSlide);
+            }
 
             // Enhanced transition effect
             this.tweens.add({
@@ -164,7 +185,9 @@ export class Prologue extends Scene {
         };
 
         this.input.on('pointerdown', showNextSlide);
-        this.input.keyboard?.on('keydown-SPACE', showNextSlide);
+        if (spaceKey) {
+            spaceKey.on('down', showNextSlide);
+        }
         showNextSlide();
     }
 
@@ -408,6 +431,12 @@ export class Prologue extends Scene {
     }
 
     private async endTutorial(skipped = false) {
+        // Clean up any running timers
+        if (this.typingTimer) {
+            this.typingTimer.remove();
+            this.typingTimer = null;
+        }
+        
         if (this.skipButton && this.skipButton.active) {
             this.skipButton.destroy();
         }
@@ -622,12 +651,25 @@ export class Prologue extends Scene {
     private typeText(textObject: GameObjects.Text, text: string): Promise<void> {
         if (this.typingTimer) this.typingTimer.remove();
         return new Promise(resolve => {
+            if (!textObject || !textObject.active) {
+                resolve();
+                return;
+            }
             textObject.setText('');
             let charIndex = 0;
             this.typingTimer = this.time.addEvent({
                 delay: 30,
                 callback: () => {
-                    textObject.setText(textObject.text + text[charIndex++]);
+                    if (!textObject || !textObject.active) {
+                        if (this.typingTimer) {
+                            this.typingTimer.remove();
+                            this.typingTimer = null;
+                        }
+                        resolve();
+                        return;
+                    }
+                    const currentText = textObject.text || '';
+                    textObject.setText(currentText + text[charIndex++]);
                     if (charIndex === text.length) {
                         this.typingTimer = null;
                         resolve();
