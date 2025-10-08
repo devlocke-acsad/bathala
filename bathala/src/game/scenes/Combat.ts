@@ -744,37 +744,43 @@ export class Combat extends Scene {
       console.warn("Player idle animation not found, using static sprite");
     }
 
-    // Player name
+    // Player name with Prologue styling
     this.add
       .text(playerX, playerY - 120, this.combatState.player.name, {
         fontFamily: "dungeon-mode",
         fontSize: 24,
-        color: "#e8eced",
+        color: "#77888C", // Use Prologue's text color
         align: "center",
+        stroke: "#150E10",
+        strokeThickness: 1
       })
       .setOrigin(0.5);
 
-    // Health display
+    // Health display with better spacing
     this.playerHealthText = this.add
-      .text(playerX, playerY + 80, "", {
+      .text(playerX, playerY + 85, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#ff6b6b",
         align: "center",
+        stroke: "#000000",
+        strokeThickness: 1
       })
       .setOrigin(0.5);
 
-    // Block display
+    // Block display with improved spacing
     this.playerBlockText = this.add
-      .text(playerX, playerY + 105, "", {
+      .text(playerX, playerY + 110, "", {
         fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#4ecdc4",
         align: "center",
+        stroke: "#000000",
+        strokeThickness: 1
       })
       .setOrigin(0.5);
 
-    this.playerStatusContainer = this.add.container(playerX, playerY + 130);
+    this.playerStatusContainer = this.add.container(playerX, playerY + 140);
 
     this.updatePlayerUI();
   }
@@ -810,49 +816,57 @@ export class Combat extends Scene {
 
 
 
-    // Enemy name (positioned further from enemy due to larger sprite)
+    // Enemy name with Prologue styling and better spacing
     this.add
-      .text(enemyX, enemyY - 170, this.combatState.enemy.name, {
+      .text(enemyX, enemyY - 180, this.combatState.enemy.name, {
         fontFamily: "dungeon-mode",
-        fontSize: 28, // Larger font size
-        color: "#e8eced",
+        fontSize: 28,
+        color: "#77888C", // Use Prologue's text color
         align: "center",
+        stroke: "#150E10",
+        strokeThickness: 2
       })
       .setOrigin(0.5);
 
-    // Health display (positioned further from enemy due to larger sprite)
+    // Health display with improved spacing and stroke
     this.enemyHealthText = this.add
-      .text(enemyX, enemyY - 140, "", {
+      .text(enemyX, enemyY - 150, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 24, // Larger font size
+        fontSize: 24,
         color: "#ff6b6b",
         align: "center",
+        stroke: "#000000",
+        strokeThickness: 2
       })
       .setOrigin(0.5);
 
-    // Block display (positioned further from enemy due to larger sprite)
+    // Block display with improved spacing and stroke
     this.enemyBlockText = this.add
-      .text(enemyX, enemyY - 110, "", {
+      .text(enemyX, enemyY - 120, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#4ecdc4",
         align: "center",
+        stroke: "#000000",
+        strokeThickness: 1
       })
       .setOrigin(0.5);
 
-    // Intent display (positioned further from enemy due to larger sprite)
+    // Intent display with better spacing
     this.enemyIntentText = this.add
-      .text(enemyX, enemyY + 170, "", {
+      .text(enemyX, enemyY + 180, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#feca57",
         align: "center",
         wordWrap: { width: 200 },
+        stroke: "#000000",
+        strokeThickness: 1
       })
       .setOrigin(0.5);
 
-    // Status effects container
-    this.enemyStatusContainer = this.add.container(enemyX, enemyY + 200);
+    // Status effects container with improved spacing
+    this.enemyStatusContainer = this.add.container(enemyX, enemyY + 210);
 
     // Information button for enemy lore
     this.createEnemyInfoButton(enemyX, enemyY - 200);
@@ -908,6 +922,11 @@ export class Combat extends Scene {
    * Update action buttons based on current phase
    */
   private updateActionButtons(): void {
+    // Safety check: Don't update if scene is being destroyed or doesn't exist
+    if (!this.sys || !this.sys.isActive() || this.combatEnded) {
+      return;
+    }
+
     // Clear existing buttons
     this.actionButtons.removeAll(true);
 
@@ -1583,6 +1602,11 @@ export class Combat extends Scene {
    * Update hand display with a curved fanned-out arrangement
    */
   private updateHandDisplay(): void {
+    // Safety check: Don't update if scene is being destroyed or doesn't exist
+    if (!this.sys || !this.sys.isActive() || this.combatEnded) {
+      return;
+    }
+
     // Don't update if cards are currently being drawn
     if (this.isDrawingCards) {
       return;
@@ -2666,9 +2690,9 @@ export class Combat extends Scene {
     
     button.add([outerBorder, innerBorder, bg, buttonText]);
     
-    // Set container size and depth
+    // Set container size and depth - make sure buttons are above dialogue container
     button.setSize(buttonWidth, buttonHeight);
-    button.setDepth(1000);
+    button.setDepth(5010); // Higher than dialogue container (5001)
     
     let isHovering = false;
     
@@ -2772,8 +2796,7 @@ export class Combat extends Scene {
 
       console.log("Clearing dialogue and showing results...");
 
-      // Clear dialogue but preserve essential game objects
-      // Remove all UI elements but keep background and camera
+      // Simply clear all children - the rewards screen will create new UI
       if (this.children.list) {
         const childrenToRemove = this.children.list.filter(child => {
           // Keep background elements and camera-related objects
@@ -3132,6 +3155,11 @@ export class Combat extends Scene {
    * Update played hand display
    */
   private updatePlayedHandDisplay(): void {
+    // Safety check: Don't update if scene is being destroyed or doesn't exist
+    if (!this.sys || !this.sys.isActive() || this.combatEnded) {
+      return;
+    }
+
     // Clear existing played card sprites
     this.playedCardSprites.forEach((sprite) => sprite.destroy());
     this.playedCardSprites = [];
@@ -3139,7 +3167,9 @@ export class Combat extends Scene {
     const playedHand = this.combatState.player.playedHand;
     if (playedHand.length === 0) {
       // Hide hand evaluation text when no cards are played
-      this.handEvaluationText.setVisible(false);
+      if (this.handEvaluationText) {
+        this.handEvaluationText.setVisible(false);
+      }
       return;
     }
 
@@ -3355,6 +3385,7 @@ export class Combat extends Scene {
     if (damage > 0) {
       console.log(`Animating player attack and dealing ${damage} damage`);
       this.animatePlayerAttack(); // Add animation when attacking
+      this.showFloatingDamage(damage); // Show floating damage counter like Prologue
       this.damageEnemy(damage);
       // Result already shown above with detailed calculation
     }
@@ -3891,11 +3922,13 @@ export class Combat extends Scene {
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
     
     this.actionResultText = this.add
-      .text(screenWidth/2, screenHeight/2, "", {
+      .text(screenWidth/2, screenHeight * 0.75, "", { // Position lower to avoid overlap with calculation displays
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(20 * scaleFactor),
         color: "#2ed573",
         align: "center",
+        stroke: "#000000",
+        strokeThickness: 1
       })
       .setOrigin(0.5)
       .setVisible(false);
@@ -4608,8 +4641,8 @@ export class Combat extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Update position to center of screen
-    this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
+    // Update position to lower area to avoid overlap with calculation displays
+    this.actionResultText.setPosition(screenWidth/2, screenHeight * 0.75);
     this.actionResultText.setText(message);
     this.actionResultText.setColor(color);
     this.actionResultText.setVisible(true);
@@ -4626,47 +4659,224 @@ export class Combat extends Scene {
     });
   }
   
+  /** Show floating damage counter similar to Prologue's attack animation */
+  private showFloatingDamage(damage: number): void {
+    if (!this.enemySprite) return;
+    
+    // Create damage text at enemy position
+    const damageText = this.add.text(
+      this.enemySprite.x, 
+      this.enemySprite.y, 
+      damage.toString(), 
+      { 
+        fontFamily: 'dungeon-mode', 
+        fontSize: 48, 
+        color: '#ff6b6b', // Use Prologue's damage color scheme
+        stroke: '#000000',
+        strokeThickness: 2
+      }
+    ).setOrigin(0.5);
+    
+    // Animate damage text upward and fade out
+    this.tweens.add({ 
+      targets: damageText, 
+      y: this.enemySprite.y - 100, 
+      alpha: 0, 
+      duration: 1000, 
+      ease: 'Power1',
+      onComplete: () => {
+        damageText.destroy();
+      }
+    });
+    
+    // Flash enemy red like in Prologue
+    this.enemySprite.setTint(0xff0000);
+    this.time.delayedCall(200, () => {
+      if (this.enemySprite) {
+        this.enemySprite.clearTint();
+      }
+    });
+    
+    // Camera shake like in Prologue
+    this.cameras.main.shake(100, 0.01);
+  }
+  
   /** Show detailed damage calculation including relic bonuses */
   private showDamageCalculation(baseDamage: number, strengthBonus: number, relicBonuses: {name: string, amount: number}[]): void {
-    let message = `Damage: ${baseDamage}`;
-    let color = "#2ed573"; // Default green
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
     
+    // Create container for damage calculation with Prologue styling
+    const calculationContainer = this.add.container(screenWidth / 2, screenHeight * 0.25);
+    
+    // Double border design like Prologue
+    const containerWidth = 400;
+    const containerHeight = 120;
+    
+    const outerBorder = this.add.rectangle(0, 0, containerWidth + 8, containerHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
+    const innerBorder = this.add.rectangle(0, 0, containerWidth, containerHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
+    const bg = this.add.rectangle(0, 0, containerWidth, containerHeight, 0x150E10);
+    
+    let yOffset = -30;
+    
+    // Main damage line
+    let damageText = `Base Damage: ${baseDamage}`;
+    const baseDamageDisplay = this.add.text(0, yOffset, damageText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    yOffset += 20;
+    
+    // Bonuses
     if (strengthBonus > 0) {
-      message += ` + ${strengthBonus} (Strength)`;
+      const strengthDisplay = this.add.text(0, yOffset, `+ ${strengthBonus} (Strength)`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#4ecdc4",
+        align: "center"
+      }).setOrigin(0.5);
+      calculationContainer.add(strengthDisplay);
+      yOffset += 18;
     }
     
     for (const relicBonus of relicBonuses) {
       if (relicBonus.amount > 0) {
-        message += ` + ${relicBonus.amount} (${relicBonus.name})`;
-        color = "#ff6b6b"; // Change to red for damage
+        const relicDisplay = this.add.text(0, yOffset, `+ ${relicBonus.amount} (${relicBonus.name})`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 16,
+          color: "#ff6b6b",
+          align: "center"
+        }).setOrigin(0.5);
+        calculationContainer.add(relicDisplay);
+        yOffset += 18;
       }
     }
     
+    // Total
     const totalDamage = baseDamage + strengthBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
-    message += ` = ${totalDamage}`;
+    const totalDisplay = this.add.text(0, yOffset, `Total: ${totalDamage}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#e8eced",
+      align: "center"
+    }).setOrigin(0.5);
     
-    this.showEnhancedActionResult(message, color);
+    calculationContainer.add([outerBorder, innerBorder, bg, baseDamageDisplay, totalDisplay]);
+    
+    // Fade in animation
+    calculationContainer.setAlpha(0);
+    this.tweens.add({
+      targets: calculationContainer,
+      alpha: 1,
+      duration: 400,
+      ease: 'Power2',
+      onComplete: () => {
+        // Auto-hide after 2 seconds
+        this.time.delayedCall(2000, () => {
+          this.tweens.add({
+            targets: calculationContainer,
+            alpha: 0,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => {
+              calculationContainer.destroy();
+            }
+          });
+        });
+      }
+    });
   }
   
   /** Show detailed block calculation including relic bonuses */
   private showBlockCalculation(baseBlock: number, dexterityBonus: number, relicBonuses: {name: string, amount: number}[]): void {
-    let message = `Block: ${baseBlock}`;
-    let color = "#4ecdc4"; // Default blue/green for block
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
     
+    // Create container for block calculation with Prologue styling
+    const calculationContainer = this.add.container(screenWidth / 2, screenHeight * 0.25);
+    
+    // Double border design like Prologue
+    const containerWidth = 400;
+    const containerHeight = 120;
+    
+    const outerBorder = this.add.rectangle(0, 0, containerWidth + 8, containerHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
+    const innerBorder = this.add.rectangle(0, 0, containerWidth, containerHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
+    const bg = this.add.rectangle(0, 0, containerWidth, containerHeight, 0x150E10);
+    
+    let yOffset = -30;
+    
+    // Main block line
+    let blockText = `Base Block: ${baseBlock}`;
+    const baseBlockDisplay = this.add.text(0, yOffset, blockText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    yOffset += 20;
+    
+    // Bonuses
     if (dexterityBonus > 0) {
-      message += ` + ${dexterityBonus} (Dexterity)`;
+      const dexterityDisplay = this.add.text(0, yOffset, `+ ${dexterityBonus} (Dexterity)`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#4ecdc4",
+        align: "center"
+      }).setOrigin(0.5);
+      calculationContainer.add(dexterityDisplay);
+      yOffset += 18;
     }
     
     for (const relicBonus of relicBonuses) {
       if (relicBonus.amount > 0) {
-        message += ` + ${relicBonus.amount} (${relicBonus.name})`;
+        const relicDisplay = this.add.text(0, yOffset, `+ ${relicBonus.amount} (${relicBonus.name})`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 16,
+          color: "#4ecdc4",
+          align: "center"
+        }).setOrigin(0.5);
+        calculationContainer.add(relicDisplay);
+        yOffset += 18;
       }
     }
     
+    // Total
     const totalBlock = baseBlock + dexterityBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
-    message += ` = ${totalBlock}`;
+    const totalDisplay = this.add.text(0, yOffset, `Total: ${totalBlock}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#e8eced",
+      align: "center"
+    }).setOrigin(0.5);
     
-    this.showEnhancedActionResult(message, color);
+    calculationContainer.add([outerBorder, innerBorder, bg, baseBlockDisplay, totalDisplay]);
+    
+    // Fade in animation
+    calculationContainer.setAlpha(0);
+    this.tweens.add({
+      targets: calculationContainer,
+      alpha: 1,
+      duration: 400,
+      ease: 'Power2',
+      onComplete: () => {
+        // Auto-hide after 2 seconds
+        this.time.delayedCall(2000, () => {
+          this.tweens.add({
+            targets: calculationContainer,
+            alpha: 0,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => {
+              calculationContainer.destroy();
+            }
+          });
+        });
+      }
+    });
   }
   
   /** Create damage preview UI */
@@ -5078,6 +5288,11 @@ export class Combat extends Scene {
    * Handle scene resize
    */
   private handleResize(): void {
+    // Safety check: Don't update if scene is being destroyed or doesn't exist
+    if (!this.sys || !this.sys.isActive() || this.combatEnded) {
+      return;
+    }
+
     // Safety check for camera
     if (!this.cameras.main) {
       return;
