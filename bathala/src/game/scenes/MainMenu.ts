@@ -49,8 +49,8 @@ export class MainMenu extends Scene {
     bgImage.setScale(scale);
     bgImage.setDepth(-100);
     
-    // Add darker overlay - 90% opacity
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x150E10, 0.90);
+    // Add lighter overlay - 70% opacity to show more background
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x150E10, 0.70);
     overlay.setDepth(-90);
     
     // Create highly visible floating embers/spirits
@@ -87,19 +87,18 @@ export class MainMenu extends Scene {
     });
     dustParticles.setDepth(-75);
     
-    // Create proper vignette effect instead of corrupted gradient
+    // Create proper vignette effect with theme color #150E10
     const vignette = this.add.graphics();
-    vignette.fillStyle(0x000000, 1);
     
-    // Draw radial gradient manually with circles
+    // Draw radial gradient manually with circles using #150E10
     const centerX = width / 2;
     const centerY = height / 2;
     const maxRadius = Math.max(width, height);
     
     for (let i = 0; i < 20; i++) {
       const radius = maxRadius * (1 - i / 20);
-      const alpha = (i / 20) * 0.6; // Fade from 0 to 0.6
-      vignette.fillStyle(0x000000, alpha);
+      const alpha = (i / 20) * 0.5; // Fade from 0 to 0.5 (reduced for visibility)
+      vignette.fillStyle(0x150E10, alpha); // Using theme color
       vignette.fillCircle(centerX, centerY, radius);
     }
     
@@ -108,7 +107,7 @@ export class MainMenu extends Scene {
     // Subtle vignette pulse
     this.tweens.add({
       targets: vignette,
-      alpha: 0.7,
+      alpha: 0.8,
       duration: 5000,
       yoyo: true,
       repeat: -1,
