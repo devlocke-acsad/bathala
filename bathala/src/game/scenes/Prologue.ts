@@ -179,7 +179,7 @@ export class Prologue extends Scene {
                     }
                     this.updateInstruction('Click the Attack button to strike the illusion');
                     this.showDialogue('Well done. A Pair grants +2 to your action. Now, Attack this illusion.', () => {
-                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height * 0.35, 'duwende').setAlpha(0.7).setScale(1.2);
+                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height * 0.33, 'duwende').setAlpha(0.85).setScale(2.5);
                         this.tutorialContainer.add(illusion);
                         this.showActionButtons((action) => {
                             this.playAttackAnimation(illusion, '2', () => {
@@ -205,7 +205,7 @@ export class Prologue extends Scene {
                     }
                     this.updateInstruction('Click the Attack button to strike with your Straight');
                     this.showDialogue('Perfect! A Straight grants +10 to your action. Strike this illusion down!', () => {
-                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height * 0.35, 'duwende').setAlpha(0.7).setScale(1.2);
+                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height * 0.33, 'duwende').setAlpha(0.85).setScale(2.5);
                         this.tutorialContainer.add(illusion);
                         this.showActionButtons((action) => {
                             this.playAttackAnimation(illusion, '10', () => {
@@ -231,7 +231,7 @@ export class Prologue extends Scene {
                     }
                     this.updateInstruction('Click the Special button to unleash elemental power');
                     this.showDialogue('Magnificent! The element flows through you. Use the Special action to channel its unique power.', () => {
-                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height * 0.35, 'duwende').setAlpha(0.7).setScale(1.2);
+                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height * 0.33, 'duwende').setAlpha(0.85).setScale(2.5);
                         this.tutorialContainer.add(illusion);
                         this.showActionButtons((action) => {
                             this.playAttackAnimation(illusion, '14', () => {
@@ -257,7 +257,7 @@ export class Prologue extends Scene {
                     }
                     this.updateInstruction('Click the Attack button to strike with your Full House');
                     this.showDialogue('Impressive mastery! Face this stronger foe with your Full House.', () => {
-                        const strongIllusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height * 0.35, 'duwende').setScale(1.4);
+                        const strongIllusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height * 0.33, 'duwende').setScale(2.7);
                         this.tutorialContainer.add(strongIllusion);
                         this.showActionButtons((action) => {
                             this.playAttackAnimation(strongIllusion, '18', () => {
@@ -279,9 +279,9 @@ export class Prologue extends Scene {
                 this.updateInstruction('Click the Defend button to protect yourself from the attack');
                 this.showDialogue('A High Card is the weakest hand. But it can still be used to Defend yourself when needed.', () => {
                     this.showDialogue('The illusion prepares to strike! Use Defend to protect yourself.', () => {
-                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height * 0.35, 'duwende').setAlpha(0.7).setScale(1.2);
+                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height * 0.33, 'duwende').setAlpha(0.85).setScale(2.5);
                         this.tutorialContainer.add(illusion);
-                        this.tweens.add({ targets: illusion, scale: 1.3, alpha: 0.85, duration: 500, yoyo: true, repeat: -1 });
+                        this.tweens.add({ targets: illusion, scale: 2.7, alpha: 0.95, duration: 500, yoyo: true, repeat: -1 });
                         this.showActionButtons((action) => {
                             if (action === 'defend') {
                                 this.tweens.killTweensOf(illusion);
@@ -299,14 +299,14 @@ export class Prologue extends Scene {
     }
 
     private handleMoralChoice() {
-        const defeatedSpirit = this.tutorialContainer.list.find(go => go.type === 'Sprite' && (go as GameObjects.Sprite).texture.key === 'duwende' && go.scaleX === 1.4) as GameObjects.Sprite;
+        const defeatedSpirit = this.tutorialContainer.list.find(go => go.type === 'Sprite' && (go as GameObjects.Sprite).texture.key === 'duwende' && go.scaleX === 2.7) as GameObjects.Sprite;
         if (defeatedSpirit) defeatedSpirit.setTint(0xff0000);
 
         this.updateInstruction('Choose to Slay or Spare the defeated spirit');
         this.showDialogue('The illusion has fallen. But know this: when you face true corrupted spirits, a choice awaits.', () => {
             this.showDialogue('You may Slay them, taking their power. Or you may Spare them, purifying their essence. This choice shapes your path.', () => {
                 this.showDialogue('Make your choice now, as practice for the trials ahead.', () => {
-                    const buttonY = this.cameras.main.height * 0.85; // 85% from top
+                    const buttonY = this.cameras.main.height * 0.82; // 82% from top - moved up
                     const slayButton = this.createButton(this.cameras.main.width * 0.35, buttonY, 'Slay', () => {
                         this.showDialogue('The path of Conquest. Power through dominance. Your journey will be fierce.', () => {
                             this.currentTutorialStage = TutorialStage.CONCLUSION;
@@ -367,25 +367,25 @@ export class Prologue extends Scene {
         const handSprites: GameObjects.Sprite[] = [];
 
         const rankMap: Record<string, string> = {"1":"1","2":"2","3":"3","4":"4","5":"5","6":"6","7":"7","8":"8","9":"9","10":"10","Mandirigma":"11","Babaylan":"12","Datu":"13"};
-        const cardWidth = 200 * 0.35;
-        const cardSpacing = cardWidth * 0.75;
+        const cardWidth = 200 * 0.35; // 70px
+        const cardSpacing = cardWidth * 1.43; // 100px spacing - ensures 95% of each card is visible (70 * 0.95 = 66.5px visible, 70-66.5 = 3.5px overlap per side)
         const totalWidth = (hand.length - 1) * cardSpacing;
         const centerX = this.cameras.main.width / 2;
-        const baseY = this.cameras.main.height * 0.75; // 75% from top - higher up to avoid button overlap
+        const baseY = this.cameras.main.height * 0.64; // 64% from top
         
         // Arc parameters
-        const arcHeight = 30; // How much the cards curve upward
-        const maxRotation = 8; // Maximum rotation angle in degrees
+        const arcHeight = 40; // Arc curve height
+        const maxRotation = 10; // Maximum rotation angle in degrees
 
         // Position elements relative to viewport
-        const selectionIndicatorY = this.cameras.main.height * 0.88; // 88% from top
-        const playButtonY = this.cameras.main.height * 0.95; // 95% from top - very bottom
+        const selectionIndicatorY = this.cameras.main.height * 0.82; // 82% from top
+        const playButtonY = this.cameras.main.height * 0.90; // 90% from top
         
         const selectionIndicator = this.add.text(centerX, selectionIndicatorY, 'Selected: 0/5', { 
             fontFamily: 'dungeon-mode', 
             fontSize: 20, 
             color: '#77888C' 
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(900);
         
         const cardElements: GameObjects.GameObject[] = [selectionIndicator];
 
@@ -415,7 +415,8 @@ export class Prologue extends Scene {
             const cardSprite = this.add.sprite(xPos, yPos, `card_${spriteRank}_${spriteSuit}`)
                 .setInteractive()
                 .setScale(0.35)
-                .setAngle(rotation);
+                .setAngle(rotation)
+                .setDepth(100 + i); // Set depth so cards layer properly
             
             cardSprite.setData('card', card);
             cardSprite.setData('originalY', yPos);
@@ -428,11 +429,13 @@ export class Prologue extends Scene {
                 if (card.selected && selIndex === -1 && selectedCards.length < 5) {
                     cardSprite.y -= 40;
                     cardSprite.setTint(0x4a90e2);
+                    cardSprite.setDepth(500 + i); // Bring selected cards to front
                     selectedCards.push(card);
                 } else if (selIndex > -1) {
                     card.selected = false;
                     cardSprite.y = cardSprite.getData('originalY');
                     cardSprite.clearTint();
+                    cardSprite.setDepth(100 + i); // Return to normal depth
                     selectedCards.splice(selIndex, 1);
                 }
 
@@ -447,6 +450,7 @@ export class Prologue extends Scene {
     private showActionButtons(onAction: (action: string) => void, enabled: string[] = ['attack', 'defend', 'special']) {
         const actions = ['Attack', 'Defend', 'Special'];
         const actionButtonsContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height - 100);
+        actionButtonsContainer.setDepth(2000); // High depth to ensure clickability
         this.tutorialContainer.add(actionButtonsContainer);
         
         actions.forEach((action, i) => {
@@ -459,8 +463,11 @@ export class Prologue extends Scene {
             });
 
             if (!isEnabled) {
-                (button.getAt(2) as GameObjects.Rectangle).setFillStyle(0x0a0605, 0.5);
-                (button.getAt(3) as GameObjects.Text).setAlpha(0.3);
+                // Properly disable the button
+                button.disableInteractive();
+                button.setAlpha(0.4); // Make it visually clear it's disabled
+                const bg = button.getAt(2) as GameObjects.Rectangle;
+                bg.setFillStyle(0x0a0605);
             } else {
                 this.tweens.add({ targets: button, scale: 1.05, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', duration: 700 });
             }
@@ -509,19 +516,38 @@ export class Prologue extends Scene {
         }).setOrigin(0.5).setVisible(false);
         
         dialogueContainer.add([outerBorder, innerBorder, bg, dialogueText, continueIndicator]);
+        dialogueContainer.setDepth(2000); // Very high depth to ensure it's on top
         
         dialogueContainer.setAlpha(0);
         this.tweens.add({ targets: dialogueContainer, alpha: 1, duration: 400, ease: 'Power2' });
         
+        let typingComplete = false;
+        
         this.typeText(dialogueText, text).then(() => {
+            typingComplete = true;
             continueIndicator.setVisible(true);
             this.tweens.add({ targets: continueIndicator, y: '+=8', duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-            
-            bg.once('pointerdown', () => {
+        });
+        
+        // Click to skip typing or continue
+        bg.on('pointerdown', () => {
+            if (!typingComplete) {
+                // Skip typing animation
+                if (this.typingTimer) {
+                    this.typingTimer.remove();
+                    this.typingTimer = null;
+                }
+                dialogueText.setText(text);
+                typingComplete = true;
+                continueIndicator.setVisible(true);
+                this.tweens.add({ targets: continueIndicator, y: '+=8', duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+            } else {
+                // Continue to next dialogue
                 if (this.typingTimer) this.typingTimer.remove();
                 this.tweens.killTweensOf(continueIndicator);
+                bg.removeAllListeners('pointerdown');
                 this.tweens.add({ targets: dialogueContainer, alpha: 0, duration: 300, ease: 'Power2', onComplete: () => { dialogueContainer.destroy(); onComplete(); } });
-            });
+            }
         });
     }
 
@@ -555,30 +581,32 @@ export class Prologue extends Scene {
             align: "center" 
         }).setOrigin(0.5);
         
-        // Calculate dynamic size based on text with padding
-        const paddingX = 40;
-        const paddingY = 20;
-        const buttonWidth = Math.max(buttonText.width + paddingX, 180);
-        const buttonHeight = buttonText.height + paddingY;
+        // Calculate dynamic size based on text with increased padding for better clickability
+        const paddingX = 60; // Increased padding
+        const paddingY = 30; // Increased padding
+        const buttonWidth = Math.max(buttonText.width + paddingX, 200); // Minimum width 200
+        const buttonHeight = Math.max(buttonText.height + paddingY, 50); // Minimum height 50
         
         // Double border design
         const outerBorder = this.add.rectangle(0, 0, buttonWidth + 8, buttonHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
         const innerBorder = this.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
         const bg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
         
+        // Make background the interactive element instead of container
+        bg.setInteractive({ useHandCursor: true });
+        
         button.add([outerBorder, innerBorder, bg, buttonText]);
         
+        // Set container size and depth
         button.setSize(buttonWidth, buttonHeight);
-        const hitArea = new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight);
-        button.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+        button.setDepth(1000);
         
-        button.on('pointerdown', (pointer: Phaser.Input.Pointer, localX: number, localY: number, event: Phaser.Types.Input.EventData) => {
-            event.stopPropagation();
+        let isHovering = false;
+        
+        bg.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (!button.active) return;
             
-            // Disable further interactions
-            button.disableInteractive();
-
+            // Visual feedback
             this.tweens.add({
                 targets: button,
                 scale: 0.95,
@@ -591,7 +619,9 @@ export class Prologue extends Scene {
                         duration: 100,
                         ease: 'Power1',
                         onComplete: () => {
-                            callback();
+                            if (button.active) {
+                                callback();
+                            }
                         }
                     });
                 }
@@ -599,19 +629,31 @@ export class Prologue extends Scene {
             this.cameras.main.shake(30, 0.01);
         });
         
-        button.on('pointerover', () => {
+        bg.on('pointerover', () => {
             if (!button.active) return;
-            this.input.manager.canvas.style.cursor = 'pointer';
+            isHovering = true;
+            this.input.setDefaultCursor('pointer');
             this.tweens.add({ targets: button, scale: 1.05, duration: 200, ease: 'Power2' });
             bg.setFillStyle(0x1f1410);
         });
         
-        button.on('pointerout', () => {
+        bg.on('pointerout', () => {
             if (!button.active) return;
-            this.input.manager.canvas.style.cursor = 'default';
+            isHovering = false;
+            this.input.setDefaultCursor('default');
             this.tweens.add({ targets: button, scale: 1, duration: 200, ease: 'Power2' });
             bg.setFillStyle(0x150E10);
         });
+        
+        // Store original disable method
+        const originalDisable = button.disableInteractive.bind(button);
+        button.disableInteractive = () => {
+            bg.disableInteractive();
+            if (isHovering) {
+                this.input.setDefaultCursor('default');
+            }
+            return button;
+        };
             
         return button;
     }
