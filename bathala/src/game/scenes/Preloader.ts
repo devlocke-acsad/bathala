@@ -110,6 +110,18 @@ export class Preloader extends Scene {
     });
 
     // Enemy sprites for Combat
+    this.load.image("amomongo_combat", "sprites/combat/enemy/chap1/amomongo_combat.png");
+    this.load.image("balete_combat", "sprites/combat/enemy/chap1/balete_combat.png");
+    this.load.image("bungisngis_combat", "sprites/combat/enemy/chap1/bungisngis_combat.png");
+    this.load.image("duwende_combat", "sprites/combat/enemy/chap1/duwende_combat.png");
+    this.load.image("kapre_combat", "sprites/combat/enemy/chap1/kapre_combat.png");
+    this.load.image("mangangaway_combat", "sprites/combat/enemy/chap1/mangangaway_combat.png");
+    this.load.image("sigbin_combat", "sprites/combat/enemy/chap1/sigbin_combat.png");
+    this.load.image("tawonglipod_combat", "sprites/combat/enemy/chap1/tawonglipod_combat.png");
+    this.load.image("tikbalang_combat", "sprites/combat/enemy/chap1/tikbalang_combat.png");
+    this.load.image("tiyanak_combat", "sprites/combat/enemy/chap1/tiyanak_combat.png");
+
+    // Legacy enemy sprite keys for backward compatibility
     this.load.image("amomongo", "sprites/combat/enemy/chap1/amomongo_combat.png");
     this.load.image("balete", "sprites/combat/enemy/chap1/balete_combat.png");
     this.load.image("bungisngis", "sprites/combat/enemy/chap1/bungisngis_combat.png");
