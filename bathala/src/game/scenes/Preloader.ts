@@ -88,6 +88,7 @@ export class Preloader extends Scene {
     this.load.image("wall4", "background/wall4.png");
     this.load.image("wall5", "background/wall5.png");
     this.load.image("wall6", "background/wall6.png");
+    this.load.image("chap1_no_leaves_boss", "background/chap1_no_leaves_boss.png");
 
     // Fonts
     this.loadFont("Chivo", "fonts/chivo/Chivo-Medium.ttf");

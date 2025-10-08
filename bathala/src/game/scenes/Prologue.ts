@@ -45,10 +45,10 @@ export class Prologue extends Scene {
         ];
         let currentSlide = 0;
 
-        const imagePlaceholder = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, this.cameras.main.width * 0.6, this.cameras.main.height * 0.4, 0x222222).setStrokeStyle(3, 0x4a90e2).setAlpha(0);
-        const border = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, this.cameras.main.width * 0.6, this.cameras.main.height * 0.4, undefined, 0).setStrokeStyle(6, 0x8e44ad).setAlpha(0);
-        const displayedText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2 + 150, '', { fontFamily: 'dungeon-mode', fontSize: 28, color: '#FFFFFF', align: 'center', wordWrap: { width: this.cameras.main.width - 100 } }).setOrigin(0.5);
-        const controlsText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height - 50, 'Click or press SPACE to continue', { fontFamily: 'dungeon-mode', fontSize: 18, color: '#AAAAAA', align: 'center' }).setOrigin(0.5);
+        const imagePlaceholder = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, this.cameras.main.width * 0.6, this.cameras.main.height * 0.4, 0x150E10).setStrokeStyle(3, 0x77888C).setAlpha(0);
+        const border = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 - 100, this.cameras.main.width * 0.6, this.cameras.main.height * 0.4, undefined, 0).setStrokeStyle(6, 0x77888C).setAlpha(0);
+        const displayedText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2 + 150, '', { fontFamily: 'dungeon-mode', fontSize: 28, color: '#77888C', align: 'center', wordWrap: { width: this.cameras.main.width - 100 } }).setOrigin(0.5);
+        const controlsText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height - 50, 'Click or press SPACE to continue', { fontFamily: 'dungeon-mode', fontSize: 18, color: '#77888C', align: 'center' }).setOrigin(0.5);
 
         const storyElements = [imagePlaceholder, border, displayedText, controlsText];
 
@@ -103,11 +103,23 @@ export class Prologue extends Scene {
 
     private startTutorial() {
         this.tutorialContainer = this.add.container(0, 0);
+        
+        // Add background image
+        const tutorialBgImage = this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2, 'chap1_no_leaves_boss');
+        
+        // Scale the background to cover the screen
+        const scaleX = this.cameras.main.width / tutorialBgImage.width;
+        const scaleY = this.cameras.main.height / tutorialBgImage.height;
+        const scale = Math.max(scaleX, scaleY);
+        tutorialBgImage.setScale(scale);
+        
+        // Add 75% opacity overlay with #150E10
+        const tutorialOverlay = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.75);
+        
+        this.tutorialContainer.add([tutorialBgImage, tutorialOverlay]);
+        
         this.skipButton = this.createButton(this.cameras.main.width - 120, this.cameras.main.height - 60, 'Skip Tutorial', () => this.endTutorial(true));
         this.tutorialContainer.add(this.skipButton);
-
-        const tutorialBg = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x1a1a2a).setAlpha(0.9);
-        this.tutorialContainer.add(tutorialBg);
 
         this.currentTutorialStage = TutorialStage.INTRODUCTION;
         this.runTutorialStage();
@@ -130,110 +142,128 @@ export class Prologue extends Scene {
         // Using 'tikbalang' as a placeholder for the neutral guide sprite
         const guide = this.add.sprite(this.cameras.main.width / 2, 150, 'tikbalang').setScale(1.5);
         this.tutorialContainer.add(guide);
-        this.showDialogue('You who walk the path between worlds... the spirits are in disarray. The cards you hold are the key.', () => {
-            this.currentTutorialStage = TutorialStage.FORM_PAIR;
-            this.runTutorialStage();
+        this.showDialogue('Greetings, traveler. The spirits whisper of your coming. You hold sacred cards that channel the four elements.', () => {
+            this.showDialogue('These cards are your weapon and shield. Let me guide you in their use.', () => {
+                this.currentTutorialStage = TutorialStage.FORM_PAIR;
+                this.runTutorialStage();
+            });
         });
     }
 
     private handleFormPair() {
-        this.showDialogue('Let\'s start with the foundation. A Pair is two cards of the same rank. Form one now.', () => {
-            this.drawCards('pair', (selected) => {
-                if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'pair') {
-                    this.showDialogue('Not quite. A Pair is two cards of the same rank. Try again.', () => this.handleFormPair());
-                    return;
-                }
-                this.showDialogue('Good. Now, Attack the illusion.', () => {
-                    const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'tikbalang').setAlpha(0.5).setScale(1.2);
-                    this.tutorialContainer.add(illusion);
-                    this.showActionButtons((action) => {
-                        this.playAttackAnimation(illusion, '2', () => {
-                            illusion.destroy();
-                            this.currentTutorialStage = TutorialStage.FORM_STRAIGHT;
-                            this.runTutorialStage();
-                        });
-                    }, ['attack']);
+        this.showDialogue('First, understand the foundation. When two cards share the same rank, they form a Pair.', () => {
+            this.showDialogue('Select two cards with matching numbers to create a Pair. Once you have selected 5 cards, play your hand.', () => {
+                this.drawCards('pair', (selected) => {
+                    if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'pair') {
+                        this.showDialogue('Look again. A Pair requires two cards of the same rank. Try once more.', () => this.handleFormPair());
+                        return;
+                    }
+                    this.showDialogue('Well done. A Pair grants +2 to your action. Now, Attack this illusion.', () => {
+                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2 - 50, 'tikbalang').setAlpha(0.5).setScale(1.2);
+                        this.tutorialContainer.add(illusion);
+                        this.showActionButtons((action) => {
+                            this.playAttackAnimation(illusion, '2', () => {
+                                illusion.destroy();
+                                this.currentTutorialStage = TutorialStage.FORM_STRAIGHT;
+                                this.runTutorialStage();
+                            });
+                        }, ['attack']);
+                    });
                 });
             });
         });
     }
 
     private handleFormStraight() {
-        this.showDialogue('Now, look for a sequence. Five cards in numerical order form a Straight. Use it to Attack!', () => {
-            this.drawCards('straight', (selected) => {
-                if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'straight') {
-                    this.showDialogue('Look for a sequence of 5 cards, like 3-4-5-6-7.', () => this.handleFormStraight());
-                    return;
-                }
-                const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'tikbalang').setAlpha(0.5).setScale(1.2);
-                this.tutorialContainer.add(illusion);
-                this.showActionButtons((action) => {
-                    this.playAttackAnimation(illusion, '10', () => {
-                        illusion.destroy();
-                        this.currentTutorialStage = TutorialStage.FORM_FLUSH;
-                        this.runTutorialStage();
+        this.showDialogue('Excellent. Now we advance to sequences. Five cards in numerical order form a Straight.', () => {
+            this.showDialogue('Find five cards that follow in sequence, like 3-4-5-6-7. Elements do not matter for Straights.', () => {
+                this.drawCards('straight', (selected) => {
+                    if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'straight') {
+                        this.showDialogue('Not quite. Look for five cards in numerical order, regardless of element.', () => this.handleFormStraight());
+                        return;
+                    }
+                    this.showDialogue('Perfect! A Straight grants +10 to your action. Strike this illusion down!', () => {
+                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2 - 50, 'tikbalang').setAlpha(0.5).setScale(1.2);
+                        this.tutorialContainer.add(illusion);
+                        this.showActionButtons((action) => {
+                            this.playAttackAnimation(illusion, '10', () => {
+                                illusion.destroy();
+                                this.currentTutorialStage = TutorialStage.FORM_FLUSH;
+                                this.runTutorialStage();
+                            });
+                        }, ['attack']);
                     });
-                }, ['attack']);
+                });
             });
         });
     }
 
     private handleFormFlush() {
-        this.showDialogue('Power also comes from unity. Five cards of the same element form a Flush. This unlocks a Special ability.', () => {
-            this.drawCards('flush', (selected) => {
-                if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'flush') {
-                    this.showDialogue('A Flush is five cards of the same element. Try again.', () => this.handleFormFlush());
-                    return;
-                }
-                const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'tikbalang').setAlpha(0.5).setScale(1.2);
-                this.tutorialContainer.add(illusion);
-                this.showActionButtons((action) => {
-                    this.playAttackAnimation(illusion, '14', () => {
-                        illusion.destroy();
-                        this.currentTutorialStage = TutorialStage.FORM_FULL_HOUSE;
-                        this.runTutorialStage();
+        this.showDialogue('The elements themselves hold power. Five cards of the same element create a Flush.', () => {
+            this.showDialogue('Select five cards sharing the same element. A Flush grants +14 and unlocks Special abilities.', () => {
+                this.drawCards('flush', (selected) => {
+                    if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'flush') {
+                        this.showDialogue('The elements must align. Find five cards of the same element.', () => this.handleFormFlush());
+                        return;
+                    }
+                    this.showDialogue('Magnificent! The element flows through you. Use the Special action to channel its unique power.', () => {
+                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2 - 50, 'tikbalang').setAlpha(0.5).setScale(1.2);
+                        this.tutorialContainer.add(illusion);
+                        this.showActionButtons((action) => {
+                            this.playAttackAnimation(illusion, '14', () => {
+                                illusion.destroy();
+                                this.currentTutorialStage = TutorialStage.FORM_FULL_HOUSE;
+                                this.runTutorialStage();
+                            });
+                        }, ['special']);
                     });
-                }, ['special']);
+                });
             });
         });
     }
 
     private handleFormFullHouse() {
-        this.showDialogue('Combine your knowledge. A Pair and a Three of a Kind form a Full House. Use it on this stronger foe.', () => {
-            this.drawCards('full_house', (selected) => {
-                if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'full_house') {
-                    this.showDialogue('Find a trio and a pair.', () => this.handleFormFullHouse());
-                    return;
-                }
-                const strongIllusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'tikbalang').setScale(1.4);
-                this.tutorialContainer.add(strongIllusion);
-                this.showActionButtons((action) => {
-                    this.playAttackAnimation(strongIllusion, '18', () => {
-                        this.tutorialContainer.bringToTop(strongIllusion);
-                        this.currentTutorialStage = TutorialStage.FORM_HIGH_CARD_DEFEND;
-                        this.runTutorialStage();
+        this.showDialogue('Now we combine what you have learned. A Full House requires both a Pair and a Three of a Kind.', () => {
+            this.showDialogue('Find three cards of one rank and two cards of another. This powerful hand grants +18.', () => {
+                this.drawCards('full_house', (selected) => {
+                    if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'full_house') {
+                        this.showDialogue('You need three of one rank and two of another rank together.', () => this.handleFormFullHouse());
+                        return;
+                    }
+                    this.showDialogue('Impressive mastery! Face this stronger foe with your Full House.', () => {
+                        const strongIllusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2 - 50, 'tikbalang').setScale(1.4);
+                        this.tutorialContainer.add(strongIllusion);
+                        this.showActionButtons((action) => {
+                            this.playAttackAnimation(strongIllusion, '18', () => {
+                                this.tutorialContainer.bringToTop(strongIllusion);
+                                this.currentTutorialStage = TutorialStage.FORM_HIGH_CARD_DEFEND;
+                                this.runTutorialStage();
+                            });
+                        }, ['attack']);
                     });
-                }, ['attack']);
+                });
             });
         });
     }
 
     private handleFormHighCardAndDefend() {
-        this.showDialogue('But what if there is no pattern? Then, your highest card is your guide. This is a High Card hand.', () => {
+        this.showDialogue('Sometimes, fortune does not favor you. When no patterns emerge, you have only a High Card.', () => {
             this.drawCards('high_card', (selected) => {
-                this.showDialogue('A High Card hand is weak. It is best used for Defense when you are desperate. The illusion will strike. Defend!', () => {
-                    const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2, 'tikbalang').setAlpha(0.5).setScale(1.2);
-                    this.tutorialContainer.add(illusion);
-                    this.tweens.add({ targets: illusion, scale: 1.3, alpha: 0.9, duration: 500, yoyo: true });
-                    this.showActionButtons((action) => {
-                        if (action === 'defend') {
-                            illusion.destroy();
-                            this.showDialogue('You gained some block, absorbing the attack. Sometimes, that is enough.', () => {
-                                this.currentTutorialStage = TutorialStage.MORAL_CHOICE;
-                                this.runTutorialStage();
-                            });
-                        }
-                    }, ['defend']);
+                this.showDialogue('A High Card is the weakest hand. But it can still be used to Defend yourself when needed.', () => {
+                    this.showDialogue('The illusion prepares to strike! Use Defend to protect yourself.', () => {
+                        const illusion = this.add.sprite(this.cameras.main.width / 2, this.cameras.main.height / 2 - 50, 'tikbalang').setAlpha(0.5).setScale(1.2);
+                        this.tutorialContainer.add(illusion);
+                        this.tweens.add({ targets: illusion, scale: 1.3, alpha: 0.9, duration: 500, yoyo: true });
+                        this.showActionButtons((action) => {
+                            if (action === 'defend') {
+                                illusion.destroy();
+                                this.showDialogue('You gained block, absorbing the blow. Defense can save you when offense fails.', () => {
+                                    this.currentTutorialStage = TutorialStage.MORAL_CHOICE;
+                                    this.runTutorialStage();
+                                });
+                            }
+                        }, ['defend']);
+                    });
                 });
             });
         });
@@ -243,31 +273,37 @@ export class Prologue extends Scene {
         const defeatedSpirit = this.tutorialContainer.list.find(go => go.type === 'Sprite' && (go as GameObjects.Sprite).texture.key === 'tikbalang' && go.scaleX === 1.4) as GameObjects.Sprite;
         if (defeatedSpirit) defeatedSpirit.setTint(0xff0000);
 
-        this.showDialogue('The illusion is gone, but the choice it represents is real. When you defeat a corrupted spirit, you are left with its essence.', () => {
-            const slayButton = this.createButton(this.cameras.main.width / 2 - 220, this.cameras.main.height - 100, 'Slay', () => {
-                this.showDialogue('You absorb the spirit\'s power. A path of conquest.', () => {
-                    this.currentTutorialStage = TutorialStage.CONCLUSION;
-                    this.runTutorialStage();
+        this.showDialogue('The illusion has fallen. But know this: when you face true corrupted spirits, a choice awaits.', () => {
+            this.showDialogue('You may Slay them, taking their power. Or you may Spare them, purifying their essence. This choice shapes your path.', () => {
+                this.showDialogue('Make your choice now, as practice for the trials ahead.', () => {
+                    const slayButton = this.createButton(this.cameras.main.width / 2 - 220, this.cameras.main.height - 100, 'Slay', () => {
+                        this.showDialogue('The path of Conquest. Power through dominance. Your journey will be fierce.', () => {
+                            this.currentTutorialStage = TutorialStage.CONCLUSION;
+                            this.runTutorialStage();
+                        });
+                        slayButton.destroy();
+                        spareButton.destroy();
+                    });
+                    const spareButton = this.createButton(this.cameras.main.width / 2 + 220, this.cameras.main.height - 100, 'Spare', () => {
+                        if (defeatedSpirit) this.playSpareAnimation(defeatedSpirit, () => {});
+                        this.showDialogue('The path of Mercy. Restoration through compassion. Your journey will be noble.', () => {
+                            this.currentTutorialStage = TutorialStage.CONCLUSION;
+                            this.runTutorialStage();
+                        });
+                        slayButton.destroy();
+                        spareButton.destroy();
+                    });
+                    this.tutorialContainer.add([slayButton, spareButton]);
                 });
-                slayButton.destroy();
-                spareButton.destroy();
             });
-            const spareButton = this.createButton(this.cameras.main.width / 2 + 220, this.cameras.main.height - 100, 'Spare', () => {
-                if (defeatedSpirit) this.playSpareAnimation(defeatedSpirit, () => {});
-                this.showDialogue('You purify the spirit\'s essence. A path of mercy.', () => {
-                    this.currentTutorialStage = TutorialStage.CONCLUSION;
-                    this.runTutorialStage();
-                });
-                slayButton.destroy();
-                spareButton.destroy();
-            });
-            this.tutorialContainer.add([slayButton, spareButton]);
         });
     }
 
     private handleConclusion() {
-        this.showDialogue('Your path is set. The omens are before you. Go forth and mend the balance.', () => {
-            this.endTutorial();
+        this.showDialogue('You understand the cards. You understand the choice. The spirits await your judgment.', () => {
+            this.showDialogue('Go forth, traveler. Restore balance to these corrupted lands. May the elements guide you.', () => {
+                this.endTutorial();
+            });
         });
     }
 
@@ -365,8 +401,8 @@ export class Prologue extends Scene {
             });
 
             if (!isEnabled) {
-                (button.getAt(0) as GameObjects.Rectangle).setFillStyle(0x1a1a1a, 0.5);
-                (button.getAt(1) as GameObjects.Text).setAlpha(0.5);
+                (button.getAt(2) as GameObjects.Rectangle).setFillStyle(0x0a0605, 0.5);
+                (button.getAt(3) as GameObjects.Text).setAlpha(0.3);
             } else {
                 this.tweens.add({ targets: button, scale: 1.05, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', duration: 700 });
             }
@@ -395,10 +431,26 @@ export class Prologue extends Scene {
         const dialogueContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2);
         this.tutorialContainer.add(dialogueContainer);
         
-        const bg = this.add.rectangle(0, 0, this.cameras.main.width * 0.8, 120, 0x1a1a2e, 0.9).setStrokeStyle(3, 0x8e44ad).setInteractive();
-        const dialogueText = this.add.text(0, 0, '', { fontFamily: 'dungeon-mode', fontSize: 22, color: '#ecf0f1', align: 'center', wordWrap: { width: this.cameras.main.width * 0.75 } }).setOrigin(0.5);
-        const continueIndicator = this.add.text(bg.width/2 - 40, bg.height/2 - 20, '▼', { fontSize: 28, color: '#e74c3c' }).setOrigin(0.5).setVisible(false);
-        dialogueContainer.add([bg, dialogueText, continueIndicator]);
+        // Double border design with new colors
+        const outerBorder = this.add.rectangle(0, 0, this.cameras.main.width * 0.8 + 8, 128, undefined, 0).setStrokeStyle(2, 0x77888C);
+        const innerBorder = this.add.rectangle(0, 0, this.cameras.main.width * 0.8, 120, undefined, 0).setStrokeStyle(2, 0x77888C);
+        const bg = this.add.rectangle(0, 0, this.cameras.main.width * 0.8, 120, 0x150E10).setInteractive();
+        
+        const dialogueText = this.add.text(0, 0, '', { 
+            fontFamily: 'dungeon-mode', 
+            fontSize: 22, 
+            color: '#77888C', 
+            align: 'center', 
+            wordWrap: { width: this.cameras.main.width * 0.75 } 
+        }).setOrigin(0.5);
+        
+        const continueIndicator = this.add.text(bg.width/2 - 40, bg.height/2 - 20, '▼', { 
+            fontFamily: 'dungeon-mode',
+            fontSize: 20, 
+            color: '#77888C' 
+        }).setOrigin(0.5).setVisible(false);
+        
+        dialogueContainer.add([outerBorder, innerBorder, bg, dialogueText, continueIndicator]);
         
         dialogueContainer.setAlpha(0);
         this.tweens.add({ targets: dialogueContainer, alpha: 1, duration: 400, ease: 'Power2' });
@@ -436,9 +488,11 @@ export class Prologue extends Scene {
 
     private createButton(x: number, y: number, text: string, callback: () => void): GameObjects.Container {
         const button = this.add.container(x, y);
-        const bg = this.add.rectangle(0, 0, 220, 60, 0x2f3542).setStrokeStyle(2, 0x57606f);
-        const buttonText = this.add.text(0, 0, text, { fontFamily: "dungeon-mode", fontSize: 24, color: "#e8eced", align: "center" }).setOrigin(0.5);
-        button.add([bg, buttonText]);
+        const outerBorder = this.add.rectangle(0, 0, 224, 64, undefined, 0).setStrokeStyle(2, 0x77888C);
+        const innerBorder = this.add.rectangle(0, 0, 220, 60, undefined, 0).setStrokeStyle(2, 0x77888C);
+        const bg = this.add.rectangle(0, 0, 220, 60, 0x150E10);
+        const buttonText = this.add.text(0, 0, text, { fontFamily: "dungeon-mode", fontSize: 24, color: "#77888C", align: "center" }).setOrigin(0.5);
+        button.add([outerBorder, innerBorder, bg, buttonText]);
         
         button.setSize(220, 60);
         button.setInteractive(new Phaser.Geom.Rectangle(-110, -30, 220, 60), Phaser.Geom.Rectangle.Contains)
@@ -462,13 +516,13 @@ export class Prologue extends Scene {
                 if (!button.active) return;
                 this.input.manager.canvas.style.cursor = 'pointer';
                 this.tweens.add({ targets: button, scale: 1.05, duration: 200, ease: 'Power2' });
-                bg.setFillStyle(0x3d4454);
+                bg.setFillStyle(0x1f1410);
             })
             .on('pointerout', () => {
                 if (!button.active) return;
                 this.input.manager.canvas.style.cursor = 'default';
                 this.tweens.add({ targets: button, scale: 1, duration: 200, ease: 'Power2' });
-                bg.setFillStyle(0x2f3542);
+                bg.setFillStyle(0x150E10);
             });
             
         return button;
