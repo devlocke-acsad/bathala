@@ -1,6 +1,12 @@
 /**
- * RuleBasedDDA - Core Dynamic Difficulty Adjustment Engine
- * Implements the thesis research algorithm for maintaining player flow
+ * RuleBasedDDA - Core Dynamic Difficulty Adjustment Engine for Roguelikes
+ * 
+ * Implements performance-based DDA inspired by modern roguelikes:
+ * - Hades: Adaptive encounter difficulty based on run performance
+ * - Dead Cells: Progressive difficulty scaling with skill demonstration
+ * - Risk of Rain 2: Dynamic challenge adjustment during runs
+ * 
+ * Focus: Performance quality over win/loss, since defeats end the run
  */
 
 import { 
@@ -173,7 +179,8 @@ export class RuleBasedDDA {
 
   /**
    * Calculate PPS adjustment based on combat performance
-   * Now includes tier-based scaling and comeback bonuses
+   * Roguelike-focused: Performance quality over win/loss
+   * Inspired by: Hades, Dead Cells, Risk of Rain 2
    */
   private calculatePPSAdjustment(metrics: CombatMetrics): number {
     let adjustment = 0;
@@ -183,43 +190,38 @@ export class RuleBasedDDA {
     // Get tier scaling multipliers
     const tierScale = this.config.tierScaling[currentTier];
 
-    // 1. VICTORY/DEFEAT BASE (Solution 1)
+    // Track consecutive victories/defeats for analytics (roguelike run tracking)
     if (metrics.victory) {
-      adjustment += config.victoryBonus;
-      
-      // Track consecutive victories for comeback bonus
       this.playerPPS.consecutiveVictories++;
       this.playerPPS.consecutiveDefeats = 0;
     } else {
-      adjustment += config.defeatPenalty;
-      
-      // Track consecutive defeats
       this.playerPPS.consecutiveDefeats++;
       this.playerPPS.consecutiveVictories = 0;
     }
 
-    // 2. HEALTH-BASED MODIFIERS (Gradient system for better feedback)
+    // 1. HEALTH RETENTION PERFORMANCE (Primary metric for roguelikes)
+    // Good HP management is crucial in roguelikes since health carries between fights
     let healthAdjustment = 0;
     
     if (metrics.healthPercentage >= 0.9) {
-      // Excellent health (90-100%)
-      healthAdjustment += config.highHealthBonus;
+      // Excellent health retention (90-100%) - Mastery performance
+      healthAdjustment += config.excellentHealthBonus;
     } else if (metrics.healthPercentage >= 0.7) {
-      // Good health (70-89%) - small bonus
-      healthAdjustment += config.highHealthBonus * 0.5;
+      // Good health retention (70-89%) - Strong performance
+      healthAdjustment += config.goodHealthBonus;
     } else if (metrics.healthPercentage >= 0.5) {
-      // Moderate health (50-69%) - neutral (no adjustment)
+      // Moderate health retention (50-69%) - Acceptable, neutral
       healthAdjustment += 0;
     } else if (metrics.healthPercentage >= 0.3) {
-      // Poor health (30-49%) - small penalty
-      healthAdjustment += config.lowHealthPenalty * 0.5;
+      // Poor health retention (30-49%) - Struggling performance
+      healthAdjustment += config.moderateHealthPenalty;
     } else {
-      // Very poor health (<30%) - full penalty
-      healthAdjustment += config.lowHealthPenalty;
+      // Very poor health retention (<30%) - Critical performance issue
+      healthAdjustment += config.poorHealthPenalty;
     }
 
-    // 3. PERFECT COMBAT BONUS
-    if (metrics.damageReceived === 0 && metrics.victory) {
+    // 2. PERFECT COMBAT BONUS (No damage taken - mastery indicator)
+    if (metrics.damageReceived === 0) {
       healthAdjustment += config.perfectCombatBonus;
     }
 
@@ -231,89 +233,138 @@ export class RuleBasedDDA {
     }
     adjustment += healthAdjustment;
 
-    // 4. HAND QUALITY BONUS
+    // 3. SKILL EXPRESSION - HAND QUALITY (Reward good poker play)
     const bestHandQuality = HAND_QUALITY_SCORES[metrics.bestHandAchieved] || 0;
     if (bestHandQuality >= HAND_QUALITY_SCORES.four_of_a_kind) {
+      // Excellent hands (4oK, Straight Flush, Royal Flush)
+      adjustment += config.excellentHandBonus * tierScale.bonusMultiplier;
+    } else if (bestHandQuality >= HAND_QUALITY_SCORES.straight) {
+      // Good hands (Straight, Flush, Full House)
       adjustment += config.goodHandBonus * tierScale.bonusMultiplier;
     }
 
-    // 5. COMBAT DURATION PENALTY (Tier-based thresholds calibrated to actual damage output)
-    // Calibrated based on: Common enemies ~18HP, Player damage ranges from 2-22 per turn
-    let turnPenalty = 0;
+    // 4. COMBAT EFFICIENCY (Tier-based turn count expectations)
+    // Roguelikes reward efficient play - finishing fights quickly preserves resources
+    let efficiencyAdjustment = 0;
+    let expectedTurns = 0;
+    let efficientTurns = 0;
+    let inefficientTurns = 0;
     
     if (currentTier === "mastering") {
-      // Mastering tier: High damage (10-22), expected 1-3 turns
-      // Penalty if taking too long (struggling to finish quickly)
-      if (metrics.turnCount > 4) {
-        turnPenalty = config.longCombatPenalty * tierScale.penaltyMultiplier;
-      }
+      // Mastering tier: High damage output, expected 1-3 turns
+      expectedTurns = 3;
+      efficientTurns = 2;
+      inefficientTurns = 5;
     } else if (currentTier === "thriving") {
-      // Thriving tier: Good damage (7-10), expected 2-4 turns
-      // Penalty if combat drags on
-      if (metrics.turnCount > 5) {
-        turnPenalty = config.longCombatPenalty * tierScale.penaltyMultiplier;
-      }
+      // Thriving tier: Good damage output, expected 2-4 turns
+      expectedTurns = 4;
+      efficientTurns = 3;
+      inefficientTurns = 6;
     } else if (currentTier === "learning") {
-      // Learning tier: Moderate damage (3-7), expected 3-6 turns
-      // Penalty if combat is inefficient
-      if (metrics.turnCount > 7) {
-        turnPenalty = config.longCombatPenalty * tierScale.penaltyMultiplier;
-      }
+      // Learning tier: Moderate damage output, expected 3-6 turns
+      expectedTurns = 6;
+      efficientTurns = 4;
+      inefficientTurns = 8;
     } else {
-      // Struggling tier: Low damage (0-3), expected 6-9 turns
-      // Very lenient threshold
-      if (metrics.turnCount > 9) {
-        turnPenalty = config.longCombatPenalty * tierScale.penaltyMultiplier;
-      }
+      // Struggling tier: Lower damage output, expected 6-9 turns
+      expectedTurns = 9;
+      efficientTurns = 6;
+      inefficientTurns = 11;
     }
     
-    adjustment += turnPenalty;
+    if (metrics.turnCount <= efficientTurns) {
+      // Performed better than expected for tier
+      efficiencyAdjustment = config.efficientCombatBonus * tierScale.bonusMultiplier;
+    } else if (metrics.turnCount > inefficientTurns) {
+      // Took too long for tier
+      efficiencyAdjustment = config.inefficientCombatPenalty * tierScale.penaltyMultiplier;
+    }
+    
+    adjustment += efficiencyAdjustment;
 
-    // 6. RESOURCE EFFICIENCY BONUS
+    // 5. DAMAGE EFFICIENCY (Damage per turn ratio)
+    // Roguelikes value efficient damage output - higher is better
+    const damagePerTurn = metrics.damageDealt / Math.max(1, metrics.turnCount);
+    const enemyHPPerTurn = metrics.enemyStartHealth / Math.max(1, expectedTurns);
+    const damageEfficiencyRatio = damagePerTurn / enemyHPPerTurn;
+    
+    let damageEfficiencyAdjustment = 0;
+    if (damageEfficiencyRatio >= 1.3) {
+      // Excellent damage efficiency (30%+ above expected)
+      damageEfficiencyAdjustment = config.highDamageEfficiencyBonus * tierScale.bonusMultiplier;
+    } else if (damageEfficiencyRatio <= 0.7) {
+      // Poor damage efficiency (30%+ below expected)
+      damageEfficiencyAdjustment = config.lowDamageEfficiencyPenalty * tierScale.penaltyMultiplier;
+    }
+    
+    adjustment += damageEfficiencyAdjustment;
+
+    // 6. RESOURCE MANAGEMENT (Discard usage efficiency)
+    // Roguelikes reward conservative resource usage
     const discardEfficiency = 1 - (metrics.discardsUsed / Math.max(1, metrics.maxDiscardsAvailable));
-    if (discardEfficiency > 0.8) {
+    if (discardEfficiency >= 0.7) {
+      // Used ≤30% of discards - excellent resource management
       adjustment += config.resourceEfficiencyBonus * tierScale.bonusMultiplier;
     }
 
-    // 6.5. CLUTCH VICTORY BONUS (Context-aware difficulty)
-    // Reward players who win despite entering combat at a disadvantage
+    // 7. CLUTCH PERFORMANCE BONUS (Context-aware difficulty in roguelikes)
+    // Reward players who perform well despite entering combat at a disadvantage
+    // This is key in roguelikes where you often fight while low on resources
     let clutchBonus = 0;
     const startingHealthRatio = metrics.startHealth / metrics.startMaxHealth;
-    if (startingHealthRatio < 0.5 && metrics.victory) {
-      // Player entered with <50% HP and still won - that's impressive!
-      // Bonus scales with how low their starting HP was (max +0.15 at 0% starting HP)
-      clutchBonus = 0.15 * (1 - startingHealthRatio * 2); // 0.15 at 0%, 0.0 at 50%
-      adjustment += clutchBonus * tierScale.bonusMultiplier;
+    
+    if (startingHealthRatio < 0.5) {
+      // Player entered with <50% HP
+      const disadvantage = 1 - (startingHealthRatio * 2); // 0.0 at 50%, 1.0 at 0%
+      
+      // Reward based on how well they performed despite disadvantage
+      if (metrics.healthPercentage >= startingHealthRatio) {
+        // Survived without losing more HP% - impressive defensive play
+        clutchBonus = 0.2 * disadvantage * tierScale.bonusMultiplier;
+      } else if (metrics.victory) {
+        // Won despite starting low - still good
+        clutchBonus = 0.15 * disadvantage * tierScale.bonusMultiplier;
+      }
+      
+      adjustment += clutchBonus;
     }
 
-    // 7. COMEBACK BONUS SYSTEM (Solution 3)
+    // 8. COMEBACK MOMENTUM SYSTEM (Roguelike recovery from poor runs)
+    // Help players build momentum when recovering from difficult situations
     let comebackBonus = 0;
     if (this.config.comebackBonus.enabled && 
-        metrics.victory && 
         this.playerPPS.currentPPS < this.config.comebackBonus.ppsThreshold) {
       
-      // Base comeback bonus
-      comebackBonus += this.config.comebackBonus.bonusPerVictory;
-      
-      // Consecutive win bonus (capped)
-      const consecutiveBonus = Math.min(
-        (this.playerPPS.consecutiveVictories - 1) * this.config.comebackBonus.consecutiveWinBonus,
-        this.config.comebackBonus.maxConsecutiveBonus
-      );
-      comebackBonus += consecutiveBonus;
-      adjustment += comebackBonus;
+      // Only reward positive performance trends
+      if (adjustment > 0) {
+        // Base comeback momentum bonus
+        comebackBonus += this.config.comebackBonus.bonusPerVictory;
+        
+        // Consecutive positive performance bonus (capped)
+        if (this.playerPPS.consecutiveVictories > 0) {
+          const consecutiveBonus = Math.min(
+            this.playerPPS.consecutiveVictories * this.config.comebackBonus.consecutiveWinBonus,
+            this.config.comebackBonus.maxConsecutiveBonus
+          );
+          comebackBonus += consecutiveBonus;
+        }
+        
+        adjustment += comebackBonus;
+      }
     }
 
     // Log PPS calculation breakdown for debugging
-    console.log("📊 PPS Calculation Breakdown:", {
-      victory: metrics.victory ? `+${config.victoryBonus}` : `${config.defeatPenalty}`,
+    console.log("📊 PPS Calculation Breakdown (Roguelike Performance):", {
       startHP: `${(startingHealthRatio * 100).toFixed(0)}%`,
       endHP: `${(metrics.healthPercentage * 100).toFixed(0)}%`,
-      health: `${(healthAdjustment / (tierScale.bonusMultiplier || tierScale.penaltyMultiplier)).toFixed(2)}`,
-      healthScaled: `${healthAdjustment.toFixed(2)}`,
-      turns: turnPenalty !== 0 ? `${turnPenalty.toFixed(2)} (${metrics.turnCount} turns)` : "0",
-      clutch: clutchBonus > 0 ? `+${(clutchBonus * tierScale.bonusMultiplier).toFixed(2)} (low HP start)` : "0",
-      comeback: comebackBonus > 0 ? `+${comebackBonus.toFixed(2)}` : "0",
+      healthRetention: healthAdjustment.toFixed(3),
+      handQuality: `${metrics.bestHandAchieved} (${bestHandQuality})`,
+      efficiency: `${efficiencyAdjustment.toFixed(3)} (${metrics.turnCount}/${expectedTurns} turns)`,
+      damageEff: `${damageEfficiencyAdjustment.toFixed(3)} (${damagePerTurn.toFixed(1)} DPT)`,
+      resourceMgmt: discardEfficiency >= 0.7 ? `+${config.resourceEfficiencyBonus.toFixed(2)}` : "0",
+      clutch: clutchBonus > 0 ? `+${clutchBonus.toFixed(3)} (low HP start)` : "0",
+      comeback: comebackBonus > 0 ? `+${comebackBonus.toFixed(3)}` : "0",
+      tier: currentTier,
       totalAdjustment: adjustment.toFixed(3),
       currentPPS: this.playerPPS.currentPPS.toFixed(3),
       newPPS: Math.max(0, Math.min(5, this.playerPPS.currentPPS + adjustment)).toFixed(3)
@@ -374,39 +425,55 @@ export class RuleBasedDDA {
   }
 
   /**
-   * Get narrative context for difficulty changes
+   * Get narrative context for difficulty changes (Roguelike flavor)
    */
   private getNarrativeContext(tier: DifficultyTier): string {
     // During calibration, always show learning context
     if (this.playerPPS.isCalibrating) {
-      return `Observing your technique... (${this.playerPPS.totalCombatsCompleted}/${this.config.calibration.combatCount} calibration combats)`;
+      return `The spirits assess your capabilities... (${this.playerPPS.totalCombatsCompleted}/${this.config.calibration.combatCount} initial encounters)`;
     }
 
     const contexts = {
-      struggling: "The spirits sense your struggle and offer gentle guidance...",
-      learning: "You walk the balanced path, learning the ways of combat...",
-      thriving: "Your growing power attracts stronger challenges...",
-      mastering: "The ancient forces recognize your mastery and send their greatest trials...",
+      struggling: "The spirits temper their challenge, granting you respite...",
+      learning: "You prove capable - the path ahead remains balanced...",
+      thriving: "Your skill draws fiercer opponents to test your mettle...",
+      mastering: "Legends speak of your prowess - only the mightiest dare face you...",
     };
     return contexts[tier];
   }
 
   /**
-   * Get reason for PPS change for logging
+   * Get reason for PPS change for logging (Performance-based)
    */
   private getPPSChangeReason(metrics: CombatMetrics): string {
     const reasons = [];
     
-    if (metrics.healthPercentage > 0.9) reasons.push("high_health");
-    if (metrics.healthPercentage < 0.2) reasons.push("low_health");
-    if (metrics.damageReceived === 0) reasons.push("perfect_combat");
-    if (HAND_QUALITY_SCORES[metrics.bestHandAchieved] >= HAND_QUALITY_SCORES.four_of_a_kind) {
-      reasons.push("good_hand");
+    // Health retention performance
+    if (metrics.healthPercentage >= 0.9) reasons.push("excellent_health_retention");
+    else if (metrics.healthPercentage < 0.3) reasons.push("poor_health_retention");
+    
+    if (metrics.damageReceived === 0) reasons.push("perfect_defense");
+    
+    // Skill expression
+    const handQuality = HAND_QUALITY_SCORES[metrics.bestHandAchieved];
+    if (handQuality >= HAND_QUALITY_SCORES.four_of_a_kind) {
+      reasons.push("excellent_hands");
+    } else if (handQuality >= HAND_QUALITY_SCORES.straight) {
+      reasons.push("good_hands");
     }
-    if (metrics.turnCount > 8) {
-      reasons.push("long_combat");
-    }
-    if (!metrics.victory) reasons.push("defeat");
+    
+    // Combat efficiency
+    const damagePerTurn = metrics.damageDealt / Math.max(1, metrics.turnCount);
+    if (damagePerTurn > 10) reasons.push("high_damage_efficiency");
+    else if (damagePerTurn < 3) reasons.push("low_damage_efficiency");
+    
+    // Resource management
+    const discardEfficiency = 1 - (metrics.discardsUsed / Math.max(1, metrics.maxDiscardsAvailable));
+    if (discardEfficiency >= 0.7) reasons.push("efficient_resources");
+    
+    // Context
+    const startHealthRatio = metrics.startHealth / metrics.startMaxHealth;
+    if (startHealthRatio < 0.5) reasons.push("clutch_scenario");
     
     return reasons.join(", ") || "standard_performance";
   }
