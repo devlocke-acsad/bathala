@@ -62,9 +62,7 @@ export class Combat extends Scene {
   private discardViewContainer!: Phaser.GameObjects.Container;
   private actionResultText!: Phaser.GameObjects.Text;
   private enemyAttackPreviewText!: Phaser.GameObjects.Text;
-  private damagePreviewContainer!: Phaser.GameObjects.Container;
   private damagePreviewText!: Phaser.GameObjects.Text;
-  private damagePreviewBackground!: Phaser.GameObjects.Rectangle;
   private isDrawingCards: boolean = false;
   private isActionProcessing: boolean = false;
   private combatEnded: boolean = false;
@@ -100,71 +98,71 @@ export class Combat extends Scene {
       name: "Tikbalang Scout",
       spareDialogue: "Hah! You show mercy to a forest guardian turned to shadow? Once I guided lost souls to safety, but now... now I lead them astray. Still, your compassion awakens something deep in me. Take this blessing of sure footing.",
       killDialogue: "My essence... it feeds the darkness you call shadow. You've only made the forest more treacherous, traveler!",
-      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Sure footing" },
-      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Deceptive paths" },
+      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Sure footing" },
+      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Deceptive paths" },
     },
     balete_wraith: {
       name: "Balete Wraith",
       spareDialogue: "These roots once held sacred conversations between anito and Bathala, but the engkanto's lies... they poisoned our very essence. Spare me, and I'll grant you the wisdom of the sacred grove.",
       killDialogue: "My spirit feeds the impostor's power! The forest remembers your violence, traveler!",
-      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Sacred grove wisdom" },
-      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Cursed bark" },
+      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Sacred grove wisdom" },
+      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Cursed bark" },
     },
     sigbin_charger: {
       name: "Sigbin Charger",
       spareDialogue: "We once served Bathala faithfully, our hearts pure and our purpose noble. But the false god's whispers... they corrupted us. If you spare me, I'll share the secret of the night paths.",
       killDialogue: "Take my power, but beware—darkness flows to the one who commands shadows!",
-      spareReward: { ginto: 55, baubles: 0, healthHealing: 7, bonusEffect: "Night path secrets" },
-      killReward: { ginto: 80, baubles: 1, healthHealing: 0, bonusEffect: "Heart of shadow" },
+      spareReward: { ginto: 55, diamante: 0, healthHealing: 7, bonusEffect: "Night path secrets" },
+      killReward: { ginto: 80, diamante: 1, healthHealing: 0, bonusEffect: "Heart of shadow" },
     },
     duwende_trickster: {
       name: "Duwende Trickster",
       spareDialogue: "You have the eyes of one who sees beyond surface, mortal. We are indeed spirits of great power, though the engkanto's web has twisted our nature. Accept this gift of hidden sight.",
       killDialogue: "My tricks scatter to the wind, but the forest remembers! Your ruthlessness feeds the impostor's growing strength!",
-      spareReward: { ginto: 40, baubles: 0, healthHealing: 5, bonusEffect: "Hidden sight" },
-      killReward: { ginto: 60, baubles: 1, healthHealing: 0, bonusEffect: "Mischievous whispers" },
+      spareReward: { ginto: 40, diamante: 0, healthHealing: 5, bonusEffect: "Hidden sight" },
+      killReward: { ginto: 60, diamante: 1, healthHealing: 0, bonusEffect: "Mischievous whispers" },
     },
     tiyanak_ambusher: {
       name: "Tiyanak Ambusher",
       spareDialogue: "Innocent? Yes, once I was just a babe lost between realms... but the false god's corruption runs deep. Your mercy stirs something in my cursed heart. Take this blessing of true sight.",
       killDialogue: "You strike at innocence, but know this—your violence feeds the shadow that corrupts all!",
-      spareReward: { ginto: 35, baubles: 0, healthHealing: 15, bonusEffect: "True sight" },
-      killReward: { ginto: 55, baubles: 1, healthHealing: 0, bonusEffect: "Crying echo" },
+      spareReward: { ginto: 35, diamante: 0, healthHealing: 15, bonusEffect: "True sight" },
+      killReward: { ginto: 55, diamante: 1, healthHealing: 0, bonusEffect: "Crying echo" },
     },
     amomongo: {
       name: "Amomongo",
       spareDialogue: "My claws once only defended the mountain folk from true threats. The engkanto's poison has changed my purpose. Your mercy awakens old memories. Take this strength.",
       killDialogue: "My bones may break, but the shadow grows stronger with each soul you destroy!",
-      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Primal strength" },
-      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Bleeding claws" },
+      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Primal strength" },
+      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Bleeding claws" },
     },
     bungisngis: {
       name: "Bungisngis",
       spareDialogue: "Ha ha ha! You have the spirit of a true mountain dweller! Once we laughed with joy, not malice. Take this gift of hearty laughter to protect you.",
       killDialogue: "My laughter dies, but the echo haunts... and the shadow grows stronger!",
-      spareReward: { ginto: 45, baubles: 0, healthHealing: 8, bonusEffect: "Joyful resilience" },
-      killReward: { ginto: 70, baubles: 1, healthHealing: 0, bonusEffect: "Maddening laughter" },
+      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Joyful resilience" },
+      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Maddening laughter" },
     },
     kapre_shade: {
       name: "Kapre Shade",
       spareDialogue: "In my tree, I once smoked in peace, guardian of the forest paths. The false god's corruption has made me a shadow of my former self. Your mercy stirs the old honor. Take this blessing of forest protection.",
       killDialogue: "Burn me down, but the smoke carries the impostor's whispers! Your violence only feeds the growing shadow!",
-      spareReward: { ginto: 80, baubles: 1, healthHealing: 20, bonusEffect: "Forest protection" },
-      killReward: { ginto: 120, baubles: 2, healthHealing: 0, bonusEffect: "Smoke whispers" },
+      spareReward: { ginto: 80, diamante: 1, healthHealing: 20, bonusEffect: "Forest protection" },
+      killReward: { ginto: 120, diamante: 2, healthHealing: 0, bonusEffect: "Smoke whispers" },
     },
     tawong_lipod: {
       name: "Tawong Lipod",
       spareDialogue: "Ah... you move with the wind's understanding. We once brought harmony to the Bikol lands, before the false god's lies. Accept this gift of swift movement and hidden sight.",
       killDialogue: "You cannot scatter what has no form! The wind remembers your violence, and it feeds the impostor's power!",
-      spareReward: { ginto: 80, baubles: 1, healthHealing: 20, bonusEffect: "Wind's grace" },
-      killReward: { ginto: 120, baubles: 2, healthHealing: 0, bonusEffect: "Air superiority" },
+      spareReward: { ginto: 80, diamante: 1, healthHealing: 20, bonusEffect: "Wind's grace" },
+      killReward: { ginto: 120, diamante: 2, healthHealing: 0, bonusEffect: "Air superiority" },
     },
     mangangaway: {
       name: "Mangangaway",
       spareDialogue: "Wise traveler... you see through my curses to the spirit beneath. I was once a healer, a protector of the people. Take this gift of protection against the false god's influence.",
       killDialogue: "My curses may end, but the shadow you serve grows stronger! Your power feeds the impostor's corruption!",
-      spareReward: { ginto: 150, baubles: 3, healthHealing: 30, bonusEffect: "Hex protection" },
-      killReward: { ginto: 200, baubles: 5, healthHealing: 0, bonusEffect: "Curse mastery" },
+      spareReward: { ginto: 150, diamante: 3, healthHealing: 30, bonusEffect: "Hex protection" },
+      killReward: { ginto: 200, diamante: 5, healthHealing: 0, bonusEffect: "Curse mastery" },
     },
   };
 
@@ -500,7 +498,7 @@ export class Combat extends Scene {
         playedHand: [],
         landasScore: existingPlayerData.landasScore || 0,
         ginto: existingPlayerData.ginto || 100,
-        baubles: existingPlayerData.baubles || 0,
+        diamante: existingPlayerData.diamante || 0,
         relics: existingPlayerData.relics || [
           {
             id: "placeholder_relic",
@@ -543,7 +541,7 @@ export class Combat extends Scene {
         playedHand: [],
         landasScore: 0,
         ginto: 100,
-        baubles: 0,
+        diamante: 0,
         relics: [
           {
             id: "placeholder_relic",
@@ -701,11 +699,11 @@ export class Combat extends Scene {
     // Played hand area (center)
     this.createPlayedHandUI();
 
-    // Damage preview display (create before action buttons so it exists when needed)
-    this.createDamagePreviewUI();
-
     // Action buttons
     this.createActionButtons();
+
+    // Damage preview
+    this.createDamagePreview();
 
     // Turn display
     this.createTurnUI();
@@ -744,37 +742,43 @@ export class Combat extends Scene {
       console.warn("Player idle animation not found, using static sprite");
     }
 
-    // Player name
+    // Player name with Prologue styling
     this.add
       .text(playerX, playerY - 120, this.combatState.player.name, {
         fontFamily: "dungeon-mode",
         fontSize: 24,
-        color: "#e8eced",
+        color: "#77888C", // Use Prologue's text color
         align: "center",
+        stroke: "#150E10",
+        strokeThickness: 1
       })
       .setOrigin(0.5);
 
-    // Health display
+    // Health display with better spacing
     this.playerHealthText = this.add
-      .text(playerX, playerY + 80, "", {
+      .text(playerX, playerY + 85, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#ff6b6b",
         align: "center",
+        stroke: "#000000",
+        strokeThickness: 1
       })
       .setOrigin(0.5);
 
-    // Block display
+    // Block display with improved spacing
     this.playerBlockText = this.add
-      .text(playerX, playerY + 105, "", {
+      .text(playerX, playerY + 110, "", {
         fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#4ecdc4",
         align: "center",
+        stroke: "#000000",
+        strokeThickness: 1
       })
       .setOrigin(0.5);
 
-    this.playerStatusContainer = this.add.container(playerX, playerY + 130);
+    this.playerStatusContainer = this.add.container(playerX, playerY + 140);
 
     this.updatePlayerUI();
   }
@@ -810,49 +814,57 @@ export class Combat extends Scene {
 
 
 
-    // Enemy name (positioned further from enemy due to larger sprite)
+    // Enemy name with Prologue styling and better spacing
     this.add
-      .text(enemyX, enemyY - 170, this.combatState.enemy.name, {
+      .text(enemyX, enemyY - 180, this.combatState.enemy.name, {
         fontFamily: "dungeon-mode",
-        fontSize: 28, // Larger font size
-        color: "#e8eced",
+        fontSize: 28,
+        color: "#77888C", // Use Prologue's text color
         align: "center",
+        stroke: "#150E10",
+        strokeThickness: 2
       })
       .setOrigin(0.5);
 
-    // Health display (positioned further from enemy due to larger sprite)
+    // Health display with improved spacing and stroke
     this.enemyHealthText = this.add
-      .text(enemyX, enemyY - 140, "", {
+      .text(enemyX, enemyY - 150, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 24, // Larger font size
+        fontSize: 24,
         color: "#ff6b6b",
         align: "center",
+        stroke: "#000000",
+        strokeThickness: 2
       })
       .setOrigin(0.5);
 
-    // Block display (positioned further from enemy due to larger sprite)
+    // Block display with improved spacing and stroke
     this.enemyBlockText = this.add
-      .text(enemyX, enemyY - 110, "", {
+      .text(enemyX, enemyY - 120, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#4ecdc4",
         align: "center",
+        stroke: "#000000",
+        strokeThickness: 1
       })
       .setOrigin(0.5);
 
-    // Intent display (positioned further from enemy due to larger sprite)
+    // Intent display with better spacing
     this.enemyIntentText = this.add
-      .text(enemyX, enemyY + 170, "", {
+      .text(enemyX, enemyY + 180, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#feca57",
         align: "center",
         wordWrap: { width: 200 },
+        stroke: "#000000",
+        strokeThickness: 1
       })
       .setOrigin(0.5);
 
-    // Status effects container
-    this.enemyStatusContainer = this.add.container(enemyX, enemyY + 200);
+    // Status effects container with improved spacing
+    this.enemyStatusContainer = this.add.container(enemyX, enemyY + 210);
 
     // Information button for enemy lore
     this.createEnemyInfoButton(enemyX, enemyY - 200);
@@ -908,6 +920,11 @@ export class Combat extends Scene {
    * Update action buttons based on current phase
    */
   private updateActionButtons(): void {
+    // Safety check: Don't update if scene is being destroyed or doesn't exist
+    if (!this.sys || !this.sys.isActive() || this.combatEnded) {
+      return;
+    }
+
     // Clear existing buttons
     this.actionButtons.removeAll(true);
 
@@ -1583,6 +1600,11 @@ export class Combat extends Scene {
    * Update hand display with a curved fanned-out arrangement
    */
   private updateHandDisplay(): void {
+    // Safety check: Don't update if scene is being destroyed or doesn't exist
+    if (!this.sys || !this.sys.isActive() || this.combatEnded) {
+      return;
+    }
+
     // Don't update if cards are currently being drawn
     if (this.isDrawingCards) {
       return;
@@ -2666,9 +2688,9 @@ export class Combat extends Scene {
     
     button.add([outerBorder, innerBorder, bg, buttonText]);
     
-    // Set container size and depth
+    // Set container size and depth - make sure buttons are above dialogue container
     button.setSize(buttonWidth, buttonHeight);
-    button.setDepth(1000);
+    button.setDepth(5010); // Higher than dialogue container (5001)
     
     let isHovering = false;
     
@@ -2761,7 +2783,7 @@ export class Combat extends Scene {
 
       // Apply rewards
       this.combatState.player.ginto += reward.ginto;
-      this.combatState.player.baubles += reward.baubles;
+      this.combatState.player.diamante += reward.diamante;
 
       if (reward.healthHealing > 0) {
         this.combatState.player.currentHealth = Math.min(
@@ -2772,8 +2794,7 @@ export class Combat extends Scene {
 
       console.log("Clearing dialogue and showing results...");
 
-      // Clear dialogue but preserve essential game objects
-      // Remove all UI elements but keep background and camera
+      // Simply clear all children - the rewards screen will create new UI
       if (this.children.list) {
         const childrenToRemove = this.children.list.filter(child => {
           // Keep background elements and camera-related objects
@@ -2882,10 +2903,10 @@ export class Combat extends Scene {
       rewardY += 25 * scaleFactor;
     }
 
-    // Baubles reward (check if property exists)
-    if (reward && typeof reward === 'object' && 'baubles' in reward && (reward as any).baubles > 0) {
+    // Diamante reward (check if property exists)
+    if (reward && typeof reward === 'object' && 'diamante' in reward && (reward as any).diamante > 0) {
       this.add
-        .text(screenWidth/2, rewardY, `💎 ${(reward as any).baubles} Bathala Baubles`, {
+        .text(screenWidth/2, rewardY, `💎 ${(reward as any).diamante} Diamante`, {
           fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#4ecdc4",
@@ -3132,6 +3153,11 @@ export class Combat extends Scene {
    * Update played hand display
    */
   private updatePlayedHandDisplay(): void {
+    // Safety check: Don't update if scene is being destroyed or doesn't exist
+    if (!this.sys || !this.sys.isActive() || this.combatEnded) {
+      return;
+    }
+
     // Clear existing played card sprites
     this.playedCardSprites.forEach((sprite) => sprite.destroy());
     this.playedCardSprites = [];
@@ -3139,7 +3165,9 @@ export class Combat extends Scene {
     const playedHand = this.combatState.player.playedHand;
     if (playedHand.length === 0) {
       // Hide hand evaluation text when no cards are played
-      this.handEvaluationText.setVisible(false);
+      if (this.handEvaluationText) {
+        this.handEvaluationText.setVisible(false);
+      }
       return;
     }
 
@@ -3355,6 +3383,7 @@ export class Combat extends Scene {
     if (damage > 0) {
       console.log(`Animating player attack and dealing ${damage} damage`);
       this.animatePlayerAttack(); // Add animation when attacking
+      this.showFloatingDamage(damage); // Show floating damage counter like Prologue
       this.damageEnemy(damage);
       // Result already shown above with detailed calculation
     }
@@ -3891,11 +3920,13 @@ export class Combat extends Scene {
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
     
     this.actionResultText = this.add
-      .text(screenWidth/2, screenHeight/2, "", {
+      .text(screenWidth/2, screenHeight * 0.75, "", { // Position lower to avoid overlap with calculation displays
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(20 * scaleFactor),
         color: "#2ed573",
         align: "center",
+        stroke: "#000000",
+        strokeThickness: 1
       })
       .setOrigin(0.5)
       .setVisible(false);
@@ -4608,8 +4639,8 @@ export class Combat extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Update position to center of screen
-    this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
+    // Update position to lower area to avoid overlap with calculation displays
+    this.actionResultText.setPosition(screenWidth/2, screenHeight * 0.75);
     this.actionResultText.setText(message);
     this.actionResultText.setColor(color);
     this.actionResultText.setVisible(true);
@@ -4626,105 +4657,269 @@ export class Combat extends Scene {
     });
   }
   
+  /** Show floating damage counter similar to Prologue's attack animation */
+  private showFloatingDamage(damage: number): void {
+    if (!this.enemySprite) return;
+    
+    // Create damage text at enemy position
+    const damageText = this.add.text(
+      this.enemySprite.x, 
+      this.enemySprite.y, 
+      damage.toString(), 
+      { 
+        fontFamily: 'dungeon-mode', 
+        fontSize: 48, 
+        color: '#ff6b6b', // Use Prologue's damage color scheme
+        stroke: '#000000',
+        strokeThickness: 2
+      }
+    ).setOrigin(0.5);
+    
+    // Animate damage text upward and fade out
+    this.tweens.add({ 
+      targets: damageText, 
+      y: this.enemySprite.y - 100, 
+      alpha: 0, 
+      duration: 1000, 
+      ease: 'Power1',
+      onComplete: () => {
+        damageText.destroy();
+      }
+    });
+    
+    // Flash enemy red like in Prologue
+    this.enemySprite.setTint(0xff0000);
+    this.time.delayedCall(200, () => {
+      if (this.enemySprite) {
+        this.enemySprite.clearTint();
+      }
+    });
+    
+    // Camera shake like in Prologue
+    this.cameras.main.shake(100, 0.01);
+  }
+  
   /** Show detailed damage calculation including relic bonuses */
   private showDamageCalculation(baseDamage: number, strengthBonus: number, relicBonuses: {name: string, amount: number}[]): void {
-    let message = `Damage: ${baseDamage}`;
-    let color = "#2ed573"; // Default green
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
     
+    // Create container for damage calculation with Prologue styling
+    const calculationContainer = this.add.container(screenWidth / 2, screenHeight * 0.25);
+    
+    // Double border design like Prologue
+    const containerWidth = 400;
+    const containerHeight = 120;
+    
+    const outerBorder = this.add.rectangle(0, 0, containerWidth + 8, containerHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
+    const innerBorder = this.add.rectangle(0, 0, containerWidth, containerHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
+    const bg = this.add.rectangle(0, 0, containerWidth, containerHeight, 0x150E10);
+    
+    let yOffset = -30;
+    
+    // Main damage line
+    let damageText = `Base Damage: ${baseDamage}`;
+    const baseDamageDisplay = this.add.text(0, yOffset, damageText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    yOffset += 20;
+    
+    // Bonuses
     if (strengthBonus > 0) {
-      message += ` + ${strengthBonus} (Strength)`;
+      const strengthDisplay = this.add.text(0, yOffset, `+ ${strengthBonus} (Strength)`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#4ecdc4",
+        align: "center"
+      }).setOrigin(0.5);
+      calculationContainer.add(strengthDisplay);
+      yOffset += 18;
     }
     
     for (const relicBonus of relicBonuses) {
       if (relicBonus.amount > 0) {
-        message += ` + ${relicBonus.amount} (${relicBonus.name})`;
-        color = "#ff6b6b"; // Change to red for damage
+        const relicDisplay = this.add.text(0, yOffset, `+ ${relicBonus.amount} (${relicBonus.name})`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 16,
+          color: "#ff6b6b",
+          align: "center"
+        }).setOrigin(0.5);
+        calculationContainer.add(relicDisplay);
+        yOffset += 18;
       }
     }
     
+    // Total
     const totalDamage = baseDamage + strengthBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
-    message += ` = ${totalDamage}`;
+    const totalDisplay = this.add.text(0, yOffset, `Total: ${totalDamage}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#e8eced",
+      align: "center"
+    }).setOrigin(0.5);
     
-    this.showEnhancedActionResult(message, color);
+    calculationContainer.add([outerBorder, innerBorder, bg, baseDamageDisplay, totalDisplay]);
+    
+    // Fade in animation
+    calculationContainer.setAlpha(0);
+    this.tweens.add({
+      targets: calculationContainer,
+      alpha: 1,
+      duration: 400,
+      ease: 'Power2',
+      onComplete: () => {
+        // Auto-hide after 2 seconds
+        this.time.delayedCall(2000, () => {
+          this.tweens.add({
+            targets: calculationContainer,
+            alpha: 0,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => {
+              calculationContainer.destroy();
+            }
+          });
+        });
+      }
+    });
   }
   
   /** Show detailed block calculation including relic bonuses */
   private showBlockCalculation(baseBlock: number, dexterityBonus: number, relicBonuses: {name: string, amount: number}[]): void {
-    let message = `Block: ${baseBlock}`;
-    let color = "#4ecdc4"; // Default blue/green for block
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
     
+    // Create container for block calculation with Prologue styling
+    const calculationContainer = this.add.container(screenWidth / 2, screenHeight * 0.25);
+    
+    // Double border design like Prologue
+    const containerWidth = 400;
+    const containerHeight = 120;
+    
+    const outerBorder = this.add.rectangle(0, 0, containerWidth + 8, containerHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
+    const innerBorder = this.add.rectangle(0, 0, containerWidth, containerHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
+    const bg = this.add.rectangle(0, 0, containerWidth, containerHeight, 0x150E10);
+    
+    let yOffset = -30;
+    
+    // Main block line
+    let blockText = `Base Block: ${baseBlock}`;
+    const baseBlockDisplay = this.add.text(0, yOffset, blockText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    yOffset += 20;
+    
+    // Bonuses
     if (dexterityBonus > 0) {
-      message += ` + ${dexterityBonus} (Dexterity)`;
+      const dexterityDisplay = this.add.text(0, yOffset, `+ ${dexterityBonus} (Dexterity)`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#4ecdc4",
+        align: "center"
+      }).setOrigin(0.5);
+      calculationContainer.add(dexterityDisplay);
+      yOffset += 18;
     }
     
     for (const relicBonus of relicBonuses) {
       if (relicBonus.amount > 0) {
-        message += ` + ${relicBonus.amount} (${relicBonus.name})`;
+        const relicDisplay = this.add.text(0, yOffset, `+ ${relicBonus.amount} (${relicBonus.name})`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 16,
+          color: "#4ecdc4",
+          align: "center"
+        }).setOrigin(0.5);
+        calculationContainer.add(relicDisplay);
+        yOffset += 18;
       }
     }
     
+    // Total
     const totalBlock = baseBlock + dexterityBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
-    message += ` = ${totalBlock}`;
-    
-    this.showEnhancedActionResult(message, color);
-  }
-  
-  /** Create damage preview UI */
-  private createDamagePreviewUI(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    
-    // Create container for the damage preview
-    this.damagePreviewContainer = this.add.container(0, 0);
-    this.damagePreviewContainer.setVisible(false); // Initially hidden
-    
-    // Background rectangle
-    this.damagePreviewBackground = this.add.rectangle(0, 0, 200, 60, 0x000000, 0.8);
-    this.damagePreviewBackground.setStrokeStyle(2, 0x4ecdc4);
-    
-    // Damage text
-    this.damagePreviewText = this.add.text(0, 0, "", {
+    const totalDisplay = this.add.text(0, yOffset, `Total: ${totalBlock}`, {
       fontFamily: "dungeon-mode",
-      fontSize: Math.floor(18 * scaleFactor),
-      color: "#ff6b6b",
-      align: "center",
+      fontSize: 20,
+      color: "#e8eced",
+      align: "center"
     }).setOrigin(0.5);
     
-    this.damagePreviewContainer.add([this.damagePreviewBackground, this.damagePreviewText]);
+    calculationContainer.add([outerBorder, innerBorder, bg, baseBlockDisplay, totalDisplay]);
     
-    // Position below the action buttons
-    this.damagePreviewContainer.setPosition(screenWidth/2, screenHeight - 40);
+    // Fade in animation
+    calculationContainer.setAlpha(0);
+    this.tweens.add({
+      targets: calculationContainer,
+      alpha: 1,
+      duration: 400,
+      ease: 'Power2',
+      onComplete: () => {
+        // Auto-hide after 2 seconds
+        this.time.delayedCall(2000, () => {
+          this.tweens.add({
+            targets: calculationContainer,
+            alpha: 0,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => {
+              calculationContainer.destroy();
+            }
+          });
+        });
+      }
+    });
   }
   
-  /** Update damage preview with calculated damage */
+  /** Create simple damage preview display */
+  private createDamagePreview(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Create damage preview text positioned near action buttons
+    this.damagePreviewText = this.add.text(screenWidth/2, screenHeight - 150, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#ff6b6b",
+      align: "center",
+      backgroundColor: "#000000",
+      padding: { x: 10, y: 5 }
+    }).setOrigin(0.5).setVisible(false);
+  }
+  
+  /** Update damage preview with calculated damage - kept for style reference */
   private updateDamagePreview(isActionSelectionPhase: boolean): void {
-    // Safety check - if container doesn't exist yet, skip update
-    if (!this.damagePreviewContainer) {
-      return;
-    }
-    
+    // This method is kept for its calculation logic and styling approach
+    // but no longer displays UI since the preview container was removed
     if (!isActionSelectionPhase) {
-      this.damagePreviewContainer.setVisible(false);
+      if (this.damagePreviewText) {
+        this.damagePreviewText.setVisible(false);
+      }
       return;
     }
-    
+
     // Calculate the potential damage based on the played hand
     const evaluation = HandEvaluator.evaluateHand(
       this.combatState.player.playedHand,
       "attack",
       this.combatState.player
     );
-    
+
     let damage = evaluation.totalValue;
     const strength = this.combatState.player.statusEffects.find((e) => e.name === "Strength");
     if (strength) {
       damage += strength.value;
     }
-    
+
     // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
     damage += RelicManager.calculateSigbinHeartDamage(this.combatState.player);
-    
+
     // Apply vulnerable effect if enemy has it
     let vulnerableBonus = 0;
     if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
@@ -4732,7 +4927,7 @@ export class Combat extends Scene {
       damage *= 1.5;
       vulnerableBonus = damage - originalDamage;
     }
-    
+
     // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
     const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
     let bakunawaBonus = 0;
@@ -4740,7 +4935,7 @@ export class Combat extends Scene {
       damage += 5;
       bakunawaBonus = 5;
     }
-    
+
     // Format the damage display with relic bonuses
     let damageText = `DMG: ${evaluation.totalValue}`;
     if (strength && strength.value > 0) {
@@ -4756,12 +4951,13 @@ export class Combat extends Scene {
       damageText += ` + ${bakunawaBonus} (Bakunawa)`;
     }
     damageText += ` = ${Math.floor(damage)}`;
-    
-    this.damagePreviewText.setText(damageText);
-    this.damagePreviewContainer.setVisible(true);
-  }
 
-  /**
+    // Display the damage preview
+    if (this.damagePreviewText) {
+      this.damagePreviewText.setText(damageText);
+      this.damagePreviewText.setVisible(true);
+    }
+  }  /**
    * Animate sprite taking damage (flash red and shake)
    */
   private animateSpriteDamage(sprite: Phaser.GameObjects.Sprite): void {
@@ -5078,6 +5274,11 @@ export class Combat extends Scene {
    * Handle scene resize
    */
   private handleResize(): void {
+    // Safety check: Don't update if scene is being destroyed or doesn't exist
+    if (!this.sys || !this.sys.isActive() || this.combatEnded) {
+      return;
+    }
+
     // Safety check for camera
     if (!this.cameras.main) {
       return;
@@ -5884,7 +6085,6 @@ export class Combat extends Scene {
     if (this.handContainer) this.handContainer.setVisible(false);
     if (this.playedHandContainer) this.playedHandContainer.setVisible(false);
     if (this.actionButtons) this.actionButtons.setVisible(false);
-    if (this.damagePreviewContainer) this.damagePreviewContainer.setVisible(false);
     
     // Hide deck and discard piles
     if (this.deckSprite) this.deckSprite.setVisible(false);
@@ -5916,7 +6116,6 @@ export class Combat extends Scene {
     if (this.handContainer) this.handContainer.setVisible(true);
     if (this.playedHandContainer) this.playedHandContainer.setVisible(true);
     if (this.actionButtons) this.actionButtons.setVisible(true);
-    if (this.damagePreviewContainer) this.damagePreviewContainer.setVisible(true);
     
     // Restore deck and discard piles
     if (this.deckSprite) this.deckSprite.setVisible(true);
