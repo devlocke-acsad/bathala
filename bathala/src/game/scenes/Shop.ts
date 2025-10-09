@@ -11,6 +11,8 @@ export class Shop extends Scene {
   private diamanteText!: Phaser.GameObjects.Text;
   private healthText!: Phaser.GameObjects.Text;
   private tooltipBox!: Phaser.GameObjects.Container;
+  private scrollContainer: Phaser.GameObjects.Container | null = null;
+  private currentTooltip: Phaser.GameObjects.Container | null = null;
 
   constructor() {
     super({ key: "Shop" });
@@ -26,10 +28,7 @@ export class Shop extends Scene {
 
   create(): void {
     if (!this.cameras.main) return;
-    this.cameras.main.setBackgroundColor(0x0a0a0f);
-
-    // Persona-style fast transition effect
-    this.createPersonaTransition();
+    this.cameras.main.setBackgroundColor(0x150E10); // Match combat background
 
     // Create animated background elements
     this.createBackgroundElements();
@@ -37,26 +36,25 @@ export class Shop extends Scene {
     // Create modern title section
     const screenWidth = this.cameras.main.width;
     
-    // Title background panel with dark violet theme
+    // Title background panel with prologue/combat theme
     const titlePanel = this.add.graphics();
-    titlePanel.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.9);
+    titlePanel.fillStyle(0x150E10, 0.9);
     titlePanel.fillRoundedRect(screenWidth/2 - 200, 10, 400, 60, 12);
-    titlePanel.lineStyle(2, 0x7c3aed, 0.8);
+    titlePanel.lineStyle(2, 0x77888C, 0.8);
     titlePanel.strokeRoundedRect(screenWidth/2 - 200, 10, 400, 60, 12);
     
-    // Main title with enhanced styling
+    // Main title with prologue/combat styling
     const title = this.add.text(
       screenWidth / 2,
       40,
       "MYSTERIOUS MERCHANT",
       {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 28,
-        color: "#e9d5ff",
+        color: "#77888C",
         align: "center",
       }
     ).setOrigin(0.5);
-    title.setShadow(3, 3, '#1a1625', 6, false, true);
     
     // Subtitle
     const subtitle = this.add.text(
@@ -66,7 +64,7 @@ export class Shop extends Scene {
       {
         fontFamily: "dungeon-mode",
         fontSize: 14,
-        color: "#a78bfa",
+        color: "#77888C",
         align: "center",
       }
     ).setOrigin(0.5);
@@ -87,8 +85,8 @@ export class Shop extends Scene {
     // Create currency display
     this.createCurrencyDisplay();
 
-    // Create inventory-style UI
-    this.createInventoryUI();
+    // Create inventory-style UI with categories
+    this.createCategorizedInventoryUI();
 
     // Create tooltip box (hidden by default)
     this.createTooltipBox();
@@ -105,7 +103,7 @@ export class Shop extends Scene {
 
   private cleanup(): void {
     // Clean up any remaining tooltips
-    this.hideModernTooltip();
+    this.hideItemTooltip();
     
     // Remove event listeners
     this.scale.off('resize', this.handleResize, this);
@@ -116,19 +114,19 @@ export class Shop extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Create a sophisticated dark violet gradient background
+    // Create a sophisticated background matching prologue/combat theme
     const bgOverlay = this.add.graphics();
-    bgOverlay.fillGradientStyle(0x0a0a0f, 0x1a1625, 0x2d1b69, 0x1e1b4b, 1);
+    bgOverlay.fillStyle(0x150E10, 1);
     bgOverlay.fillRect(0, 0, screenWidth, screenHeight);
     
-    // Add mystical geometric pattern
+    // Add subtle geometric pattern with prologue/combat colors
     for (let i = 0; i < 12; i++) {
       const size = Phaser.Math.Between(15, 45);
       const x = Phaser.Math.Between(0, screenWidth);
       const y = Phaser.Math.Between(0, screenHeight);
       
       const shape = this.add.graphics();
-      shape.lineStyle(1, 0x7c3aed, 0.15);
+      shape.lineStyle(1, 0x77888C, 0.15);
       shape.beginPath();
       shape.moveTo(x, y);
       shape.lineTo(x + size, y);
@@ -146,13 +144,13 @@ export class Shop extends Scene {
       });
     }
     
-    // Create mystical floating particles
+    // Create mystical floating particles with prologue/combat colors
     for (let i = 0; i < 20; i++) {
       const particle = this.add.circle(
         Phaser.Math.Between(0, screenWidth),
         Phaser.Math.Between(0, screenHeight),
         Phaser.Math.Between(1, 2),
-        0x7c3aed,
+        0x77888C,
         0.3
       );
       
@@ -169,12 +167,12 @@ export class Shop extends Scene {
       });
     }
     
-    // Add corner decorative elements with violet theme
+    // Add corner decorative elements with prologue/combat theme
     const cornerSize = 40;
     
     // Top-left corner
     const topLeft = this.add.graphics();
-    topLeft.lineStyle(3, 0x7c3aed, 0.8);
+    topLeft.lineStyle(3, 0x77888C, 0.8);
     topLeft.beginPath();
     topLeft.moveTo(20, cornerSize + 20);
     topLeft.lineTo(20, 20);
@@ -183,7 +181,7 @@ export class Shop extends Scene {
     
     // Top-right corner
     const topRight = this.add.graphics();
-    topRight.lineStyle(3, 0x7c3aed, 0.8);
+    topRight.lineStyle(3, 0x77888C, 0.8);
     topRight.beginPath();
     topRight.moveTo(screenWidth - cornerSize - 20, 20);
     topRight.lineTo(screenWidth - 20, 20);
@@ -192,7 +190,7 @@ export class Shop extends Scene {
     
     // Bottom-left corner
     const bottomLeft = this.add.graphics();
-    bottomLeft.lineStyle(3, 0x7c3aed, 0.8);
+    bottomLeft.lineStyle(3, 0x77888C, 0.8);
     bottomLeft.beginPath();
     bottomLeft.moveTo(20, screenHeight - cornerSize - 20);
     bottomLeft.lineTo(20, screenHeight - 20);
@@ -201,7 +199,7 @@ export class Shop extends Scene {
     
     // Bottom-right corner
     const bottomRight = this.add.graphics();
-    bottomRight.lineStyle(3, 0x7c3aed, 0.8);
+    bottomRight.lineStyle(3, 0x77888C, 0.8);
     bottomRight.beginPath();
     bottomRight.moveTo(screenWidth - cornerSize - 20, screenHeight - 20);
     bottomRight.lineTo(screenWidth - 20, screenHeight - 20);
@@ -225,56 +223,61 @@ export class Shop extends Scene {
   private createCurrencyDisplay(): void {
     const screenWidth = this.cameras.main.width;
     
-    // Create modern currency panel with dark violet theme
+    // Create currency panel with prologue/combat theme double borders
     const currencyPanel = this.add.graphics();
-    currencyPanel.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.9);
-    currencyPanel.lineStyle(2, 0x7c3aed, 0.7);
-    currencyPanel.fillRoundedRect(screenWidth - 280, 85, 260, 80, 10);
-    currencyPanel.strokeRoundedRect(screenWidth - 280, 85, 260, 80, 10);
     
-    // Health display with proper alignment
+    // Outer border
+    currencyPanel.lineStyle(2, 0x77888C);
+    currencyPanel.strokeRoundedRect(screenWidth - 288, 81, 268, 88, 10);
+    
+    // Inner border
+    currencyPanel.lineStyle(2, 0x77888C);
+    currencyPanel.strokeRoundedRect(screenWidth - 284, 85, 260, 80, 10);
+    
+    // Background
+    currencyPanel.fillStyle(0x150E10, 0.9);
+    currencyPanel.fillRoundedRect(screenWidth - 284, 85, 260, 80, 10);
+    
+    // Health display with prologue/combat styling
     this.healthText = this.add.text(
-      screenWidth - 150,
+      screenWidth - 154,
       105,
       `Health: ${this.player.currentHealth}/${this.player.maxHealth} ♥`,
       {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 16,
-        color: "#f87171",
+        color: "#77888C",
       }
     ).setOrigin(0.5, 0.5);
-    this.healthText.setShadow(1, 1, '#7f1d1d', 2, false, true);
     
     // Currency section with proper centering
     const currencyY = 135;
     
     // Ginto section - left aligned within currency area
-    const gintoX = screenWidth - 200;
+    const gintoX = screenWidth - 210;
     const gintoIcon = this.add.text(gintoX - 15, currencyY, "💰", {
       fontSize: 18,
     }).setOrigin(0.5, 0.5);
     
     this.gintoText = this.add.text(gintoX + 15, currencyY, `${this.player.ginto}`, {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 16,
-      color: "#fbbf24",
+      color: "#77888C",
       fontStyle: "bold"
     }).setOrigin(0, 0.5);
-    this.gintoText.setShadow(1, 1, '#92400e', 2, false, true);
     
     // Diamante section - right aligned within currency area
-    const diamanteX = screenWidth - 100;
-    const diamanteIcon = this.add.text(diamanteX - 15, currencyY, "�", {
+    const diamanteX = screenWidth - 110;
+    const diamanteIcon = this.add.text(diamanteX - 15, currencyY, "💎", {
       fontSize: 18,
     }).setOrigin(0.5, 0.5);
     
     this.diamanteText = this.add.text(diamanteX + 15, currencyY, `${this.player.diamante}`, {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 16,
-      color: "#06b6d4",
+      color: "#77888C",
       fontStyle: "bold"
     }).setOrigin(0, 0.5);
-    this.diamanteText.setShadow(1, 1, '#164e63', 2, false, true);
     
     // Add subtle pulse animation to currency
     const currencyElements = [this.gintoText, gintoIcon, this.diamanteText, diamanteIcon];
@@ -291,25 +294,116 @@ export class Shop extends Scene {
     });
   }
 
-  private createInventoryUI(): void {
+  private createCategorizedInventoryUI(): void {
     const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
     
-    // Modern Persona-style dimensions with better spacing
+    // Create scrollable container
+    const scrollContainer = this.add.container(0, 0);
+    scrollContainer.setDepth(1000);
+    
+    // Separate items by currency
+    const gintoItems = this.shopItems.filter(item => item.currency === "ginto");
+    const diamanteItems = this.shopItems.filter(item => item.currency === "diamante");
+    
+    // Create category sections with even better spacing
+    // Start position for first section (gold items) - account for title space above
+    const goldSectionY = 320; // Even higher starting position for better title clearance
+    this.createCategorySection("Gold Items 💰", gintoItems, screenWidth, goldSectionY, scrollContainer);
+    
+    // Calculate position for diamante section with generous spacing
+    const gintoRows = Math.ceil(gintoItems.length / 5);
+    const diamanteSectionY = goldSectionY + (gintoRows * 190) + 200; // Extra generous space for clean separation
+    
+    this.createCategorySection("Diamante Items 💎", diamanteItems, screenWidth, diamanteSectionY, scrollContainer);
+    
+    // Add scroll functionality
+    this.setupScrolling(scrollContainer, screenHeight);
+    
+    // Store container reference for resizing
+    this.scrollContainer = scrollContainer;
+  }
+
+  private setupScrolling(container: Phaser.GameObjects.Container, screenHeight: number): void {
+    let scrollY = 0;
+    const maxScroll = Math.max(0, 1200 - screenHeight + 200); // Calculate based on content height
+    const scrollSpeed = 30;
+    
+    // Mouse wheel scrolling
+    this.input.on('wheel', (_pointer: any, _gameObjects: any, _deltaX: number, deltaY: number) => {
+      if (deltaY > 0) {
+        // Scroll down
+        scrollY = Math.min(scrollY + scrollSpeed, maxScroll);
+      } else {
+        // Scroll up
+        scrollY = Math.max(scrollY - scrollSpeed, 0);
+      }
+      
+      container.y = -scrollY;
+    });
+    
+    // Keyboard scrolling (arrow keys)
+    this.input.keyboard?.on('keydown-UP', () => {
+      scrollY = Math.max(scrollY - scrollSpeed, 0);
+      container.y = -scrollY;
+    });
+    
+    this.input.keyboard?.on('keydown-DOWN', () => {
+      scrollY = Math.min(scrollY + scrollSpeed, maxScroll);
+      container.y = -scrollY;
+    });
+  }
+
+  private createCategorySection(title: string, items: ShopItem[], screenWidth: number, startY: number, scrollContainer: Phaser.GameObjects.Container): void {
+    // Create category title WELL ABOVE the items section
+    const titleY = startY - 140; // Move title even higher above the item grid
+    
+    const categoryTitle = this.add.text(screenWidth / 2, titleY, title, {
+      fontFamily: "dungeon-mode",
+      fontSize: 24, // Slightly larger font
+      color: "#77888C",
+      align: "center",
+      fontStyle: "bold"
+    }).setOrigin(0.5);
+    
+    // Add double border background for title - made much wider
+    const titleBg = this.add.graphics();
+    const titleWidth = 450; // Even wider for better visual impact
+    const titleHeight = 55; // Slightly taller
+    
+    // Outer border
+    titleBg.lineStyle(2, 0x77888C);
+    titleBg.strokeRoundedRect(screenWidth / 2 - titleWidth / 2 - 4, titleY - titleHeight / 2 - 4, titleWidth + 8, titleHeight + 8, 8);
+    
+    // Inner border  
+    titleBg.lineStyle(2, 0x77888C);
+    titleBg.strokeRoundedRect(screenWidth / 2 - titleWidth / 2, titleY - titleHeight / 2, titleWidth, titleHeight, 8);
+    
+    // Background
+    titleBg.fillStyle(0x150E10, 0.9);
+    titleBg.fillRoundedRect(screenWidth / 2 - titleWidth / 2, titleY - titleHeight / 2, titleWidth, titleHeight, 8);
+    
+    // Set depth order - titles should be above items
+    titleBg.setDepth(1100);
+    categoryTitle.setDepth(1101);
+    
+    // Add to scroll container
+    scrollContainer.add([titleBg, categoryTitle]);
+    
+    // Create items grid with proper spacing - items start at startY
     const cardWidth = 120;
     const cardHeight = 140;
-    const itemsPerRow = 5; // Reduced for better visual spacing
+    const itemsPerRow = 5;
     const spacingX = 40;
     const spacingY = 50;
-    const startX = (screenWidth - (itemsPerRow * (cardWidth + spacingX) - spacingX)) / 2;
-    const startY = 180; // Adjusted for new layout
+    const gridStartX = (screenWidth - (itemsPerRow * (cardWidth + spacingX) - spacingX)) / 2;
+    const gridStartY = startY; // Items start at the designated startY position
 
-    this.relicButtons = [];
-
-    this.shopItems.forEach((item, index) => {
+    items.forEach((item, index) => {
       const row = Math.floor(index / itemsPerRow);
       const col = index % itemsPerRow;
-      const x = startX + col * (cardWidth + spacingX);
-      const y = startY + row * (cardHeight + spacingY);
+      const x = gridStartX + col * (cardWidth + spacingX);
+      const y = gridStartY + row * (cardHeight + spacingY);
 
       const button = this.add.container(x, y);
       
@@ -321,24 +415,24 @@ export class Shop extends Scene {
       shadow.fillStyle(0x000000, 0.3);
       shadow.fillRoundedRect(-cardWidth/2 + 4, -cardHeight/2 + 4, cardWidth, cardHeight, 12);
       
-      // Main card background with dark violet gradient
+      // Main card background with prologue/combat theme
       const cardBg = this.add.graphics();
       if (isOwned) {
-        // Sophisticated owned state with muted violet
-        cardBg.fillGradientStyle(0x2a2a2a, 0x1a1a1a, 0x1a1a1a, 0x0a0a0a, 0.8);
+        // Owned state with muted colors
+        cardBg.fillStyle(0x2a2a2a, 0.8);
         cardBg.lineStyle(2, 0x444444, 0.6);
       } else {
-        // Dark violet theme for available items
-        cardBg.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.95);
-        cardBg.lineStyle(3, 0x7c3aed, 0.8);
+        // Available items with prologue/combat styling
+        cardBg.fillStyle(0x150E10, 0.95);
+        cardBg.lineStyle(3, 0x77888C, 0.8);
       }
       cardBg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
       cardBg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
       
-      // Inner highlight for depth
+      // Inner highlight for depth (only for available items)
       const innerHighlight = this.add.graphics();
       if (!isOwned) {
-        innerHighlight.lineStyle(1, 0xa78bfa, 0.4);
+        innerHighlight.lineStyle(1, 0x77888C, 0.4);
         innerHighlight.strokeRoundedRect(-cardWidth/2 + 2, -cardHeight/2 + 2, cardWidth - 4, cardHeight - 4, 10);
       }
       
@@ -347,22 +441,19 @@ export class Shop extends Scene {
       if (isOwned) {
         iconArea.fillStyle(0x374151, 0.6);
       } else {
-        iconArea.fillGradientStyle(0x4c1d95, 0x3730a3, 0x2d1b69, 0x1e1b4b, 0.4);
+        iconArea.fillStyle(0x77888C, 0.2);
       }
       iconArea.fillRoundedRect(-cardWidth/2 + 8, -cardHeight/2 + 8, cardWidth - 16, 70, 8);
       
-      // Item emoji with enhanced styling and proper centering
+      // Item emoji with enhanced styling
       const emoji = this.add.text(0, -cardHeight/2 + 43, item.emoji, {
         fontSize: 42,
       }).setOrigin(0.5, 0.5);
-      if (!isOwned) {
-        emoji.setShadow(2, 2, '#1a1625', 4, false, true);
-      } else {
-        emoji.setShadow(1, 1, '#000000', 2, false, true);
+      if (isOwned) {
         emoji.setAlpha(0.6);
       }
       
-      // Currency badge with proper positioning
+      // Currency badge
       let currencyColor;
       let currencyEmoji;
       if (item.currency === "ginto") {
@@ -381,15 +472,15 @@ export class Shop extends Scene {
         fontSize: 12,
       }).setOrigin(0.5, 0.5);
       
-      // Price section with proper alignment
+      // Price section
       const priceArea = this.add.graphics();
       priceArea.fillStyle(0x1f2937, isOwned ? 0.5 : 0.8);
       priceArea.fillRoundedRect(-cardWidth/2 + 8, cardHeight/2 - 35, cardWidth - 16, 27, 6);
       
       const priceText = this.add.text(0, cardHeight/2 - 21, `${item.price}`, {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 16,
-        color: isOwned ? "#9ca3af" : "#f9fafb",
+        color: isOwned ? "#9ca3af" : "#77888C",
         fontStyle: "bold"
       }).setOrigin(0.5, 0.5);
       
@@ -403,12 +494,11 @@ export class Shop extends Scene {
         ownedOverlay.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
         
         ownedText = this.add.text(0, 0, "OWNED", {
-          fontFamily: "dungeon-mode-inverted",
+          fontFamily: "dungeon-mode",
           fontSize: 18,
           color: "#10b981",
           fontStyle: "bold"
         }).setOrigin(0.5);
-        ownedText.setShadow(2, 2, '#000000', 3, false, true);
         
         checkMark = this.add.text(0, -25, "✓", {
           fontSize: 32,
@@ -438,11 +528,19 @@ export class Shop extends Scene {
         button.on("pointerdown", () => this.showItemDetails(item));
         
         button.on("pointerover", () => {
-          // Smooth hover animation with glow effect
+          // Dim the item card
+          this.tweens.add({
+            targets: [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText],
+            alpha: 0.6, // Dim all components
+            duration: 150,
+            ease: 'Power2.easeOut'
+          });
+          
+          // Slight scale effect
           this.tweens.add({
             targets: button,
-            scale: 1.08,
-            duration: 200,
+            scale: 1.02,
+            duration: 150,
             ease: 'Power2.easeOut'
           });
           
@@ -452,29 +550,30 @@ export class Shop extends Scene {
             hoverGlow = null;
           }
           
-          // Add new glow effect with violet theme
+          // Add subtle glow effect
           hoverGlow = this.add.graphics();
-          hoverGlow.lineStyle(4, 0x7c3aed, 0.8);
-          hoverGlow.strokeRoundedRect(-cardWidth/2 - 2, -cardHeight/2 - 2, cardWidth + 4, cardHeight + 4, 14);
+          hoverGlow.lineStyle(3, 0x77888C, 0.6);
+          hoverGlow.strokeRoundedRect(-cardWidth/2 - 1, -cardHeight/2 - 1, cardWidth + 2, cardHeight + 2, 12);
           button.addAt(hoverGlow, 1); // Add after shadow but before card
           
-          // Enhanced card styling on hover with violet theme
-          cardBg.clear();
-          cardBg.fillGradientStyle(0x4c1d95, 0x3730a3, 0x2d1b69, 0x1e1b4b, 1);
-          cardBg.lineStyle(3, 0xa78bfa, 1);
-          cardBg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
-          cardBg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
-          
-          // Show elegant tooltip with item name
-          this.showModernTooltip(item.name, button.x, button.y - cardHeight/2 - 30);
+          // Show tooltip ABOVE the slot with item name
+          this.showItemTooltip(item.item.name, button.x, button.y - cardHeight/2 - 40);
         });
         
         button.on("pointerout", () => {
-          // Smooth return animation
+          // Restore item card opacity
+          this.tweens.add({
+            targets: [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText],
+            alpha: 1, // Restore full opacity
+            duration: 150,
+            ease: 'Power2.easeOut'
+          });
+          
+          // Return to normal scale
           this.tweens.add({
             targets: button,
             scale: 1,
-            duration: 200,
+            duration: 150,
             ease: 'Power2.easeOut'
           });
           
@@ -484,18 +583,14 @@ export class Shop extends Scene {
             hoverGlow = null;
           }
           
-          // Reset card styling to violet theme
-          cardBg.clear();
-          cardBg.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.95);
-          cardBg.lineStyle(3, 0x7c3aed, 0.8);
-          cardBg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
-          cardBg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
-          
           // Hide tooltip
-          this.hideModernTooltip();
+          this.hideItemTooltip();
         });
       }
       
+      // Add button to scroll container with proper depth order
+      button.setDepth(1050); // Items should be below titles (titles are at 1100+)
+      scrollContainer.add(button);
       this.relicButtons.push(button);
     });
   }
@@ -507,123 +602,181 @@ export class Shop extends Scene {
     this.tooltipBox.setDepth(3000); // Ensure it's above everything
   }
 
-  private showModernTooltip(itemName: string, x: number, y: number): void {
-    // Always remove existing tooltip immediately
-    this.hideModernTooltip();
+  private showItemTooltip(itemName: string, x: number, y: number): void {
+    // Remove any existing tooltip
+    this.hideItemTooltip();
     
-    // Create modern Persona-style tooltip
+    // Create tooltip container positioned above the item slot
     const tooltip = this.add.container(x, y);
     tooltip.setDepth(3000);
-    tooltip.setName('shopTooltip'); // Add name for easier identification
+    tooltip.setName('itemTooltip');
     
     // Measure text to size tooltip appropriately
     const tempText = this.add.text(0, 0, itemName, {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 16,
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
       color: "#ffffff"
     });
     const textBounds = tempText.getBounds();
-    const tooltipWidth = textBounds.width + 20;
-    const tooltipHeight = 35;
+    const tooltipWidth = Math.max(textBounds.width + 24, 120); // Minimum width
+    const tooltipHeight = 40;
     tempText.destroy();
     
-    // Tooltip shadow
+    // Tooltip shadow for depth
     const shadow = this.add.graphics();
-    shadow.fillStyle(0x000000, 0.5);
-    shadow.fillRoundedRect(-tooltipWidth/2 + 2, -tooltipHeight/2 + 2, tooltipWidth, tooltipHeight, 8);
+    shadow.fillStyle(0x000000, 0.6);
+    shadow.fillRoundedRect(-tooltipWidth/2 + 3, -tooltipHeight/2 + 3, tooltipWidth, tooltipHeight, 10);
     
-    // Tooltip background with dark violet gradient
+    // Tooltip background with enhanced styling
     const bg = this.add.graphics();
-    bg.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.95);
-    bg.lineStyle(2, 0x7c3aed, 0.8);
-    bg.fillRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 8);
-    bg.strokeRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 8);
+    bg.fillStyle(0x1a1a1a, 0.95);
+    bg.lineStyle(2, 0x77888C, 1);
+    bg.fillRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 10);
+    bg.strokeRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 10);
     
-    // Inner glow with violet theme
+    // Inner glow for modern look
     const innerGlow = this.add.graphics();
-    innerGlow.lineStyle(1, 0xa78bfa, 0.3);
-    innerGlow.strokeRoundedRect(-tooltipWidth/2 + 2, -tooltipHeight/2 + 2, tooltipWidth - 4, tooltipHeight - 4, 6);
+    innerGlow.lineStyle(1, 0x77888C, 0.5);
+    innerGlow.strokeRoundedRect(-tooltipWidth/2 + 2, -tooltipHeight/2 + 2, tooltipWidth - 4, tooltipHeight - 4, 8);
     
-    // Tooltip text with proper styling
+    // Tooltip text with enhanced styling
     const text = this.add.text(0, 0, itemName, {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 16,
-      color: "#e9d5ff"
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#ffffff",
+      fontStyle: "bold"
     }).setOrigin(0.5, 0.5);
-    text.setShadow(1, 1, '#1a1625', 2, false, true);
     
-    tooltip.add([shadow, bg, innerGlow, text]);
+    // Add pointer/arrow pointing down to the item
+    const arrow = this.add.graphics();
+    arrow.fillStyle(0x1a1a1a, 0.95);
+    arrow.lineStyle(2, 0x77888C, 1);
+    arrow.fillTriangle(0, tooltipHeight/2, -8, tooltipHeight/2 + 10, 8, tooltipHeight/2 + 10);
+    arrow.strokeTriangle(0, tooltipHeight/2, -8, tooltipHeight/2 + 10, 8, tooltipHeight/2 + 10);
     
-    // Smooth entrance animation
-    tooltip.setScale(0.8).setAlpha(0);
+    tooltip.add([shadow, bg, innerGlow, text, arrow]);
+    
+    // Smooth fade-in animation
+    tooltip.setAlpha(0);
     this.tweens.add({
       targets: tooltip,
-      scale: 1,
       alpha: 1,
-      duration: 150,
-      ease: 'Back.easeOut'
+      duration: 200,
+      ease: 'Power2.easeOut'
     });
     
     // Store reference for cleanup
-    (this as any).currentTooltip = tooltip;
+    this.currentTooltip = tooltip;
   }
 
-  private hideModernTooltip(): void {
-    // Stop any existing tweens on the current tooltip
-    const currentTooltip = (this as any).currentTooltip;
-    if (currentTooltip && currentTooltip.active) {
-      this.tweens.killTweensOf(currentTooltip);
-      currentTooltip.destroy();
-      (this as any).currentTooltip = null;
+  private hideItemTooltip(): void {
+    if (this.currentTooltip) {
+      this.tweens.add({
+        targets: this.currentTooltip,
+        alpha: 0,
+        duration: 150,
+        ease: 'Power2.easeOut',
+        onComplete: () => {
+          if (this.currentTooltip) {
+            this.currentTooltip.destroy();
+            this.currentTooltip = null;
+          }
+        }
+      });
     }
-    
-    // Also clean up any orphaned tooltips by name
-    const orphanedTooltips = this.children.list.filter((child: any) => 
-      child.name === 'shopTooltip' && child !== currentTooltip
-    );
-    orphanedTooltips.forEach((tooltip: any) => {
-      this.tweens.killTweensOf(tooltip);
-      tooltip.destroy();
-    });
   }
-
-
 
   private createBackButton(): void {
-    const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
     const buttonText = "Leave Shop";
-    const baseWidth = 150;
-    const textWidth = buttonText.length * 10; // Approximate width per character
-    const buttonWidth = Math.max(baseWidth, textWidth + 20); // Add padding
+    const baseWidth = 200; // Increased from 150
+    const textWidth = buttonText.length * 12; // Increased per character width
+    const buttonWidth = Math.max(baseWidth, textWidth + 40); // Increased padding
     const buttonHeight = 50;
     
-    const backButton = this.add.container(screenWidth / 2, screenHeight - 50);
+    const backButton = this.add.container(50 + buttonWidth/2, screenHeight - 50);
     
-    // Create button background with improved styling
-    const buttonBg = this.add.graphics();
-    buttonBg.fillStyle(0xff4757, 0.9);
-    buttonBg.lineStyle(2, 0xffffff, 1);
-    buttonBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
-    buttonBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
+    // Create shadow
+    const shadow = this.add.graphics();
+    shadow.fillStyle(0x000000, 0.3);
+    shadow.fillRoundedRect(-buttonWidth/2 + 3, -buttonHeight/2 + 3, buttonWidth, buttonHeight, 12);
     
+    // Create button background with prologue/combat double border design
+    const outerBorder = this.add.graphics();
+    outerBorder.lineStyle(2, 0x77888C);
+    outerBorder.strokeRoundedRect(-buttonWidth/2 - 4, -buttonHeight/2 - 4, buttonWidth + 8, buttonHeight + 8, 12);
+    
+    const bg = this.add.graphics();
+    bg.fillStyle(0x150E10, 0.9);
+    bg.lineStyle(2, 0x77888C, 0.8);
+    bg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
+    bg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
+    
+    // Inner highlight
+    const innerGlow = this.add.graphics();
+    innerGlow.lineStyle(1, 0x77888C, 0.3);
+    innerGlow.strokeRoundedRect(-buttonWidth/2 + 2, -buttonHeight/2 + 2, buttonWidth - 4, buttonHeight - 4, 10);
+    
+    // Button text with prologue/combat styling
     const text = this.add.text(0, 0, buttonText, {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 20,
-      color: "#ffffff",
-    }).setOrigin(0.5);
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#77888C",
+      fontStyle: "bold"
+    }).setOrigin(0.5, 0.5);
     
-    backButton.add([buttonBg, text]);
+    backButton.add([shadow, outerBorder, bg, innerGlow, text]);
     
+    // Set depth
+    backButton.setDepth(2000);
+    
+    // Make interactive
     backButton.setInteractive(
       new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
     
+    // Enhanced hover effects with prologue/combat theme
+    backButton.on("pointerover", () => {
+      this.tweens.add({
+        targets: backButton,
+        scale: 1.05,
+        duration: 200,
+        ease: 'Power2.easeOut'
+      });
+      
+      // Enhanced styling on hover
+      bg.clear();
+      bg.fillStyle(0x150E10, 1);
+      bg.lineStyle(2, 0x77888C, 1);
+      bg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
+      bg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
+      
+      text.setColor("#ffffff");
+    });
+    
+    backButton.on("pointerout", () => {
+      this.tweens.add({
+        targets: backButton,
+        scale: 1,
+        duration: 200,
+        ease: 'Power2.easeOut'
+      });
+      
+      // Reset styling
+      bg.clear();
+      bg.fillStyle(0x150E10, 0.9);
+      bg.lineStyle(2, 0x77888C, 0.8);
+      bg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
+      bg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
+      
+      text.setColor("#77888C");
+    });
+    
     backButton.on("pointerdown", () => {
       // Clean up any remaining tooltips
-      this.hideModernTooltip();
+      this.hideItemTooltip();
       
       // Save player data back to GameState before leaving
       const gameState = GameState.getInstance();
@@ -639,28 +792,11 @@ export class Shop extends Scene {
       this.scene.stop();
       this.scene.resume("Overworld");
     });
-    
-    backButton.on("pointerover", () => {
-      // Highlight button on hover
-      buttonBg.clear();
-      buttonBg.fillStyle(0xff6b81, 0.9);
-      buttonBg.lineStyle(2, 0xffffff, 1);
-      buttonBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
-      buttonBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
-    });
-    backButton.on("pointerout", () => {
-      // Reset button style
-      buttonBg.clear();
-      buttonBg.fillStyle(0xff4757, 0.9);
-      buttonBg.lineStyle(2, 0xffffff, 1);
-      buttonBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
-      buttonBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 8);
-    });
   }
 
   private showItemDetails(item: ShopItem): void {
     // Clean up any tooltips first
-    this.hideModernTooltip();
+    this.hideItemTooltip();
     
     // Create overlay
     const overlay = this.add.rectangle(
@@ -1224,151 +1360,9 @@ export class Shop extends Scene {
     this.children.removeAll();
     this.createBackgroundElements();
     this.createCurrencyDisplay();
-    this.createInventoryUI();
+    this.createCategorizedInventoryUI();
     this.createTooltipBox();
     this.createBackButton();
   }
 
-  /**
-   * Create Persona-style fast transition effect when entering the shop
-   */
-  private createPersonaTransition(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-
-    // Create multiple transition elements for layered effect
-    
-    // Flash overlay - quick white flash
-    const flashOverlay = this.add.rectangle(screenWidth/2, screenHeight/2, screenWidth, screenHeight, 0xffffff)
-      .setAlpha(0.9)
-      .setDepth(9999);
-
-    // Diagonal wipe elements - classic Persona style
-    const wipeCount = 8;
-    const wipeElements: Phaser.GameObjects.Graphics[] = [];
-    
-    for (let i = 0; i < wipeCount; i++) {
-      const wipe = this.add.graphics();
-      wipe.fillStyle(0x000000, 1);
-      
-      // Create diagonal stripe
-      const stripeWidth = screenWidth / wipeCount;
-      const x = i * stripeWidth;
-      
-      wipe.beginPath();
-      wipe.moveTo(x, -100);
-      wipe.lineTo(x + stripeWidth + 100, -100);
-      wipe.lineTo(x + stripeWidth + 200, screenHeight + 100);
-      wipe.lineTo(x + 100, screenHeight + 100);
-      wipe.closePath();
-      wipe.fillPath();
-      
-      wipe.setDepth(9998);
-      wipeElements.push(wipe);
-    }
-
-    // Particle burst effect (if texture exists)
-    let particles: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
-    try {
-      particles = this.add.particles(screenWidth/2, screenHeight/2, 'whitePixel', {
-        speed: { min: 200, max: 400 },
-        scale: { start: 0.1, end: 0 },
-        lifespan: 300,
-        quantity: 15,
-        alpha: { start: 0.8, end: 0 },
-        tint: [0x7c3aed, 0xa78bfa, 0xe9d5ff]
-      }).setDepth(9997);
-    } catch (error) {
-      // Create simple circle particles if whitePixel texture doesn't exist
-      for (let i = 0; i < 15; i++) {
-        const particle = this.add.graphics();
-        particle.fillStyle(0x7c3aed, 0.8);
-        particle.fillCircle(0, 0, 2);
-        particle.setPosition(screenWidth/2, screenHeight/2);
-        particle.setDepth(9997);
-        
-        const angle = (i / 15) * Math.PI * 2;
-        const speed = 200 + Math.random() * 200;
-        
-        this.tweens.add({
-          targets: particle,
-          x: screenWidth/2 + Math.cos(angle) * speed,
-          y: screenHeight/2 + Math.sin(angle) * speed,
-          alpha: 0,
-          scale: 0,
-          duration: 300,
-          onComplete: () => particle.destroy()
-        });
-      }
-    }
-
-    // Sound effect (if you have audio)
-    // this.sound.play('personaTransition', { volume: 0.3 });
-
-    // Animation sequence
-    this.tweens.add({
-      targets: flashOverlay,
-      alpha: 0,
-      duration: 150,
-      ease: 'Power2.easeOut',
-      onComplete: () => {
-        flashOverlay.destroy();
-      }
-    });
-
-    // Staggered wipe animation
-    wipeElements.forEach((wipe, index) => {
-      wipe.x = -screenWidth;
-      this.tweens.add({
-        targets: wipe,
-        x: screenWidth + 200,
-        duration: 600,
-        delay: index * 50,
-        ease: 'Power3.easeOut',
-        onComplete: () => {
-          if (index === wipeElements.length - 1) {
-            // Clean up all wipe elements when the last one finishes
-            wipeElements.forEach(w => w.destroy());
-            if (particles) {
-              particles.destroy();
-            }
-          }
-        }
-      });
-    });
-
-    // Camera shake for impact
-    this.cameras.main.shake(200, 0.01);
-
-    // Add encounter text overlay
-    this.time.delayedCall(400, () => {
-      const encounterText = this.add.text(screenWidth/2, screenHeight/2 - 100, "MYSTERIOUS MERCHANT", {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 36,
-        color: "#e9d5ff",
-        stroke: "#1a1625",
-        strokeThickness: 4
-      }).setOrigin(0.5).setDepth(9996).setAlpha(0);
-
-      this.tweens.add({
-        targets: encounterText,
-        alpha: 1,
-        scale: 1.1,
-        duration: 300,
-        ease: 'Back.easeOut',
-        yoyo: true,
-        onComplete: () => {
-          this.tweens.add({
-            targets: encounterText,
-            alpha: 0,
-            duration: 500,
-            delay: 800,
-            onComplete: () => {
-              encounterText.destroy();
-            }
-          });
-        }
-      });
-    });
-  }
 }
