@@ -36,12 +36,13 @@ export class Shop extends Scene {
     // Create modern title section
     const screenWidth = this.cameras.main.width;
     
-    // Title background panel with prologue/combat theme
+    // Title background panel with prologue/combat theme - made much wider
     const titlePanel = this.add.graphics();
     titlePanel.fillStyle(0x150E10, 0.9);
-    titlePanel.fillRoundedRect(screenWidth/2 - 200, 10, 400, 60, 12);
+    titlePanel.fillRoundedRect(screenWidth/2 - 300, 10, 600, 60, 12); // Increased from 400px to 600px
     titlePanel.lineStyle(2, 0x77888C, 0.8);
-    titlePanel.strokeRoundedRect(screenWidth/2 - 200, 10, 400, 60, 12);
+    titlePanel.strokeRoundedRect(screenWidth/2 - 300, 10, 600, 60, 12); // Increased from 400px to 600px
+    titlePanel.setDepth(2000); // Ensure title stays on top and doesn't scroll
     
     // Main title with prologue/combat styling
     const title = this.add.text(
@@ -54,7 +55,7 @@ export class Shop extends Scene {
         color: "#77888C",
         align: "center",
       }
-    ).setOrigin(0.5);
+    ).setOrigin(0.5).setDepth(2001); // Ensure title text stays on top
     
     // Subtitle
     const subtitle = this.add.text(
@@ -67,7 +68,7 @@ export class Shop extends Scene {
         color: "#77888C",
         align: "center",
       }
-    ).setOrigin(0.5);
+    ).setOrigin(0.5).setDepth(2001); // Ensure subtitle text stays on top
     
     // Title animation
     title.setScale(0.8).setAlpha(0);
@@ -607,9 +608,15 @@ export class Shop extends Scene {
     this.hideItemTooltip();
     
     // Create tooltip container positioned above the item slot
+    // Position it relative to the item's position within the scroll container
     const tooltip = this.add.container(x, y);
     tooltip.setDepth(3000);
     tooltip.setName('itemTooltip');
+    
+    // Add tooltip to scroll container so it moves with the content
+    if (this.scrollContainer) {
+      this.scrollContainer.add(tooltip);
+    }
     
     // Measure text to size tooltip appropriately
     const tempText = this.add.text(0, 0, itemName, {
