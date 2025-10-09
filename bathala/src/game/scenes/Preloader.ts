@@ -83,6 +83,12 @@ export class Preloader extends Scene {
     this.load.image("floor2", "background/floor2.png");
     this.load.image("floor3", "background/floor3.png");
     this.load.image("wall1", "background/wall1.png");
+    this.load.image("wall2", "background/wall2.png");
+    this.load.image("wall3", "background/wall3.png");
+    this.load.image("wall4", "background/wall4.png");
+    this.load.image("wall5", "background/wall5.png");
+    this.load.image("wall6", "background/wall6.png");
+    this.load.image("chap1_no_leaves_boss", "background/chap1_no_leaves_boss.png");
 
     // Fonts
     this.loadFont("Chivo", "fonts/chivo/Chivo-Medium.ttf");
@@ -104,6 +110,18 @@ export class Preloader extends Scene {
     });
 
     // Enemy sprites for Combat
+    this.load.image("amomongo_combat", "sprites/combat/enemy/chap1/amomongo_combat.png");
+    this.load.image("balete_combat", "sprites/combat/enemy/chap1/balete_combat.png");
+    this.load.image("bungisngis_combat", "sprites/combat/enemy/chap1/bungisngis_combat.png");
+    this.load.image("duwende_combat", "sprites/combat/enemy/chap1/duwende_combat.png");
+    this.load.image("kapre_combat", "sprites/combat/enemy/chap1/kapre_combat.png");
+    this.load.image("mangangaway_combat", "sprites/combat/enemy/chap1/mangangaway_combat.png");
+    this.load.image("sigbin_combat", "sprites/combat/enemy/chap1/sigbin_combat.png");
+    this.load.image("tawonglipod_combat", "sprites/combat/enemy/chap1/tawonglipod_combat.png");
+    this.load.image("tikbalang_combat", "sprites/combat/enemy/chap1/tikbalang_combat.png");
+    this.load.image("tiyanak_combat", "sprites/combat/enemy/chap1/tiyanak_combat.png");
+
+    // Legacy enemy sprite keys for backward compatibility
     this.load.image("amomongo", "sprites/combat/enemy/chap1/amomongo_combat.png");
     this.load.image("balete", "sprites/combat/enemy/chap1/balete_combat.png");
     this.load.image("bungisngis", "sprites/combat/enemy/chap1/bungisngis_combat.png");

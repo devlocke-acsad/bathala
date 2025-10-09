@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDA Algorithm - Complete Formula</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            margin-top: 40px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #7f8c8d;
+            margin-top: 25px;
+        }
+        .formula-box {
+            background: #ecf0f1;
+            padding: 20px;
+            border-left: 5px solid #3498db;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .core-formula {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin: 30px 0;
+            text-align: center;
+            font-size: 1.3em;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+        .parameter {
+            background: #e8f4f8;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .example-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .note {
+            background: #d1ecf1;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 3px;
+        }
+        .factor-section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        ul {
+            line-height: 1.8;
+        }
+        .toc {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        .toc ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .toc li {
+            margin: 8px 0;
+        }
+        .toc a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dynamic Difficulty Adjustment Algorithm</h1>
+        <p><strong>Complete Mathematical Specification</strong></p>
+        <p><em>Bathala: Roguelike Card Game</em></p>
+
+        <div class="note">
+            <strong>📖 How to use this document:</strong>
+            <ul>
+                <li>This document contains all mathematical formulas for the DDA algorithm</li>
+                <li>Mathematical notation is rendered using MathJax (requires internet connection)</li>
+                <li>You can print this page or save as PDF for offline reference</li>
+                <li>All formulas match the implementation in <code>RuleBasedDDA.ts</code></li>
+            </ul>
+        </div>
+
+        <div class="toc">
+            <h3>Table of Contents</h3>
+            <ul>
+                <li><a href="#overview">1. Overview</a></li>
+                <li><a href="#core-formula">2. Core PPS Update Formula</a></li>
+                <li><a href="#factors">3. Eight Performance Factors</a></li>
+                <li><a href="#tier-scaling">4. Tier-Specific Scaling</a></li>
+                <li><a href="#example">5. Complete Calculation Example</a></li>
+                <li><a href="#parameters">6. Configuration Parameters</a></li>
+            </ul>
+        </div>
+
+        <h2 id="overview">1. Overview</h2>
+        <p>The DDA system adjusts difficulty based on a <strong>Player Performance Score (PPS)</strong> that ranges from 0 to 5. After each combat, the algorithm evaluates 8 performance factors and updates the PPS accordingly.</p>
+
+        <h2 id="core-formula">2. Core PPS Update Formula</h2>
+
+        <div class="core-formula">
+            \[
+            \text{PPS}_{\text{new}} = \max\left(0, \min\left(5, \text{PPS}_{\text{current}} + \Delta\text{PPS}\right)\right)
+            \]
+        </div>
+
+        <p>Where:</p>
+        <ul>
+            <li><span class="parameter">PPS<sub>current</sub></span> = Current Player Performance Score (0-5)</li>
+            <li><span class="parameter">ΔPPS</span> = Calculated adjustment based on combat performance</li>
+            <li>Result is clamped to [0, 5] range</li>
+        </ul>
+
+        <h3>PPS Adjustment Calculation</h3>
+        <div class="formula-box">
+            \[
+            \Delta\text{PPS} = \sum_{i=1}^{8} F_i = F_1 + F_2 + F_3 + F_4 + F_5 + F_6 + F_7 + F_8
+            \]
+        </div>
+
+        <p>Where each \(F_i\) represents one of the eight performance factors.</p>
+
+        <h2 id="factors">3. Eight Performance Factors</h2>
+
+        <div class="factor-section">
+            <h3>Factor 1: Health Retention Performance (\(F_1\))</h3>
+            <p><strong>Primary metric:</strong> Measures how well the player preserved health during combat.</p>
+            
+            <div class="formula-box">
+                \[
+                F_1 = M_{\text{tier}} \times \begin{cases}
+                +0.35 & \text{if } h_{\text{end}} \geq 90\% \quad \text{(Excellent)} \\
+                +0.15 & \text{if } 70\% \leq h_{\text{end}} < 90\% \quad \text{(Good)} \\
+                0.00 & \text{if } 50\% \leq h_{\text{end}} < 70\% \quad \text{(Moderate)} \\
+                -0.20 & \text{if } 30\% \leq h_{\text{end}} < 50\% \quad \text{(Poor)} \\
+                -0.40 & \text{if } h_{\text{end}} < 30\% \quad \text{(Very Poor)}
+                \end{cases}
+                \]
+            </div>
+
+            <p>Where: \(h_{\text{end}} = \dfrac{\text{Current HP}}{\text{Max HP}}\)</p>
+        </div>
+
+        <div class="factor-section">
+            <h3>Factor 2: Perfect Combat Bonus (\(F_2\))</h3>
+            <p><strong>Mastery indicator:</strong> Additional bonus for taking zero damage.</p>
+            
+            <div class="formula-box">
+                \[
+                F_2 = \begin{cases}
+                +0.25 \times M_{\text{tier}}^{\text{bonus}} & \text{if damage received} = 0 \\
+                0.00 & \text{otherwise}
+                \end{cases}
+                \]
+            </div>
+        </div>
+
+        <div class="factor-section">
+            <h3>Factor 3: Hand Quality - Skill Expression (\(F_3\))</h3>
+            <p><strong>Skill metric:</strong> Rewards skillful poker play.</p>
+            
+            <div class="formula-box">
+                \[
+                F_3 = M_{\text{tier}}^{\text{bonus}} \times \begin{cases}
+                +0.25 & \text{if } Q_{\text{hand}} \geq 7 \quad \text{(Four of a Kind or better)} \\
+                +0.10 & \text{if } 4 \leq Q_{\text{hand}} < 7 \quad \text{(Straight to Full House)} \\
+                0.00 & \text{otherwise}
+                \end{cases}
+                \]
+            </div>
+
+            <table>
+                <tr><th>Hand Type</th><th>Quality Score (Q)</th></tr>
+                <tr><td>Royal Flush</td><td>9</td></tr>
+                <tr><td>Straight Flush</td><td>8</td></tr>
+                <tr><td>Four of a Kind</td><td>7</td></tr>
+                <tr><td>Full House</td><td>6</td></tr>
+                <tr><td>Flush</td><td>5</td></tr>
+                <tr><td>Straight</td><td>4</td></tr>
+                <tr><td>Three of a Kind</td><td>3</td></tr>
+                <tr><td>Two Pair</td><td>2</td></tr>
+                <tr><td>Pair</td><td>1</td></tr>
+                <tr><td>High Card</td><td>0</td></tr>
+            </table>
+        </div>
+
+        <div class="factor-section">
+            <h3>Factor 4: Combat Efficiency (\(F_4\))</h3>
+            <p><strong>Speed metric:</strong> Evaluates how quickly combat was completed.</p>
+            
+            <div class="formula-box">
+                \[
+                F_4 = \begin{cases}
+                +0.20 \times M_{\text{tier}}^{\text{bonus}} & \text{if } t_{\text{actual}} \leq t_{\text{efficient}} \\
+                0.00 & \text{if } t_{\text{efficient}} < t_{\text{actual}} \leq t_{\text{inefficient}} \\
+                -0.20 \times M_{\text{tier}}^{\text{penalty}} & \text{if } t_{\text{actual}} > t_{\text{inefficient}}
+                \end{cases}
+                \]
+            </div>
+
+            <table>
+                <tr>
+                    <th>Tier</th>
+                    <th>Efficient Turns</th>
+                    <th>Expected Turns</th>
+                    <th>Inefficient Turns</th>
+                </tr>
+                <tr><td>Struggling</td><td>≤ 6</td><td>9</td><td>&gt; 11</td></tr>
+                <tr><td>Learning</td><td>≤ 4</td><td>6</td><td>&gt; 8</td></tr>
+                <tr><td>Thriving</td><td>≤ 3</td><td>4</td><td>&gt; 6</td></tr>
+                <tr><td>Mastering</td><td>≤ 2</td><td>3</td><td>&gt; 5</td></tr>
+            </table>
+        </div>
+
+        <div class="factor-section">
+            <h3>Factor 5: Damage Efficiency (\(F_5\))</h3>
+            <p><strong>Output metric:</strong> Measures damage output relative to expectations.</p>
+            
+            <div class="formula-box">
+                \[
+                \text{DPT}_{\text{actual}} = \frac{\text{Total Damage Dealt}}{\max(1, t_{\text{actual}})}
+                \]
+                \[
+                \text{DPT}_{\text{expected}} = \frac{\text{Enemy Start Health}}{\max(1, t_{\text{expected}})}
+                \]
+                \[
+                R_{\text{damage}} = \frac{\text{DPT}_{\text{actual}}}{\text{DPT}_{\text{expected}}}
+                \]
+                \[
+                F_5 = \begin{cases}
+                +0.20 \times M_{\text{tier}}^{\text{bonus}} & \text{if } R_{\text{damage}} \geq 1.3 \\
+                0.00 & \text{if } 0.7 < R_{\text{damage}} < 1.3 \\
+                -0.15 \times M_{\text{tier}}^{\text{penalty}} & \text{if } R_{\text{damage}} \leq 0.7
+                \end{cases}
+                \]
+            </div>
+        </div>
+
+        <div class="factor-section">
+            <h3>Factor 6: Resource Management (\(F_6\))</h3>
+            <p><strong>Conservation metric:</strong> Rewards efficient use of limited resources.</p>
+            
+            <div class="formula-box">
+                \[
+                E_{\text{discard}} = 1 - \frac{\text{Discards Used}}{\max(1, \text{Max Discards Available})}
+                \]
+                \[
+                F_6 = \begin{cases}
+                +0.15 \times M_{\text{tier}}^{\text{bonus}} & \text{if } E_{\text{discard}} \geq 0.7 \quad \text{(used } \leq 30\% \text{ of discards)} \\
+                0.00 & \text{otherwise}
+                \end{cases}
+                \]
+            </div>
+        </div>
+
+        <div class="factor-section">
+            <h3>Factor 7: Clutch Performance (\(F_7\))</h3>
+            <p><strong>Contextual metric:</strong> Rewards strong performance when starting at low health.</p>
+            
+            <div class="formula-box">
+                \[
+                h_{\text{start}} = \frac{\text{Health at Combat Start}}{\text{Max Health}}
+                \]
+                \[
+                D_{\text{disadvantage}} = \begin{cases}
+                1 - (h_{\text{start}} \times 2) & \text{if } h_{\text{start}} < 0.5 \\
+                0 & \text{otherwise}
+                \end{cases}
+                \]
+                \[
+                F_7 = \begin{cases}
+                +0.20 \times D \times M_{\text{tier}}^{\text{bonus}} & \text{if } h_{\text{end}} \geq h_{\text{start}} \\
+                +0.15 \times D \times M_{\text{tier}}^{\text{bonus}} & \text{if victory and } h_{\text{end}} < h_{\text{start}} \\
+                0.00 & \text{otherwise}
+                \end{cases}
+                \]
+            </div>
+
+            <p><strong>Note:</strong> \(D_{\text{disadvantage}}\) ranges from 0.0 (started at 50% HP) to 1.0 (started at 0% HP).</p>
+        </div>
+
+        <div class="factor-section">
+            <h3>Factor 8: Comeback Momentum (\(F_8\))</h3>
+            <p><strong>Recovery system:</strong> Helps players recover from difficult situations.</p>
+            
+            <div class="formula-box">
+                \[
+                F_8 = \begin{cases}
+                B_{\text{base}} + B_{\text{consecutive}} & \text{if PPS} < 1.5 \text{ and } \sum_{i=1}^{7} F_i > 0 \\
+                0.00 & \text{otherwise}
+                \end{cases}
+                \]
+                
+                <p>Where:</p>
+                \[
+                \begin{align}
+                B_{\text{base}} &= 0.30 \\
+                B_{\text{consecutive}} &= \min(0.45, V_{\text{consecutive}} \times 0.15) \\
+                V_{\text{consecutive}} &= \text{consecutive positive performances}
+                \end{align}
+                \]
+            </div>
+        </div>
+
+        <h2 id="tier-scaling">4. Tier-Specific Scaling</h2>
+
+        <p>All bonuses and penalties are scaled based on the player's current difficulty tier to create a rubber-banding effect:</p>
+
+        <h3>Tier Determination</h3>
+        <div class="formula-box">
+            \[
+            \text{Tier} = \begin{cases}
+            \text{Struggling} & \text{if } 0.0 \leq \text{PPS} \leq 1.0 \\
+            \text{Learning} & \text{if } 1.1 \leq \text{PPS} \leq 2.5 \\
+            \text{Thriving} & \text{if } 2.6 \leq \text{PPS} \leq 4.0 \\
+            \text{Mastering} & \text{if } 4.1 \leq \text{PPS} \leq 5.0
+            \end{cases}
+            \]
+        </div>
+
+        <h3>Tier Multipliers</h3>
+        <table>
+            <tr>
+                <th>Tier</th>
+                <th>Bonus Multiplier</th>
+                <th>Penalty Multiplier</th>
+                <th>Effect</th>
+            </tr>
+            <tr>
+                <td>Struggling</td>
+                <td>1.5×</td>
+                <td>0.5×</td>
+                <td>Larger bonuses, smaller penalties (easier to climb)</td>
+            </tr>
+            <tr>
+                <td>Learning</td>
+                <td>1.0×</td>
+                <td>1.0×</td>
+                <td>Standard scaling (baseline)</td>
+            </tr>
+            <tr>
+                <td>Thriving</td>
+                <td>0.8×</td>
+                <td>1.2×</td>
+                <td>Smaller bonuses, larger penalties</td>
+            </tr>
+            <tr>
+                <td>Mastering</td>
+                <td>0.5×</td>
+                <td>1.5×</td>
+                <td>Smallest bonuses, largest penalties (hardest to maintain)</td>
+            </tr>
+        </table>
+
+        <h2 id="example">5. Complete Calculation Example</h2>
+
+        <div class="example-box">
+            <h3>Example Scenario</h3>
+            
+            <p><strong>Player State:</strong></p>
+            <ul>
+                <li>Current PPS: 2.5 (Learning Tier)</li>
+                <li>Started combat: 100/100 HP (100%)</li>
+                <li>Ended combat: 85/100 HP (85%)</li>
+                <li>Damage received: 15</li>
+            </ul>
+
+            <p><strong>Combat Metrics:</strong></p>
+            <ul>
+                <li>Turns taken: 5</li>
+                <li>Damage dealt: 100</li>
+                <li>Enemy health: 100</li>
+                <li>Best hand: Three of a Kind (Q = 3)</li>
+                <li>Discards used: 1 out of 3</li>
+                <li>Victory: Yes</li>
+            </ul>
+
+            <h4>Step-by-Step Calculation:</h4>
+
+            <p><strong>F₁: Health Retention</strong></p>
+            <p>85% HP → Good range (70-89%) → +0.15 × 1.0 = <strong>+0.15</strong></p>
+
+            <p><strong>F₂: Perfect Combat</strong></p>
+            <p>Took 15 damage → <strong>0.00</strong></p>
+
+            <p><strong>F₃: Hand Quality</strong></p>
+            <p>Three of a Kind (Q=3) → Below Straight → <strong>0.00</strong></p>
+
+            <p><strong>F₄: Combat Efficiency</strong></p>
+            <p>5 turns (between 4 efficient and 8 inefficient) → <strong>0.00</strong></p>
+
+            <p><strong>F₅: Damage Efficiency</strong></p>
+            <p>DPT = 100/5 = 20.0, Expected DPT = 100/6 = 16.67, Ratio = 1.20 (within [0.7, 1.3]) → <strong>0.00</strong></p>
+
+            <p><strong>F₆: Resource Management</strong></p>
+            <p>Efficiency = 1 - 1/3 = 0.67 (below 0.7 threshold) → <strong>0.00</strong></p>
+
+            <p><strong>F₇: Clutch Performance</strong></p>
+            <p>Started at 100% HP → No disadvantage → <strong>0.00</strong></p>
+
+            <p><strong>F₈: Comeback Momentum</strong></p>
+            <p>PPS = 2.5 ≥ 1.5 → Not in comeback range → <strong>0.00</strong></p>
+
+            <h4>Final Result:</h4>
+            <div class="formula-box">
+                \[
+                \begin{align}
+                \Delta\text{PPS} &= 0.15 + 0 + 0 + 0 + 0 + 0 + 0 + 0 = +0.15 \\
+                \text{PPS}_{\text{new}} &= \max(0, \min(5, 2.5 + 0.15)) = 2.65
+                \end{align}
+                \]
+            </div>
+            <p><strong>Result:</strong> PPS increases from 2.5 to 2.65 (remains in Learning Tier)</p>
+        </div>
+
+        <h2 id="parameters">6. Configuration Parameters</h2>
+
+        <h3>Base Modifier Values</h3>
+        <table>
+            <tr><th>Parameter</th><th>Value</th></tr>
+            <tr><td>Excellent Health Bonus</td><td>+0.35</td></tr>
+            <tr><td>Good Health Bonus</td><td>+0.15</td></tr>
+            <tr><td>Moderate Health Penalty</td><td>-0.20</td></tr>
+            <tr><td>Poor Health Penalty</td><td>-0.40</td></tr>
+            <tr><td>Perfect Combat Bonus</td><td>+0.25</td></tr>
+            <tr><td>Efficient Combat Bonus</td><td>+0.20</td></tr>
+            <tr><td>Inefficient Combat Penalty</td><td>-0.20</td></tr>
+            <tr><td>Excellent Hand Bonus (≥4oK)</td><td>+0.25</td></tr>
+            <tr><td>Good Hand Bonus (≥Straight)</td><td>+0.10</td></tr>
+            <tr><td>Resource Efficiency Bonus</td><td>+0.15</td></tr>
+            <tr><td>High Damage Efficiency Bonus</td><td>+0.20</td></tr>
+            <tr><td>Low Damage Efficiency Penalty</td><td>-0.15</td></tr>
+            <tr><td>Comeback Base Bonus</td><td>+0.30</td></tr>
+            <tr><td>Comeback Consecutive Bonus</td><td>+0.15 per win</td></tr>
+            <tr><td>Comeback Max Bonus</td><td>+0.45 (cap)</td></tr>
+        </table>
+
+        <h3>System Settings</h3>
+        <table>
+            <tr><th>Setting</th><th>Value</th></tr>
+            <tr><td>Starting PPS</td><td>2.5</td></tr>
+            <tr><td>Minimum PPS</td><td>0.0</td></tr>
+            <tr><td>Maximum PPS</td><td>5.0</td></tr>
+            <tr><td>Calibration Period</td><td>3 combats</td></tr>
+            <tr><td>Comeback PPS Threshold</td><td>1.5</td></tr>
+        </table>
+
+        <div class="note">
+            <strong>📝 Implementation Note:</strong>
+            <p>This formula is implemented in <code>bathala/src/core/dda/RuleBasedDDA.ts</code> in the <code>calculatePPSAdjustment()</code> method. The configuration parameters can be found in <code>bathala/src/core/dda/DDAConfig.ts</code>.</p>
+        </div>
+
+        <hr style="margin: 40px 0;">
+
+        <p style="text-align: center; color: #7f8c8d;">
+            <small>Generated for thesis documentation | Bathala Project 2025</small>
+        </p>
+    </div>
+</body>
+</html>
+
