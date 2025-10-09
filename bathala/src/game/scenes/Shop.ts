@@ -827,28 +827,30 @@ export class Shop extends Scene {
     panelShadow.fillStyle(0x000000, 0.4);
     panelShadow.fillRoundedRect(-panelWidth/2 + 8, -panelHeight/2 + 8, panelWidth, panelHeight, 20);
     
-    // Main panel background with dark violet gradient
+    // Main panel background with shop theme (matching #77888C color scheme)
     const panelBg = this.add.graphics();
-    panelBg.fillGradientStyle(0x2d1b69, 0x1e1b4b, 0x1a1625, 0x0f0f23, 0.98);
-    panelBg.lineStyle(3, 0x7c3aed, 0.9);
+    panelBg.fillStyle(0x150E10, 0.95); // Match shop background
+    panelBg.lineStyle(3, 0x77888C, 0.9); // Match shop border color
     panelBg.fillRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
     panelBg.strokeRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
     
     // Inner highlight for premium feel
     const innerHighlight = this.add.graphics();
-    innerHighlight.lineStyle(2, 0xa78bfa, 0.4);
+    innerHighlight.lineStyle(2, 0x77888C, 0.4); // Match shop accent color
     innerHighlight.strokeRoundedRect(-panelWidth/2 + 4, -panelHeight/2 + 4, panelWidth - 8, panelHeight - 8, 16);
     
-    // Header section with violet theme
+    // Header section with shop theme
     const headerBg = this.add.graphics();
-    headerBg.fillGradientStyle(0x4c1d95, 0x3730a3, 0x2d1b69, 0x1e1b4b, 0.4);
+    headerBg.fillStyle(0x77888C, 0.2); // Subtle shop color background
+    headerBg.lineStyle(1, 0x77888C, 0.6);
     headerBg.fillRoundedRect(-panelWidth/2 + 12, -panelHeight/2 + 12, panelWidth - 24, 80, 12);
+    headerBg.strokeRoundedRect(-panelWidth/2 + 12, -panelHeight/2 + 12, panelWidth - 24, 80, 12);
     
     // Item emoji with enhanced styling and proper container
     const emojiContainer = this.add.graphics();
-    emojiContainer.fillStyle(0x2d1b69, 0.8);
+    emojiContainer.fillStyle(0x150E10, 0.8); // Match shop background
     emojiContainer.fillRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
-    emojiContainer.lineStyle(2, 0x7c3aed, 0.8);
+    emojiContainer.lineStyle(2, 0x77888C, 0.8); // Shop border color
     emojiContainer.strokeRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
     
     const emoji = this.add.text(-panelWidth/2 + 60, -panelHeight/2 + 60, item.emoji, {
@@ -856,18 +858,19 @@ export class Shop extends Scene {
     }).setOrigin(0.5, 0.5);
     emoji.setShadow(2, 2, '#1a1625', 4, false, true);
     
-    // Item name with proper alignment
+    // Item name with proper alignment and shop theme colors
     const name = this.add.text(-panelWidth/2 + 110, -panelHeight/2 + 45, item.name.toUpperCase(), {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 24,
-      color: "#e9d5ff",
+      color: "#77888C", // Match shop accent color
+      fontStyle: "bold"
     }).setOrigin(0, 0);
-    name.setShadow(2, 2, '#1a1625', 4, false, true);
+    name.setShadow(2, 2, '#000000', 4, false, true);
     
-    // Price display with proper centering and dark violet theme
+    // Price display with shop theme
     const priceBg = this.add.graphics();
-    priceBg.fillGradientStyle(0x1a1625, 0x2d1b69, 0x0f0f23, 0x1a1625, 0.9);
-    priceBg.lineStyle(2, 0x7c3aed, 0.8);
+    priceBg.fillStyle(0x150E10, 0.9); // Match shop background
+    priceBg.lineStyle(2, 0x77888C, 0.8); // Match shop border
     priceBg.fillRoundedRect(-80, -panelHeight/2 + 110, 160, 45, 12);
     priceBg.strokeRoundedRect(-80, -panelHeight/2 + 110, 160, 45, 12);
     
@@ -879,51 +882,55 @@ export class Shop extends Scene {
     }
     
     const priceLabel = this.add.text(0, -panelHeight/2 + 125, "PRICE", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 12,
-      color: "#a78bfa",
+      color: "#77888C", // Match shop accent color
     }).setOrigin(0.5, 0.5);
     
     const price = this.add.text(0, -panelHeight/2 + 140, `${item.price} ${priceEmoji}`, {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 20,
-      color: "#e9d5ff",
+      color: "#ffffff", // White for better contrast
       fontStyle: "bold"
     }).setOrigin(0.5, 0.5);
-    price.setShadow(1, 1, '#1a1625', 2, false, true);
+    price.setShadow(1, 1, '#000000', 2, false, true);
     
-    // Content sections with better spacing and violet theme
+    // Content sections with shop theme
     const contentStartY = -panelHeight/2 + 200;
     
-    // Description section with proper alignment and sizing
+    // Description section with shop styling
     const descSection = this.add.graphics();
-    descSection.fillStyle(0x2d1b69, 0.3);
+    descSection.fillStyle(0x77888C, 0.15); // Subtle shop color background
+    descSection.lineStyle(1, 0x77888C, 0.3);
     descSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 100, 8);
+    descSection.strokeRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 100, 8);
     
     const descTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 15, "DESCRIPTION", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 14,
-      color: "#7c3aed",
+      color: "#77888C", // Shop accent color
       fontStyle: "bold"
     }).setOrigin(0, 0);
     
     const description = this.add.text(0, contentStartY + 45, item.description, {
       fontFamily: "dungeon-mode",
       fontSize: 14,
-      color: "#d8b4fe",
+      color: "#cccccc", // Light gray for readability
       align: "center",
       wordWrap: { width: panelWidth - 100 }
     }).setOrigin(0.5, 0);
     
-    // Lore section with proper alignment and sizing
+    // Lore section with shop styling
     const loreSection = this.add.graphics();
-    loreSection.fillStyle(0x2d1b69, 0.2);
+    loreSection.fillStyle(0x77888C, 0.1); // Even more subtle
+    loreSection.lineStyle(1, 0x77888C, 0.2);
     loreSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY + 120, panelWidth - 60, 110, 8);
+    loreSection.strokeRoundedRect(-panelWidth/2 + 30, contentStartY + 120, panelWidth - 60, 110, 8);
     
     const loreTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 135, "LORE", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 14,
-      color: "#34d399",
+      color: "#77888C", // Shop accent color
       fontStyle: "bold"
     }).setOrigin(0, 0);
     
@@ -931,7 +938,7 @@ export class Shop extends Scene {
     const loreText = this.add.text(0, contentStartY + 165, lore, {
       fontFamily: "dungeon-mode",
       fontSize: 12,
-      color: "#c4b5fd",
+      color: "#aaaaaa", // Light gray for lore text
       align: "center",
       wordWrap: { width: panelWidth - 100 }
     }).setOrigin(0.5, 0);
@@ -994,25 +1001,25 @@ export class Shop extends Scene {
       closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
     });
     
-    // Modern buy button with dark violet theme - positioned at bottom
+    // Modern buy button with shop theme - positioned at bottom
     const buyBtn = this.add.container(0, panelHeight/2 - 80);
     const buyBg = this.add.graphics();
-    buyBg.fillGradientStyle(0x7c3aed, 0x5b21b6, 0x4c1d95, 0x6d28d9, 0.95);
-    buyBg.lineStyle(3, 0xa78bfa, 0.8);
+    buyBg.fillStyle(0x150E10, 0.9); // Match shop background
+    buyBg.lineStyle(3, 0x77888C, 0.8); // Match shop border
     buyBg.fillRoundedRect(-120, -25, 240, 50, 12);
     buyBg.strokeRoundedRect(-120, -25, 240, 50, 12);
     
     const buyInnerGlow = this.add.graphics();
-    buyInnerGlow.lineStyle(1, 0xddd6fe, 0.3);
+    buyInnerGlow.lineStyle(1, 0x77888C, 0.3); // Shop accent
     buyInnerGlow.strokeRoundedRect(-118, -23, 236, 46, 10);
     
     const buyText = this.add.text(0, 0, "PURCHASE ITEM", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 18,
-      color: "#f3e8ff",
+      color: "#77888C", // Shop accent color
       fontStyle: "bold"
     }).setOrigin(0.5, 0.5);
-    buyText.setShadow(2, 2, '#1a1625', 3, false, true);
+    buyText.setShadow(2, 2, '#000000', 3, false, true);
     
     buyBtn.add([buyBg, buyInnerGlow, buyText]);
     buyBtn.setInteractive(new Phaser.Geom.Rectangle(-120, -25, 240, 50), Phaser.Geom.Rectangle.Contains);
@@ -1040,10 +1047,11 @@ export class Shop extends Scene {
         ease: 'Power2'
       });
       buyBg.clear();
-      buyBg.fillGradientStyle(0x8b5cf6, 0x7c3aed, 0x5b21b6, 0x4c1d95, 0.95);
-      buyBg.lineStyle(3, 0xa78bfa, 1);
+      buyBg.fillStyle(0x150E10, 1); // Slightly brighter on hover
+      buyBg.lineStyle(3, 0x77888C, 1); // Full opacity border on hover
       buyBg.fillRoundedRect(-120, -25, 240, 50, 12);
       buyBg.strokeRoundedRect(-120, -25, 240, 50, 12);
+      buyText.setColor("#ffffff"); // White text on hover
     });
     buyBtn.on("pointerout", () => {
       this.tweens.add({
@@ -1053,10 +1061,11 @@ export class Shop extends Scene {
         ease: 'Power2'
       });
       buyBg.clear();
-      buyBg.fillGradientStyle(0x7c3aed, 0x5b21b6, 0x4c1d95, 0x6d28d9, 0.95);
-      buyBg.lineStyle(3, 0xa78bfa, 0.8);
+      buyBg.fillStyle(0x150E10, 0.9); // Return to normal
+      buyBg.lineStyle(3, 0x77888C, 0.8); // Return to normal border
       buyBg.fillRoundedRect(-120, -25, 240, 50, 12);
       buyBg.strokeRoundedRect(-120, -25, 240, 50, 12);
+      buyText.setColor("#77888C"); // Return to shop accent color
     });
     
     // Assemble the modern panel
