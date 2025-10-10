@@ -23,9 +23,10 @@ import {
   getBossEnemy,
   getEnemyByName,
 } from "../../data/enemies/Act1Enemies";
-import { ENEMY_LORE_DATA, EnemyLore } from "../../data/lore/EnemyLore";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 import { RelicManager } from "../../core/managers/RelicManager";
+import { EnemyDialogueManager } from "../managers/EnemyDialogueManager";
+import { EnemyLoreUI } from "../managers/EnemyLoreUI";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -92,6 +93,10 @@ export class Combat extends Scene {
   // DDA Debug UI
   private ddaDebugContainer!: Phaser.GameObjects.Container | null;
   private ddaDebugVisible: boolean = false;
+
+  // Managers
+  private enemyDialogueManager!: EnemyDialogueManager;
+  private enemyLoreUI!: EnemyLoreUI;
 
   // Post-combat dialogue system
   private creatureDialogues: Record<string, CreatureDialogue> = {
@@ -185,6 +190,10 @@ export class Combat extends Scene {
     // Initialize combat state
     this.initializeCombat(data.nodeType, data.enemyId);
 
+    // Initialize managers
+    this.enemyDialogueManager = new EnemyDialogueManager(this);
+    this.enemyLoreUI = new EnemyLoreUI(this);
+
     // Create UI elements
     this.createCombatUI();
     
@@ -242,236 +251,25 @@ export class Combat extends Scene {
    * Show Prologue-style dialogue at start of battle
    */
   private showBattleStartDialogue(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create semi-transparent overlay
-    const overlay = this.add.rectangle(
-      screenWidth / 2,
-      screenHeight / 2,
-      screenWidth,
-      screenHeight,
-      0x000000
-    ).setAlpha(0.7).setScrollFactor(0).setDepth(5000);
-    
-    // Create dialogue container positioned at center like Prologue
-    const dialogueContainer = this.add.container(screenWidth / 2, screenHeight / 2);
-    
-    // Double border design with Prologue colors
-    const outerBorder = this.add.rectangle(0, 0, screenWidth * 0.8 + 8, 128, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const innerBorder = this.add.rectangle(0, 0, screenWidth * 0.8, 120, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const bg = this.add.rectangle(0, 0, screenWidth * 0.8, 120, 0x150E10).setInteractive();
-    
-    // Create dialogue text with Prologue styling
-    const dialogueText = this.add.text(
-      0,
-      0,
-      `A wild ${this.combatState.enemy.name} appears!`,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 22,
-        color: "#77888C",
-        align: "center",
-        wordWrap: { width: screenWidth * 0.75 }
+    this.enemyDialogueManager.showBattleStartDialogue(
+      this.combatState.enemy,
+      () => {
+        // Show enemy dialogue after player dialogue is removed
+        this.time.delayedCall(100, () => {
+          this.showEnemyDialogue();
+        });
       }
-    ).setOrigin(0.5);
-    
-    // Create continue indicator with Prologue styling
-    const continueIndicator = this.add.text(
-      (screenWidth * 0.8)/2 - 40,
-      (120)/2 - 20,
-      "▼",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#77888C"
-      }
-    ).setOrigin(0.5).setVisible(true);
-    
-    dialogueContainer.add([outerBorder, innerBorder, bg, dialogueText, continueIndicator]);
-    dialogueContainer.setDepth(5001);
-    
-    // Create main container for all dialogue elements
-    this.battleStartDialogueContainer = this.add.container(0, 0, [
-      overlay,
-      dialogueContainer
-    ]).setScrollFactor(0).setDepth(5000);
-    
-    // Prologue-style fade in animation
-    dialogueContainer.setAlpha(0);
-    this.tweens.add({ 
-      targets: dialogueContainer, 
-      alpha: 1, 
-      duration: 400, 
-      ease: 'Power2' 
-    });
-    
-    // Add blinking animation to the continue indicator (Prologue style)
-    this.tweens.add({ 
-      targets: continueIndicator, 
-      y: '+=8', 
-      duration: 600, 
-      yoyo: true, 
-      repeat: -1, 
-      ease: 'Sine.easeInOut' 
-    });
-    
-    // Add click handler with Prologue-style transition
-    bg.on('pointerdown', () => {
-      this.tweens.add({
-        targets: dialogueContainer,
-        alpha: 0,
-        duration: 300,
-        ease: 'Power2',
-        onComplete: () => {
-          if (this.battleStartDialogueContainer) {
-            this.battleStartDialogueContainer.destroy();
-            this.battleStartDialogueContainer = null;
-            
-            // Show enemy dialogue after player dialogue is removed
-            this.time.delayedCall(100, () => {
-              this.showEnemyDialogue();
-            });
-          }
-        }
-      });
-    });
+    );
   }
 
   /**
    * Show Prologue-style enemy dialogue at top of screen
    */
   private showEnemyDialogue(): void {
-    const screenWidth = this.cameras.main.width;
-    
-    // Create dialogue container positioned at top like a speech bubble
-    const dialogueContainer = this.add.container(screenWidth / 2, 120);
-    
     const enemyName = this.combatState.enemy.name;
     const enemySpriteKey = this.getEnemySpriteKey(enemyName);
-    
-    // Double border design with Prologue colors (smaller for enemy dialogue)
-    const outerBorder = this.add.rectangle(0, 0, screenWidth * 0.8 + 8, 108, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const innerBorder = this.add.rectangle(0, 0, screenWidth * 0.8, 100, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const bg = this.add.rectangle(0, 0, screenWidth * 0.8, 100, 0x150E10).setInteractive();
-    
-    // Create enemy icon with combat sprite if available
-    let enemyIcon: Phaser.GameObjects.Sprite | null = null;
-    if (this.textures.exists(enemySpriteKey)) {
-      enemyIcon = this.add.sprite(
-        -(screenWidth * 0.8 / 2) + 35,
-        0,
-        enemySpriteKey
-      ).setScale(0.8).setDepth(5002);
-    }
-    
-    // Create enemy name text with Prologue styling
-    const enemyNameText = this.add.text(
-      -(screenWidth * 0.8 / 2) + 70,
-      -30,
-      this.combatState.enemy.name,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#77888C",
-        align: "left"
-      }
-    ).setOrigin(0, 0).setDepth(5002);
-    
-    // Create enemy dialogue text with Prologue styling
-    const enemyDialogueText = this.add.text(
-      -(screenWidth * 0.8 / 2) + 70,
-      -5,
-      this.getBattleStartDialogue ? this.getBattleStartDialogue() : this.getEnemyDialogue(),
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#77888C",
-        align: "left",
-        wordWrap: { width: screenWidth * 0.8 - 90 }
-      }
-    ).setOrigin(0, 0).setDepth(5002);
-    
-    // Create continue indicator with Prologue styling
-    const continueIndicator = this.add.text(
-      (screenWidth * 0.8)/2 - 40,
-      (100)/2 - 20,
-      "▼",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#77888C"
-      }
-    ).setOrigin(0.5).setDepth(5002);
-    
-    const containerChildren = [
-      outerBorder,
-      innerBorder,
-      bg,
-      enemyIcon,
-      enemyNameText,
-      enemyDialogueText,
-      continueIndicator
-    ].filter(child => child !== null);
-
-    dialogueContainer.add(containerChildren);
-    dialogueContainer.setScrollFactor(0).setDepth(5000);
-    
-    // Prologue-style fade in animation
-    dialogueContainer.setAlpha(0);
-    this.tweens.add({ 
-      targets: dialogueContainer, 
-      alpha: 1, 
-      duration: 400, 
-      ease: 'Power2' 
-    });
-    
-    // Add Prologue-style blinking animation to the continue indicator
-    this.tweens.add({ 
-      targets: continueIndicator, 
-      y: '+=8', 
-      duration: 600, 
-      yoyo: true, 
-      repeat: -1, 
-      ease: 'Sine.easeInOut' 
-    });
-    
-    // Add click handler with Prologue-style transition
-    bg.on('pointerdown', () => {
-      this.tweens.add({
-        targets: dialogueContainer,
-        alpha: 0,
-        duration: 300,
-        ease: 'Power2',
-        onComplete: () => {
-          dialogueContainer.destroy();
-        }
-      });
-    });
+    this.enemyDialogueManager.showEnemyDialogue(this.combatState.enemy, enemySpriteKey);
   }
-
-  /**
-   * Get enemy dialogue based on enemy type
-   */
-  private getEnemyDialogue(): string {
-    const enemyName = this.combatState.enemy.name.toLowerCase();
-    
-    if (enemyName.includes("tikbalang")) return "Lost in my paths, seer? False one’s whispers guide!";
-    if (enemyName.includes("balete")) return "Roots entwine your fate!";
-    if (enemyName.includes("sigbin")) return "Charge for shadow throne!";
-    if (enemyName.includes("duwende")) return "Tricks abound in mounds!";
-    if (enemyName.includes("tiyanak")) return "Wails lure to doom!";
-    if (enemyName.includes("amomongo")) return "Nails rend unworthy!";
-    if (enemyName.includes("bungisngis")) return "Laughter masks rage!";
-    if (enemyName.includes("kapre")) return "Smoke veils my wrath!";
-    if (enemyName.includes("tawong lipod")) return "Winds conceal—feel fury!";
-    if (enemyName.includes("mangangaway")) return "Fates reverse at my command!";
-    
-    // Default dialogue
-    return "You have encountered a fearsome creature! Prepare for battle!";
-  }
-
-
 
   /**
    * Initialize combat state with player and enemy
@@ -885,7 +683,7 @@ export class Combat extends Scene {
     this.enemyStatusContainer = this.add.container(enemyX, enemyY + 210);
 
     // Information button for enemy lore
-    this.createEnemyInfoButton(enemyX, enemyY - 200);
+    this.enemyLoreUI.createInfoButton(enemyX, enemyY - 200, this.combatState.enemy);
 
     // Update the health and block text
     this.updateEnemyUI();
@@ -4161,14 +3959,6 @@ export class Combat extends Scene {
 
     this.deckViewContainer.setVisible(true);
   }
-
-
-
-
-
-
-
-
   private showDiscardPileView(): void {
     this.discardViewContainer.list.filter(item => item.type === 'Container').forEach(item => item.destroy());
 
@@ -4217,17 +4007,6 @@ export class Combat extends Scene {
 
     this.discardViewContainer.setVisible(true);
   }
-
-
-
-
-
-
-
-
-
-
-
   /**
    * Animate drawing cards from deck to hand positions (Balatro style)
    */
@@ -5283,13 +5062,6 @@ export class Combat extends Scene {
       this.updateEnemyUI();
     }
   }
-
-
-  
-
-  
-
-
   /**
    * Handle scene resize
    */
@@ -5411,284 +5183,6 @@ export class Combat extends Scene {
     
     return handRanking[handType] / 11; // Normalize to 0-1 scale
   }
-  
-  /**
-   * Create information button for enemy lore
-   */
-  private createEnemyInfoButton(x: number, y: number): void {
-    // Create a circular button with an "i" for information
-    const infoButton = this.add.circle(x + 100, y, 20, 0x2f3542);
-    infoButton.setStrokeStyle(2, 0x57606f);
-    
-    // Add the "i" text
-    const infoText = this.add.text(x + 100, y, "i", {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#e8eced",
-      align: "center",
-    }).setOrigin(0.5);
-    
-    // Make the button interactive
-    infoButton.setInteractive();
-    
-    // Add hover effects
-    infoButton.on("pointerover", () => {
-      infoButton.setFillStyle(0x3d4454);
-    });
-    
-    infoButton.on("pointerout", () => {
-      infoButton.setFillStyle(0x2f3542);
-    });
-    
-    // Add click event to show enemy lore
-    infoButton.on("pointerdown", () => {
-      this.showEnemyLore();
-    });
-    
-    // Also make the text interactive and link it to the same event
-    infoText.setInteractive();
-    infoText.on("pointerdown", () => {
-      this.showEnemyLore();
-    });
-  }
-  
-  /**
-   * Show enemy lore information
-   */
-  private showEnemyLore(): void {
-    // Get the enemy name and convert to lowercase for lookup
-    const enemyName = this.combatState.enemy.name.toLowerCase();
-    
-    // Try to find the matching lore data
-    let loreKey = "";
-    
-    // Check for specific enemy names
-    if (enemyName.includes("tikbalang")) {
-      loreKey = "tikbalang";
-    } else if (enemyName.includes("dwende")) {
-      loreKey = enemyName.includes("chief") ? "duwende_chief" : "dwende";
-    } else if (enemyName.includes("kapre")) {
-      loreKey = "kapre";
-    } else if (enemyName.includes("sigbin")) {
-      loreKey = "sigbin";
-    } else if (enemyName.includes("tiyanak")) {
-      loreKey = "tiyanak";
-    } else if (enemyName.includes("manananggal")) {
-      loreKey = "manananggal";
-    } else if (enemyName.includes("aswang")) {
-      loreKey = "aswang";
-    } else if (enemyName.includes("bakunawa")) {
-      loreKey = "bakunawa";
-    }
-    
-    // Get lore data
-    const enemyLore = ENEMY_LORE_DATA[loreKey];
-    
-    if (!enemyLore) {
-      console.warn(`No lore found for enemy: ${enemyName}`);
-      return;
-    }
-    
-    // Get screen dimensions
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create semi-transparent overlay
-    const overlay = this.add.rectangle(
-      screenWidth / 2,
-      screenHeight / 2,
-      screenWidth,
-      screenHeight,
-      0x000000
-    ).setAlpha(0.8).setScrollFactor(0).setDepth(6000);
-    
-    // Create lore box
-    const loreBoxWidth = Math.min(800, screenWidth * 0.8);
-    const loreBoxHeight = Math.min(600, screenHeight * 0.8);
-    const loreBox = this.add.rectangle(
-      screenWidth / 2,
-      screenHeight / 2,
-      loreBoxWidth,
-      loreBoxHeight,
-      0x2f3542
-    ).setStrokeStyle(2, 0x57606f).setScrollFactor(0).setDepth(6001);
-    
-    // Create title
-    const title = this.add.text(
-      screenWidth / 2,
-      screenHeight / 2 - loreBoxHeight / 2 + 30,
-      enemyLore.name,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 28,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(6002);
-    
-    // Create close button
-    const closeButton = this.add.circle(
-      screenWidth / 2 + loreBoxWidth / 2 - 25,
-      screenHeight / 2 - loreBoxHeight / 2 + 25,
-      15,
-      0xff4757
-    ).setScrollFactor(0).setDepth(6002);
-    
-    const closeText = this.add.text(
-      screenWidth / 2 + loreBoxWidth / 2 - 25,
-      screenHeight / 2 - loreBoxHeight / 2 + 25,
-      "X",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#ffffff",
-        align: "center",
-      }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(6003);
-    
-    // Create lore content
-    const contentY = screenHeight / 2 - loreBoxHeight / 2 + 70;
-    
-    // Description
-    const descriptionTitle = this.add.text(
-      screenWidth / 2 - loreBoxWidth / 2 + 20,
-      contentY,
-      "Description:",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#ffd93d",
-      }
-    ).setScrollFactor(0).setDepth(6002);
-    
-    const descriptionText = this.add.text(
-      screenWidth / 2 - loreBoxWidth / 2 + 20,
-      contentY + 30,
-      enemyLore.description,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#e8eced",
-        wordWrap: { width: loreBoxWidth - 40 },
-      }
-    ).setScrollFactor(0).setDepth(6002);
-    
-    // Mythology
-    const mythologyTitle = this.add.text(
-      screenWidth / 2 - loreBoxWidth / 2 + 20,
-      contentY + 100,
-      "Mythology:",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#ffd93d",
-      }
-    ).setScrollFactor(0).setDepth(6002);
-    
-    const mythologyText = this.add.text(
-      screenWidth / 2 - loreBoxWidth / 2 + 20,
-      contentY + 130,
-      enemyLore.mythology,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#e8eced",
-        wordWrap: { width: loreBoxWidth - 40 },
-      }
-    ).setScrollFactor(0).setDepth(6002);
-    
-    // Abilities
-    const abilitiesTitle = this.add.text(
-      screenWidth / 2 - loreBoxWidth / 2 + 20,
-      contentY + 230,
-      "Abilities:",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#ffd93d",
-      }
-    ).setScrollFactor(0).setDepth(6002);
-    
-    const abilityTexts: Phaser.GameObjects.Text[] = [];
-    enemyLore.abilities.forEach((ability, index) => {
-      const abilityText = this.add.text(
-        screenWidth / 2 - loreBoxWidth / 2 + 30,
-        contentY + 260 + (index * 25),
-        `- ${ability}`,
-        {
-          fontFamily: "dungeon-mode",
-          fontSize: 16,
-          color: "#4ecdc4",
-          wordWrap: { width: loreBoxWidth - 60 },
-        }
-      ).setScrollFactor(0).setDepth(6002);
-      abilityTexts.push(abilityText);
-    });
-    
-    // Weakness
-    const weaknessTitle = this.add.text(
-      screenWidth / 2 - loreBoxWidth / 2 + 20,
-      contentY + 260 + (enemyLore.abilities.length * 25) + 30,
-      "Weakness:",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#ffd93d",
-      }
-    ).setScrollFactor(0).setDepth(6002);
-    
-    const weaknessText = this.add.text(
-      screenWidth / 2 - loreBoxWidth / 2 + 30,
-      contentY + 260 + (enemyLore.abilities.length * 25) + 60,
-      enemyLore.weakness,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#ff6b6b",
-        wordWrap: { width: loreBoxWidth - 60 },
-      }
-    ).setScrollFactor(0).setDepth(6002);
-    
-    // Collect all elements to destroy when closing
-    const allElements = [
-      overlay, 
-      loreBox, 
-      title, 
-      closeButton, 
-      closeText, 
-      descriptionTitle,
-      descriptionText,
-      mythologyTitle,
-      mythologyText,
-      abilitiesTitle,
-      weaknessTitle,
-      weaknessText,
-      ...abilityTexts
-    ];
-    
-    // Make close button interactive
-    closeButton.setInteractive();
-    closeButton.on("pointerdown", () => {
-      this.hideEnemyLore(...allElements);
-    });
-    
-    closeText.setInteractive();
-    closeText.on("pointerdown", () => {
-      this.hideEnemyLore(...allElements);
-    });
-  }
-  
-  /**
-   * Hide enemy lore information
-   */
-  private hideEnemyLore(...elements: Phaser.GameObjects.GameObject[]): void {
-    elements.forEach(element => {
-      if (element) {
-        element.destroy();
-      }
-    });
-  }
-  
   /**
    * Show Prologue-style relic tooltip
    */
@@ -6076,27 +5570,6 @@ export class Combat extends Scene {
     }
   }
   
-  /**
-   * Get battle start dialogue for the enemy
-   */
-  private getBattleStartDialogue(): string {
-    const enemyName = this.combatState.enemy.name.toLowerCase();
-    
-    if (enemyName.includes("tikbalang")) return "Hah! You dare enter my maze of paths? The false god's whispers have made me your obstacle, traveler. But your soul still seeks the light?";
-    if (enemyName.includes("balete")) return "Sacred roots that once blessed Bathala's children now bind your fate! The engkanto's corruption runs deep through my bark!";
-    if (enemyName.includes("sigbin")) return "I charge for the shadow throne! Once I served the divine, but now I serve the false god's dark purposes!";
-    if (enemyName.includes("duwende")) return "Tricks? Oh yes, tricks abound in mounds where the old magic sleeps! But which are blessing and which are curse?";
-    if (enemyName.includes("tiyanak")) return "My innocent wail lures you to doom! Once I was a babe, now I am a warning to the living!";
-    if (enemyName.includes("amomongo")) return "My claws rend the unworthy! The mountain remembers when I only defended its people from true threats!";
-    if (enemyName.includes("bungisngis")) return "Laughter masks the rage within! We were once merry giants, but the false god's corruption changed our song to a cackle of malice!";
-    if (enemyName.includes("kapre")) return "Smoke veils my wrath! From my sacred tree I once watched over the forest paths with honor, not malice!";
-    if (enemyName.includes("tawong lipod")) return "Winds conceal—feel fury! The invisible currents are my domain, and I bring the storm of retribution!";
-    if (enemyName.includes("mangangaway")) return "Fates reverse at my command! I was once a healer of the people, now I am their curse-bearer!";
-    
-    // Default dialogue
-    return "You have encountered a fearsome creature! Prepare for battle!";
-  }
-
   /**
    * Hide all UI elements during special attack for cinematic effect
    */
