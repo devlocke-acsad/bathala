@@ -71,83 +71,83 @@ export class Overworld_TooltipManager {
     console.log("🖱️ TooltipManager: Initializing tooltip system...");
     
     // Create tooltip container (initially hidden) - FIXED TO CAMERA
-    this.tooltipContainer = this.scene.add.container(0, 0).setVisible(false).setDepth(2000).setScrollFactor(0);
+    this.tooltipContainer = this.scene.add.container(0, 0).setVisible(false).setDepth(2000).setScrollFactor(0).setAlpha(0);
     
-    // Tooltip background with shadow effect
-    const shadowOffset = 3;
-    const tooltipShadow = this.scene.add.rectangle(shadowOffset, shadowOffset, 400, 240, 0x000000)
-      .setAlpha(0.4)
+    // Prologue/Combat-style double border design
+    const outerBorder = this.scene.add.rectangle(4, 4, 400 + 8, 240 + 8, undefined, 0)
+      .setStrokeStyle(2, 0x77888C)
       .setOrigin(0);
     
-    // Main tooltip background (will be resized dynamically)
-    this.tooltipBackground = this.scene.add.rectangle(0, 0, 400, 240, 0x1d151a)
-      .setStrokeStyle(2, 0x4a3a40)
+    const innerBorder = this.scene.add.rectangle(8, 8, 400, 240, undefined, 0)
+      .setStrokeStyle(2, 0x77888C)
       .setOrigin(0);
-      
-    // Header background for enemy name/type
-    const headerBackground = this.scene.add.rectangle(0, 0, 400, 60, 0x2a1f24)
-      .setStrokeStyle(1, 0x4a3a40)
+    
+    // Main tooltip background (will be resized dynamically) - matching Prologue/Combat style
+    this.tooltipBackground = this.scene.add.rectangle(8, 8, 400, 240, 0x150E10)
       .setOrigin(0);
       
-    // Enemy/Node name
-    this.tooltipNameText = this.scene.add.text(15, 12, "", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 16,
-      color: "#e8eced",
-      fontStyle: "bold"
-    }).setOrigin(0);
-    
-    // Enemy/Node type
-    this.tooltipTypeText = this.scene.add.text(15, 30, "", {
+    // Header section separator line (matching tutorial style)
+    const headerSeparator = this.scene.add.rectangle(18, 68, 380, 2, 0x77888C)
+      .setOrigin(0);
+      
+    // Enemy/Node name - matching Prologue/Combat style
+    this.tooltipNameText = this.scene.add.text(18, 18, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 10,
+      fontSize: 16,
       color: "#77888C",
       fontStyle: "bold"
     }).setOrigin(0);
     
-    // Sprite container (will be created dynamically)
-    this.tooltipSpriteContainer = this.scene.add.container(320, 30);
-    this.tooltipSpriteContainer.setSize(60, 60); // Set a larger size for the sprite area
-    
-    // Stats section separator
-    const statsSeparator = this.scene.add.rectangle(10, 70, 380, 1, 0x4a3a40).setOrigin(0);
-    
-    // Stats text
-    this.tooltipStatsText = this.scene.add.text(15, 80, "", {
+    // Enemy/Node type - matching Prologue/Combat style
+    this.tooltipTypeText = this.scene.add.text(18, 42, "", {
       fontFamily: "dungeon-mode",
       fontSize: 11,
-      color: "#c9a74a",
-      wordWrap: { width: 360 },
-      lineSpacing: 2,
-      fontStyle: "bold"
+      color: "#77888C"
     }).setOrigin(0);
     
-    // Description section separator  
-    const descSeparator = this.scene.add.rectangle(10, 130, 380, 1, 0x4a3a40).setOrigin(0);
+    // Sprite container (will be created dynamically)
+    this.tooltipSpriteContainer = this.scene.add.container(330, 35);
+    this.tooltipSpriteContainer.setSize(60, 60);
     
-    // Description text
-    this.tooltipDescriptionText = this.scene.add.text(15, 140, "", {
+    // Stats section separator - matching Prologue/Combat style
+    const statsSeparator = this.scene.add.rectangle(18, 130, 380, 2, 0x77888C).setOrigin(0);
+    
+    // Stats text - matching Prologue/Combat style
+    this.tooltipStatsText = this.scene.add.text(18, 85, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#8a9a9f",
+      fontSize: 12,
+      color: "#77888C",
       wordWrap: { width: 360 },
-      lineSpacing: 3,
-      fontStyle: "italic"
+      lineSpacing: 4
+    }).setOrigin(0);
+    
+    // Description section separator - matching Prologue/Combat style
+    const descSeparator = this.scene.add.rectangle(18, 180, 380, 2, 0x77888C).setOrigin(0);
+    
+    // Description text - matching Prologue/Combat style
+    this.tooltipDescriptionText = this.scene.add.text(18, 145, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: "#77888C",
+      wordWrap: { width: 360 },
+      lineSpacing: 4
     }).setOrigin(0);
     
     // Store references to dynamic elements for resizing
     this.tooltipContainer.setData({
-      shadow: tooltipShadow,
-      header: headerBackground,
+      outerBorder: outerBorder,
+      innerBorder: innerBorder,
+      headerSeparator: headerSeparator,
       statsSeparator: statsSeparator,
       descSeparator: descSeparator
     });
     
     // Add all elements to tooltip container
     this.tooltipContainer.add([
-      tooltipShadow,
+      outerBorder,
+      innerBorder,
       this.tooltipBackground,
-      headerBackground,
+      headerSeparator,
       this.tooltipNameText,
       this.tooltipTypeText,
       this.tooltipSpriteContainer,
@@ -182,11 +182,11 @@ export class Overworld_TooltipManager {
       return;
     }
     
-    // Reset colors to default enemy colors
-    this.tooltipNameText.setColor("#e8eced");    // Default white
-    this.tooltipTypeText.setColor("#77888C");    // Default gray
-    this.tooltipStatsText.setColor("#c9a74a");   // Default yellow
-    this.tooltipDescriptionText.setColor("#b8a082"); // Default beige
+    // Set consistent Prologue/Combat-style colors
+    this.tooltipNameText.setColor("#77888C");
+    this.tooltipTypeText.setColor("#77888C");
+    this.tooltipStatsText.setColor("#77888C");
+    this.tooltipDescriptionText.setColor("#77888C");
     
     // Update tooltip content
     this.tooltipNameText.setText(enemyInfo.name);
@@ -198,7 +198,7 @@ export class Overworld_TooltipManager {
       const sprite = this.scene.add.sprite(0, 0, enemyInfo.spriteKey);
       sprite.setOrigin(0.5, 0.5);
       
-      // Scale to fit the larger container nicely
+      // Scale to fit the container
       const targetSize = 48;
       const scale = targetSize / Math.max(sprite.width, sprite.height);
       sprite.setScale(scale);
@@ -212,15 +212,21 @@ export class Overworld_TooltipManager {
     }
     
     // Format stats with rich details
-    const statsText = `HP: ${enemyInfo.health} | DMG: ${enemyInfo.damage}\n${enemyInfo.abilities}`;
+    const statsText = `HP: ${enemyInfo.health} | DMG: ${enemyInfo.damage}\n\n${enemyInfo.abilities}`;
     this.tooltipStatsText.setText(statsText);
     this.tooltipDescriptionText.setText(enemyInfo.description);
     
     // Update size and position immediately
     this.updateTooltipSizeAndPosition(mouseX, mouseY);
     
-    // Show tooltip
+    // Show tooltip with Prologue-style fade in
     this.tooltipContainer.setVisible(true);
+    this.scene.tweens.add({
+      targets: this.tooltipContainer,
+      alpha: 1,
+      duration: 200,
+      ease: 'Power2.easeOut'
+    });
     this.isTooltipVisible = true;
   }
 
@@ -239,15 +245,12 @@ export class Overworld_TooltipManager {
       return;
     }
     
-    // Get color scheme for this node type
-    const colors = this.getNodeColorScheme(node.type);
-    
-    // Update tooltip content with node-specific colors
+    // Use consistent Prologue/Combat-style colors for all nodes
     this.tooltipNameText.setText(nodeInfo.name);
-    this.tooltipNameText.setColor(colors.name);
+    this.tooltipNameText.setColor("#77888C");
     
     this.tooltipTypeText.setText(nodeInfo.type.toUpperCase());
-    this.tooltipTypeText.setColor(colors.type);
+    this.tooltipTypeText.setColor("#77888C");
     
     // Clear previous sprite and add new one
     this.tooltipSpriteContainer.removeAll(true);
@@ -255,7 +258,7 @@ export class Overworld_TooltipManager {
       const sprite = this.scene.add.sprite(0, 0, nodeInfo.spriteKey);
       sprite.setOrigin(0.5, 0.5);
       
-      // Scale to fit the larger container nicely
+      // Scale to fit the container
       const targetSize = 48;
       const scale = targetSize / Math.max(sprite.width, sprite.height);
       sprite.setScale(scale);
@@ -269,16 +272,22 @@ export class Overworld_TooltipManager {
     }
     
     this.tooltipStatsText.setText(nodeInfo.stats || "");
-    this.tooltipStatsText.setColor(colors.stats);
+    this.tooltipStatsText.setColor("#77888C");
     
     this.tooltipDescriptionText.setText(nodeInfo.description);
-    this.tooltipDescriptionText.setColor(colors.description);
+    this.tooltipDescriptionText.setColor("#77888C");
     
     // Update size and position immediately
     this.updateTooltipSizeAndPosition(mouseX, mouseY);
     
-    // Show tooltip
+    // Show tooltip with Prologue-style fade in
     this.tooltipContainer.setVisible(true);
+    this.scene.tweens.add({
+      targets: this.tooltipContainer,
+      alpha: 1,
+      duration: 200,
+      ease: 'Power2.easeOut'
+    });
     this.isTooltipVisible = true;
   }
 
@@ -292,7 +301,7 @@ export class Overworld_TooltipManager {
   }
 
   /**
-   * Hide the tooltip
+   * Hide the tooltip with Prologue-style fade out
    */
   hideTooltip(): void {
     // Cancel any pending tooltip operations
@@ -301,9 +310,19 @@ export class Overworld_TooltipManager {
       this.currentTooltipTimer = undefined;
     }
     
-    // Hide tooltip safely
-    if (this.tooltipContainer) {
-      this.tooltipContainer.setVisible(false);
+    // Hide tooltip with fade out animation
+    if (this.tooltipContainer && this.tooltipContainer.visible) {
+      this.scene.tweens.add({
+        targets: this.tooltipContainer,
+        alpha: 0,
+        duration: 150,
+        ease: 'Power2.easeIn',
+        onComplete: () => {
+          if (this.tooltipContainer) {
+            this.tooltipContainer.setVisible(false);
+          }
+        }
+      });
     }
     
     this.isTooltipVisible = false;
@@ -339,19 +358,19 @@ export class Overworld_TooltipManager {
       return;
     }
     
-    // Calculate dynamic tooltip size based on content
-    const padding = 20;
-    const headerHeight = 60;
+    // Calculate dynamic tooltip size based on content - Prologue/Combat style
+    const padding = 26; // Internal padding
+    const headerHeight = 70;
     const minWidth = 420;
     const maxWidth = 550;
     
     // Get actual text bounds
-    const statsHeight = this.tooltipStatsText?.height || 70;
-    const descHeight = this.tooltipDescriptionText?.height || 90;
+    const statsHeight = this.tooltipStatsText?.height || 60;
+    const descHeight = this.tooltipDescriptionText?.height || 80;
     
     // Calculate required height with proper spacing
-    const separatorSpacing = 15;
-    const totalHeight = headerHeight + separatorSpacing + statsHeight + separatorSpacing + descHeight + padding * 2;
+    const separatorSpacing = 20;
+    const totalHeight = headerHeight + separatorSpacing + statsHeight + separatorSpacing + descHeight + padding;
     
     // Calculate required width
     const nameWidth = this.tooltipNameText?.width || 100;
@@ -360,41 +379,43 @@ export class Overworld_TooltipManager {
     const spriteAreaWidth = 80;
     const maxContentWidth = Math.max(nameWidth + spriteAreaWidth, statsWidth, descWidth);
     const tooltipWidth = Math.max(minWidth, Math.min(maxWidth, maxContentWidth + padding * 2));
-    const tooltipHeight = Math.max(260, totalHeight);
+    const tooltipHeight = Math.max(280, totalHeight);
     
     // Get dynamic elements from container data
-    const shadow = this.tooltipContainer.getData('shadow') as Phaser.GameObjects.Rectangle;
-    const header = this.tooltipContainer.getData('header') as Phaser.GameObjects.Rectangle;
+    const outerBorder = this.tooltipContainer.getData('outerBorder') as Phaser.GameObjects.Rectangle;
+    const innerBorder = this.tooltipContainer.getData('innerBorder') as Phaser.GameObjects.Rectangle;
+    const headerSeparator = this.tooltipContainer.getData('headerSeparator') as Phaser.GameObjects.Rectangle;
     const statsSeparator = this.tooltipContainer.getData('statsSeparator') as Phaser.GameObjects.Rectangle;
     const descSeparator = this.tooltipContainer.getData('descSeparator') as Phaser.GameObjects.Rectangle;
     
-    // Update background sizes
+    // Update border and background sizes - Prologue/Combat double border style
+    outerBorder?.setSize(tooltipWidth + 8, tooltipHeight + 8);
+    innerBorder?.setSize(tooltipWidth, tooltipHeight);
     this.tooltipBackground.setSize(tooltipWidth, tooltipHeight);
-    shadow?.setSize(tooltipWidth, tooltipHeight);
-    header?.setSize(tooltipWidth, headerHeight);
     
     // Update separator widths and positions
-    statsSeparator?.setSize(tooltipWidth - 20, 1);
-    statsSeparator?.setPosition(10, headerHeight + 10);
+    headerSeparator?.setSize(tooltipWidth - 20, 2);
+    headerSeparator?.setPosition(18, 68);
+    
+    statsSeparator?.setSize(tooltipWidth - 20, 2);
+    statsSeparator?.setPosition(18, headerHeight + statsHeight + 20);
     
     // Reposition sprite container
-    this.tooltipSpriteContainer?.setPosition(tooltipWidth - 50, 30);
+    this.tooltipSpriteContainer?.setPosition(tooltipWidth - 60, 35);
     
     // Update text wrapping
-    const textWidth = tooltipWidth - 100;
+    const textWidth = tooltipWidth - 80;
     this.tooltipStatsText?.setWordWrapWidth(textWidth);
     this.tooltipDescriptionText?.setWordWrapWidth(textWidth);
     
-    // Reposition stats and description elements
-    const statsY = headerHeight + 20;
-    this.tooltipStatsText?.setPosition(15, statsY);
+    // Reposition description separator
+    const descSeparatorY = headerHeight + statsHeight + 30;
+    descSeparator?.setSize(tooltipWidth - 20, 2);
+    descSeparator?.setPosition(18, descSeparatorY);
     
-    const descSeparatorY = statsY + statsHeight + 10;
-    descSeparator?.setSize(tooltipWidth - 20, 1);
-    descSeparator?.setPosition(10, descSeparatorY);
-    
-    const descY = descSeparatorY + 15;
-    this.tooltipDescriptionText?.setPosition(15, descY);
+    // Reposition description text
+    const descY = descSeparatorY + 10;
+    this.tooltipDescriptionText?.setPosition(18, descY);
     
     // Position tooltip based on mouse position
     const camera = this.scene.cameras.main;
@@ -424,45 +445,6 @@ export class Overworld_TooltipManager {
     
     // Position tooltip
     this.tooltipContainer.setPosition(tooltipX, tooltipY);
-  }
-
-  /**
-   * Get color scheme for different node types
-   */
-  private getNodeColorScheme(nodeType: string): { name: string, type: string, stats: string, description: string } {
-    const colorSchemes = {
-      shop: {
-        name: "#ffd700",
-        type: "#ffcc00",
-        stats: "#e6b800",
-        description: "#f0e68c"
-      },
-      event: {
-        name: "#da70d6",
-        type: "#ba55d3",
-        stats: "#9370db",
-        description: "#dda0dd"
-      },
-      campfire: {
-        name: "#ff6347",
-        type: "#ff4500",
-        stats: "#ff8c00",
-        description: "#ffa07a"
-      },
-      treasure: {
-        name: "#00ced1",
-        type: "#20b2aa",
-        stats: "#48d1cc",
-        description: "#afeeee"
-      }
-    };
-
-    return colorSchemes[nodeType as keyof typeof colorSchemes] || {
-      name: "#e8eced",
-      type: "#77888C",
-      stats: "#c9a74a",
-      description: "#b8a082"
-    };
   }
 
   /**
