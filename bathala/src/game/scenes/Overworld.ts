@@ -157,6 +157,16 @@ export class Overworld extends Scene {
     // Set camera background color to match forest theme
     this.cameras.main.setBackgroundColor(0x323C39);
     
+    // Explicitly set default cursor to prevent pointer cursor from persisting
+    this.input.setDefaultCursor('default');
+    console.log('🖱️ Overworld: Setting default cursor to "default"');
+    
+    // Debug: Log cursor state after setup
+    this.time.delayedCall(1000, () => {
+      console.log('🖱️ Current cursor state:', this.game.canvas.style.cursor);
+      console.log('🖱️ Input enabled:', this.input.enabled);
+    });
+    
     // Initialize maze generation manager
     this.mazeGenManager = new Overworld_MazeGenManager(this, this.gridSize);
     
@@ -1471,22 +1481,47 @@ export class Overworld extends Scene {
   }
 
   private handleNodeHoverStart(node: MapNode, pointer: Phaser.Input.Pointer): void {
-    // Existing tooltip logic from renderNode method
-    if ((node.type === "combat" || node.type === "elite") && node.enemyId) {
-      console.log(`Hovering over ${node.type} node with enemy: ${node.enemyId}`);
-      this.showEnemyTooltipImmediate(node, pointer.x, pointer.y);
+    console.log(`🖱️ [HOVER START] Node type: ${node.type}, ID: ${node.id}, EnemyID: ${node.enemyId || 'N/A'}`);
+    
+    // Cancel any pending tooltip timer
+    if (this.currentTooltipTimer) {
+      this.currentTooltipTimer.destroy();
     }
-    // Add other node type tooltips as needed
+    
+    // Set current hovered node
+    this.lastHoveredNodeId = node.id;
+    
+    // Show appropriate tooltip based on node type
+    if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
+      console.log(`🖱️ Showing enemy tooltip for: ${node.enemyId}`);
+      this.showEnemyTooltipImmediate(node, pointer.x, pointer.y);
+    } else {
+      console.log(`🖱️ Showing node tooltip for: ${node.type}`);
+      this.showNodeTooltipImmediate(node, pointer.x, pointer.y);
+    }
   }
 
-  private handleNodeHoverMove(_node: MapNode, _pointer: Phaser.Input.Pointer): void {
-    // Currently no specific hover move logic needed
-    // Could update tooltip position here if tooltips are added for other node types
+  private handleNodeHoverMove(node: MapNode, pointer: Phaser.Input.Pointer): void {
+    // Update tooltip position on mouse move while hovering
+    if (this.isTooltipVisible && this.lastHoveredNodeId === node.id) {
+      this.updateTooltipSizeAndPositionImmediate(pointer.x, pointer.y);
+    }
   }
 
-  private handleNodeHoverEnd(_node: MapNode): void {
-    // Hide tooltips
-    this.hideEnemyTooltip();
+  private handleNodeHoverEnd(node: MapNode): void {
+    console.log(`🖱️ Stopped hovering over ${node.type} node at ${node.id}`);
+    
+    // Clear current hovered node
+    this.lastHoveredNodeId = undefined;
+    
+    // Cancel any pending tooltip timer
+    if (this.currentTooltipTimer) {
+      this.currentTooltipTimer.destroy();
+      this.currentTooltipTimer = undefined;
+    }
+    
+    // Hide tooltip immediately
+    this.hideNodeTooltip();
   }
 
   isValidPosition(x: number, y: number): boolean {
@@ -2178,6 +2213,18 @@ export class Overworld extends Scene {
   private handleResize(): void {
     // Update UI elements on resize
     this.updateUI();
+  }
+
+  /**
+   * Shutdown method to clean up scene state
+   */
+  shutdown(): void {
+    console.log('🖱️ Overworld: Cleaning up and resetting cursor');
+    // Reset cursor when leaving the scene
+    this.input.setDefaultCursor('default');
+    
+    // Clean up event listeners
+    this.scale.off('resize', this.handleResize, this);
   }
 
   /**
@@ -4473,7 +4520,7 @@ ${potion.description}`, {
     }
     
     // Get color scheme for this node type
-    const colors = this.getNodeColorScheme(nodeType);
+    const colors = this.getNodeColorScheme(node.type);
     
     // Update tooltip content with node-specific colors
     this.tooltipNameText.setText(nodeInfo.name);
@@ -4604,12 +4651,38 @@ ${potion.description}`, {
       return null;
     }
 
-    const allEnemies = [...ACT1_COMMON_ENEMIES, ...ACT1_ELITE_ENEMIES, MANGNANGAWAY];
+    // Manually list all Act 1 enemies
+    const allEnemies = [
+      TIKBALANG_SCOUT,
+      BALETE_WRAITH,
+      SIGBIN_CHARGER,
+      DUWENDE_TRICKSTER,
+      TIYANAK_AMBUSHER,
+      AMOMONGO,
+      BUNGISNGIS,
+      KAPRE_SHADE,
+      TAWONG_LIPOD,
+      MANGNANGAWAY
+    ];
     const enemy = allEnemies.find(e => e.name === enemyId);
 
     if (!enemy) return null;
 
-    const lore = ENEMY_LORE_DATA[enemy.name.toLowerCase().replace(/ /g, "_")];
+    // Map enemy names to their lore
+    const loreMap: { [key: string]: any } = {
+      "Tikbalang Scout": TIKBALANG_SCOUT_LORE,
+      "Balete Wraith": BALETE_WRAITH_LORE,
+      "Sigbin Charger": SIGBIN_CHARGER_LORE,
+      "Duwende Trickster": DUWENDE_TRICKSTER_LORE,
+      "Tiyanak Ambusher": TIYANAK_AMBUSHER_LORE,
+      "Amomongo": AMOMONGO_LORE,
+      "Bungisngis": BUNGISNGIS_LORE,
+      "Kapre Shade": KAPRE_SHADE_LORE,
+      "Tawong Lipod": TAWONG_LIPOD_LORE,
+      "Mangangaway": MANGNANGAWAY_LORE
+    };
+    
+    const lore = loreMap[enemy.name];
 
     let spriteKeyBase = enemy.name.toLowerCase().split(" ")[0];
     if (spriteKeyBase === "tawong") {

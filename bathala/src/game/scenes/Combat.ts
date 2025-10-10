@@ -2539,6 +2539,8 @@ export class Combat extends Scene {
 
       // Return to overworld after 3 seconds
       this.time.delayedCall(3000, () => {
+        // Reset cursor before transitioning
+        this.input.setDefaultCursor('default');
         this.scene.start("Overworld");
       });
     }
