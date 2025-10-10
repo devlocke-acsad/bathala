@@ -21,6 +21,7 @@ import {
   getRandomCommonEnemy,
   getRandomEliteEnemy,
   getBossEnemy,
+  getEnemyByName,
 } from "../../data/enemies/Act1Enemies";
 import { ENEMY_LORE_DATA, EnemyLore } from "../../data/lore/EnemyLore";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
@@ -171,7 +172,7 @@ export class Combat extends Scene {
     this.battleStartDialogueContainer = null;
   }
 
-  create(data: { nodeType: string, transitionOverlay?: any }): void {
+  create(data: { nodeType: string, enemyId?: string, transitionOverlay?: any }): void {
     // Safety check for camera
     if (!this.cameras.main) {
       return;
@@ -182,7 +183,7 @@ export class Combat extends Scene {
     bg.setDisplaySize(this.cameras.main.width, this.cameras.main.height);
 
     // Initialize combat state
-    this.initializeCombat(data.nodeType);
+    this.initializeCombat(data.nodeType, data.enemyId);
 
     // Create UI elements
     this.createCombatUI();
@@ -475,7 +476,7 @@ export class Combat extends Scene {
   /**
    * Initialize combat state with player and enemy
    */
-  private initializeCombat(nodeType: string): void {
+  private initializeCombat(nodeType: string, enemyId?: string): void {
     // Get existing player data from GameState or create new player if none exists
     const gameState = GameState.getInstance();
     const existingPlayerData = gameState.getPlayerData();
@@ -561,8 +562,10 @@ export class Combat extends Scene {
     player.hand = drawnCards;
     player.drawPile = remainingDeck;
 
-    // Get enemy based on node type from the data passed to the scene
-    const enemyData = this.getEnemyForNodeType(nodeType);
+    // Get enemy based on specific enemyId if provided, otherwise use node type
+    const enemyData = enemyId 
+      ? this.getSpecificEnemyById(enemyId) 
+      : this.getEnemyForNodeType(nodeType);
     const enemy: Enemy = {
       ...enemyData,
       id: this.generateEnemyId(enemyData.name),
@@ -639,6 +642,21 @@ export class Combat extends Scene {
       default:
         return getRandomCommonEnemy();
     }
+  }
+
+  /**
+   * Get a specific enemy by their ID/name
+   */
+  private getSpecificEnemyById(enemyId: string): Omit<Enemy, "id"> {
+    const enemy = getEnemyByName(enemyId);
+    
+    // If enemy not found by name, fallback to random common enemy
+    if (!enemy) {
+      console.warn(`Enemy "${enemyId}" not found, using random common enemy`);
+      return getRandomCommonEnemy();
+    }
+    
+    return enemy;
   }
 
   /**
