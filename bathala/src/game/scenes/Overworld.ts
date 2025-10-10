@@ -1508,7 +1508,7 @@ export class Overworld extends Scene {
           // Hide tooltip if it's visible
           this.tooltipManager.hideTooltip();
           
-          this.startCombat(node.type);
+          this.startCombat(node.type, node.enemyId);
           break;
           
         case "boss":
@@ -1524,7 +1524,7 @@ export class Overworld extends Scene {
           // Hide tooltip if it's visible
           this.tooltipManager.hideTooltip();
           
-          this.startCombat("boss");
+          this.startCombat("boss", node.enemyId);
           break;
           
         case "shop":
@@ -1823,7 +1823,7 @@ export class Overworld extends Scene {
     });
   }
 
-  startCombat(nodeType: string): void {
+  startCombat(nodeType: string, enemyId?: string): void {
     // Prevent player from moving during combat transition
     this.isMoving = true;
     this.isTransitioningToCombat = true;
@@ -1839,7 +1839,7 @@ export class Overworld extends Scene {
     
     // Check if this is a boss fight for special animation
     if (nodeType === "boss") {
-      this.startBossCombat();
+      this.startBossCombat(enemyId);
       return;
     }
     
@@ -1961,6 +1961,7 @@ export class Overworld extends Scene {
             this.scene.pause();
             this.scene.launch("Combat", { 
               nodeType: nodeType,
+              enemyId: enemyId,
               transitionOverlay: overlay // Pass overlay to combat scene
             });
           }
@@ -2065,6 +2066,7 @@ export class Overworld extends Scene {
             this.scene.pause();
             this.scene.launch("Combat", { 
               nodeType: nodeType,
+              enemyId: enemyId,
               transitionOverlay: overlay // Pass overlay to combat scene
             });
           }
@@ -2073,7 +2075,7 @@ export class Overworld extends Scene {
     }
   }
 
-  startBossCombat(): void {
+  startBossCombat(enemyId?: string): void {
     // Save player position before transitioning
     const gameState = GameState.getInstance();
     gameState.savePlayerPosition(this.player.x, this.player.y);
@@ -2139,6 +2141,7 @@ export class Overworld extends Scene {
             this.scene.pause();
             this.scene.launch("Combat", { 
               nodeType: "boss",
+              enemyId: enemyId,
               transitionOverlay: overlay
             });
           }

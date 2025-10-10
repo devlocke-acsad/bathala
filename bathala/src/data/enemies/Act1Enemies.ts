@@ -215,3 +215,20 @@ export function getRandomEliteEnemy(): Omit<Enemy, "id"> {
 export function getBossEnemy(): Omit<Enemy, "id"> {
   return { ...MANGNANGAWAY };
 }
+
+/**
+ * Get a specific enemy by name
+ */
+export function getEnemyByName(name: string): Omit<Enemy, "id"> | null {
+  // Create a map of all enemies for easy lookup
+  const allEnemies = [
+    ...ACT1_COMMON_ENEMIES,
+    ...ACT1_ELITE_ENEMIES,
+    ...ACT1_BOSS_ENEMIES,
+  ];
+  
+  // Find enemy by name (case-insensitive)
+  const enemy = allEnemies.find(e => e.name.toLowerCase() === name.toLowerCase());
+  
+  return enemy ? { ...enemy } : null;
+}
