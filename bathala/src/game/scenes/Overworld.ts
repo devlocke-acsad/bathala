@@ -4363,7 +4363,9 @@ ${potion.description}`, {
       this.tooltipSpriteContainer.add(sprite);
     }
     
-    this.tooltipStatsText.setText(`Health: ${enemyInfo.health}\nDamage: ${enemyInfo.damage}\nAbilities: ${enemyInfo.abilities.join(", ")}`);
+    // Format stats with rich details
+    const statsText = `HP: ${enemyInfo.health} | DMG: ${enemyInfo.damage}\n${enemyInfo.abilities}`;
+    this.tooltipStatsText.setText(statsText);
     this.tooltipDescriptionText.setText(enemyInfo.description);
     
     // Update size and position immediately - no delayed call
@@ -4668,7 +4670,61 @@ ${potion.description}`, {
 
     if (!enemy) return null;
 
-    // Map enemy names to their lore
+    // Map enemy names to their detailed information from GDD
+    const enemyDetailsMap: { [key: string]: { abilities: string, origin: string, corruption: string } } = {
+      "Tikbalang Scout": {
+        abilities: "Confuses Targeting • Applies Weak",
+        origin: "Tagalog mountain trickster with backward hooves",
+        corruption: "Once forest protectors, now twisted by engkanto lies to mislead travelers through false paths."
+      },
+      "Balete Wraith": {
+        abilities: "Applies Vulnerable • Gains Strength When Hurt",
+        origin: "Spirit guardian of sacred balete trees",
+        corruption: "Haunting the ancient fig portals to anito realms, corrupted by engkanto deceit into hostile wraiths."
+      },
+      "Sigbin Charger": {
+        abilities: "High Damage Burst • Strikes Every 3 Turns",
+        origin: "Visayan goat-like creature stealing hearts",
+        corruption: "Once loyal to Bathala, now charges with stolen heart power for the shadow throne."
+      },
+      "Duwende Trickster": {
+        abilities: "Disrupts Card Draw • Steals Block",
+        origin: "Magical goblin granting boons or curses",
+        corruption: "Their fortunes twisted by engkanto whispers, now dealing only misfortune to travelers."
+      },
+      "Tiyanak Ambusher": {
+        abilities: "First Strike Criticals • Applies Fear",
+        origin: "Lost infant spirit mimicking baby cries",
+        corruption: "Demon babies luring victims with wails in the corrupted forest depths."
+      },
+      "Amomongo": {
+        abilities: "Bleeding Claws • Fast Attacks",
+        origin: "Visayan ape-like terror with long nails",
+        corruption: "Cave-dwelling beast driven to fury, its nails rending those deemed unworthy."
+      },
+      "Bungisngis": {
+        abilities: "Laugh Debuff • Heavy Swings",
+        origin: "One-eyed laughing giant of Tagalog/Cebuano lore",
+        corruption: "Once jovial, now its laughter masks rage fueled by engkanto's twisted mirth."
+      },
+      "Kapre Shade": {
+        abilities: "AoE Burn Damage • Summons Fire Minions",
+        origin: "Tree giant smoking magical cigars",
+        corruption: "Ancient guardian loyal to Bathala, corrupted into a burning shadow that veils wrath in cigar smoke."
+      },
+      "Tawong Lipod": {
+        abilities: "Invisibility • Stuns • Benefits from Air",
+        origin: "Bikol invisible wind fairy",
+        corruption: "Once harmonious wind beings, now concealed tormentors wielding storms against intruders."
+      },
+      "Mangangaway": {
+        abilities: "Mimics Elements • Curses Cards • Hex of Reversal",
+        origin: "Tagalog sorcerer with skull necklace",
+        corruption: "Powerful witch casting evil hexes, commanding fates to reverse at their twisted will."
+      }
+    };
+
+    const details = enemyDetailsMap[enemy.name];
     const loreMap: { [key: string]: any } = {
       "Tikbalang Scout": TIKBALANG_SCOUT_LORE,
       "Balete Wraith": BALETE_WRAITH_LORE,
@@ -4696,13 +4752,14 @@ ${potion.description}`, {
 
     return {
       name: enemy.name,
-      type: nodeType === "elite" ? "Elite" : "Combat",
+      type: nodeType === "elite" ? "Elite Enemy" : nodeType === "boss" ? "Boss" : "Enemy",
       spriteKey: spriteKey,
       animationKey: null,
       health: enemy.maxHealth,
       damage: enemy.damage,
-      abilities: [], // You can get this from lore or enemy data if available
-      description: lore ? lore.description : ""
+      abilities: details?.abilities || "Unknown Abilities",
+      origin: details?.origin || "",
+      description: details ? `${details.origin}\n\n${details.corruption}` : (lore ? lore.description : "A corrupted spirit blocks your path.")
     };
   }
 }
