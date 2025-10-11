@@ -223,8 +223,8 @@ export class Combat extends Scene {
     this.ui = new CombatUI(this);
     this.ui.initialize();
 
-    // UI is now fully initialized by CombatUI
-    // No need to call createCombatUI() separately
+    // Create UI elements
+    this.createCombatUI();
     
     // Create relic inventory
     this.createRelicInventory();
@@ -708,9 +708,231 @@ export class Combat extends Scene {
     return spriteOptions[randomIndex];
   }
 
+  /**
+   * Create the combat UI layout
+   */
+  private createCombatUI(): void {
+    // Get screen dimensions
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Title
+    this.add
+      .text(screenWidth/2, 30, "Combat - Forest Encounter", {
+        fontFamily: "dungeon-mode",
+        fontSize: 28,
+        color: "#e8eced",
+        align: "center",
+      })
+      .setOrigin(0.5);
+
+    // Player section (left side)
+    this.createPlayerUI();
+
+    // Enemy section (right side)
+    this.createEnemyUI();
+
+    // Card hand area (bottom)
+    this.createHandUI();
+
+    // Played hand area (center)
+    this.createPlayedHandUI();
+
+    // Action buttons
+    this.createActionButtons();
+
+    // Damage preview
+    this.createDamagePreview();
+
+    // Turn display
+    this.createTurnUI();
+
+    // Relics display
+    this.createRelicsUI();
+
+    // Action result display
+    this.createActionResultUI();
+  }
+
+  /**
+   * Create player UI elements
+   */
+  private createPlayerUI(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    const playerX = screenWidth * 0.25; // 25% from left
+    const playerY = screenHeight * 0.4; // 40% from top
+
+    // Create player shadow circle
+    this.playerShadow = this.add.graphics();
+    this.playerShadow.fillStyle(0x000000, 0.3); // Black with 30% opacity
+    this.playerShadow.fillEllipse(playerX, playerY + 60, 80, 20); // Oval shadow below player
+
+    // Player sprite with idle animation
+    this.playerSprite = this.add.sprite(playerX, playerY, "combat_player");
+    this.playerSprite.setScale(2); // Scale up from 32x64 to 64x128
+    this.playerSprite.setFlipX(true); // Flip to face right (toward enemy)
+
+    // Try to play animation, fallback if it fails
+    try {
+      this.playerSprite.play("player_idle");
+    } catch (error) {
+      console.warn("Player idle animation not found, using static sprite");
+    }
+
+    // Player name with Prologue styling
+    this.add
+      .text(playerX, playerY - 120, this.combatState.player.name, {
+        fontFamily: "dungeon-mode",
+        fontSize: 24,
+        color: "#77888C", // Use Prologue's text color
+        align: "center",
+        stroke: "#150E10",
+        strokeThickness: 1
+      })
+      .setOrigin(0.5);
+
+    // Health display with better spacing
+    this.playerHealthText = this.add
+      .text(playerX, playerY + 85, "", {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#ff6b6b",
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 1
+      })
+      .setOrigin(0.5);
+
+    // Block display with improved spacing
+    this.playerBlockText = this.add
+      .text(playerX, playerY + 110, "", {
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
+        color: "#4ecdc4",
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 1
+      })
+      .setOrigin(0.5);
+
+    this.playerStatusContainer = this.add.container(playerX, playerY + 140);
+
+    this.updatePlayerUI();
+  }
+
+  /**
+   * Create enemy UI elements
+   */
+  private createEnemyUI(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    const enemyX = screenWidth * 0.75; // 75% from left
+    const enemyY = screenHeight * 0.4; // 40% from top
+    
+    // Create enemy shadow circle
+    this.enemyShadow = this.add.graphics();
+    this.enemyShadow.fillStyle(0x000000, 0.3); // Black with 30% opacity
+    this.enemyShadow.fillEllipse(enemyX, enemyY + 90, 120, 30); // Larger oval shadow below enemy
+
+    const enemyName = this.combatState.enemy.name;
+    const enemySpriteKey = this.getEnemySpriteKey(enemyName);
+    const enemyAnimationKey = `${enemySpriteKey}_idle`;
+
+    // Enemy sprite with idle animation
+    this.enemySprite = this.add.sprite(enemyX, enemyY, enemySpriteKey);
+
+    // Scale the sprite to fit within a 250x250 box while maintaining aspect ratio
+    const sprite = this.enemySprite;
+    const targetWidth = 250;
+    const targetHeight = 250;
+    const scale = Math.min(targetWidth / sprite.width, targetHeight / sprite.height);
+    sprite.setScale(scale);
 
 
 
+    // Enemy name with Prologue styling and better spacing
+    this.add
+      .text(enemyX, enemyY - 180, this.combatState.enemy.name, {
+        fontFamily: "dungeon-mode",
+        fontSize: 28,
+        color: "#77888C", // Use Prologue's text color
+        align: "center",
+        stroke: "#150E10",
+        strokeThickness: 2
+      })
+      .setOrigin(0.5);
+
+    // Health display with improved spacing and stroke
+    this.enemyHealthText = this.add
+      .text(enemyX, enemyY - 150, "", {
+        fontFamily: "dungeon-mode",
+        fontSize: 24,
+        color: "#ff6b6b",
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 2
+      })
+      .setOrigin(0.5);
+
+    // Block display with improved spacing and stroke
+    this.enemyBlockText = this.add
+      .text(enemyX, enemyY - 120, "", {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#4ecdc4",
+        align: "center",
+        stroke: "#000000",
+        strokeThickness: 1
+      })
+      .setOrigin(0.5);
+
+    // Intent display with better spacing
+    this.enemyIntentText = this.add
+      .text(enemyX, enemyY + 180, "", {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#feca57",
+        align: "center",
+        wordWrap: { width: 200 },
+        stroke: "#000000",
+        strokeThickness: 1
+      })
+      .setOrigin(0.5);
+
+    // Status effects container with improved spacing
+    this.enemyStatusContainer = this.add.container(enemyX, enemyY + 210);
+
+    // Information button for enemy lore
+    this.createEnemyInfoButton(enemyX, enemyY - 200);
+
+    // Update the health and block text
+    this.updateEnemyUI();
+  }
+
+  /**
+   * Create hand UI container
+   */
+  private createHandUI(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    // Position hand container higher to avoid overlap with buttons
+    this.handContainer = this.add.container(screenWidth/2, screenHeight - 240);
+    
+    // Create selection counter text well above the cards (Balatro style)
+    // Position at -140 so it's above even when cards are elevated by 40px when selected
+    this.selectionCounterText = this.add.text(0, -140, "Selected: 0/5", {
+      fontFamily: "dungeon-mode",
+      fontSize: 22,
+      color: "#ffdd44",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    this.handContainer.add(this.selectionCounterText);
+    this.updateHandDisplay();
+  }
 
   /**
    * Create played hand UI container
@@ -733,7 +955,227 @@ export class Combat extends Scene {
       .setVisible(false);
   }
 
+  /**
+   * Create action buttons
+   */
+  private createActionButtons(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    // Position buttons below the cards
+    this.actionButtons = this.add.container(screenWidth/2, screenHeight - 100);
+    this.updateActionButtons();
+  }
 
+  /**
+   * Update action buttons based on current phase
+   */
+  private updateActionButtons(): void {
+    // Safety check: Don't update if scene is being destroyed or doesn't exist
+    if (!this.sys || !this.sys.isActive() || this.combatEnded) {
+      return;
+    }
+
+    // Clear existing buttons
+    this.actionButtons.removeAll(true);
+
+    const screenWidth = this.cameras.main.width;
+    const baseSpacing = 240; // Increased from 190 for better button separation
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const adjustedSpacing = baseSpacing * scaleFactor;
+
+    if (this.combatState.phase === "player_turn") {
+      // Card selection phase - Balatro-style layout with grouped sort buttons
+      
+      // Play Hand button on the left
+      const playButton = this.createButton(-adjustedSpacing * 1.2, 0, "Play Hand", () => {
+        this.playSelectedCards();
+      });
+
+      // Sort Hand grouped container (center) - Balatro style
+      const sortContainer = this.add.container(0, 0);
+      
+      // Create the grouped sort button background (double border style)
+      const sortGroupWidth = 320 * scaleFactor; // Increased width for more padding
+      const sortGroupHeight = 60; // Taller for more vertical padding
+      
+      const sortOuterBorder = this.add.rectangle(0, 0, sortGroupWidth + 8, sortGroupHeight + 8, undefined, 0)
+        .setStrokeStyle(3, 0x77888C);
+      const sortInnerBorder = this.add.rectangle(0, 0, sortGroupWidth, sortGroupHeight, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const sortBg = this.add.rectangle(0, 0, sortGroupWidth, sortGroupHeight, 0x150E10);
+      
+      // Sort Hand label at top
+      const sortLabel = this.add.text(0, -sortGroupHeight/2 - 24, "SORT", {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(14 * scaleFactor),
+        color: "#77888C",
+        align: "center"
+      }).setOrigin(0.5);
+      
+      // Create individual sort buttons inside the group (Prologue double border style)
+      const buttonWidth = 100 * scaleFactor; // Button width
+      const buttonHeight = 32; // Button height
+      const buttonGap = 20 * scaleFactor; // Gap between buttons
+      const buttonSpacing = buttonWidth/2 + buttonGap/2;
+      
+      // Rank button (Prologue style - double border)
+      const rankButtonContainer = this.add.container(-buttonSpacing, 0);
+      const rankOuterBorder = this.add.rectangle(0, 0, buttonWidth + 6, buttonHeight + 6, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const rankInnerBorder = this.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const rankButtonBg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
+      const rankButtonText = this.add.text(0, 0, "Rank", {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(16 * scaleFactor),
+        color: "#77888C",
+        align: "center"
+      }).setOrigin(0.5);
+      
+      rankButtonContainer.add([rankOuterBorder, rankInnerBorder, rankButtonBg, rankButtonText]);
+      rankButtonContainer.setInteractive(
+        new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
+        Phaser.Geom.Rectangle.Contains
+      );
+      
+      // Suit button (Prologue style - double border)
+      const suitButtonContainer = this.add.container(buttonSpacing, 0);
+      const suitOuterBorder = this.add.rectangle(0, 0, buttonWidth + 6, buttonHeight + 6, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const suitInnerBorder = this.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const suitButtonBg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
+      const suitButtonText = this.add.text(0, 0, "Suit", {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(16 * scaleFactor),
+        color: "#77888C",
+        align: "center"
+      }).setOrigin(0.5);
+      
+      suitButtonContainer.add([suitOuterBorder, suitInnerBorder, suitButtonBg, suitButtonText]);
+      suitButtonContainer.setInteractive(
+        new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
+        Phaser.Geom.Rectangle.Contains
+      );
+      
+      // Add hover effects to rank button
+      rankButtonContainer.on("pointerover", () => {
+        rankButtonBg.setFillStyle(0x1f1410);
+        rankButtonText.setColor("#e8eced");
+      });
+      rankButtonContainer.on("pointerout", () => {
+        rankButtonBg.setFillStyle(0x150E10);
+        rankButtonText.setColor("#77888C");
+      });
+      rankButtonContainer.on("pointerdown", () => {
+        this.sortHand("rank");
+      });
+      
+      // Add hover effects to suit button
+      suitButtonContainer.on("pointerover", () => {
+        suitButtonBg.setFillStyle(0x1f1410);
+        suitButtonText.setColor("#e8eced");
+      });
+      suitButtonContainer.on("pointerout", () => {
+        suitButtonBg.setFillStyle(0x150E10);
+        suitButtonText.setColor("#77888C");
+      });
+      suitButtonContainer.on("pointerdown", () => {
+        this.sortHand("suit");
+      });
+      
+      sortContainer.add([
+        sortOuterBorder, 
+        sortInnerBorder, 
+        sortBg, 
+        sortLabel,
+        rankButtonContainer,
+        suitButtonContainer
+      ]);
+
+      // Discard button on the right
+      const discardButton = this.createButton(adjustedSpacing * 1.2, 0, "Discard", () => {
+        this.discardSelectedCards();
+      });
+
+      this.actionButtons.add([
+        playButton,
+        sortContainer,
+        discardButton,
+      ]);
+    } else if (this.combatState.phase === "action_selection") {
+      // Action selection phase - Attack/Defend/Special based on dominant suit
+      const dominantSuit = this.getDominantSuit(
+        this.combatState.player.playedHand
+      );
+
+      const buttonSpacing = adjustedSpacing; // Use full adjusted spacing for better separation
+      const attackButton = this.createButton(-buttonSpacing, 0, "Attack", () => {
+        this.executeAction("attack");
+      });
+
+      const defendButton = this.createButton(0, 0, "Defend", () => {
+        this.executeAction("defend");
+      });
+
+      const specialButton = this.createButton(buttonSpacing, 0, "Special", () => {
+        this.executeAction("special");
+      });
+
+      // Create Prologue-style special action tooltip
+      const specialTooltipContainer = this.add.container(buttonSpacing, 30);
+      const tooltipText = this.getSpecialActionName(dominantSuit);
+      const tooltipWidth = Math.min(tooltipText.length * 8 + 20, 200);
+      const tooltipHeight = 40;
+      
+      // Prologue-style double border design
+      const outerBorder = this.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const innerBorder = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const bg = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+      
+      const specialTooltip = this.add.text(0, 0, tooltipText, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(14 * scaleFactor),
+        color: "#77888C",
+        align: "center",
+        wordWrap: { width: tooltipWidth - 10 }
+      }).setOrigin(0.5);
+      
+      specialTooltipContainer.add([outerBorder, innerBorder, bg, specialTooltip]);
+      specialTooltipContainer.setVisible(false).setAlpha(0);
+
+      specialButton.on("pointerover", () => {
+        // Prologue-style fade in
+        specialTooltipContainer.setVisible(true);
+        this.tweens.add({
+          targets: specialTooltipContainer,
+          alpha: 1,
+          duration: 200,
+          ease: 'Power2.easeOut'
+        });
+      });
+
+      specialButton.on("pointerout", () => {
+        // Prologue-style fade out
+        this.tweens.add({
+          targets: specialTooltipContainer,
+          alpha: 0,
+          duration: 200,
+          ease: 'Power2.easeOut',
+          onComplete: () => {
+            specialTooltipContainer.setVisible(false);
+          }
+        });
+      });
+
+      this.actionButtons.add([attackButton, defendButton, specialButton, specialTooltip]);
+    }
+    
+    // Update damage preview based on current phase
+    this.updateDamagePreview(this.combatState.phase === "action_selection");
+  }
 
   /**
    * Create turn UI
@@ -758,11 +1200,57 @@ export class Combat extends Scene {
       color: "#4ecdc4",
     });
 
-    // Info button for poker hand reference is created by CombatUI.initialize()
+    // Create info button for poker hand reference
+    this.createPokerHandInfoButton();
 
     this.updateTurnUI();
   }
 
+  /**
+   * Create poker hand info button
+   */
+  private createPokerHandInfoButton(): void {
+    const screenWidth = this.cameras.main.width;
+    
+    // Create a circular button with an "i" for information
+    this.pokerHandInfoButton = this.add.container(screenWidth - 50, 50);
+    
+    const infoButton = this.add.circle(0, 0, 20, 0x2f3542);
+    infoButton.setStrokeStyle(2, 0x57606f);
+    
+    // Add the "i" text
+    const infoText = this.add.text(0, 0, "i", {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#e8eced",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    // Make the button interactive
+    infoButton.setInteractive();
+    
+    // Add hover effects
+    infoButton.on("pointerover", () => {
+      infoButton.setFillStyle(0x3d4454);
+    });
+    
+    infoButton.on("pointerout", () => {
+      infoButton.setFillStyle(0x2f3542);
+    });
+    
+    // Add click event to navigate to poker hand reference scene
+    infoButton.on("pointerdown", () => {
+      this.scene.launch("PokerHandReference");
+    });
+    
+    // Also make the text interactive and link it to the same event
+    infoText.setInteractive();
+    infoText.on("pointerdown", () => {
+      this.scene.launch("PokerHandReference");
+    });
+    
+    this.pokerHandInfoButton.add([infoButton, infoText]);
+  }
 
   /**
    * Add a sample card to the visual representation container
@@ -1256,7 +1744,194 @@ export class Combat extends Scene {
     this.animateDrawCardsFromDeck(this.combatState.player.hand.length);
   }
 
+  /**
+   * Update hand display with a curved fanned-out arrangement (Balatro style)
+   */
+  private updateHandDisplay(): void {
+    // Safety check: Don't update if scene is being destroyed or doesn't exist
+    if (!this.sys || !this.sys.isActive() || this.combatEnded) {
+      return;
+    }
 
+    // Don't update if cards are currently being drawn
+    if (this.isDrawingCards) {
+      return;
+    }
+    
+    // Clear existing card sprites
+    this.cardSprites.forEach((sprite) => sprite.destroy());
+    this.cardSprites = [];
+
+    const hand = this.combatState.player.hand;
+    const screenWidth = this.cameras.main.width;
+    
+    // Balatro-style spacing - more spread out
+    const cardWidth = 80; // Original size
+    const cardSpacing = cardWidth * 1.2; // 120% for nice spread (more space between cards)
+    const totalWidth = (hand.length - 1) * cardSpacing;
+    const maxWidth = screenWidth * 0.8; // Use 80% of screen width
+    
+    // Scale down if needed to fit screen
+    const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
+    const actualSpacing = cardSpacing * scale;
+    const actualTotalWidth = (hand.length - 1) * actualSpacing;
+    const startX = -actualTotalWidth / 2;
+
+    // Balatro-style arc - more pronounced curve
+    const arcHeight = 30; // More noticeable arc height
+    const maxRotation = 8; // Slight rotation for cards at edges (degrees)
+    
+    hand.forEach((card, index) => {
+      // Calculate position along arc (Balatro style)
+      const normalizedPos = hand.length > 1 ? (index / (hand.length - 1)) - 0.5 : 0; // -0.5 to 0.5
+      
+      // X position spreads cards out evenly
+      const x = startX + index * actualSpacing;
+      
+      // Y position creates an arc (parabola peaks in middle) - same for all cards
+      const baseY = -Math.abs(normalizedPos) * arcHeight * 2; // Negative to curve upward
+      
+      // Rotation for cards at edges (Balatro style)
+      const rotation = normalizedPos * maxRotation;
+      
+      // Store base position in card data
+      (card as any).baseX = x;
+      (card as any).baseY = baseY;
+      (card as any).baseRotation = rotation;
+      
+      // Calculate actual Y position (elevated if selected, but keeps arc position)
+      const y = card.selected ? baseY - 40 : baseY;
+      
+      const cardSprite = this.createCardSprite(
+        card,
+        x,
+        y
+      );
+      
+      // Ensure sprite position is synchronized with calculated positions
+      cardSprite.setPosition(x, y);
+      cardSprite.setAngle(rotation);
+      
+      // Set depth so cards layer properly (left to right)
+      cardSprite.setDepth(card.selected ? 500 + index : 100 + index);
+      
+      // Apply selected state styling
+      if (card.selected) {
+        const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+        if (cardImage && 'setTint' in cardImage) {
+          cardImage.setTint(0xffdd44); // Yellow highlight when selected
+        }
+      }
+      
+      this.handContainer.add(cardSprite);
+      this.cardSprites.push(cardSprite);
+    });
+  }
+
+  /**
+   * Create a card sprite (original size, Balatro-style interactions)
+   */
+  private createCardSprite(
+    card: PlayingCard,
+    x: number,
+    y: number,
+    interactive: boolean = true
+  ): Phaser.GameObjects.Container {
+    const cardContainer = this.add.container(0, 0);
+
+    // Original card dimensions
+    const screenWidth = this.cameras.main.width;
+    const baseCardWidth = 80;  // Original size
+    const baseCardHeight = 112; // Original size
+    
+    // Scale card size based on screen width
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const cardWidth = baseCardWidth * scaleFactor;
+    const cardHeight = baseCardHeight * scaleFactor;
+
+    // Convert card rank to sprite rank (1-13)
+    const rankMap: Record<string, string> = {
+      "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
+      "6": "6", "7": "7", "8": "8", "9": "9", "10": "10",
+      "Mandirigma": "11", "Babaylan": "12", "Datu": "13"
+    };
+    const spriteRank = rankMap[card.rank] || "1";
+    
+    // Convert suit to lowercase for sprite naming
+    const suitMap: Record<string, string> = {
+      "Apoy": "apoy", "Tubig": "tubig", "Lupa": "lupa", "Hangin": "hangin"
+    };
+    const spriteSuit = suitMap[card.suit] || "apoy";
+    
+    // Create card sprite using the loaded image
+    const textureKey = `card_${spriteRank}_${spriteSuit}`;
+    console.log(`Trying to load card texture: ${textureKey} for card ${card.rank} of ${card.suit}`);
+    let cardSprite;
+    
+    // Check if texture exists, fallback to generated card if not
+    if (this.textures.exists(textureKey)) {
+      console.log(`Card texture found: ${textureKey}`);
+      cardSprite = this.add.image(0, 0, textureKey);
+    } else {
+      console.warn(`Card texture ${textureKey} not found, using fallback`);
+      // Fallback to generated card
+      cardSprite = this.add.rectangle(0, 0, cardWidth, cardHeight, 0xffffff);
+      
+      // Add rank text
+      const rankText = this.add.text(-cardWidth/2 + 5, -cardHeight/2 + 5, card.rank, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(10 * scaleFactor),
+        color: "#000000",
+      }).setOrigin(0, 0);
+      cardContainer.add(rankText);
+      
+      // Add suit symbol
+      const display = DeckManager.getCardDisplay(card);
+      const suitText = this.add.text(cardWidth/2 - 5, -cardHeight/2 + 5, display.symbol, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(10 * scaleFactor),
+        color: display.color,
+      }).setOrigin(1, 0);
+      cardContainer.add(suitText);
+    }
+    
+    cardSprite.setDisplaySize(cardWidth, cardHeight);
+    
+    // Add a Prologue-style border that changes when selected
+    const border = this.add.rectangle(
+      0,
+      0,
+      cardWidth + 4,
+      cardHeight + 4,
+      0x000000,
+      0  // No fill
+    );
+    border.setStrokeStyle(2, 0x77888C); // Prologue border color
+    border.setName('cardBorder'); // Set name for later reference
+    // Only show border when card is selected
+    border.setVisible(card.selected);
+
+    cardContainer.add([cardSprite, border]);
+
+    // Position the container
+    cardContainer.setPosition(x, y);
+
+    // Make interactive only for hand cards
+    if (interactive) {
+      cardContainer.setInteractive(
+        new Phaser.Geom.Rectangle(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight),
+        Phaser.Geom.Rectangle.Contains
+      );
+      
+      // Card selection - Prologue style (simple click, no hover effects)
+      cardContainer.on("pointerdown", () => this.selectCard(card));
+    }
+
+    // Store reference to card for later updates
+    (cardContainer as any).cardRef = card;
+
+    return cardContainer;
+  }
 
   /**
    * Update the visual appearance of a card without recreating it
@@ -1342,7 +2017,7 @@ export class Combat extends Scene {
     
     // Update card visuals without recreating all cards
     this.updateCardVisuals(card);
-    this.ui.updateHandIndicator(); // Update hand indicator when selection changes
+    this.updateHandIndicator(); // Update hand indicator when selection changes
     
     // Update damage preview if in player turn (for potential attack calculations)
     this.updateDamagePreview(this.combatState.phase === "action_selection");
@@ -1375,13 +2050,13 @@ export class Combat extends Scene {
     // If no cards left in played hand, return to card selection phase
     if (this.combatState.player.playedHand.length === 0) {
       this.combatState.phase = "player_turn";
-      this.ui.updateActionButtons();
+      this.updateActionButtons();
     }
     
     // Update displays
-    this.ui.updateHandDisplay();
-    this.ui.updatePlayedHandDisplay();
-    this.ui.updateHandIndicator();
+    this.updateHandDisplay();
+    this.updatePlayedHandDisplay();
+    this.updateHandIndicator();
     
     // Update damage preview based on current phase
     this.updateDamagePreview(this.combatState.phase === "action_selection");
@@ -1416,9 +2091,9 @@ export class Combat extends Scene {
     this.combatState.phase = "action_selection";
 
     // Update displays
-    this.ui.updateHandDisplay();
-    this.ui.updatePlayedHandDisplay();
-    this.ui.updateActionButtons();
+    this.updateHandDisplay();
+    this.updatePlayedHandDisplay();
+    this.updateActionButtons();
     
     // Update damage preview for the new hand
     this.updateDamagePreview(true);
@@ -1596,9 +2271,9 @@ export class Combat extends Scene {
     // Clear selection
     this.selectedCards = [];
 
-    this.ui.updateHandDisplay();
+    this.updateHandDisplay();
     this.updateTurnUI();
-    this.ui.updateHandIndicator(); // Update hand indicator after discarding
+    this.updateHandIndicator(); // Update hand indicator after discarding
     this.updateSelectionCounter(); // Update selection counter after discarding
     this.updateDiscardDisplay(); // Update discard pile display
   }
@@ -1703,9 +2378,9 @@ export class Combat extends Scene {
     }
 
     this.updateTurnUI();
-    this.ui.updateHandDisplay();
-    this.ui.updatePlayedHandDisplay(); // Clear the played hand display
-    this.ui.updateActionButtons(); // Reset to card selection buttons
+    this.updateHandDisplay();
+    this.updatePlayedHandDisplay(); // Clear the played hand display
+    this.updateActionButtons(); // Reset to card selection buttons
     
     // Apply start-of-turn relic effects
     RelicManager.applyStartOfTurnEffects(this.combatState.player);
@@ -1786,7 +2461,7 @@ export class Combat extends Scene {
 
     // Add visual feedback for enemy taking damage
     this.animateSpriteDamage(this.enemySprite);
-    this.ui.updateEnemyUI();
+    this.updateEnemyUI();
 
     // Show detailed damage calculation if there are special bonuses
     if (vulnerableBonus > 0 || bakunawaBonus > 0) {
@@ -1803,7 +2478,7 @@ export class Combat extends Scene {
     // Check if enemy is defeated
     if (this.combatState.enemy.currentHealth <= 0) {
       this.combatState.enemy.currentHealth = 0;
-      this.ui.updateEnemyUI();
+      this.updateEnemyUI();
       console.log("Enemy defeated!");
       
       // Play death animation
@@ -1859,12 +2534,12 @@ export class Combat extends Scene {
 
     // Add visual feedback for player taking damage
     this.animateSpriteDamage(this.playerSprite);
-    this.ui.updatePlayerUI();
+    this.updatePlayerUI();
 
     // Check if player is defeated
     if (this.combatState.player.currentHealth <= 0) {
       this.combatState.player.currentHealth = 0;
-      this.ui.updatePlayerUI();
+      this.updatePlayerUI();
       console.log("Player defeated!");
       this.time.delayedCall(500, () => {
         this.endCombat(false);
@@ -1899,10 +2574,33 @@ export class Combat extends Scene {
       enemy.block += 5;
     }
 
-    this.ui.updateEnemyUI();
+    this.updateEnemyUI();
   }
 
+  /**
+   * Update player UI elements
+   */
+  private updatePlayerUI(): void {
+    const player = this.combatState.player;
+    this.playerHealthText.setText(
+      `♥ ${player.currentHealth}/${player.maxHealth}`
+    );
+    this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
+  }
 
+  /**
+   * Update enemy UI elements
+   */
+  private updateEnemyUI(): void {
+    const enemy = this.combatState.enemy;
+    this.enemyHealthText.setText(
+      `♥ ${enemy.currentHealth}/${enemy.maxHealth}`
+    );
+    this.enemyBlockText.setText(enemy.block > 0 ? `⛨ ${enemy.block}` : "");
+    this.enemyIntentText.setText(
+      `${enemy.intent.icon} ${enemy.intent.description}`
+    );
+  }
 
   /**
    * Update turn UI elements
@@ -1918,12 +2616,29 @@ export class Combat extends Scene {
       this.actionsText.setText(
         `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Hand: ${this.combatState.player.hand.length}/8`
       );
-      this.ui.updateHandIndicator();
+      this.updateHandIndicator();
     } catch (error) {
       console.error("Error updating turn UI:", error);
     }
   }
 
+  /**
+   * Update hand indicator to show current selected hand type
+   */
+  private updateHandIndicator(): void {
+    if (this.selectedCards.length === 0) {
+      this.handIndicatorText.setText("");
+      return;
+    }
+
+    // Evaluate the currently selected cards
+    const evaluation = HandEvaluator.evaluateHand(this.selectedCards, "attack");
+    const handTypeText = this.getHandTypeDisplayText(evaluation.type);
+    const valueText =
+      evaluation.totalValue > 0 ? ` (${evaluation.totalValue} value)` : "";
+
+    this.handIndicatorText.setText(`Selected: ${handTypeText}${valueText}`);
+  }
 
   /**
    * Update selection counter above the cards (Balatro style)
@@ -2680,6 +3395,101 @@ export class Combat extends Scene {
     }
   }
 
+  /**
+   * Update played hand display
+   */
+  private updatePlayedHandDisplay(): void {
+    // Safety check: Don't update if scene is being destroyed or doesn't exist
+    if (!this.sys || !this.sys.isActive() || this.combatEnded) {
+      return;
+    }
+
+    // Clear existing played card sprites
+    this.playedCardSprites.forEach((sprite) => sprite.destroy());
+    this.playedCardSprites = [];
+
+    const playedHand = this.combatState.player.playedHand;
+    if (playedHand.length === 0) {
+      // Hide hand evaluation text when no cards are played
+      if (this.handEvaluationText) {
+        this.handEvaluationText.setVisible(false);
+      }
+      return;
+    }
+
+    const cardWidth = 70;
+    const totalWidth = playedHand.length * cardWidth;
+    const screenWidth = this.cameras.main.width;
+    
+    // Limit the total width to 80% of screen width to prevent overflow
+    const maxWidth = screenWidth * 0.8;
+    const actualCardWidth = totalWidth > maxWidth ? (maxWidth / playedHand.length) : cardWidth;
+    const actualTotalWidth = playedHand.length * actualCardWidth;
+    const startX = -actualTotalWidth / 2 + actualCardWidth / 2;
+
+    playedHand.forEach((card, index) => {
+      const cardSprite = this.createCardSprite(
+        card,
+        startX + index * actualCardWidth,
+        0,
+        true // Make interactive so players can unplay cards
+      );
+      
+      // Override the default card interaction to unplay instead of select
+      cardSprite.removeAllListeners('pointerdown');
+      cardSprite.on("pointerdown", () => {
+        this.unplayCard(card);
+      });
+      
+      // Add visual feedback for played cards when hovering
+      cardSprite.on("pointerover", () => {
+        cardSprite.setScale(1.15);
+        // Add golden tint to indicate it's clickable to unplay
+        cardSprite.list.forEach(child => {
+          if (child instanceof Phaser.GameObjects.Image) {
+            child.setTint(0xffd93d);
+          }
+        });
+        this.tweens.add({
+          targets: cardSprite,
+          y: cardSprite.y - 15,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
+      cardSprite.on("pointerout", () => {
+        cardSprite.setScale(1);
+        // Remove tint
+        cardSprite.list.forEach(child => {
+          if (child instanceof Phaser.GameObjects.Image) {
+            child.clearTint();
+          }
+        });
+        this.tweens.add({
+          targets: cardSprite,
+          y: cardSprite.y + 15,
+          duration: 150,
+          ease: 'Power2'
+        });
+      });
+      
+      this.playedHandContainer.add(cardSprite);
+      this.playedCardSprites.push(cardSprite);
+    });
+
+    // Show hand evaluation
+    const evaluation = HandEvaluator.evaluateHand(playedHand, "attack");
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    this.handEvaluationText.setFontSize(Math.floor(18 * scaleFactor));
+    this.handEvaluationText.setText(
+      `${evaluation.description} - Value: ${evaluation.totalValue}`
+    );
+    this.handEvaluationText.setVisible(true);
+
+    // Store eval text to destroy later
+    this.playedHandContainer.add(this.handEvaluationText);
+  }
 
   /**
    * Get dominant suit from played hand
@@ -2826,7 +3636,7 @@ export class Combat extends Scene {
 
     if (block > 0) {
       this.combatState.player.block += block;
-      this.ui.updatePlayerUI();
+      this.updatePlayerUI();
       // Result already shown above with detailed calculation
     }
     
@@ -3267,7 +4077,7 @@ export class Combat extends Scene {
             this.combatState.player.maxHealth,
             this.combatState.player.currentHealth + 2
           );
-          this.ui.updatePlayerUI();
+          this.updatePlayerUI();
         } else {
           // Heal + Cleanse Debuff
           this.combatState.player.currentHealth = Math.min(
@@ -3275,7 +4085,7 @@ export class Combat extends Scene {
             this.combatState.player.currentHealth + Math.floor(value * 0.5)
           );
           // TODO: Cleanse Debuff
-          this.ui.updatePlayerUI();
+          this.updatePlayerUI();
         }
         break;
       case "Lupa": // Earth
@@ -3552,7 +4362,7 @@ export class Combat extends Scene {
       const row = Math.floor(index / columns);
       const x = startX + col * (cardWidth + padding);
       const y = startY + row * (cardHeight + padding);
-      const cardSprite = this.ui.createCardSprite(card, x, y, false);
+      const cardSprite = this.createCardSprite(card, x, y, false);
       cardSprite.setDepth(2);
       cardsContainer.add(cardSprite);
     });
@@ -3608,7 +4418,7 @@ export class Combat extends Scene {
       const row = Math.floor(index / columns);
       const x = startX + col * (cardWidth + padding);
       const y = startY + row * (cardHeight + padding);
-      const cardSprite = this.ui.createCardSprite(card, x, y, false);
+      const cardSprite = this.createCardSprite(card, x, y, false);
       cardSprite.setDepth(2);
       cardsContainer.add(cardSprite);
     });
@@ -3682,7 +4492,7 @@ export class Combat extends Scene {
       (card as any).baseRotation = rotation;
       
       // Create card sprite at deck position - make it interactive from the start
-      const cardSprite = this.ui.createCardSprite(card, 0, 0, true);
+      const cardSprite = this.createCardSprite(card, 0, 0, true);
       
       // Position at deck location initially
       cardSprite.setPosition(this.deckPosition.x - screenWidth / 2, this.deckPosition.y - this.cameras.main.height + 240);
@@ -3912,7 +4722,7 @@ export class Combat extends Scene {
       const x = startX + index * actualCardWidth;
       const y = -Math.sin(positionRatio * Math.PI) * curveHeight;
       
-      const cardSprite = this.ui.createCardSprite(card, x, y);
+      const cardSprite = this.createCardSprite(card, x, y);
       this.handContainer.add(cardSprite);
       this.cardSprites.push(cardSprite);
     });
@@ -4723,9 +5533,9 @@ export class Combat extends Scene {
   private heal(entity: Player | Enemy, amount: number): void {
     entity.currentHealth = Math.min(entity.maxHealth, entity.currentHealth + amount);
     if (entity.id === "player") {
-      this.ui.updatePlayerUI();
+      this.updatePlayerUI();
     } else {
-      this.ui.updateEnemyUI();
+      this.updateEnemyUI();
     }
   }
 
@@ -4802,9 +5612,9 @@ export class Combat extends Scene {
     }
     
     // Redraw UI elements
-    this.ui.updateHandDisplay();
-    this.ui.updatePlayedHandDisplay();
-    this.ui.updateActionButtons();
+    this.updateHandDisplay();
+    this.updatePlayedHandDisplay();
+    this.updateActionButtons();
     this.updateRelicsUI();
     this.updateRelicInventory();
     this.updateTurnUI();
