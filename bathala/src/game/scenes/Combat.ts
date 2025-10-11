@@ -5,7 +5,6 @@ import {
   Enemy,
   PlayingCard,
   Suit,
-  HonorRange,
   CreatureDialogue,
   PostCombatReward,
   Landas,
@@ -23,6 +22,8 @@ import {
 } from "../../data/enemies/Act1Enemies";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 import { RelicManager } from "../../core/managers/RelicManager";
+import { EnemyDialogueManager } from "../managers/EnemyDialogueManager";
+import { EnemyLoreUI } from "../managers/EnemyLoreUI";
 import { CombatUI } from "./combat/CombatUI";
 import { CombatDialogue } from "./combat/CombatDialogue";
 import { CombatAnimations } from "./combat/CombatAnimations";
@@ -36,6 +37,8 @@ export class Combat extends Scene {
   public ui!: CombatUI;
   public dialogue!: CombatDialogue;
   public animations!: CombatAnimations;
+  private enemyDialogueManager!: EnemyDialogueManager;
+  private enemyLoreUI!: EnemyLoreUI;
   private combatState!: CombatState;
   private playerHealthText!: Phaser.GameObjects.Text;
   private playerBlockText!: Phaser.GameObjects.Text;
@@ -380,6 +383,18 @@ export class Combat extends Scene {
       default:
         return getRandomCommonEnemy();
     }
+  }
+
+  /**
+   * Get specific enemy by ID (e.g., from overworld direct selection)
+   */
+  private getSpecificEnemyById(enemyId: string): Omit<Enemy, "id"> {
+    const enemy = getEnemyByName(enemyId);
+    if (!enemy) {
+      console.warn(`Enemy with id "${enemyId}" not found, falling back to random common enemy`);
+      return getRandomCommonEnemy();
+    }
+    return enemy;
   }
 
   /**
