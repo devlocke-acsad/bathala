@@ -1,129 +1,132 @@
-/**
- * Test file for Win Rate Target Band Monitoring
- */
-
 import { DDAAnalyticsManager } from "./DDAAnalyticsManager";
 import { CombatMetrics } from "../../core/dda/DDATypes";
+import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 
-// Mock combat metrics for testing
-const mockVictory: CombatMetrics = {
-  combatId: "test-1",
-  timestamp: Date.now(),
-  startHealth: 80,
-  startMaxHealth: 80,
-  startGold: 100,
-  endHealth: 60,
-  healthPercentage: 0.75,
-  turnCount: 5,
-  damageDealt: 30,
-  damageReceived: 20,
-  discardsUsed: 1,
-  maxDiscardsAvailable: 2,
-  handsPlayed: ["pair"],
-  bestHandAchieved: "pair",
-  averageHandQuality: 1,
-  victory: true,
-  combatDuration: 30000,
-  enemyType: "common",
-  enemyName: "Test Enemy",
-  enemyStartHealth: 30
-};
+describe("DDAAnalyticsManager win rate target band", () => {
+  const baseVictory: CombatMetrics = {
+    combatId: "victory",
+    timestamp: Date.now(),
+    startHealth: 80,
+    startMaxHealth: 80,
+    startGold: 100,
+    endHealth: 60,
+    healthPercentage: 0.75,
+    turnCount: 5,
+    damageDealt: 30,
+    damageReceived: 20,
+    discardsUsed: 1,
+    maxDiscardsAvailable: 2,
+    handsPlayed: ["pair"],
+    bestHandAchieved: "pair",
+    averageHandQuality: 1,
+    victory: true,
+    combatDuration: 30_000,
+    enemyType: "common",
+    enemyName: "Test Enemy",
+    enemyStartHealth: 30,
+  };
 
-const mockDefeat: CombatMetrics = {
-  combatId: "test-2",
-  timestamp: Date.now() + 1000,
-  startHealth: 80,
-  startMaxHealth: 80,
-  startGold: 100,
-  endHealth: 0,
-  healthPercentage: 0,
-  turnCount: 8,
-  damageDealt: 20,
-  damageReceived: 80,
-  discardsUsed: 2,
-  maxDiscardsAvailable: 2,
-  handsPlayed: ["high_card"],
-  bestHandAchieved: "high_card",
-  averageHandQuality: 0,
-  victory: false,
-  combatDuration: 45000,
-  enemyType: "common",
-  enemyName: "Test Enemy",
-  enemyStartHealth: 30
-};
+  const baseDefeat: CombatMetrics = {
+    ...baseVictory,
+    combatId: "defeat",
+    timestamp: Date.now() + 1,
+    endHealth: 0,
+    healthPercentage: 0,
+    damageDealt: 15,
+    damageReceived: 40,
+    discardsUsed: 2,
+    bestHandAchieved: "high_card",
+    handsPlayed: ["high_card"],
+    averageHandQuality: 0,
+    victory: false,
+  };
 
-console.log("=== Win Rate Target Band Monitoring Test ===");
+  let analytics: DDAAnalyticsManager;
 
-// Get analytics manager instance
-const analytics = DDAAnalyticsManager.getInstance();
-analytics.resetSession();
+  beforeEach(() => {
+    RuleBasedDDA.forceClearSingleton();
+    (DDAAnalyticsManager as unknown as { instance?: DDAAnalyticsManager }).instance = undefined;
+    analytics = DDAAnalyticsManager.getInstance();
+    analytics.resetSession();
+  });
 
-// Test initial state
-console.log("\n1. Initial State Test:");
-const initialWinRate = analytics.checkWinRateTargetBand();
-console.log(`Win Rate: ${initialWinRate.winRate}%`);
-console.log(`Target Band: ${initialWinRate.targetBand.min}-${initialWinRate.targetBand.max}%`);
-console.log(`Within Target: ${initialWinRate.withinTarget}`);
-console.log(`Status: ${initialWinRate.status}`);
+  it("returns below target status when no combats have been recorded", () => {
+    const status = analytics.checkWinRateTargetBand();
 
-// Test setting custom target band
-console.log("\n2. Custom Target Band Test:");
-analytics.setWinRateTargetBand(30, 70);
-const customBand = analytics.getWinRateTargetBand();
-console.log(`Custom Target Band: ${customBand.min}-${customBand.max}%`);
+    expect(status.winRate).toBe(0);
+    expect(status.withinTarget).toBe(false);
+    expect(status.status).toBe("below_target");
+  });
 
-// Test with 3 wins and 2 losses (60% win rate)
-console.log("\n3. Recording Combats Test:");
-for (let i = 0; i < 3; i++) {
-  analytics.recordCombat(mockVictory);
-}
-for (let i = 0; i < 2; i++) {
-  analytics.recordCombat(mockDefeat);
-}
+  it("throws when provided an invalid win rate band", () => {
+    expect(() => analytics.setWinRateTargetBand(70, 30)).toThrow(
+      /Invalid win rate target band/i
+    );
+    expect(() => analytics.setWinRateTargetBand(-10, 50)).toThrow();
+    expect(() => analytics.setWinRateTargetBand(10, 110)).toThrow();
+  });
 
-const afterCombats = analytics.checkWinRateTargetBand();
-console.log(`Total Combats: 5`);
-console.log(`Wins: 3, Losses: 2`);
-console.log(`Win Rate: ${afterCombats.winRate}%`);
-console.log(`Target Band: ${afterCombats.targetBand.min}-${afterCombats.targetBand.max}%`);
-console.log(`Within Target: ${afterCombats.withinTarget}`);
-console.log(`Status: ${afterCombats.status}`);
+  it("allows configuring a custom win rate band", () => {
+    analytics.setWinRateTargetBand(30, 70);
 
-// Test with extreme win rate
-console.log("\n4. Extreme Win Rate Test:");
-analytics.resetSession();
-analytics.setWinRateTargetBand(40, 60);
+    expect(analytics.getWinRateTargetBand()).toEqual({ min: 30, max: 70 });
+  });
 
-// Record 9 wins and 1 loss (90% win rate)
-for (let i = 0; i < 9; i++) {
-  analytics.recordCombat(mockVictory);
-}
-analytics.recordCombat(mockDefeat);
+  it("reports win rate within target band", () => {
+    analytics.setWinRateTargetBand(40, 60);
 
-const highWinRate = analytics.checkWinRateTargetBand();
-console.log(`Total Combats: 10`);
-console.log(`Wins: 9, Losses: 1`);
-console.log(`Win Rate: ${highWinRate.winRate}%`);
-console.log(`Target Band: ${highWinRate.targetBand.min}-${highWinRate.targetBand.max}%`);
-console.log(`Within Target: ${highWinRate.withinTarget}`);
-console.log(`Status: ${highWinRate.status}`);
+    recordCombats(analytics, 3, 2);
 
-// Test with very low win rate
-console.log("\n5. Low Win Rate Test:");
-analytics.resetSession();
+    const status = analytics.checkWinRateTargetBand();
 
-// Record 1 win and 9 losses (10% win rate)
-analytics.recordCombat(mockVictory);
-for (let i = 0; i < 9; i++) {
-  analytics.recordCombat(mockDefeat);
-}
+    expect(status.winRate).toBe(60);
+    expect(status.withinTarget).toBe(true);
+    expect(status.status).toBe("within_target");
+  });
 
-const lowWinRate = analytics.checkWinRateTargetBand();
-console.log(`Total Combats: 10`);
-console.log(`Wins: 1, Losses: 9`);
-console.log(`Win Rate: ${lowWinRate.winRate}%`);
-console.log(`Target Band: ${lowWinRate.targetBand.min}-${lowWinRate.targetBand.max}%`);
-console.log(`Within Target: ${lowWinRate.withinTarget}`);
-console.log(`Status: ${lowWinRate.status}`);
+  it("reports win rate above target band", () => {
+    analytics.setWinRateTargetBand(40, 60);
 
-console.log("\n=== Test Complete ===");
+    recordCombats(analytics, 9, 1);
+
+    const status = analytics.checkWinRateTargetBand();
+
+    expect(status.winRate).toBe(90);
+    expect(status.withinTarget).toBe(false);
+    expect(status.status).toBe("above_target");
+  });
+
+  it("reports win rate below target band", () => {
+    analytics.setWinRateTargetBand(40, 60);
+
+    recordCombats(analytics, 1, 9);
+
+    const status = analytics.checkWinRateTargetBand();
+
+    expect(status.winRate).toBe(10);
+    expect(status.withinTarget).toBe(false);
+    expect(status.status).toBe("below_target");
+  });
+
+  function recordCombats(
+    manager: DDAAnalyticsManager,
+    victories: number,
+    defeats: number
+  ): void {
+    for (let i = 0; i < victories; i++) {
+      manager.recordCombat({
+        ...baseVictory,
+        combatId: `victory-${i}`,
+        timestamp: Date.now() + i,
+      });
+    }
+
+    for (let i = 0; i < defeats; i++) {
+      manager.recordCombat({
+        ...baseDefeat,
+        combatId: `defeat-${i}`,
+        timestamp: Date.now() + victories + i,
+      });
+    }
+  }
+});

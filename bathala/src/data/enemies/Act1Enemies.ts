@@ -28,7 +28,17 @@ export const BALETE_WRAITH: Omit<Enemy, "id"> = {
   maxHealth: 22,
   currentHealth: 22,
   block: 0,
-  statusEffects: [{ type: "vulnerable", duration: -1 }],
+  statusEffects: [
+    {
+      id: "vulnerable",
+      name: "Vulnerable",
+      type: "debuff",
+      duration: -1, // Permanent
+      value: 1,
+      description: "Takes 50% more damage from all sources.",
+      emoji: "🛡️💔",
+    }
+  ],
   intent: {
     type: "attack",
     value: 5,
@@ -148,7 +158,17 @@ export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
   maxHealth: 60,
   currentHealth: 60,
   block: 0,
-  statusEffects: [{ type: "invisible", duration: 1 }],
+  statusEffects: [
+    {
+      id: "dexterity",
+      name: "Dexterity",
+      type: "buff",
+      duration: -1, // Permanent (invisible wind being trait)
+      value: 2,
+      description: "Gain +2 block per stack when using Defend actions. Represents the elusive, wind-dancing nature of Tawong Lipod.",
+      emoji: "💨",
+    }
+  ],
   intent: {
     type: "attack",
     value: 10,
@@ -168,7 +188,7 @@ export const MANGNANGAWAY: Omit<Enemy, "id"> = {
   block: 0,
   statusEffects: [],
   intent: {
-    type: "special",
+    type: "debuff", // Changed from "special" to valid type
     value: 0,
     description: "Mimics elements, curses cards, Hex of Reversal",
     icon: "†",
@@ -214,4 +234,21 @@ export function getRandomEliteEnemy(): Omit<Enemy, "id"> {
  */
 export function getBossEnemy(): Omit<Enemy, "id"> {
   return { ...MANGNANGAWAY };
+}
+
+/**
+ * Get a specific enemy by name
+ */
+export function getEnemyByName(name: string): Omit<Enemy, "id"> | null {
+  // Create a map of all enemies for easy lookup
+  const allEnemies = [
+    ...ACT1_COMMON_ENEMIES,
+    ...ACT1_ELITE_ENEMIES,
+    ...ACT1_BOSS_ENEMIES,
+  ];
+  
+  // Find enemy by name (case-insensitive)
+  const enemy = allEnemies.find(e => e.name.toLowerCase() === name.toLowerCase());
+  
+  return enemy ? { ...enemy } : null;
 }

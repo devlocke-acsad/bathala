@@ -8,30 +8,7 @@ import { DeckManager } from "../../utils/DeckManager";
 import { Potion } from "../../data/potions/Act1Potions";
 import { Overworld_KeyInputManager } from "./Overworld_KeyInputManager";
 import { Overworld_MazeGenManager } from "./Overworld_MazeGenManager";
-import { 
-  TIKBALANG_SCOUT,
-  BALETE_WRAITH,
-  SIGBIN_CHARGER,
-  DUWENDE_TRICKSTER,
-  TIYANAK_AMBUSHER,
-  AMOMONGO,
-  BUNGISNGIS,
-  KAPRE_SHADE,
-  TAWONG_LIPOD,
-  MANGNANGAWAY
-} from "../../data/enemies/Act1Enemies";
-import { 
-  TIKBALANG_SCOUT_LORE,
-  BALETE_WRAITH_LORE,
-  SIGBIN_CHARGER_LORE,
-  DUWENDE_TRICKSTER_LORE,
-  TIYANAK_AMBUSHER_LORE,
-  AMOMONGO_LORE,
-  BUNGISNGIS_LORE,
-  KAPRE_SHADE_LORE,
-  TAWONG_LIPOD_LORE,
-  MANGNANGAWAY_LORE
-} from "../../data/lore/EnemyLore";
+import { Overworld_TooltipManager } from "./Overworld_TooltipManager";
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   private keyInputManager!: Overworld_KeyInputManager;
@@ -65,17 +42,8 @@ export class Overworld extends Scene {
   private potionInventoryButton!: Phaser.GameObjects.Container;
   private playerData: Player;
   
-  // Enemy Info Tooltip
-  private tooltipContainer!: Phaser.GameObjects.Container;
-  private tooltipBackground!: Phaser.GameObjects.Rectangle;
-  private tooltipNameText!: Phaser.GameObjects.Text;
-  private tooltipTypeText!: Phaser.GameObjects.Text;
-  private tooltipSpriteContainer!: Phaser.GameObjects.Container;
-  private tooltipStatsText!: Phaser.GameObjects.Text;
-  private tooltipDescriptionText!: Phaser.GameObjects.Text;
-  private isTooltipVisible: boolean = false;
-  private currentTooltipTimer?: Phaser.Time.TimerEvent;
-  private lastHoveredNodeId?: string;
+  // Tooltip Manager
+  private tooltipManager!: Overworld_TooltipManager;
 
   constructor() {
     super({ key: "Overworld" });
@@ -156,6 +124,16 @@ export class Overworld extends Scene {
   create(): void {
     // Set camera background color to match forest theme
     this.cameras.main.setBackgroundColor(0x323C39);
+    
+    // Explicitly set default cursor to prevent pointer cursor from persisting
+    this.input.setDefaultCursor('default');
+    console.log('🖱️ Overworld: Setting default cursor to "default"');
+    
+    // Debug: Log cursor state after setup
+    this.time.delayedCall(1000, () => {
+      console.log('🖱️ Current cursor state:', this.game.canvas.style.cursor);
+      console.log('🖱️ Input enabled:', this.input.enabled);
+    });
     
     // Initialize maze generation manager
     this.mazeGenManager = new Overworld_MazeGenManager(this, this.gridSize);
@@ -1030,7 +1008,7 @@ export class Overworld extends Scene {
     this.gameState.markBossTriggered();
     
     // Hide any visible tooltips
-    this.hideNodeTooltip();
+    this.tooltipManager.hideTooltip();
     
     // Create dramatic effect for boss appearance
     this.createBossAppearanceEffect();
@@ -1431,62 +1409,59 @@ export class Overworld extends Scene {
       (hoveredNode, pointer) => {
         console.log(`🖱️ Hovering over ${hoveredNode.type} node at ${hoveredNode.id}`);
         
-        // Cancel any pending tooltip timer
-        if (this.currentTooltipTimer) {
-          this.currentTooltipTimer.destroy();
-        }
-        
         // Set current hovered node
-        this.lastHoveredNodeId = hoveredNode.id;
+        this.tooltipManager.setLastHoveredNodeId(hoveredNode.id);
         
         // Show appropriate tooltip based on node type
         if (hoveredNode.type === "combat" || hoveredNode.type === "elite" || hoveredNode.type === "boss") {
-          this.showEnemyTooltipImmediate(hoveredNode, pointer.x, pointer.y);
+          this.tooltipManager.showEnemyTooltip(hoveredNode, pointer.x, pointer.y);
         } else {
-          this.showNodeTooltipImmediate(hoveredNode, pointer.x, pointer.y);
+          this.tooltipManager.showNodeTooltip(hoveredNode, pointer.x, pointer.y);
         }
       },
       (hoveredNode, pointer) => {
         // Update tooltip position on mouse move while hovering
-        if (this.isTooltipVisible && this.lastHoveredNodeId === hoveredNode.id) {
-          this.updateTooltipSizeAndPositionImmediate(pointer.x, pointer.y);
+        if (this.tooltipManager.isVisible() && this.tooltipManager.getLastHoveredNodeId() === hoveredNode.id) {
+          this.tooltipManager.updateTooltipPosition(pointer.x, pointer.y);
         }
       },
       (hoveredNode) => {
         console.log(`🖱️ Stopped hovering over ${hoveredNode.type} node at ${hoveredNode.id}`);
         
-        // Clear current hovered node
-        this.lastHoveredNodeId = undefined;
-        
-        // Cancel any pending tooltip timer
-        if (this.currentTooltipTimer) {
-          this.currentTooltipTimer.destroy();
-          this.currentTooltipTimer = undefined;
-        }
-        
         // Hide tooltip immediately
-        this.hideNodeTooltip();
+        this.tooltipManager.hideTooltip();
       }
     );
   }
 
   private handleNodeHoverStart(node: MapNode, pointer: Phaser.Input.Pointer): void {
-    // Existing tooltip logic from renderNode method
-    if ((node.type === "combat" || node.type === "elite") && node.enemyId) {
-      console.log(`Hovering over ${node.type} node with enemy: ${node.enemyId}`);
-      this.showEnemyTooltipImmediate(node, pointer.x, pointer.y);
+    console.log(`🖱️ [HOVER START] Node type: ${node.type}, ID: ${node.id}, EnemyID: ${node.enemyId || 'N/A'}`);
+    
+    // Set current hovered node
+    this.tooltipManager.setLastHoveredNodeId(node.id);
+    
+    // Show appropriate tooltip based on node type
+    if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
+      console.log(`🖱️ Showing enemy tooltip for: ${node.enemyId}`);
+      this.tooltipManager.showEnemyTooltip(node, pointer.x, pointer.y);
+    } else {
+      console.log(`🖱️ Showing node tooltip for: ${node.type}`);
+      this.tooltipManager.showNodeTooltip(node, pointer.x, pointer.y);
     }
-    // Add other node type tooltips as needed
   }
 
-  private handleNodeHoverMove(_node: MapNode, _pointer: Phaser.Input.Pointer): void {
-    // Currently no specific hover move logic needed
-    // Could update tooltip position here if tooltips are added for other node types
+  private handleNodeHoverMove(node: MapNode, pointer: Phaser.Input.Pointer): void {
+    // Update tooltip position on mouse move while hovering
+    if (this.tooltipManager.isVisible() && this.tooltipManager.getLastHoveredNodeId() === node.id) {
+      this.tooltipManager.updateTooltipPosition(pointer.x, pointer.y);
+    }
   }
 
-  private handleNodeHoverEnd(_node: MapNode): void {
-    // Hide tooltips
-    this.hideEnemyTooltip();
+  private handleNodeHoverEnd(node: MapNode): void {
+    console.log(`🖱️ Stopped hovering over ${node.type} node at ${node.id}`);
+    
+    // Hide tooltip immediately
+    this.tooltipManager.hideTooltip();
   }
 
   isValidPosition(x: number, y: number): boolean {
@@ -1531,9 +1506,9 @@ export class Overworld extends Scene {
           }
           
           // Hide tooltip if it's visible
-          this.hideEnemyTooltip();
+          this.tooltipManager.hideTooltip();
           
-          this.startCombat(node.type);
+          this.startCombat(node.type, node.enemyId);
           break;
           
         case "boss":
@@ -1547,9 +1522,9 @@ export class Overworld extends Scene {
           }
           
           // Hide tooltip if it's visible
-          this.hideEnemyTooltip();
+          this.tooltipManager.hideTooltip();
           
-          this.startCombat("boss");
+          this.startCombat("boss", node.enemyId);
           break;
           
         case "shop":
@@ -1638,7 +1613,7 @@ export class Overworld extends Scene {
           }
           
           // Hide tooltip if it's visible
-          this.hideNodeTooltip();
+          this.tooltipManager.hideTooltip();
           
           // Check if player data exists, if not create a default one
           const safePlayerData = this.playerData || {
@@ -1848,7 +1823,7 @@ export class Overworld extends Scene {
     });
   }
 
-  startCombat(nodeType: string): void {
+  startCombat(nodeType: string, enemyId?: string): void {
     // Prevent player from moving during combat transition
     this.isMoving = true;
     this.isTransitioningToCombat = true;
@@ -1864,7 +1839,7 @@ export class Overworld extends Scene {
     
     // Check if this is a boss fight for special animation
     if (nodeType === "boss") {
-      this.startBossCombat();
+      this.startBossCombat(enemyId);
       return;
     }
     
@@ -1986,6 +1961,7 @@ export class Overworld extends Scene {
             this.scene.pause();
             this.scene.launch("Combat", { 
               nodeType: nodeType,
+              enemyId: enemyId,
               transitionOverlay: overlay // Pass overlay to combat scene
             });
           }
@@ -2090,6 +2066,7 @@ export class Overworld extends Scene {
             this.scene.pause();
             this.scene.launch("Combat", { 
               nodeType: nodeType,
+              enemyId: enemyId,
               transitionOverlay: overlay // Pass overlay to combat scene
             });
           }
@@ -2098,7 +2075,7 @@ export class Overworld extends Scene {
     }
   }
 
-  startBossCombat(): void {
+  startBossCombat(enemyId?: string): void {
     // Save player position before transitioning
     const gameState = GameState.getInstance();
     gameState.savePlayerPosition(this.player.x, this.player.y);
@@ -2164,6 +2141,7 @@ export class Overworld extends Scene {
             this.scene.pause();
             this.scene.launch("Combat", { 
               nodeType: "boss",
+              enemyId: enemyId,
               transitionOverlay: overlay
             });
           }
@@ -2178,6 +2156,18 @@ export class Overworld extends Scene {
   private handleResize(): void {
     // Update UI elements on resize
     this.updateUI();
+  }
+
+  /**
+   * Shutdown method to clean up scene state
+   */
+  shutdown(): void {
+    console.log('🖱️ Overworld: Cleaning up and resetting cursor');
+    // Reset cursor when leaving the scene
+    this.input.setDefaultCursor('default');
+    
+    // Clean up event listeners
+    this.scale.off('resize', this.handleResize, this);
   }
 
   /**
@@ -4173,463 +4163,9 @@ ${potion.description}`, {
    */
   private createEnemyTooltip(): void {
     console.log("Creating enemy tooltip system...");
-    
-    // Create tooltip container (initially hidden) - FIXED TO CAMERA
-    this.tooltipContainer = this.add.container(0, 0).setVisible(false).setDepth(2000).setScrollFactor(0);
-    
-    // Tooltip background with shadow effect
-    const shadowOffset = 3;
-    const tooltipShadow = this.add.rectangle(shadowOffset, shadowOffset, 400, 240, 0x000000)
-      .setAlpha(0.4)
-      .setOrigin(0);
-    
-    // Main tooltip background (will be resized dynamically)
-    this.tooltipBackground = this.add.rectangle(0, 0, 400, 240, 0x1d151a)
-      .setStrokeStyle(2, 0x4a3a40)
-      .setOrigin(0);
-      
-    // Header background for enemy name/type
-    const headerBackground = this.add.rectangle(0, 0, 400, 60, 0x2a1f24)
-      .setStrokeStyle(1, 0x4a3a40)
-      .setOrigin(0);
-      
-    // Enemy name
-    this.tooltipNameText = this.add.text(15, 12, "", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 16,
-      color: "#e8eced",
-      fontStyle: "bold"
-    }).setOrigin(0);
-    
-    // Enemy type
-    this.tooltipTypeText = this.add.text(15, 30, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#77888C",
-      fontStyle: "bold"
-    }).setOrigin(0);
-    
-    // Enemy sprite (will be created dynamically)
-    this.tooltipSpriteContainer = this.add.container(320, 30);
-    this.tooltipSpriteContainer.setSize(60, 60); // Set a larger size for the sprite area
-    
-    // Stats section separator
-    const statsSeparator = this.add.rectangle(10, 70, 380, 1, 0x4a3a40).setOrigin(0);
-    
-    // Enemy stats
-    this.tooltipStatsText = this.add.text(15, 80, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: 11,
-      color: "#c9a74a",
-      wordWrap: { width: 360 },
-      lineSpacing: 2,
-      fontStyle: "bold"
-    }).setOrigin(0);
-    
-    // Description section separator  
-    const descSeparator = this.add.rectangle(10, 130, 380, 1, 0x4a3a40).setOrigin(0);
-    
-    // Enemy description
-    this.tooltipDescriptionText = this.add.text(15, 140, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#8a9a9f",
-      wordWrap: { width: 360 },
-      lineSpacing: 3,
-      fontStyle: "italic"
-    }).setOrigin(0);
-    
-    // Store references to dynamic elements for resizing
-    this.tooltipContainer.setData({
-      shadow: tooltipShadow,
-      header: headerBackground,
-      statsSeparator: statsSeparator,
-      descSeparator: descSeparator
-    });
-    
-    // Add all elements to tooltip container
-    this.tooltipContainer.add([
-      tooltipShadow,
-      this.tooltipBackground,
-      headerBackground,
-      this.tooltipNameText,
-      this.tooltipTypeText,
-      this.tooltipSpriteContainer,
-      statsSeparator,
-      this.tooltipStatsText,
-      descSeparator,
-      this.tooltipDescriptionText
-    ]);
-    
-    console.log("Enemy tooltip system created successfully - FIXED TO CAMERA");
+    this.tooltipManager = new Overworld_TooltipManager(this);
+    this.tooltipManager.initialize();
+    console.log("Enemy tooltip system created successfully via TooltipManager");
   }
   
-  /**
-   * Show enemy tooltip with information - immediate version without timing issues
-   */
-  private showEnemyTooltipImmediate(node: MapNode, mouseX?: number, mouseY?: number): void {
-    // Validate inputs and state
-    if (!node || !this.tooltipContainer) {
-      console.warn("Cannot show tooltip: missing node or tooltip not initialized");
-      return;
-    }
-    
-    const enemyInfo = this.getEnemyInfoForNodeType(node.type, node.enemyId);
-    if (!enemyInfo) {
-      console.warn("Cannot show tooltip: no enemy info for type", node.type);
-      return;
-    }
-    
-    // Validate all tooltip elements exist
-    if (!this.tooltipNameText || !this.tooltipTypeText || !this.tooltipSpriteContainer || 
-        !this.tooltipStatsText || !this.tooltipDescriptionText || !this.tooltipBackground) {
-      console.warn("Cannot show tooltip: tooltip elements not properly initialized");
-      return;
-    }
-    
-    // Reset colors to default enemy colors
-    this.tooltipNameText.setColor("#e8eced");    // Default white
-    this.tooltipTypeText.setColor("#77888C");    // Default gray
-    this.tooltipStatsText.setColor("#c9a74a");   // Default yellow
-    this.tooltipDescriptionText.setColor("#b8a082"); // Default beige
-    
-    // Update tooltip content
-    this.tooltipNameText.setText(enemyInfo.name);
-    this.tooltipTypeText.setText(enemyInfo.type.toUpperCase());
-    
-    // Clear previous sprite and add new one
-    this.tooltipSpriteContainer.removeAll(true);
-    if (enemyInfo.spriteKey) {
-      const sprite = this.add.sprite(0, 0, enemyInfo.spriteKey);
-      sprite.setOrigin(0.5, 0.5);
-      
-      // Scale to fit the larger container nicely
-      const targetSize = 48; // Increased from 32 to 48 for better visibility
-      const scale = targetSize / Math.max(sprite.width, sprite.height);
-      sprite.setScale(scale);
-      
-      // If it's an animated sprite, play the idle animation
-      if (enemyInfo.animationKey && this.anims.exists(enemyInfo.animationKey)) {
-        sprite.play(enemyInfo.animationKey);
-      }
-      
-      this.tooltipSpriteContainer.add(sprite);
-    }
-    
-    this.tooltipStatsText.setText(`Health: ${enemyInfo.health}\nDamage: ${enemyInfo.damage}\nAbilities: ${enemyInfo.abilities.join(", ")}`);
-    this.tooltipDescriptionText.setText(enemyInfo.description);
-    
-    // Update size and position immediately - no delayed call
-    this.updateTooltipSizeAndPositionImmediate(mouseX, mouseY);
-    
-    // Show tooltip
-    this.tooltipContainer.setVisible(true);
-    this.isTooltipVisible = true;
-  }
-  
-  /**
-   * Update tooltip size and position - immediate version
-   */
-  private updateTooltipSizeAndPositionImmediate(mouseX?: number, mouseY?: number): void {
-    if (!this.tooltipContainer || !this.tooltipBackground) {
-      return;
-    }
-    
-    // Calculate dynamic tooltip size based on content
-    const padding = 20;
-    const headerHeight = 60;
-    const minWidth = 420;
-    const maxWidth = 550;
-    
-    // Get actual text bounds (these should be available immediately after setText)
-    const statsHeight = this.tooltipStatsText?.height || 70;
-    const descHeight = this.tooltipDescriptionText?.height || 90;
-    
-    // Calculate required height with proper spacing
-    const separatorSpacing = 15;
-    const totalHeight = headerHeight + separatorSpacing + statsHeight + separatorSpacing + descHeight + padding * 2;
-    
-    // Calculate required width (ensure all content fits including sprite)
-    const nameWidth = this.tooltipNameText?.width || 100;
-    const statsWidth = this.tooltipStatsText?.width || 100;
-    const descWidth = this.tooltipDescriptionText?.width || 100;
-    const spriteAreaWidth = 80; // Account for sprite area
-    const maxContentWidth = Math.max(nameWidth + spriteAreaWidth, statsWidth, descWidth);
-    const tooltipWidth = Math.max(minWidth, Math.min(maxWidth, maxContentWidth + padding * 2));
-    const tooltipHeight = Math.max(260, totalHeight); // Increased minimum height
-    
-    // Get dynamic elements from container data
-    const shadow = this.tooltipContainer.getData('shadow') as Phaser.GameObjects.Rectangle;
-    const header = this.tooltipContainer.getData('header') as Phaser.GameObjects.Rectangle;
-    const statsSeparator = this.tooltipContainer.getData('statsSeparator') as Phaser.GameObjects.Rectangle;
-    const descSeparator = this.tooltipContainer.getData('descSeparator') as Phaser.GameObjects.Rectangle;
-    
-    // Update background sizes (with null checks)
-    this.tooltipBackground.setSize(tooltipWidth, tooltipHeight);
-    shadow?.setSize(tooltipWidth, tooltipHeight);
-    header?.setSize(tooltipWidth, headerHeight);
-    
-    // Update separator widths and positions (with null checks)
-    statsSeparator?.setSize(tooltipWidth - 20, 1);
-    statsSeparator?.setPosition(10, headerHeight + 10);
-    
-    // Reposition sprite container based on new width (more room for larger sprite)
-    this.tooltipSpriteContainer?.setPosition(tooltipWidth - 50, 30);
-    
-    // Update text wrapping for the new width (account for sprite area)
-    const textWidth = tooltipWidth - 100; // More space for sprite
-    this.tooltipStatsText?.setWordWrapWidth(textWidth);
-    this.tooltipDescriptionText?.setWordWrapWidth(textWidth);
-    
-    // Reposition stats and description elements
-    const statsY = headerHeight + 20;
-    this.tooltipStatsText?.setPosition(15, statsY);
-    
-    const descSeparatorY = statsY + statsHeight + 10;
-    descSeparator?.setSize(tooltipWidth - 20, 1);
-    descSeparator?.setPosition(10, descSeparatorY);
-    
-    const descY = descSeparatorY + 15;
-    this.tooltipDescriptionText?.setPosition(15, descY);
-    
-    // Position tooltip dynamically based on mouse position or fallback to center
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    let tooltipX: number;
-    let tooltipY: number;
-    
-    if (mouseX !== undefined && mouseY !== undefined) {
-      // Position tooltip near mouse cursor
-      const offset = 20; // Offset from cursor to avoid overlap
-      tooltipX = mouseX + offset;
-      tooltipY = mouseY - tooltipHeight / 2; // Center vertically on cursor
-      
-      // Ensure tooltip doesn't go off-screen (right edge)
-      if (tooltipX + tooltipWidth > screenWidth - 20) {
-        tooltipX = mouseX - tooltipWidth - offset; // Position to the left of cursor
-      }
-      
-      // Ensure tooltip doesn't go off-screen (vertical bounds)
-      tooltipY = Math.max(20, Math.min(tooltipY, screenHeight - tooltipHeight - 20));
-      
-    } else {
-      // Fallback to status panel positioning if no mouse coordinates
-      const statusPanelWidth = 320;
-      const statusPanelX = 20;
-      const marginBetween = 20;
-      
-      tooltipX = statusPanelX + statusPanelWidth + marginBetween;
-      tooltipY = Math.max(20, (screenHeight - tooltipHeight) / 2);
-      
-      // Ensure fallback doesn't go off-screen
-      const maxTooltipX = screenWidth - tooltipWidth - 20;
-      tooltipX = Math.min(tooltipX, maxTooltipX);
-    }
-    
-    // Position tooltip
-    this.tooltipContainer.setPosition(tooltipX, tooltipY);
-  }
-  
-  /**
-   * Hide enemy tooltip with improved state management
-   */
-  private hideEnemyTooltip(): void {
-    this.hideNodeTooltip();
-  }
-
-  /**
-   * Hide node tooltip with improved state management
-   */
-  private hideNodeTooltip(): void {
-    // Cancel any pending tooltip operations
-    if (this.currentTooltipTimer) {
-      this.currentTooltipTimer.destroy();
-      this.currentTooltipTimer = undefined;
-    }
-    
-    // Hide tooltip safely
-    if (this.tooltipContainer) {
-      this.tooltipContainer.setVisible(false);
-    }
-    
-    this.isTooltipVisible = false;
-    this.lastHoveredNodeId = undefined;
-  }
-  
-  /**
-   * Show node tooltip for non-enemy nodes
-   */
-  private showNodeTooltipImmediate(node: MapNode, mouseX: number, mouseY: number): void {
-    if (!this.tooltipContainer) {
-      console.warn("Tooltip container not available");
-      return;
-    }
-    
-    const nodeInfo = this.getNodeInfoForType(node.type);
-    if (!nodeInfo) {
-      console.warn(`No info available for node type: ${node.type}`);
-      return;
-    }
-    
-    // Get color scheme for this node type
-    const colors = this.getNodeColorScheme(nodeType);
-    
-    // Update tooltip content with node-specific colors
-    this.tooltipNameText.setText(nodeInfo.name);
-    this.tooltipNameText.setColor(colors.name);
-    
-    this.tooltipTypeText.setText(nodeInfo.type.toUpperCase());
-    this.tooltipTypeText.setColor(colors.type);
-    
-    // Clear previous sprite and add new one
-    this.tooltipSpriteContainer.removeAll(true);
-    if (nodeInfo.spriteKey) {
-      const sprite = this.add.sprite(0, 0, nodeInfo.spriteKey);
-      sprite.setOrigin(0.5, 0.5);
-      
-      // Scale to fit the larger container nicely
-      const targetSize = 48;
-      const scale = targetSize / Math.max(sprite.width, sprite.height);
-      sprite.setScale(scale);
-      
-      // If it's an animated sprite, play the idle animation
-      if (nodeInfo.animationKey && this.anims.exists(nodeInfo.animationKey)) {
-        sprite.play(nodeInfo.animationKey);
-      }
-      
-      this.tooltipSpriteContainer.add(sprite);
-    }
-    
-    this.tooltipStatsText.setText(nodeInfo.stats || "");
-    this.tooltipStatsText.setColor(colors.stats);
-    
-    this.tooltipDescriptionText.setText(nodeInfo.description);
-    this.tooltipDescriptionText.setColor(colors.description);
-    
-    // Update size and position immediately
-    this.updateTooltipSizeAndPositionImmediate(mouseX, mouseY);
-    
-    // Show tooltip
-    this.tooltipContainer.setVisible(true);
-    this.isTooltipVisible = true;
-  }
-
-  /**
-   * Get color scheme for different node types
-   */
-  private getNodeColorScheme(nodeType: string): { name: string, type: string, stats: string, description: string } {
-    const colorSchemes = {
-      shop: {
-        name: "#ffd700",        // Gold - for merchant/commerce
-        type: "#ffcc00",        // Bright gold
-        stats: "#e6b800",       // Golden yellow
-        description: "#f0e68c"  // Light golden
-      },
-      event: {
-        name: "#da70d6",        // Orchid - for mystery/magic
-        type: "#ba55d3",        // Medium orchid
-        stats: "#9370db",       // Medium slate blue
-        description: "#dda0dd"  // Plum
-      },
-      campfire: {
-        name: "#ff6347",        // Tomato red - for fire/warmth
-        type: "#ff4500",        // Orange red
-        stats: "#ff8c00",       // Dark orange
-        description: "#ffa07a"  // Light salmon
-      },
-      treasure: {
-        name: "#00ced1",        // Dark turquoise - for precious items
-        type: "#20b2aa",        // Light sea green
-        stats: "#48d1cc",       // Medium turquoise
-        description: "#afeeee"  // Pale turquoise
-      }
-    };
-
-    return colorSchemes[nodeType as keyof typeof colorSchemes] || {
-      name: "#e8eced",    // Default white
-      type: "#77888C",    // Default gray
-      stats: "#c9a74a",   // Default yellow
-      description: "#b8a082" // Default beige
-    };
-  }
-
-  /**
-   * Get node information for different node types
-   */
-  private getNodeInfoForType(nodeType: string): any {
-    const nodeData = {
-      shop: {
-        name: "Merchant's Shop",
-        type: "shop",
-        spriteKey: "necromancer_f0",
-        animationKey: "necromancer_idle",
-        stats: "Services: Buy/Sell Items\nCurrency: Gold Coins\nSpecialty: Rare Relics & Potions",
-        description: "A mystical merchant offers powerful relics and potions to aid your journey. Browse their wares and strengthen your deck with ancient artifacts and magical brews."
-      },
-      event: {
-        name: "Mysterious Event",
-        type: "event", 
-        spriteKey: "doc_f0",
-        animationKey: "doc_idle",
-        stats: "Outcome: Variable\nRisk: Medium\nReward: Unique Benefits",
-        description: "Strange occurrences and mysterious encounters await. These events may offer unique opportunities, challenging choices, or unexpected rewards for the brave."
-      },
-      campfire: {
-        name: "Sacred Campfire",
-        type: "campfire",
-        spriteKey: "angel_f0", 
-        animationKey: "angel_idle",
-        stats: "Healing: Full Health\nOptions: Rest or Upgrade\nSafety: Complete Protection",
-        description: "A blessed sanctuary where weary travelers can rest and recover. Choose to restore your health completely or upgrade one of your cards to become more powerful."
-      },
-      treasure: {
-        name: "Ancient Treasure",
-        type: "treasure",
-        spriteKey: "chest_f0",
-        animationKey: "chest_open", 
-        stats: "Contents: Random Rewards\nRarity: Varies\nValue: High",
-        description: "A forgotten chest containing valuable treasures from ages past. May hold gold, rare relics, powerful cards, or other precious artifacts to aid your quest."
-      }
-    };
-
-    return nodeData[nodeType as keyof typeof nodeData] || null;
-  }
-
-  /**
-   * Get enemy information for a given node type
-   */
-  private getEnemyInfoForNodeType(nodeType: string, enemyId?: string): any {
-    if (!enemyId) {
-      return null;
-    }
-
-    const allEnemies = [...ACT1_COMMON_ENEMIES, ...ACT1_ELITE_ENEMIES, MANGNANGAWAY];
-    const enemy = allEnemies.find(e => e.name === enemyId);
-
-    if (!enemy) return null;
-
-    const lore = ENEMY_LORE_DATA[enemy.name.toLowerCase().replace(/ /g, "_")];
-
-    let spriteKeyBase = enemy.name.toLowerCase().split(" ")[0];
-    if (spriteKeyBase === "tawong") {
-        spriteKeyBase = "tawonglipod";
-    }
-    // Additional check in case the enemy name is stored differently
-    if (enemy.name.toLowerCase().includes("tawong")) {
-        spriteKeyBase = "tawonglipod";
-    }
-    const spriteKey = spriteKeyBase + "_overworld";
-
-    return {
-      name: enemy.name,
-      type: nodeType === "elite" ? "Elite" : "Combat",
-      spriteKey: spriteKey,
-      animationKey: null,
-      health: enemy.maxHealth,
-      damage: enemy.damage,
-      abilities: [], // You can get this from lore or enemy data if available
-      description: lore ? lore.description : ""
-    };
-  }
 }
