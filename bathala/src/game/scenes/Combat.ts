@@ -15,8 +15,6 @@ import {
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
 import { GameState } from "../../core/managers/GameState";
-import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
-import { CombatMetrics } from "../../core/dda/DDATypes";
 import {
   getRandomCommonEnemy,
   getRandomEliteEnemy,
@@ -28,6 +26,7 @@ import { RelicManager } from "../../core/managers/RelicManager";
 import { CombatUI } from "./combat/CombatUI";
 import { CombatDialogue } from "./combat/CombatDialogue";
 import { CombatAnimations } from "./combat/CombatAnimations";
+import { CombatDDA } from "./combat/CombatDDA";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -81,11 +80,8 @@ export class Combat extends Scene {
   private bestHandAchieved: HandType = "high_card";
   private battleStartDialogueContainer!: Phaser.GameObjects.Container | null;
   
-  // DDA tracking properties
-  private dda!: RuleBasedDDA;
-  private combatStartTime!: number;
-  private initialPlayerHealth!: number;
-  private totalDiscardsUsed: number = 0;
+  // DDA tracking
+  public dda!: CombatDDA;
   
   // UI properties
   private playerShadow!: Phaser.GameObjects.Graphics;
@@ -94,10 +90,6 @@ export class Combat extends Scene {
   private relicInventory!: Phaser.GameObjects.Container;
   private currentRelicTooltip!: Phaser.GameObjects.Container | null;
   private pokerHandInfoButton!: Phaser.GameObjects.Container;
-
-  // DDA Debug UI
-  private ddaDebugContainer!: Phaser.GameObjects.Container | null;
-  private ddaDebugVisible: boolean = false;
 
   constructor() {
     super({ key: "Combat" });
@@ -157,6 +149,14 @@ export class Combat extends Scene {
     return this.handContainer;
   }
 
+  public getTurnCount(): number {
+    return this.turnCount;
+  }
+
+  public getBestHandAchieved(): HandType {
+    return this.bestHandAchieved;
+  }
+
   create(data: { nodeType: string, transitionOverlay?: any }): void {
     // Safety check for camera
     if (!this.cameras.main) {
@@ -169,6 +169,9 @@ export class Combat extends Scene {
 
     // Add 50% opacity overlay with #150E10 to dim the background (Prologue style)
     const overlay = this.add.rectangle(this.cameras.main.centerX, this.cameras.main.centerY, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.50);
+
+    // Initialize CombatDDA first (needed by initializeCombat)
+    this.dda = new CombatDDA(this);
 
     // Initialize combat state
     this.initializeCombat(data.nodeType);
@@ -200,7 +203,7 @@ export class Combat extends Scene {
     this.createDiscardView();
     
     // Create DDA debug overlay
-    this.createDDADebugOverlay();
+    this.dda.createDDADebugOverlay();
 
     // Draw initial hand
     this.drawInitialHand();
@@ -347,40 +350,8 @@ export class Combat extends Scene {
     this.bestHandAchieved = "high_card";
     this.isActionProcessing = false;
     
-    // Initialize DDA tracking if available
-    try {
-      this.dda = RuleBasedDDA.getInstance();
-      this.combatStartTime = Date.now();
-      this.initialPlayerHealth = player.currentHealth;
-      this.totalDiscardsUsed = 0;
-      
-      // Apply current DDA difficulty adjustments to enemy
-      const adjustment = this.dda.getCurrentDifficultyAdjustment();
-      console.log("DDA Adjustment:", {
-        tier: adjustment.tier,
-        healthMultiplier: adjustment.enemyHealthMultiplier,
-        damageMultiplier: adjustment.enemyDamageMultiplier,
-        originalDamage: this.combatState.enemy.damage,
-        originalHealth: this.combatState.enemy.maxHealth
-      });
-      
-      this.combatState.enemy.maxHealth = Math.round(this.combatState.enemy.maxHealth * adjustment.enemyHealthMultiplier);
-      this.combatState.enemy.currentHealth = this.combatState.enemy.maxHealth;
-      this.combatState.enemy.damage = Math.round(this.combatState.enemy.damage * adjustment.enemyDamageMultiplier);
-      
-      console.log("DDA Applied:", {
-        newDamage: this.combatState.enemy.damage,
-        newHealth: this.combatState.enemy.maxHealth
-      });
-      
-      // Update initial intent to reflect DDA-modified damage
-      if (this.combatState.enemy.intent.type === "attack") {
-        this.combatState.enemy.intent.value = this.combatState.enemy.damage;
-        this.combatState.enemy.intent.description = `Attacks for ${this.combatState.enemy.damage} damage`;
-      }
-    } catch (error) {
-      console.warn("DDA not available, skipping DDA initialization:", error);
-    }
+    // Initialize DDA tracking and apply adjustments
+    this.dda.initializeDDA();
     
     // Apply start-of-combat relic effects
     RelicManager.applyStartOfCombatEffects(this.combatState.player);
@@ -1174,7 +1145,7 @@ export class Combat extends Scene {
 
     // Increment discard counter
     this.discardsUsedThisTurn++;
-    this.totalDiscardsUsed++; // Track total for DDA
+    this.dda.trackDiscard(); // Track total for DDA
 
     // Clear selection
     this.selectedCards = [];
@@ -1259,7 +1230,7 @@ export class Combat extends Scene {
     this.turnCount++; // Track total turns for DDA
     
     // Update DDA debug overlay with current turn count
-    this.updateDDADebugOverlay();
+    this.dda.updateDDADebugOverlay();
 
     // Reset discard counter (only 3 discards per turn)
     this.discardsUsedThisTurn = 0;
@@ -1569,55 +1540,8 @@ export class Combat extends Scene {
     
     console.log(`Combat ended with victory: ${victory}`);
     
-    // Calculate DDA metrics and send to system
-    // NOTE: For roguelikes, healthPercentage should be based on maxHealth, not starting health
-    // This properly reflects the player's resource state for upcoming fights
-    const combatMetrics: CombatMetrics = {
-      combatId: `combat_${Date.now()}`,
-      timestamp: Date.now(),
-      
-      // Pre-combat state
-      startHealth: this.initialPlayerHealth,
-      startMaxHealth: this.combatState.player.maxHealth,
-      startGold: this.combatState.player.ginto,
-      
-      // Combat performance  
-      endHealth: this.combatState.player.currentHealth,
-      healthPercentage: this.combatState.player.currentHealth / this.combatState.player.maxHealth, // Fixed: Use maxHealth for roguelike HP retention
-      turnCount: this.turnCount,
-      damageDealt: Math.max(0, this.combatState.enemy.maxHealth - this.combatState.enemy.currentHealth),
-      damageReceived: Math.max(0, this.initialPlayerHealth - this.combatState.player.currentHealth),
-      discardsUsed: this.totalDiscardsUsed,
-      maxDiscardsAvailable: this.turnCount * this.maxDiscardsPerTurn,
-      
-      // Hand quality metrics
-      handsPlayed: [this.bestHandAchieved], // Simplified for now
-      bestHandAchieved: this.bestHandAchieved,
-      averageHandQuality: this.getHandQualityScore(this.bestHandAchieved),
-      
-      // Outcome
-      victory: victory,
-      combatDuration: Date.now() - this.combatStartTime,
-      
-      // Enemy information
-      enemyType: "common" as const, // Simplified for now
-      enemyName: this.combatState.enemy.name,
-      enemyStartHealth: this.combatState.enemy.maxHealth,
-    };
-    
-    // Update DDA system with combat results
-    const updatedPPS = this.dda.processCombatResults(combatMetrics);
-    console.log("DDA Updated:", {
-      previousPPS: updatedPPS.previousPPS,
-      currentPPS: updatedPPS.currentPPS,
-      tier: updatedPPS.tier,
-      healthPercentage: combatMetrics.healthPercentage,
-      turnCount: combatMetrics.turnCount,
-      victory: victory
-    });
-    
-    // Update DDA debug overlay if visible
-    this.updateDDADebugOverlay();
+    // Submit combat metrics to DDA system
+    this.dda.submitCombatResults(victory, this.turnCount, this.maxDiscardsPerTurn, this.bestHandAchieved);
     
     if (victory) {
       const gameState = GameState.getInstance();
@@ -4232,217 +4156,6 @@ export class Combat extends Scene {
     closeButton.on('pointerdown', closeModal);
   }
 
-  /**
-   * Create DDA debug overlay for testing
-   */
-  private createDDADebugOverlay(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create container for debug UI
-    this.ddaDebugContainer = this.add.container(screenWidth - 250, 10);
-    this.ddaDebugContainer.setDepth(1000);
-    this.ddaDebugContainer.setVisible(false);
-    
-    // Background panel
-    const panelWidth = 240;
-    const panelHeight = 200;
-    const bg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x000000, 0.8);
-    bg.setOrigin(0, 0);
-    this.ddaDebugContainer.add(bg);
-    
-    // Title
-    const title = this.add.text(panelWidth / 2, 10, "DDA Debug", {
-      fontFamily: "dungeon-mode",
-      fontSize: 16,
-      color: "#4ecdc4",
-      align: "center"
-    }).setOrigin(0.5, 0);
-    this.ddaDebugContainer.add(title);
-    
-    // Note
-    const note = this.add.text(panelWidth / 2, 25, "(Current combat settings)", {
-      fontFamily: "dungeon-mode",
-      fontSize: 9,
-      color: "#888888",
-      align: "center"
-    }).setOrigin(0.5, 0);
-    this.ddaDebugContainer.add(note);
-    
-    // Get current DDA state
-    const pps = this.dda.getPlayerPPS();
-    const adjustment = this.dda.getCurrentDifficultyAdjustment();
-    
-    let yPos = 40;
-    const leftMargin = 10;
-    
-    // PPS Info
-    const ppsText = this.add.text(leftMargin, yPos, `PPS: ${pps.currentPPS.toFixed(2)}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#ffffff"
-    });
-    this.ddaDebugContainer.add(ppsText);
-    yPos += 18;
-    
-    // Tier Info
-    const tierColor = this.getTierColor(pps.tier);
-    const tierText = this.add.text(leftMargin, yPos, `Tier: ${pps.tier}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: tierColor
-    });
-    this.ddaDebugContainer.add(tierText);
-    yPos += 18;
-    
-    // Combat count
-    const combatText = this.add.text(leftMargin, yPos, `Combats: ${pps.totalCombatsCompleted}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 11,
-      color: "#aaaaaa"
-    });
-    this.ddaDebugContainer.add(combatText);
-    yPos += 18;
-    
-    // Calibration status
-    const calibrationText = this.add.text(leftMargin, yPos, `Calibrating: ${pps.isCalibrating ? 'Yes' : 'No'}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 11,
-      color: pps.isCalibrating ? "#ffa502" : "#666666"
-    });
-    this.ddaDebugContainer.add(calibrationText);
-    yPos += 15;
-    
-    // Current combat info
-    const combatInfoText = this.add.text(leftMargin, yPos, `This Combat: Turn ${this.turnCount || 0}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#aaaaaa"
-    });
-    this.ddaDebugContainer.add(combatInfoText);
-    yPos += 20;
-    
-    // Modifiers section
-    const modifiersTitle = this.add.text(panelWidth / 2, yPos, "─ Active Modifiers ─", {
-      fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#888888",
-      align: "center"
-    }).setOrigin(0.5, 0);
-    this.ddaDebugContainer.add(modifiersTitle);
-    yPos += 16;
-    
-    // Enemy modifiers
-    const enemyText = this.add.text(leftMargin, yPos, `Enemy HP: ${(adjustment.enemyHealthMultiplier * 100).toFixed(0)}%`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#ff6b6b"
-    });
-    this.ddaDebugContainer.add(enemyText);
-    yPos += 14;
-    
-    const damageText = this.add.text(leftMargin, yPos, `Enemy DMG: ${(adjustment.enemyDamageMultiplier * 100).toFixed(0)}%`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#ff6b6b"
-    });
-    this.ddaDebugContainer.add(damageText);
-    yPos += 14;
-    
-    // Economic modifiers
-    const goldText = this.add.text(leftMargin, yPos, `Gold: ${(adjustment.goldRewardMultiplier * 100).toFixed(0)}%`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 10,
-      color: "#ffd93d"
-    });
-    this.ddaDebugContainer.add(goldText);
-    
-    // Toggle button
-    const toggleButton = this.add.text(screenWidth - 270, screenHeight - 30, "[D] DDA Info", {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#4ecdc4",
-      backgroundColor: "#000000",
-      padding: { x: 8, y: 4 }
-    }).setOrigin(0, 1);
-    toggleButton.setInteractive({ useHandCursor: true });
-    toggleButton.on('pointerdown', () => this.toggleDDADebug());
-    
-    // Keyboard shortcut
-    this.input.keyboard?.on('keydown-D', () => {
-      this.toggleDDADebug();
-    });
-  }
-  
-  /**
-   * Toggle DDA debug overlay visibility
-   */
-  private toggleDDADebug(): void {
-    this.ddaDebugVisible = !this.ddaDebugVisible;
-    if (this.ddaDebugContainer) {
-      this.ddaDebugContainer.setVisible(this.ddaDebugVisible);
-      
-      // Update values when showing
-      if (this.ddaDebugVisible) {
-        this.updateDDADebugOverlay();
-      }
-    }
-  }
-  
-  /**
-   * Update DDA debug overlay with current values
-   */
-  private updateDDADebugOverlay(): void {
-    if (!this.ddaDebugContainer || !this.ddaDebugVisible) return;
-    
-    // Get current DDA state
-    const pps = this.dda.getPlayerPPS();
-    const adjustment = this.dda.getCurrentDifficultyAdjustment();
-    
-    // Update all text elements
-    const children = this.ddaDebugContainer.list;
-    
-    // PPS (index 3 - after bg, title, note)
-    (children[3] as Phaser.GameObjects.Text).setText(`PPS: ${pps.currentPPS.toFixed(2)}`);
-    
-    // Tier (index 4)
-    const tierColor = this.getTierColor(pps.tier);
-    (children[4] as Phaser.GameObjects.Text).setText(`Tier: ${pps.tier}`);
-    (children[4] as Phaser.GameObjects.Text).setColor(tierColor);
-    
-    // Combat count (index 5)
-    (children[5] as Phaser.GameObjects.Text).setText(`Combats: ${pps.totalCombatsCompleted}`);
-    
-    // Calibration (index 6)
-    (children[6] as Phaser.GameObjects.Text).setText(`Calibrating: ${pps.isCalibrating ? 'Yes' : 'No'}`);
-    (children[6] as Phaser.GameObjects.Text).setColor(pps.isCalibrating ? "#ffa502" : "#666666");
-    
-    // Current combat info (index 7)
-    (children[7] as Phaser.GameObjects.Text).setText(`This Combat: Turn ${this.turnCount || 0}`);
-    
-    // Enemy HP (index 9 - after modifiers title)
-    (children[9] as Phaser.GameObjects.Text).setText(`Enemy HP: ${(adjustment.enemyHealthMultiplier * 100).toFixed(0)}%`);
-    
-    // Enemy DMG (index 10)
-    (children[10] as Phaser.GameObjects.Text).setText(`Enemy DMG: ${(adjustment.enemyDamageMultiplier * 100).toFixed(0)}%`);
-    
-    // Gold (index 11)
-    (children[11] as Phaser.GameObjects.Text).setText(`Gold: ${(adjustment.goldRewardMultiplier * 100).toFixed(0)}%`);
-  }
-  
-  /**
-   * Get color for difficulty tier
-   */
-  private getTierColor(tier: string): string {
-    switch (tier) {
-      case "struggling": return "#ff4757";
-      case "learning": return "#ffa502";
-      case "thriving": return "#2ed573";
-      case "mastering": return "#4ecdc4";
-      default: return "#ffffff";
-    }
-  }
-  
   /**
   /**
    * Hide all UI elements during special attack for cinematic effect
