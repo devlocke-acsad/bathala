@@ -181,6 +181,9 @@ export class Combat extends Scene {
     const bg = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, "forest_bg");
     bg.setDisplaySize(this.cameras.main.width, this.cameras.main.height);
 
+    // Add 50% opacity overlay with #150E10 to dim the background (Prologue style)
+    const overlay = this.add.rectangle(this.cameras.main.centerX, this.cameras.main.centerY, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.50);
+
     // Initialize combat state
     this.initializeCombat(data.nodeType);
 
