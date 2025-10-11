@@ -44,6 +44,14 @@ export class Shop extends Scene {
     titlePanel.strokeRoundedRect(screenWidth/2 - 300, 10, 600, 60, 12); // Increased from 400px to 600px
     titlePanel.setDepth(2000); // Ensure title stays on top and doesn't scroll
     
+    // Add the animated merchant sprite next to the title
+    const merchant = this.add.sprite(screenWidth / 2 - 270, 40, 'merchant_f01');
+    merchant.setScale(1.5);
+    merchant.setDepth(2001); // Ensure merchant appears above background but below text
+    
+    // Start the merchant animation
+    merchant.play('merchant_idle');
+    
     // Main title with prologue/combat styling
     const title = this.add.text(
       screenWidth / 2,
@@ -55,7 +63,7 @@ export class Shop extends Scene {
         color: "#77888C",
         align: "center",
       }
-    ).setOrigin(0.5).setDepth(2001); // Ensure title text stays on top
+    ).setOrigin(0.5).setDepth(2002); // Ensure title text stays on top of merchant
     
     // Subtitle
     const subtitle = this.add.text(
@@ -68,7 +76,7 @@ export class Shop extends Scene {
         color: "#77888C",
         align: "center",
       }
-    ).setOrigin(0.5).setDepth(2001); // Ensure subtitle text stays on top
+    ).setOrigin(0.5).setDepth(2002); // Ensure subtitle text stays on top of merchant
     
     // Title animation
     title.setScale(0.8).setAlpha(0);
@@ -81,6 +89,16 @@ export class Shop extends Scene {
       duration: 800,
       ease: 'Back.easeOut',
       delay: 200
+    });
+    
+    // Animate the merchant as well
+    this.tweens.add({
+      targets: merchant,
+      y: 35,
+      duration: 1500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
     });
 
     // Create currency display
