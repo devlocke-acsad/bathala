@@ -180,60 +180,12 @@ export class Shop extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Create a sophisticated background matching prologue/combat theme
+    // Simple static background - NO ANIMATIONS for performance
     const bgOverlay = this.add.graphics();
     bgOverlay.fillStyle(0x150E10, 1);
     bgOverlay.fillRect(0, 0, screenWidth, screenHeight);
     
-    // Add subtle geometric pattern with prologue/combat colors - reduced for performance
-    for (let i = 0; i < 6; i++) { // Reduced from 12 to 6
-      const size = Phaser.Math.Between(15, 45);
-      const x = Phaser.Math.Between(0, screenWidth);
-      const y = Phaser.Math.Between(0, screenHeight);
-      
-      const shape = this.add.graphics();
-      shape.lineStyle(1, 0x77888C, 0.1); // Reduced opacity
-      shape.beginPath();
-      shape.moveTo(x, y);
-      shape.lineTo(x + size, y);
-      shape.lineTo(x + size/2, y - size * 0.866);
-      shape.closePath();
-      shape.strokePath();
-      
-      // Slower rotation animation for better performance
-      this.tweens.add({
-        targets: shape,
-        rotation: Math.PI * 2,
-        duration: Phaser.Math.Between(30000, 45000), // Slower rotation
-        repeat: -1,
-        ease: 'Linear'
-      });
-    }
-    
-    // Reduce particle count for better performance
-    for (let i = 0; i < 8; i++) { // Reduced from 20 to 8
-      const particle = this.add.circle(
-        Phaser.Math.Between(0, screenWidth),
-        Phaser.Math.Between(0, screenHeight),
-        Phaser.Math.Between(1, 2),
-        0x77888C,
-        0.2 // Reduced opacity
-      );
-      
-      // Simpler floating animation
-      this.tweens.add({
-        targets: particle,
-        x: '+=' + Phaser.Math.Between(-60, 60), // Reduced movement range
-        y: '+=' + Phaser.Math.Between(-60, 60),
-        alpha: 0.4,
-        duration: Phaser.Math.Between(8000, 12000), // Slower animation
-        repeat: -1,
-        yoyo: true,
-        ease: 'Sine.easeInOut'
-      });
-    }
-    
-    // Add corner decorative elements with prologue/combat theme
+    // Just static corner elements - no moving parts
     const cornerSize = 40;
     
     // Top-left corner
@@ -271,20 +223,6 @@ export class Shop extends Scene {
     bottomRight.lineTo(screenWidth - 20, screenHeight - 20);
     bottomRight.lineTo(screenWidth - 20, screenHeight - cornerSize - 20);
     bottomRight.strokePath();
-    
-    // Add a subtle pulsing effect to corners - optimized
-    const corners = [topLeft, topRight, bottomLeft, bottomRight];
-    corners.forEach((corner, index) => {
-      this.tweens.add({
-        targets: corner,
-        alpha: 0.4,
-        duration: 3000, // Slower pulse for better performance
-        repeat: -1,
-        yoyo: true,
-        ease: 'Sine.easeInOut',
-        delay: index * 500 // Stagger the animations
-      });
-    });
   }
 
   private createMerchantCharacter(): void {
@@ -346,22 +284,27 @@ export class Shop extends Scene {
     spriteArea.lineStyle(2, 0x77888C, 0.6);
     spriteArea.strokeRoundedRect(spriteAreaX - 60, spriteAreaY - 80, 120, 160, 8);
     
-    // Create the animation from individual frames - slower animation every 3 seconds
+    // Create animation that goes forward then backward, starting at frame 2 after reset
     if (!this.anims.exists('merchant-idle')) {
       this.anims.create({
         key: 'merchant-idle',
         frames: [
-          { key: 'merchant_f01' },
-          { key: 'merchant_f02' },
+          { key: 'merchant_f02' }, // Start at frame 2 (after first cycle ends at 1)
           { key: 'merchant_f03' },
           { key: 'merchant_f04' },
           { key: 'merchant_f05' },
           { key: 'merchant_f06' },
-          { key: 'merchant_f07' }
+          { key: 'merchant_f07' },
+          { key: 'merchant_f06' },
+          { key: 'merchant_f05' },
+          { key: 'merchant_f04' },
+          { key: 'merchant_f03' },
+          { key: 'merchant_f02' },
+          { key: 'merchant_f01' }  // End at frame 1
         ],
-        frameRate: 2, // Much slower - 2 frames per second
-        repeat: -1,
-        repeatDelay: 3000 // 3 second delay between animation cycles
+        frameRate: 6, // Normal to slightly above normal speed
+        repeat: -1, // Repeat infinitely
+        repeatDelay: 2000 // 2 second pause between cycles
       });
     }
     
@@ -382,7 +325,7 @@ export class Shop extends Scene {
       this.input.setDefaultCursor('default');
     });
 
-    // Add subtle mystical effects around the sprite
+    // Simple static glow - no animation for performance
     const magicGlow = this.add.graphics();
     magicGlow.fillStyle(0x77888C, 0.1);
     magicGlow.fillCircle(spriteAreaX, spriteAreaY, 80);
@@ -586,54 +529,21 @@ export class Shop extends Scene {
     // Add elements to container
     this.dialogueContainer.add([dialogueBg, namePlate, characterName, dialogueText, continueText]);
 
-    // Typewriter effect
-    let currentChar = 0;
-    const typewriterTimer = this.time.addEvent({
-      delay: 50, // Speed of typing
-      callback: () => {
-        if (currentChar < dialogue.length) {
-          dialogueText.text = dialogue.substring(0, currentChar + 1);
-          currentChar++;
-        } else {
-          typewriterTimer.destroy();
-          continueText.setVisible(true);
-          
-          // Pulse animation for continue indicator
-          this.tweens.add({
-            targets: continueText,
-            alpha: 0.3,
-            duration: 800,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-          });
-        }
-      },
-      repeat: dialogue.length - 1
-    });
+    // Show text immediately - no typewriter effect for performance
+    dialogueText.text = dialogue;
+    continueText.setVisible(true);
 
-    // Click to close (after typing is done)
+    // Click to close - immediate response
     this.dialogueContainer.setInteractive(
       new Phaser.Geom.Rectangle(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight), 
       Phaser.Geom.Rectangle.Contains
     );
     
     this.dialogueContainer.on('pointerdown', () => {
-      if (currentChar >= dialogue.length) {
-        // Smooth exit animation
-        this.tweens.add({
-          targets: this.dialogueContainer,
-          alpha: 0,
-          y: screenHeight - 80,
-          duration: 300,
-          ease: 'Power2.easeIn',
-          onComplete: () => {
-            if (this.dialogueContainer) {
-              this.dialogueContainer.destroy();
-              this.dialogueContainer = undefined;
-            }
-          }
-        });
+      // Instant close - no animation for performance
+      if (this.dialogueContainer) {
+        this.dialogueContainer.destroy();
+        this.dialogueContainer = undefined;
       }
     });
 
@@ -773,54 +683,34 @@ export class Shop extends Scene {
 
   private setupScrolling(container: Phaser.GameObjects.Container, screenHeight: number): void {
     let scrollY = 0;
-    const maxScroll = Math.max(0, 1200 - screenHeight + 200); // Calculate based on content height
-    const scrollSpeed = 80; // Increased from 30 to 80 for faster scrolling
-    let isScrolling = false;
+    const maxScroll = Math.max(0, 1200 - screenHeight + 200);
+    const scrollSpeed = 120; // Increased for faster scrolling
     
-    // Optimized scroll function with throttling
+    // Direct position update - NO TWEEN for instant response
     const performScroll = (newScrollY: number) => {
-      if (isScrolling) return;
-      
-      isScrolling = true;
       scrollY = newScrollY;
-      
-      // Use tween for smooth scrolling instead of direct position update
-      this.tweens.add({
-        targets: container,
-        y: -scrollY,
-        duration: 80, // Reduced from 120 to 80 for faster response
-        ease: 'Power2.easeOut',
-        onComplete: () => {
-          isScrolling = false;
-        }
-      });
+      container.y = -scrollY; // Direct position update - no animation lag
     };
     
-    // Mouse wheel scrolling with throttling
+    // Mouse wheel scrolling - immediate response
     this.input.on('wheel', (_pointer: any, _gameObjects: any, _deltaX: number, deltaY: number) => {
-      if (isScrolling) return;
-      
       let newScrollY;
       if (deltaY > 0) {
-        // Scroll down
         newScrollY = Math.min(scrollY + scrollSpeed, maxScroll);
       } else {
-        // Scroll up
         newScrollY = Math.max(scrollY - scrollSpeed, 0);
       }
       
       performScroll(newScrollY);
     });
     
-    // Keyboard scrolling (arrow keys) with throttling
+    // Keyboard scrolling - immediate response
     this.input.keyboard?.on('keydown-UP', () => {
-      if (isScrolling) return;
       const newScrollY = Math.max(scrollY - scrollSpeed, 0);
       performScroll(newScrollY);
     });
     
     this.input.keyboard?.on('keydown-DOWN', () => {
-      if (isScrolling) return;
       const newScrollY = Math.min(scrollY + scrollSpeed, maxScroll);
       performScroll(newScrollY);
     });
@@ -994,11 +884,8 @@ export class Shop extends Scene {
           Phaser.Geom.Rectangle.Contains
         );
         
-        // Store references for hover effects - create once, reuse
-        let hoverGlow: Phaser.GameObjects.Graphics | null = null;
+        // Store references for hover effects - simplified
         let isHovering = false;
-        let hoverTween: Phaser.Tweens.Tween | null = null;
-        let scaleTween: Phaser.Tweens.Tween | null = null;
         
         button.on("pointerdown", () => {
           // 40% chance to trigger merchant dialogue when clicking on a relic
@@ -1009,40 +896,16 @@ export class Shop extends Scene {
         });
         
         button.on("pointerover", () => {
-          if (isHovering) return; // Prevent multiple hover events
+          if (isHovering) return;
           isHovering = true;
           
-          // Stop any existing tweens
-          if (hoverTween) hoverTween.stop();
-          if (scaleTween) scaleTween.stop();
+          // Simple scale effect - no complex animations
+          button.setScale(1.02);
           
-          // Optimized hover effect - single tween for all components
-          const componentsToTween = [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
-          hoverTween = this.tweens.add({
-            targets: componentsToTween,
-            alpha: 0.7, // Less dramatic change for better performance
-            duration: 100, // Faster transition
-            ease: 'Power1.easeOut'
-          });
+          // Simple tint for emoji - no glow graphics for performance
+          emoji.setTint(0xFFFFAA);
           
-          // Subtle scale effect
-          scaleTween = this.tweens.add({
-            targets: button,
-            scale: 1.02,
-            duration: 100,
-            ease: 'Power1.easeOut'
-          });
-          
-          // Create glow effect only once
-          if (!hoverGlow) {
-            hoverGlow = this.add.graphics();
-            hoverGlow.lineStyle(2, 0x77888C, 0.5); // Thinner line for better performance
-            hoverGlow.strokeRoundedRect(-cardWidth/2 - 1, -cardHeight/2 - 1, cardWidth + 2, cardHeight + 2, 12);
-            button.addAt(hoverGlow, 1); // Add after shadow but before card
-          }
-          hoverGlow.setAlpha(1);
-          
-          // Show tooltip with throttling
+          // Show tooltip with delay
           this.time.delayedCall(50, () => {
             if (isHovering) {
               this.showItemTooltip(item.item.name, button.x, button.y - cardHeight/2 - 40);
@@ -1051,36 +914,12 @@ export class Shop extends Scene {
         });
         
         button.on("pointerout", () => {
-          if (!isHovering) return; // Prevent multiple out events
+          if (!isHovering) return;
           isHovering = false;
           
-          // Stop any existing tweens
-          if (hoverTween) hoverTween.stop();
-          if (scaleTween) scaleTween.stop();
-          
-          // Restore opacity
-          const componentsToTween = [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
-          hoverTween = this.tweens.add({
-            targets: componentsToTween,
-            alpha: 1,
-            duration: 100,
-            ease: 'Power1.easeOut'
-          });
-          
-          // Return to normal scale
-          scaleTween = this.tweens.add({
-            targets: button,
-            scale: 1,
-            duration: 100,
-            ease: 'Power1.easeOut'
-          });
-          
-          // Hide glow effect instead of destroying
-          if (hoverGlow) {
-            hoverGlow.setAlpha(0);
-          }
-          
-          // Hide tooltip immediately
+          // Restore state instantly
+          button.setScale(1.0);
+          emoji.clearTint();
           this.hideItemTooltip();
         });
       }
@@ -1140,14 +979,8 @@ export class Shop extends Scene {
     
     tooltip.add([bg, text, arrow]);
     
-    // Quick fade-in
-    tooltip.setAlpha(0);
-    this.tweens.add({
-      targets: tooltip,
-      alpha: 1,
-      duration: 150, // Faster animation
-      ease: 'Power1.easeOut'
-    });
+    // Instant show - no animation for performance
+    tooltip.setAlpha(1);
     
     // Store reference for cleanup
     this.currentTooltip = tooltip;
@@ -1155,18 +988,9 @@ export class Shop extends Scene {
 
   private hideItemTooltip(): void {
     if (this.currentTooltip) {
-      this.tweens.add({
-        targets: this.currentTooltip,
-        alpha: 0,
-        duration: 150,
-        ease: 'Power2.easeOut',
-        onComplete: () => {
-          if (this.currentTooltip) {
-            this.currentTooltip.destroy();
-            this.currentTooltip = null;
-          }
-        }
-      });
+      // Instant hide - no animation for performance
+      this.currentTooltip.destroy();
+      this.currentTooltip = null;
     }
   }
 
