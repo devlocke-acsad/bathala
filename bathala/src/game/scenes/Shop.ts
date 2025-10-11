@@ -37,6 +37,36 @@ export class Shop extends Scene {
       "This relic holds the wisdom of generations. It can unlock possibilities beyond imagination.",
       "The ancestral spirits whisper through this stone. It grants power over the mystical numbers."
     ],
+    "ember_fetish": [
+      "This Ember Fetish was carved from the heart of a banana tree at midnight, during Apolaki's sacred hour.",
+      "Feel the warmth of the sun god's blessing! It ignites your inner fire when you're most vulnerable.",
+      "The flames of courage burn within this fetish. Use it wisely, young warrior."
+    ],
+    "umalagad_spirit": [
+      "Umalagad's Spirit... the essence of the great sea serpent that guides lost sailors home.",
+      "This spirit will protect you as it protected the ancient fishermen of Panay.",
+      "The serpent's wisdom flows through this relic. It will sharpen your reflexes in battle."
+    ],
+    "merchants_scale": [
+      "Ah, you have an eye for irony! The Merchant's Scale... it will make all my prices fairer.",
+      "Blessed by Lakambini herself, this scale ensures honest trade. Even I must honor its power.",
+      "This scale has weighed the souls of merchants for centuries. It demands fairness from all."
+    ],
+    "ancestral_blade": [
+      "The Ancestral Blade... a kampilan that has tasted victory in a thousand battles.",
+      "Your ancestors' spirits dwell within this steel. They will guide your strikes true.",
+      "This blade grows stronger when your heart beats in harmony with your heritage."
+    ],
+    "tidal_amulet": [
+      "The Tidal Amulet pulses with the eternal rhythm of the sea. Can you feel its healing power?",
+      "This coral fragment came from the deepest trenches where the diwata dwell.",
+      "The ocean's mercy flows through this charm. It will mend what battle has broken."
+    ],
+    "sarimanok_feather": [
+      "Behold! A feather from the legendary Sarimanok! It brings prosperity to those worthy of its gifts.",
+      "This radiant plume fell from the sky during a solar eclipse. It's worth more than gold itself.",
+      "The Sarimanok's blessing is upon this feather. Success will follow in your wake."
+    ],
     "default": [
       "This item holds ancient power from the mystical realms...",
       "Ah, a fine choice! This artifact has served many heroes before you.",
