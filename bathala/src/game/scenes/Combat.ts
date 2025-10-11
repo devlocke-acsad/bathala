@@ -949,27 +949,123 @@ export class Combat extends Scene {
     const adjustedSpacing = baseSpacing * scaleFactor;
 
     if (this.combatState.phase === "player_turn") {
-      // Card selection phase
-      const playButton = this.createButton(-adjustedSpacing, 0, "Play Hand", () => {
+      // Card selection phase - Balatro-style layout with grouped sort buttons
+      
+      // Play Hand button on the left
+      const playButton = this.createButton(-adjustedSpacing * 1.2, 0, "Play Hand", () => {
         this.playSelectedCards();
       });
 
-      const sortRankButton = this.createButton(-adjustedSpacing/3, 0, "Sort: Rank", () => {
+      // Sort Hand grouped container (center) - Balatro style
+      const sortContainer = this.add.container(0, 0);
+      
+      // Create the grouped sort button background (double border style)
+      const sortGroupWidth = 320 * scaleFactor; // Increased width for more padding
+      const sortGroupHeight = 60; // Taller for more vertical padding
+      
+      const sortOuterBorder = this.add.rectangle(0, 0, sortGroupWidth + 8, sortGroupHeight + 8, undefined, 0)
+        .setStrokeStyle(3, 0x77888C);
+      const sortInnerBorder = this.add.rectangle(0, 0, sortGroupWidth, sortGroupHeight, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const sortBg = this.add.rectangle(0, 0, sortGroupWidth, sortGroupHeight, 0x150E10);
+      
+      // Sort Hand label at top
+      const sortLabel = this.add.text(0, -sortGroupHeight/2 - 24, "SORT", {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(14 * scaleFactor),
+        color: "#77888C",
+        align: "center"
+      }).setOrigin(0.5);
+      
+      // Create individual sort buttons inside the group (Prologue double border style)
+      const buttonWidth = 100 * scaleFactor; // Button width
+      const buttonHeight = 32; // Button height
+      const buttonGap = 20 * scaleFactor; // Gap between buttons
+      const buttonSpacing = buttonWidth/2 + buttonGap/2;
+      
+      // Rank button (Prologue style - double border)
+      const rankButtonContainer = this.add.container(-buttonSpacing, 0);
+      const rankOuterBorder = this.add.rectangle(0, 0, buttonWidth + 6, buttonHeight + 6, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const rankInnerBorder = this.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const rankButtonBg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
+      const rankButtonText = this.add.text(0, 0, "Rank", {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(16 * scaleFactor),
+        color: "#77888C",
+        align: "center"
+      }).setOrigin(0.5);
+      
+      rankButtonContainer.add([rankOuterBorder, rankInnerBorder, rankButtonBg, rankButtonText]);
+      rankButtonContainer.setInteractive(
+        new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
+        Phaser.Geom.Rectangle.Contains
+      );
+      
+      // Suit button (Prologue style - double border)
+      const suitButtonContainer = this.add.container(buttonSpacing, 0);
+      const suitOuterBorder = this.add.rectangle(0, 0, buttonWidth + 6, buttonHeight + 6, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const suitInnerBorder = this.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0)
+        .setStrokeStyle(2, 0x77888C);
+      const suitButtonBg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
+      const suitButtonText = this.add.text(0, 0, "Suit", {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(16 * scaleFactor),
+        color: "#77888C",
+        align: "center"
+      }).setOrigin(0.5);
+      
+      suitButtonContainer.add([suitOuterBorder, suitInnerBorder, suitButtonBg, suitButtonText]);
+      suitButtonContainer.setInteractive(
+        new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
+        Phaser.Geom.Rectangle.Contains
+      );
+      
+      // Add hover effects to rank button
+      rankButtonContainer.on("pointerover", () => {
+        rankButtonBg.setFillStyle(0x1f1410);
+        rankButtonText.setColor("#e8eced");
+      });
+      rankButtonContainer.on("pointerout", () => {
+        rankButtonBg.setFillStyle(0x150E10);
+        rankButtonText.setColor("#77888C");
+      });
+      rankButtonContainer.on("pointerdown", () => {
         this.sortHand("rank");
       });
-
-      const sortSuitButton = this.createButton(adjustedSpacing/3, 0, "Sort: Suit", () => {
+      
+      // Add hover effects to suit button
+      suitButtonContainer.on("pointerover", () => {
+        suitButtonBg.setFillStyle(0x1f1410);
+        suitButtonText.setColor("#e8eced");
+      });
+      suitButtonContainer.on("pointerout", () => {
+        suitButtonBg.setFillStyle(0x150E10);
+        suitButtonText.setColor("#77888C");
+      });
+      suitButtonContainer.on("pointerdown", () => {
         this.sortHand("suit");
       });
+      
+      sortContainer.add([
+        sortOuterBorder, 
+        sortInnerBorder, 
+        sortBg, 
+        sortLabel,
+        rankButtonContainer,
+        suitButtonContainer
+      ]);
 
-      const discardButton = this.createButton(adjustedSpacing, 0, "Discard", () => {
+      // Discard button on the right
+      const discardButton = this.createButton(adjustedSpacing * 1.2, 0, "Discard", () => {
         this.discardSelectedCards();
       });
 
       this.actionButtons.add([
         playButton,
-        sortRankButton,
-        sortSuitButton,
+        sortContainer,
         discardButton,
       ]);
     } else if (this.combatState.phase === "action_selection") {
@@ -5307,11 +5403,27 @@ export class Combat extends Scene {
     if (this.actionButtons) {
       this.actionButtons.getAll().forEach((child) => {
         if (child instanceof Phaser.GameObjects.Container) {
-          child.input.enabled = enabled;
-          // Visually indicate disabled state
-          const bg = child.getAt(0) as Phaser.GameObjects.Rectangle;
-          if (bg) {
-            bg.setFillStyle(enabled ? 0x2f3542 : 0x1a1d26);
+          // Check if this container has input (it's an interactive button)
+          if (child.input) {
+            child.input.enabled = enabled;
+            // Visually indicate disabled state
+            const bg = child.getAt(0) as Phaser.GameObjects.Rectangle;
+            if (bg) {
+              bg.setFillStyle(enabled ? 0x2f3542 : 0x1a1d26);
+            }
+          }
+          // For grouped containers (like sort buttons), recursively enable/disable children
+          else {
+            child.getAll().forEach((subChild) => {
+              if (subChild instanceof Phaser.GameObjects.Container && (subChild as any).input) {
+                (subChild as any).input.enabled = enabled;
+                // Update visual state for Prologue-style buttons
+                const bg = subChild.getAt(2) as Phaser.GameObjects.Rectangle; // Index 2 is the background
+                if (bg) {
+                  bg.setFillStyle(enabled ? 0x150E10 : 0x0a0806);
+                }
+              }
+            });
           }
         }
       });
