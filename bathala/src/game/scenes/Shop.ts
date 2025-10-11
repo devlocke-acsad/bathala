@@ -13,6 +13,7 @@ export class Shop extends Scene {
   private tooltipBox!: Phaser.GameObjects.Container;
   private scrollContainer: Phaser.GameObjects.Container | null = null;
   private currentTooltip: Phaser.GameObjects.Container | null = null;
+  private merchantCharacter!: Phaser.GameObjects.Container;
 
   constructor() {
     super({ key: "Shop" });
@@ -33,6 +34,9 @@ export class Shop extends Scene {
     // Create animated background elements
     this.createBackgroundElements();
 
+    // Create mysterious merchant character on the left
+    this.createMerchantCharacter();
+
     // Create modern title section
     const screenWidth = this.cameras.main.width;
     
@@ -43,14 +47,6 @@ export class Shop extends Scene {
     titlePanel.lineStyle(2, 0x77888C, 0.8);
     titlePanel.strokeRoundedRect(screenWidth/2 - 300, 10, 600, 60, 12); // Increased from 400px to 600px
     titlePanel.setDepth(2000); // Ensure title stays on top and doesn't scroll
-    
-    // Add the animated merchant sprite next to the title
-    const merchant = this.add.sprite(screenWidth / 2 - 270, 40, 'merchant_f01');
-    merchant.setScale(1.5);
-    merchant.setDepth(2001); // Ensure merchant appears above background but below text
-    
-    // Start the merchant animation
-    merchant.play('merchant_idle');
     
     // Main title with prologue/combat styling
     const title = this.add.text(
@@ -63,20 +59,20 @@ export class Shop extends Scene {
         color: "#77888C",
         align: "center",
       }
-    ).setOrigin(0.5).setDepth(2002); // Ensure title text stays on top of merchant
+    ).setOrigin(0.5).setDepth(2001); // Ensure title text stays on top
     
     // Subtitle
     const subtitle = this.add.text(
       screenWidth / 2,
       65,
-      "• Rare Relics & Mystical Artifacts •",
+      "• Rare Relics & Mystical Artifactssss •",
       {
         fontFamily: "dungeon-mode",
         fontSize: 14,
         color: "#77888C",
         align: "center",
       }
-    ).setOrigin(0.5).setDepth(2002); // Ensure subtitle text stays on top of merchant
+    ).setOrigin(0.5).setDepth(2001); // Ensure subtitle text stays on top
     
     // Title animation
     title.setScale(0.8).setAlpha(0);
@@ -89,16 +85,6 @@ export class Shop extends Scene {
       duration: 800,
       ease: 'Back.easeOut',
       delay: 200
-    });
-    
-    // Animate the merchant as well
-    this.tweens.add({
-      targets: merchant,
-      y: 35,
-      duration: 1500,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
     });
 
     // Create currency display
@@ -236,6 +222,193 @@ export class Shop extends Scene {
         yoyo: true,
         ease: 'Sine.easeInOut'
       });
+    });
+  }
+
+  private createMerchantCharacter(): void {
+    const screenHeight = this.cameras.main.height;
+    
+    // Position merchant on the left side - matching UI layout style
+    const merchantX = 180;
+    const merchantY = screenHeight * 0.5;
+    
+    // Create container for merchant
+    this.merchantCharacter = this.add.container(merchantX, merchantY);
+    this.merchantCharacter.setDepth(500);
+    
+    // Create main merchant background panel - matching the shop UI style
+    const panelWidth = 280;
+    const panelHeight = 400;
+    
+    // Main dark background panel
+    const merchantPanel = this.add.graphics();
+    merchantPanel.fillStyle(0x0a0a0a, 0.95);
+    merchantPanel.fillRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 12);
+    
+    // Outer glowing border - matching the shop item style
+    merchantPanel.lineStyle(3, 0x77888C, 1.0);
+    merchantPanel.strokeRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 12);
+    
+    // Inner accent border
+    merchantPanel.lineStyle(1.5, 0x9BA3A7, 0.8);
+    merchantPanel.strokeRoundedRect(-panelWidth/2 + 8, -panelHeight/2 + 8, panelWidth - 16, panelHeight - 16, 8);
+    
+    // Create title banner at top
+    const titleBanner = this.add.graphics();
+    titleBanner.fillStyle(0x77888C, 0.3);
+    titleBanner.fillRoundedRect(-panelWidth/2 + 10, -panelHeight/2 + 10, panelWidth - 20, 50, 8);
+    titleBanner.lineStyle(1, 0x9BA3A7, 0.6);
+    titleBanner.strokeRoundedRect(-panelWidth/2 + 10, -panelHeight/2 + 10, panelWidth - 20, 50, 8);
+    
+    // Merchant title text
+    const merchantTitle = this.add.text(0, -panelHeight/2 + 35, 'MYSTERIOUS', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 16,
+      color: '#E8E8E8',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    const merchantSubtitle = this.add.text(0, -panelHeight/2 + 52, 'MERCHANT', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 20,
+      color: '#77888C',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    // Create sprite area with border - positioned on the left side of panel
+    const spriteAreaX = -panelWidth/4; // Position sprite on left side of panel
+    const spriteAreaY = -20; // Slightly above center
+    const spriteArea = this.add.graphics();
+    spriteArea.fillStyle(0x1a1a1a, 0.8);
+    spriteArea.fillRoundedRect(spriteAreaX - 60, spriteAreaY - 80, 120, 160, 8);
+    spriteArea.lineStyle(2, 0x77888C, 0.6);
+    spriteArea.strokeRoundedRect(spriteAreaX - 60, spriteAreaY - 80, 120, 160, 8);
+    
+    // Create the animation from individual frames
+    if (!this.anims.exists('merchant-idle')) {
+      this.anims.create({
+        key: 'merchant-idle',
+        frames: [
+          { key: 'merchant_f01' },
+          { key: 'merchant_f02' },
+          { key: 'merchant_f03' },
+          { key: 'merchant_f04' },
+          { key: 'merchant_f05' },
+          { key: 'merchant_f06' },
+          { key: 'merchant_f07' }
+        ],
+        frameRate: 6,
+        repeat: -1
+      });
+    }
+    
+    // Create the animated sprite - positioned on the left side
+    const merchantSprite = this.add.sprite(spriteAreaX, spriteAreaY, 'merchant_f01');
+    merchantSprite.setScale(6.0); // Appropriate size for the panel
+    merchantSprite.play('merchant-idle');
+    
+    // Add subtle mystical effects around the sprite
+    const magicGlow = this.add.graphics();
+    magicGlow.fillStyle(0x77888C, 0.1);
+    magicGlow.fillCircle(spriteAreaX, spriteAreaY, 80);
+    
+    // Add merchant info panel on the right side
+    const infoAreaX = panelWidth/4;
+    const infoAreaY = -20;
+    
+    // Info background
+    const infoArea = this.add.graphics();
+    infoArea.fillStyle(0x77888C, 0.1);
+    infoArea.fillRoundedRect(infoAreaX - 50, infoAreaY - 80, 100, 160, 8);
+    infoArea.lineStyle(1, 0x9BA3A7, 0.5);
+    infoArea.strokeRoundedRect(infoAreaX - 50, infoAreaY - 80, 100, 160, 8);
+    
+    // Merchant stats/info text
+    const merchantLevel = this.add.text(infoAreaX, infoAreaY - 50, 'LEVEL 99', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 10,
+      color: '#9BA3A7',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    const merchantRep = this.add.text(infoAreaX, infoAreaY - 30, 'REPUTATION', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 8,
+      color: '#77888C',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    const merchantStars = this.add.text(infoAreaX, infoAreaY - 15, '★★★★★', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 12,
+      color: '#FFD700',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    const merchantSpecialty = this.add.text(infoAreaX, infoAreaY + 10, 'SPECIALTY:', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 8,
+      color: '#77888C',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    const merchantType = this.add.text(infoAreaX, infoAreaY + 25, 'RARE RELICS', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 9,
+      color: '#9BA3A7',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    const merchantStatus = this.add.text(infoAreaX, infoAreaY + 50, 'OPEN', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 10,
+      color: '#00FF88',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    // Add description area at bottom
+    const descArea = this.add.graphics();
+    descArea.fillStyle(0x77888C, 0.15);
+    descArea.fillRoundedRect(-panelWidth/2 + 15, panelHeight/2 - 80, panelWidth - 30, 60, 6);
+    descArea.lineStyle(1, 0x9BA3A7, 0.4);
+    descArea.strokeRoundedRect(-panelWidth/2 + 15, panelHeight/2 - 80, panelWidth - 30, 60, 6);
+    
+    // Description text
+    const descText = this.add.text(0, panelHeight/2 - 50, 'Dealer of rare relics\nand mystical artifacts', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 12,
+      color: '#9BA3A7',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    // Add all elements to container
+    this.merchantCharacter.add([
+      magicGlow,
+      merchantPanel,
+      titleBanner,
+      merchantTitle,
+      merchantSubtitle,
+      spriteArea,
+      merchantSprite,
+      infoArea,
+      merchantLevel,
+      merchantRep,
+      merchantStars,
+      merchantSpecialty,
+      merchantType,
+      merchantStatus,
+      descArea,
+      descText
+    ]);
+    
+    // Add simple floating animation for the merchant panel
+    this.tweens.add({
+      targets: this.merchantCharacter,
+      y: merchantY - 8,
+      duration: 3000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
     });
   }
 
@@ -1393,6 +1566,7 @@ export class Shop extends Scene {
     // Clear and recreate UI
     this.children.removeAll();
     this.createBackgroundElements();
+    this.createMerchantCharacter(); // Add this missing call!
     this.createCurrencyDisplay();
     this.createCategorizedInventoryUI();
     this.createTooltipBox();
