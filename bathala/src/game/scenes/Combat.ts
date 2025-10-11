@@ -25,12 +25,14 @@ import {
 import { ENEMY_LORE_DATA, EnemyLore } from "../../data/lore/EnemyLore";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 import { RelicManager } from "../../core/managers/RelicManager";
+import { CombatUI } from "./combat/CombatUI";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
  * Player on left, enemy on right, cards at bottom
  */
 export class Combat extends Scene {
+  public ui!: CombatUI;
   private combatState!: CombatState;
   private playerHealthText!: Phaser.GameObjects.Text;
   private playerBlockText!: Phaser.GameObjects.Text;
@@ -172,6 +174,35 @@ export class Combat extends Scene {
     this.battleStartDialogueContainer = null;
   }
 
+  // Public getter methods for CombatUI
+  public getCombatState(): CombatState {
+    return this.combatState;
+  }
+
+  public getSelectedCards(): PlayingCard[] {
+    return this.selectedCards;
+  }
+
+  public getDiscardsUsedThisTurn(): number {
+    return this.discardsUsedThisTurn;
+  }
+
+  public getMaxDiscardsPerTurn(): number {
+    return this.maxDiscardsPerTurn;
+  }
+
+  public getCombatEnded(): boolean {
+    return this.combatEnded;
+  }
+
+  public getIsDrawingCards(): boolean {
+    return this.isDrawingCards;
+  }
+
+  public getIsActionProcessing(): boolean {
+    return this.isActionProcessing;
+  }
+
   create(data: { nodeType: string, transitionOverlay?: any }): void {
     // Safety check for camera
     if (!this.cameras.main) {
@@ -187,6 +218,10 @@ export class Combat extends Scene {
 
     // Initialize combat state
     this.initializeCombat(data.nodeType);
+
+    // Initialize CombatUI
+    this.ui = new CombatUI(this);
+    this.ui.initialize();
 
     // Create UI elements
     this.createCombatUI();
@@ -1917,7 +1952,7 @@ export class Combat extends Scene {
   /**
    * Select/deselect a card with popup animation (Balatro style - keeps position stable)
    */
-  private selectCard(card: PlayingCard): void {
+  public selectCard(card: PlayingCard): void {
     // If trying to select a new card when already 5 are selected, ignore
     if (!card.selected && this.selectedCards.length >= 5) {
       this.showActionResult("Cannot select more than 5 cards!");
@@ -2033,7 +2068,7 @@ export class Combat extends Scene {
   /**
    * Play selected cards (Balatro style - one hand per turn)
    */
-  private playSelectedCards(): void {
+  public playSelectedCards(): void {
     if (this.selectedCards.length === 0) return;
     if (this.selectedCards.length > 5) {
       this.showActionResult("Cannot play more than 5 cards in a hand!");
@@ -2070,7 +2105,7 @@ export class Combat extends Scene {
   /**
    * Sort hand by rank or suit
    */
-  private sortHand(sortBy: "rank" | "suit"): void {
+  public sortHand(sortBy: "rank" | "suit"): void {
     // Create shuffling animation before sorting
     this.animateCardShuffle(sortBy, () => {
       // Animation handles the sorting internally
@@ -2199,7 +2234,7 @@ export class Combat extends Scene {
   /**
    * Discard selected cards
    */
-  private discardSelectedCards(): void {
+  public discardSelectedCards(): void {
     if (this.selectedCards.length === 0) return;
 
     // Check if we can still discard (max 3 discards per turn)
@@ -3459,7 +3494,7 @@ export class Combat extends Scene {
   /**
    * Get dominant suit from played hand
    */
-  private getDominantSuit(cards: PlayingCard[]): Suit {
+  public getDominantSuit(cards: PlayingCard[]): Suit {
     if (cards.length === 0) return "Apoy";
 
     const suitCounts = cards.reduce((counts, card) => {
@@ -3472,7 +3507,7 @@ export class Combat extends Scene {
     )[0][0] as Suit;
   }
 
-  private getSpecialActionName(suit: Suit): string {
+  public getSpecialActionName(suit: Suit): string {
     const specialActions: Record<Suit, string> = {
       Apoy: "AoE + Burn",
       Tubig: "Heal + Cleanse",
@@ -3482,7 +3517,7 @@ export class Combat extends Scene {
     return specialActions[suit];
   }
 
-  private executeAction(actionType: "attack" | "defend" | "special"): void {
+  public executeAction(actionType: "attack" | "defend" | "special"): void {
     // Prevent action spamming
     if (this.isActionProcessing) {
       console.log("Action already processing, ignoring input");
