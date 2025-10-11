@@ -109,6 +109,15 @@ export class Preloader extends Scene {
       frameHeight: 16,
     });
 
+    // Mysterious Merchant sprite frames for Shop - 7 individual frames
+    this.load.image("merchant_f01", "sprites/merchant/merchant_f01.png");
+    this.load.image("merchant_f02", "sprites/merchant/merchant_f02.png");
+    this.load.image("merchant_f03", "sprites/merchant/merchant_f03.png");
+    this.load.image("merchant_f04", "sprites/merchant/merchant_f04.png");
+    this.load.image("merchant_f05", "sprites/merchant/merchant_f05.png");
+    this.load.image("merchant_f06", "sprites/merchant/merchant_f06.png");
+    this.load.image("merchant_f07", "sprites/merchant/merchant_f07.png");
+
     // Enemy sprites for Combat
     this.load.image("amomongo_combat", "sprites/combat/enemy/chap1/amomongo_combat.png");
     this.load.image("balete_combat", "sprites/combat/enemy/chap1/balete_combat.png");
@@ -184,6 +193,15 @@ export class Preloader extends Scene {
     this.load.image("chest_f0", "sprites/overworld/treasure/chest_full_open_anim_f0.png");
     this.load.image("chest_f1", "sprites/overworld/treasure/chest_full_open_anim_f1.png");
     this.load.image("chest_f2", "sprites/overworld/treasure/chest_full_open_anim_f2.png");
+    
+    // Shop merchant sprites
+    this.load.image("merchant_f01", "sprites/merchant/merchant_f01.png");
+    this.load.image("merchant_f02", "sprites/merchant/merchant_f02.png");
+    this.load.image("merchant_f03", "sprites/merchant/merchant_f03.png");
+    this.load.image("merchant_f04", "sprites/merchant/merchant_f04.png");
+    this.load.image("merchant_f05", "sprites/merchant/merchant_f05.png");
+    this.load.image("merchant_f06", "sprites/merchant/merchant_f06.png");
+    this.load.image("merchant_f07", "sprites/merchant/merchant_f07.png");
     
     // Load card sprites
     const suits = ["apoy", "tubig", "lupa", "hangin"];
@@ -500,6 +518,23 @@ export class Preloader extends Scene {
       repeat: -1,
     });
     console.log("Created chest_open animation");
+    
+    // Merchant animation (shop scene)
+    this.anims.create({
+      key: "merchant_idle",
+      frames: [
+        { key: "merchant_f01" },
+        { key: "merchant_f02" },
+        { key: "merchant_f03" },
+        { key: "merchant_f04" },
+        { key: "merchant_f05" },
+        { key: "merchant_f06" },
+        { key: "merchant_f07" }
+      ],
+      frameRate: 8,
+      repeat: -1,
+    });
+    console.log("Created merchant_idle animation");
   }
 
   /**
