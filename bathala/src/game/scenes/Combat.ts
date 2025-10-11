@@ -26,6 +26,7 @@ import { ENEMY_LORE_DATA, EnemyLore } from "../../data/lore/EnemyLore";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 import { RelicManager } from "../../core/managers/RelicManager";
 import { CombatUI } from "./combat/CombatUI";
+import { CombatDialogue } from "./combat/CombatDialogue";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -33,6 +34,7 @@ import { CombatUI } from "./combat/CombatUI";
  */
 export class Combat extends Scene {
   public ui!: CombatUI;
+  public dialogue!: CombatDialogue;
   private combatState!: CombatState;
   private playerHealthText!: Phaser.GameObjects.Text;
   private playerBlockText!: Phaser.GameObjects.Text;
@@ -95,83 +97,8 @@ export class Combat extends Scene {
   private ddaDebugContainer!: Phaser.GameObjects.Container | null;
   private ddaDebugVisible: boolean = false;
 
-  // Post-combat dialogue system
-  private creatureDialogues: Record<string, CreatureDialogue> = {
-    tikbalang_scout: {
-      name: "Tikbalang Scout",
-      spareDialogue: "Hah! You show mercy to a forest guardian turned to shadow? Once I guided lost souls to safety, but now... now I lead them astray. Still, your compassion awakens something deep in me. Take this blessing of sure footing.",
-      killDialogue: "My essence... it feeds the darkness you call shadow. You've only made the forest more treacherous, traveler!",
-      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Sure footing" },
-      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Deceptive paths" },
-    },
-    balete_wraith: {
-      name: "Balete Wraith",
-      spareDialogue: "These roots once held sacred conversations between anito and Bathala, but the engkanto's lies... they poisoned our very essence. Spare me, and I'll grant you the wisdom of the sacred grove.",
-      killDialogue: "My spirit feeds the impostor's power! The forest remembers your violence, traveler!",
-      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Sacred grove wisdom" },
-      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Cursed bark" },
-    },
-    sigbin_charger: {
-      name: "Sigbin Charger",
-      spareDialogue: "We once served Bathala faithfully, our hearts pure and our purpose noble. But the false god's whispers... they corrupted us. If you spare me, I'll share the secret of the night paths.",
-      killDialogue: "Take my power, but beware—darkness flows to the one who commands shadows!",
-      spareReward: { ginto: 55, diamante: 0, healthHealing: 7, bonusEffect: "Night path secrets" },
-      killReward: { ginto: 80, diamante: 1, healthHealing: 0, bonusEffect: "Heart of shadow" },
-    },
-    duwende_trickster: {
-      name: "Duwende Trickster",
-      spareDialogue: "You have the eyes of one who sees beyond surface, mortal. We are indeed spirits of great power, though the engkanto's web has twisted our nature. Accept this gift of hidden sight.",
-      killDialogue: "My tricks scatter to the wind, but the forest remembers! Your ruthlessness feeds the impostor's growing strength!",
-      spareReward: { ginto: 40, diamante: 0, healthHealing: 5, bonusEffect: "Hidden sight" },
-      killReward: { ginto: 60, diamante: 1, healthHealing: 0, bonusEffect: "Mischievous whispers" },
-    },
-    tiyanak_ambusher: {
-      name: "Tiyanak Ambusher",
-      spareDialogue: "Innocent? Yes, once I was just a babe lost between realms... but the false god's corruption runs deep. Your mercy stirs something in my cursed heart. Take this blessing of true sight.",
-      killDialogue: "You strike at innocence, but know this—your violence feeds the shadow that corrupts all!",
-      spareReward: { ginto: 35, diamante: 0, healthHealing: 15, bonusEffect: "True sight" },
-      killReward: { ginto: 55, diamante: 1, healthHealing: 0, bonusEffect: "Crying echo" },
-    },
-    amomongo: {
-      name: "Amomongo",
-      spareDialogue: "My claws once only defended the mountain folk from true threats. The engkanto's poison has changed my purpose. Your mercy awakens old memories. Take this strength.",
-      killDialogue: "My bones may break, but the shadow grows stronger with each soul you destroy!",
-      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Primal strength" },
-      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Bleeding claws" },
-    },
-    bungisngis: {
-      name: "Bungisngis",
-      spareDialogue: "Ha ha ha! You have the spirit of a true mountain dweller! Once we laughed with joy, not malice. Take this gift of hearty laughter to protect you.",
-      killDialogue: "My laughter dies, but the echo haunts... and the shadow grows stronger!",
-      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Joyful resilience" },
-      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Maddening laughter" },
-    },
-    kapre_shade: {
-      name: "Kapre Shade",
-      spareDialogue: "In my tree, I once smoked in peace, guardian of the forest paths. The false god's corruption has made me a shadow of my former self. Your mercy stirs the old honor. Take this blessing of forest protection.",
-      killDialogue: "Burn me down, but the smoke carries the impostor's whispers! Your violence only feeds the growing shadow!",
-      spareReward: { ginto: 80, diamante: 1, healthHealing: 20, bonusEffect: "Forest protection" },
-      killReward: { ginto: 120, diamante: 2, healthHealing: 0, bonusEffect: "Smoke whispers" },
-    },
-    tawong_lipod: {
-      name: "Tawong Lipod",
-      spareDialogue: "Ah... you move with the wind's understanding. We once brought harmony to the Bikol lands, before the false god's lies. Accept this gift of swift movement and hidden sight.",
-      killDialogue: "You cannot scatter what has no form! The wind remembers your violence, and it feeds the impostor's power!",
-      spareReward: { ginto: 80, diamante: 1, healthHealing: 20, bonusEffect: "Wind's grace" },
-      killReward: { ginto: 120, diamante: 2, healthHealing: 0, bonusEffect: "Air superiority" },
-    },
-    mangangaway: {
-      name: "Mangangaway",
-      spareDialogue: "Wise traveler... you see through my curses to the spirit beneath. I was once a healer, a protector of the people. Take this gift of protection against the false god's influence.",
-      killDialogue: "My curses may end, but the shadow you serve grows stronger! Your power feeds the impostor's corruption!",
-      spareReward: { ginto: 150, diamante: 3, healthHealing: 30, bonusEffect: "Hex protection" },
-      killReward: { ginto: 200, diamante: 5, healthHealing: 0, bonusEffect: "Curse mastery" },
-    },
-  };
-
   constructor() {
     super({ key: "Combat" });
-    this.battleStartDialogueContainer = null;
   }
 
   // Public getter methods for CombatUI
@@ -223,6 +150,9 @@ export class Combat extends Scene {
     this.ui = new CombatUI(this);
     this.ui.initialize();
 
+    // Initialize CombatDialogue
+    this.dialogue = new CombatDialogue(this);
+
     // UI is now fully initialized by CombatUI
     // No need to call createCombatUI() separately
     
@@ -259,7 +189,7 @@ export class Combat extends Scene {
           this.startPlayerTurn();
           // Show start of battle dialogue after fade-in
           this.time.delayedCall(100, () => {
-            this.showBattleStartDialogue();
+            this.dialogue.showBattleStartDialogue();
           });
         }
       });
@@ -268,248 +198,13 @@ export class Combat extends Scene {
       this.startPlayerTurn();
       // Show start of battle dialogue
       this.time.delayedCall(100, () => {
-        this.showBattleStartDialogue();
+        this.dialogue.showBattleStartDialogue();
       });
     }
 
     // Listen for resize events
     this.scale.on('resize', this.handleResize, this);
   }
-
-  /**
-   * Show Prologue-style dialogue at start of battle
-   */
-  private showBattleStartDialogue(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create semi-transparent overlay
-    const overlay = this.add.rectangle(
-      screenWidth / 2,
-      screenHeight / 2,
-      screenWidth,
-      screenHeight,
-      0x000000
-    ).setAlpha(0.7).setScrollFactor(0).setDepth(5000);
-    
-    // Create dialogue container positioned at center like Prologue
-    const dialogueContainer = this.add.container(screenWidth / 2, screenHeight / 2);
-    
-    // Double border design with Prologue colors
-    const outerBorder = this.add.rectangle(0, 0, screenWidth * 0.8 + 8, 128, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const innerBorder = this.add.rectangle(0, 0, screenWidth * 0.8, 120, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const bg = this.add.rectangle(0, 0, screenWidth * 0.8, 120, 0x150E10).setInteractive();
-    
-    // Create dialogue text with Prologue styling
-    const dialogueText = this.add.text(
-      0,
-      0,
-      `A wild ${this.combatState.enemy.name} appears!`,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 22,
-        color: "#77888C",
-        align: "center",
-        wordWrap: { width: screenWidth * 0.75 }
-      }
-    ).setOrigin(0.5);
-    
-    // Create continue indicator with Prologue styling
-    const continueIndicator = this.add.text(
-      (screenWidth * 0.8)/2 - 40,
-      (120)/2 - 20,
-      "▼",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#77888C"
-      }
-    ).setOrigin(0.5).setVisible(true);
-    
-    dialogueContainer.add([outerBorder, innerBorder, bg, dialogueText, continueIndicator]);
-    dialogueContainer.setDepth(5001);
-    
-    // Create main container for all dialogue elements
-    this.battleStartDialogueContainer = this.add.container(0, 0, [
-      overlay,
-      dialogueContainer
-    ]).setScrollFactor(0).setDepth(5000);
-    
-    // Prologue-style fade in animation
-    dialogueContainer.setAlpha(0);
-    this.tweens.add({ 
-      targets: dialogueContainer, 
-      alpha: 1, 
-      duration: 400, 
-      ease: 'Power2' 
-    });
-    
-    // Add blinking animation to the continue indicator (Prologue style)
-    this.tweens.add({ 
-      targets: continueIndicator, 
-      y: '+=8', 
-      duration: 600, 
-      yoyo: true, 
-      repeat: -1, 
-      ease: 'Sine.easeInOut' 
-    });
-    
-    // Add click handler with Prologue-style transition
-    bg.on('pointerdown', () => {
-      this.tweens.add({
-        targets: dialogueContainer,
-        alpha: 0,
-        duration: 300,
-        ease: 'Power2',
-        onComplete: () => {
-          if (this.battleStartDialogueContainer) {
-            this.battleStartDialogueContainer.destroy();
-            this.battleStartDialogueContainer = null;
-            
-            // Show enemy dialogue after player dialogue is removed
-            this.time.delayedCall(100, () => {
-              this.showEnemyDialogue();
-            });
-          }
-        }
-      });
-    });
-  }
-
-  /**
-   * Show Prologue-style enemy dialogue at top of screen
-   */
-  private showEnemyDialogue(): void {
-    const screenWidth = this.cameras.main.width;
-    
-    // Create dialogue container positioned at top like a speech bubble
-    const dialogueContainer = this.add.container(screenWidth / 2, 120);
-    
-    const enemyName = this.combatState.enemy.name;
-    const enemySpriteKey = this.getEnemySpriteKey(enemyName);
-    
-    // Double border design with Prologue colors (smaller for enemy dialogue)
-    const outerBorder = this.add.rectangle(0, 0, screenWidth * 0.8 + 8, 108, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const innerBorder = this.add.rectangle(0, 0, screenWidth * 0.8, 100, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const bg = this.add.rectangle(0, 0, screenWidth * 0.8, 100, 0x150E10).setInteractive();
-    
-    // Create enemy icon with combat sprite if available
-    let enemyIcon: Phaser.GameObjects.Sprite | null = null;
-    if (this.textures.exists(enemySpriteKey)) {
-      enemyIcon = this.add.sprite(
-        -(screenWidth * 0.8 / 2) + 35,
-        0,
-        enemySpriteKey
-      ).setScale(0.8).setDepth(5002);
-    }
-    
-    // Create enemy name text with Prologue styling
-    const enemyNameText = this.add.text(
-      -(screenWidth * 0.8 / 2) + 70,
-      -30,
-      this.combatState.enemy.name,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#77888C",
-        align: "left"
-      }
-    ).setOrigin(0, 0).setDepth(5002);
-    
-    // Create enemy dialogue text with Prologue styling
-    const enemyDialogueText = this.add.text(
-      -(screenWidth * 0.8 / 2) + 70,
-      -5,
-      this.getBattleStartDialogue ? this.getBattleStartDialogue() : this.getEnemyDialogue(),
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#77888C",
-        align: "left",
-        wordWrap: { width: screenWidth * 0.8 - 90 }
-      }
-    ).setOrigin(0, 0).setDepth(5002);
-    
-    // Create continue indicator with Prologue styling
-    const continueIndicator = this.add.text(
-      (screenWidth * 0.8)/2 - 40,
-      (100)/2 - 20,
-      "▼",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#77888C"
-      }
-    ).setOrigin(0.5).setDepth(5002);
-    
-    const containerChildren = [
-      outerBorder,
-      innerBorder,
-      bg,
-      enemyIcon,
-      enemyNameText,
-      enemyDialogueText,
-      continueIndicator
-    ].filter(child => child !== null);
-
-    dialogueContainer.add(containerChildren);
-    dialogueContainer.setScrollFactor(0).setDepth(5000);
-    
-    // Prologue-style fade in animation
-    dialogueContainer.setAlpha(0);
-    this.tweens.add({ 
-      targets: dialogueContainer, 
-      alpha: 1, 
-      duration: 400, 
-      ease: 'Power2' 
-    });
-    
-    // Add Prologue-style blinking animation to the continue indicator
-    this.tweens.add({ 
-      targets: continueIndicator, 
-      y: '+=8', 
-      duration: 600, 
-      yoyo: true, 
-      repeat: -1, 
-      ease: 'Sine.easeInOut' 
-    });
-    
-    // Add click handler with Prologue-style transition
-    bg.on('pointerdown', () => {
-      this.tweens.add({
-        targets: dialogueContainer,
-        alpha: 0,
-        duration: 300,
-        ease: 'Power2',
-        onComplete: () => {
-          dialogueContainer.destroy();
-        }
-      });
-    });
-  }
-
-  /**
-   * Get enemy dialogue based on enemy type
-   */
-  private getEnemyDialogue(): string {
-    const enemyName = this.combatState.enemy.name.toLowerCase();
-    
-    if (enemyName.includes("tikbalang")) return "Lost in my paths, seer? False one’s whispers guide!";
-    if (enemyName.includes("balete")) return "Roots entwine your fate!";
-    if (enemyName.includes("sigbin")) return "Charge for shadow throne!";
-    if (enemyName.includes("duwende")) return "Tricks abound in mounds!";
-    if (enemyName.includes("tiyanak")) return "Wails lure to doom!";
-    if (enemyName.includes("amomongo")) return "Nails rend unworthy!";
-    if (enemyName.includes("bungisngis")) return "Laughter masks rage!";
-    if (enemyName.includes("kapre")) return "Smoke veils my wrath!";
-    if (enemyName.includes("tawong lipod")) return "Winds conceal—feel fury!";
-    if (enemyName.includes("mangangaway")) return "Fates reverse at my command!";
-    
-    // Default dialogue
-    return "You have encountered a fearsome creature! Prepare for battle!";
-  }
-
-
 
   /**
    * Initialize combat state with player and enemy
@@ -686,29 +381,6 @@ export class Combat extends Scene {
   private generateEnemyId(enemyName: string): string {
     return enemyName.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now();
   }
-
-  private getEnemySpriteKey(enemyName: string): string {
-    const lowerCaseName = enemyName.toLowerCase();
-    
-    // Map enemy names to combat sprite keys
-    if (lowerCaseName.includes("tikbalang")) return "tikbalang_combat";
-    if (lowerCaseName.includes("balete")) return "balete_combat";
-    if (lowerCaseName.includes("sigbin")) return "sigbin_combat";
-    if (lowerCaseName.includes("duwende")) return "duwende_combat";
-    if (lowerCaseName.includes("tiyanak")) return "tiyanak_combat";
-    if (lowerCaseName.includes("amomongo")) return "amomongo_combat";
-    if (lowerCaseName.includes("bungisngis")) return "bungisngis_combat";
-    if (lowerCaseName.includes("kapre")) return "kapre_combat";
-    if (lowerCaseName.includes("tawong lipod") || lowerCaseName.includes("tawonglipod")) return "tawonglipod_combat";
-    if (lowerCaseName.includes("mangangaway")) return "mangangaway_combat";
-    
-    // Fallback for any other case - use available combat sprites
-    const spriteOptions = ["balete_combat", "sigbin_combat", "tikbalang_combat", "duwende_combat"];
-    const randomIndex = Math.floor(Math.random() * spriteOptions.length);
-    return spriteOptions[randomIndex];
-  }
-
-
 
 
 
@@ -2091,8 +1763,9 @@ export class Combat extends Scene {
     const enemyKey = this.combatState.enemy.name
       .toLowerCase()
       .replace(/\s+/g, "_");
+    const creatureDialogues = this.dialogue.getCreatureDialogues();
     const dialogue =
-      this.creatureDialogues[enemyKey] || this.creatureDialogues.goblin;
+      creatureDialogues[enemyKey] || creatureDialogues.tikbalang_scout;
 
     // Background overlay (Prologue style - semi-transparent)
     const overlay = this.add.rectangle(screenWidth/2, screenHeight/2, screenWidth, screenHeight, 0x000000, 0.7);
@@ -2110,7 +1783,7 @@ export class Combat extends Scene {
     const bg = this.add.rectangle(0, 0, dialogueBoxWidth, dialogueBoxHeight, 0x150E10);
 
     // Enemy portrait using combat sprite
-    const enemySpriteKey = this.getEnemySpriteKey(this.combatState.enemy.name);
+    const enemySpriteKey = this.dialogue.getEnemySpriteKey(this.combatState.enemy.name);
     let enemyPortrait: Phaser.GameObjects.Sprite | null = null;
     
     if (this.textures.exists(enemySpriteKey)) {
@@ -5522,26 +5195,6 @@ export class Combat extends Scene {
   }
   
   /**
-   * Get battle start dialogue for the enemy
-   */
-  private getBattleStartDialogue(): string {
-    const enemyName = this.combatState.enemy.name.toLowerCase();
-    
-    if (enemyName.includes("tikbalang")) return "Hah! You dare enter my maze of paths? The false god's whispers have made me your obstacle, traveler. But your soul still seeks the light?";
-    if (enemyName.includes("balete")) return "Sacred roots that once blessed Bathala's children now bind your fate! The engkanto's corruption runs deep through my bark!";
-    if (enemyName.includes("sigbin")) return "I charge for the shadow throne! Once I served the divine, but now I serve the false god's dark purposes!";
-    if (enemyName.includes("duwende")) return "Tricks? Oh yes, tricks abound in mounds where the old magic sleeps! But which are blessing and which are curse?";
-    if (enemyName.includes("tiyanak")) return "My innocent wail lures you to doom! Once I was a babe, now I am a warning to the living!";
-    if (enemyName.includes("amomongo")) return "My claws rend the unworthy! The mountain remembers when I only defended its people from true threats!";
-    if (enemyName.includes("bungisngis")) return "Laughter masks the rage within! We were once merry giants, but the false god's corruption changed our song to a cackle of malice!";
-    if (enemyName.includes("kapre")) return "Smoke veils my wrath! From my sacred tree I once watched over the forest paths with honor, not malice!";
-    if (enemyName.includes("tawong lipod")) return "Winds conceal—feel fury! The invisible currents are my domain, and I bring the storm of retribution!";
-    if (enemyName.includes("mangangaway")) return "Fates reverse at my command! I was once a healer of the people, now I am their curse-bearer!";
-    
-    // Default dialogue
-    return "You have encountered a fearsome creature! Prepare for battle!";
-  }
-
   /**
    * Hide all UI elements during special attack for cinematic effect
    */
