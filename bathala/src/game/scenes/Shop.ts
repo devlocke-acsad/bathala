@@ -15,6 +15,37 @@ export class Shop extends Scene {
   private currentTooltip: Phaser.GameObjects.Container | null = null;
   private merchantCharacter!: Phaser.GameObjects.Container;
 
+  // Merchant dialogue for different relics
+  private relicDialogues: { [key: string]: string[] } = {
+    "earthwardens_plate": [
+      "Ah, the Earthwarden's Plate! Forged from sacred linga stones in the deepest caves where the earth spirits dwell.",
+      "This armor was blessed by the mountain anitos themselves. It will shield you from harm.",
+      "I found this piece in the ruins of an ancient temple. The earth still whispers its secrets."
+    ],
+    "swift_wind_agimat": [
+      "The Agimat of Swift Wind carries the essence of the Tikbalang's legendary speed!",
+      "This talisman was crafted during the new moon. It grants swiftness to those pure of heart.",
+      "A wind spirit blessed this amulet. It will make your hands faster than the eye can see."
+    ],
+    "babaylans_talisman": [
+      "The Babaylan's Talisman... a powerful artifact from the ancient healers and mystics.",
+      "This belonged to a great babaylan who could speak with the anitos. It enhances one's spiritual power.",
+      "I traded three years of my life to an engkanto for this. It makes your hands blessed by the spirits."
+    ],
+    "echo_of_ancestors": [
+      "The Echo of Ancestors resonates with the voices of those who came before us.",
+      "This relic holds the wisdom of generations. It can unlock possibilities beyond imagination.",
+      "The ancestral spirits whisper through this stone. It grants power over the mystical numbers."
+    ],
+    "default": [
+      "This item holds ancient power from the mystical realms...",
+      "Ah, a fine choice! This artifact has served many heroes before you.",
+      "I acquired this through... unconventional means. But it will serve you well!",
+      "The spirits themselves guided this item to my shop. Perhaps they meant it for you.",
+      "Every relic has a story. This one's tale is written in power and mystery."
+    ]
+  };
+
   constructor() {
     super({ key: "Shop" });
   }
@@ -124,14 +155,14 @@ export class Shop extends Scene {
     bgOverlay.fillStyle(0x150E10, 1);
     bgOverlay.fillRect(0, 0, screenWidth, screenHeight);
     
-    // Add subtle geometric pattern with prologue/combat colors
-    for (let i = 0; i < 12; i++) {
+    // Add subtle geometric pattern with prologue/combat colors - reduced for performance
+    for (let i = 0; i < 6; i++) { // Reduced from 12 to 6
       const size = Phaser.Math.Between(15, 45);
       const x = Phaser.Math.Between(0, screenWidth);
       const y = Phaser.Math.Between(0, screenHeight);
       
       const shape = this.add.graphics();
-      shape.lineStyle(1, 0x77888C, 0.15);
+      shape.lineStyle(1, 0x77888C, 0.1); // Reduced opacity
       shape.beginPath();
       shape.moveTo(x, y);
       shape.lineTo(x + size, y);
@@ -139,33 +170,33 @@ export class Shop extends Scene {
       shape.closePath();
       shape.strokePath();
       
-      // Subtle rotation animation
+      // Slower rotation animation for better performance
       this.tweens.add({
         targets: shape,
         rotation: Math.PI * 2,
-        duration: Phaser.Math.Between(20000, 30000),
+        duration: Phaser.Math.Between(30000, 45000), // Slower rotation
         repeat: -1,
         ease: 'Linear'
       });
     }
     
-    // Create mystical floating particles with prologue/combat colors
-    for (let i = 0; i < 20; i++) {
+    // Reduce particle count for better performance
+    for (let i = 0; i < 8; i++) { // Reduced from 20 to 8
       const particle = this.add.circle(
         Phaser.Math.Between(0, screenWidth),
         Phaser.Math.Between(0, screenHeight),
         Phaser.Math.Between(1, 2),
         0x77888C,
-        0.3
+        0.2 // Reduced opacity
       );
       
-      // Smooth floating animation
+      // Simpler floating animation
       this.tweens.add({
         targets: particle,
-        x: '+=' + Phaser.Math.Between(-120, 120),
-        y: '+=' + Phaser.Math.Between(-120, 120),
-        alpha: 0.6,
-        duration: Phaser.Math.Between(5000, 9000),
+        x: '+=' + Phaser.Math.Between(-60, 60), // Reduced movement range
+        y: '+=' + Phaser.Math.Between(-60, 60),
+        alpha: 0.4,
+        duration: Phaser.Math.Between(8000, 12000), // Slower animation
         repeat: -1,
         yoyo: true,
         ease: 'Sine.easeInOut'
@@ -211,16 +242,17 @@ export class Shop extends Scene {
     bottomRight.lineTo(screenWidth - 20, screenHeight - cornerSize - 20);
     bottomRight.strokePath();
     
-    // Add a subtle pulsing effect to corners
+    // Add a subtle pulsing effect to corners - optimized
     const corners = [topLeft, topRight, bottomLeft, bottomRight];
-    corners.forEach(corner => {
+    corners.forEach((corner, index) => {
       this.tweens.add({
         targets: corner,
         alpha: 0.4,
-        duration: 2500,
+        duration: 3000, // Slower pulse for better performance
         repeat: -1,
         yoyo: true,
-        ease: 'Sine.easeInOut'
+        ease: 'Sine.easeInOut',
+        delay: index * 500 // Stagger the animations
       });
     });
   }
@@ -712,30 +744,55 @@ export class Shop extends Scene {
   private setupScrolling(container: Phaser.GameObjects.Container, screenHeight: number): void {
     let scrollY = 0;
     const maxScroll = Math.max(0, 1200 - screenHeight + 200); // Calculate based on content height
-    const scrollSpeed = 30;
+    const scrollSpeed = 80; // Increased from 30 to 80 for faster scrolling
+    let isScrolling = false;
     
-    // Mouse wheel scrolling
+    // Optimized scroll function with throttling
+    const performScroll = (newScrollY: number) => {
+      if (isScrolling) return;
+      
+      isScrolling = true;
+      scrollY = newScrollY;
+      
+      // Use tween for smooth scrolling instead of direct position update
+      this.tweens.add({
+        targets: container,
+        y: -scrollY,
+        duration: 80, // Reduced from 120 to 80 for faster response
+        ease: 'Power2.easeOut',
+        onComplete: () => {
+          isScrolling = false;
+        }
+      });
+    };
+    
+    // Mouse wheel scrolling with throttling
     this.input.on('wheel', (_pointer: any, _gameObjects: any, _deltaX: number, deltaY: number) => {
+      if (isScrolling) return;
+      
+      let newScrollY;
       if (deltaY > 0) {
         // Scroll down
-        scrollY = Math.min(scrollY + scrollSpeed, maxScroll);
+        newScrollY = Math.min(scrollY + scrollSpeed, maxScroll);
       } else {
         // Scroll up
-        scrollY = Math.max(scrollY - scrollSpeed, 0);
+        newScrollY = Math.max(scrollY - scrollSpeed, 0);
       }
       
-      container.y = -scrollY;
+      performScroll(newScrollY);
     });
     
-    // Keyboard scrolling (arrow keys)
+    // Keyboard scrolling (arrow keys) with throttling
     this.input.keyboard?.on('keydown-UP', () => {
-      scrollY = Math.max(scrollY - scrollSpeed, 0);
-      container.y = -scrollY;
+      if (isScrolling) return;
+      const newScrollY = Math.max(scrollY - scrollSpeed, 0);
+      performScroll(newScrollY);
     });
     
     this.input.keyboard?.on('keydown-DOWN', () => {
-      scrollY = Math.min(scrollY + scrollSpeed, maxScroll);
-      container.y = -scrollY;
+      if (isScrolling) return;
+      const newScrollY = Math.min(scrollY + scrollSpeed, maxScroll);
+      performScroll(newScrollY);
     });
   }
 
@@ -907,68 +964,93 @@ export class Shop extends Scene {
           Phaser.Geom.Rectangle.Contains
         );
         
-        // Store references for hover effects
+        // Store references for hover effects - create once, reuse
         let hoverGlow: Phaser.GameObjects.Graphics | null = null;
+        let isHovering = false;
+        let hoverTween: Phaser.Tweens.Tween | null = null;
+        let scaleTween: Phaser.Tweens.Tween | null = null;
         
-        button.on("pointerdown", () => this.showItemDetails(item));
+        button.on("pointerdown", () => {
+          // 40% chance to trigger merchant dialogue when clicking on a relic
+          if (Math.random() < 0.4) {
+            this.showRandomRelicDialogue(item);
+          }
+          this.showItemDetails(item);
+        });
         
         button.on("pointerover", () => {
-          // Dim the item card
-          this.tweens.add({
-            targets: [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText],
-            alpha: 0.6, // Dim all components
-            duration: 150,
-            ease: 'Power2.easeOut'
+          if (isHovering) return; // Prevent multiple hover events
+          isHovering = true;
+          
+          // Stop any existing tweens
+          if (hoverTween) hoverTween.stop();
+          if (scaleTween) scaleTween.stop();
+          
+          // Optimized hover effect - single tween for all components
+          const componentsToTween = [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
+          hoverTween = this.tweens.add({
+            targets: componentsToTween,
+            alpha: 0.7, // Less dramatic change for better performance
+            duration: 100, // Faster transition
+            ease: 'Power1.easeOut'
           });
           
-          // Slight scale effect
-          this.tweens.add({
+          // Subtle scale effect
+          scaleTween = this.tweens.add({
             targets: button,
             scale: 1.02,
-            duration: 150,
-            ease: 'Power2.easeOut'
+            duration: 100,
+            ease: 'Power1.easeOut'
           });
           
-          // Remove any existing glow first
-          if (hoverGlow) {
-            hoverGlow.destroy();
-            hoverGlow = null;
+          // Create glow effect only once
+          if (!hoverGlow) {
+            hoverGlow = this.add.graphics();
+            hoverGlow.lineStyle(2, 0x77888C, 0.5); // Thinner line for better performance
+            hoverGlow.strokeRoundedRect(-cardWidth/2 - 1, -cardHeight/2 - 1, cardWidth + 2, cardHeight + 2, 12);
+            button.addAt(hoverGlow, 1); // Add after shadow but before card
           }
+          hoverGlow.setAlpha(1);
           
-          // Add subtle glow effect
-          hoverGlow = this.add.graphics();
-          hoverGlow.lineStyle(3, 0x77888C, 0.6);
-          hoverGlow.strokeRoundedRect(-cardWidth/2 - 1, -cardHeight/2 - 1, cardWidth + 2, cardHeight + 2, 12);
-          button.addAt(hoverGlow, 1); // Add after shadow but before card
-          
-          // Show tooltip ABOVE the slot with item name
-          this.showItemTooltip(item.item.name, button.x, button.y - cardHeight/2 - 40);
+          // Show tooltip with throttling
+          this.time.delayedCall(50, () => {
+            if (isHovering) {
+              this.showItemTooltip(item.item.name, button.x, button.y - cardHeight/2 - 40);
+            }
+          });
         });
         
         button.on("pointerout", () => {
-          // Restore item card opacity
-          this.tweens.add({
-            targets: [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText],
-            alpha: 1, // Restore full opacity
-            duration: 150,
-            ease: 'Power2.easeOut'
+          if (!isHovering) return; // Prevent multiple out events
+          isHovering = false;
+          
+          // Stop any existing tweens
+          if (hoverTween) hoverTween.stop();
+          if (scaleTween) scaleTween.stop();
+          
+          // Restore opacity
+          const componentsToTween = [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
+          hoverTween = this.tweens.add({
+            targets: componentsToTween,
+            alpha: 1,
+            duration: 100,
+            ease: 'Power1.easeOut'
           });
           
           // Return to normal scale
-          this.tweens.add({
+          scaleTween = this.tweens.add({
             targets: button,
             scale: 1,
-            duration: 150,
-            ease: 'Power2.easeOut'
+            duration: 100,
+            ease: 'Power1.easeOut'
           });
           
-          // Remove glow effect properly
+          // Hide glow effect instead of destroying
           if (hoverGlow) {
-            hoverGlow.destroy();
-            hoverGlow = null;
+            hoverGlow.setAlpha(0);
           }
           
-          // Hide tooltip
+          // Hide tooltip immediately
           this.hideItemTooltip();
         });
       }
@@ -992,7 +1074,6 @@ export class Shop extends Scene {
     this.hideItemTooltip();
     
     // Create tooltip container positioned above the item slot
-    // Position it relative to the item's position within the scroll container
     const tooltip = this.add.container(x, y);
     tooltip.setDepth(3000);
     tooltip.setName('itemTooltip');
@@ -1002,58 +1083,40 @@ export class Shop extends Scene {
       this.scrollContainer.add(tooltip);
     }
     
-    // Measure text to size tooltip appropriately
-    const tempText = this.add.text(0, 0, itemName, {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#ffffff"
-    });
-    const textBounds = tempText.getBounds();
-    const tooltipWidth = Math.max(textBounds.width + 24, 120); // Minimum width
+    // Simplified tooltip with better performance
+    const tooltipWidth = Math.max(itemName.length * 12 + 24, 120); // Simple calculation
     const tooltipHeight = 40;
-    tempText.destroy();
     
-    // Tooltip shadow for depth
-    const shadow = this.add.graphics();
-    shadow.fillStyle(0x000000, 0.6);
-    shadow.fillRoundedRect(-tooltipWidth/2 + 3, -tooltipHeight/2 + 3, tooltipWidth, tooltipHeight, 10);
-    
-    // Tooltip background with enhanced styling
+    // Single background with shadow (no separate shadow graphics)
     const bg = this.add.graphics();
-    bg.fillStyle(0x1a1a1a, 0.95);
-    bg.lineStyle(2, 0x77888C, 1);
+    bg.fillStyle(0x000000, 0.3); // Shadow
+    bg.fillRoundedRect(-tooltipWidth/2 + 2, -tooltipHeight/2 + 2, tooltipWidth, tooltipHeight, 10);
+    bg.fillStyle(0x1a1a1a, 0.95); // Main background
+    bg.lineStyle(2, 0x77888C, 0.8);
     bg.fillRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 10);
     bg.strokeRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 10);
     
-    // Inner glow for modern look
-    const innerGlow = this.add.graphics();
-    innerGlow.lineStyle(1, 0x77888C, 0.5);
-    innerGlow.strokeRoundedRect(-tooltipWidth/2 + 2, -tooltipHeight/2 + 2, tooltipWidth - 4, tooltipHeight - 4, 8);
-    
-    // Tooltip text with enhanced styling
+    // Tooltip text
     const text = this.add.text(0, 0, itemName, {
       fontFamily: "dungeon-mode",
-      fontSize: 18,
+      fontSize: 16, // Slightly smaller for better performance
       color: "#ffffff",
       fontStyle: "bold"
     }).setOrigin(0.5, 0.5);
     
-    // Add pointer/arrow pointing down to the item
-    const arrow = this.add.graphics();
-    arrow.fillStyle(0x1a1a1a, 0.95);
-    arrow.lineStyle(2, 0x77888C, 1);
-    arrow.fillTriangle(0, tooltipHeight/2, -8, tooltipHeight/2 + 10, 8, tooltipHeight/2 + 10);
-    arrow.strokeTriangle(0, tooltipHeight/2, -8, tooltipHeight/2 + 10, 8, tooltipHeight/2 + 10);
+    // Simple arrow (no separate graphics)
+    const arrow = this.add.polygon(0, tooltipHeight/2 + 5, [0, 0, -6, 8, 6, 8], 0x1a1a1a, 0.95);
+    arrow.setStrokeStyle(2, 0x77888C, 0.8);
     
-    tooltip.add([shadow, bg, innerGlow, text, arrow]);
+    tooltip.add([bg, text, arrow]);
     
-    // Smooth fade-in animation
+    // Quick fade-in
     tooltip.setAlpha(0);
     this.tweens.add({
       targets: tooltip,
       alpha: 1,
-      duration: 200,
-      ease: 'Power2.easeOut'
+      duration: 150, // Faster animation
+      ease: 'Power1.easeOut'
     });
     
     // Store reference for cleanup
@@ -1752,6 +1815,111 @@ export class Shop extends Scene {
         }
       });
     });
+  }
+
+  private showRandomRelicDialogue(item: ShopItem): void {
+    // Get the appropriate dialogue array for this relic
+    const relicId = item.item.id;
+    const dialogues = this.relicDialogues[relicId] || this.relicDialogues["default"];
+    
+    // Pick a random dialogue
+    const randomDialogue = dialogues[Math.floor(Math.random() * dialogues.length)];
+    
+    // Show custom merchant dialogue
+    this.showCustomMerchantDialogue(randomDialogue);
+  }
+
+  private showCustomMerchantDialogue(customText: string): void {
+    // Hide existing dialogue
+    if (this.dialogueContainer) {
+      this.dialogueContainer.destroy();
+    }
+
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+
+    // Create dialogue container
+    this.dialogueContainer = this.add.container(screenWidth / 2, screenHeight - 120);
+    this.dialogueContainer.setDepth(3000); // High depth to be above everything
+
+    // Dialogue box background - matching game style
+    const boxWidth = Math.min(screenWidth - 100, 800);
+    const boxHeight = 100;
+
+    // Main dialogue background
+    const dialogueBg = this.add.graphics();
+    dialogueBg.fillStyle(0x0a0a0a, 0.95);
+    dialogueBg.fillRoundedRect(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight, 12);
+
+    // Outer border - matching shop style
+    dialogueBg.lineStyle(3, 0x77888C, 1.0);
+    dialogueBg.strokeRoundedRect(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight, 12);
+
+    // Inner accent border
+    dialogueBg.lineStyle(1, 0x9BA3A7, 0.6);
+    dialogueBg.strokeRoundedRect(-boxWidth/2 + 3, -boxHeight/2 + 3, boxWidth - 6, boxHeight - 6, 9);
+
+    // Third inner border for extra depth
+    dialogueBg.lineStyle(1, 0x77888C, 0.3);
+    dialogueBg.strokeRoundedRect(-boxWidth/2 + 6, -boxHeight/2 + 6, boxWidth - 12, boxHeight - 12, 6);
+
+    // Merchant icon
+    const merchantIcon = this.add.text(-boxWidth/2 + 25, 0, "🧙‍♂️", {
+      fontSize: 24
+    }).setOrigin(0.5);
+
+    // Dialogue text
+    const dialogueText = this.add.text(-boxWidth/2 + 60, 0, customText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 16,
+      color: "#e8eced",
+      wordWrap: { width: boxWidth - 100 },
+      align: "left"
+    }).setOrigin(0, 0.5);
+
+    // Add components to container
+    this.dialogueContainer.add([dialogueBg, merchantIcon, dialogueText]);
+
+    // Entrance animation
+    this.dialogueContainer.setAlpha(0).setScale(0.9);
+    this.tweens.add({
+      targets: this.dialogueContainer,
+      alpha: 1,
+      scale: 1,
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
+
+    // Auto-hide after 4 seconds
+    this.time.delayedCall(4000, () => {
+      this.closeDialogueSmooth();
+    });
+
+    // Click to close
+    this.dialogueContainer.setInteractive(
+      new Phaser.Geom.Rectangle(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight),
+      Phaser.Geom.Rectangle.Contains
+    );
+    this.dialogueContainer.on('pointerdown', () => {
+      this.closeDialogueSmooth();
+    });
+  }
+
+  private closeDialogueSmooth(): void {
+    if (this.dialogueContainer) {
+      this.tweens.add({
+        targets: this.dialogueContainer,
+        alpha: 0,
+        scale: 0.9,
+        duration: 200,
+        ease: 'Power2.easeIn',
+        onComplete: () => {
+          if (this.dialogueContainer) {
+            this.dialogueContainer.destroy();
+          }
+        }
+      });
+    }
   }
 
   /**\n   * Handle scene resize\n   */
