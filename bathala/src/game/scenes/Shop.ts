@@ -284,7 +284,7 @@ export class Shop extends Scene {
     spriteArea.lineStyle(2, 0x77888C, 0.6);
     spriteArea.strokeRoundedRect(spriteAreaX - 60, spriteAreaY - 80, 120, 160, 8);
     
-    // Create the animation from individual frames
+    // Create the animation from individual frames - slower animation every 3 seconds
     if (!this.anims.exists('merchant-idle')) {
       this.anims.create({
         key: 'merchant-idle',
@@ -297,8 +297,9 @@ export class Shop extends Scene {
           { key: 'merchant_f06' },
           { key: 'merchant_f07' }
         ],
-        frameRate: 6,
-        repeat: -1
+        frameRate: 2, // Much slower - 2 frames per second
+        repeat: -1,
+        repeatDelay: 3000 // 3 second delay between animation cycles
       });
     }
     
@@ -307,10 +308,25 @@ export class Shop extends Scene {
     merchantSprite.setScale(6.0); // Appropriate size for the panel
     merchantSprite.play('merchant-idle');
     
+    // Make merchant sprite interactive for dialogue
+    merchantSprite.setInteractive();
+    merchantSprite.on('pointerdown', () => this.showMerchantDialogue());
+    merchantSprite.on('pointerover', () => {
+      merchantSprite.setTint(0xcccccc); // Slight tint on hover
+      this.input.setDefaultCursor('pointer');
+    });
+    merchantSprite.on('pointerout', () => {
+      merchantSprite.clearTint();
+      this.input.setDefaultCursor('default');
+    });
+
     // Add subtle mystical effects around the sprite
     const magicGlow = this.add.graphics();
     magicGlow.fillStyle(0x77888C, 0.1);
     magicGlow.fillCircle(spriteAreaX, spriteAreaY, 80);
+    
+    // Create dialogue system
+    this.createMerchantDialogueSystem();
     
     // Add merchant info panel on the right side
     const infoAreaX = panelWidth/4;
@@ -409,6 +425,183 @@ export class Shop extends Scene {
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut'
+    });
+  }
+
+  private merchantDialogues = [
+    "Welcome, traveler... I've been expecting you.",
+    "These relics hold power beyond mortal comprehension.",
+    "Each artifact tells a story of forgotten gods...",
+    "Choose wisely - the spirits judge your decisions.",
+    "My wares are not for the weak of heart.",
+    "The ancestors whisper of your journey...",
+    "Balance is key - take only what you need.",
+    "These treasures have waited eons for the right bearer."
+  ];
+  private currentDialogueIndex = 0;
+  private dialogueContainer?: Phaser.GameObjects.Container;
+
+  private createMerchantDialogueSystem(): void {
+    // Auto-dialogue every 8-12 seconds
+    this.time.addEvent({
+      delay: Phaser.Math.Between(8000, 12000),
+      callback: () => this.showMerchantDialogue(true),
+      loop: true
+    });
+  }
+
+  private showMerchantDialogue(isAuto: boolean = false): void {
+    // Don't show auto dialogue if manual dialogue is active
+    if (isAuto && this.dialogueContainer && this.dialogueContainer.visible) {
+      return;
+    }
+
+    // Hide existing dialogue
+    if (this.dialogueContainer) {
+      this.dialogueContainer.destroy();
+    }
+
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+
+    // Get current dialogue
+    const dialogue = this.merchantDialogues[this.currentDialogueIndex];
+    this.currentDialogueIndex = (this.currentDialogueIndex + 1) % this.merchantDialogues.length;
+
+    // Create dialogue container
+    this.dialogueContainer = this.add.container(screenWidth / 2, screenHeight - 120);
+    this.dialogueContainer.setDepth(3000); // High depth to be above everything
+
+    // Dialogue box background - matching game style
+    const boxWidth = Math.min(screenWidth - 100, 800);
+    const boxHeight = 100;
+
+    // Main dialogue background
+    const dialogueBg = this.add.graphics();
+    dialogueBg.fillStyle(0x0a0a0a, 0.95);
+    dialogueBg.fillRoundedRect(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight, 12);
+
+    // Outer border - matching shop style
+    dialogueBg.lineStyle(3, 0x77888C, 1.0);
+    dialogueBg.strokeRoundedRect(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight, 12);
+
+    // Inner accent border
+    dialogueBg.lineStyle(1, 0x9BA3A7, 0.8);
+    dialogueBg.strokeRoundedRect(-boxWidth/2 + 6, -boxHeight/2 + 6, boxWidth - 12, boxHeight - 12, 8);
+
+    // Character name plate
+    const namePlate = this.add.graphics();
+    namePlate.fillStyle(0x77888C, 0.9);
+    namePlate.fillRoundedRect(-boxWidth/2 + 20, -boxHeight/2 - 15, 160, 30, 8);
+    namePlate.lineStyle(2, 0x9BA3A7, 0.8);
+    namePlate.strokeRoundedRect(-boxWidth/2 + 20, -boxHeight/2 - 15, 160, 30, 8);
+
+    // Character name
+    const characterName = this.add.text(-boxWidth/2 + 100, -boxHeight/2, 'MYSTERIOUS MERCHANT', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 12,
+      color: '#E8E8E8',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    // Dialogue text with typewriter effect
+    const dialogueText = this.add.text(0, -10, '', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 16,
+      color: '#E8E8E8',
+      align: 'center',
+      wordWrap: { width: boxWidth - 40 }
+    }).setOrigin(0.5);
+
+    // Continue indicator
+    const continueText = this.add.text(boxWidth/2 - 30, boxHeight/2 - 15, '▼', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 14,
+      color: '#77888C'
+    }).setOrigin(0.5);
+    continueText.setVisible(false);
+
+    // Add elements to container
+    this.dialogueContainer.add([dialogueBg, namePlate, characterName, dialogueText, continueText]);
+
+    // Typewriter effect
+    let currentChar = 0;
+    const typewriterTimer = this.time.addEvent({
+      delay: 50, // Speed of typing
+      callback: () => {
+        if (currentChar < dialogue.length) {
+          dialogueText.text = dialogue.substring(0, currentChar + 1);
+          currentChar++;
+        } else {
+          typewriterTimer.destroy();
+          continueText.setVisible(true);
+          
+          // Pulse animation for continue indicator
+          this.tweens.add({
+            targets: continueText,
+            alpha: 0.3,
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+        }
+      },
+      repeat: dialogue.length - 1
+    });
+
+    // Click to close (after typing is done)
+    this.dialogueContainer.setInteractive(
+      new Phaser.Geom.Rectangle(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight), 
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    this.dialogueContainer.on('pointerdown', () => {
+      if (currentChar >= dialogue.length) {
+        // Smooth exit animation
+        this.tweens.add({
+          targets: this.dialogueContainer,
+          alpha: 0,
+          y: screenHeight - 80,
+          duration: 300,
+          ease: 'Power2.easeIn',
+          onComplete: () => {
+            if (this.dialogueContainer) {
+              this.dialogueContainer.destroy();
+              this.dialogueContainer = undefined;
+            }
+          }
+        });
+      }
+    });
+
+    // Auto-hide after 5 seconds if it's an auto dialogue
+    if (isAuto) {
+      this.time.delayedCall(5000, () => {
+        if (this.dialogueContainer && this.dialogueContainer.visible) {
+          this.tweens.add({
+            targets: this.dialogueContainer,
+            alpha: 0,
+            duration: 500,
+            onComplete: () => {
+              if (this.dialogueContainer) {
+                this.dialogueContainer.destroy();
+                this.dialogueContainer = undefined;
+              }
+            }
+          });
+        }
+      });
+    }
+
+    // Entrance animation
+    this.dialogueContainer.setAlpha(0).setY(screenHeight - 80);
+    this.tweens.add({
+      targets: this.dialogueContainer,
+      alpha: 1,
+      y: screenHeight - 120,
+      duration: 400,
+      ease: 'Back.easeOut'
     });
   }
 
