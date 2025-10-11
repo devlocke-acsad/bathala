@@ -63,6 +63,7 @@ export class Combat extends Scene {
   private actionResultText!: Phaser.GameObjects.Text;
   private enemyAttackPreviewText!: Phaser.GameObjects.Text;
   private damagePreviewText!: Phaser.GameObjects.Text;
+  private selectionCounterText!: Phaser.GameObjects.Text; // New selection counter
   private isDrawingCards: boolean = false;
   private isActionProcessing: boolean = false;
   private combatEnded: boolean = false;
@@ -884,6 +885,17 @@ export class Combat extends Scene {
     const screenHeight = this.cameras.main.height;
     // Position hand container higher to avoid overlap with buttons
     this.handContainer = this.add.container(screenWidth/2, screenHeight - 240);
+    
+    // Create selection counter text well above the cards (Balatro style)
+    // Position at -140 so it's above even when cards are elevated by 40px when selected
+    this.selectionCounterText = this.add.text(0, -140, "Selected: 0/5", {
+      fontFamily: "dungeon-mode",
+      fontSize: 22,
+      color: "#ffdd44",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    this.handContainer.add(this.selectionCounterText);
     this.updateHandDisplay();
   }
 
@@ -1807,7 +1819,7 @@ export class Combat extends Scene {
   }
 
   /**
-   * Select/deselect a card with popup animation (Balatro style)
+   * Select/deselect a card with popup animation (Balatro style - keeps position stable)
    */
   private selectCard(card: PlayingCard): void {
     // If trying to select a new card when already 5 are selected, ignore
@@ -1832,28 +1844,15 @@ export class Combat extends Scene {
     if (cardIndex !== -1 && this.cardSprites[cardIndex]) {
       const cardSprite = this.cardSprites[cardIndex];
       
-      // Get the base Y position from the Balatro-style card arrangement
-      const hand = this.combatState.player.hand;
-      const screenWidth = this.cameras.main.width;
-      const cardWidth = 100;
-      const cardSpacing = cardWidth * 0.85;
-      const totalWidth = (hand.length - 1) * cardSpacing;
-      const maxWidth = screenWidth * 0.75;
-      const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
-      const actualSpacing = cardSpacing * scale;
-      const actualTotalWidth = (hand.length - 1) * actualSpacing;
-      const startX = -actualTotalWidth / 2;
-      const arcHeight = 30;
-      const normalizedPos = hand.length > 1 ? (cardIndex / (hand.length - 1)) - 0.5 : 0;
-      const baseY = -Math.abs(normalizedPos) * arcHeight * 2;
+      // Get the stored base position from card data (this ensures cards return to exact position)
+      const baseY = (card as any).baseY || 0;
       
-      // Balatro-style selection animation
+      // Balatro-style selection animation - only Y changes, X stays the same
       if (card.selected) {
         // Animate selection with smooth bounce
         this.tweens.add({
           targets: cardSprite,
           y: baseY - 40, // Elevate when selected
-          scale: 1.05, // Slightly larger when selected
           duration: 200,
           ease: 'Back.easeOut'
         });
@@ -1865,11 +1864,10 @@ export class Combat extends Scene {
         }
         cardSprite.setDepth(500 + cardIndex); // Bring to front
       } else {
-        // Animate deselection
+        // Animate deselection - return to exact base position
         this.tweens.add({
           targets: cardSprite,
-          y: baseY, // Return to arc position
-          scale: 1, // Return to normal size
+          y: baseY, // Return to exact arc position
           duration: 200,
           ease: 'Back.easeOut'
         });
@@ -1883,6 +1881,9 @@ export class Combat extends Scene {
       }
     }
 
+    // Update selection counter
+    this.updateSelectionCounter();
+    
     // Update card visuals without recreating all cards
     this.updateCardVisuals(card);
     this.updateHandIndicator(); // Update hand indicator when selection changes
@@ -1965,6 +1966,9 @@ export class Combat extends Scene {
     
     // Update damage preview for the new hand
     this.updateDamagePreview(true);
+    
+    // Update selection counter (should show 0/5)
+    this.updateSelectionCounter();
   }
 
   /**
@@ -2087,6 +2091,7 @@ export class Combat extends Scene {
     this.updateHandDisplay();
     this.updateTurnUI();
     this.updateHandIndicator(); // Update hand indicator after discarding
+    this.updateSelectionCounter(); // Update selection counter after discarding
     this.updateDiscardDisplay(); // Update discard pile display
   }
 
@@ -2450,6 +2455,26 @@ export class Combat extends Scene {
       evaluation.totalValue > 0 ? ` (${evaluation.totalValue} value)` : "";
 
     this.handIndicatorText.setText(`Selected: ${handTypeText}${valueText}`);
+  }
+
+  /**
+   * Update selection counter above the cards (Balatro style)
+   */
+  private updateSelectionCounter(): void {
+    if (!this.selectionCounterText) return;
+    
+    const count = this.selectedCards.length;
+    
+    // Show hand type if we have selected cards
+    if (count > 0) {
+      const evaluation = HandEvaluator.evaluateHand(this.selectedCards, "attack");
+      const handTypeText = this.getHandTypeDisplayText(evaluation.type);
+      this.selectionCounterText.setText(`${count}/5 - ${handTypeText}`);
+      this.selectionCounterText.setColor("#ffdd44"); // Yellow when cards selected
+    } else {
+      this.selectionCounterText.setText("Selected: 0/5");
+      this.selectionCounterText.setColor("#77888C"); // Gray when no selection
+    }
   }
 
   /**
