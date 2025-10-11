@@ -1481,7 +1481,7 @@ export class Combat extends Scene {
   }
 
   /**
-   * Create a button with text and callback using Prologue styling
+   * Create a button with text and callback using Balatro/Prologue styling
    */
   private createButton(
     x: number,
@@ -1490,8 +1490,8 @@ export class Combat extends Scene {
     callback: () => void
   ): Phaser.GameObjects.Container {
     const screenWidth = this.cameras.main.width;
-    const baseButtonWidth = 120;
-    const baseButtonHeight = 35;
+    const baseButtonWidth = 140; // Slightly wider for Balatro style
+    const baseButtonHeight = 45; // Taller for better visibility
     
     // Scale button size based on screen width
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
@@ -1499,7 +1499,7 @@ export class Combat extends Scene {
     // Create a temporary text object to measure the actual text width
     const tempText = this.add.text(0, 0, text, {
       fontFamily: "dungeon-mode",
-      fontSize: Math.floor(16 * scaleFactor),
+      fontSize: Math.floor(18 * scaleFactor), // Slightly larger font
       color: "#77888C",
       align: "center"
     });
@@ -1509,16 +1509,16 @@ export class Combat extends Scene {
     const textHeight = tempText.height;
     tempText.destroy(); // Remove the temporary text
     
-    // Set button dimensions with proper padding
-    const padding = 20;
-    const buttonWidth = Math.max(baseButtonWidth, textWidth + padding); // Minimum width of baseButtonWidth
-    const buttonHeight = Math.max(baseButtonHeight, textHeight + 10); // Minimum height of baseButtonHeight
+    // Set button dimensions with proper padding (Balatro style - more padding)
+    const padding = 30; // More padding for Balatro style
+    const buttonWidth = Math.max(baseButtonWidth, textWidth + padding);
+    const buttonHeight = Math.max(baseButtonHeight, textHeight + 16);
 
     const button = this.add.container(x, y);
 
-    // Prologue-style double border design
+    // Prologue-style double border design (maintained for consistency)
     const outerBorder = this.add.rectangle(0, 0, buttonWidth + 8, buttonHeight + 8, undefined, 0)
-      .setStrokeStyle(2, 0x77888C);
+      .setStrokeStyle(3, 0x77888C); // Slightly thicker border
     const innerBorder = this.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0)
       .setStrokeStyle(2, 0x77888C);
     const bg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
@@ -1526,7 +1526,7 @@ export class Combat extends Scene {
     const buttonText = this.add
       .text(0, 0, text, {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(16 * scaleFactor),
+        fontSize: Math.floor(18 * scaleFactor), // Larger font for better readability
         color: "#77888C",
         align: "center",
       })
@@ -1538,49 +1538,51 @@ export class Combat extends Scene {
       Phaser.Geom.Rectangle.Contains
     );
     
-    // Prologue-style interactions
+    // Balatro-style interactions with Prologue colors
     button.on("pointerdown", () => {
       // Check if action processing is active
       if (this.isActionProcessing) {
         console.log("Action processing, ignoring button click");
         return;
       }
-      // Visual feedback
+      // Visual feedback - more pronounced for Balatro style
       this.tweens.add({
         targets: button,
-        scale: 0.95,
-        duration: 100,
-        ease: 'Power1',
+        scale: 0.92,
+        duration: 80,
+        ease: 'Power2',
         onComplete: () => {
           this.tweens.add({
             targets: button,
             scale: 1,
-            duration: 100,
-            ease: 'Power1'
+            duration: 80,
+            ease: 'Power2'
           });
         }
       });
       callback();
     });
     
-    // Prologue-style hover effects
+    // Balatro-style hover effects with Prologue colors
     button.on("pointerover", () => {
       bg.setFillStyle(0x1f1410); // Prologue hover color
+      buttonText.setColor("#e8eced"); // Brighter text on hover
       this.tweens.add({
         targets: button,
-        scale: 1.05,
-        duration: 200,
-        ease: 'Power2.easeOut'
+        scale: 1.08, // More pronounced hover effect
+        duration: 150,
+        ease: 'Back.easeOut'
       });
     });
     
     button.on("pointerout", () => {
       bg.setFillStyle(0x150E10); // Prologue normal color
+      buttonText.setColor("#77888C"); // Normal text color
       this.tweens.add({
         targets: button,
         scale: 1,
-        duration: 200,
-        ease: 'Power2.easeOut'
+        duration: 150,
+        ease: 'Back.easeOut'
       });
     });
 
@@ -1600,7 +1602,7 @@ export class Combat extends Scene {
   }
 
   /**
-   * Update hand display with a curved fanned-out arrangement
+   * Update hand display with a curved fanned-out arrangement (Balatro style)
    */
   private updateHandDisplay(): void {
     // Safety check: Don't update if scene is being destroyed or doesn't exist
@@ -1618,32 +1620,44 @@ export class Combat extends Scene {
     this.cardSprites = [];
 
     const hand = this.combatState.player.hand;
-    const cardWidth = 60;
-    const totalWidth = hand.length * cardWidth;
     const screenWidth = this.cameras.main.width;
     
-    // Limit the total width to 80% of screen width to prevent overflow
-    const maxWidth = screenWidth * 0.8;
-    const actualCardWidth = totalWidth > maxWidth ? (maxWidth / hand.length) : cardWidth;
-    const actualTotalWidth = hand.length * actualCardWidth;
-    const startX = -actualTotalWidth / 2 + actualCardWidth / 2;
+    // Balatro-style spacing - more spread out
+    const cardWidth = 80; // Original size
+    const cardSpacing = cardWidth * 2; // 120% for nice spread (more space between cards)
+    const totalWidth = (hand.length - 1) * cardSpacing;
+    const maxWidth = screenWidth * 0.8; // Use 80% of screen width
+    
+    // Scale down if needed to fit screen
+    const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
+    const actualSpacing = cardSpacing * scale;
+    const actualTotalWidth = (hand.length - 1) * actualSpacing;
+    const startX = -actualTotalWidth / 2;
 
-    // Create a very gentle curved arrangement for the cards (like Balatro)
-    const curveHeight = 5; // Much smaller curve height for a flatter arch
+    // Balatro-style arc - more pronounced curve
+    const arcHeight = 30; // More noticeable arc height
+    const maxRotation = 8; // Slight rotation for cards at edges (degrees)
     
     hand.forEach((card, index) => {
-      // Calculate position along a very gentle curve
-      const positionRatio = hand.length > 1 ? index / (hand.length - 1) : 0.5;
+      // Calculate position along arc (Balatro style)
+      const normalizedPos = hand.length > 1 ? (index / (hand.length - 1)) - 0.5 : 0; // -0.5 to 0.5
       
-      // Calculate x and y positions with a very gentle arch curve
-      const x = startX + index * actualCardWidth;
-      // Create a very subtle arch that peaks in the middle
-      let y = -Math.sin(positionRatio * Math.PI) * curveHeight;
+      // X position spreads cards out evenly
+      const x = startX + index * actualSpacing;
       
-      // If card is selected, position it elevated
-      if (card.selected) {
-        y -= 50; // Keep selected cards elevated
-      }
+      // Y position creates an arc (parabola peaks in middle) - same for all cards
+      const baseY = -Math.abs(normalizedPos) * arcHeight * 2; // Negative to curve upward
+      
+      // Rotation for cards at edges (Balatro style)
+      const rotation = normalizedPos * maxRotation;
+      
+      // Store base position in card data
+      (card as any).baseX = x;
+      (card as any).baseY = baseY;
+      (card as any).baseRotation = rotation;
+      
+      // Calculate actual Y position (elevated if selected, but keeps arc position)
+      const y = card.selected ? baseY - 40 : baseY;
       
       const cardSprite = this.createCardSprite(
         card,
@@ -1651,12 +1665,18 @@ export class Combat extends Scene {
         y
       );
       
-      // Apply selected state styling with smooth animation if needed
+      // Apply rotation
+      cardSprite.setAngle(rotation);
+      
+      // Set depth so cards layer properly (left to right)
+      cardSprite.setDepth(100 + index);
+      
+      // Apply selected state styling
       if (card.selected) {
-        cardSprite.setScale(1.1);
+        cardSprite.setDepth(500 + index); // Bring selected cards to front
         const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
         if (cardImage && 'setTint' in cardImage) {
-          cardImage.setTint(0xffdd44); // Consistent yellow highlight
+          cardImage.setTint(0xffdd44); // Yellow highlight when selected
         }
       }
       
@@ -1666,7 +1686,7 @@ export class Combat extends Scene {
   }
 
   /**
-   * Create a card sprite
+   * Create a card sprite (original size, Balatro-style interactions)
    */
   private createCardSprite(
     card: PlayingCard,
@@ -1676,12 +1696,12 @@ export class Combat extends Scene {
   ): Phaser.GameObjects.Container {
     const cardContainer = this.add.container(0, 0);
 
-    // Calculate card dimensions based on screen size
+    // Original card dimensions
     const screenWidth = this.cameras.main.width;
-    const baseCardWidth = 80;  // Increased from 50
-    const baseCardHeight = 112; // Increased from 70
+    const baseCardWidth = 80;  // Original size
+    const baseCardHeight = 112; // Original size
     
-    // Scale card size based on screen width, but keep minimum size
+    // Scale card size based on screen width
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
     const cardWidth = baseCardWidth * scaleFactor;
     const cardHeight = baseCardHeight * scaleFactor;
@@ -1787,7 +1807,7 @@ export class Combat extends Scene {
   }
 
   /**
-   * Select/deselect a card with popup animation
+   * Select/deselect a card with popup animation (Balatro style)
    */
   private selectCard(card: PlayingCard): void {
     // If trying to select a new card when already 5 are selected, ignore
@@ -1798,7 +1818,7 @@ export class Combat extends Scene {
 
     card.selected = !card.selected;
     
-    // Manage selectedCards array like Prologue
+    // Manage selectedCards array
     const selIndex = this.selectedCards.findIndex(c => c.id === card.id);
     if (card.selected && selIndex === -1 && this.selectedCards.length < 5) {
       this.selectedCards.push(card);
@@ -1812,39 +1832,54 @@ export class Combat extends Scene {
     if (cardIndex !== -1 && this.cardSprites[cardIndex]) {
       const cardSprite = this.cardSprites[cardIndex];
       
-      // Get the base Y position from the card arrangement
+      // Get the base Y position from the Balatro-style card arrangement
       const hand = this.combatState.player.hand;
-      const cardWidth = 60;
-      const totalWidth = hand.length * cardWidth;
       const screenWidth = this.cameras.main.width;
-      const maxWidth = screenWidth * 0.8;
-      const actualCardWidth = totalWidth > maxWidth ? (maxWidth / hand.length) : cardWidth;
-      const actualTotalWidth = hand.length * actualCardWidth;
-      const startX = -actualTotalWidth / 2 + actualCardWidth / 2;
-      const curveHeight = 5;
-      const positionRatio = hand.length > 1 ? cardIndex / (hand.length - 1) : 0.5;
-      const baseY = -Math.sin(positionRatio * Math.PI) * curveHeight;
-      const baseX = startX + cardIndex * actualCardWidth;
+      const cardWidth = 100;
+      const cardSpacing = cardWidth * 0.85;
+      const totalWidth = (hand.length - 1) * cardSpacing;
+      const maxWidth = screenWidth * 0.75;
+      const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
+      const actualSpacing = cardSpacing * scale;
+      const actualTotalWidth = (hand.length - 1) * actualSpacing;
+      const startX = -actualTotalWidth / 2;
+      const arcHeight = 30;
+      const normalizedPos = hand.length > 1 ? (cardIndex / (hand.length - 1)) - 0.5 : 0;
+      const baseY = -Math.abs(normalizedPos) * arcHeight * 2;
       
-      // Prologue-style selection (simple, no animations)
+      // Balatro-style selection animation
       if (card.selected) {
-        cardSprite.y = baseY - 40; // Move up by 40px like Prologue
+        // Animate selection with smooth bounce
+        this.tweens.add({
+          targets: cardSprite,
+          y: baseY - 40, // Elevate when selected
+          scale: 1.05, // Slightly larger when selected
+          duration: 200,
+          ease: 'Back.easeOut'
+        });
         
-        // Prologue-style blue tint for selected cards
+        // Yellow tint for selected cards (Balatro style)
         const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
         if (cardImage && 'setTint' in cardImage) {
-          cardImage.setTint(0x4a90e2); // Prologue blue highlight
+          cardImage.setTint(0xffdd44); // Bright yellow highlight
         }
-        cardSprite.setDepth(500 + cardIndex); // Bring to front like Prologue
+        cardSprite.setDepth(500 + cardIndex); // Bring to front
       } else {
-        cardSprite.y = baseY; // Return to original Y like Prologue
+        // Animate deselection
+        this.tweens.add({
+          targets: cardSprite,
+          y: baseY, // Return to arc position
+          scale: 1, // Return to normal size
+          duration: 200,
+          ease: 'Back.easeOut'
+        });
         
-        // Remove Prologue highlight
+        // Remove highlight
         const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
         if (cardImage && 'clearTint' in cardImage) {
           cardImage.clearTint();
         }
-        cardSprite.setDepth(100 + cardIndex); // Return to normal depth like Prologue
+        cardSprite.setDepth(100 + cardIndex); // Return to normal depth
       }
     }
 
