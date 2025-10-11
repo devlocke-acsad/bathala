@@ -27,6 +27,7 @@ import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandRefere
 import { RelicManager } from "../../core/managers/RelicManager";
 import { CombatUI } from "./combat/CombatUI";
 import { CombatDialogue } from "./combat/CombatDialogue";
+import { CombatAnimations } from "./combat/CombatAnimations";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -35,6 +36,7 @@ import { CombatDialogue } from "./combat/CombatDialogue";
 export class Combat extends Scene {
   public ui!: CombatUI;
   public dialogue!: CombatDialogue;
+  public animations!: CombatAnimations;
   private combatState!: CombatState;
   private playerHealthText!: Phaser.GameObjects.Text;
   private playerBlockText!: Phaser.GameObjects.Text;
@@ -130,6 +132,31 @@ export class Combat extends Scene {
     return this.isActionProcessing;
   }
 
+  // Getter/setter methods for CombatAnimations
+  public getCardSprites(): Phaser.GameObjects.Container[] {
+    return this.cardSprites;
+  }
+
+  public setCardSprites(sprites: Phaser.GameObjects.Container[]): void {
+    this.cardSprites = sprites;
+  }
+
+  public getPlayerSprite(): Phaser.GameObjects.Sprite {
+    return this.playerSprite;
+  }
+
+  public getEnemySprite(): Phaser.GameObjects.Sprite {
+    return this.enemySprite;
+  }
+
+  public getDeckSprite(): Phaser.GameObjects.Sprite {
+    return this.deckSprite;
+  }
+
+  public getHandContainer(): Phaser.GameObjects.Container {
+    return this.handContainer;
+  }
+
   create(data: { nodeType: string, transitionOverlay?: any }): void {
     // Safety check for camera
     if (!this.cameras.main) {
@@ -152,6 +179,9 @@ export class Combat extends Scene {
 
     // Initialize CombatDialogue
     this.dialogue = new CombatDialogue(this);
+
+    // Initialize CombatAnimations
+    this.animations = new CombatAnimations(this);
 
     // UI is now fully initialized by CombatUI
     // No need to call createCombatUI() separately
@@ -925,7 +955,7 @@ export class Combat extends Scene {
     this.cardSprites = [];
     
     // Animate drawing cards from deck one by one
-    this.animateDrawCardsFromDeck(this.combatState.player.hand.length);
+    this.animations.animateDrawCardsFromDeck(this.combatState.player.hand.length);
   }
 
 
@@ -1104,127 +1134,8 @@ export class Combat extends Scene {
    */
   public sortHand(sortBy: "rank" | "suit"): void {
     // Create shuffling animation before sorting
-    this.animateCardShuffle(sortBy, () => {
+    this.animations.animateCardShuffle(sortBy, () => {
       // Animation handles the sorting internally
-    });
-  }
-
-  /**
-   * Animate card shuffling effect (Individual card tracking)
-   */
-  private animateCardShuffle(sortType: "rank" | "suit", onComplete: () => void): void {
-    // Store the original card order to track which card goes where
-    const originalCards = [...this.combatState.player.hand];
-    
-    // Sort the hand data to get the new order
-    const sortedCards = DeckManager.sortCards([...this.combatState.player.hand], sortType);
-    
-    // Calculate what the positions SHOULD be after sorting (using same logic as updateHandDisplay)
-    const hand = sortedCards;
-    const screenWidth = this.cameras.main.width;
-    const cardWidth = 80;
-    const cardSpacing = cardWidth * 1.2; // 120% spacing to match updateHandDisplay
-    const totalWidth = (hand.length - 1) * cardSpacing;
-    const maxWidth = screenWidth * 0.8;
-    const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
-    const actualSpacing = cardSpacing * scale;
-    const actualTotalWidth = (hand.length - 1) * actualSpacing;
-    const startX = -actualTotalWidth / 2;
-    const arcHeight = 30;
-    const maxRotation = 8;
-    
-    // Calculate target positions for sorted cards
-    const targetPositions = sortedCards.map((card, index) => {
-      const normalizedPos = hand.length > 1 ? (index / (hand.length - 1)) - 0.5 : 0;
-      const x = startX + index * actualSpacing;
-      const baseY = -Math.abs(normalizedPos) * arcHeight * 2;
-      const rotation = normalizedPos * maxRotation;
-      
-      return { x, y: baseY, rotation };
-    });
-    
-    // Create a mapping of where each card should end up
-    const cardMappings = this.cardSprites.map((cardSprite, originalIndex) => {
-      const originalCard = originalCards[originalIndex];
-      const newIndex = sortedCards.findIndex(card => 
-        card.suit === originalCard.suit && card.rank === originalCard.rank
-      );
-      return {
-        sprite: cardSprite,
-        originalIndex,
-        newIndex,
-        targetPosition: targetPositions[newIndex] // Use calculated target positions
-      };
-    });
-    
-    // Phase 1: Cards lift up and move to their sorted positions individually
-    const movePromises = cardMappings.map((mapping, index) => {
-      return new Promise<void>((resolve) => {
-        // First lift up slightly
-        this.tweens.add({
-          targets: mapping.sprite,
-          y: mapping.sprite.y - 20,
-          rotation: (Math.random() - 0.5) * 0.3,
-          duration: 100,
-          delay: index * 8,
-          ease: 'Power2.easeOut',
-          onComplete: () => {
-            // Then move to the target position
-            this.tweens.add({
-              targets: mapping.sprite,
-              x: mapping.targetPosition.x,
-              y: mapping.targetPosition.y,
-              rotation: mapping.targetPosition.rotation,
-              duration: 200,
-              ease: 'Power2.easeInOut',
-              onComplete: () => resolve()
-            });
-          }
-        });
-      });
-    });
-    
-    // Wait for all cards to reach their positions, then update the hand data
-    Promise.all(movePromises).then(() => {
-      // Update the hand data to match the sorted order
-      this.combatState.player.hand = sortedCards;
-      
-      // Reorder the cardSprites array to match the sorted order
-      const newCardSprites: Phaser.GameObjects.Container[] = [];
-      sortedCards.forEach((sortedCard) => {
-        const spriteIndex = originalCards.findIndex(card => 
-          card.suit === sortedCard.suit && card.rank === sortedCard.rank
-        );
-        if (spriteIndex !== -1) {
-          newCardSprites.push(this.cardSprites[spriteIndex]);
-        }
-      });
-      this.cardSprites = newCardSprites;
-      
-      // Update the base positions stored in each card to match their new positions
-      // AND ensure sprite positions are synchronized
-      sortedCards.forEach((card, index) => {
-        const normalizedPos = hand.length > 1 ? (index / (hand.length - 1)) - 0.5 : 0;
-        const x = startX + index * actualSpacing;
-        const baseY = -Math.abs(normalizedPos) * arcHeight * 2;
-        const rotation = normalizedPos * maxRotation;
-        
-        // Store base positions in the card data
-        (card as any).baseX = x;
-        (card as any).baseY = baseY;
-        (card as any).baseRotation = rotation;
-        
-        // Ensure the sprite position matches (accounting for selection state)
-        const cardSprite = this.cardSprites[index];
-        if (cardSprite) {
-          const targetY = card.selected ? baseY - 40 : baseY;
-          cardSprite.setPosition(x, targetY);
-          cardSprite.setAngle(rotation);
-          cardSprite.setDepth(card.selected ? 500 + index : 100 + index);
-        }
-      });
-      
-      onComplete();
     });
   }
 
@@ -1318,7 +1229,7 @@ export class Combat extends Scene {
       if (enemy.statusEffects.some((e) => e.name === "Weak")) {
         damage *= 0.5;
       }
-      this.animateEnemyAttack(); // Add animation when enemy attacks
+      this.animations.animateEnemyAttack(); // Add animation when enemy attacks
       this.damagePlayer(damage);
     }
 
@@ -1409,7 +1320,7 @@ export class Combat extends Scene {
       this.combatState.player.discardPile.length > 0
     ) {
       // Show shuffle animation
-      this.animateShuffleDeck(() => {
+      this.animations.animateShuffleDeck(() => {
         this.combatState.player.drawPile = DeckManager.shuffleDeck(
           this.combatState.player.discardPile
         );
@@ -1418,7 +1329,7 @@ export class Combat extends Scene {
     }
     
     // Animate only the newly drawn cards
-    this.animateNewCards(drawnCards, previousHandSize);
+    this.animations.animateNewCards(drawnCards, previousHandSize);
     this.updateDeckDisplay();
     this.updateDiscardDisplay(); // Also update discard in case of shuffle
   }
@@ -1457,7 +1368,7 @@ export class Combat extends Scene {
     console.log(`Enemy health: ${this.combatState.enemy.currentHealth}/${this.combatState.enemy.maxHealth}`);
 
     // Add visual feedback for enemy taking damage
-    this.animateSpriteDamage(this.enemySprite);
+    this.animations.animateSpriteDamage(this.enemySprite);
     this.ui.updateEnemyUI();
 
     // Show detailed damage calculation if there are special bonuses
@@ -1479,7 +1390,7 @@ export class Combat extends Scene {
       console.log("Enemy defeated!");
       
       // Play death animation
-      this.animateEnemyDeath();
+      this.animations.animateEnemyDeath();
       
       this.time.delayedCall(500, () => {
         this.endCombat(true);
@@ -1530,7 +1441,7 @@ export class Combat extends Scene {
     console.log(`Player health: ${this.combatState.player.currentHealth}/${this.combatState.player.maxHealth}`);
 
     // Add visual feedback for player taking damage
-    this.animateSpriteDamage(this.playerSprite);
+    this.animations.animateSpriteDamage(this.playerSprite);
     this.ui.updatePlayerUI();
 
     // Check if player is defeated
@@ -2467,7 +2378,7 @@ export class Combat extends Scene {
         break;
       case "special":
         // Start cinematic special action animation
-        this.animateSpecialAction(dominantSuit);
+        this.animations.animateSpecialAction(dominantSuit);
         
         // Execute special action after animation
         this.time.delayedCall(1500, () => {
@@ -2491,7 +2402,7 @@ export class Combat extends Scene {
 
     if (damage > 0) {
       console.log(`Animating player attack and dealing ${damage} damage`);
-      this.animatePlayerAttack(); // Add animation when attacking
+      this.animations.animatePlayerAttack(); // Add animation when attacking
       this.showFloatingDamage(damage); // Show floating damage counter like Prologue
       this.damageEnemy(damage);
       // Result already shown above with detailed calculation
@@ -2525,360 +2436,6 @@ export class Combat extends Scene {
     this.executeEnemyTurn();
   }
   
-  /** Animate special action with cinematic effects */
-  private animateSpecialAction(suit: Suit): void {
-    // Create cinematic effect for special action sequence
-    this.createCinematicBars();
-    
-    // First announce the attack, then perform it
-    this.announceSpecialAttack(suit);
-  }
-
-  /**
-   * Announce the special attack with dramatic text and effects, then perform the attack
-   */
-  private announceSpecialAttack(suit: Suit): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Get suit-specific attack names
-    const attackNames: Record<Suit, string> = {
-      "Apoy": "INFERNO STRIKE!",
-      "Tubig": "TIDAL SLASH!",
-      "Lupa": "EARTH CRUSHER!",
-      "Hangin": "WIND CUTTER!"
-    };
-    
-    const attackName = attackNames[suit];
-    
-    // Create dramatic announcement text
-    const announcementText = this.add.text(
-      screenWidth / 2,
-      screenHeight / 2 - 50,
-      attackName,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 72,
-        color: '#ffffff',
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 8
-      }
-    ).setOrigin(0.5).setAlpha(0).setScale(0.3).setDepth(1003);
-    
-    // Get suit color for effects
-    const suitColors: Record<Suit, number> = {
-      "Apoy": 0xff4500,    // Fire red/orange
-      "Tubig": 0x1e90ff,   // Water blue
-      "Lupa": 0x32cd32,    // Earth green
-      "Hangin": 0x87ceeb    // Wind light blue
-    };
-    
-    const color = suitColors[suit];
-    
-    // Animate announcement text in
-    this.tweens.add({
-      targets: announcementText,
-      alpha: 1,
-      scale: 1.2,
-      duration: 600,
-      ease: 'Back.Out',
-      onComplete: () => {
-        // Change text color to suit color after initial appearance
-        announcementText.setColor(`#${color.toString(16).padStart(6, '0')}`);
-        
-        // Hold for dramatic effect, then start the actual attack
-        this.time.delayedCall(800, () => {
-          // Fade out announcement
-          this.tweens.add({
-            targets: announcementText,
-            alpha: 0,
-            scale: 0.8,
-            duration: 400,
-            ease: 'Cubic.In',
-            onComplete: () => {
-              announcementText.destroy();
-              // Now perform the actual attack
-              this.performSpecialAttack(suit);
-            }
-          });
-        });
-      }
-    });
-  }
-
-  /**
-   * Perform the actual special attack animation after announcement
-   */
-  private performSpecialAttack(suit: Suit): void {
-    // Character slash animation
-    this.animateCharacterSlash(suit);
-    
-    // Add impact effects during the attack
-    this.time.delayedCall(300, () => {
-      // Screen shake for impact
-      this.cameras.main.shake(150, 0.01);
-      
-      // Create impact flash
-      const impactFlash = this.add.rectangle(
-        this.cameras.main.width / 2,
-        this.cameras.main.height / 2,
-        this.cameras.main.width,
-        this.cameras.main.height,
-        0xffffff
-      ).setAlpha(0).setDepth(1004);
-      
-      this.tweens.add({
-        targets: impactFlash,
-        alpha: [0, 0.3, 0],
-        duration: 200,
-        ease: 'Cubic.Out',
-        onComplete: () => {
-          impactFlash.destroy();
-        }
-      });
-    });
-  }
-  
-  /** Create immersive cinematic effect for special action sequence (Final Fantasy horizontal focus style) */
-  private createCinematicBars(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Focus effect only - no top/bottom bars
-    
-    // No zooming in this version - just horizontal focus on hero and enemy
-    // Focus camera horizontally between hero and enemy without zooming
-    const combatCenterX = (this.playerSprite.x + this.enemySprite.x) / 2;
-    const combatCenterY = (this.playerSprite.y + this.enemySprite.y) / 2;
-    
-    // Calculate focus area around hero and enemy - span entire screen width
-    const focusWidth = screenWidth; // Use full screen width for maximum span
-    const focusHeight = screenHeight * 0.4; // Use 40% of screen height
-    const focusX = screenWidth / 2; // Center horizontally across entire screen
-    const focusY = combatCenterY;
-    
-    // Hide all UI elements during special attack
-    this.hideUIForSpecialAttack();
-    
-    // Create focus effect using multiple rectangles instead of mask
-    // Top overlay (above focus area)
-    const topOverlay = this.add.rectangle(
-      screenWidth / 2,
-      (focusY - focusHeight / 2) / 2,
-      screenWidth,
-      focusY - focusHeight / 2,
-      0x000000
-    ).setAlpha(0).setDepth(1000);
-    
-    // Bottom overlay (below focus area)
-    const bottomOverlay = this.add.rectangle(
-      screenWidth / 2,
-      focusY + focusHeight / 2 + (screenHeight - (focusY + focusHeight / 2)) / 2,
-      screenWidth,
-      screenHeight - (focusY + focusHeight / 2),
-      0x000000
-    ).setAlpha(0).setDepth(1000);
-    
-    // Left overlay (left of focus area)
-    const leftOverlay = this.add.rectangle(
-      (focusX - focusWidth / 2) / 2,
-      focusY,
-      focusX - focusWidth / 2,
-      focusHeight,
-      0x000000
-    ).setAlpha(0).setDepth(1000);
-    
-    // Right overlay (right of focus area)
-    const rightOverlay = this.add.rectangle(
-      focusX + focusWidth / 2 + (screenWidth - (focusX + focusWidth / 2)) / 2,
-      focusY,
-      screenWidth - (focusX + focusWidth / 2),
-      focusHeight,
-      0x000000
-    ).setAlpha(0).setDepth(1000);
-    
-    // Animate all overlays to create focus effect
-    const allOverlays = [topOverlay, bottomOverlay, leftOverlay, rightOverlay];
-    this.tweens.add({
-      targets: allOverlays,
-      alpha: 0.8,
-      duration: 500,
-      ease: 'Cubic.Out'
-    });
-    
-    // Instead of zooming, we'll move the camera slightly to center the action
-    this.tweens.add({
-      targets: this.cameras.main,
-      scrollX: combatCenterX - (screenWidth / 2),
-      duration: 500,
-      ease: 'Cubic.Out',
-      hold: 1000, // Hold the horizontal focus during the special move
-      completeDelay: 300, // Wait before returning to normal view
-      onComplete: () => {
-        // Return to original camera position
-        this.tweens.add({
-          targets: this.cameras.main,
-          scrollX: 0,
-          duration: 300,
-          ease: 'Cubic.In'
-        });
-      }
-    });
-    
-    // No flash effect - just focus overlay
-    
-    // Create a "Special Move" text display like in Final Fantasy
-    const specialMoveText = this.add.text(
-      screenWidth / 2,
-      screenHeight / 3,
-      "SPECIAL ATTACK!",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 64,
-        color: '#ffd700', // Gold color like in Final Fantasy
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 6
-      }
-    ).setOrigin(0.5).setAlpha(0).setScale(0.5).setDepth(1001);
-    
-    // Animate the special move text
-    this.tweens.add({
-      targets: specialMoveText,
-      alpha: 1,
-      scale: 1.1,
-      duration: 300,
-      ease: 'Back.Out',
-      yoyo: true,
-      repeat: 0
-    });
-    
-    // Animate the bars out after the special move
-    this.time.delayedCall(1800, () => {
-      // Animate special move text out
-      this.tweens.add({
-        targets: specialMoveText,
-        alpha: 0,
-        scale: 0.8,
-        duration: 300,
-        ease: 'Cubic.In',
-        onComplete: () => {
-          specialMoveText.destroy();
-        }
-      });
-      
-      // Animate the focus overlay out
-      this.tweens.add({
-        targets: allOverlays,
-        alpha: 0,
-        duration: 500,
-        ease: 'Cubic.In',
-        onComplete: () => {
-          allOverlays.forEach(overlay => overlay.destroy());
-          // Restore UI after special attack
-          this.restoreUIAfterSpecialAttack();
-        }
-      });
-    });
-    
-    // Create camera shake effect for impact
-    this.cameras.main.shake(200, 0.008);
-  }
-  
-  /** Animate character slash animation */
-  private animateCharacterSlash(suit: Suit): void {
-    const originalX = this.playerSprite.x;
-    const originalScale = this.playerSprite.scaleX;
-    
-    // Get the appropriate color based on suit
-    const suitColors: Record<Suit, number> = {
-      "Apoy": 0xff4500,    // Fire red/orange
-      "Tubig": 0x1e90ff,   // Water blue
-      "Lupa": 0x32cd32,    // Earth green
-      "Hangin": 0x87ceeb    // Wind light blue
-    };
-    
-    const color = suitColors[suit];
-    
-    // More dramatic movement for cinematic effect
-    const dashDistance = this.enemySprite.x - 80; // Get closer to enemy
-    
-    // Dash forward with dramatic scale and slash effect
-    this.tweens.add({
-      targets: this.playerSprite,
-      x: dashDistance,
-      scaleX: originalScale * 1.2, // Make player slightly larger during attack
-      scaleY: originalScale * 1.2,
-      duration: 150,
-      ease: 'Power3.Out',
-      onStart: () => {
-        // Add multiple slash visual effects for more impact
-        this.createDramaticSlashEffect(this.playerSprite.x, this.playerSprite.y, color);
-      },
-      onComplete: () => {
-        // Brief pause at target, then return
-        this.time.delayedCall(100, () => {
-          this.tweens.add({
-            targets: this.playerSprite,
-            x: originalX,
-            scaleX: originalScale,
-            scaleY: originalScale,
-            duration: 300,
-            ease: 'Back.Out'
-          });
-        });
-      }
-    });
-  }
-  
-  /** Create dramatic slash effect visualization for cinematic special attacks */
-  private createDramaticSlashEffect(x: number, y: number, color: number): void {
-    // Create multiple slash lines for more dramatic effect
-    for (let i = 0; i < 3; i++) {
-      this.time.delayedCall(i * 50, () => {
-        // Create a slash line effect
-        const slashLine = this.add.line(0, 0, 0, 0, 120, 0, color);
-        slashLine.setLineWidth(6 + i * 2); // Varying thickness
-        slashLine.setPosition(x, y);
-        slashLine.setDepth(1002); // Above overlay
-        
-        // Different angles for each slash
-        const angles = [-45, -30, -60];
-        slashLine.setAngle(angles[i]);
-        
-        // Animate the slash
-        slashLine.setAlpha(0);
-        this.tweens.add({
-          targets: slashLine,
-          alpha: [0, 1, 0],
-          scaleX: [0.5, 1.5, 0.8],
-          scaleY: [0.5, 1.5, 0.8],
-          duration: 200,
-          ease: 'Power2.Out',
-          onComplete: () => {
-            slashLine.destroy();
-          }
-        });
-      });
-    }
-    
-    // Add impact flash at slash point
-    const impactFlash = this.add.circle(x, y, 30, color);
-    impactFlash.setAlpha(0).setDepth(1001);
-    
-    this.tweens.add({
-      targets: impactFlash,
-      alpha: [0, 0.8, 0],
-      scale: [0.5, 2, 0.5],
-      duration: 300,
-      ease: 'Power2.Out',
-      onComplete: () => {
-        impactFlash.destroy();
-      }
-    });
-  }
-
   /** Add cinematic effect for special poker hands */
 
 
@@ -3318,94 +2875,6 @@ export class Combat extends Scene {
 
 
   /**
-   * Animate drawing cards from deck to hand positions (Balatro style)
-   */
-  private animateDrawCardsFromDeck(cardCount: number): void {
-    if (this.isDrawingCards) return; // Prevent multiple simultaneous draws
-    
-    this.isDrawingCards = true;
-    const hand = this.combatState.player.hand;
-    
-    // Use the SAME spacing calculations as updateHandDisplay for consistency
-    const screenWidth = this.cameras.main.width;
-    const cardWidth = 80; // Match updateHandDisplay
-    const cardSpacing = cardWidth * 1.2; // Match updateHandDisplay - 120% spacing
-    const totalWidth = (hand.length - 1) * cardSpacing;
-    const maxWidth = screenWidth * 0.8;
-    const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
-    const actualSpacing = cardSpacing * scale;
-    const actualTotalWidth = (hand.length - 1) * actualSpacing;
-    const startX = -actualTotalWidth / 2; // Center the cards
-    
-    // Arc parameters - match updateHandDisplay exactly
-    const arcHeight = 30;
-    const maxRotation = 8;
-    
-    // Create cards at deck position first
-    hand.forEach((card, index) => {
-      // Calculate final position using the SAME logic as updateHandDisplay
-      const normalizedPos = hand.length > 1 ? (index / (hand.length - 1)) - 0.5 : 0;
-      const finalX = startX + index * actualSpacing;
-      const baseY = -Math.abs(normalizedPos) * arcHeight * 2;
-      const rotation = normalizedPos * maxRotation;
-      
-      // Store base positions in card data immediately
-      (card as any).baseX = finalX;
-      (card as any).baseY = baseY;
-      (card as any).baseRotation = rotation;
-      
-      // Create card sprite at deck position - make it interactive from the start
-      const cardSprite = this.ui.createCardSprite(card, 0, 0, true);
-      
-      // Position at deck location initially
-      cardSprite.setPosition(this.deckPosition.x - screenWidth / 2, this.deckPosition.y - this.cameras.main.height + 240);
-      cardSprite.setScale(0.8); // Start smaller
-      cardSprite.setAlpha(0.9);
-      
-      // Add to hand container
-      this.handContainer.add(cardSprite);
-      this.cardSprites.push(cardSprite);
-      
-      // Animate card flying to hand position
-      this.tweens.add({
-        targets: cardSprite,
-        x: finalX,
-        y: baseY,
-        angle: rotation,
-        scaleX: 1,
-        scaleY: 1,
-        alpha: 1,
-        duration: 300 + index * 50, // Stagger animations
-        delay: index * 100, // Delay each card
-        ease: 'Power2',
-        onComplete: () => {
-          // Ensure final position is exact
-          cardSprite.setPosition(finalX, baseY);
-          cardSprite.setAngle(rotation);
-          cardSprite.setDepth(100 + index);
-          
-          // If this is the last card, mark drawing as complete
-          if (index === hand.length - 1) {
-            this.isDrawingCards = false;
-            this.updateDeckDisplay();
-          }
-        }
-      });
-      
-      // Add a slight bounce effect
-      this.tweens.add({
-        targets: cardSprite,
-        scaleX: 1.1,
-        scaleY: 1.1,
-        duration: 150,
-        delay: 300 + index * 100,
-        ease: 'Power2',
-        yoyo: true
-      });
-    });
-  }
-  
-  /**
    * Update deck display (card count and visual)
    */
   private updateDeckDisplay(): void {
@@ -3498,69 +2967,6 @@ export class Combat extends Scene {
   }
   
   /**
-   * Animate only newly drawn cards from deck to hand
-   */
-  private animateNewCards(newCards: PlayingCard[], startingIndex: number): void {
-    if (this.isDrawingCards) return;
-    
-    this.isDrawingCards = true;
-    
-    // First, update the entire hand display without animation for existing cards
-    this.updateHandDisplayQuiet();
-    
-    // Then animate only the new cards
-    const hand = this.combatState.player.hand;
-    const screenWidth = this.cameras.main.width;
-    const cardWidth = 60;
-    const totalWidth = hand.length * cardWidth;
-    const maxWidth = screenWidth * 0.8;
-    const actualCardWidth = totalWidth > maxWidth ? (maxWidth / hand.length) : cardWidth;
-    const actualTotalWidth = hand.length * actualCardWidth;
-    const startX = screenWidth / 2 - actualTotalWidth / 2 + actualCardWidth / 2;
-    const handY = this.cameras.main.height - 240; // Match the hand container position
-    
-    newCards.forEach((card, relativeIndex) => {
-      const absoluteIndex = startingIndex + relativeIndex;
-      
-      if (absoluteIndex < this.cardSprites.length) {
-        const cardSprite = this.cardSprites[absoluteIndex];
-        
-        // Start from deck position
-        cardSprite.setPosition(this.deckPosition.x - screenWidth / 2, this.deckPosition.y - handY + 240);
-        cardSprite.setScale(0.8);
-        cardSprite.setAlpha(0.9);
-        
-        // Calculate final position
-        const finalX = startX + absoluteIndex * actualCardWidth - screenWidth / 2;
-        const finalY = handY - this.cameras.main.height + 240; // Match the hand container position
-        
-        // Add curve effect
-        const curveHeight = 5;
-        const positionRatio = hand.length > 1 ? absoluteIndex / (hand.length - 1) : 0.5;
-        const curveY = finalY - Math.sin(positionRatio * Math.PI) * curveHeight;
-        
-        // Animate to final position
-        this.tweens.add({
-          targets: cardSprite,
-          x: finalX,
-          y: curveY,
-          scaleX: 1,
-          scaleY: 1,
-          alpha: 1,
-          duration: 300,
-          delay: relativeIndex * 100,
-          ease: 'Power2',
-          onComplete: () => {
-            if (relativeIndex === newCards.length - 1) {
-              this.isDrawingCards = false;
-            }
-          }
-        });
-      }
-    });
-  }
-  
-  /**
    * Update hand display without animations (for existing cards)
    */
   private updateHandDisplayQuiet(): void {
@@ -3591,51 +2997,6 @@ export class Combat extends Scene {
     });
   }
   
-  /**
-   * Animate deck shuffle when discard pile is shuffled back
-   */
-  private animateShuffleDeck(onComplete: () => void): void {
-    if (!this.deckSprite) {
-      onComplete();
-      return;
-    }
-    
-    // Create shuffle effect
-    this.tweens.add({
-      targets: this.deckSprite,
-      angle: 360,
-      scaleX: 1.2,
-      scaleY: 1.2,
-      duration: 400,
-      ease: 'Power2',
-      yoyo: true,
-      onComplete: () => {
-        onComplete();
-        this.updateDeckDisplay();
-      }
-    });
-    
-    // Add some particle-like effect for shuffle
-    for (let i = 0; i < 8; i++) {
-      const particle = this.add.rectangle(
-        this.deckPosition.x + (Math.random() - 0.5) * 40,
-        this.deckPosition.y + (Math.random() - 0.5) * 40,
-        4,
-        4,
-        0xffd700
-      );
-      
-      this.tweens.add({
-        targets: particle,
-        alpha: 0,
-        y: particle.y - 30,
-        duration: 600,
-        ease: 'Power2',
-        onComplete: () => particle.destroy()
-      });
-    }
-  }
-
   /**
    * Show action result message
    */
@@ -4079,118 +3440,6 @@ export class Combat extends Scene {
       this.damagePreviewText.setText(damageText);
       this.damagePreviewText.setVisible(true);
     }
-  }  /**
-   * Animate sprite taking damage (flash red and shake)
-   */
-  private animateSpriteDamage(sprite: Phaser.GameObjects.Sprite): void {
-    // Flash red
-    this.tweens.add({
-      targets: sprite,
-      tint: 0xff0000,
-      duration: 100,
-      yoyo: true,
-      repeat: 2,
-      onComplete: () => {
-        sprite.clearTint();
-      },
-    });
-
-    // Shake effect
-    const originalX = sprite.x;
-    this.tweens.add({
-      targets: sprite,
-      x: originalX + 5,
-      duration: 50,
-      yoyo: true,
-      repeat: 5,
-      onComplete: () => {
-        sprite.setX(originalX);
-      },
-    });
-  }
-
-  /**
-   * Animate enemy attack (move forward and back)
-   */
-  private animateEnemyAttack(): void {
-    const originalX = this.enemySprite.x;
-    this.tweens.add({
-      targets: this.enemySprite,
-      x: originalX - 50,
-      duration: 200,
-      yoyo: true,
-      ease: "Power2",
-      onComplete: () => {
-        this.enemySprite.setX(originalX);
-      },
-    });
-  }
-
-  /**
-   * Animate player attack (move forward and back)
-   */
-  private animatePlayerAttack(): void {
-    const originalX = this.playerSprite.x;
-    this.tweens.add({
-      targets: this.playerSprite,
-      x: originalX + 50,
-      duration: 200,
-      yoyo: true,
-      ease: "Power2",
-      onComplete: () => {
-        this.playerSprite.setX(originalX);
-      },
-    });
-  }
-
-  /**
-   * Animate enemy death (fade out, scale down, and fall)
-   */
-  private animateEnemyDeath(): void {
-    if (!this.enemySprite) return;
-
-    const originalX = this.enemySprite.x;
-    const originalY = this.enemySprite.y;
-    const originalScale = this.enemySprite.scaleX;
-
-    // Create a dramatic death sequence
-    this.tweens.add({
-      targets: this.enemySprite,
-      // Fade out
-      alpha: 0,
-      // Scale down
-      scaleX: originalScale * 0.3,
-      scaleY: originalScale * 0.3,
-      // Fall down
-      y: originalY + 100,
-      // Slight rotation for dramatic effect
-      rotation: Math.PI * 0.5,
-      duration: 800,
-      ease: "Power2",
-      // Don't reset properties - keep enemy in death state
-    });
-
-    // Add a brief red flash before fading
-    this.tweens.add({
-      targets: this.enemySprite,
-      tint: 0xff0000,
-      duration: 150,
-      yoyo: true,
-      repeat: 1,
-      onComplete: () => {
-        this.enemySprite.clearTint();
-      },
-    });
-
-    // Add a subtle shake effect during death
-    this.tweens.add({
-      targets: this.enemySprite,
-      x: originalX + 3,
-      duration: 100,
-      yoyo: true,
-      repeat: 3,
-      ease: "Power2",
-    });
   }
 
   /**
