@@ -390,8 +390,8 @@ export class CombatUI {
     // Position hand container higher up to avoid overlap with buttons
     this.handContainer = this.scene.add.container(screenWidth/2, screenHeight - 280);
     
-    // Create selection counter text (Balatro style) - positioned above the cards
-    this.selectionCounterText = this.scene.add.text(0, -100, "Selected: 0/5", {
+    // Create selection counter text (Balatro style) - positioned well above the cards
+    this.selectionCounterText = this.scene.add.text(0, -150, "Selected: 0/5", {
       fontFamily: "dungeon-mode",
       fontSize: 22,
       color: "#ffdd44",
