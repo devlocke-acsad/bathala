@@ -94,7 +94,9 @@ export class CombatUI {
   public initialize(): void {
     this.createCombatUI();
     this.createRelicInventory();
-    this.createDeckSprite();
+    // Deck sprite is created in Combat.ts, not here
+    // this.createDeckSprite();
+    // Discard pile created here with proper stacking effect
     this.createDiscardSprite();
     this.createDeckView();
     this.createDiscardView();
@@ -247,9 +249,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#77888C",
-        align: "center",
-        stroke: "#150E10",
-        strokeThickness: 1
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -259,9 +259,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#ff6b6b",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 1
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -271,9 +269,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#4ecdc4",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 1
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -317,9 +313,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 28,
         color: "#77888C",
-        align: "center",
-        stroke: "#150E10",
-        strokeThickness: 2
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -329,9 +323,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#ff6b6b",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 2
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -341,9 +333,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#4ecdc4",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 1
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -354,9 +344,7 @@ export class CombatUI {
         fontSize: 20,
         color: "#feca57",
         align: "center",
-        wordWrap: { width: 200 },
-        stroke: "#000000",
-        strokeThickness: 1
+        wordWrap: { width: 200 }
       })
       .setOrigin(0.5);
 
@@ -399,10 +387,11 @@ export class CombatUI {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
-    this.handContainer = this.scene.add.container(screenWidth/2, screenHeight - 240);
+    // Position hand container higher up to avoid overlap with buttons
+    this.handContainer = this.scene.add.container(screenWidth/2, screenHeight - 280);
     
-    // Create selection counter text (Balatro style)
-    this.selectionCounterText = this.scene.add.text(0, -140, "Selected: 0/5", {
+    // Create selection counter text (Balatro style) - positioned well above the cards
+    this.selectionCounterText = this.scene.add.text(0, -150, "Selected: 0/5", {
       fontFamily: "dungeon-mode",
       fontSize: 22,
       color: "#ffdd44",
@@ -419,18 +408,21 @@ export class CombatUI {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
+    // Position it higher up since it will be the main focus during action phase
     this.playedHandContainer = this.scene.add.container(screenWidth/2, screenHeight - 450);
     
-    // Initialize hand evaluation text
+    // Initialize hand evaluation text - positioned above the played cards
     this.handEvaluationText = this.scene.add
-      .text(0, -80, "", {
+      .text(0, -100, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 18,
+        fontSize: 22,
         color: "#ffd93d",
-        align: "center",
+        align: "center"
       })
       .setOrigin(0.5)
       .setVisible(false);
+      
+    this.playedHandContainer.add(this.handEvaluationText);
   }
   
   /**
@@ -440,7 +432,8 @@ export class CombatUI {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
-    this.actionButtons = this.scene.add.container(screenWidth/2, screenHeight - 100);
+    // Position buttons lower to avoid overlap with cards
+    this.actionButtons = this.scene.add.container(screenWidth/2, screenHeight - 60);
   }
   
   /**
@@ -610,71 +603,189 @@ export class CombatUI {
   }
   
   /**
-   * Create deck sprite
+   * Create deck sprite (Balatro-style stacked cards with depth)
    */
   public createDeckSprite(): void {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
-    this.deckPosition = { x: 100, y: screenHeight - 120 };
+    // Position in BOTTOM RIGHT corner, matching Balatro's layout
+    this.deckPosition = { x: screenWidth - 100, y: screenHeight * 0.75 };
     
-    // Deck pile sprite (placeholder - could be replaced with actual card back sprite)
+    // Create a container for the deck pile
+    const deckContainer = this.scene.add.container(this.deckPosition.x, this.deckPosition.y);
+    
+    // Card dimensions matching hand cards
+    const cardWidth = 80;
+    const cardHeight = 112;
+    const verticalOffset = 3; // Cards spread downward
+    const numStackedCards = 5; // Show max 5 cards in stack for depth effect
+    
+    // Create stacked cards going downward (Balatro style)
+    // Back cards use white rectangles with black borders
+    for (let i = 0; i < numStackedCards - 1; i++) {
+      const cardBack = this.scene.add.rectangle(
+        0,
+        i * verticalOffset,
+        cardWidth,
+        cardHeight,
+        0xffffff // White color for card backs
+      );
+      cardBack.setStrokeStyle(2, 0x000000); // Black border
+      deckContainer.add(cardBack);
+    }
+    
+    // Top deck card - use backart.png texture
+    const deckTexture = this.scene.textures.exists('backart') ? 'backart' : 'card_back';
+    
     this.deckSprite = this.scene.add.sprite(
-      this.deckPosition.x,
-      this.deckPosition.y,
-      "card_back" // Assuming you have a card back sprite
+      0,
+      (numStackedCards - 1) * verticalOffset,
+      deckTexture
     );
-    this.deckSprite.setDisplaySize(80, 112);
-    this.deckSprite.setInteractive();
+    this.deckSprite.setDisplaySize(cardWidth, cardHeight);
+    deckContainer.add(this.deckSprite);
     
-    // Add hover effect
-    this.deckSprite.on("pointerover", () => {
-      this.deckSprite.setScale(1.1);
+    // Deck count text (below the cards, centered on the stack)
+    const deckCountText = this.scene.add.text(
+      0,
+      cardHeight/2 + 15,
+      "Draw: 0",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 14,
+        color: "#e8eced",
+        align: "center"
+      }
+    ).setOrigin(0.5);
+    deckContainer.add(deckCountText);
+    (deckContainer as any).deckCountText = deckCountText;
+    
+    // Make entire container interactive (larger hit area for better UX)
+    const totalHeight = cardHeight + ((numStackedCards - 1) * verticalOffset);
+    deckContainer.setSize(cardWidth, totalHeight);
+    deckContainer.setInteractive(
+      new Phaser.Geom.Rectangle(
+        -10, 
+        -10, 
+        cardWidth + 20, 
+        totalHeight + 40
+      ),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    // Hover effect - smooth scale up
+    deckContainer.on("pointerover", () => {
+      deckContainer.setScale(1.1);
     });
     
-    this.deckSprite.on("pointerout", () => {
-      this.deckSprite.setScale(1.0);
+    deckContainer.on("pointerout", () => {
+      deckContainer.setScale(1.0);
     });
     
     // Click to view deck
-    this.deckSprite.on("pointerdown", () => {
+    deckContainer.on("pointerdown", () => {
       this.showDeckView();
     });
+    
+    // Store reference to container
+    (this.deckSprite as any).deckContainer = deckContainer;
     
     this.updateDeckDisplay();
   }
   
   /**
-   * Create discard pile sprite
+   * Create discard pile sprite (horizontal stack in bottom left, matching deck pile design)
    */
   public createDiscardSprite(): void {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
-    this.discardPilePosition = { x: screenWidth - 100, y: screenHeight - 120 };
+    // Position in BOTTOM LEFT corner, same Y as deck pile for aligned row
+    // Match the deck pile Y position from Combat.ts (screenHeight * 0.75)
+    this.discardPilePosition = { x: screenWidth * 0.15, y: screenHeight * 0.75 };
     
-    // Discard pile sprite
+    // Create a container for the discard pile
+    const discardContainer = this.scene.add.container(this.discardPilePosition.x, this.discardPilePosition.y);
+    
+    // Match deck pile dimensions exactly
+    const cardWidth = 80;
+    const cardHeight = 112;
+    const horizontalOffset = 3; // Cards spread horizontally (to the right)
+    const numStackedCards = 5; // Same as deck pile - show max 5 cards in stack
+    
+    // Create horizontally stacked cards (spreading to the right like deck spreads down)
+    // Use white rectangles with black borders just like the deck pile
+    for (let i = 0; i < numStackedCards - 1; i++) {
+      // Back cards use white rectangle with black border (matching deck pile exactly)
+      const cardBack = this.scene.add.rectangle(
+        i * horizontalOffset, // Move right instead of down
+        0,                    // Keep same Y (horizontal spread)
+        cardWidth,
+        cardHeight,
+        0xffffff // White color (matching deck pile)
+      );
+      cardBack.setStrokeStyle(2, 0x000000); // Black border (matching deck pile)
+      discardContainer.add(cardBack);
+    }
+    
+    // Top discard card - ALWAYS show backart.png (flipped horizontally)
+    // Check if backart texture exists, otherwise fallback to card_back
+    const topCardTexture = this.scene.textures.exists('backart') ? 'backart' : 'card_back';
+    
     this.discardPileSprite = this.scene.add.sprite(
-      this.discardPilePosition.x,
-      this.discardPilePosition.y,
-      "card_back"
+      (numStackedCards - 1) * horizontalOffset,
+      0,
+      topCardTexture
     );
-    this.discardPileSprite.setDisplaySize(80, 112);
-    this.discardPileSprite.setInteractive();
+    this.discardPileSprite.setDisplaySize(cardWidth, cardHeight);
+    this.discardPileSprite.setFlipX(true); // Flip horizontally to differentiate from deck
+    discardContainer.add(this.discardPileSprite);
     
-    // Add hover effect
-    this.discardPileSprite.on("pointerover", () => {
-      this.discardPileSprite.setScale(1.1);
+    // Discard count text (below the cards, centered on the stack)
+    const discardCountText = this.scene.add.text(
+      ((numStackedCards - 1) * horizontalOffset) / 2,
+      cardHeight/2 + 15,
+      "Discard: 0",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 14,
+        color: "#e8eced",
+        align: "center"
+      }
+    ).setOrigin(0.5);
+    discardContainer.add(discardCountText);
+    (discardContainer as any).discardCountText = discardCountText;
+    
+    // Make entire container interactive
+    const totalWidth = cardWidth + ((numStackedCards - 1) * horizontalOffset);
+    discardContainer.setSize(totalWidth, cardHeight);
+    discardContainer.setInteractive(
+      new Phaser.Geom.Rectangle(
+        -10, 
+        -10, 
+        totalWidth + 20, 
+        cardHeight + 40
+      ),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    // Hover effect - match deck pile behavior (1.0 → 1.1 scale)
+    discardContainer.on("pointerover", () => {
+      discardContainer.setScale(1.1);
     });
     
-    this.discardPileSprite.on("pointerout", () => {
-      this.discardPileSprite.setScale(1.0);
+    discardContainer.on("pointerout", () => {
+      discardContainer.setScale(1.0);
     });
     
     // Click to view discard pile
-    this.discardPileSprite.on("pointerdown", () => {
+    discardContainer.on("pointerdown", () => {
       this.showDiscardView();
     });
+    
+    // Store reference to container
+    (this.discardPileSprite as any).discardContainer = discardContainer;
     
     this.updateDiscardDisplay();
   }
@@ -683,7 +794,10 @@ export class CombatUI {
    * Create deck view modal
    */
   public createDeckView(): void {
-    this.deckViewContainer = this.scene.add.container(0, 0);
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    this.deckViewContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2);
     this.deckViewContainer.setVisible(false);
     this.deckViewContainer.setDepth(6000);
   }
@@ -692,7 +806,10 @@ export class CombatUI {
    * Create discard view modal
    */
   public createDiscardView(): void {
-    this.discardViewContainer = this.scene.add.container(0, 0);
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    this.discardViewContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2);
     this.discardViewContainer.setVisible(false);
     this.discardViewContainer.setDepth(6000);
   }
@@ -721,9 +838,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#ff6b6b",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 2
+        align: "center"
       }
     ).setOrigin(0.5).setVisible(false);
   }
@@ -743,9 +858,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 28,
         color: "#ffd93d",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 2
+        align: "center"
       }
     ).setOrigin(0.5).setVisible(false).setDepth(1000);
   }
@@ -753,7 +866,7 @@ export class CombatUI {
   /**
    * Create enemy info button
    */
-  private createEnemyInfoButton(x: number, y: number): void {
+  private createEnemyInfoButton(_x: number, _y: number): void {
     // Placeholder for enemy info button
     // Implementation can be added when needed
   }
@@ -848,7 +961,6 @@ export class CombatUI {
     
     const combatState = this.scene.getCombatState();
     const relics = combatState.player.relics;
-    const slotSize = 25;
     const slotsPerRow = 6;
     const slotSpacing = 45;
     const startX = -(slotsPerRow - 1) * slotSpacing / 2;
@@ -945,21 +1057,27 @@ export class CombatUI {
     this.actionButtons.removeAll(true);
 
     const screenWidth = this.scene.cameras.main.width;
-    const baseSpacing = 240;
+    const baseSpacing = 280; // Increased spacing to prevent overlap
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
     const adjustedSpacing = baseSpacing * scaleFactor;
 
     if (combatState.phase === "player_turn") {
-      // Card selection phase - Balatro-style layout
+      // Card selection phase - Balatro-style layout with better spacing
+      
+      // Show hand container and hide played hand
+      this.handContainer.setVisible(true);
+      this.playedHandContainer.setVisible(false);
+      this.selectionCounterText.setVisible(true);
+      this.handEvaluationText.setVisible(false);
       
       const playButton = this.createButton(-adjustedSpacing * 1.2, 0, "Play Hand", () => {
         this.scene.playSelectedCards();
       });
 
-      // Sort Hand grouped container
+      // Sort Hand grouped container - positioned in the center
       const sortContainer = this.scene.add.container(0, 0);
       
-      const sortGroupWidth = 320 * scaleFactor;
+      const sortGroupWidth = 280 * scaleFactor; // Reduced width to fit better
       const sortGroupHeight = 60;
       
       const sortOuterBorder = this.scene.add.rectangle(0, 0, sortGroupWidth + 8, sortGroupHeight + 8, undefined, 0)
@@ -968,16 +1086,16 @@ export class CombatUI {
         .setStrokeStyle(2, 0x77888C);
       const sortBg = this.scene.add.rectangle(0, 0, sortGroupWidth, sortGroupHeight, 0x150E10);
       
-      const sortLabel = this.scene.add.text(0, -sortGroupHeight/2 - 24, "SORT", {
+      const sortLabel = this.scene.add.text(0, -sortGroupHeight/2 - 20, "SORT", {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(14 * scaleFactor),
+        fontSize: Math.floor(12 * scaleFactor),
         color: "#77888C",
         align: "center"
       }).setOrigin(0.5);
       
-      const buttonWidth = 100 * scaleFactor;
+      const buttonWidth = 90 * scaleFactor; // Reduced button width
       const buttonHeight = 32;
-      const buttonGap = 20 * scaleFactor;
+      const buttonGap = 15 * scaleFactor; // Reduced gap
       const buttonSpacing = buttonWidth/2 + buttonGap/2;
       
       // Rank button
@@ -989,7 +1107,7 @@ export class CombatUI {
       const rankButtonBg = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
       const rankButtonText = this.scene.add.text(0, 0, "Rank", {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(16 * scaleFactor),
+        fontSize: Math.floor(14 * scaleFactor),
         color: "#77888C",
         align: "center"
       }).setOrigin(0.5);
@@ -1009,7 +1127,7 @@ export class CombatUI {
       const suitButtonBg = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
       const suitButtonText = this.scene.add.text(0, 0, "Suit", {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(16 * scaleFactor),
+        fontSize: Math.floor(14 * scaleFactor),
         color: "#77888C",
         align: "center"
       }).setOrigin(0.5);
@@ -1061,10 +1179,15 @@ export class CombatUI {
       this.actionButtons.add([playButton, sortContainer, discardButton]);
       
     } else if (combatState.phase === "action_selection") {
-      // Action selection phase
+      // Action selection phase - hide hand, show only played cards
+      this.handContainer.setVisible(false);
+      this.playedHandContainer.setVisible(true);
+      this.selectionCounterText.setVisible(false);
+      
       const dominantSuit = this.scene.getDominantSuit(combatState.player.playedHand);
 
-      const buttonSpacing = adjustedSpacing;
+      // Reduce spacing to bring buttons closer together
+      const buttonSpacing = adjustedSpacing * 0.6; // Make buttons closer
       const attackButton = this.createButton(-buttonSpacing, 0, "Attack", () => {
         this.scene.executeAction("attack");
       });
@@ -1228,17 +1351,99 @@ export class CombatUI {
   }
   
   /**
-   * Update deck display
+   * Update deck display with current card count
    */
   public updateDeckDisplay(): void {
-    // Implementation will be added
+    if (!this.deckSprite) return;
+    
+    const combatState = this.scene.getCombatState();
+    const deckCount = combatState.player.drawPile.length;
+    
+    // Update deck count text
+    const deckContainer = (this.deckSprite as any).deckContainer;
+    if (deckContainer) {
+      const deckCountText = (deckContainer as any).deckCountText;
+      if (deckCountText) {
+        deckCountText.setText(`Draw: ${deckCount}`);
+      }
+      
+      // ALWAYS show the deck pile (even when empty)
+      deckContainer.setVisible(true);
+      
+      // Optional: Adjust visual stack depth based on card count
+      // When deck is low, show fewer stacked cards for visual feedback
+      const stackedCards = deckContainer.list.filter((child: any) => 
+        child instanceof Phaser.GameObjects.Rectangle || child instanceof Phaser.GameObjects.Sprite
+      );
+      
+      if (deckCount === 0) {
+        // Show empty/low stack when no cards remain
+        stackedCards.forEach((card: any, index: number) => {
+          if (index < stackedCards.length - 1) {
+            card.setAlpha(0.3); // Dim the back cards
+          }
+        });
+      } else {
+        // Full opacity when cards remain
+        stackedCards.forEach((card: any) => {
+          card.setAlpha(1.0);
+        });
+      }
+    }
   }
   
   /**
-   * Update discard pile display
+   * Update discard pile display with current card count and top card
    */
   public updateDiscardDisplay(): void {
-    // Implementation will be added
+    if (!this.discardPileSprite) return;
+    
+    const combatState = this.scene.getCombatState();
+    const discardPile = combatState.player.discardPile;
+    const discardCount = discardPile.length;
+    
+    // Update discard count text
+    const discardContainer = (this.discardPileSprite as any).discardContainer;
+    if (discardContainer) {
+      const discardCountText = (discardContainer as any).discardCountText;
+      if (discardCountText) {
+        discardCountText.setText(`Discard: ${discardCount}`);
+      }
+      
+      // ALWAYS show the discard pile (even when empty)
+      discardContainer.setVisible(true);
+      
+      // Update the top card sprite to show the actual top card
+      if (discardCount > 0) {
+        const topCard = discardPile[discardPile.length - 1];
+        const rankMap: Record<string, string> = {
+          "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
+          "6": "6", "7": "7", "8": "8", "9": "9", "10": "10",
+          "Mandirigma": "11", "Babaylan": "12", "Datu": "13"
+        };
+        const spriteRank = rankMap[topCard.rank] || "1";
+        
+        const suitMap: Record<string, string> = {
+          "Apoy": "apoy", "Tubig": "tubig", "Lupa": "lupa", "Hangin": "hangin"
+        };
+        const spriteSuit = suitMap[topCard.suit] || "apoy";
+        
+        const textureKey = `card_${spriteRank}_${spriteSuit}`;
+        
+        // Update sprite if texture exists, showing the actual card (not flipped)
+        if (this.scene.textures.exists(textureKey)) {
+          this.discardPileSprite.setTexture(textureKey);
+          this.discardPileSprite.setDisplaySize(80, 112); // Ensure size is maintained
+          this.discardPileSprite.setFlipX(false); // Don't flip when showing actual cards
+        }
+      } else {
+        // ALWAYS show backart.png when empty (flipped horizontally)
+        const backTexture = this.scene.textures.exists('backart') ? 'backart' : 'card_back';
+        this.discardPileSprite.setTexture(backTexture);
+        this.discardPileSprite.setDisplaySize(80, 112);
+        this.discardPileSprite.setFlipX(true); // Flip horizontally to differentiate from deck
+      }
+    }
   }
   
   /**
@@ -1267,57 +1472,130 @@ export class CombatUI {
       return;
     }
     
-    // Clear existing card sprites
-    this.cardSprites.forEach((sprite) => sprite.destroy());
+    // Hide hand during action selection phase
+    if (combatState.phase === "action_selection") {
+      this.handContainer.setVisible(false);
+      return;
+    } else {
+      this.handContainer.setVisible(true);
+    }
+    
+    // Clear existing card sprites and kill any active tweens
+    this.cardSprites.forEach((sprite) => {
+      this.scene.tweens.killTweensOf(sprite);
+      sprite.destroy();
+    });
     this.cardSprites = [];
+    
+    // CRITICAL: Also clear all children from handContainer to prevent orphaned sprites
+    // Keep only the selectionCounterText
+    const childrenToKeep = [this.selectionCounterText];
+    this.handContainer.list.forEach((child: any) => {
+      if (!childrenToKeep.includes(child)) {
+        child.destroy();
+      }
+    });
 
     const hand = combatState.player.hand;
-    const screenWidth = this.scene.cameras.main.width;
     
-    // Balatro-style spacing
-    const cardWidth = 80;
-    const cardSpacing = cardWidth * 1.2;
-    const totalWidth = (hand.length - 1) * cardSpacing;
-    const maxWidth = screenWidth * 0.8;
+    // FIXED SPACING - Cards always use the same spacing regardless of hand size
+    // This ensures 8 cards on turn 1 have the same spacing as 8 cards on turn 2+
+    const CARD_SPACING = 96; // Fixed: never changes
+    const CARD_ARC_HEIGHT = 30; // Fixed: never changes
+    const CARD_MAX_ROTATION = 8; // Fixed: never changes
     
-    const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
-    const actualSpacing = cardSpacing * scale;
-    const actualTotalWidth = (hand.length - 1) * actualSpacing;
-    const startX = -actualTotalWidth / 2;
-
-    const arcHeight = 30;
-    const maxRotation = 8;
+    // Calculate positions for this specific hand size
+    const totalSpread = (hand.length - 1) * CARD_SPACING;
+    const startX = -totalSpread / 2;
     
     hand.forEach((card, index) => {
+      // Normalized position from -0.5 to 0.5
       const normalizedPos = hand.length > 1 ? (index / (hand.length - 1)) - 0.5 : 0;
       
-      const x = startX + index * actualSpacing;
-      const baseY = -Math.abs(normalizedPos) * arcHeight * 2;
-      const rotation = normalizedPos * maxRotation;
+      // Calculate fixed positions
+      const x = startX + (index * CARD_SPACING);
+      const baseY = -Math.abs(normalizedPos) * CARD_ARC_HEIGHT * 2;
+      const rotation = normalizedPos * CARD_MAX_ROTATION;
       
-      // Store base position in card data
+      // Store base positions on the card object itself
       (card as any).baseX = x;
       (card as any).baseY = baseY;
       (card as any).baseRotation = rotation;
       
-      const y = card.selected ? baseY - 40 : baseY;
+      // Cards should NEVER be selected when hand is redrawn
+      // (selected state is cleared in startPlayerTurn)
+      const y = baseY;
       
+      // BUGFIX: createCardSprite now creates container at correct position
       const cardSprite = this.createCardSprite(card, x, y);
-      
-      cardSprite.setPosition(x, y);
       cardSprite.setAngle(rotation);
-      cardSprite.setDepth(card.selected ? 500 + index : 100 + index);
-      
-      if (card.selected) {
-        const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
-        if (cardImage && 'setTint' in cardImage) {
-          cardImage.setTint(0xffdd44);
-        }
-      }
+      cardSprite.setDepth(100 + index);
       
       this.handContainer.add(cardSprite);
       this.cardSprites.push(cardSprite);
     });
+    
+    // BUGFIX: Force container to update its bounds and child transforms
+    // This ensures cards are positioned correctly after being added
+    this.handContainer.setPosition(this.handContainer.x, this.handContainer.y);
+  }
+  
+  /**
+   * Update hand display without animation (used during card drawing animation)
+   * This is called by CombatAnimations when new cards are being drawn
+   */
+  public updateHandDisplayQuiet(): void {
+    const combatState = this.scene.getCombatState();
+    
+    // Clear existing card sprites and kill any active tweens
+    this.cardSprites.forEach((sprite) => {
+      this.scene.tweens.killTweensOf(sprite);
+      sprite.destroy();
+    });
+    this.cardSprites = [];
+    
+    // CRITICAL: Also clear all children from handContainer to prevent orphaned sprites
+    // Keep only the selectionCounterText
+    const childrenToKeep = [this.selectionCounterText];
+    this.handContainer.list.forEach((child: any) => {
+      if (!childrenToKeep.includes(child)) {
+        child.destroy();
+      }
+    });
+
+    const hand = combatState.player.hand;
+    
+    // FIXED SPACING - Cards always use the same spacing regardless of hand size
+    const CARD_SPACING = 96;
+    const CARD_ARC_HEIGHT = 30;
+    const CARD_MAX_ROTATION = 8;
+    
+    const totalSpread = (hand.length - 1) * CARD_SPACING;
+    const startX = -totalSpread / 2;
+    
+    hand.forEach((card, index) => {
+      const normalizedPos = hand.length > 1 ? (index / (hand.length - 1)) - 0.5 : 0;
+      
+      const x = startX + (index * CARD_SPACING);
+      const baseY = -Math.abs(normalizedPos) * CARD_ARC_HEIGHT * 2;
+      const rotation = normalizedPos * CARD_MAX_ROTATION;
+      
+      // Store base positions
+      (card as any).baseX = x;
+      (card as any).baseY = baseY;
+      (card as any).baseRotation = rotation;
+      
+      // BUGFIX: createCardSprite now creates container at correct position
+      const cardSprite = this.createCardSprite(card, x, baseY);
+      cardSprite.setAngle(rotation);
+      cardSprite.setDepth(100 + index);
+      
+      this.handContainer.add(cardSprite);
+      this.cardSprites.push(cardSprite);
+    });
+    
+    // BUGFIX: Force container to update its bounds and child transforms
+    this.handContainer.setPosition(this.handContainer.x, this.handContainer.y);
   }
   
   /**
@@ -1329,15 +1607,12 @@ export class CombatUI {
     y: number,
     interactive: boolean = true
   ): Phaser.GameObjects.Container {
-    const cardContainer = this.scene.add.container(0, 0);
+    // BUGFIX: Create container at the target position immediately
+    const cardContainer = this.scene.add.container(x, y);
 
-    const screenWidth = this.scene.cameras.main.width;
-    const baseCardWidth = 80;
-    const baseCardHeight = 112;
-    
-    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    const cardWidth = baseCardWidth * scaleFactor;
-    const cardHeight = baseCardHeight * scaleFactor;
+    // Use fixed card dimensions for consistency
+    const cardWidth = 80;
+    const cardHeight = 112;
 
     const rankMap: Record<string, string> = {
       "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
@@ -1361,7 +1636,7 @@ export class CombatUI {
       
       const rankText = this.scene.add.text(-cardWidth/2 + 5, -cardHeight/2 + 5, card.rank, {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(10 * scaleFactor),
+        fontSize: 10,
         color: "#000000",
       }).setOrigin(0, 0);
       cardContainer.add(rankText);
@@ -1369,7 +1644,7 @@ export class CombatUI {
       const display = DeckManager.getCardDisplay(card);
       const suitText = this.scene.add.text(cardWidth/2 - 5, -cardHeight/2 + 5, display.symbol, {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(10 * scaleFactor),
+        fontSize: 10,
         color: display.color,
       }).setOrigin(1, 0);
       cardContainer.add(suitText);
@@ -1420,18 +1695,19 @@ export class CombatUI {
   public updatePlayedHandDisplay(): void {
     const combatState = this.scene.getCombatState();
     
-    // Clear existing played card sprites
+    // Clear existing played card sprites (but not the hand evaluation text)
     this.playedCardSprites.forEach((sprite) => sprite.destroy());
     this.playedCardSprites = [];
 
     const playedHand = combatState.player.playedHand;
     if (playedHand.length === 0) {
       this.handEvaluationText.setVisible(false);
+      this.playedHandContainer.setVisible(false);
       return;
     }
 
-    const cardWidth = 80;
-    const cardSpacing = 100;
+    // Make played cards closer together
+    const cardSpacing = 90; // Reduced from 100 to bring cards closer
     const totalWidth = (playedHand.length - 1) * cardSpacing;
     const startX = -totalWidth / 2;
 
@@ -1448,6 +1724,11 @@ export class CombatUI {
     const handTypeText = this.getHandTypeDisplayText(evaluation.type);
     this.handEvaluationText.setText(`${handTypeText} (+${evaluation.totalValue})`);
     this.handEvaluationText.setVisible(true);
+    
+    // Ensure played hand container is visible during action phase
+    if (combatState.phase === "action_selection") {
+      this.playedHandContainer.setVisible(true);
+    }
   }
   
   /**
@@ -1547,19 +1828,738 @@ export class CombatUI {
   }
   
   /**
-   * Show deck view
+   * Show deck view with next/previous navigation (Balatro-style)
    */
-  private showDeckView(): void {
-    // Placeholder
-    console.log("Show deck view");
+  public showDeckView(): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Clear existing content (keep bg, title, close button)
+    this.deckViewContainer.list
+      .filter(item => (item as any).isDeckContent)
+      .forEach(item => item.destroy());
+    
+    const cards = this.scene.getCombatState().player.drawPile;
+    
+    // Check if deck is empty
+    if (cards.length === 0) {
+      // Show empty state message
+      const emptyMessage = this.scene.add.text(0, 0, "Draw pile is empty", {
+        fontFamily: "dungeon-mode",
+        fontSize: 28,
+        color: "#77888C",
+        align: "center",
+      }).setOrigin(0.5);
+      (emptyMessage as any).isDeckContent = true;
+      (emptyMessage as any).isEmptyMessage = true;
+      this.deckViewContainer.add(emptyMessage);
+      
+      // Update card count
+      const cardCountText = this.deckViewContainer.list.find(
+        item => (item as any).isDeckContent && item.type === 'Text' && !(item as any).isEmptyMessage
+      ) as Phaser.GameObjects.Text;
+      if (cardCountText) {
+        cardCountText.setText(`0 cards`);
+      }
+      
+      // Hide navigation buttons when empty
+      const prevButton = this.deckViewContainer.list.find(item => (item as any).isPrevButton);
+      const nextButton = this.deckViewContainer.list.find(item => (item as any).isNextButton);
+      const pageCounter = this.deckViewContainer.list.find(item => (item as any).isPageCounter);
+      
+      if (prevButton) (prevButton as any).setVisible(false);
+      if (nextButton) (nextButton as any).setVisible(false);
+      if (pageCounter) (pageCounter as any).setVisible(false);
+      
+      this.deckViewContainer.setVisible(true);
+      return;
+    }
+    
+    // Show navigation buttons if hidden
+    const prevButton = this.deckViewContainer.list.find(item => (item as any).isPrevButton);
+    const nextButton = this.deckViewContainer.list.find(item => (item as any).isNextButton);
+    const pageCounter = this.deckViewContainer.list.find(item => (item as any).isPageCounter);
+    
+    if (prevButton) (prevButton as any).setVisible(true);
+    if (nextButton) (nextButton as any).setVisible(true);
+    if (pageCounter) (pageCounter as any).setVisible(true);
+    
+    // Pagination settings
+    const cardsPerPage = 12; // 2 rows of 6 cards
+    const totalPages = Math.ceil(cards.length / cardsPerPage);
+    let currentPage = 0;
+    
+    // Store current page in container
+    (this.deckViewContainer as any).currentPage = currentPage;
+    (this.deckViewContainer as any).totalPages = totalPages;
+    
+    const renderPage = (page: number) => {
+      // Clear previous page cards
+      this.deckViewContainer.list
+        .filter(item => (item as any).isPageCard)
+        .forEach(item => item.destroy());
+      
+      const startIndex = page * cardsPerPage;
+      const endIndex = Math.min(startIndex + cardsPerPage, cards.length);
+      const pageCards = cards.slice(startIndex, endIndex);
+      
+      // Grid layout - 2 rows of 6 cards (Balatro-style)
+      const columns = 6;
+      const rows = 2;
+      const cardWidth = 100;
+      const cardHeight = 140;
+      const horizontalSpacing = 20;
+      const verticalSpacing = 30;
+      
+      // Center the grid
+      const totalGridWidth = (columns * cardWidth) + ((columns - 1) * horizontalSpacing);
+      const totalGridHeight = (rows * cardHeight) + ((rows - 1) * verticalSpacing);
+      const startX = -totalGridWidth / 2 + cardWidth / 2;
+      const startY = -totalGridHeight / 2 + cardHeight / 2 - 20; // Offset up slightly
+      
+      pageCards.forEach((card, index) => {
+        const col = index % columns;
+        const row = Math.floor(index / columns);
+        const x = startX + col * (cardWidth + horizontalSpacing);
+        const y = startY + row * (cardHeight + verticalSpacing);
+        
+        const cardSprite = this.scene.ui.createCardSprite(card, x, y, false);
+        (cardSprite as any).isPageCard = true;
+        (cardSprite as any).isDeckContent = true;
+        cardSprite.setScale(1.25); // Slightly larger for better visibility
+        
+        this.deckViewContainer.add(cardSprite);
+      });
+      
+      // Update page counter
+      const pageCounter = this.deckViewContainer.list.find(item => (item as any).isPageCounter) as Phaser.GameObjects.Text;
+      if (pageCounter) {
+        pageCounter.setText(`Page ${page + 1} / ${totalPages}`);
+      }
+      
+      // Update button states
+      const prevButton = this.deckViewContainer.list.find(item => (item as any).isPrevButton);
+      const nextButton = this.deckViewContainer.list.find(item => (item as any).isNextButton);
+      
+      if (prevButton) {
+        (prevButton as any).setAlpha(page > 0 ? 1 : 0.3);
+      }
+      if (nextButton) {
+        (nextButton as any).setAlpha(page < totalPages - 1 ? 1 : 0.3);
+      }
+    };
+    
+    // Create navigation UI (only if not already created)
+    if (!this.deckViewContainer.list.find(item => (item as any).isNavigation)) {
+      // Background - Double border design (Balatro style)
+      const modalWidth = screenWidth * 0.8;
+      const modalHeight = screenHeight * 0.8;
+      
+      const outerBorder = this.scene.add.rectangle(0, 0, modalWidth + 8, modalHeight + 8, undefined, 0);
+      outerBorder.setStrokeStyle(3, 0x77888C);
+      (outerBorder as any).isNavigation = true;
+      
+      const innerBorder = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, undefined, 0);
+      innerBorder.setStrokeStyle(2, 0x77888C);
+      (innerBorder as any).isNavigation = true;
+      
+      const bg = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, 0x150E10, 0.98);
+      (bg as any).isNavigation = true;
+      
+      this.deckViewContainer.add([outerBorder, innerBorder, bg]);
+      
+      // Title
+      const title = this.scene.add.text(0, -screenHeight * 0.35, "Draw Pile", {
+        fontFamily: "dungeon-mode",
+        fontSize: 32,
+        color: "#ffffff",
+        align: "center",
+      }).setOrigin(0.5);
+      (title as any).isNavigation = true;
+      this.deckViewContainer.add(title);
+      
+      // Card count
+      const cardCount = this.scene.add.text(0, -screenHeight * 0.35 + 40, `${cards.length} cards`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
+        color: "#77888C",
+        align: "center",
+      }).setOrigin(0.5);
+      (cardCount as any).isNavigation = true;
+      (cardCount as any).isDeckContent = true;
+      this.deckViewContainer.add(cardCount);
+      
+      // Close button
+      const closeButton = this.createCloseButton(screenWidth * 0.35, -screenHeight * 0.35);
+      (closeButton as any).isNavigation = true;
+      this.deckViewContainer.add(closeButton);
+      
+      // Previous button (left arrow)
+      const prevButton = this.createNavigationButton(
+        -screenWidth * 0.25,
+        screenHeight * 0.3,
+        "◄",
+        () => {
+          if (currentPage > 0) {
+            currentPage--;
+            (this.deckViewContainer as any).currentPage = currentPage;
+            renderPage(currentPage);
+          }
+        }
+      );
+      (prevButton as any).isNavigation = true;
+      (prevButton as any).isPrevButton = true;
+      this.deckViewContainer.add(prevButton);
+      
+      // Next button (right arrow)
+      const nextButton = this.createNavigationButton(
+        screenWidth * 0.25,
+        screenHeight * 0.3,
+        "►",
+        () => {
+          if (currentPage < totalPages - 1) {
+            currentPage++;
+            (this.deckViewContainer as any).currentPage = currentPage;
+            renderPage(currentPage);
+          }
+        }
+      );
+      (nextButton as any).isNavigation = true;
+      (nextButton as any).isNextButton = true;
+      this.deckViewContainer.add(nextButton);
+      
+      // Page counter
+      const pageCounter = this.scene.add.text(0, screenHeight * 0.3, `Page 1 / ${totalPages}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#ffffff",
+        align: "center",
+      }).setOrigin(0.5);
+      (pageCounter as any).isNavigation = true;
+      (pageCounter as any).isPageCounter = true;
+      this.deckViewContainer.add(pageCounter);
+    } else {
+      // Update card count if UI already exists
+      const cardCountText = this.deckViewContainer.list.find(item => (item as any).isDeckContent && item.type === 'Text') as Phaser.GameObjects.Text;
+      if (cardCountText) {
+        cardCountText.setText(`${cards.length} cards`);
+      }
+    }
+    
+    // Render first page
+    renderPage(currentPage);
+    
+    // Show container
+    this.deckViewContainer.setVisible(true);
   }
   
   /**
-   * Show discard view
+   * Create close button for modal dialogs
    */
-  private showDiscardView(): void {
-    // Placeholder
-    console.log("Show discard view");
+  private createCloseButton(x: number, y: number): Phaser.GameObjects.Container {
+    const button = this.scene.add.container(x, y);
+    
+    const bg = this.scene.add.circle(0, 0, 24, 0x1a1a1a);
+    bg.setStrokeStyle(2, 0xff6b6b);
+    
+    const text = this.scene.add.text(0, 0, "✕", {
+      fontFamily: "dungeon-mode",
+      fontSize: 28,
+      color: "#ff6b6b",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    button.add([bg, text]);
+    button.setSize(60, 60); // Larger hit area
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-30, -30, 60, 60),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    button.on("pointerover", () => {
+      bg.setFillStyle(0xff6b6b, 0.3);
+      bg.setScale(1.1);
+      this.scene.tweens.add({
+        targets: button,
+        scale: 1.15,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    });
+    
+    button.on("pointerout", () => {
+      bg.setFillStyle(0x1a1a1a);
+      bg.setScale(1);
+      this.scene.tweens.add({
+        targets: button,
+        scale: 1,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    });
+    
+    button.on("pointerdown", () => {
+      this.scene.tweens.add({
+        targets: button,
+        scale: 0.9,
+        duration: 80,
+        ease: 'Power2',
+        onComplete: () => {
+          this.deckViewContainer.setVisible(false);
+        }
+      });
+    });
+    
+    return button;
+  }
+  
+  /**
+   * Create navigation button (previous/next)
+   */
+  private createNavigationButton(
+    x: number,
+    y: number,
+    symbol: string,
+    callback: () => void
+  ): Phaser.GameObjects.Container {
+    const button = this.scene.add.container(x, y);
+    
+    const bg = this.scene.add.rectangle(0, 0, 70, 70, 0x150E10);
+    bg.setStrokeStyle(3, 0x77888C);
+    
+    const innerBorder = this.scene.add.rectangle(0, 0, 64, 64, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C);
+    
+    const text = this.scene.add.text(0, 0, symbol, {
+      fontFamily: "dungeon-mode",
+      fontSize: 36,
+      color: "#77888C",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    button.add([bg, innerBorder, text]);
+    button.setSize(90, 90); // Much larger hit area for better responsiveness
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-45, -45, 90, 90),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    button.on("pointerover", () => {
+      if (button.alpha === 1) { // Only animate if button is active
+        bg.setFillStyle(0x1f1410);
+        text.setColor("#e8eced");
+        this.scene.tweens.add({
+          targets: button,
+          scale: 1.15,
+          duration: 150,
+          ease: 'Back.easeOut'
+        });
+      }
+    });
+    
+    button.on("pointerout", () => {
+      bg.setFillStyle(0x150E10);
+      text.setColor("#77888C");
+      this.scene.tweens.add({
+        targets: button,
+        scale: 1,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    });
+    
+    button.on("pointerdown", () => {
+      if (button.alpha === 1) { // Only trigger if button is active
+        this.scene.tweens.add({
+          targets: button,
+          scale: 0.95,
+          duration: 80,
+          ease: 'Power2',
+          onComplete: () => {
+            this.scene.tweens.add({
+              targets: button,
+              scale: 1.15,
+              duration: 80,
+              ease: 'Power2',
+              onComplete: () => {
+                callback();
+              }
+            });
+          }
+        });
+      }
+    });
+    
+    return button;
+  }
+  
+  /**
+   * Show discard view with next/previous navigation (Balatro-style)
+   */
+  public showDiscardView(): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Clear existing content (keep bg, title, close button)
+    this.discardViewContainer.list
+      .filter(item => (item as any).isDiscardContent)
+      .forEach(item => item.destroy());
+    
+    const cards = this.scene.getCombatState().player.discardPile;
+    
+    // Show navigation buttons if hidden
+    const prevButton = this.discardViewContainer.list.find(item => (item as any).isPrevButton);
+    const nextButton = this.discardViewContainer.list.find(item => (item as any).isNextButton);
+    const pageCounter = this.discardViewContainer.list.find(item => (item as any).isPageCounter);
+    
+    if (prevButton) (prevButton as any).setVisible(true);
+    if (nextButton) (nextButton as any).setVisible(true);
+    if (pageCounter) (pageCounter as any).setVisible(true);
+    
+    // Pagination settings
+    const cardsPerPage = 12; // 2 rows of 6 cards
+    const totalPages = Math.ceil(cards.length / cardsPerPage);
+    let currentPage = 0;
+    
+    // Store current page in container
+    (this.discardViewContainer as any).currentPage = currentPage;
+    (this.discardViewContainer as any).totalPages = totalPages;
+    
+    const renderPage = (page: number) => {
+      // Clear previous page cards
+      this.discardViewContainer.list
+        .filter(item => (item as any).isPageCard)
+        .forEach(item => item.destroy());
+      
+      const startIndex = page * cardsPerPage;
+      const endIndex = Math.min(startIndex + cardsPerPage, cards.length);
+      const pageCards = cards.slice(startIndex, endIndex);
+      
+      // Grid layout - 2 rows of 6 cards (Balatro-style)
+      const columns = 6;
+      const rows = 2;
+      const cardWidth = 100;
+      const cardHeight = 140;
+      const horizontalSpacing = 20;
+      const verticalSpacing = 30;
+      
+      // Center the grid
+      const totalGridWidth = (columns * cardWidth) + ((columns - 1) * horizontalSpacing);
+      const totalGridHeight = (rows * cardHeight) + ((rows - 1) * verticalSpacing);
+      const startX = -totalGridWidth / 2 + cardWidth / 2;
+      const startY = -totalGridHeight / 2 + cardHeight / 2 - 20; // Offset up slightly
+      
+      pageCards.forEach((card, index) => {
+        const col = index % columns;
+        const row = Math.floor(index / columns);
+        const x = startX + col * (cardWidth + horizontalSpacing);
+        const y = startY + row * (cardHeight + verticalSpacing);
+        
+        const cardSprite = this.scene.ui.createCardSprite(card, x, y, false);
+        (cardSprite as any).isPageCard = true;
+        (cardSprite as any).isDiscardContent = true;
+        cardSprite.setScale(1.25); // Slightly larger for better visibility
+        
+        this.discardViewContainer.add(cardSprite);
+      });
+      
+      // Update page counter
+      const pageCounter = this.discardViewContainer.list.find(item => (item as any).isPageCounter) as Phaser.GameObjects.Text;
+      if (pageCounter) {
+        pageCounter.setText(`Page ${page + 1} / ${totalPages}`);
+      }
+      
+      // Update button states
+      const prevButton = this.discardViewContainer.list.find(item => (item as any).isPrevButton);
+      const nextButton = this.discardViewContainer.list.find(item => (item as any).isNextButton);
+      
+      if (prevButton) {
+        (prevButton as any).setAlpha(page > 0 ? 1 : 0.3);
+      }
+      if (nextButton) {
+        (nextButton as any).setAlpha(page < totalPages - 1 ? 1 : 0.3);
+      }
+    };
+    
+    // Create navigation UI (only if not already created)
+    if (!this.discardViewContainer.list.find(item => (item as any).isNavigation)) {
+      // Background - Double border design (Balatro style)
+      const modalWidth = screenWidth * 0.8;
+      const modalHeight = screenHeight * 0.8;
+      
+      const outerBorder = this.scene.add.rectangle(0, 0, modalWidth + 8, modalHeight + 8, undefined, 0);
+      outerBorder.setStrokeStyle(3, 0x77888C);
+      (outerBorder as any).isNavigation = true;
+      
+      const innerBorder = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, undefined, 0);
+      innerBorder.setStrokeStyle(2, 0x77888C);
+      (innerBorder as any).isNavigation = true;
+      
+      const bg = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, 0x150E10, 0.98);
+      (bg as any).isNavigation = true;
+      
+      this.discardViewContainer.add([outerBorder, innerBorder, bg]);
+      
+      // Title
+      const title = this.scene.add.text(0, -screenHeight * 0.35, "Discard Pile", {
+        fontFamily: "dungeon-mode",
+        fontSize: 32,
+        color: "#ffffff",
+        align: "center",
+      }).setOrigin(0.5);
+      (title as any).isNavigation = true;
+      this.discardViewContainer.add(title);
+      
+      // Card count
+      const cardCount = this.scene.add.text(0, -screenHeight * 0.35 + 40, `${cards.length} cards`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
+        color: "#77888C",
+        align: "center",
+      }).setOrigin(0.5);
+      (cardCount as any).isNavigation = true;
+      (cardCount as any).isDiscardContent = true;
+      this.discardViewContainer.add(cardCount);
+      
+      // Close button
+      const closeButton = this.createDiscardCloseButton(screenWidth * 0.35, -screenHeight * 0.35);
+      (closeButton as any).isNavigation = true;
+      this.discardViewContainer.add(closeButton);
+      
+      // Previous button (left arrow)
+      const prevButton = this.createDiscardNavigationButton(
+        -screenWidth * 0.25,
+        screenHeight * 0.3,
+        "◄",
+        () => {
+          if (currentPage > 0) {
+            currentPage--;
+            (this.discardViewContainer as any).currentPage = currentPage;
+            renderPage(currentPage);
+          }
+        }
+      );
+      (prevButton as any).isNavigation = true;
+      (prevButton as any).isPrevButton = true;
+      this.discardViewContainer.add(prevButton);
+      
+      // Next button (right arrow)
+      const nextButton = this.createDiscardNavigationButton(
+        screenWidth * 0.25,
+        screenHeight * 0.3,
+        "►",
+        () => {
+          if (currentPage < totalPages - 1) {
+            currentPage++;
+            (this.discardViewContainer as any).currentPage = currentPage;
+            renderPage(currentPage);
+          }
+        }
+      );
+      (nextButton as any).isNavigation = true;
+      (nextButton as any).isNextButton = true;
+      this.discardViewContainer.add(nextButton);
+      
+      // Page counter
+      const pageCounter = this.scene.add.text(0, screenHeight * 0.3, `Page 1 / ${totalPages}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#ffffff",
+        align: "center",
+      }).setOrigin(0.5);
+      (pageCounter as any).isNavigation = true;
+      (pageCounter as any).isPageCounter = true;
+      this.discardViewContainer.add(pageCounter);
+    } else {
+      // Update card count if UI already exists
+      const cardCountText = this.discardViewContainer.list.find(
+        item => (item as any).isDiscardContent && item.type === 'Text' && !(item as any).isEmptyMessage
+      ) as Phaser.GameObjects.Text;
+      if (cardCountText) {
+        cardCountText.setText(`${cards.length} cards`);
+      }
+    }
+    
+    // Handle empty discard pile - show message and hide navigation
+    if (cards.length === 0) {
+      // Show empty state message
+      const emptyMessage = this.scene.add.text(0, 0, "Discard pile is empty", {
+        fontFamily: "dungeon-mode",
+        fontSize: 28,
+        color: "#77888C",
+        align: "center",
+      }).setOrigin(0.5);
+      (emptyMessage as any).isDiscardContent = true;
+      (emptyMessage as any).isEmptyMessage = true;
+      this.discardViewContainer.add(emptyMessage);
+      
+      // Hide navigation buttons when empty
+      const navPrevButton = this.discardViewContainer.list.find(item => (item as any).isPrevButton);
+      const navNextButton = this.discardViewContainer.list.find(item => (item as any).isNextButton);
+      const navPageCounter = this.discardViewContainer.list.find(item => (item as any).isPageCounter);
+      
+      if (navPrevButton) (navPrevButton as any).setVisible(false);
+      if (navNextButton) (navNextButton as any).setVisible(false);
+      if (navPageCounter) (navPageCounter as any).setVisible(false);
+      
+      this.discardViewContainer.setVisible(true);
+      return;
+    }
+    
+    // Show navigation buttons when not empty
+    const showPrevButton = this.discardViewContainer.list.find(item => (item as any).isPrevButton);
+    const showNextButton = this.discardViewContainer.list.find(item => (item as any).isNextButton);
+    const showPageCounter = this.discardViewContainer.list.find(item => (item as any).isPageCounter);
+    
+    if (showPrevButton) (showPrevButton as any).setVisible(true);
+    if (showNextButton) (showNextButton as any).setVisible(true);
+    if (showPageCounter) (showPageCounter as any).setVisible(true);
+    
+    // Render first page
+    renderPage(currentPage);
+    
+    // Show container
+    this.discardViewContainer.setVisible(true);
+  }
+  
+  /**
+   * Create close button for discard modal
+   */
+  private createDiscardCloseButton(x: number, y: number): Phaser.GameObjects.Container {
+    const button = this.scene.add.container(x, y);
+    
+    const bg = this.scene.add.circle(0, 0, 24, 0x1a1a1a);
+    bg.setStrokeStyle(2, 0xff6b6b);
+    
+    const text = this.scene.add.text(0, 0, "✕", {
+      fontFamily: "dungeon-mode",
+      fontSize: 28,
+      color: "#ff6b6b",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    button.add([bg, text]);
+    button.setSize(60, 60); // Larger hit area
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-30, -30, 60, 60),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    button.on("pointerover", () => {
+      bg.setFillStyle(0xff6b6b, 0.3);
+      bg.setScale(1.1);
+      this.scene.tweens.add({
+        targets: button,
+        scale: 1.15,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    });
+    
+    button.on("pointerout", () => {
+      bg.setFillStyle(0x1a1a1a);
+      bg.setScale(1);
+      this.scene.tweens.add({
+        targets: button,
+        scale: 1,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    });
+    
+    button.on("pointerdown", () => {
+      this.scene.tweens.add({
+        targets: button,
+        scale: 0.9,
+        duration: 80,
+        ease: 'Power2',
+        onComplete: () => {
+          this.discardViewContainer.setVisible(false);
+        }
+      });
+    });
+    
+    return button;
+  }
+  
+  /**
+   * Create navigation button for discard pile (previous/next)
+   */
+  private createDiscardNavigationButton(
+    x: number,
+    y: number,
+    symbol: string,
+    callback: () => void
+  ): Phaser.GameObjects.Container {
+    const button = this.scene.add.container(x, y);
+    
+    const bg = this.scene.add.rectangle(0, 0, 70, 70, 0x150E10);
+    bg.setStrokeStyle(3, 0x77888C);
+    
+    const innerBorder = this.scene.add.rectangle(0, 0, 64, 64, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C);
+    
+    const text = this.scene.add.text(0, 0, symbol, {
+      fontFamily: "dungeon-mode",
+      fontSize: 36,
+      color: "#77888C",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    button.add([bg, innerBorder, text]);
+    button.setSize(90, 90); // Much larger hit area for better responsiveness
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-45, -45, 90, 90),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    button.on("pointerover", () => {
+      if (button.alpha === 1) { // Only animate if button is active
+        bg.setFillStyle(0x1f1410);
+        text.setColor("#e8eced");
+        this.scene.tweens.add({
+          targets: button,
+          scale: 1.15,
+          duration: 150,
+          ease: 'Back.easeOut'
+        });
+      }
+    });
+    
+    button.on("pointerout", () => {
+      bg.setFillStyle(0x150E10);
+      text.setColor("#77888C");
+      this.scene.tweens.add({
+        targets: button,
+        scale: 1,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    });
+    
+    button.on("pointerdown", () => {
+      if (button.alpha === 1) { // Only trigger if button is active
+        this.scene.tweens.add({
+          targets: button,
+          scale: 0.95,
+          duration: 80,
+          ease: 'Power2',
+          onComplete: () => {
+            this.scene.tweens.add({
+              targets: button,
+              scale: 1.15,
+              duration: 80,
+              ease: 'Power2',
+              onComplete: () => {
+                callback();
+              }
+            });
+          }
+        });
+      }
+    });
+    
+    return button;
   }
   
   /**

@@ -300,16 +300,18 @@ export class CombatDDA {
     });
     this.ddaDebugContainer.add(goldText);
     
-    // Toggle button
-    const toggleButton = this.scene.add.text(screenWidth - 270, screenHeight - 30, "[D] DDA Info", {
+    // Toggle button - positioned to not overlap with deck pile
+    const toggleButton = this.scene.add.text(10, screenHeight - 30, "[D] DDA Info", {
       fontFamily: "dungeon-mode",
-      fontSize: 12,
+      fontSize: 11,
       color: "#4ecdc4",
       backgroundColor: "#000000",
-      padding: { x: 8, y: 4 }
-    }).setOrigin(0, 1);
+      padding: { x: 6, y: 3 }
+    }).setOrigin(0, 1).setAlpha(0.7); // Semi-transparent to be less intrusive
     toggleButton.setInteractive({ useHandCursor: true });
     toggleButton.on('pointerdown', () => this.toggleDDADebug());
+    toggleButton.on('pointerover', () => toggleButton.setAlpha(1));
+    toggleButton.on('pointerout', () => toggleButton.setAlpha(0.7));
     
     // Keyboard shortcut
     this.scene.input.keyboard?.on('keydown-D', () => {
