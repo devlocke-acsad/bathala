@@ -2207,40 +2207,6 @@ export class CombatUI {
     
     const cards = this.scene.getCombatState().player.discardPile;
     
-    // Check if discard pile is empty
-    if (cards.length === 0) {
-      // Show empty state message
-      const emptyMessage = this.scene.add.text(0, 0, "Discard pile is empty", {
-        fontFamily: "dungeon-mode",
-        fontSize: 28,
-        color: "#77888C",
-        align: "center",
-      }).setOrigin(0.5);
-      (emptyMessage as any).isDiscardContent = true;
-      (emptyMessage as any).isEmptyMessage = true;
-      this.discardViewContainer.add(emptyMessage);
-      
-      // Update card count
-      const cardCountText = this.discardViewContainer.list.find(
-        item => (item as any).isDiscardContent && item.type === 'Text' && !(item as any).isEmptyMessage
-      ) as Phaser.GameObjects.Text;
-      if (cardCountText) {
-        cardCountText.setText(`0 cards`);
-      }
-      
-      // Hide navigation buttons when empty
-      const prevButton = this.discardViewContainer.list.find(item => (item as any).isPrevButton);
-      const nextButton = this.discardViewContainer.list.find(item => (item as any).isNextButton);
-      const pageCounter = this.discardViewContainer.list.find(item => (item as any).isPageCounter);
-      
-      if (prevButton) (prevButton as any).setVisible(false);
-      if (nextButton) (nextButton as any).setVisible(false);
-      if (pageCounter) (pageCounter as any).setVisible(false);
-      
-      this.discardViewContainer.setVisible(true);
-      return;
-    }
-    
     // Show navigation buttons if hidden
     const prevButton = this.discardViewContainer.list.find(item => (item as any).isPrevButton);
     const nextButton = this.discardViewContainer.list.find(item => (item as any).isNextButton);
@@ -2406,11 +2372,48 @@ export class CombatUI {
       this.discardViewContainer.add(pageCounter);
     } else {
       // Update card count if UI already exists
-      const cardCountText = this.discardViewContainer.list.find(item => (item as any).isDiscardContent && item.type === 'Text') as Phaser.GameObjects.Text;
+      const cardCountText = this.discardViewContainer.list.find(
+        item => (item as any).isDiscardContent && item.type === 'Text' && !(item as any).isEmptyMessage
+      ) as Phaser.GameObjects.Text;
       if (cardCountText) {
         cardCountText.setText(`${cards.length} cards`);
       }
     }
+    
+    // Handle empty discard pile - show message and hide navigation
+    if (cards.length === 0) {
+      // Show empty state message
+      const emptyMessage = this.scene.add.text(0, 0, "Discard pile is empty", {
+        fontFamily: "dungeon-mode",
+        fontSize: 28,
+        color: "#77888C",
+        align: "center",
+      }).setOrigin(0.5);
+      (emptyMessage as any).isDiscardContent = true;
+      (emptyMessage as any).isEmptyMessage = true;
+      this.discardViewContainer.add(emptyMessage);
+      
+      // Hide navigation buttons when empty
+      const navPrevButton = this.discardViewContainer.list.find(item => (item as any).isPrevButton);
+      const navNextButton = this.discardViewContainer.list.find(item => (item as any).isNextButton);
+      const navPageCounter = this.discardViewContainer.list.find(item => (item as any).isPageCounter);
+      
+      if (navPrevButton) (navPrevButton as any).setVisible(false);
+      if (navNextButton) (navNextButton as any).setVisible(false);
+      if (navPageCounter) (navPageCounter as any).setVisible(false);
+      
+      this.discardViewContainer.setVisible(true);
+      return;
+    }
+    
+    // Show navigation buttons when not empty
+    const showPrevButton = this.discardViewContainer.list.find(item => (item as any).isPrevButton);
+    const showNextButton = this.discardViewContainer.list.find(item => (item as any).isNextButton);
+    const showPageCounter = this.discardViewContainer.list.find(item => (item as any).isPageCounter);
+    
+    if (showPrevButton) (showPrevButton as any).setVisible(true);
+    if (showNextButton) (showNextButton as any).setVisible(true);
+    if (showPageCounter) (showPageCounter as any).setVisible(true);
     
     // Render first page
     renderPage(currentPage);
