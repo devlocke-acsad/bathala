@@ -47,8 +47,8 @@ export class Combat extends Scene {
   private enemyIntentText!: Phaser.GameObjects.Text;
   private handContainer!: Phaser.GameObjects.Container;
   private playedHandContainer!: Phaser.GameObjects.Container;
-  private cardSprites: Phaser.GameObjects.Container[] = [];
-  private playedCardSprites: Phaser.GameObjects.Container[] = [];
+  // cardSprites and playedCardSprites are now managed by CombatUI
+  // Access via this.ui.cardSprites and this.ui.playedCardSprites
   private selectedCards: PlayingCard[] = [];
   private actionButtons!: Phaser.GameObjects.Container;
   private turnText!: Phaser.GameObjects.Text;
@@ -129,11 +129,11 @@ export class Combat extends Scene {
 
   // Getter/setter methods for CombatAnimations
   public getCardSprites(): Phaser.GameObjects.Container[] {
-    return this.cardSprites;
+    return this.ui.cardSprites;
   }
 
   public setCardSprites(sprites: Phaser.GameObjects.Container[]): void {
-    this.cardSprites = sprites;
+    this.ui.cardSprites = sprites;
   }
 
   public getPlayerSprite(): Phaser.GameObjects.Sprite {
@@ -196,6 +196,11 @@ export class Combat extends Scene {
     // UI is now fully initialized by CombatUI
     // No need to call createCombatUI() separately
     
+    // IMPORTANT: Call handleResize() immediately after UI initialization
+    // to ensure containers are properly positioned BEFORE drawing cards
+    this.scale.on('resize', this.handleResize, this);
+    this.handleResize();
+    
     // Create relic inventory
     this.createRelicInventory();
     
@@ -241,9 +246,6 @@ export class Combat extends Scene {
         this.dialogue.showBattleStartDialogue();
       });
     }
-
-    // Listen for resize events
-    this.scale.on('resize', this.handleResize, this);
   }
 
   /**
@@ -943,8 +945,8 @@ export class Combat extends Scene {
    */
   private drawInitialHand(): void {
     // Clear any existing hand display
-    this.cardSprites.forEach((sprite) => sprite.destroy());
-    this.cardSprites = [];
+    this.ui.cardSprites.forEach((sprite) => sprite.destroy());
+    this.ui.cardSprites = [];
     
     // Animate drawing cards from deck one by one
     this.animations.animateDrawCardsFromDeck(this.combatState.player.hand.length);
@@ -957,8 +959,9 @@ export class Combat extends Scene {
    */
   private updateCardVisuals(card: PlayingCard): void {
     const cardIndex = this.combatState.player.hand.findIndex(c => c.id === card.id);
-    if (cardIndex !== -1 && this.cardSprites[cardIndex]) {
-      const cardSprite = this.cardSprites[cardIndex];
+    const cardSprites = this.ui.cardSprites;
+    if (cardIndex !== -1 && cardSprites[cardIndex]) {
+      const cardSprite = cardSprites[cardIndex];
       
       // Update border visibility only
       const border = cardSprite.getByName('cardBorder') as Phaser.GameObjects.Rectangle;
@@ -978,67 +981,80 @@ export class Combat extends Scene {
       return;
     }
 
+    // Toggle selection state
     card.selected = !card.selected;
     
     // Manage selectedCards array
     const selIndex = this.selectedCards.findIndex(c => c.id === card.id);
     if (card.selected && selIndex === -1 && this.selectedCards.length < 5) {
       this.selectedCards.push(card);
-    } else if (selIndex > -1) {
-      card.selected = false;
+    } else if (!card.selected && selIndex > -1) {
       this.selectedCards.splice(selIndex, 1);
     }
 
-    // Find the card sprite to animate
+    // Find the card sprite and its index
     const cardIndex = this.combatState.player.hand.findIndex(c => c.id === card.id);
-    if (cardIndex !== -1 && this.cardSprites[cardIndex]) {
-      const cardSprite = this.cardSprites[cardIndex];
+    const cardSprites = this.ui.cardSprites;
+    if (cardIndex === -1 || !cardSprites[cardIndex]) {
+      console.warn("Card sprite not found for selection animation");
+      return;
+    }
+    
+    const cardSprite = cardSprites[cardIndex];
+    
+    // CRITICAL: Kill any existing tweens on this sprite to prevent conflicts
+    this.tweens.killTweensOf(cardSprite);
+    
+    // Get the base Y position that was stored when the card was created
+    const storedBaseY = (card as any).baseY;
+    
+    if (storedBaseY === undefined) {
+      console.warn("Card baseY not found, cannot animate properly");
+      return;
+    }
+    
+    // Balatro-style selection animation
+    if (card.selected) {
+      // SELECT: Move card UP
+      this.tweens.add({
+        targets: cardSprite,
+        y: storedBaseY - 40,
+        duration: 200,
+        ease: 'Back.easeOut'
+      });
       
-      // Get the stored base position from card data (this ensures cards return to exact position)
-      const baseY = (card as any).baseY || 0;
-      
-      // Balatro-style selection animation - only Y changes, X stays the same
-      if (card.selected) {
-        // Animate selection with smooth bounce
-        this.tweens.add({
-          targets: cardSprite,
-          y: baseY - 40, // Elevate when selected
-          duration: 200,
-          ease: 'Back.easeOut'
-        });
-        
-        // Yellow tint for selected cards (Balatro style)
-        const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
-        if (cardImage && 'setTint' in cardImage) {
-          cardImage.setTint(0xffdd44); // Bright yellow highlight
-        }
-        cardSprite.setDepth(500 + cardIndex); // Bring to front
-      } else {
-        // Animate deselection - return to exact base position
-        this.tweens.add({
-          targets: cardSprite,
-          y: baseY, // Return to exact arc position
-          duration: 200,
-          ease: 'Back.easeOut'
-        });
-        
-        // Remove highlight
-        const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
-        if (cardImage && 'clearTint' in cardImage) {
-          cardImage.clearTint();
-        }
-        cardSprite.setDepth(100 + cardIndex); // Return to normal depth
+      // Yellow tint for selected cards
+      const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+      if (cardImage && 'setTint' in cardImage) {
+        cardImage.setTint(0xffdd44);
       }
+      
+      // Bring to front
+      cardSprite.setDepth(500 + cardIndex);
+      
+    } else {
+      // DESELECT: Return to EXACT base position
+      this.tweens.add({
+        targets: cardSprite,
+        y: storedBaseY, // Use the stored base Y position
+        duration: 200,
+        ease: 'Back.easeOut'
+      });
+      
+      // Remove tint
+      const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+      if (cardImage && 'clearTint' in cardImage) {
+        cardImage.clearTint();
+      }
+      
+      // Return to normal depth
+      cardSprite.setDepth(100 + cardIndex);
     }
 
-    // Update selection counter
+    // Update UI
     this.updateSelectionCounter();
-    
-    // Update card visuals without recreating all cards
     this.updateCardVisuals(card);
-    this.ui.updateHandIndicator(); // Update hand indicator when selection changes
-    
-    // Update damage preview if in player turn (for potential attack calculations)
+    this.ui.updateHandIndicator();
     this.updateDamagePreview(this.combatState.phase === "action_selection");
   }
 
@@ -1256,8 +1272,16 @@ export class Combat extends Scene {
     // Reset discard counter (only 3 discards per turn)
     this.discardsUsedThisTurn = 0;
 
-    // Clear any selected cards from previous turn
+    // Clear any selected cards from previous turn and reset their selected state
+    this.selectedCards.forEach(card => {
+      card.selected = false;
+    });
     this.selectedCards = [];
+    
+    // Also ensure all cards in hand have selected flag cleared
+    this.combatState.player.hand.forEach(card => {
+      card.selected = false;
+    });
 
     // Clear played hand from previous turn and move cards to discard pile
     if (this.combatState.player.playedHand.length > 0) {
@@ -2897,32 +2921,12 @@ export class Combat extends Scene {
   /**
    * Update hand display without animations (for existing cards)
    */
+  /**
+   * Update hand display quietly (no animation) - delegates to CombatUI
+   * This is used by animations
+   */
   private updateHandDisplayQuiet(): void {
-    // Clear existing sprites
-    this.cardSprites.forEach((sprite) => sprite.destroy());
-    this.cardSprites = [];
-
-    const hand = this.combatState.player.hand;
-    const cardWidth = 60;
-    const totalWidth = hand.length * cardWidth;
-    const screenWidth = this.cameras.main.width;
-    
-    const maxWidth = screenWidth * 0.8;
-    const actualCardWidth = totalWidth > maxWidth ? (maxWidth / hand.length) : cardWidth;
-    const actualTotalWidth = hand.length * actualCardWidth;
-    const startX = -actualTotalWidth / 2 + actualCardWidth / 2;
-
-    const curveHeight = 5;
-    
-    hand.forEach((card, index) => {
-      const positionRatio = hand.length > 1 ? index / (hand.length - 1) : 0.5;
-      const x = startX + index * actualCardWidth;
-      const y = -Math.sin(positionRatio * Math.PI) * curveHeight;
-      
-      const cardSprite = this.ui.createCardSprite(card, x, y);
-      this.handContainer.add(cardSprite);
-      this.cardSprites.push(cardSprite);
-    });
+    this.ui.updateHandDisplayQuiet();
   }
   
   /**
@@ -3598,15 +3602,15 @@ export class Combat extends Scene {
     
     // Update containers if they exist
     if (this.handContainer) {
-      this.handContainer.setPosition(screenWidth/2, screenHeight - 100);
+      this.handContainer.setPosition(screenWidth/2, screenHeight - 280);
     }
     
     if (this.playedHandContainer) {
-      this.playedHandContainer.setPosition(screenWidth/2, screenHeight - 300);
+      this.playedHandContainer.setPosition(screenWidth/2, screenHeight - 450);
     }
     
     if (this.actionButtons) {
-      this.actionButtons.setPosition(screenWidth/2, screenHeight - 180);
+      this.actionButtons.setPosition(screenWidth/2, screenHeight - 60);
     }
     
     if (this.relicInventory) {

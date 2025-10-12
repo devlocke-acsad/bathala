@@ -247,9 +247,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#77888C",
-        align: "center",
-        stroke: "#150E10",
-        strokeThickness: 1
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -259,9 +257,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#ff6b6b",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 1
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -271,9 +267,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#4ecdc4",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 1
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -317,9 +311,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 28,
         color: "#77888C",
-        align: "center",
-        stroke: "#150E10",
-        strokeThickness: 2
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -329,9 +321,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#ff6b6b",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 2
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -341,9 +331,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#4ecdc4",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 1
+        align: "center"
       })
       .setOrigin(0.5);
 
@@ -354,9 +342,7 @@ export class CombatUI {
         fontSize: 20,
         color: "#feca57",
         align: "center",
-        wordWrap: { width: 200 },
-        stroke: "#000000",
-        strokeThickness: 1
+        wordWrap: { width: 200 }
       })
       .setOrigin(0.5);
 
@@ -429,9 +415,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 22,
         color: "#ffd93d",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 2
+        align: "center"
       })
       .setOrigin(0.5)
       .setVisible(false);
@@ -728,9 +712,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#ff6b6b",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 2
+        align: "center"
       }
     ).setOrigin(0.5).setVisible(false);
   }
@@ -750,9 +732,7 @@ export class CombatUI {
         fontFamily: "dungeon-mode",
         fontSize: 28,
         color: "#ffd93d",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 2
+        align: "center"
       }
     ).setOrigin(0.5).setVisible(false).setDepth(1000);
   }
@@ -1293,57 +1273,122 @@ export class CombatUI {
       this.handContainer.setVisible(true);
     }
     
-    // Clear existing card sprites
-    this.cardSprites.forEach((sprite) => sprite.destroy());
+    // Clear existing card sprites and kill any active tweens
+    this.cardSprites.forEach((sprite) => {
+      this.scene.tweens.killTweensOf(sprite);
+      sprite.destroy();
+    });
     this.cardSprites = [];
+    
+    // CRITICAL: Also clear all children from handContainer to prevent orphaned sprites
+    // Keep only the selectionCounterText
+    const childrenToKeep = [this.selectionCounterText];
+    this.handContainer.list.forEach((child: any) => {
+      if (!childrenToKeep.includes(child)) {
+        child.destroy();
+      }
+    });
 
     const hand = combatState.player.hand;
-    const screenWidth = this.scene.cameras.main.width;
     
-    // Balatro-style spacing
-    const cardWidth = 80;
-    const cardSpacing = cardWidth * 1.2;
-    const totalWidth = (hand.length - 1) * cardSpacing;
-    const maxWidth = screenWidth * 0.8;
+    // FIXED SPACING - Cards always use the same spacing regardless of hand size
+    // This ensures 8 cards on turn 1 have the same spacing as 8 cards on turn 2+
+    const CARD_SPACING = 96; // Fixed: never changes
+    const CARD_ARC_HEIGHT = 30; // Fixed: never changes
+    const CARD_MAX_ROTATION = 8; // Fixed: never changes
     
-    const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
-    const actualSpacing = cardSpacing * scale;
-    const actualTotalWidth = (hand.length - 1) * actualSpacing;
-    const startX = -actualTotalWidth / 2;
-
-    const arcHeight = 30;
-    const maxRotation = 8;
+    // Calculate positions for this specific hand size
+    const totalSpread = (hand.length - 1) * CARD_SPACING;
+    const startX = -totalSpread / 2;
     
     hand.forEach((card, index) => {
+      // Normalized position from -0.5 to 0.5
       const normalizedPos = hand.length > 1 ? (index / (hand.length - 1)) - 0.5 : 0;
       
-      const x = startX + index * actualSpacing;
-      const baseY = -Math.abs(normalizedPos) * arcHeight * 2;
-      const rotation = normalizedPos * maxRotation;
+      // Calculate fixed positions
+      const x = startX + (index * CARD_SPACING);
+      const baseY = -Math.abs(normalizedPos) * CARD_ARC_HEIGHT * 2;
+      const rotation = normalizedPos * CARD_MAX_ROTATION;
       
-      // Store base position in card data
+      // Store base positions on the card object itself
       (card as any).baseX = x;
       (card as any).baseY = baseY;
       (card as any).baseRotation = rotation;
       
-      const y = card.selected ? baseY - 40 : baseY;
+      // Cards should NEVER be selected when hand is redrawn
+      // (selected state is cleared in startPlayerTurn)
+      const y = baseY;
       
+      // BUGFIX: createCardSprite now creates container at correct position
       const cardSprite = this.createCardSprite(card, x, y);
-      
-      cardSprite.setPosition(x, y);
       cardSprite.setAngle(rotation);
-      cardSprite.setDepth(card.selected ? 500 + index : 100 + index);
-      
-      if (card.selected) {
-        const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
-        if (cardImage && 'setTint' in cardImage) {
-          cardImage.setTint(0xffdd44);
-        }
-      }
+      cardSprite.setDepth(100 + index);
       
       this.handContainer.add(cardSprite);
       this.cardSprites.push(cardSprite);
     });
+    
+    // BUGFIX: Force container to update its bounds and child transforms
+    // This ensures cards are positioned correctly after being added
+    this.handContainer.setPosition(this.handContainer.x, this.handContainer.y);
+  }
+  
+  /**
+   * Update hand display without animation (used during card drawing animation)
+   * This is called by CombatAnimations when new cards are being drawn
+   */
+  public updateHandDisplayQuiet(): void {
+    const combatState = this.scene.getCombatState();
+    
+    // Clear existing card sprites and kill any active tweens
+    this.cardSprites.forEach((sprite) => {
+      this.scene.tweens.killTweensOf(sprite);
+      sprite.destroy();
+    });
+    this.cardSprites = [];
+    
+    // CRITICAL: Also clear all children from handContainer to prevent orphaned sprites
+    // Keep only the selectionCounterText
+    const childrenToKeep = [this.selectionCounterText];
+    this.handContainer.list.forEach((child: any) => {
+      if (!childrenToKeep.includes(child)) {
+        child.destroy();
+      }
+    });
+
+    const hand = combatState.player.hand;
+    
+    // FIXED SPACING - Cards always use the same spacing regardless of hand size
+    const CARD_SPACING = 96;
+    const CARD_ARC_HEIGHT = 30;
+    const CARD_MAX_ROTATION = 8;
+    
+    const totalSpread = (hand.length - 1) * CARD_SPACING;
+    const startX = -totalSpread / 2;
+    
+    hand.forEach((card, index) => {
+      const normalizedPos = hand.length > 1 ? (index / (hand.length - 1)) - 0.5 : 0;
+      
+      const x = startX + (index * CARD_SPACING);
+      const baseY = -Math.abs(normalizedPos) * CARD_ARC_HEIGHT * 2;
+      const rotation = normalizedPos * CARD_MAX_ROTATION;
+      
+      // Store base positions
+      (card as any).baseX = x;
+      (card as any).baseY = baseY;
+      (card as any).baseRotation = rotation;
+      
+      // BUGFIX: createCardSprite now creates container at correct position
+      const cardSprite = this.createCardSprite(card, x, baseY);
+      cardSprite.setAngle(rotation);
+      cardSprite.setDepth(100 + index);
+      
+      this.handContainer.add(cardSprite);
+      this.cardSprites.push(cardSprite);
+    });
+    
+    // BUGFIX: Force container to update its bounds and child transforms
+    this.handContainer.setPosition(this.handContainer.x, this.handContainer.y);
   }
   
   /**
@@ -1355,15 +1400,12 @@ export class CombatUI {
     y: number,
     interactive: boolean = true
   ): Phaser.GameObjects.Container {
-    const cardContainer = this.scene.add.container(0, 0);
+    // BUGFIX: Create container at the target position immediately
+    const cardContainer = this.scene.add.container(x, y);
 
-    const screenWidth = this.scene.cameras.main.width;
-    const baseCardWidth = 80;
-    const baseCardHeight = 112;
-    
-    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    const cardWidth = baseCardWidth * scaleFactor;
-    const cardHeight = baseCardHeight * scaleFactor;
+    // Use fixed card dimensions for consistency
+    const cardWidth = 80;
+    const cardHeight = 112;
 
     const rankMap: Record<string, string> = {
       "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
@@ -1387,7 +1429,7 @@ export class CombatUI {
       
       const rankText = this.scene.add.text(-cardWidth/2 + 5, -cardHeight/2 + 5, card.rank, {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(10 * scaleFactor),
+        fontSize: 10,
         color: "#000000",
       }).setOrigin(0, 0);
       cardContainer.add(rankText);
@@ -1395,7 +1437,7 @@ export class CombatUI {
       const display = DeckManager.getCardDisplay(card);
       const suitText = this.scene.add.text(cardWidth/2 - 5, -cardHeight/2 + 5, display.symbol, {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(10 * scaleFactor),
+        fontSize: 10,
         color: display.color,
       }).setOrigin(1, 0);
       cardContainer.add(suitText);

@@ -53,8 +53,9 @@ export class CombatAnimations {
       return { x, y: baseY, rotation };
     });
     
-    // Create a mapping of where each card should end up
-    const cardMappings = this.scene.getCardSprites().map((cardSprite, originalIndex) => {
+    // Create a mapping of where each card should end up (access through UI)
+    const ui = (this.scene as any).ui;
+    const cardMappings = ui.cardSprites.map((cardSprite: any, originalIndex: number) => {
       const originalCard = originalCards[originalIndex];
       const newIndex = sortedCards.findIndex(card => 
         card.suit === originalCard.suit && card.rank === originalCard.rank
@@ -68,7 +69,7 @@ export class CombatAnimations {
     });
     
     // Phase 1: Cards lift up and move to their sorted positions individually
-    const movePromises = cardMappings.map((mapping, index) => {
+    const movePromises = cardMappings.map((mapping: any, index: number) => {
       return new Promise<void>((resolve) => {
         // First lift up slightly
         this.scene.tweens.add({
@@ -99,17 +100,17 @@ export class CombatAnimations {
       // Update the hand data to match the sorted order
       this.scene.getCombatState().player.hand = sortedCards;
       
-      // Reorder the cardSprites array to match the sorted order
+      // Reorder the cardSprites array to match the sorted order (through UI)
       const newCardSprites: Phaser.GameObjects.Container[] = [];
       sortedCards.forEach((sortedCard) => {
         const spriteIndex = originalCards.findIndex(card => 
           card.suit === sortedCard.suit && card.rank === sortedCard.rank
         );
         if (spriteIndex !== -1) {
-          newCardSprites.push(this.scene.getCardSprites()[spriteIndex]);
+          newCardSprites.push(ui.cardSprites[spriteIndex]);
         }
       });
-      this.scene.setCardSprites(newCardSprites);
+      ui.cardSprites = newCardSprites;
       
       // Update the base positions stored in each card to match their new positions
       // AND ensure sprite positions are synchronized
@@ -125,7 +126,7 @@ export class CombatAnimations {
         (card as any).baseRotation = rotation;
         
         // Ensure the sprite position matches (accounting for selection state)
-        const cardSprite = this.scene.getCardSprites()[index];
+        const cardSprite = ui.cardSprites[index];
         if (cardSprite) {
           const targetY = card.selected ? baseY - 40 : baseY;
           cardSprite.setPosition(x, targetY);
@@ -498,63 +499,67 @@ export class CombatAnimations {
 
   /**
    * Animate drawing cards from deck to hand positions (Balatro style)
+   * ALL card creation and management delegated to CombatUI
    */
   public animateDrawCardsFromDeck(cardCount: number): void {
     if ((this.scene as any).isDrawingCards) return; // Prevent multiple simultaneous draws
     
     (this.scene as any).isDrawingCards = true;
     const hand = this.scene.getCombatState().player.hand;
+    const ui = (this.scene as any).ui;
     
-    // Use the SAME spacing calculations as updateHandDisplay for consistency
-    const screenWidth = this.scene.cameras.main.width;
-    const cardWidth = 80; // Match updateHandDisplay
-    const cardSpacing = cardWidth * 1.2; // Match updateHandDisplay - 120% spacing
-    const totalWidth = (hand.length - 1) * cardSpacing;
-    const maxWidth = screenWidth * 0.8;
-    const scale = totalWidth > maxWidth ? maxWidth / totalWidth : 1;
-    const actualSpacing = cardSpacing * scale;
-    const actualTotalWidth = (hand.length - 1) * actualSpacing;
-    const startX = -actualTotalWidth / 2; // Center the cards
-    
-    // Arc parameters - match updateHandDisplay exactly
-    const arcHeight = 30;
-    const maxRotation = 8;
+    // FIXED SPACING - Must match CombatUI constants
+    const CARD_SPACING = 96;
+    const CARD_ARC_HEIGHT = 30;
+    const CARD_MAX_ROTATION = 8;
     
     const deckPosition = (this.scene as any).deckPosition;
     const handContainer = this.scene.getHandContainer();
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
     
-    // Create cards at deck position first
+    // Calculate positions using FIXED spacing
+    const totalSpread = (hand.length - 1) * CARD_SPACING;
+    const startX = -totalSpread / 2;
+    
+    // Get hand container position for calculating relative start position
+    const handContainerY = screenHeight - 280;
+    
+    // Create cards through CombatUI at deck position first
     hand.forEach((card, index) => {
-      // Calculate final position using the SAME logic as updateHandDisplay
+      // Calculate final position using FIXED spacing (relative to hand container)
       const normalizedPos = hand.length > 1 ? (index / (hand.length - 1)) - 0.5 : 0;
-      const finalX = startX + index * actualSpacing;
-      const baseY = -Math.abs(normalizedPos) * arcHeight * 2;
-      const rotation = normalizedPos * maxRotation;
+      const finalX = startX + index * CARD_SPACING;
+      const finalY = -Math.abs(normalizedPos) * CARD_ARC_HEIGHT * 2;
+      const rotation = normalizedPos * CARD_MAX_ROTATION;
       
       // Store base positions in card data immediately
       (card as any).baseX = finalX;
-      (card as any).baseY = baseY;
+      (card as any).baseY = finalY;
       (card as any).baseRotation = rotation;
       
-      // Create card sprite at deck position - make it interactive from the start
-      const cardSprite = (this.scene as any).ui.createCardSprite(card, 0, 0, true);
+      // BUGFIX: Create card at final position (CombatUI now handles this correctly)
+      const cardSprite = ui.createCardSprite(card, finalX, finalY, true);
       
-      // Position at deck location initially
-      cardSprite.setPosition(deckPosition.x - screenWidth / 2, deckPosition.y - this.scene.cameras.main.height + 240);
+      // Calculate start position relative to hand container
+      const startX_relative = deckPosition.x - screenWidth / 2;
+      const startY_relative = deckPosition.y - handContainerY;
+      
+      // Position at deck location initially (relative to container)
+      cardSprite.setPosition(startX_relative, startY_relative);
       cardSprite.setScale(0.8); // Start smaller
       cardSprite.setAlpha(0.9);
+      cardSprite.setAngle(0);
       
-      // Add to hand container
+      // Add to hand container AND ui.cardSprites (single source of truth)
       handContainer.add(cardSprite);
-      const cardSprites = this.scene.getCardSprites();
-      cardSprites.push(cardSprite);
-      this.scene.setCardSprites(cardSprites);
+      ui.cardSprites.push(cardSprite);
       
       // Animate card flying to hand position
       this.scene.tweens.add({
         targets: cardSprite,
         x: finalX,
-        y: baseY,
+        y: finalY,
         angle: rotation,
         scaleX: 1,
         scaleY: 1,
@@ -564,7 +569,7 @@ export class CombatAnimations {
         ease: 'Power2',
         onComplete: () => {
           // Ensure final position is exact
-          cardSprite.setPosition(finalX, baseY);
+          cardSprite.setPosition(finalX, finalY);
           cardSprite.setAngle(rotation);
           cardSprite.setDepth(100 + index);
           
@@ -597,47 +602,54 @@ export class CombatAnimations {
     
     (this.scene as any).isDrawingCards = true;
     
-    // First, update the entire hand display without animation for existing cards
-    (this.scene as any).updateHandDisplayQuiet();
+    // Update the hand display without animation using CombatUI
+    const ui = (this.scene as any).ui;
+    if (ui && ui.updateHandDisplayQuiet) {
+      ui.updateHandDisplayQuiet();
+    }
     
-    // Then animate only the new cards
+    // Then animate only the new cards using FIXED SPACING
     const hand = this.scene.getCombatState().player.hand;
     const screenWidth = this.scene.cameras.main.width;
-    const cardWidth = 60;
-    const totalWidth = hand.length * cardWidth;
-    const maxWidth = screenWidth * 0.8;
-    const actualCardWidth = totalWidth > maxWidth ? (maxWidth / hand.length) : cardWidth;
-    const actualTotalWidth = hand.length * actualCardWidth;
-    const startX = screenWidth / 2 - actualTotalWidth / 2 + actualCardWidth / 2;
-    const handY = this.scene.cameras.main.height - 240; // Match the hand container position
+    const screenHeight = this.scene.cameras.main.height;
+    const handContainerY = screenHeight - 280; // Hand container Y position
     const deckPosition = (this.scene as any).deckPosition;
     
-    newCards.forEach((card, relativeIndex) => {
+    // FIXED SPACING - Must match card layout
+    const CARD_SPACING = 96;
+    const CARD_ARC_HEIGHT = 30;
+    const CARD_MAX_ROTATION = 8;
+    
+    const totalSpread = (hand.length - 1) * CARD_SPACING;
+    const startX = -totalSpread / 2;
+    
+    newCards.forEach((_card, relativeIndex) => {
       const absoluteIndex = startingIndex + relativeIndex;
-      const cardSprites = this.scene.getCardSprites();
       
-      if (absoluteIndex < cardSprites.length) {
-        const cardSprite = cardSprites[absoluteIndex];
+      if (absoluteIndex < ui.cardSprites.length) {
+        const cardSprite = ui.cardSprites[absoluteIndex];
         
-        // Start from deck position
-        cardSprite.setPosition(deckPosition.x - screenWidth / 2, deckPosition.y - handY + 240);
+        // Calculate final position using FIXED spacing (relative to hand container)
+        const normalizedPos = hand.length > 1 ? (absoluteIndex / (hand.length - 1)) - 0.5 : 0;
+        const finalX = startX + (absoluteIndex * CARD_SPACING);
+        const finalY = -Math.abs(normalizedPos) * CARD_ARC_HEIGHT * 2;
+        const rotation = normalizedPos * CARD_MAX_ROTATION;
+        
+        // Start from deck position (relative to hand container)
+        const startX_relative = deckPosition.x - screenWidth / 2;
+        const startY_relative = deckPosition.y - handContainerY;
+        
+        cardSprite.setPosition(startX_relative, startY_relative);
         cardSprite.setScale(0.8);
         cardSprite.setAlpha(0.9);
-        
-        // Calculate final position
-        const finalX = startX + absoluteIndex * actualCardWidth - screenWidth / 2;
-        const finalY = handY - this.scene.cameras.main.height + 240; // Match the hand container position
-        
-        // Add curve effect
-        const curveHeight = 5;
-        const positionRatio = hand.length > 1 ? absoluteIndex / (hand.length - 1) : 0.5;
-        const curveY = finalY - Math.sin(positionRatio * Math.PI) * curveHeight;
+        cardSprite.setAngle(0);
         
         // Animate to final position
         this.scene.tweens.add({
           targets: cardSprite,
           x: finalX,
-          y: curveY,
+          y: finalY,
+          angle: rotation,
           scaleX: 1,
           scaleY: 1,
           alpha: 1,
@@ -645,6 +657,10 @@ export class CombatAnimations {
           delay: relativeIndex * 100,
           ease: 'Power2',
           onComplete: () => {
+            // Ensure final position is exact
+            cardSprite.setPosition(finalX, finalY);
+            cardSprite.setAngle(rotation);
+            
             if (relativeIndex === newCards.length - 1) {
               (this.scene as any).isDrawingCards = false;
             }
