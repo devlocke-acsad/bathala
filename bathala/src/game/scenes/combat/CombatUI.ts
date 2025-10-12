@@ -399,10 +399,11 @@ export class CombatUI {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
-    this.handContainer = this.scene.add.container(screenWidth/2, screenHeight - 240);
+    // Position hand container higher up to avoid overlap with buttons
+    this.handContainer = this.scene.add.container(screenWidth/2, screenHeight - 280);
     
-    // Create selection counter text (Balatro style)
-    this.selectionCounterText = this.scene.add.text(0, -140, "Selected: 0/5", {
+    // Create selection counter text (Balatro style) - positioned above the cards
+    this.selectionCounterText = this.scene.add.text(0, -100, "Selected: 0/5", {
       fontFamily: "dungeon-mode",
       fontSize: 22,
       color: "#ffdd44",
@@ -419,18 +420,23 @@ export class CombatUI {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
+    // Position it higher up since it will be the main focus during action phase
     this.playedHandContainer = this.scene.add.container(screenWidth/2, screenHeight - 450);
     
-    // Initialize hand evaluation text
+    // Initialize hand evaluation text - positioned above the played cards
     this.handEvaluationText = this.scene.add
-      .text(0, -80, "", {
+      .text(0, -100, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 18,
+        fontSize: 22,
         color: "#ffd93d",
         align: "center",
+        stroke: "#000000",
+        strokeThickness: 2
       })
       .setOrigin(0.5)
       .setVisible(false);
+      
+    this.playedHandContainer.add(this.handEvaluationText);
   }
   
   /**
@@ -440,7 +446,8 @@ export class CombatUI {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
-    this.actionButtons = this.scene.add.container(screenWidth/2, screenHeight - 100);
+    // Position buttons lower to avoid overlap with cards
+    this.actionButtons = this.scene.add.container(screenWidth/2, screenHeight - 60);
   }
   
   /**
@@ -945,21 +952,27 @@ export class CombatUI {
     this.actionButtons.removeAll(true);
 
     const screenWidth = this.scene.cameras.main.width;
-    const baseSpacing = 240;
+    const baseSpacing = 280; // Increased spacing to prevent overlap
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
     const adjustedSpacing = baseSpacing * scaleFactor;
 
     if (combatState.phase === "player_turn") {
-      // Card selection phase - Balatro-style layout
+      // Card selection phase - Balatro-style layout with better spacing
+      
+      // Show hand container and hide played hand
+      this.handContainer.setVisible(true);
+      this.playedHandContainer.setVisible(false);
+      this.selectionCounterText.setVisible(true);
+      this.handEvaluationText.setVisible(false);
       
       const playButton = this.createButton(-adjustedSpacing * 1.2, 0, "Play Hand", () => {
         this.scene.playSelectedCards();
       });
 
-      // Sort Hand grouped container
+      // Sort Hand grouped container - positioned in the center
       const sortContainer = this.scene.add.container(0, 0);
       
-      const sortGroupWidth = 320 * scaleFactor;
+      const sortGroupWidth = 280 * scaleFactor; // Reduced width to fit better
       const sortGroupHeight = 60;
       
       const sortOuterBorder = this.scene.add.rectangle(0, 0, sortGroupWidth + 8, sortGroupHeight + 8, undefined, 0)
@@ -968,16 +981,16 @@ export class CombatUI {
         .setStrokeStyle(2, 0x77888C);
       const sortBg = this.scene.add.rectangle(0, 0, sortGroupWidth, sortGroupHeight, 0x150E10);
       
-      const sortLabel = this.scene.add.text(0, -sortGroupHeight/2 - 24, "SORT", {
+      const sortLabel = this.scene.add.text(0, -sortGroupHeight/2 - 20, "SORT", {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(14 * scaleFactor),
+        fontSize: Math.floor(12 * scaleFactor),
         color: "#77888C",
         align: "center"
       }).setOrigin(0.5);
       
-      const buttonWidth = 100 * scaleFactor;
+      const buttonWidth = 90 * scaleFactor; // Reduced button width
       const buttonHeight = 32;
-      const buttonGap = 20 * scaleFactor;
+      const buttonGap = 15 * scaleFactor; // Reduced gap
       const buttonSpacing = buttonWidth/2 + buttonGap/2;
       
       // Rank button
@@ -989,7 +1002,7 @@ export class CombatUI {
       const rankButtonBg = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
       const rankButtonText = this.scene.add.text(0, 0, "Rank", {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(16 * scaleFactor),
+        fontSize: Math.floor(14 * scaleFactor),
         color: "#77888C",
         align: "center"
       }).setOrigin(0.5);
@@ -1009,7 +1022,7 @@ export class CombatUI {
       const suitButtonBg = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
       const suitButtonText = this.scene.add.text(0, 0, "Suit", {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(16 * scaleFactor),
+        fontSize: Math.floor(14 * scaleFactor),
         color: "#77888C",
         align: "center"
       }).setOrigin(0.5);
@@ -1061,10 +1074,15 @@ export class CombatUI {
       this.actionButtons.add([playButton, sortContainer, discardButton]);
       
     } else if (combatState.phase === "action_selection") {
-      // Action selection phase
+      // Action selection phase - hide hand, show only played cards
+      this.handContainer.setVisible(false);
+      this.playedHandContainer.setVisible(true);
+      this.selectionCounterText.setVisible(false);
+      
       const dominantSuit = this.scene.getDominantSuit(combatState.player.playedHand);
 
-      const buttonSpacing = adjustedSpacing;
+      // Reduce spacing to bring buttons closer together
+      const buttonSpacing = adjustedSpacing * 0.6; // Make buttons closer
       const attackButton = this.createButton(-buttonSpacing, 0, "Attack", () => {
         this.scene.executeAction("attack");
       });
@@ -1267,6 +1285,14 @@ export class CombatUI {
       return;
     }
     
+    // Hide hand during action selection phase
+    if (combatState.phase === "action_selection") {
+      this.handContainer.setVisible(false);
+      return;
+    } else {
+      this.handContainer.setVisible(true);
+    }
+    
     // Clear existing card sprites
     this.cardSprites.forEach((sprite) => sprite.destroy());
     this.cardSprites = [];
@@ -1420,18 +1446,19 @@ export class CombatUI {
   public updatePlayedHandDisplay(): void {
     const combatState = this.scene.getCombatState();
     
-    // Clear existing played card sprites
+    // Clear existing played card sprites (but not the hand evaluation text)
     this.playedCardSprites.forEach((sprite) => sprite.destroy());
     this.playedCardSprites = [];
 
     const playedHand = combatState.player.playedHand;
     if (playedHand.length === 0) {
       this.handEvaluationText.setVisible(false);
+      this.playedHandContainer.setVisible(false);
       return;
     }
 
-    const cardWidth = 80;
-    const cardSpacing = 100;
+    // Make played cards closer together
+    const cardSpacing = 90; // Reduced from 100 to bring cards closer
     const totalWidth = (playedHand.length - 1) * cardSpacing;
     const startX = -totalWidth / 2;
 
@@ -1448,6 +1475,11 @@ export class CombatUI {
     const handTypeText = this.getHandTypeDisplayText(evaluation.type);
     this.handEvaluationText.setText(`${handTypeText} (+${evaluation.totalValue})`);
     this.handEvaluationText.setVisible(true);
+    
+    // Ensure played hand container is visible during action phase
+    if (combatState.phase === "action_selection") {
+      this.playedHandContainer.setVisible(true);
+    }
   }
   
   /**
