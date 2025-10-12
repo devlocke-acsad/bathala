@@ -207,8 +207,8 @@ export class Combat extends Scene {
     // Create deck sprite
     this.createDeckSprite();
     
-    // Create discard pile sprite
-    this.createDiscardSprite();
+    // Discard pile is created in CombatUI.ts with proper stacking effect
+    // this.createDiscardSprite();
 
     // Create deck and discard views
     this.createDeckView();

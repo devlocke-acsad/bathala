@@ -94,9 +94,10 @@ export class CombatUI {
   public initialize(): void {
     this.createCombatUI();
     this.createRelicInventory();
-    // Deck and discard sprites are created in Combat.ts, not here
+    // Deck sprite is created in Combat.ts, not here
     // this.createDeckSprite();
-    // this.createDiscardSprite();
+    // Discard pile created here with proper stacking effect
+    this.createDiscardSprite();
     this.createDeckView();
     this.createDiscardView();
     this.createDDADebugOverlay();
