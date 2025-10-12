@@ -601,19 +601,21 @@ export class CombatUI {
   }
   
   /**
-   * Create deck sprite
+   * Create deck sprite (simple sprite in bottom right)
    */
   public createDeckSprite(): void {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
-    this.deckPosition = { x: 100, y: screenHeight - 120 };
+    this.deckPosition = { x: screenWidth - 100, y: screenHeight - 120 };
     
-    // Deck pile sprite (placeholder - could be replaced with actual card back sprite)
+    // Use backart.png for deck sprite (with fallback to card_back)
+    const deckTexture = this.scene.textures.exists('backart') ? 'backart' : 'card_back';
+    
     this.deckSprite = this.scene.add.sprite(
       this.deckPosition.x,
       this.deckPosition.y,
-      "card_back" // Assuming you have a card back sprite
+      deckTexture
     );
     this.deckSprite.setDisplaySize(80, 112);
     this.deckSprite.setInteractive();
@@ -636,36 +638,97 @@ export class CombatUI {
   }
   
   /**
-   * Create discard pile sprite
+   * Create discard pile sprite (horizontal stack in bottom left, matching deck pile design)
    */
   public createDiscardSprite(): void {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
-    this.discardPilePosition = { x: screenWidth - 100, y: screenHeight - 120 };
+    // Position in BOTTOM LEFT corner, same Y as deck pile for aligned row
+    // Match the deck pile Y position from Combat.ts (screenHeight * 0.75)
+    this.discardPilePosition = { x: screenWidth * 0.15, y: screenHeight * 0.75 };
     
-    // Discard pile sprite
+    // Create a container for the discard pile
+    const discardContainer = this.scene.add.container(this.discardPilePosition.x, this.discardPilePosition.y);
+    
+    // Match deck pile dimensions exactly
+    const cardWidth = 80;
+    const cardHeight = 112;
+    const horizontalOffset = 3; // Cards spread horizontally (to the right)
+    const numStackedCards = 5; // Same as deck pile - show max 5 cards in stack
+    
+    // Create horizontally stacked cards (spreading to the right like deck spreads down)
+    // Use white rectangles with black borders just like the deck pile
+    for (let i = 0; i < numStackedCards - 1; i++) {
+      // Back cards use white rectangle with black border (matching deck pile exactly)
+      const cardBack = this.scene.add.rectangle(
+        i * horizontalOffset, // Move right instead of down
+        0,                    // Keep same Y (horizontal spread)
+        cardWidth,
+        cardHeight,
+        0xffffff // White color (matching deck pile)
+      );
+      cardBack.setStrokeStyle(2, 0x000000); // Black border (matching deck pile)
+      discardContainer.add(cardBack);
+    }
+    
+    // Top discard card - ALWAYS show backart.png (flipped horizontally)
+    // Check if backart texture exists, otherwise fallback to card_back
+    const topCardTexture = this.scene.textures.exists('backart') ? 'backart' : 'card_back';
+    
     this.discardPileSprite = this.scene.add.sprite(
-      this.discardPilePosition.x,
-      this.discardPilePosition.y,
-      "card_back"
+      (numStackedCards - 1) * horizontalOffset,
+      0,
+      topCardTexture
     );
-    this.discardPileSprite.setDisplaySize(80, 112);
-    this.discardPileSprite.setInteractive();
+    this.discardPileSprite.setDisplaySize(cardWidth, cardHeight);
+    this.discardPileSprite.setFlipX(true); // Flip horizontally to differentiate from deck
+    discardContainer.add(this.discardPileSprite);
     
-    // Add hover effect
-    this.discardPileSprite.on("pointerover", () => {
-      this.discardPileSprite.setScale(1.1);
+    // Discard count text (below the cards, centered on the stack)
+    const discardCountText = this.scene.add.text(
+      ((numStackedCards - 1) * horizontalOffset) / 2,
+      cardHeight/2 + 15,
+      "Discard: 0",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 14,
+        color: "#e8eced",
+        align: "center"
+      }
+    ).setOrigin(0.5);
+    discardContainer.add(discardCountText);
+    (discardContainer as any).discardCountText = discardCountText;
+    
+    // Make entire container interactive
+    const totalWidth = cardWidth + ((numStackedCards - 1) * horizontalOffset);
+    discardContainer.setSize(totalWidth, cardHeight);
+    discardContainer.setInteractive(
+      new Phaser.Geom.Rectangle(
+        -10, 
+        -10, 
+        totalWidth + 20, 
+        cardHeight + 40
+      ),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    // Hover effect - match deck pile behavior (1.0 → 1.1 scale)
+    discardContainer.on("pointerover", () => {
+      discardContainer.setScale(1.1);
     });
     
-    this.discardPileSprite.on("pointerout", () => {
-      this.discardPileSprite.setScale(1.0);
+    discardContainer.on("pointerout", () => {
+      discardContainer.setScale(1.0);
     });
     
     // Click to view discard pile
-    this.discardPileSprite.on("pointerdown", () => {
+    discardContainer.on("pointerdown", () => {
       this.showDiscardView();
     });
+    
+    // Store reference to container
+    (this.discardPileSprite as any).discardContainer = discardContainer;
     
     this.updateDiscardDisplay();
   }
@@ -740,7 +803,7 @@ export class CombatUI {
   /**
    * Create enemy info button
    */
-  private createEnemyInfoButton(x: number, y: number): void {
+  private createEnemyInfoButton(_x: number, _y: number): void {
     // Placeholder for enemy info button
     // Implementation can be added when needed
   }
@@ -835,7 +898,6 @@ export class CombatUI {
     
     const combatState = this.scene.getCombatState();
     const relics = combatState.player.relics;
-    const slotSize = 25;
     const slotsPerRow = 6;
     const slotSpacing = 45;
     const startX = -(slotsPerRow - 1) * slotSpacing / 2;
@@ -1226,17 +1288,70 @@ export class CombatUI {
   }
   
   /**
-   * Update deck display
+   * Update deck display with current card count
    */
   public updateDeckDisplay(): void {
-    // Implementation will be added
+    if (!this.deckSprite) return;
+    
+    const combatState = this.scene.getCombatState();
+    const deckCount = combatState.player.drawPile.length;
+    
+    // Simple visibility toggle
+    this.deckSprite.setVisible(deckCount > 0);
   }
   
   /**
-   * Update discard pile display
+   * Update discard pile display with current card count and top card
    */
   public updateDiscardDisplay(): void {
-    // Implementation will be added
+    if (!this.discardPileSprite) return;
+    
+    const combatState = this.scene.getCombatState();
+    const discardPile = combatState.player.discardPile;
+    const discardCount = discardPile.length;
+    
+    // Update discard count text
+    const discardContainer = (this.discardPileSprite as any).discardContainer;
+    if (discardContainer) {
+      const discardCountText = (discardContainer as any).discardCountText;
+      if (discardCountText) {
+        discardCountText.setText(`Discard: ${discardCount}`);
+      }
+      
+      // ALWAYS show the discard pile (even when empty)
+      discardContainer.setVisible(true);
+      
+      // Update the top card sprite to show the actual top card
+      if (discardCount > 0) {
+        const topCard = discardPile[discardPile.length - 1];
+        const rankMap: Record<string, string> = {
+          "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
+          "6": "6", "7": "7", "8": "8", "9": "9", "10": "10",
+          "Mandirigma": "11", "Babaylan": "12", "Datu": "13"
+        };
+        const spriteRank = rankMap[topCard.rank] || "1";
+        
+        const suitMap: Record<string, string> = {
+          "Apoy": "apoy", "Tubig": "tubig", "Lupa": "lupa", "Hangin": "hangin"
+        };
+        const spriteSuit = suitMap[topCard.suit] || "apoy";
+        
+        const textureKey = `card_${spriteRank}_${spriteSuit}`;
+        
+        // Update sprite if texture exists, showing the actual card (not flipped)
+        if (this.scene.textures.exists(textureKey)) {
+          this.discardPileSprite.setTexture(textureKey);
+          this.discardPileSprite.setDisplaySize(80, 112); // Ensure size is maintained
+          this.discardPileSprite.setFlipX(false); // Don't flip when showing actual cards
+        }
+      } else {
+        // ALWAYS show backart.png when empty (flipped horizontally)
+        const backTexture = this.scene.textures.exists('backart') ? 'backart' : 'card_back';
+        this.discardPileSprite.setTexture(backTexture);
+        this.discardPileSprite.setDisplaySize(80, 112);
+        this.discardPileSprite.setFlipX(true); // Flip horizontally to differentiate from deck
+      }
+    }
   }
   
   /**

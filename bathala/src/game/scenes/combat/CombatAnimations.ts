@@ -576,7 +576,11 @@ export class CombatAnimations {
           // If this is the last card, mark drawing as complete
           if (index === hand.length - 1) {
             (this.scene as any).isDrawingCards = false;
-            (this.scene as any).updateDeckDisplay();
+            // Update deck display via UI
+            const ui = (this.scene as any).ui;
+            if (ui && ui.updateDeckDisplay) {
+              ui.updateDeckDisplay();
+            }
           }
         }
       });

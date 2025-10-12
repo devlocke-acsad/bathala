@@ -2596,13 +2596,13 @@ export class Combat extends Scene {
     
     for (let i = 0; i < deckCardCount; i++) {
       if (i === deckCardCount - 1) {
-        // Top card uses 13apoy sprite (front face) with black border
+        // Top card uses backart.png sprite with black border
         let frontCard;
-        if (this.textures.exists('card_13_apoy')) {
+        if (this.textures.exists('backart')) {
           frontCard = this.add.image(
             i * 3, // Slight offset for stack effect
             -i * 3,
-            'card_13_apoy'
+            'backart'
           );
           frontCard.setDisplaySize(cardWidth, cardHeight);
         } else {
@@ -2830,92 +2830,16 @@ export class Combat extends Scene {
    * Update deck display (card count and visual)
    */
   private updateDeckDisplay(): void {
-    if (!this.deckSprite) return;
-    
-    // Find and update the deck label
-    const deckLabel = this.deckSprite.list.find(child => 
-      child instanceof Phaser.GameObjects.Text
-    ) as Phaser.GameObjects.Text;
-    
-    if (deckLabel) {
-      deckLabel.setText(`Deck: ${this.combatState.player.drawPile.length}`);
-    }
-    
-    // If deck count is significantly different, rebuild the visual
-    const currentCardCount = this.deckSprite.list.filter(child => 
-      child instanceof Phaser.GameObjects.Rectangle || child instanceof Phaser.GameObjects.Image
-    ).length;
-    const expectedCardCount = Math.min(5, this.combatState.player.drawPile.length);
-    
-    if (currentCardCount !== expectedCardCount) {
-      // Remove old cards but keep the label
-      this.deckSprite.list.forEach(child => {
-        if (child instanceof Phaser.GameObjects.Rectangle || child instanceof Phaser.GameObjects.Image) {
-          child.destroy();
-        }
-      });
-      
-      // Rebuild deck visual with white cards and black borders
-      const screenWidth = this.cameras.main.width;
-      const baseCardWidth = 80;
-      const baseCardHeight = 112;
-      const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-      const cardWidth = baseCardWidth * scaleFactor;
-      const cardHeight = baseCardHeight * scaleFactor;
-      
-      for (let i = 0; i < expectedCardCount; i++) {
-        if (i === expectedCardCount - 1) {
-          // Top card uses 13apoy sprite (front face)
-          let frontCard;
-          if (this.textures.exists('card_13_apoy')) {
-            frontCard = this.add.image(
-              i * 3,
-              -i * 3,
-              'card_13_apoy'
-            );
-            frontCard.setDisplaySize(cardWidth, cardHeight);
-          } else {
-            // Fallback to white rectangle
-            frontCard = this.add.rectangle(
-              i * 3,
-              -i * 3,
-              cardWidth,
-              cardHeight,
-              0xffffff // White color
-            );
-            frontCard.setStrokeStyle(2, 0x000000); // Black border
-          }
-          this.deckSprite.add(frontCard);
-        } else {
-          // Back cards with white background and black border
-          const cardBack = this.add.rectangle(
-            i * 3,
-            -i * 3,
-            cardWidth,
-            cardHeight,
-            0xffffff // White color
-          );
-          cardBack.setStrokeStyle(2, 0x000000); // Black border
-          this.deckSprite.add(cardBack);
-        }
-      }
-    }
+    // Delegate to CombatUI
+    this.ui.updateDeckDisplay();
   }
   
   /**
    * Update discard pile display (card count)
    */
   private updateDiscardDisplay(): void {
-    if (this.discardSprite && this.discardSprite.list.length > 0) {
-      // Find and update the discard label
-      const discardLabel = this.discardSprite.list.find(child => 
-        child instanceof Phaser.GameObjects.Text
-      ) as Phaser.GameObjects.Text;
-      
-      if (discardLabel) {
-        discardLabel.setText(`Discard: ${this.combatState.player.discardPile.length}`);
-      }
-    }
+    // Delegate to CombatUI
+    this.ui.updateDiscardDisplay();
   }
   
   /**

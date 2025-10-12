@@ -220,6 +220,9 @@ export class Preloader extends Scene {
       }
     }
     
+    // Load card back art for discard pile
+    this.load.image("backart", "sprites/cards/backart.png");
+    
     // Load UI icons for day/night tracker
     this.load.image("bathala_sun_icon", "ui/icons/bathala_sun_icon.png");
     this.load.image("bathala_moon_icon", "ui/icons/bathala_moon_icon.png");
