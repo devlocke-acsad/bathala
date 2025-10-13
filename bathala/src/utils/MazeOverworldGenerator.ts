@@ -5,7 +5,25 @@ import { DelaunayMazeGenerator } from "./MazeGeneration/DelaunayMazeGenerator";
 import { NodeGenerator } from "./MazeGeneration/NodeGenerator";
 import { RandomUtil } from "./MazeGeneration/RandomUtil";
 
+/*
+  MazeOverworldGenerator
+  ----------------------
+  Main entry point for overworld maze generation using Delaunay triangulation.
+  
+  This class orchestrates the generation of maze chunks for the overworld,
+  using the DelaunayMazeGenerator for the actual maze layout generation.
+  
+  Features:
+    - Chunk-based generation for infinite worlds
+    - Caching for performance
+    - Node placement (enemies, shops, etc.)
+    - Connection point generation for chunk connectivity
+*/
 export class MazeOverworldGenerator {
+  // =============================
+  // Generation Configuration
+  // =============================
+  
   private static chunkSize: number = 50; // Larger chunk size for corridor generation
   private static globalSeed: number = Math.floor(Math.random() * 100000); // Global seed for deterministic generation
 
@@ -33,9 +51,10 @@ export class MazeOverworldGenerator {
 
   /**
    * Generate a chunk using Delaunay triangulation and A* pathfinding
+   * This is the primary maze generation method using the DelaunayMazeGenerator class.
    */
   private static generateCorridorChunk(chunkX: number, chunkY: number, gridSize: number): ChunkData {
-    // Create generator instance
+    // Create generator instance (uses Delaunay triangulation for connectivity)
     const generator = new DelaunayMazeGenerator();
     
     // Configure generator for this chunk

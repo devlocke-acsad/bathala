@@ -2,11 +2,38 @@ import { MapNode, NodeType } from "../../core/types/MapTypes";
 import { SeededRandom } from "./types";
 import { ACT1_COMMON_ENEMIES, ACT1_ELITE_ENEMIES } from "../../data/enemies/Act1Enemies";
 
-/**
- * Node generation and placement utilities
- */
+/*
+  NodeGenerator
+  -------------
+  Generates and places nodes (enemies, shops, etc.) in the maze.
+  
+  Process:
+    1. Identify valid positions on paths with sufficient open space
+    2. Distribute nodes spatially to avoid clustering
+    3. Assign node types and enemy IDs randomly
+    4. Convert grid coordinates to world coordinates
+  
+  Key parameters:
+    - minDistanceFromEdge: Minimum distance from chunk edges
+    - minOpenNeighbors: Minimum open neighbors for valid positions
+    - baseNodeCount: Base number of nodes per chunk
+    - minNodeDistance: Minimum distance between nodes
+*/
 export class NodeGenerator {
+  // =============================
+  // Node Generation Constants
+  // =============================
+  
   private static readonly PATH = 0;
+  
+  // =============================
+  // Node Generation Parameters
+  // =============================
+  
+  private static readonly MIN_DISTANCE_FROM_EDGE = 3;     // Minimum distance from chunk edges
+  private static readonly MIN_OPEN_NEIGHBORS = 5;          // Minimum open neighbors for valid positions
+  private static readonly BASE_NODE_COUNT = 3;             // Base number of nodes per chunk
+  private static readonly MIN_NODE_DISTANCE_FACTOR = 4;    // Divisor for minimum distance between nodes
 
   /**
    * Generate nodes efficiently using spatial hashing
@@ -24,10 +51,9 @@ export class NodeGenerator {
     
     // Pre-calculate valid positions (paths only)
     const validPositions: { x: number; y: number }[] = [];
-    const minDistanceFromEdge = 3;
     
-    for (let y = minDistanceFromEdge; y < chunkSize - minDistanceFromEdge; y++) {
-      for (let x = minDistanceFromEdge; x < chunkSize - minDistanceFromEdge; x++) {
+    for (let y = this.MIN_DISTANCE_FROM_EDGE; y < chunkSize - this.MIN_DISTANCE_FROM_EDGE; y++) {
+      for (let x = this.MIN_DISTANCE_FROM_EDGE; x < chunkSize - this.MIN_DISTANCE_FROM_EDGE; x++) {
         if (maze[y][x] === this.PATH) {
           // Check if position has enough open space around it
           let openNeighbors = 0;
@@ -40,7 +66,7 @@ export class NodeGenerator {
           }
           
           // Only add positions with sufficient open space
-          if (openNeighbors >= 5) {
+          if (openNeighbors >= this.MIN_OPEN_NEIGHBORS) {
             validPositions.push({ x, y });
           }
         }
@@ -50,11 +76,11 @@ export class NodeGenerator {
     if (validPositions.length === 0) return nodes;
     
     // Determine number of nodes based on chunk size and valid positions
-    const baseNodeCount = Math.min(3, Math.floor(validPositions.length / 8));
+    const baseNodeCount = Math.min(this.BASE_NODE_COUNT, Math.floor(validPositions.length / 8));
     const nodeCount = Math.floor(rng.next() * 2) + baseNodeCount; // baseNodeCount to baseNodeCount+1
     
     // Use spatial distribution to avoid clustering
-    const minNodeDistance = chunkSize / 4;
+    const minNodeDistance = chunkSize / this.MIN_NODE_DISTANCE_FACTOR;
     const placedPositions: { x: number; y: number }[] = [];
     
     for (let i = 0; i < nodeCount && validPositions.length > 0; i++) {

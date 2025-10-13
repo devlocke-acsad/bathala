@@ -1,6 +1,21 @@
 import { DelaunayMazeGenerator } from './DelaunayMazeGenerator';
 
-// Simple test to verify the maze generation works
+/*
+  testMazeGen
+  -----------
+  Simple test utility to verify maze generation functionality.
+  
+  Process:
+    1. Create a DelaunayMazeGenerator instance with test parameters
+    2. Generate a small maze layout
+    3. Count and display statistics about generated tiles
+    4. Show a visual representation of the maze
+  
+  Test parameters:
+    - Grid size: 20x20
+    - Region count: 10
+    - Minimum region distance: 3
+*/
 function testMazeGeneration() {
     console.log('Testing Delaunay Maze Generation...');
     

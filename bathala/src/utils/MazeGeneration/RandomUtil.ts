@@ -1,6 +1,17 @@
-/**
- * Utility class for generating deterministic random numbers
- */
+/*
+  RandomUtil
+  ----------
+  Utility class for generating deterministic random numbers.
+  
+  Features:
+    - Seeded random number generation for reproducible results
+    - Chunk-specific seed generation using bit manipulation
+    - 5-digit random number generation for general use
+  
+  Key algorithms:
+    - Linear congruential generator for seeded randomness
+    - Hash-based seed generation for chunk distribution
+*/
 export class RandomUtil {
   // Private static helper method — not accessible outside this class
   private static generateSeed(): number {

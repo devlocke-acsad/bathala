@@ -3,27 +3,55 @@ import { SeededRandom } from "./types";
 /**
  * Maze generation using cellular automata algorithm
  */
+/*
+  CellularAutomataMazeGenerator
+  -----------------------------
+  Generates mazes using cellular automata algorithm.
+  
+  Process:
+    1. Initialize grid with random noise based on fill probability
+    2. Apply cellular automata rules for several iterations
+    3. Post-process to improve structure and navigability
+  
+  Key parameters:
+    - fillProbability: Initial wall density
+    - iterations: Number of cellular automata applications
+    - post-processing: Removes isolated walls and widens paths
+*/
 export class CellularAutomataMazeGenerator {
+  // =============================
+  // Generation Constants
+  // =============================
+  
   private static readonly WALL = 1;
   private static readonly PATH = 0;
+
+  // =============================
+  // Generation Parameters
+  // =============================
+  
+  // Cellular automata parameters
+  private static readonly FILL_PROBABILITY = 0.45; // 45% chance of initial wall
+  private static readonly ITERATIONS = 4;         // Number of cellular automata iterations
+  private static readonly ISOLATED_WALL_THRESHOLD = 2; // Remove walls with fewer neighbors
+  private static readonly PATH_WIDENING_CHANCE = 0.1;  // Chance to widen paths
 
   /**
    * Generate base maze using cellular automata
    */
   static generateCellularAutomataMaze(chunkSize: number, rng: SeededRandom): number[][] {
     let maze: number[][] = [];
-    const fillProbability = 0.45; // 45% chance of initial wall
     
     // Initialize with random noise
     for (let y = 0; y < chunkSize; y++) {
       maze[y] = [];
       for (let x = 0; x < chunkSize; x++) {
-        maze[y][x] = rng.next() < fillProbability ? this.WALL : this.PATH;
+        maze[y][x] = rng.next() < this.FILL_PROBABILITY ? this.WALL : this.PATH;
       }
     }
     
-    // Apply cellular automata rules (3-5 iterations for good results)
-    for (let iteration = 0; iteration < 4; iteration++) {
+    // Apply cellular automata rules
+    for (let iteration = 0; iteration < this.ITERATIONS; iteration++) {
       const newMaze = this.applyCellularRules(maze, chunkSize, rng);
       maze = newMaze;
     }
@@ -97,7 +125,7 @@ export class CellularAutomataMazeGenerator {
         if (processed[y][x] === this.WALL) {
           const wallNeighbors = this.countWallNeighbors(processed, x, y, chunkSize);
           // Remove isolated walls
-          if (wallNeighbors <= 2) {
+          if (wallNeighbors <= this.ISOLATED_WALL_THRESHOLD) {
             processed[y][x] = this.PATH;
           }
         }
@@ -116,7 +144,7 @@ export class CellularAutomataMazeGenerator {
             const nx = x + dx;
             const ny = y + dy;
             if (nx >= 0 && nx < chunkSize && ny >= 0 && ny < chunkSize) {
-              if (rng.next() < 0.1) { // 10% chance
+              if (rng.next() < this.PATH_WIDENING_CHANCE) {
                 processed[ny][nx] = this.PATH;
               }
             }

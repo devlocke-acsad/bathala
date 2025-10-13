@@ -43,7 +43,35 @@ export class PathNode {
     }
 }
 
+/*
+    DelaunayMazeGenerator
+    ---------------------
+    Orchestrates procedural layout generation on a discrete IntGrid.
+
+    End-to-end pipeline (generateLayout):
+        1. generateRegionPoints()  -> Random region seeds with minimum spacing.
+        2. Simple triangulation    -> Connectivity structure of region graph.
+        3. sort edges by length    -> Shorter edges encourage local connectivity first.
+        4. For each edge:
+                 - findPath() -> Multi-waypoint A* (adds shape variety) which delegates to findPathSegment().
+                 - Place PATH tiles along returned coordinates.
+        5. fixDoubleWidePaths()    -> Enforce no 2x2 PATH blocks invariant (iterative pruning of one tile per block).
+        6. reduceDeadEnds()        -> Simple dead-end extension to improve connectivity.
+        7. Return final IntGrid    -> Consumed by MazeOverworldGenerator.
+
+    Key invariants / constraints:
+        - PATH tiles should not form 2x2 squares (visual preference + corridor feel).
+        - A* cost function mildly favors straightness and re-use of existing PATHs.
+
+    Important public tweak points (currently simple public fields):
+        levelSize, regionCount, minRegionDistance control macro shape/density.
+        The A* weighting (tileCost + direction change cost) affects corridor sinuosity.
+*/
 export class DelaunayMazeGenerator {
+    // =============================
+    // Tunable Generation Constants
+    // =============================
+    
     // A* pathfinding costs
     private readonly BASE_TILE_COST = 1.2;          // Nominal movement cost.
     private readonly DIRECTION_CHANGE_PENALTY = 0.1;// Added when turning a corner.
@@ -62,6 +90,10 @@ export class DelaunayMazeGenerator {
     public readonly PATH_TILE = 0;            // Walkable corridor.
     public readonly REGION_TILE = 1;          // Wall / uncarved area.
 
+    // =============================
+    // Configurable Generation Parameters
+    // =============================
+    
     // Dimensions of generated grid (width, height).
     public levelSize: [number, number] = [50, 50];
     // Number of region seed points attempted (subject to minRegionDistance pruning).
