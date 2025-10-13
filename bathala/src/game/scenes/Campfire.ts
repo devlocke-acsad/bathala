@@ -14,9 +14,9 @@ export class Campfire extends Scene {
   private cardSprites: Phaser.GameObjects.GameObject[] = [];
   private tooltipBox!: Phaser.GameObjects.Container;
 
-  // Pagination for deck view
+  // Pagination for deck view - improved UI with fewer cards per page
   private currentPage: number = 0;
-  private cardsPerPage: number = 16;
+  private cardsPerPage: number = 6; // Reduced for better UI
   private displayedCards: PlayingCard[] = [];
   private prevButton!: Phaser.GameObjects.Container;
   private nextButton!: Phaser.GameObjects.Container;
@@ -33,9 +33,19 @@ export class Campfire extends Scene {
     if (!this.cameras.main) return;
     this.cameras.main.setBackgroundColor(0x0a0a0a);
 
-    // Create atmospheric background
+    // Create responsive layout
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
+    
+    // Add global pointer listener to hide tooltips when moving over non-interactive areas
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      // Check if pointer is over any interactive object
+      const objectsUnderPointer = this.input.hitTestPointer(pointer);
+      if (objectsUnderPointer.length === 0) {
+        // No interactive objects under pointer, hide tooltip
+        this.hideTooltip();
+      }
+    });
     
     // Add dark gradient background
     const gradient = this.add.graphics();
@@ -46,50 +56,56 @@ export class Campfire extends Scene {
     this.createAtmosphericParticles();
     
     // Create bonfire animation with glow effect
-    this.createBonfireWithGlow(screenWidth / 2, screenHeight / 2);
+    this.createBonfireWithGlow(screenWidth / 2, screenHeight * 0.4);
     
-    // Create Dark Souls-style title
+    // Create responsive title with proper scaling
     this.add.text(
       screenWidth / 2,
-      80,
+      Math.max(60, screenHeight * 0.08),
       "REST AT BONFIRE",
       {
         fontFamily: "dungeon-mode-inverted",
-        fontSize: 36,
-        color: "#d4af37", // Gold color like Dark Souls
+        fontSize: Math.min(36, screenWidth * 0.03),
+        color: "#d4af37",
         align: "center",
         stroke: "#000000",
-        strokeThickness: 4
+        strokeThickness: 3
       }
     ).setOrigin(0.5);
 
-    // Create bonfire description
+    // Create responsive description with word wrapping
     this.add.text(
       screenWidth / 2,
-      130,
+      Math.max(110, screenHeight * 0.15),
       "The bonfire's warmth restores your spirit",
       {
         fontFamily: "dungeon-mode",
-        fontSize: 18,
+        fontSize: Math.min(18, screenWidth * 0.015),
         color: "#cccccc",
         align: "center",
+        wordWrap: { width: screenWidth * 0.8 }
       }
     ).setOrigin(0.5);
 
     // Create player health display
     this.createPlayerHealthDisplay();
 
-    // Create action buttons with Dark Souls styling
-    this.createDarkSoulsActionButtons();
+    // Create action buttons with responsive design
+    this.createResponsiveActionButtons();
 
     // Create tooltip box (hidden by default)
     this.createTooltipBox();
 
-    // Create back button with bonfire styling
-    this.createBonfireBackButton();
+    // Create back button with responsive positioning
+    this.createResponsiveBackButton();
 
     // Listen for resize events
     this.scale.on('resize', this.handleResize, this);
+    
+    // Ensure tooltips are cleaned up when scene shuts down
+    this.events.on('shutdown', () => {
+      this.hideTooltip();
+    });
   }
 
   private createAtmosphericParticles(): void {
@@ -191,64 +207,93 @@ export class Campfire extends Scene {
     ).setOrigin(0.5);
   }
 
-  private createDarkSoulsActionButtons(): void {
+  private createResponsiveActionButtons(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Create action buttons with Dark Souls styling
-    const buttonData = [
-      { x: screenWidth / 2 - 250, y: screenHeight / 2 + 50, text: "HEAL", color: "#2ed573", action: "rest" },
-      { x: screenWidth / 2 - 80, y: screenHeight / 2 + 50, text: "PURIFY", color: "#ff6b6b", action: "purify" },
-      { x: screenWidth / 2 + 80, y: screenHeight / 2 + 50, text: "ATTUNE", color: "#ff6b6b", action: "upgrade" }, // Special red color to highlight importance
-      { x: screenWidth / 2 + 250, y: screenHeight / 2 + 50, text: "VIEW DECK", color: "#a8a8a8", action: "view_deck" }
-    ];
+    // Calculate responsive positioning and sizing for improved UI
+    const buttonWidth = Math.min(200, screenWidth * 0.18);
+    const buttonHeight = Math.min(80, screenHeight * 0.1);
+    const fontSize = Math.min(16, screenWidth * 0.014);
     
-    buttonData.forEach(data => {
-      const button = this.add.container(data.x, data.y);
+    // Create action buttons with improved layout (2x2 grid for better UI)
+    const actions = [
+      { 
+        text: "HEAL", 
+        description: "Rest at the bonfire\nRestore health to full",
+        action: "rest",
+        color: 0x228B22, // Forest green
+        textColor: "#90EE90"
+      },
+      { 
+        text: "PURIFY", 
+        description: "Remove a card from deck\nPermanently eliminate weakness",
+        action: "purify",
+        color: 0x8B0000, // Dark red
+        textColor: "#FFB6C1"
+      },
+      { 
+        text: "ATTUNE", 
+        description: "Upgrade a card\nIncrease its power",
+        action: "upgrade",
+        color: 0x4169E1, // Royal blue
+        textColor: "#87CEEB"
+      },
+      { 
+        text: "VIEW DECK", 
+        description: "Examine your cards\nSee current deck composition",
+        action: "view_deck",
+        color: 0x6A5ACD, // Slate blue
+        textColor: "#DDA0DD"
+      }
+    ];
+
+    // Position buttons in a 2x2 grid for better visual balance
+    const gridCols = 2;
+    const gridRows = 2;
+    const spacingX = buttonWidth + 40;
+    const spacingY = buttonHeight + 30;
+    
+    const startX = screenWidth / 2 - (spacingX * (gridCols - 1)) / 2;
+    const startY = screenHeight * 0.65;
+
+    actions.forEach((data, index) => {
+      const row = Math.floor(index / gridCols);
+      const col = index % gridCols;
+      const x = startX + col * spacingX;
+      const y = startY + row * spacingY;
+
+      const button = this.add.container(x, y);
       
-      // Create button background with dark souls styling
-      const background = this.add.rectangle(0, 0, 150, 60, 0x222222);
-      background.setStrokeStyle(3, Phaser.Display.Color.HexStringToColor(data.color).color);
+      // Enhanced button background with gradient-like effect
+      const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, data.color);
+      background.setStrokeStyle(3, 0xd4af37);
+      background.setAlpha(0.8);
       
-      // Create button text
-      const buttonText = this.add.text(0, 0, data.text, {
+      // Add inner glow effect
+      const innerGlow = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, data.color);
+      innerGlow.setAlpha(0.3);
+      
+      const text = this.add.text(0, 0, data.text, {
         fontFamily: "dungeon-mode-inverted",
-        fontSize: 22,
-        color: data.color,
+        fontSize: fontSize,
+        color: data.textColor,
         align: "center",
+        wordWrap: { width: buttonWidth - 20 }
       }).setOrigin(0.5);
       
-      button.add([background, buttonText]);
+      button.add([background, innerGlow, text]);
+      button.setDepth(100);
       
-      // Create special highlighting for the ATTUNE button
-      if (data.action === "upgrade") {
-        // Add a pulsing animation to the background to make it stand out
-        this.tweens.add({
-          targets: background,
-          scale: 1.05,
-          duration: 1000,
-          ease: 'Sine.easeInOut',
-          yoyo: true,
-          repeat: -1
-        });
-        
-        // Add a subtle glow effect
-        const glow = this.add.circle(0, 0, 80, 0xff6b6b, 0.3);
-        glow.setStrokeStyle(2, 0xff6b6b, 0.5);
-        button.addAt(glow, 0); // Add as first element (behind)
-        
-        // Make text slightly bolder
-        buttonText.setFontStyle('bold');
-      }
-      
-      // Set interactivity
       button.setInteractive(
-        new Phaser.Geom.Rectangle(-75, -30, 150, 60),
+        new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
         Phaser.Geom.Rectangle.Contains
       );
       
-      // Add event listeners
       button.on("pointerdown", () => {
+        // Hide any tooltips when changing modes
+        this.hideTooltip();
+        
         switch(data.action) {
           case "rest": this.rest(); break;
           case "purify": this.showPurifyCards(); break;
@@ -258,12 +303,20 @@ export class Campfire extends Scene {
       });
       
       button.on("pointerover", () => {
-        background.setFillStyle(0x333333);
-        this.showActionTooltip(data.text, data.x, data.y - 50);
+        background.setFillStyle(data.color);
+        background.setAlpha(1.0);
+        innerGlow.setAlpha(0.6);
+        
+        // Enhanced tooltip positioning
+        const tooltipX = x;
+        const tooltipY = y - buttonHeight/2 - 10;
+        this.showResponsiveTooltip(data.description, tooltipX, tooltipY);
       });
       
       button.on("pointerout", () => {
-        background.setFillStyle(0x222222);
+        background.setFillStyle(data.color);
+        background.setAlpha(0.8);
+        innerGlow.setAlpha(0.3);
         this.hideTooltip();
       });
       
@@ -277,37 +330,41 @@ export class Campfire extends Scene {
     });
   }
 
-  private createBonfireBackButton(): void {
+  private createResponsiveBackButton(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    const backButton = this.add.container(screenWidth / 2, screenHeight - 80);
+    // Calculate responsive positioning and sizing
+    const buttonWidth = Math.min(220, screenWidth * 0.2);
+    const buttonHeight = Math.min(60, screenHeight * 0.08);
+    const fontSize = Math.min(20, screenWidth * 0.017);
     
-    // Create button with bonfire styling
-    const background = this.add.rectangle(0, 0, 200, 60, 0x332222);
-    background.setStrokeStyle(3, 0xd4af37); // Gold border like Dark Souls
+    const backButton = this.add.container(screenWidth / 2, screenHeight - Math.max(60, screenHeight * 0.1));
+    
+    // Create responsive button with bonfire styling
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x332222);
+    background.setStrokeStyle(3, 0xd4af37);
     
     const text = this.add.text(0, 0, "LEAVE BONFIRE", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 22,
-      color: "#d4af37", // Gold text
+      fontSize: fontSize,
+      color: "#d4af37",
+      wordWrap: { width: buttonWidth - 20 }
     }).setOrigin(0.5);
     
     backButton.add([background, text]);
     
     backButton.setInteractive(
-      new Phaser.Geom.Rectangle(-100, -30, 200, 60),
+      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
     
     backButton.on("pointerdown", () => {
       // Complete the campfire node and return to overworld
       const gameState = GameState.getInstance();
-      // Save latest player data before leaving bonfire
       gameState.updatePlayerData(this.player);
       gameState.completeCurrentNode(true);
       
-      // Manually call the Overworld resume method to reset movement flags
       const overworldScene = this.scene.get("Overworld");
       if (overworldScene) {
         (overworldScene as any).resume();
@@ -319,24 +376,57 @@ export class Campfire extends Scene {
     
     backButton.on("pointerover", () => {
       background.setFillStyle(0x443333);
-      text.setColor("#ffd700"); // Brighter gold on hover
+      text.setColor("#ffd700");
+      this.showResponsiveTooltip("Return to your journey", screenWidth / 2, screenHeight - Math.max(120, screenHeight * 0.15));
     });
     
     backButton.on("pointerout", () => {
       background.setFillStyle(0x332222);
       text.setColor("#d4af37");
+      this.hideTooltip();
     });
   }
 
+  private showResponsiveTooltip(text: string, x: number, y: number): void {
+    const screenWidth = this.cameras.main.width;
+    
+    // Calculate responsive tooltip dimensions
+    const maxWidth = screenWidth * 0.3;
+    const fontSize = Math.min(16, screenWidth * 0.012);
+    
+    const tooltip = this.add.container(x, y);
+    
+    // Create responsive background
+    const textObj = this.add.text(0, 0, text, {
+      fontFamily: "dungeon-mode",
+      fontSize: fontSize,
+      color: "#ffffff",
+      align: "center",
+      wordWrap: { width: maxWidth }
+    }).setOrigin(0.5);
+    
+    const padding = 15;
+    const bgWidth = Math.min(textObj.width + padding * 2, maxWidth + padding * 2);
+    const bgHeight = textObj.height + padding * 2;
+    
+    const background = this.add.rectangle(0, 0, bgWidth, bgHeight, 0x000000, 0.9);
+    background.setStrokeStyle(2, 0x666666);
+    
+    tooltip.add([background, textObj]);
+    tooltip.setDepth(2000);
+    
+    // Store reference for cleanup
+    this.tooltipBox = tooltip;
+  }
+
   private createTooltipBox(): void {
-    this.tooltipBox = this.add.container(0, 0);
-    this.tooltipBox.setVisible(false);
-    this.tooltipBox.setDepth(2000);
+    // Initialize tooltip as null - will be created when needed
+    this.tooltipBox = null as any;
   }
 
   private showActionTooltip(action: string, x: number, y: number): void {
-    // Clear previous tooltip
-    this.tooltipBox.removeAll(true);
+    // Hide any existing tooltip first
+    this.hideTooltip();
     
     let description = "";
     
@@ -357,6 +447,10 @@ export class Campfire extends Scene {
         description = "Perform this action";
     }
     
+    // Create new tooltip container
+    this.tooltipBox = this.add.container(x, y);
+    this.tooltipBox.setDepth(2000);
+    
     // Create tooltip background
     const tooltipBg = this.add.rectangle(0, 0, 250, 80, 0x000000);
     tooltipBg.setAlpha(0.9);
@@ -372,13 +466,15 @@ export class Campfire extends Scene {
     }).setOrigin(0, 0);
     
     this.tooltipBox.add([tooltipBg, descText]);
-    this.tooltipBox.setPosition(x, y);
-    this.tooltipBox.setVisible(true);
   }
 
   private showCardTooltip(card: PlayingCard, x: number, y: number): void {
-    // Clear previous tooltip
-    this.tooltipBox.removeAll(true);
+    // Hide any existing tooltip first
+    this.hideTooltip();
+    
+    // Create new tooltip container
+    this.tooltipBox = this.add.container(x, y);
+    this.tooltipBox.setDepth(2000);
     
     // Create tooltip background
     const tooltipBg = this.add.rectangle(0, 0, 200, 100, 0x000000);
@@ -409,12 +505,13 @@ export class Campfire extends Scene {
     }).setOrigin(0, 0);
     
     this.tooltipBox.add([tooltipBg, cardInfo, elementInfo, instruction]);
-    this.tooltipBox.setPosition(x, y);
-    this.tooltipBox.setVisible(true);
   }
 
   private hideTooltip(): void {
-    this.tooltipBox.setVisible(false);
+    if (this.tooltipBox) {
+      this.tooltipBox.destroy();
+      this.tooltipBox = null as any;
+    }
   }
 
   private rest(): void {
@@ -501,22 +598,473 @@ export class Campfire extends Scene {
 
   private createCardViewHeader(title: string, subtitle: string): Phaser.GameObjects.GameObject[] {
     const screenWidth = this.cameras.main.width;
-    const titleText = this.add.text(screenWidth / 2, 120, title, {
+    const screenHeight = this.cameras.main.height;
+    
+    // Calculate responsive positioning and sizing
+    const titleFontSize = Math.min(28, screenWidth * 0.025);
+    const subtitleFontSize = Math.min(16, screenWidth * 0.014);
+    const titleY = Math.max(100, screenHeight * 0.12);
+    const subtitleY = Math.max(140, screenHeight * 0.18);
+    
+    const titleText = this.add.text(screenWidth / 2, titleY, title, {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 32,
+      fontSize: titleFontSize,
       color: "#ffffff",
-      align: "center"
+      align: "center",
+      wordWrap: { width: screenWidth * 0.8 }
     }).setOrigin(0.5).setDepth(1001);
 
-    const subtitleText = this.add.text(screenWidth / 2, 160, subtitle, {
+    const subtitleText = this.add.text(screenWidth / 2, subtitleY, subtitle, {
       fontFamily: "dungeon-mode",
-      fontSize: 18,
+      fontSize: subtitleFontSize,
       color: "#cccccc",
       align: "center",
       wordWrap: { width: screenWidth * 0.7 }
     }).setOrigin(0.5).setDepth(1001);
 
     return [titleText, subtitleText];
+  }
+
+  private generateDeckStatistics(cards: PlayingCard[]): string {
+    // Count cards by suit
+    const suitCounts = {
+      'Apoy': cards.filter(card => card.suit === 'Apoy').length,
+      'Tubig': cards.filter(card => card.suit === 'Tubig').length,
+      'Lupa': cards.filter(card => card.suit === 'Lupa').length,
+      'Hangin': cards.filter(card => card.suit === 'Hangin').length
+    };
+
+    // Convert rank to numeric value for comparison
+    const getRankValue = (rank: string): number => {
+      if (rank === 'Mandirigma') return 11;
+      if (rank === 'Babaylan') return 12;
+      if (rank === 'Datu') return 13;
+      return parseInt(rank) || 0;
+    };
+
+    // Find highest value card
+    const highestValue = Math.max(...cards.map(card => getRankValue(card.rank)));
+    
+    // Count face cards (Mandirigma, Babaylan, Datu)
+    const faceCards = cards.filter(card => ['Mandirigma', 'Babaylan', 'Datu'].includes(card.rank)).length;
+
+    return `🔥${suitCounts.Apoy} 💧${suitCounts.Tubig} 🌱${suitCounts.Lupa} 💨${suitCounts.Hangin} | Highest: ${highestValue} | Face Cards: ${faceCards}`;
+  }
+
+  private isSpecialCard(card: PlayingCard): boolean {
+    return ['Mandirigma', 'Babaylan', 'Datu'].includes(card.rank);
+  }
+
+  private getRankValue(rank: string): number {
+    if (rank === 'Mandirigma') return 11;
+    if (rank === 'Babaylan') return 12;
+    if (rank === 'Datu') return 13;
+    return parseInt(rank) || 0;
+  }
+
+  private createEnhancedCardViewBackButton(onBack: () => void, buttonText: string = "⬅ CLOSE DECK"): Phaser.GameObjects.Container {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const buttonWidth = Math.min(200, screenWidth * 0.15);
+    const buttonHeight = Math.min(70, screenHeight * 0.08);
+    
+    const backButton = this.add.container(screenWidth / 2, screenHeight - Math.max(80, screenHeight * 0.1));
+    backButton.setDepth(1002);
+    
+    // Enhanced button styling
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x1a1a1a);
+    background.setStrokeStyle(3, 0xd4af37);
+    
+    const innerGlow = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, 0x2a2a2a, 0.5);
+    
+    const text = this.add.text(0, 0, buttonText, { 
+      fontFamily: "dungeon-mode-inverted", 
+      fontSize: Math.min(16, screenWidth * 0.013), 
+      color: "#d4af37",
+      align: "center",
+      wordWrap: { width: buttonWidth - 20 }
+    }).setOrigin(0.5);
+    
+    backButton.add([background, innerGlow, text]);
+    backButton.setInteractive(
+      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), 
+      Phaser.Geom.Rectangle.Contains
+    );
+
+    backButton.on("pointerdown", onBack);
+    backButton.on("pointerover", () => {
+      background.setFillStyle(0x2a2a2a);
+      innerGlow.setAlpha(0.8);
+    });
+    backButton.on("pointerout", () => {
+      background.setFillStyle(0x1a1a1a);
+      innerGlow.setAlpha(0.5);
+    });
+
+    return backButton;
+  }
+
+  private drawEnhancedCardPage(title: string, subtitle: string, onSelect?: (card: PlayingCard) => void, isViewMode: boolean = false): void {
+    this.clearCardDisplay();
+
+    // Create enhanced responsive background with decorative border - smaller container
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const backgroundWidth = Math.min(screenWidth * 0.75, 950);  // Reduced from 0.92 and 1150
+    const backgroundHeight = Math.min(screenHeight * 0.70, 600); // Reduced from 0.85 and 750
+    
+    // Main background
+    const background = this.add.rectangle(
+      screenWidth / 2, 
+      screenHeight / 2, 
+      backgroundWidth, 
+      backgroundHeight, 
+      0x0f0f0f, 
+      0.98
+    );
+    background.setStrokeStyle(4, 0xd4af37);
+    background.setDepth(1000);
+    this.cardSprites.push(background);
+
+    // Decorative corner elements
+    const cornerSize = 20;
+    const corners = [
+      { x: screenWidth / 2 - backgroundWidth / 2, y: screenHeight / 2 - backgroundHeight / 2 },
+      { x: screenWidth / 2 + backgroundWidth / 2, y: screenHeight / 2 - backgroundHeight / 2 },
+      { x: screenWidth / 2 - backgroundWidth / 2, y: screenHeight / 2 + backgroundHeight / 2 },
+      { x: screenWidth / 2 + backgroundWidth / 2, y: screenHeight / 2 + backgroundHeight / 2 }
+    ];
+    
+    corners.forEach(corner => {
+      const cornerDecor = this.add.rectangle(corner.x, corner.y, cornerSize, cornerSize, 0xd4af37);
+      cornerDecor.setDepth(1001);
+      this.cardSprites.push(cornerDecor);
+    });
+
+    // Inner glow effect
+    const innerGlow = this.add.rectangle(
+      screenWidth / 2, 
+      screenHeight / 2, 
+      backgroundWidth - 12, 
+      backgroundHeight - 12, 
+      0x1a1a1a, 
+      0.3
+    );
+    innerGlow.setDepth(1000);
+    this.cardSprites.push(innerGlow);
+
+    // Enhanced header with deck viewing specific styling
+    const header = this.createEnhancedCardViewHeader(title, subtitle, isViewMode);
+    this.cardSprites.push(...header);
+
+    const startIndex = this.currentPage * this.cardsPerPage;
+    const endIndex = startIndex + this.cardsPerPage;
+    const pageCards = this.displayedCards.slice(startIndex, endIndex);
+
+    // Enhanced card layout - optimized for viewing
+    const maxCols = isViewMode ? 3 : 3; // 3 columns for better card visibility
+    const cols = Math.min(maxCols, pageCards.length);
+    
+    // Much larger cards for better viewing experience - adjusted for smaller container
+    const cardWidth = isViewMode ? Math.min(160, screenWidth / 6.5) : Math.min(140, screenWidth / 7);
+    const cardHeight = cardWidth * 1.4;
+    const paddingX = Math.max(30, screenWidth * 0.03);  // Reduced padding for smaller container
+    const paddingY = Math.max(40, screenHeight * 0.04);
+    
+    // Center the grid
+    const gridWidth = cols * cardWidth + (cols - 1) * paddingX;
+    const startX = (screenWidth - gridWidth) / 2 + cardWidth / 2;
+    const startY = screenHeight * 0.42;
+
+    pageCards.forEach((card, index) => {
+      const row = Math.floor(index / cols);
+      const col = index % cols;
+      const x = startX + col * (cardWidth + paddingX);
+      const y = startY + row * (cardHeight + paddingY);
+
+      // Create enhanced card container with special effects for deck view
+      const cardContainer = this.add.container(x, y);
+      cardContainer.setDepth(1001);
+      
+      // Enhanced card glow effect based on card rarity/value
+      const glowColor = this.getCardGlowColor(card);
+      const cardGlow = this.add.rectangle(0, 0, cardWidth + 12, cardHeight + 12, glowColor, 0.15);
+      cardGlow.setStrokeStyle(3, glowColor, 0.4);
+      cardContainer.add(cardGlow);
+      
+      // Card value indicator for deck viewing
+      if (isViewMode && this.isSpecialCard(card)) {
+        const upgradeIndicator = this.add.circle(-cardWidth/2 + 15, -cardHeight/2 + 15, 8, 0xffd700);
+        upgradeIndicator.setStrokeStyle(2, 0xffff00);
+        cardContainer.add(upgradeIndicator);
+        
+        const upgradeText = this.add.text(-cardWidth/2 + 15, -cardHeight/2 + 15, "★", {
+          fontFamily: "dungeon-mode",
+          fontSize: 12,
+          color: "#000000"
+        }).setOrigin(0.5);
+        cardContainer.add(upgradeText);
+      }
+      
+      const cardSprite = this.createCardSprite(card, 0, 0, true);
+      cardContainer.add(cardSprite);
+
+      if (onSelect) {
+        cardContainer.setInteractive(
+          new Phaser.Geom.Rectangle(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight),
+          Phaser.Geom.Rectangle.Contains
+        );
+        cardContainer.on("pointerdown", () => {
+          onSelect(card);
+          this.clearCardDisplay();
+          this.hideTooltip();
+        });
+      }
+
+      cardContainer.on("pointerover", () => {
+        cardGlow.setAlpha(0.4);
+        cardGlow.setStrokeStyle(4, glowColor, 0.8);
+        
+        // Only scale cards if they're interactive, otherwise just subtle glow
+        if (onSelect && !isViewMode) {
+          cardContainer.setScale(1.05);
+          this.showEnhancedCardTooltip(card, x, y - cardHeight/2 - 15, isViewMode);
+        } else {
+          // Just subtle visual feedback for view-only mode
+          cardContainer.setScale(1.02);
+        }
+      });
+      
+      cardContainer.on("pointerout", () => {
+        cardGlow.setAlpha(0.15);
+        cardGlow.setStrokeStyle(3, glowColor, 0.4);
+        cardContainer.setScale(1.0);
+        this.hideTooltip();
+      });
+      
+      this.cardSprites.push(cardContainer);
+    });
+
+    this.createEnhancedPaginationButtons(title, subtitle, onSelect, isViewMode);
+  }
+
+  private getCardGlowColor(card: PlayingCard): number {
+    // Return glow color based on card properties
+    if (this.isSpecialCard(card)) return 0xffd700; // Gold for face cards
+    
+    switch (card.suit) {
+      case 'Apoy': return 0xff4500; // Orange-red
+      case 'Tubig': return 0x4169e1; // Royal blue
+      case 'Lupa': return 0x228b22; // Forest green
+      case 'Hangin': return 0x9370db; // Medium purple
+      default: return 0xffffff; // White default
+    }
+  }
+
+  private createEnhancedCardViewHeader(title: string, subtitle: string, isViewMode: boolean): Phaser.GameObjects.GameObject[] {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Calculate responsive positioning and sizing
+    const titleFontSize = Math.min(32, screenWidth * 0.028);
+    const subtitleFontSize = Math.min(14, screenWidth * 0.012);
+    const titleY = Math.max(90, screenHeight * 0.11);
+    const subtitleY = Math.max(125, screenHeight * 0.16);
+    
+    // Enhanced title with special styling for deck view
+    const titleText = this.add.text(screenWidth / 2, titleY, title, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: titleFontSize,
+      color: isViewMode ? "#d4af37" : "#ffffff",
+      align: "center",
+      stroke: "#000000",
+      strokeThickness: 2,
+      wordWrap: { width: screenWidth * 0.8 }
+    }).setOrigin(0.5).setDepth(1001);
+
+    const subtitleText = this.add.text(screenWidth / 2, subtitleY, subtitle, {
+      fontFamily: "dungeon-mode",
+      fontSize: subtitleFontSize,
+      color: isViewMode ? "#cccccc" : "#aaaaaa",
+      align: "center",
+      wordWrap: { width: screenWidth * 0.85 }
+    }).setOrigin(0.5).setDepth(1001);
+
+    return [titleText, subtitleText];
+  }
+
+  private showEnhancedCardTooltip(card: PlayingCard, x: number, y: number, isViewMode: boolean): void {
+    this.hideTooltip();
+    
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Enhanced tooltip content for deck viewing
+    let tooltipText = `${card.suit} ${card.rank}`;
+    if (this.isSpecialCard(card)) {
+      tooltipText += ` (Face Card)`;
+    }
+    
+    if (isViewMode) {
+      // Add additional information for deck viewing
+      const rankValue = this.getRankValue(card.rank);
+      tooltipText += `\nSuit: ${card.suit}\nRank: ${card.rank}\nPower Level: ${rankValue}`;
+      if (this.isSpecialCard(card)) {
+        tooltipText += `\n✨ Special Card ✨`;
+      }
+    }
+    
+    const tooltipWidth = Math.min(250, screenWidth * 0.2);
+    const tooltipHeight = Math.min(120, screenHeight * 0.12);
+    
+    // Adjust position to stay on screen
+    let tooltipX = x;
+    let tooltipY = y;
+    
+    if (tooltipX + tooltipWidth/2 > screenWidth - 20) {
+      tooltipX = screenWidth - tooltipWidth/2 - 20;
+    }
+    if (tooltipX - tooltipWidth/2 < 20) {
+      tooltipX = tooltipWidth/2 + 20;
+    }
+    if (tooltipY - tooltipHeight < 20) {
+      tooltipY = y + 80;
+    }
+    
+    this.tooltipBox = this.add.container(tooltipX, tooltipY);
+    this.tooltipBox.setDepth(2000);
+    
+    // Enhanced tooltip background
+    const tooltipBg = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x1a1a1a, 0.95);
+    tooltipBg.setStrokeStyle(2, 0xd4af37);
+    
+    const tooltipTextObj = this.add.text(0, 0, tooltipText, {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.min(14, screenWidth * 0.012),
+      color: "#ffffff",
+      align: "center",
+      wordWrap: { width: tooltipWidth - 20 }
+    }).setOrigin(0.5);
+    
+    this.tooltipBox.add([tooltipBg, tooltipTextObj]);
+  }
+
+  private createEnhancedPaginationButtons(title: string, subtitle: string, onSelect?: (card: PlayingCard) => void, isViewMode: boolean = false): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const buttonWidth = Math.min(150, screenWidth * 0.13);
+    const buttonHeight = Math.min(65, screenHeight * 0.075);
+    const fontSize = Math.min(16, screenWidth * 0.014);
+    const y = screenHeight * 0.8;
+
+    // Enhanced page indicator with deck info
+    const totalPages = Math.ceil(this.displayedCards.length / this.cardsPerPage);
+    if (totalPages > 1) {
+      let pageIndicatorText = `Page ${this.currentPage + 1} of ${totalPages}`;
+      if (isViewMode) {
+        const cardsOnPage = Math.min(this.cardsPerPage, this.displayedCards.length - (this.currentPage * this.cardsPerPage));
+        pageIndicatorText += ` • Showing ${cardsOnPage} cards`;
+      }
+      
+      const pageText = this.add.text(
+        screenWidth / 2, 
+        y - 45, 
+        pageIndicatorText,
+        {
+          fontFamily: "dungeon-mode",
+          fontSize: Math.min(14, screenWidth * 0.012),
+          color: "#d4af37",
+          align: "center",
+          stroke: "#000000",
+          strokeThickness: 1
+        }
+      ).setOrigin(0.5).setDepth(1002);
+      this.cardSprites.push(pageText);
+    }
+
+    // Previous button with enhanced styling
+    if (this.currentPage > 0) {
+      this.prevButton = this.add.container(screenWidth / 2 - buttonWidth - 35, y);
+      const prevBg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x1a1a1a);
+      prevBg.setStrokeStyle(3, 0xd4af37);
+      
+      const prevGlow = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, 0x2a2a2a, 0.4);
+      
+      const prevText = this.add.text(0, 0, "◄◄ PREV", { 
+        fontFamily: "dungeon-mode-inverted", 
+        fontSize: fontSize, 
+        color: "#d4af37",
+        align: "center"
+      }).setOrigin(0.5);
+      
+      this.prevButton.add([prevBg, prevGlow, prevText]);
+      this.prevButton.setInteractive(
+        new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), 
+        Phaser.Geom.Rectangle.Contains
+      );
+      this.prevButton.setDepth(1002);
+      
+      this.prevButton.on('pointerdown', () => {
+        this.currentPage--;
+        if (isViewMode) {
+          this.drawEnhancedCardPage(title, subtitle, onSelect, isViewMode);
+        } else {
+          this.drawCardPage(title, subtitle, onSelect);
+        }
+      });
+      this.prevButton.on('pointerover', () => {
+        prevBg.setFillStyle(0x2a2a2a);
+        prevGlow.setAlpha(0.7);
+        this.prevButton.setScale(1.05);
+      });
+      this.prevButton.on('pointerout', () => {
+        prevBg.setFillStyle(0x1a1a1a);
+        prevGlow.setAlpha(0.4);
+        this.prevButton.setScale(1.0);
+      });
+    }
+
+    // Next button with enhanced styling
+    if ((this.currentPage + 1) * this.cardsPerPage < this.displayedCards.length) {
+      this.nextButton = this.add.container(screenWidth / 2 + buttonWidth + 35, y);
+      const nextBg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x1a1a1a);
+      nextBg.setStrokeStyle(3, 0xd4af37);
+      
+      const nextGlow = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, 0x2a2a2a, 0.4);
+      
+      const nextText = this.add.text(0, 0, "NEXT ►►", { 
+        fontFamily: "dungeon-mode-inverted", 
+        fontSize: fontSize, 
+        color: "#d4af37",
+        align: "center"
+      }).setOrigin(0.5);
+      
+      this.nextButton.add([nextBg, nextGlow, nextText]);
+      this.nextButton.setInteractive(
+        new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), 
+        Phaser.Geom.Rectangle.Contains
+      );
+      this.nextButton.setDepth(1002);
+      
+      this.nextButton.on('pointerdown', () => {
+        this.currentPage++;
+        if (isViewMode) {
+          this.drawEnhancedCardPage(title, subtitle, onSelect, isViewMode);
+        } else {
+          this.drawCardPage(title, subtitle, onSelect);
+        }
+      });
+      this.nextButton.on('pointerover', () => {
+        nextBg.setFillStyle(0x2a2a2a);
+        nextGlow.setAlpha(0.7);
+        this.nextButton.setScale(1.05);
+      });
+      this.nextButton.on('pointerout', () => {
+        nextBg.setFillStyle(0x1a1a1a);
+        nextGlow.setAlpha(0.4);
+        this.nextButton.setScale(1.0);
+      });
+    }
   }
 
   private showDeck(): void {
@@ -540,11 +1088,19 @@ export class Campfire extends Scene {
     );
     this.currentPage = 0;
 
-    // Draw the first page of cards
-    this.drawCardPage("Your Deck", "This is your current collection of cards.");
+    // Create enhanced deck statistics
+    const deckStats = this.generateDeckStatistics(this.displayedCards);
 
-    // Create a back button to close the deck view
-    const backButton = this.createCardViewBackButton(() => {
+    // Draw the first page of cards with enhanced header
+    this.drawEnhancedCardPage(
+      "🂠 YOUR COMPLETE DECK 🂠", 
+      `Total Cards: ${this.displayedCards.length} | ${deckStats}`,
+      undefined,
+      true // isViewMode
+    );
+
+    // Create an enhanced back button to close the deck view
+    const backButton = this.createEnhancedCardViewBackButton(() => {
       this.clearCardDisplay();
       this.reEnableActionButtons();
       backButton.destroy();
@@ -568,17 +1124,22 @@ export class Campfire extends Scene {
     );
     this.currentPage = 0;
 
-    const backButton = this.createCardViewBackButton(() => {
+    const backButton = this.createEnhancedCardViewBackButton(() => {
         this.clearCardDisplay();
         this.reEnableActionButtons();
         backButton.destroy();
-    });
+    }, "⬅ CANCEL PURIFY");
     
-    this.drawCardPage("Purify a Card", "Permanently remove a card from your deck.", (selectedCard) => {
-      this.purifyCard(selectedCard);
-      backButton.destroy();
-      this.reEnableActionButtons();
-    });
+    this.drawEnhancedCardPage(
+      "🔥 PURIFY A CARD 🔥", 
+      "Choose a card to permanently remove from your deck",
+      (selectedCard) => {
+        this.purifyCard(selectedCard);
+        backButton.destroy();
+        this.reEnableActionButtons();
+      },
+      false
+    );
   }
 
   private showUpgradeCards(): void {
@@ -598,17 +1159,22 @@ export class Campfire extends Scene {
     );
     this.currentPage = 0;
     
-    const backButton = this.createCardViewBackButton(() => {
+    const backButton = this.createEnhancedCardViewBackButton(() => {
         this.clearCardDisplay();
         this.reEnableActionButtons();
         backButton.destroy();
-    });
+    }, "⬅ CANCEL ATTUNE");
 
-    this.drawCardPage("Attune a Card", "Upgrade a card to its next rank.", (selectedCard) => {
-      this.upgradeCard(selectedCard);
-      backButton.destroy();
-      this.reEnableActionButtons();
-    });
+    this.drawEnhancedCardPage(
+      "⚡ ATTUNE A CARD ⚡", 
+      "Choose a card to upgrade to its next rank",
+      (selectedCard) => {
+        this.upgradeCard(selectedCard);
+        backButton.destroy();
+        this.reEnableActionButtons();
+      },
+      false
+    );
   }
 
   private clearCardDisplay(): void {
@@ -616,20 +1182,45 @@ export class Campfire extends Scene {
     this.cardSprites = [];
     if (this.prevButton) this.prevButton.destroy();
     if (this.nextButton) this.nextButton.destroy();
+    
+    // Ensure tooltip is hidden when clearing card display
+    this.hideTooltip();
   }
 
   private drawCardPage(title: string, subtitle: string, onSelect?: (card: PlayingCard) => void): void {
     this.clearCardDisplay();
 
-    // Add a background for the card view
+    // Create enhanced responsive background with border styling - smaller container
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    const background = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth * 0.9, screenHeight * 0.8, 0x000000, 0.9);
-    background.setStrokeStyle(2, 0x666666);
+    const backgroundWidth = Math.min(screenWidth * 0.75, 950);  // Reduced from 0.9 and 1100
+    const backgroundHeight = Math.min(screenHeight * 0.65, 550); // Reduced from 0.8 and 700
+    
+    const background = this.add.rectangle(
+      screenWidth / 2, 
+      screenHeight / 2, 
+      backgroundWidth, 
+      backgroundHeight, 
+      0x1a1a1a, 
+      0.95
+    );
+    background.setStrokeStyle(4, 0xd4af37);
     background.setDepth(1000);
     this.cardSprites.push(background);
 
-    // Add header
+    // Add inner glow effect
+    const innerGlow = this.add.rectangle(
+      screenWidth / 2, 
+      screenHeight / 2, 
+      backgroundWidth - 8, 
+      backgroundHeight - 8, 
+      0x2a2a2a, 
+      0.3
+    );
+    innerGlow.setDepth(1000);
+    this.cardSprites.push(innerGlow);
+
+    // Add responsive header
     const header = this.createCardViewHeader(title, subtitle);
     this.cardSprites.push(...header);
 
@@ -637,15 +1228,20 @@ export class Campfire extends Scene {
     const endIndex = startIndex + this.cardsPerPage;
     const pageCards = this.displayedCards.slice(startIndex, endIndex);
 
-    const cols = 8;
-    const cardWidth = 70;
-    const cardHeight = 100;
-    const paddingX = 20;
-    const paddingY = 20;
-    const gridWidth = cols * (cardWidth + paddingX) - paddingX;
+    // Enhanced card layout - 6 cards max in 2 rows of 3 for better visibility
+    const maxCols = 3; // Fixed to 3 columns for better card visibility
+    const cols = Math.min(maxCols, pageCards.length);
     
-    const startX = (screenWidth - gridWidth) / 2;
-    const startY = (screenHeight / 2) - 50;
+    // Much larger cards for better visibility in all modes - adjusted for smaller container
+    const cardWidth = Math.min(150, screenWidth / 6.8);  // Reduced to fit smaller container
+    const cardHeight = cardWidth * 1.4;
+    const paddingX = Math.max(25, screenWidth * 0.025);  // Reduced padding for smaller container
+    const paddingY = Math.max(35, screenHeight * 0.035);
+    
+    // Center the grid
+    const gridWidth = cols * cardWidth + (cols - 1) * paddingX;
+    const startX = (screenWidth - gridWidth) / 2 + cardWidth / 2;
+    const startY = screenHeight * 0.4;
 
     pageCards.forEach((card, index) => {
       const row = Math.floor(index / cols);
@@ -653,64 +1249,147 @@ export class Campfire extends Scene {
       const x = startX + col * (cardWidth + paddingX);
       const y = startY + row * (cardHeight + paddingY);
 
-      const cardSprite = this.createCardSprite(card, x, y, true);
-      cardSprite.setDepth(1001);
+      // Create enhanced card sprite with glow effect
+      const cardContainer = this.add.container(x, y);
+      cardContainer.setDepth(1001);
+      
+      // Add card glow effect
+      const cardGlow = this.add.rectangle(0, 0, cardWidth + 8, cardHeight + 8, 0xffffff, 0.1);
+      cardGlow.setStrokeStyle(2, 0xd4af37, 0.3);
+      cardContainer.add(cardGlow);
+      
+      const cardSprite = this.createCardSprite(card, 0, 0, true);
+      cardContainer.add(cardSprite);
 
       if (onSelect) {
-        cardSprite.setInteractive();
-        cardSprite.on("pointerdown", () => {
+        cardContainer.setInteractive(
+          new Phaser.Geom.Rectangle(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight),
+          Phaser.Geom.Rectangle.Contains
+        );
+        cardContainer.on("pointerdown", () => {
           onSelect(card);
           this.clearCardDisplay();
           this.hideTooltip();
         });
       }
 
-      cardSprite.on("pointerover", () => {
-        this.showCardTooltip(card, x + 40, y);
+      cardContainer.on("pointerover", () => {
+        cardGlow.setAlpha(0.3);
+        cardGlow.setStrokeStyle(3, 0xd4af37, 0.7);
+        
+        // Only show tooltip when cards are interactive (onSelect exists)
+        if (onSelect) {
+          this.showCardTooltip(card, x, y - cardHeight/2 - 10);
+        }
       });
-      cardSprite.on("pointerout", () => {
+      
+      cardContainer.on("pointerout", () => {
+        cardGlow.setAlpha(0.1);
+        cardGlow.setStrokeStyle(2, 0xd4af37, 0.3);
         this.hideTooltip();
       });
-      this.cardSprites.push(cardSprite);
+      
+      this.cardSprites.push(cardContainer);
     });
 
-    this.createPaginationButtons(title, subtitle, onSelect);
+    this.createResponsivePaginationButtons(title, subtitle, onSelect);
   }
 
-  private createPaginationButtons(title: string, subtitle: string, onSelect?: (card: PlayingCard) => void): void {
+  private createResponsivePaginationButtons(title: string, subtitle: string, onSelect?: (card: PlayingCard) => void): void {
     const screenWidth = this.cameras.main.width;
-    const y = this.cameras.main.height - 250;
+    const screenHeight = this.cameras.main.height;
+    const buttonWidth = Math.min(140, screenWidth * 0.12);
+    const buttonHeight = Math.min(60, screenHeight * 0.07);
+    const fontSize = Math.min(18, screenWidth * 0.015);
+    const y = screenHeight * 0.82;
 
-    // Previous button
+    // Enhanced page indicator
+    const totalPages = Math.ceil(this.displayedCards.length / this.cardsPerPage);
+    if (totalPages > 1) {
+      const pageText = this.add.text(
+        screenWidth / 2, 
+        y - 40, 
+        `Page ${this.currentPage + 1} of ${totalPages}`,
+        {
+          fontFamily: "dungeon-mode",
+          fontSize: Math.min(16, screenWidth * 0.013),
+          color: "#d4af37",
+          align: "center"
+        }
+      ).setOrigin(0.5).setDepth(1002);
+      this.cardSprites.push(pageText);
+    }
+
+    // Previous button with enhanced styling
     if (this.currentPage > 0) {
-      this.prevButton = this.add.container(screenWidth / 2 - 150, y);
-      const prevBg = this.add.rectangle(0, 0, 120, 50, 0x222222).setStrokeStyle(2, 0xcccccc);
-      const prevText = this.add.text(0, 0, "PREV", { fontFamily: "dungeon-mode", fontSize: 20, color: "#cccccc" }).setOrigin(0.5);
-      this.prevButton.add([prevBg, prevText]);
-      this.prevButton.setInteractive(new Phaser.Geom.Rectangle(-60, -25, 120, 50), Phaser.Geom.Rectangle.Contains);
+      this.prevButton = this.add.container(screenWidth / 2 - buttonWidth - 30, y);
+      const prevBg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x2a2a2a);
+      prevBg.setStrokeStyle(3, 0xd4af37);
+      
+      const prevGlow = this.add.rectangle(0, 0, buttonWidth - 4, buttonHeight - 4, 0x3a3a3a, 0.3);
+      
+      const prevText = this.add.text(0, 0, "◄ PREV", { 
+        fontFamily: "dungeon-mode-inverted", 
+        fontSize: fontSize, 
+        color: "#d4af37",
+        align: "center"
+      }).setOrigin(0.5);
+      
+      this.prevButton.add([prevBg, prevGlow, prevText]);
+      this.prevButton.setInteractive(
+        new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), 
+        Phaser.Geom.Rectangle.Contains
+      );
       this.prevButton.setDepth(1002);
+      
       this.prevButton.on('pointerdown', () => {
         this.currentPage--;
         this.drawCardPage(title, subtitle, onSelect);
       });
-      this.prevButton.on('pointerover', () => prevBg.setFillStyle(0x333333));
-      this.prevButton.on('pointerout', () => prevBg.setFillStyle(0x222222));
+      this.prevButton.on('pointerover', () => {
+        prevBg.setFillStyle(0x3a3a3a);
+        prevGlow.setAlpha(0.6);
+      });
+      this.prevButton.on('pointerout', () => {
+        prevBg.setFillStyle(0x2a2a2a);
+        prevGlow.setAlpha(0.3);
+      });
     }
 
-    // Next button
+    // Next button with enhanced styling
     if ((this.currentPage + 1) * this.cardsPerPage < this.displayedCards.length) {
-      this.nextButton = this.add.container(screenWidth / 2 + 150, y);
-      const nextBg = this.add.rectangle(0, 0, 120, 50, 0x222222).setStrokeStyle(2, 0xcccccc);
-      const nextText = this.add.text(0, 0, "NEXT", { fontFamily: "dungeon-mode", fontSize: 20, color: "#cccccc" }).setOrigin(0.5);
-      this.nextButton.add([nextBg, nextText]);
-      this.nextButton.setInteractive(new Phaser.Geom.Rectangle(-60, -25, 120, 50), Phaser.Geom.Rectangle.Contains);
+      this.nextButton = this.add.container(screenWidth / 2 + buttonWidth + 30, y);
+      const nextBg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x2a2a2a);
+      nextBg.setStrokeStyle(3, 0xd4af37);
+      
+      const nextGlow = this.add.rectangle(0, 0, buttonWidth - 4, buttonHeight - 4, 0x3a3a3a, 0.3);
+      
+      const nextText = this.add.text(0, 0, "NEXT ►", { 
+        fontFamily: "dungeon-mode-inverted", 
+        fontSize: fontSize, 
+        color: "#d4af37",
+        align: "center"
+      }).setOrigin(0.5);
+      
+      this.nextButton.add([nextBg, nextGlow, nextText]);
+      this.nextButton.setInteractive(
+        new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), 
+        Phaser.Geom.Rectangle.Contains
+      );
       this.nextButton.setDepth(1002);
+      
       this.nextButton.on('pointerdown', () => {
         this.currentPage++;
         this.drawCardPage(title, subtitle, onSelect);
       });
-      this.nextButton.on('pointerover', () => nextBg.setFillStyle(0x333333));
-      this.nextButton.on('pointerout', () => nextBg.setFillStyle(0x222222));
+      this.nextButton.on('pointerover', () => {
+        nextBg.setFillStyle(0x3a3a3a);
+        nextGlow.setAlpha(0.6);
+      });
+      this.nextButton.on('pointerout', () => {
+        nextBg.setFillStyle(0x2a2a2a);
+        nextGlow.setAlpha(0.3);
+      });
     }
   }
 
@@ -943,41 +1622,47 @@ export class Campfire extends Scene {
     // Clear and recreate UI
     this.children.removeAll();
     
-    // Recreate all elements
+    // Recreate all elements with responsive sizing
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
+    // Responsive title
+    const titleFontSize = Math.min(36, screenWidth * 0.035);
     this.add.text(
       screenWidth / 2,
-      80,
+      screenHeight * 0.08,
       "REST AT BONFIRE",
       {
         fontFamily: "dungeon-mode-inverted",
-        fontSize: 36,
+        fontSize: titleFontSize,
         color: "#d4af37",
         align: "center",
         stroke: "#000000",
-        strokeThickness: 4
+        strokeThickness: Math.max(2, titleFontSize / 18),
+        wordWrap: { width: screenWidth * 0.8 }
       }
     ).setOrigin(0.5);
     
+    // Responsive subtitle
+    const subtitleFontSize = Math.min(18, screenWidth * 0.018);
     this.add.text(
       screenWidth / 2,
-      130,
+      screenHeight * 0.13,
       "The bonfire's warmth restores your spirit",
       {
         fontFamily: "dungeon-mode",
-        fontSize: 18,
+        fontSize: subtitleFontSize,
         color: "#cccccc",
         align: "center",
+        wordWrap: { width: screenWidth * 0.9 }
       }
     ).setOrigin(0.5);
     
     this.createBonfireWithGlow(screenWidth / 2, screenHeight / 2);
     this.createPlayerHealthDisplay();
-    this.createDarkSoulsActionButtons();
+    this.createResponsiveActionButtons();
     this.createTooltipBox();
-    this.createBonfireBackButton();
+    this.createResponsiveBackButton();
     this.createAtmosphericParticles();
   }
 }

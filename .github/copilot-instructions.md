@@ -240,29 +240,45 @@ Mythological References: Bamboo split as creation (Jocano, 1969). Reference: Asw
 ### **Dynamic Difficulty Adjustment (DDA)**
 
 #### **Design Goal**
-Maintain player "flow" using a **rule-based system** that adapts to performance, **independent of Landás**.
+Maintain player "flow" with a transparent, **rule-based** system driven by measurable combat performance. DDA is **completely independent of Landás** choices.
 
 #### **Player Performance Score (PPS)**
-- Starts at 2.5.
-- Updated post-combat:
-  - `+0.3` if end with >90% HP
-  - `–0.4` if <20% HP
-  - `+0.2` for Four of a Kind or better
-  - `–0.25` if combat >8 turns
+- Baseline 2.5, updated after every combat.
+- **Calibration Phase**: first 3 combats keep the tier locked to "learning" (1.0×) while still tracking PPS; prevents early spikes and teaches baseline combat.
 
-#### **Difficulty Tiers**
-| Tier | State | Game Response |
-|------|------|----------------|
-| 0 | Struggling | –20% enemy stats, more Rest nodes, subtle hints |
-| 1–2 | Learning | Standard difficulty, minor adjustments |
-| 3–4 | Thriving | +15% enemy stats, advanced AI patterns |
-| 5 | Mastering | Max difficulty, complex mechanics, fewer safety nets |
+#### **Performance Inputs** *(applied before tier multipliers)*
+1. **Health Retention** (percentage of max HP at combat end)
+   - 90–100%: +0.35
+   - 70–89%: +0.15
+   - 50–69%: 0
+   - 30–49%: –0.2
+   - <30%: –0.4
+   - Perfect combat (no damage taken): +0.25 bonus
+2. **Combat Efficiency** – tier-specific expected turn counts; efficient clears grant +0.2, inefficient clears incur –0.2.
+3. **Damage Efficiency** – compare player damage-per-turn to expectation; ≥30% above grants +0.2, ≤30% below incurs –0.15.
+4. **Hand Quality** – Straight or better +0.1; Four of a Kind or better +0.25.
+5. **Resource Management** – using ≤30% of available discard charges grants +0.15.
+6. **Clutch Performance** – up to +0.2 bonus when starting combat below 50% HP and still performing well.
+7. **Comeback Momentum** – when PPS < 1.5 and trend is positive: +0.3 base bonus plus +0.15 per consecutive strong victory (cap +0.45).
 
-#### **Adjustments**
-- Enemy HP/DMG scaling (±25%)
-- Shop prices and gold tuning
-- Map generation bias (e.g., more Rest nodes if PPS low)
-- **Narrative framing**: In-world events reflect difficulty changes.
+#### **Tier Multipliers**
+- Struggling: bonuses ×1.5, penalties ×0.5
+- Learning: bonuses ×1.0, penalties ×1.0
+- Thriving: bonuses ×0.8, penalties ×1.2
+- Mastering: bonuses ×0.5, penalties ×1.5
+
+#### **Difficulty Bands & Responses**
+| Tier | Player State | Game Response |
+|------|--------------|----------------|
+| 0 | Struggling | −20% enemy HP/DMG, increased Rest node weighting, subtle assistance cues |
+| 1–2 | Learning | Baseline experience with mild smoothing of extremes |
+| 3–4 | Thriving | +15% enemy HP/DMG, access to advanced behaviors/patterns |
+| 5 | Mastering | Maximum challenge, minimal safety nets, complex enemy scripting |
+
+#### **Adaptive Outputs**
+- Enemy stats scaling (±20%), economic tuning, and procedural node bias (e.g., Rest nodes when PPS is low).
+- Narrative framing communicates the realm’s reaction to the player's skill.
+- `DDAAnalyticsManager` logs sessions, PPS history, difficulty changes, and win-rate target band status for thesis validation.
 
 ---
 

@@ -1,35 +1,133 @@
-// Simple test to verify Ace card handling in straights
-// This is a conceptual test - in a real environment we would run this with a test runner
+import { HandEvaluator } from "./HandEvaluator";
+import { PlayingCard } from "../core/types/CombatTypes";
 
-console.log("=== Ace Card Handling Test ===");
+describe("HandEvaluator", () => {
+	let idCounter = 0;
 
-// Test cases that would verify our implementation:
+	afterEach(() => {
+		idCounter = 0;
+	});
 
-console.log("1. Low Straight (A-2-3-4-5): Should be detected as a straight");
-console.log("   - Ace treated as rank 1");
-console.log("   - Values: [1,2,3,4,5] -> consecutive");
+	it("detects a straight when Ace acts as the lowest card", () => {
+			const hand = createHand([
+				{ rank: "1", suit: "Apoy" },
+				{ rank: "2", suit: "Tubig" },
+				{ rank: "3", suit: "Lupa" },
+				{ rank: "4", suit: "Hangin" },
+				{ rank: "5", suit: "Apoy" },
+		]);
 
-console.log("\n2. High Straight (10-J-Q-K-A): Should be detected as a straight");
-console.log("   - Ace treated as rank 14");
-console.log("   - Values: [10,11,12,13,14] -> consecutive");
+		const result = HandEvaluator.evaluateHand(hand, "attack");
 
-console.log("\n3. Royal Flush (A-10-J-Q-K of same suit): Should be detected as royal flush");
-console.log("   - Contains all required ranks: A,10,J,Q,K");
-console.log("   - All same suit -> flush");
-console.log("   - Consecutive when Ace is high -> straight");
+		expect(result.type).toBe("straight");
+		expect(result.baseValue).toBeGreaterThan(0);
+	});
 
-console.log("\n4. Invalid Straight (A-3-4-5-6): Should NOT be detected as a straight");
-console.log("   - Neither Ace as 1 nor Ace as 14 produces consecutive values");
-console.log("   - With Ace=1: [1,3,4,5,6] -> not consecutive (missing 2)");
-console.log("   - With Ace=14: [3,4,5,6,14] -> not consecutive (gap after 6)");
+	it("detects a straight when Ace acts as the highest card", () => {
+			const hand = createHand([
+				{ rank: "10", suit: "Apoy" },
+				{ rank: "Mandirigma", suit: "Tubig" },
+				{ rank: "Babaylan", suit: "Lupa" },
+				{ rank: "Datu", suit: "Hangin" },
+				{ rank: "1", suit: "Apoy" },
+		]);
 
-console.log("\n5. Wraparound Invalid (K-A-2): Should NOT be detected as a straight");
-console.log("   - Ace cannot be both high and low in the same hand");
-console.log("   - With Ace=1: [1,2,13] -> not consecutive");
-console.log("   - With Ace=14: [2,13,14] -> not consecutive");
+		const result = HandEvaluator.evaluateHand(hand, "attack");
 
-console.log("\n=== Implementation Notes ===");
-console.log("- Ace can be either low (1) OR high (14) but NOT both");
-console.log("- Royal flush is specifically A,10,J,Q,K of the same suit");
-console.log("- Straight flush is any consecutive 5 cards of the same suit");
-console.log("- Our implementation correctly handles both Ace positions");
+		expect(result.type).toBe("straight");
+	});
+
+	it("identifies a royal flush when Ace high straight and flush align", () => {
+		const hand = createHand([
+			{ rank: "10", suit: "Apoy" },
+			{ rank: "Mandirigma", suit: "Apoy" },
+			{ rank: "Babaylan", suit: "Apoy" },
+			{ rank: "Datu", suit: "Apoy" },
+			{ rank: "1", suit: "Apoy" },
+		]);
+
+		const result = HandEvaluator.evaluateHand(hand, "special");
+
+		expect(result.type).toBe("royal_flush");
+		expect(result.baseValue).toBe(15);
+		expect(result.description).toContain("Royal Flush");
+	});
+
+	it("does not treat non-consecutive Ace hands as straights", () => {
+			const hand = createHand([
+				{ rank: "1", suit: "Apoy" },
+				{ rank: "3", suit: "Tubig" },
+				{ rank: "4", suit: "Lupa" },
+				{ rank: "5", suit: "Hangin" },
+				{ rank: "6", suit: "Apoy" },
+		]);
+
+		const result = HandEvaluator.evaluateHand(hand, "attack");
+
+		expect(result.type).toBe("high_card");
+	});
+
+	it("upgrades the evaluated hand when Babaylan's Talisman is owned", () => {
+		const player = createPlayerWithRelics(["babaylans_talisman"]);
+			const hand = createHand([
+				{ rank: "4", suit: "Apoy" },
+				{ rank: "4", suit: "Tubig" },
+				{ rank: "8", suit: "Lupa" },
+				{ rank: "9", suit: "Hangin" },
+				{ rank: "10", suit: "Apoy" },
+		]);
+
+		const result = HandEvaluator.evaluateHand(hand, "defend", player);
+
+		expect(result.type).toBe("two_pair");
+	});
+
+	it("recognises five of a kind only when Echo of the Ancestors is equipped", () => {
+		const cards = createHand([
+			{ rank: "7" },
+			{ rank: "7" },
+			{ rank: "7" },
+			{ rank: "7" },
+			{ rank: "7" },
+		]);
+
+		const withoutRelic = HandEvaluator.evaluateHand(cards, "attack");
+		const withRelic = HandEvaluator.evaluateHand(
+			cards,
+			"attack",
+			createPlayerWithRelics(["echo_ancestors"])
+		);
+
+		expect(withoutRelic.type).toBe("four_of_a_kind");
+		expect(withRelic.type).toBe("five_of_a_kind");
+	});
+
+	it("returns zero values when evaluating an empty hand", () => {
+		const result = HandEvaluator.evaluateHand([], "attack");
+
+		expect(result.type).toBe("high_card");
+		expect(result.baseValue).toBe(0);
+		expect(result.totalValue).toBe(0);
+	});
+
+	function createHand(
+		cards: Array<Partial<PlayingCard> & { rank: PlayingCard["rank"] }>
+	): PlayingCard[] {
+		return cards.map((card) => ({
+			id: `card-${idCounter++}`,
+			rank: card.rank,
+			suit: card.suit ?? "Apoy",
+			element: card.element ?? "fire",
+			selected: false,
+			playable: true,
+		}));
+	}
+
+	function createPlayerWithRelics(relicIds: string[]): {
+		relics: Array<{ id: string }>;
+	} {
+		return {
+			relics: relicIds.map((id) => ({ id })),
+		};
+	}
+});
