@@ -3,30 +3,34 @@ import { Enemy } from "../../core/types/CombatTypes";
 /**
  * Act 1 Enemies - The Corrupted Ancestral Forests
  * Based on Filipino mythology creatures from the GDD
+ * 
+ * BALANCE UPDATE: Enemy stats scaled for new Balatro-inspired damage system
+ * - Health multiplied by 5× for common enemies, 4× for elites/boss
+ * - Damage multiplied by 3× to maintain challenge
  */
 
 // Common Enemies
 export const TIKBALANG_SCOUT: Omit<Enemy, "id"> = {
   name: "Tikbalang Scout",
-  maxHealth: 28,
-  currentHealth: 28,
+  maxHealth: 140,        // Was 28, now 28 × 5 = 140
+  currentHealth: 140,
   block: 0,
   statusEffects: [],
   intent: {
     type: "attack",
-    value: 7,
+    value: 21,           // Was 7, now 7 × 3 = 21
     description: "Confuses targeting",
     icon: "†",
   },
-  damage: 7,
+  damage: 21,
   attackPattern: ["attack", "confuse", "attack"],
   currentPatternIndex: 0,
 };
 
 export const BALETE_WRAITH: Omit<Enemy, "id"> = {
   name: "Balete Wraith",
-  maxHealth: 22,
-  currentHealth: 22,
+  maxHealth: 110,        // Was 22, now 22 × 5 = 110
+  currentHealth: 110,
   block: 0,
   statusEffects: [
     {
@@ -41,36 +45,36 @@ export const BALETE_WRAITH: Omit<Enemy, "id"> = {
   ],
   intent: {
     type: "attack",
-    value: 5,
+    value: 15,           // Was 5, now 5 × 3 = 15
     description: "Gains Strength",
     icon: "†",
   },
-  damage: 5,
+  damage: 15,
   attackPattern: ["attack", "strengthen", "attack"],
   currentPatternIndex: 0,
 };
 
 export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
   name: "Sigbin Charger",
-  maxHealth: 35,
-  currentHealth: 35,
+  maxHealth: 175,        // Was 35, now 35 × 5 = 175
+  currentHealth: 175,
   block: 0,
   statusEffects: [],
   intent: {
     type: "attack",
-    value: 10,
+    value: 30,           // Was 10, now 10 × 3 = 30
     description: "Burst every 3 turns",
     icon: "†",
   },
-  damage: 10,
+  damage: 30,
   attackPattern: ["charge", "attack", "wait"],
   currentPatternIndex: 0,
 };
 
 export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
   name: "Duwende Trickster",
-  maxHealth: 18,
-  currentHealth: 18,
+  maxHealth: 90,         // Was 18, now 18 × 5 = 90
+  currentHealth: 90,
   block: 0,
   statusEffects: [],
   intent: {
@@ -79,49 +83,49 @@ export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
     description: "Disrupts draw, steals block",
     icon: "†",
   },
-  damage: 4,
+  damage: 12,            // Was 4, now 4 × 3 = 12
   attackPattern: ["steal_block", "disrupt_draw", "attack"],
   currentPatternIndex: 0,
 };
 
 export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
   name: "Tiyanak Ambusher",
-  maxHealth: 25,
-  currentHealth: 25,
+  maxHealth: 125,        // Was 25, now 25 × 5 = 125
+  currentHealth: 125,
   block: 0,
   statusEffects: [],
   intent: {
     type: "attack",
-    value: 6,
+    value: 18,           // Was 6, now 6 × 3 = 18
     description: "Criticals, Fear",
     icon: "†",
   },
-  damage: 6,
+  damage: 18,
   attackPattern: ["fear", "critical_attack", "attack"],
   currentPatternIndex: 0,
 };
 
 export const AMOMONGO: Omit<Enemy, "id"> = {
   name: "Amomongo",
-  maxHealth: 24,
-  currentHealth: 24,
+  maxHealth: 120,        // Was 24, now 24 × 5 = 120
+  currentHealth: 120,
   block: 0,
   statusEffects: [],
   intent: {
     type: "attack",
-    value: 5,
+    value: 15,           // Was 5, now 5 × 3 = 15
     description: "Claws bleed, fast attacks",
     icon: "†",
   },
-  damage: 5,
+  damage: 15,
   attackPattern: ["bleed_attack", "fast_attack", "attack"],
   currentPatternIndex: 0,
 };
 
 export const BUNGISNGIS: Omit<Enemy, "id"> = {
   name: "Bungisngis",
-  maxHealth: 30,
-  currentHealth: 30,
+  maxHealth: 150,        // Was 30, now 30 × 5 = 150
+  currentHealth: 150,
   block: 0,
   statusEffects: [],
   intent: {
@@ -130,7 +134,7 @@ export const BUNGISNGIS: Omit<Enemy, "id"> = {
     description: "Laugh debuff, high swings",
     icon: "†",
   },
-  damage: 12,
+  damage: 36,            // Was 12, now 12 × 3 = 36
   attackPattern: ["laugh_debuff", "high_swing", "attack"],
   currentPatternIndex: 0,
 };
@@ -138,25 +142,25 @@ export const BUNGISNGIS: Omit<Enemy, "id"> = {
 // Elite Enemies
 export const KAPRE_SHADE: Omit<Enemy, "id"> = {
   name: "Kapre Shade",
-  maxHealth: 65,
-  currentHealth: 65,
+  maxHealth: 260,        // Was 65, now 65 × 4 = 260
+  currentHealth: 260,
   block: 0,
   statusEffects: [],
   intent: {
     type: "attack",
-    value: 12,
+    value: 36,           // Was 12, now 12 × 3 = 36
     description: "AoE Burn, minions",
     icon: "†",
   },
-  damage: 12,
+  damage: 36,
   attackPattern: ["burn_aoe", "summon_minion", "attack"],
   currentPatternIndex: 0,
 };
 
 export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
   name: "Tawong Lipod",
-  maxHealth: 60,
-  currentHealth: 60,
+  maxHealth: 240,        // Was 60, now 60 × 4 = 240
+  currentHealth: 240,
   block: 0,
   statusEffects: [
     {
@@ -171,11 +175,11 @@ export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
   ],
   intent: {
     type: "attack",
-    value: 10,
+    value: 30,           // Was 10, now 10 × 3 = 30
     description: "Invisible stuns, Air benefits",
     icon: "†",
   },
-  damage: 10,
+  damage: 30,
   attackPattern: ["stun", "air_attack", "attack"],
   currentPatternIndex: 0,
 };
@@ -183,8 +187,8 @@ export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
 // Boss
 export const MANGNANGAWAY: Omit<Enemy, "id"> = {
   name: "Mangangaway",
-  maxHealth: 120,
-  currentHealth: 120,
+  maxHealth: 480,        // Was 120, now 120 × 4 = 480
+  currentHealth: 480,
   block: 0,
   statusEffects: [],
   intent: {
@@ -193,7 +197,7 @@ export const MANGNANGAWAY: Omit<Enemy, "id"> = {
     description: "Mimics elements, curses cards, Hex of Reversal",
     icon: "†",
   },
-  damage: 15,
+  damage: 45,            // Was 15, now 15 × 3 = 45
   attackPattern: ["mimic_element", "curse_cards", "hex_of_reversal", "attack"],
   currentPatternIndex: 0,
 };

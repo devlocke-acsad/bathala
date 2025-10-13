@@ -264,8 +264,8 @@ export class Combat extends Scene {
       player = {
         id: existingPlayerData.id || "player",
         name: existingPlayerData.name || "Hero",
-        maxHealth: existingPlayerData.maxHealth || 80,
-        currentHealth: existingPlayerData.currentHealth || 80,
+        maxHealth: existingPlayerData.maxHealth || 160,      // Increased from 80 to 160 for new damage system
+        currentHealth: existingPlayerData.currentHealth || 160,
         block: 0, // Always reset block at start of combat
         statusEffects: [], // Always reset status effects at start of combat
         hand: [], // Will be populated below
@@ -307,8 +307,8 @@ export class Combat extends Scene {
       player = {
         id: "player",
         name: "Hero",
-        maxHealth: 80,
-        currentHealth: 80,
+        maxHealth: 160,      // Increased from 80 to 160 for new damage system
+        currentHealth: 160,
         block: 0,
         statusEffects: [],
         hand: [],
@@ -2111,22 +2111,18 @@ export class Combat extends Scene {
     let damage = 0;
     let block = 0;
 
-    // Apply hand bonus
-    let originalDamage = evaluation.totalValue;
-    let originalBlock = evaluation.totalValue;
+    // New damage calculation is already done in evaluation
+    // evaluation.totalValue now contains the final calculated damage
     
     // Track relic bonuses for detailed display
     const relicBonuses: {name: string, amount: number}[] = [];
     
     switch (actionType) {
       case "attack":
-        damage += evaluation.totalValue;
-        const strength = this.combatState.player.statusEffects.find((e) => e.name === "Strength");
-        if (strength) {
-          damage += strength.value;
-          console.log(`Strength bonus applied: +${strength.value} damage`);
-        }
+        damage = evaluation.totalValue;
+        
         // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
+        // This is added as a flat bonus AFTER the main calculation
         const sigbinHeartDamage = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
         if (sigbinHeartDamage > 0) {
           damage += sigbinHeartDamage;
@@ -2134,17 +2130,17 @@ export class Combat extends Scene {
         }
         console.log(`Total attack damage: ${damage}`);
         
-        // Show detailed damage calculation
-        this.showDamageCalculation(originalDamage, strength?.value || 0, relicBonuses);
+        // Show detailed damage calculation with breakdown
+        if (evaluation.breakdown) {
+          console.log('Damage breakdown:', evaluation.breakdown.join(' → '));
+        }
+        this.showDamageCalculation(evaluation.baseValue, 0, relicBonuses);
         break;
       case "defend":
-        block += evaluation.totalValue;
-        const dexterity = this.combatState.player.statusEffects.find((e) => e.name === "Dexterity");
-        if (dexterity) {
-          block += dexterity.value;
-          console.log(`Dexterity bonus applied: +${dexterity.value} block`);
-        }
+        block = evaluation.totalValue;
+        
         // Apply "Balete Root" effect: +2 block per Lupa card
+        // This is added as a flat bonus AFTER the main calculation
         const baleteRootBonus = RelicManager.calculateBaleteRootBlock(this.combatState.player, this.combatState.player.playedHand);
         if (baleteRootBonus > 0) {
           block += baleteRootBonus;
@@ -2152,8 +2148,11 @@ export class Combat extends Scene {
         }
         console.log(`Total block gained: ${block}`);
         
-        // Show detailed block calculation
-        this.showBlockCalculation(originalBlock, dexterity?.value || 0, relicBonuses);
+        // Show detailed block calculation with breakdown
+        if (evaluation.breakdown) {
+          console.log('Block breakdown:', evaluation.breakdown.join(' → '));
+        }
+        this.showBlockCalculation(evaluation.baseValue, 0, relicBonuses);
         break;
       case "special":
         // Start cinematic special action animation
@@ -2922,13 +2921,10 @@ export class Combat extends Scene {
     );
 
     let damage = evaluation.totalValue;
-    const strength = this.combatState.player.statusEffects.find((e) => e.name === "Strength");
-    if (strength) {
-      damage += strength.value;
-    }
 
     // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
-    damage += RelicManager.calculateSigbinHeartDamage(this.combatState.player);
+    const sigbinBonus = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
+    damage += sigbinBonus;
 
     // Apply vulnerable effect if enemy has it
     let vulnerableBonus = 0;
@@ -2946,19 +2942,22 @@ export class Combat extends Scene {
       bakunawaBonus = 5;
     }
 
-    // Format the damage display with relic bonuses
-    let damageText = `DMG: ${evaluation.totalValue}`;
-    if (strength && strength.value > 0) {
-      damageText += ` + ${strength.value} (Str)`;
+    // Format the damage display with new calculation system
+    let damageText = `DMG: ${evaluation.baseValue} (cards)`;
+    if (evaluation.handBonus > 0) {
+      damageText += ` +${evaluation.handBonus}`;
     }
-    if (RelicManager.calculateSigbinHeartDamage(this.combatState.player) > 0) {
-      damageText += ` + ${RelicManager.calculateSigbinHeartDamage(this.combatState.player)} (Sigbin)`;
+    if (evaluation.handMultiplier > 1) {
+      damageText += ` ×${evaluation.handMultiplier}`;
+    }
+    if (sigbinBonus > 0) {
+      damageText += ` +${sigbinBonus} (Sigbin)`;
     }
     if (vulnerableBonus > 0) {
-      damageText += ` + ${vulnerableBonus} (Vuln)`;
+      damageText += ` +${Math.floor(vulnerableBonus)} (Vuln)`;
     }
     if (bakunawaBonus > 0) {
-      damageText += ` + ${bakunawaBonus} (Bakunawa)`;
+      damageText += ` +${bakunawaBonus} (Bakunawa)`;
     }
     damageText += ` = ${Math.floor(damage)}`;
 

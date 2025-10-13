@@ -46,10 +46,13 @@ export type HandType =
 
 export interface HandEvaluation {
   type: HandType;
-  baseValue: number;
-  elementalBonus: number;
-  totalValue: number;
+  baseValue: number;           // Sum of card values
+  handBonus: number;            // Bonus from hand type
+  handMultiplier: number;       // Multiplier from hand type
+  elementalBonus: number;       // Legacy, kept for compatibility
+  totalValue: number;           // Final calculated value
   description: string;
+  breakdown?: string[];         // Optional breakdown for display
 }
 
 export interface CombatEntity {
