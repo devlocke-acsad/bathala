@@ -14,8 +14,8 @@ import { Enemy } from "../../core/types/CombatTypes";
 // Common Enemies
 export const TIKBALANG_SCOUT: Omit<Enemy, "id"> = {
   name: "Tikbalang Scout",
-  maxHealth: 260,        // Rebalanced: reduced from 350
-  currentHealth: 260,
+  maxHealth: 180,        // Further reduced for better balance
+  currentHealth: 180,
   block: 0,
   statusEffects: [],
   intent: {
@@ -31,8 +31,8 @@ export const TIKBALANG_SCOUT: Omit<Enemy, "id"> = {
 
 export const BALETE_WRAITH: Omit<Enemy, "id"> = {
   name: "Balete Wraith",
-  maxHealth: 210,        // Rebalanced: reduced from 280
-  currentHealth: 210,
+  maxHealth: 150,        // Further reduced for better balance
+  currentHealth: 150,
   block: 0,
   statusEffects: [
     {
@@ -58,8 +58,8 @@ export const BALETE_WRAITH: Omit<Enemy, "id"> = {
 
 export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
   name: "Sigbin Charger",
-  maxHealth: 320,        // Rebalanced: reduced from 420
-  currentHealth: 320,
+  maxHealth: 220,        // Further reduced for better balance
+  currentHealth: 220,
   block: 0,
   statusEffects: [],
   intent: {
@@ -75,8 +75,8 @@ export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
 
 export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
   name: "Duwende Trickster",
-  maxHealth: 180,        // Rebalanced: reduced from 240
-  currentHealth: 180,
+  maxHealth: 130,        // Further reduced for better balance
+  currentHealth: 130,
   block: 0,
   statusEffects: [],
   intent: {
@@ -92,8 +92,8 @@ export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
 
 export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
   name: "Tiyanak Ambusher",
-  maxHealth: 240,        // Rebalanced: reduced from 320
-  currentHealth: 240,
+  maxHealth: 170,        // Further reduced for better balance
+  currentHealth: 170,
   block: 0,
   statusEffects: [],
   intent: {
@@ -109,8 +109,8 @@ export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
 
 export const AMOMONGO: Omit<Enemy, "id"> = {
   name: "Amomongo",
-  maxHealth: 230,        // Rebalanced: reduced from 310
-  currentHealth: 230,
+  maxHealth: 160,        // Further reduced for better balance
+  currentHealth: 160,
   block: 0,
   statusEffects: [],
   intent: {
@@ -126,8 +126,8 @@ export const AMOMONGO: Omit<Enemy, "id"> = {
 
 export const BUNGISNGIS: Omit<Enemy, "id"> = {
   name: "Bungisngis",
-  maxHealth: 290,        // Rebalanced: reduced from 380
-  currentHealth: 290,
+  maxHealth: 200,        // Further reduced for better balance
+  currentHealth: 200,
   block: 0,
   statusEffects: [],
   intent: {
@@ -144,8 +144,8 @@ export const BUNGISNGIS: Omit<Enemy, "id"> = {
 // Elite Enemies
 export const KAPRE_SHADE: Omit<Enemy, "id"> = {
   name: "Kapre Shade",
-  maxHealth: 450,        // Elite enemy - rebalanced: reduced from 600
-  currentHealth: 450,
+  maxHealth: 320,        // Elite enemy - further reduced for better balance
+  currentHealth: 320,
   block: 0,
   statusEffects: [],
   intent: {
@@ -161,8 +161,8 @@ export const KAPRE_SHADE: Omit<Enemy, "id"> = {
 
 export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
   name: "Tawong Lipod",
-  maxHealth: 420,        // Elite enemy - rebalanced: reduced from 560
-  currentHealth: 420,
+  maxHealth: 300,        // Elite enemy - further reduced for better balance
+  currentHealth: 300,
   block: 0,
   statusEffects: [
     {
@@ -189,8 +189,8 @@ export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
 // Boss
 export const MANGNANGAWAY: Omit<Enemy, "id"> = {
   name: "Mangangaway",
-  maxHealth: 900,        // Boss enemy - rebalanced: reduced from 1200
-  currentHealth: 900,
+  maxHealth: 600,        // Boss enemy - further reduced for better balance
+  currentHealth: 600,
   block: 0,
   statusEffects: [],
   intent: {

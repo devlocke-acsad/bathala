@@ -938,7 +938,12 @@ export class CombatUI {
   public updatePlayerUI(): void {
     const combatState = this.scene.getCombatState();
     const player = combatState.player;
-    this.playerHealthText.setText(`♥ ${player.currentHealth}/${player.maxHealth}`);
+    
+    // Ensure health values are properly rounded and clamped
+    const currentHealth = Math.max(0, Math.floor(player.currentHealth));
+    const maxHealth = Math.max(1, Math.floor(player.maxHealth));
+    
+    this.playerHealthText.setText(`♥ ${currentHealth}/${maxHealth}`);
     this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
     
     // Update relic inventory to show current relics

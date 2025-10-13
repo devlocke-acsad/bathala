@@ -1248,7 +1248,8 @@ export class Combat extends Scene {
     const actualDamage = Math.max(0, finalDamage - this.combatState.player.block);
     console.log(`Player has ${this.combatState.player.block} block, taking ${actualDamage} actual damage`);
     
-    this.combatState.player.currentHealth -= actualDamage;
+    // Apply damage and clamp health to valid range
+    this.combatState.player.currentHealth = Math.max(0, Math.floor(this.combatState.player.currentHealth - actualDamage));
     this.combatState.player.block = Math.max(
       0,
       this.combatState.player.block - finalDamage
@@ -1892,10 +1893,16 @@ export class Combat extends Scene {
       // Save player state to GameState manager
       const gameState = GameState.getInstance();
       
+      // Ensure health values are properly rounded and clamped before saving
+      const currentHealth = Math.max(0, Math.floor(this.combatState.player.currentHealth));
+      const maxHealth = Math.max(1, Math.floor(this.combatState.player.maxHealth));
+      
+      console.log(`Saving player health: ${currentHealth}/${maxHealth}`);
+      
       // Update player data in GameState with complete state
       gameState.updatePlayerData({
-        currentHealth: this.combatState.player.currentHealth,
-        maxHealth: this.combatState.player.maxHealth,
+        currentHealth: currentHealth,
+        maxHealth: maxHealth,
         landasScore: this.combatState.player.landasScore,
         ginto: this.combatState.player.ginto,
         diamante: this.combatState.player.diamante,
