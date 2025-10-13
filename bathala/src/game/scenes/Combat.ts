@@ -1067,7 +1067,11 @@ export class Combat extends Scene {
     this.applyStatusEffects(this.combatState.player);
 
     this.combatState.phase = "player_turn";
-    this.combatState.turn++;
+    
+    // Only increment turn after the first turn (turn starts at 1)
+    if (this.turnCount > 0) {
+      this.combatState.turn++;
+    }
     this.turnCount++; // Track total turns for DDA
     
     // Update DDA debug overlay with current turn count
