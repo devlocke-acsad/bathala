@@ -163,7 +163,37 @@ export class Overworld_MazeGenManager {
     for (const [key, chunk] of this.visibleChunks) {
       const [chunkX, chunkY] = key.split(',').map(Number);
       if (chunkX < startX || chunkX > endX || chunkY < startY || chunkY > endY) {
+        // Clean up graphics
         chunk.graphics.destroy();
+        
+        // Clean up node sprites from this chunk
+        const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
+        const chunkStartX = chunkX * chunkSizePixels;
+        const chunkEndX = (chunkX + 1) * chunkSizePixels;
+        const chunkStartY = chunkY * chunkSizePixels;
+        const chunkEndY = (chunkY + 1) * chunkSizePixels;
+        
+        // Find and remove nodes that belong to this chunk
+        const nodesToRemove = this.nodes.filter(node => 
+          node.x >= chunkStartX && node.x < chunkEndX &&
+          node.y >= chunkStartY && node.y < chunkEndY
+        );
+        
+        // Clean up sprites for nodes in this chunk
+        nodesToRemove.forEach(node => {
+          const sprite = this.nodeSprites.get(node.id);
+          if (sprite) {
+            sprite.destroy();
+            this.nodeSprites.delete(node.id);
+          }
+        });
+        
+        // Remove nodes from the main array
+        this.nodes = this.nodes.filter(node => 
+          !(node.x >= chunkStartX && node.x < chunkEndX &&
+            node.y >= chunkStartY && node.y < chunkEndY)
+        );
+        
         this.visibleChunks.delete(key);
       }
     }
@@ -180,9 +210,24 @@ export class Overworld_MazeGenManager {
           // Add nodes from this chunk
           chunk.nodes.forEach(node => {
             // Check if node already exists to avoid duplicates
-            if (!this.nodes.some(n => n.id === node.id)) {
+            const existingNodeIndex = this.nodes.findIndex(n => n.id === node.id);
+            if (existingNodeIndex === -1) {
+              // Node doesn't exist, add it
               this.nodes.push(node);
               // Node rendering will be handled by caller passing in render callback
+            } else {
+              // Node exists but might have moved, update its position
+              this.nodes[existingNodeIndex].x = node.x;
+              this.nodes[existingNodeIndex].y = node.y;
+              
+              // Update sprite position if it exists
+              const sprite = this.nodeSprites.get(node.id);
+              if (sprite) {
+                sprite.setPosition(
+                  node.x + this.gridSize / 2,
+                  node.y + this.gridSize / 2
+                );
+              }
             }
           });
         }
