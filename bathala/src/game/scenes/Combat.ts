@@ -2144,7 +2144,7 @@ export class Combat extends Scene {
         if (evaluation.breakdown) {
           console.log('Damage breakdown:', evaluation.breakdown.join(' → '));
         }
-        this.showDamageCalculation(evaluation.baseValue, 0, relicBonuses);
+        // Removed showDamageCalculation - duplicate display
         break;
       case "defend":
         block = evaluation.totalValue;
@@ -2162,7 +2162,7 @@ export class Combat extends Scene {
         if (evaluation.breakdown) {
           console.log('Block breakdown:', evaluation.breakdown.join(' → '));
         }
-        this.showBlockCalculation(evaluation.baseValue, 0, relicBonuses);
+        // Removed showBlockCalculation - duplicate display
         break;
       case "special":
         // Mark special as used
@@ -2581,9 +2581,7 @@ export class Combat extends Scene {
         fontFamily: "dungeon-mode",
         fontSize: 36,
         color: handColor,
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 4
+        align: "center"
       }
     ).setOrigin(0.5).setAlpha(0).setScale(0.8).setDepth(1000);
     
@@ -2692,9 +2690,7 @@ export class Combat extends Scene {
       { 
         fontFamily: 'dungeon-mode', 
         fontSize: 48, 
-        color: '#ff6b6b', // Use Prologue's damage color scheme
-        stroke: '#000000',
-        strokeThickness: 2
+        color: '#ff6b6b'
       }
     ).setOrigin(0.5);
     
@@ -2720,200 +2716,6 @@ export class Combat extends Scene {
     
     // Camera shake like in Prologue
     this.cameras.main.shake(100, 0.01);
-  }
-  
-  /** Show detailed damage calculation including relic bonuses */
-  private showDamageCalculation(baseDamage: number, strengthBonus: number, relicBonuses: {name: string, amount: number}[]): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create container for damage calculation with Prologue styling
-    const calculationContainer = this.add.container(screenWidth / 2, screenHeight * 0.25);
-    
-    // Double border design like Prologue
-    const containerWidth = 400;
-    const containerHeight = 120;
-    
-    const outerBorder = this.add.rectangle(0, 0, containerWidth + 8, containerHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const innerBorder = this.add.rectangle(0, 0, containerWidth, containerHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const bg = this.add.rectangle(0, 0, containerWidth, containerHeight, 0x150E10);
-    
-    let yOffset = -30;
-    
-    // Main damage line
-    let damageText = `Base Damage: ${baseDamage}`;
-    const baseDamageDisplay = this.add.text(0, yOffset, damageText, {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#77888C",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    yOffset += 20;
-    
-    // Bonuses
-    if (strengthBonus > 0) {
-      const strengthDisplay = this.add.text(0, yOffset, `+ ${strengthBonus} (Strength)`, {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#4ecdc4",
-        align: "center"
-      }).setOrigin(0.5);
-      calculationContainer.add(strengthDisplay);
-      yOffset += 18;
-    }
-    
-    for (const relicBonus of relicBonuses) {
-      if (relicBonus.amount > 0) {
-        const relicDisplay = this.add.text(0, yOffset, `+ ${relicBonus.amount} (${relicBonus.name})`, {
-          fontFamily: "dungeon-mode",
-          fontSize: 16,
-          color: "#ff6b6b",
-          align: "center"
-        }).setOrigin(0.5);
-        calculationContainer.add(relicDisplay);
-        yOffset += 18;
-      }
-    }
-    
-    // Total
-    const totalDamage = baseDamage + strengthBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
-    const totalDisplay = this.add.text(0, yOffset, `Total: ${totalDamage}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#e8eced",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    calculationContainer.add([outerBorder, innerBorder, bg, baseDamageDisplay, totalDisplay]);
-    
-    // Fade in animation
-    calculationContainer.setAlpha(0);
-    this.tweens.add({
-      targets: calculationContainer,
-      alpha: 1,
-      duration: 400,
-      ease: 'Power2',
-      onComplete: () => {
-        // Auto-hide after 2 seconds
-        this.time.delayedCall(2000, () => {
-          this.tweens.add({
-            targets: calculationContainer,
-            alpha: 0,
-            duration: 400,
-            ease: 'Power2',
-            onComplete: () => {
-              calculationContainer.destroy();
-            }
-          });
-        });
-      }
-    });
-  }
-  
-  /** Show detailed block calculation including relic bonuses */
-  private showBlockCalculation(baseBlock: number, dexterityBonus: number, relicBonuses: {name: string, amount: number}[]): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create container for block calculation with Prologue styling
-    const calculationContainer = this.add.container(screenWidth / 2, screenHeight * 0.25);
-    
-    // Double border design like Prologue
-    const containerWidth = 400;
-    const containerHeight = 120;
-    
-    const outerBorder = this.add.rectangle(0, 0, containerWidth + 8, containerHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const innerBorder = this.add.rectangle(0, 0, containerWidth, containerHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const bg = this.add.rectangle(0, 0, containerWidth, containerHeight, 0x150E10);
-    
-    let yOffset = -30;
-    
-    // Main block line
-    let blockText = `Base Block: ${baseBlock}`;
-    const baseBlockDisplay = this.add.text(0, yOffset, blockText, {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#77888C",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    yOffset += 20;
-    
-    // Bonuses
-    if (dexterityBonus > 0) {
-      const dexterityDisplay = this.add.text(0, yOffset, `+ ${dexterityBonus} (Dexterity)`, {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#4ecdc4",
-        align: "center"
-      }).setOrigin(0.5);
-      calculationContainer.add(dexterityDisplay);
-      yOffset += 18;
-    }
-    
-    for (const relicBonus of relicBonuses) {
-      if (relicBonus.amount > 0) {
-        const relicDisplay = this.add.text(0, yOffset, `+ ${relicBonus.amount} (${relicBonus.name})`, {
-          fontFamily: "dungeon-mode",
-          fontSize: 16,
-          color: "#4ecdc4",
-          align: "center"
-        }).setOrigin(0.5);
-        calculationContainer.add(relicDisplay);
-        yOffset += 18;
-      }
-    }
-    
-    // Total
-    const totalBlock = baseBlock + dexterityBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
-    const totalDisplay = this.add.text(0, yOffset, `Total: ${totalBlock}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#e8eced",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    calculationContainer.add([outerBorder, innerBorder, bg, baseBlockDisplay, totalDisplay]);
-    
-    // Fade in animation
-    calculationContainer.setAlpha(0);
-    this.tweens.add({
-      targets: calculationContainer,
-      alpha: 1,
-      duration: 400,
-      ease: 'Power2',
-      onComplete: () => {
-        // Auto-hide after 2 seconds
-        this.time.delayedCall(2000, () => {
-          this.tweens.add({
-            targets: calculationContainer,
-            alpha: 0,
-            duration: 400,
-            ease: 'Power2',
-            onComplete: () => {
-              calculationContainer.destroy();
-            }
-          });
-        });
-      }
-    });
-  }
-  
-  /** Create simple damage preview display */
-  private createDamagePreview(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create damage preview text positioned near action buttons
-    this.damagePreviewText = this.add.text(screenWidth/2, screenHeight - 150, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#ff6b6b",
-      align: "center",
-      backgroundColor: "#000000",
-      padding: { x: 10, y: 5 }
-    }).setOrigin(0.5).setVisible(false);
   }
   
   /** Update damage preview with calculated damage - kept for style reference */
