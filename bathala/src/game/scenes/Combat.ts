@@ -22,6 +22,7 @@ import {
 } from "../../data/enemies/Act1Enemies";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 import { RelicManager } from "../../core/managers/RelicManager";
+import { commonRelics, eliteRelics, bossRelics } from "../../data/relics/Act1Relics";
 import { EnemyDialogueManager } from "../managers/EnemyDialogueManager";
 import { EnemyLoreUI } from "../managers/EnemyLoreUI";
 import { CombatUI } from "./combat/CombatUI";
@@ -320,12 +321,10 @@ export class Combat extends Scene {
         ginto: 100,
         diamante: 0,
         relics: [
-          {
-            id: "placeholder_relic",
-            name: "Placeholder Relic",
-            description: "This is a placeholder relic.",
-            emoji: "",
-          },
+          commonRelics[0], // Earthwarden's Plate
+          commonRelics[1], // Agimat of the Swift Wind
+          eliteRelics[0],  // Babaylan's Talisman
+          bossRelics[0],   // Echo of the Ancestors
         ],
         potions: [
           // Add some test potions to showcase the new inventory UI
@@ -338,8 +337,10 @@ export class Combat extends Scene {
       };
     }
 
-    // Draw initial hand (8 cards)
-    const { drawnCards, remainingDeck } = DeckManager.drawCards(player.drawPile, 8);
+    // Draw initial hand (8 cards + relic bonuses)
+    const baseHandSize = 8;
+    const modifiedHandSize = RelicManager.calculateInitialHandSize(baseHandSize, player);
+    const { drawnCards, remainingDeck } = DeckManager.drawCards(player.drawPile, modifiedHandSize);
     player.hand = drawnCards;
     player.drawPile = remainingDeck;
 
@@ -1236,15 +1237,12 @@ export class Combat extends Scene {
       console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
     }
     
-    // Apply "Bakunawa Scale" effect: reduces all incoming damage by 1
-    const bakunawaScale = this.combatState.player.relics.find(r => r.id === "bakunawa_scale");
-    if (bakunawaScale) {
-      const reducedDamage = Math.max(0, finalDamage - 1);
-      console.log(`Bakunawa Scale reduced damage from ${finalDamage} to ${reducedDamage}`);
-      finalDamage = reducedDamage;
-      if (finalDamage < damage) {
-        this.showActionResult(`Bakunawa Scale reduced damage!`);
-      }
+    // Apply damage reduction from relics (Bakunawa Scale, etc.)
+    const originalDamage = finalDamage;
+    finalDamage = RelicManager.calculateDamageReduction(finalDamage, this.combatState.player);
+    if (finalDamage < originalDamage) {
+      console.log(`Damage reduced from ${originalDamage} to ${finalDamage} by relic effects`);
+      this.showActionResult(`Scale Protection!`);
     }
     
     const actualDamage = Math.max(0, finalDamage - this.combatState.player.block);

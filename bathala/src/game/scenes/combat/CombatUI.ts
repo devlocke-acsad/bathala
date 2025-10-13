@@ -524,21 +524,27 @@ export class CombatUI {
     this.relicInventory.setVisible(true);
     this.currentRelicTooltip = null;
     
+    console.log("Creating relic inventory container at:", screenWidth / 2, 60);
+    
     const inventoryWidth = 520;
     const inventoryHeight = 90;
     
-    // Prologue-style double border design (matching button style)
+    // Enhanced Prologue-style double border design with grid pattern
     const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
-    outerBorder.setStrokeStyle(3, 0x77888C); // Prologue outer border color
+    outerBorder.setStrokeStyle(3, 0x77888C, 0.9); // Enhanced visibility
     
     const innerBorder = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, undefined, 0);
-    innerBorder.setStrokeStyle(2, 0x77888C); // Prologue inner border color
+    innerBorder.setStrokeStyle(2, 0x77888C, 0.8); // Enhanced visibility
     
-    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x150E10); // Prologue background color
+    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x120C0E); // Slightly lighter background
     
-    // Create divider line between relics and potions (Prologue style)
+    // Create divider line between relics and potions with enhanced visibility
     const dividerX = 50; // Position of vertical divider
-    const dividerLine = this.scene.add.rectangle(dividerX, 0, 2, inventoryHeight - 10, 0x77888C, 0.5);
+    const dividerLine = this.scene.add.rectangle(dividerX, 0, 3, inventoryHeight - 10, 0x77888C, 0.7);
+    
+    // Add horizontal grid lines for better structure
+    const topGridLine = this.scene.add.rectangle(0, -inventoryHeight/2 + 25, inventoryWidth - 10, 1, 0x77888C, 0.3);
+    const bottomGridLine = this.scene.add.rectangle(0, inventoryHeight/2 - 10, inventoryWidth - 10, 1, 0x77888C, 0.3);
     
     // Title texts (Prologue style)
     const relicsTitle = this.scene.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
@@ -555,12 +561,20 @@ export class CombatUI {
       align: "left"
     }).setOrigin(0, 0.5);
     
-    // Create relic slots (6 slots in 1 row) - Prologue double border style
+    // Create relic slots (6 slots in 1 row) - Prologue double border style with grid background
     const relicSlotSize = 40;
     const relicSlotsCount = 6;
     const relicSlotSpacing = 50;
     const relicStartX = -inventoryWidth/2 + 60;
     const relicStartY = 15;
+    
+    // Create visible grid background for relic section
+    const relicGridWidth = (relicSlotsCount - 1) * relicSlotSpacing + relicSlotSize + 10;
+    const relicGridHeight = relicSlotSize + 10;
+    const relicGridCenterX = relicStartX + ((relicSlotsCount - 1) * relicSlotSpacing) / 2;
+    const relicGridBg = this.scene.add.rectangle(relicGridCenterX, relicStartY, relicGridWidth, relicGridHeight, 0x2a2030, 0.3);
+    relicGridBg.setStrokeStyle(1, 0x77888C, 0.5);
+    this.relicInventory.add(relicGridBg);
     
     for (let i = 0; i < relicSlotsCount; i++) {
       const slotX = relicStartX + i * relicSlotSpacing;
@@ -569,16 +583,24 @@ export class CombatUI {
       // Create slot container for double border effect
       const slotContainer = this.scene.add.container(slotX, slotY);
       
-      // Outer border (thicker)
+      // Outer border (thicker) - more visible
       const outerBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 4, relicSlotSize + 4, undefined, 0);
-      outerBorder.setStrokeStyle(2, 0x77888C);
+      outerBorder.setStrokeStyle(2, 0x77888C, 0.8);
       
-      // Inner border (thinner)
+      // Inner border (thinner) - more visible
       const innerBorder = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, undefined, 0);
-      innerBorder.setStrokeStyle(1, 0x77888C);
+      innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
       
-      // Background
-      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x150E10);
+      // Background - slightly lighter to contrast with grid
+      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x1a1520);
+      
+      // Add vertical grid lines between slots
+      if (i < relicSlotsCount - 1) {
+        const gridLineX = slotX + relicSlotSpacing / 2;
+        const gridLine = this.scene.add.line(0, 0, gridLineX - slotX, -relicGridHeight/2 + 2, gridLineX - slotX, relicGridHeight/2 - 2, 0x77888C, 0.3);
+        gridLine.setLineWidth(1);
+        slotContainer.add(gridLine);
+      }
       
       slotContainer.add([outerBorder, innerBorder, bg]);
       (slotContainer as any).isRelicSlot = true;
@@ -586,12 +608,20 @@ export class CombatUI {
       this.relicInventory.add(slotContainer);
     }
     
-    // Create potion slots (3 slots in 1 row) - Prologue double border style
+    // Create potion slots (3 slots in 1 row) - Prologue double border style with grid background
     const potionSlotSize = 40;
     const potionSlotsCount = 3;
     const potionSlotSpacing = 50;
     const potionStartX = dividerX + 80;
     const potionStartY = 15;
+    
+    // Create visible grid background for potion section
+    const potionGridWidth = (potionSlotsCount - 1) * potionSlotSpacing + potionSlotSize + 10;
+    const potionGridHeight = potionSlotSize + 10;
+    const potionGridCenterX = potionStartX + ((potionSlotsCount - 1) * potionSlotSpacing) / 2;
+    const potionGridBg = this.scene.add.rectangle(potionGridCenterX, potionStartY, potionGridWidth, potionGridHeight, 0x203020, 0.3);
+    potionGridBg.setStrokeStyle(1, 0x77888C, 0.5);
+    this.relicInventory.add(potionGridBg);
     
     for (let i = 0; i < potionSlotsCount; i++) {
       const slotX = potionStartX + i * potionSlotSpacing;
@@ -600,16 +630,24 @@ export class CombatUI {
       // Create slot container for double border effect
       const slotContainer = this.scene.add.container(slotX, slotY);
       
-      // Outer border (thicker)
+      // Outer border (thicker) - more visible
       const outerBorder = this.scene.add.rectangle(0, 0, potionSlotSize + 4, potionSlotSize + 4, undefined, 0);
-      outerBorder.setStrokeStyle(2, 0x77888C);
+      outerBorder.setStrokeStyle(2, 0x77888C, 0.8);
       
-      // Inner border (thinner)
+      // Inner border (thinner) - more visible
       const innerBorder = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, undefined, 0);
-      innerBorder.setStrokeStyle(1, 0x77888C);
+      innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
       
-      // Background
-      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x150E10);
+      // Background - slightly lighter with green tint for potions
+      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x151a15);
+      
+      // Add vertical grid lines between slots
+      if (i < potionSlotsCount - 1) {
+        const gridLineX = slotX + potionSlotSpacing / 2;
+        const gridLine = this.scene.add.line(0, 0, gridLineX - slotX, -potionGridHeight/2 + 2, gridLineX - slotX, potionGridHeight/2 - 2, 0x77888C, 0.3);
+        gridLine.setLineWidth(1);
+        slotContainer.add(gridLine);
+      }
       
       slotContainer.add([outerBorder, innerBorder, bg]);
       (slotContainer as any).isPotionSlot = true;
@@ -617,7 +655,7 @@ export class CombatUI {
       this.relicInventory.add(slotContainer);
     }
     
-    this.relicInventory.add([outerBorder, innerBorder, mainBg, dividerLine, relicsTitle, potionsTitle]);
+    this.relicInventory.add([outerBorder, innerBorder, mainBg, dividerLine, topGridLine, bottomGridLine, relicsTitle, potionsTitle]);
     this.updateRelicInventory();
   }
   
@@ -902,6 +940,9 @@ export class CombatUI {
     const player = combatState.player;
     this.playerHealthText.setText(`♥ ${player.currentHealth}/${player.maxHealth}`);
     this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
+    
+    // Update relic inventory to show current relics
+    this.updateRelicInventory();
   }
   
   /**
@@ -972,6 +1013,8 @@ export class CombatUI {
     const combatState = this.scene.getCombatState();
     const relics = combatState.player.relics;
     const potions = combatState.player.potions || [];
+    
+    console.log("Updating relic inventory. Relics:", relics.length, "Potions:", potions.length);
     
     // Relic slots configuration
     const relicSlotSize = 40;
