@@ -212,26 +212,21 @@ export class Overworld_MazeGenManager {
         const tileY = offsetY + y * this.gridSize;
         
         if (maze[y][x] === 1) {
-          // Wall - Use one of the wall assets with randomization
-          const randomWall = Phaser.Utils.Array.GetRandom(this.wallTextures);
-          const wallSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, randomWall);
+          // Wall - Use one of the wall assets with deterministic selection
+          const wallIndex = this.getDeterministicIndex(chunkX, chunkY, x, y, this.wallTextures.length);
+          const wallSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, this.wallTextures[wallIndex]);
           wallSprite.setDisplaySize(this.gridSize, this.gridSize);
           wallSprite.setOrigin(0.5);
           wallSprite.clearTint();
           container.add(wallSprite);
         } else {
-          // Path - Use one of the floor assets with randomization
-          const randomFloor = Phaser.Utils.Array.GetRandom(this.floorTextures);
-          const floorSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, randomFloor);
+          // Path - Use one of the floor assets with deterministic selection
+          const floorIndex = this.getDeterministicIndex(chunkX, chunkY, x, y, this.floorTextures.length);
+          const floorSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, this.floorTextures[floorIndex]);
           floorSprite.setDisplaySize(this.gridSize, this.gridSize);
           floorSprite.setOrigin(0.5);
           floorSprite.clearTint();
           container.add(floorSprite);
-          
-          // Check if this is an outer tile (on chunk border) and is a path
-          if (this.isOuterTile(x, y, chunkSize)) {
-            this.markOuterTile(tileX, tileY, chunkX, chunkY);
-          }
         }
       }
     }
@@ -247,18 +242,26 @@ export class Overworld_MazeGenManager {
   }
   
   /**
+   * Get a deterministic index for texture selection based on position
+   * @param chunkX - Chunk X coordinate
+   * @param chunkY - Chunk Y coordinate
+   * @param x - Tile X coordinate within chunk
+   * @param y - Tile Y coordinate within chunk
+   * @param maxIndex - Maximum index value (length of texture array)
+   * @returns Deterministic index for texture selection
+   */
+  private getDeterministicIndex(chunkX: number, chunkY: number, x: number, y: number, maxIndex: number): number {
+    // Create a hash from the coordinates
+    const hash = (chunkX * 73856093) ^ (chunkY * 19349663) ^ (x * 83492791) ^ (y * 83492791);
+    // Ensure positive value
+    const positiveHash = Math.abs(hash);
+    // Return index within bounds
+    return positiveHash % maxIndex;
+  }
+  
+  /**
    * Mark an outer tile with a visual indicator
    */
-  private markOuterTile(tileX: number, tileY: number, _chunkX: number, _chunkY: number): void {
-    // Only create markers when in dev mode
-    if (this.devMode) {
-      // Create a subtle border indicator for outer tiles
-      const marker = this.scene.add.graphics();
-      marker.lineStyle(2, 0x00ff00, 0.7); // Green border
-      marker.strokeRect(tileX, tileY, this.gridSize, this.gridSize);
-      this.outerTileMarkers.push(marker);
-    }
-  }
 
   /**
    * Set dev mode on or off
@@ -283,20 +286,39 @@ export class Overworld_MazeGenManager {
    * Re-render all currently visible chunks to show/hide dev markers
    */
   private reRenderVisibleChunks(): void {
-    // Store current visible chunks data
-    const visibleChunkData = new Map<string, number[][]>();
+    // Store current visible chunks data and node data
+    const visibleChunkData = new Map<string, { maze: number[][]; nodes: MapNode[] }>();
     
     for (const [key, chunk] of this.visibleChunks) {
-      visibleChunkData.set(key, chunk.maze);
+      // Find nodes associated with this chunk
+      const chunkNodes = this.nodes.filter(node => {
+        // Extract chunk coordinates from node position
+        const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
+        const nodeChunkX = Math.floor((node.x + this.gridSize / 2) / chunkSizePixels);
+        const nodeChunkY = Math.floor((node.y + this.gridSize / 2) / chunkSizePixels);
+        const [chunkX, chunkY] = key.split(',').map(Number);
+        return nodeChunkX === chunkX && nodeChunkY === chunkY;
+      });
+      
+      visibleChunkData.set(key, { maze: chunk.maze, nodes: chunkNodes });
     }
     
     // Clear current visible chunks
     this.clearVisibleChunks();
     
-    // Re-render all previously visible chunks
-    for (const [key, maze] of visibleChunkData) {
+    // Re-render all previously visible chunks and their nodes
+    for (const [key, chunkData] of visibleChunkData) {
       const [chunkX, chunkY] = key.split(',').map(Number);
-      this.renderChunk(chunkX, chunkY, maze);
+      const graphics = this.renderChunk(chunkX, chunkY, chunkData.maze);
+      this.visibleChunks.set(key, { maze: chunkData.maze, graphics });
+      
+      // Re-add nodes from this chunk
+      chunkData.nodes.forEach(node => {
+        // Check if node already exists to avoid duplicates
+        if (!this.nodes.some(n => n.id === node.id)) {
+          this.nodes.push(node);
+        }
+      });
     }
   }
 
