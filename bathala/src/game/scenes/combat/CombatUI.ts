@@ -224,9 +224,17 @@ export class CombatUI {
 
     // No animation needed - using static sprite
 
-    // Player name
+    // Calculate dynamic Y offset based on player sprite's scaled height
+    const playerScale = 2;
+    const playerSpriteScaledHeight = this.playerSprite.height * playerScale;
+    const playerNameYOffset = playerY - (playerSpriteScaledHeight / 2) - 20; // 20px padding above sprite
+    const playerHealthYOffset = playerY + (playerSpriteScaledHeight / 2) + 20; // 20px padding below sprite
+    const playerBlockYOffset = playerHealthYOffset + 25;
+    const playerStatusYOffset = playerBlockYOffset + 30;
+
+    // Player name - dynamically positioned above sprite
     this.scene.add
-      .text(playerX, playerY - 120, this.scene.getCombatState().player.name, {
+      .text(playerX, playerNameYOffset, this.scene.getCombatState().player.name, {
         fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#77888C",
@@ -234,9 +242,9 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Health display
+    // Health display - dynamically positioned below sprite
     this.playerHealthText = this.scene.add
-      .text(playerX, playerY + 85, "", {
+      .text(playerX, playerHealthYOffset, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#ff6b6b",
@@ -246,7 +254,7 @@ export class CombatUI {
 
     // Block display
     this.playerBlockText = this.scene.add
-      .text(playerX, playerY + 110, "", {
+      .text(playerX, playerBlockYOffset, "", {
         fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#4ecdc4",
@@ -254,7 +262,7 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    this.playerStatusContainer = this.scene.add.container(playerX, playerY + 140);
+    this.playerStatusContainer = this.scene.add.container(playerX, playerStatusYOffset);
 
     this.updatePlayerUI();
   }
@@ -279,16 +287,31 @@ export class CombatUI {
     // Disable texture smoothing for pixel-perfect rendering
     this.enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
 
-    // Scale the sprite to fit within a 250x250 box
+    // Scale the sprite - adjust for smaller enemies (Tiyanak and Duwende)
     const sprite = this.enemySprite;
-    const targetWidth = 250;
-    const targetHeight = 250;
+    const lowerCaseName = enemyName.toLowerCase();
+    let targetWidth = 250;
+    let targetHeight = 250;
+    
+    // Smaller enemies should be scaled down to emphasize size difference
+    if (lowerCaseName.includes("tiyanak") || lowerCaseName.includes("duwende")) {
+      targetWidth = 150;  // Smaller target for baby-sized enemies
+      targetHeight = 150;
+    }
+    
     const scale = Math.min(targetWidth / sprite.width, targetHeight / sprite.height);
     sprite.setScale(scale);
 
-    // Enemy name
+    // Calculate dynamic Y offset based on sprite's scaled height
+    const spriteScaledHeight = sprite.height * scale;
+    const nameYOffset = enemyY - (spriteScaledHeight / 2) - 20; // 20px padding above sprite
+    const healthYOffset = enemyY + (spriteScaledHeight / 2) + 20; // 20px padding below sprite
+    const blockYOffset = healthYOffset + 25;
+    const statusYOffset = blockYOffset + 30;
+
+    // Enemy name - dynamically positioned above sprite
     this.scene.add
-      .text(enemyX, enemyY - 180, combatState.enemy.name, {
+      .text(enemyX, nameYOffset, combatState.enemy.name, {
         fontFamily: "dungeon-mode",
         fontSize: 28,
         color: "#77888C",
@@ -296,9 +319,9 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Health display
+    // Health display - dynamically positioned below sprite based on actual size
     this.enemyHealthText = this.scene.add
-      .text(enemyX, enemyY - 150, "", {
+      .text(enemyX, healthYOffset, "", {
         fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#ff6b6b",
@@ -308,7 +331,7 @@ export class CombatUI {
 
     // Block display
     this.enemyBlockText = this.scene.add
-      .text(enemyX, enemyY - 120, "", {
+      .text(enemyX, blockYOffset, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#4ecdc4",
@@ -316,19 +339,20 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Intent display
+    // Intent display - hidden for now
     this.enemyIntentText = this.scene.add
-      .text(enemyX, enemyY + 180, "", {
+      .text(enemyX, statusYOffset + 30, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#feca57",
         align: "center",
         wordWrap: { width: 200 }
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setVisible(false); // Hidden
 
-    // Status effects container
-    this.enemyStatusContainer = this.scene.add.container(enemyX, enemyY + 210);
+    // Status effects container - positioned dynamically
+    this.enemyStatusContainer = this.scene.add.container(enemyX, statusYOffset);
 
     // Information button for enemy lore
     this.createEnemyInfoButton(enemyX, enemyY - 200);
