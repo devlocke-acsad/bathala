@@ -28,6 +28,7 @@ import { CombatUI } from "./combat/CombatUI";
 import { CombatDialogue } from "./combat/CombatDialogue";
 import { CombatAnimations } from "./combat/CombatAnimations";
 import { CombatDDA } from "./combat/CombatDDA";
+import { commonPotions } from "../../data/potions/Act1Potions";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -53,9 +54,9 @@ export class Combat extends Scene {
   private actionButtons!: Phaser.GameObjects.Container;
   private turnText!: Phaser.GameObjects.Text;
   private discardsUsedThisTurn: number = 0;
-  private maxDiscardsPerTurn: number = 1;
-  private actionsText!: Phaser.GameObjects.Text;
-  private handIndicatorText!: Phaser.GameObjects.Text;
+  private maxDiscardsPerTurn: number = 3;  // Increased from 1 to 3
+  private specialUsedThisCombat: boolean = false;  // Track if Special has been used
+  private actionsText!: Phaser.GameObjects.Text;  // Shows Discard and Special counters on one line
   private relicsContainer!: Phaser.GameObjects.Container;
   private playerStatusContainer!: Phaser.GameObjects.Container;
   private enemyStatusContainer!: Phaser.GameObjects.Container;
@@ -201,8 +202,8 @@ export class Combat extends Scene {
     this.scale.on('resize', this.handleResize, this);
     this.handleResize();
     
-    // Create relic inventory
-    this.createRelicInventory();
+    // Relic inventory is now created by CombatUI.initialize()
+    // (no longer needed here - removed to prevent duplicate UI)
     
     // Create deck sprite
     this.createDeckSprite();
@@ -263,8 +264,8 @@ export class Combat extends Scene {
       player = {
         id: existingPlayerData.id || "player",
         name: existingPlayerData.name || "Hero",
-        maxHealth: existingPlayerData.maxHealth || 80,
-        currentHealth: existingPlayerData.currentHealth || 80,
+        maxHealth: existingPlayerData.maxHealth || 160,      // Increased from 80 to 160 for new damage system
+        currentHealth: existingPlayerData.currentHealth || 160,
         block: 0, // Always reset block at start of combat
         statusEffects: [], // Always reset status effects at start of combat
         hand: [], // Will be populated below
@@ -284,8 +285,8 @@ export class Combat extends Scene {
           },
         ],
         potions: existingPlayerData.potions || [],
-        discardCharges: existingPlayerData.discardCharges || 1,
-        maxDiscardCharges: existingPlayerData.maxDiscardCharges || 1,
+        discardCharges: existingPlayerData.discardCharges || 3,  // Changed from 1 to 3
+        maxDiscardCharges: existingPlayerData.maxDiscardCharges || 3,  // Changed from 1 to 3
       };
       
       // If the deck is in discard pile, shuffle it back to draw pile
@@ -306,8 +307,8 @@ export class Combat extends Scene {
       player = {
         id: "player",
         name: "Hero",
-        maxHealth: 80,
-        currentHealth: 80,
+        maxHealth: 160,      // Increased from 80 to 160 for new damage system
+        currentHealth: 160,
         block: 0,
         statusEffects: [],
         hand: [],
@@ -326,9 +327,14 @@ export class Combat extends Scene {
             emoji: "",
           },
         ],
-        potions: [],
-        discardCharges: 1,
-        maxDiscardCharges: 1,
+        potions: [
+          // Add some test potions to showcase the new inventory UI
+          commonPotions[0], // Potion of Clarity
+          commonPotions[1], // Elixir of Fortitude
+          commonPotions[2], // Draught of Swiftness
+        ],
+        discardCharges: 3,  // Changed from 1 to 3
+        maxDiscardCharges: 3,  // Changed from 1 to 3
       };
     }
 
@@ -446,12 +452,6 @@ export class Combat extends Scene {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#ffd93d",
-    });
-
-    // Hand indicator text - shows current selected hand type
-    this.handIndicatorText = this.add.text(screenWidth - 200, 110, "", {
-      fontFamily: "dungeon-mode",
-      color: "#4ecdc4",
     });
 
     // Info button for poker hand reference is created by CombatUI.initialize()
@@ -627,209 +627,7 @@ export class Combat extends Scene {
     });
   }
 
-  /**
-   * Create relic inventory in top left corner with vignette design
-   */
-  private createRelicInventory(): void {
-    // Create container for the inventory - positioned at top center for better accessibility
-    const screenWidth = this.cameras.main.width;
-    this.relicInventory = this.add.container(screenWidth / 2, 80);
-    
-    // Make the relic inventory visible by default
-    this.relicInventory.setVisible(true);
-    
-    // Initialize tooltip reference
-    this.currentRelicTooltip = null;
-    
-    // Create the main background rectangle with vignette effect
-    const inventoryWidth = 400; // Optimized width for top placement
-    const inventoryHeight = 80;
-    
-    // Main background with elegant dark theme
-    const mainBg = this.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x1a1a1a, 0.95);
-    mainBg.setStrokeStyle(2, 0x8b4513, 0.8); // Bronze-like border
-    
-    // Inner highlight for depth
-    const innerBg = this.add.rectangle(0, 0, inventoryWidth - 6, inventoryHeight - 6, 0x2a2a2a, 0.6);
-    innerBg.setStrokeStyle(1, 0xcd853f, 0.5); // Light bronze highlight
-    
-    // Title text positioned at top left of the box
-    const titleText = this.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
-      fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#ffffff",
-      align: "left"
-    }).setOrigin(0, 0.5);
-    
-    // Create toggle button for showing/hiding relic inventory
-    const toggleButton = this.createRelicInventoryToggle(inventoryWidth/2 - 30, -inventoryHeight/2 + 15);
-    
-    // Create relic slots grid (6x1 = 6 slots for horizontal layout)
-    const slotSize = 30;
-    const slotsPerRow = 6;
-    const rows = 1;
-    const slotSpacing = 45;
-    
-    const startX = -(slotsPerRow - 1) * slotSpacing / 2;
-    const startY = 10;
-    
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < slotsPerRow; col++) {
-        const slotX = startX + col * slotSpacing;
-        const slotY = startY + row * slotSpacing;
-        
-        // Create elegant slot background
-        const slot = this.add.rectangle(slotX, slotY, slotSize, slotSize, 0x0f0f0f, 0.9);
-        slot.setStrokeStyle(2, 0x8b4513, 0.6); // Bronze border for slots
-        
-        this.relicInventory.add(slot);
-      }
-    }
-    
-    // Add all elements to container
-    this.relicInventory.add([mainBg, innerBg, titleText, toggleButton]);
-    
-    // Update with current relics
-    this.updateRelicInventory();
-  }
-
-  /**
-   * Create toggle button for relic inventory
-   */
-  private createRelicInventoryToggle(x: number, y: number): Phaser.GameObjects.Container {
-    const toggleButton = this.add.container(x, y);
-    
-    // Button background
-    const bg = this.add.rectangle(0, 0, 20, 20, 0x4a4a4a, 0.9);
-    bg.setStrokeStyle(1, 0x6a6a6a);
-    
-    // Toggle text (eye icon)
-    const toggleText = this.add.text(0, 0, "👁", {
-      fontSize: 12,
-      color: "#ffffff"
-    }).setOrigin(0.5);
-    
-    toggleButton.add([bg, toggleText]);
-    
-    // Make button interactive
-    toggleButton.setInteractive(new Phaser.Geom.Rectangle(-10, -10, 20, 20), Phaser.Geom.Rectangle.Contains);
-    
-    // Toggle visibility when clicked
-    toggleButton.on("pointerdown", () => {
-      const isVisible = this.relicInventory.visible;
-      this.relicInventory.setVisible(!isVisible);
-      toggleText.setText(isVisible ? "✕" : "👁");
-    });
-    
-    // Hover effects
-    toggleButton.on("pointerover", () => {
-      bg.setFillStyle(0x5a5a5a, 0.9);
-    });
-    
-    toggleButton.on("pointerout", () => {
-      bg.setFillStyle(0x4a4a4a, 0.9);
-    });
-    
-    return toggleButton;
-  }
-
-  /**
-   * Update relic inventory with current relics
-   */
-  private updateRelicInventory(): void {
-    if (!this.relicInventory) return;
-    
-    const relics = this.combatState.player.relics;
-    const slotSize = 25;
-    const slotsPerRow = 4; // Updated to match new grid
-    const slotSpacing = 35;
-    const startX = -(slotsPerRow - 1) * slotSpacing / 2;
-    const startY = -10;
-    
-    // Remove existing relic displays (keep slots and background)
-    this.relicInventory.list.forEach(child => {
-      if ((child as any).isRelicDisplay || (child as any).isTooltip) {
-        child.destroy();
-      }
-    });
-    
-    // Add current relics to slots
-    relics.forEach((relic, index) => {
-      if (index < 8) { // Max 8 slots now (4x2)
-        const row = Math.floor(index / slotsPerRow);
-        const col = index % slotsPerRow;
-        const slotX = startX + col * slotSpacing;
-        const slotY = startY + row * slotSpacing;
-        
-        // Create relic emoji/icon
-        const relicIcon = this.add.text(slotX, slotY, relic.emoji || "?", {
-          fontSize: 18,
-          align: "center"
-        }).setOrigin(0.5);
-        
-        // Mark as relic display for cleanup
-        (relicIcon as any).isRelicDisplay = true;
-        
-        // Add modern hover and click interactions
-        relicIcon.setInteractive();
-        
-        // Store reference for hover effects
-        let hoverGlow: Phaser.GameObjects.Graphics | null = null;
-        
-        relicIcon.on("pointerover", () => {
-          // Create elegant glow effect
-          if (hoverGlow) {
-            hoverGlow.destroy();
-            hoverGlow = null;
-          }
-          
-          hoverGlow = this.add.graphics();
-          hoverGlow.lineStyle(3, 0x7c3aed, 0.8);
-          hoverGlow.strokeCircle(slotX, slotY, 18);
-          this.relicInventory.add(hoverGlow);
-          
-          // Scale up the icon slightly
-          this.tweens.add({
-            targets: relicIcon,
-            scaleX: 1.2,
-            scaleY: 1.2,
-            duration: 150,
-            ease: 'Back.easeOut'
-          });
-          
-          // Show elegant tooltip with relic name only
-          this.showRelicTooltip(relic.name, slotX, slotY - 40);
-        });
-        
-        relicIcon.on("pointerout", () => {
-          // Remove glow effect
-          if (hoverGlow) {
-            hoverGlow.destroy();
-            hoverGlow = null;
-          }
-          
-          // Scale back to normal
-          this.tweens.add({
-            targets: relicIcon,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 150,
-            ease: 'Back.easeOut'
-          });
-          
-          // Hide tooltip
-          this.hideRelicTooltip();
-        });
-        
-        relicIcon.on("pointerdown", () => {
-          // Show detailed description in a modal-style overlay
-          this.showRelicDetailModal(relic);
-        });
-        
-        this.relicInventory.add(relicIcon);
-      }
-    });
-  }
+  // Old relic inventory methods removed - now handled by CombatUI.ts
 
   /**
    * Create a button with text and callback using Balatro/Prologue styling
@@ -1263,7 +1061,11 @@ export class Combat extends Scene {
     this.applyStatusEffects(this.combatState.player);
 
     this.combatState.phase = "player_turn";
-    this.combatState.turn++;
+    
+    // Only increment turn after the first turn (turn starts at 1)
+    if (this.turnCount > 0) {
+      this.combatState.turn++;
+    }
     this.turnCount++; // Track total turns for DDA
     
     // Update DDA debug overlay with current turn count
@@ -1514,9 +1316,21 @@ export class Combat extends Scene {
     
     try {
       this.turnText.setText(`Turn: ${this.combatState.turn}`);
+      
+      // Show discard and special counters on one line
+      const specialStatus = this.specialUsedThisCombat ? "USED" : "READY";
+      
       this.actionsText.setText(
-        `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Hand: ${this.combatState.player.hand.length}/8`
+        `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`
       );
+      
+      // Color code the special status within the text
+      if (this.specialUsedThisCombat) {
+        this.actionsText.setColor("#cccccc"); // Grayed out when used
+      } else {
+        this.actionsText.setColor("#ffd93d"); // Yellow when ready
+      }
+      
       this.ui.updateHandIndicator();
     } catch (error) {
       console.error("Error updating turn UI:", error);
@@ -1599,7 +1413,7 @@ export class Combat extends Scene {
           emoji: "🏆",
         });
         this.updateRelicsUI();
-        this.updateRelicInventory();
+        this.ui.updateRelicInventory();
       }
       
       // Victory - show post-combat dialogue with delay to prevent double calls
@@ -2199,9 +2013,6 @@ export class Combat extends Scene {
       if (this.actionsText) {
         this.actionsText.destroy();
       }
-      if (this.handIndicatorText) {
-        this.handIndicatorText.destroy();
-      }
       // Clean up battle start dialogue if it exists
       if (this.battleStartDialogueContainer) {
         this.battleStartDialogueContainer.destroy();
@@ -2269,6 +2080,13 @@ export class Combat extends Scene {
       return;
     }
     
+    // Check if Special has already been used this combat
+    if (actionType === "special" && this.specialUsedThisCombat) {
+      console.log("Special attack already used this combat!");
+      this.showActionResult("Special already used!");
+      return;
+    }
+    
     // Set processing flag
     this.isActionProcessing = true;
     
@@ -2303,22 +2121,18 @@ export class Combat extends Scene {
     let damage = 0;
     let block = 0;
 
-    // Apply hand bonus
-    let originalDamage = evaluation.totalValue;
-    let originalBlock = evaluation.totalValue;
+    // New damage calculation is already done in evaluation
+    // evaluation.totalValue now contains the final calculated damage
     
     // Track relic bonuses for detailed display
     const relicBonuses: {name: string, amount: number}[] = [];
     
     switch (actionType) {
       case "attack":
-        damage += evaluation.totalValue;
-        const strength = this.combatState.player.statusEffects.find((e) => e.name === "Strength");
-        if (strength) {
-          damage += strength.value;
-          console.log(`Strength bonus applied: +${strength.value} damage`);
-        }
+        damage = evaluation.totalValue;
+        
         // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
+        // This is added as a flat bonus AFTER the main calculation
         const sigbinHeartDamage = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
         if (sigbinHeartDamage > 0) {
           damage += sigbinHeartDamage;
@@ -2326,17 +2140,17 @@ export class Combat extends Scene {
         }
         console.log(`Total attack damage: ${damage}`);
         
-        // Show detailed damage calculation
-        this.showDamageCalculation(originalDamage, strength?.value || 0, relicBonuses);
+        // Show detailed damage calculation with breakdown
+        if (evaluation.breakdown) {
+          console.log('Damage breakdown:', evaluation.breakdown.join(' → '));
+        }
+        // Removed showDamageCalculation - duplicate display
         break;
       case "defend":
-        block += evaluation.totalValue;
-        const dexterity = this.combatState.player.statusEffects.find((e) => e.name === "Dexterity");
-        if (dexterity) {
-          block += dexterity.value;
-          console.log(`Dexterity bonus applied: +${dexterity.value} block`);
-        }
+        block = evaluation.totalValue;
+        
         // Apply "Balete Root" effect: +2 block per Lupa card
+        // This is added as a flat bonus AFTER the main calculation
         const baleteRootBonus = RelicManager.calculateBaleteRootBlock(this.combatState.player, this.combatState.player.playedHand);
         if (baleteRootBonus > 0) {
           block += baleteRootBonus;
@@ -2344,10 +2158,17 @@ export class Combat extends Scene {
         }
         console.log(`Total block gained: ${block}`);
         
-        // Show detailed block calculation
-        this.showBlockCalculation(originalBlock, dexterity?.value || 0, relicBonuses);
+        // Show detailed block calculation with breakdown
+        if (evaluation.breakdown) {
+          console.log('Block breakdown:', evaluation.breakdown.join(' → '));
+        }
+        // Removed showBlockCalculation - duplicate display
         break;
       case "special":
+        // Mark special as used
+        this.specialUsedThisCombat = true;
+        this.updateTurnUI();
+        
         // Start cinematic special action animation
         this.animations.animateSpecialAction(dominantSuit);
         
@@ -2760,9 +2581,7 @@ export class Combat extends Scene {
         fontFamily: "dungeon-mode",
         fontSize: 36,
         color: handColor,
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 4
+        align: "center"
       }
     ).setOrigin(0.5).setAlpha(0).setScale(0.8).setDepth(1000);
     
@@ -2871,9 +2690,7 @@ export class Combat extends Scene {
       { 
         fontFamily: 'dungeon-mode', 
         fontSize: 48, 
-        color: '#ff6b6b', // Use Prologue's damage color scheme
-        stroke: '#000000',
-        strokeThickness: 2
+        color: '#ff6b6b'
       }
     ).setOrigin(0.5);
     
@@ -2901,200 +2718,6 @@ export class Combat extends Scene {
     this.cameras.main.shake(100, 0.01);
   }
   
-  /** Show detailed damage calculation including relic bonuses */
-  private showDamageCalculation(baseDamage: number, strengthBonus: number, relicBonuses: {name: string, amount: number}[]): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create container for damage calculation with Prologue styling
-    const calculationContainer = this.add.container(screenWidth / 2, screenHeight * 0.25);
-    
-    // Double border design like Prologue
-    const containerWidth = 400;
-    const containerHeight = 120;
-    
-    const outerBorder = this.add.rectangle(0, 0, containerWidth + 8, containerHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const innerBorder = this.add.rectangle(0, 0, containerWidth, containerHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const bg = this.add.rectangle(0, 0, containerWidth, containerHeight, 0x150E10);
-    
-    let yOffset = -30;
-    
-    // Main damage line
-    let damageText = `Base Damage: ${baseDamage}`;
-    const baseDamageDisplay = this.add.text(0, yOffset, damageText, {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#77888C",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    yOffset += 20;
-    
-    // Bonuses
-    if (strengthBonus > 0) {
-      const strengthDisplay = this.add.text(0, yOffset, `+ ${strengthBonus} (Strength)`, {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#4ecdc4",
-        align: "center"
-      }).setOrigin(0.5);
-      calculationContainer.add(strengthDisplay);
-      yOffset += 18;
-    }
-    
-    for (const relicBonus of relicBonuses) {
-      if (relicBonus.amount > 0) {
-        const relicDisplay = this.add.text(0, yOffset, `+ ${relicBonus.amount} (${relicBonus.name})`, {
-          fontFamily: "dungeon-mode",
-          fontSize: 16,
-          color: "#ff6b6b",
-          align: "center"
-        }).setOrigin(0.5);
-        calculationContainer.add(relicDisplay);
-        yOffset += 18;
-      }
-    }
-    
-    // Total
-    const totalDamage = baseDamage + strengthBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
-    const totalDisplay = this.add.text(0, yOffset, `Total: ${totalDamage}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#e8eced",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    calculationContainer.add([outerBorder, innerBorder, bg, baseDamageDisplay, totalDisplay]);
-    
-    // Fade in animation
-    calculationContainer.setAlpha(0);
-    this.tweens.add({
-      targets: calculationContainer,
-      alpha: 1,
-      duration: 400,
-      ease: 'Power2',
-      onComplete: () => {
-        // Auto-hide after 2 seconds
-        this.time.delayedCall(2000, () => {
-          this.tweens.add({
-            targets: calculationContainer,
-            alpha: 0,
-            duration: 400,
-            ease: 'Power2',
-            onComplete: () => {
-              calculationContainer.destroy();
-            }
-          });
-        });
-      }
-    });
-  }
-  
-  /** Show detailed block calculation including relic bonuses */
-  private showBlockCalculation(baseBlock: number, dexterityBonus: number, relicBonuses: {name: string, amount: number}[]): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create container for block calculation with Prologue styling
-    const calculationContainer = this.add.container(screenWidth / 2, screenHeight * 0.25);
-    
-    // Double border design like Prologue
-    const containerWidth = 400;
-    const containerHeight = 120;
-    
-    const outerBorder = this.add.rectangle(0, 0, containerWidth + 8, containerHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const innerBorder = this.add.rectangle(0, 0, containerWidth, containerHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const bg = this.add.rectangle(0, 0, containerWidth, containerHeight, 0x150E10);
-    
-    let yOffset = -30;
-    
-    // Main block line
-    let blockText = `Base Block: ${baseBlock}`;
-    const baseBlockDisplay = this.add.text(0, yOffset, blockText, {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#77888C",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    yOffset += 20;
-    
-    // Bonuses
-    if (dexterityBonus > 0) {
-      const dexterityDisplay = this.add.text(0, yOffset, `+ ${dexterityBonus} (Dexterity)`, {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#4ecdc4",
-        align: "center"
-      }).setOrigin(0.5);
-      calculationContainer.add(dexterityDisplay);
-      yOffset += 18;
-    }
-    
-    for (const relicBonus of relicBonuses) {
-      if (relicBonus.amount > 0) {
-        const relicDisplay = this.add.text(0, yOffset, `+ ${relicBonus.amount} (${relicBonus.name})`, {
-          fontFamily: "dungeon-mode",
-          fontSize: 16,
-          color: "#4ecdc4",
-          align: "center"
-        }).setOrigin(0.5);
-        calculationContainer.add(relicDisplay);
-        yOffset += 18;
-      }
-    }
-    
-    // Total
-    const totalBlock = baseBlock + dexterityBonus + relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
-    const totalDisplay = this.add.text(0, yOffset, `Total: ${totalBlock}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#e8eced",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    calculationContainer.add([outerBorder, innerBorder, bg, baseBlockDisplay, totalDisplay]);
-    
-    // Fade in animation
-    calculationContainer.setAlpha(0);
-    this.tweens.add({
-      targets: calculationContainer,
-      alpha: 1,
-      duration: 400,
-      ease: 'Power2',
-      onComplete: () => {
-        // Auto-hide after 2 seconds
-        this.time.delayedCall(2000, () => {
-          this.tweens.add({
-            targets: calculationContainer,
-            alpha: 0,
-            duration: 400,
-            ease: 'Power2',
-            onComplete: () => {
-              calculationContainer.destroy();
-            }
-          });
-        });
-      }
-    });
-  }
-  
-  /** Create simple damage preview display */
-  private createDamagePreview(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create damage preview text positioned near action buttons
-    this.damagePreviewText = this.add.text(screenWidth/2, screenHeight - 150, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#ff6b6b",
-      align: "center",
-      backgroundColor: "#000000",
-      padding: { x: 10, y: 5 }
-    }).setOrigin(0.5).setVisible(false);
-  }
-  
   /** Update damage preview with calculated damage - kept for style reference */
   private updateDamagePreview(isActionSelectionPhase: boolean): void {
     // This method is kept for its calculation logic and styling approach
@@ -3114,13 +2737,10 @@ export class Combat extends Scene {
     );
 
     let damage = evaluation.totalValue;
-    const strength = this.combatState.player.statusEffects.find((e) => e.name === "Strength");
-    if (strength) {
-      damage += strength.value;
-    }
 
     // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
-    damage += RelicManager.calculateSigbinHeartDamage(this.combatState.player);
+    const sigbinBonus = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
+    damage += sigbinBonus;
 
     // Apply vulnerable effect if enemy has it
     let vulnerableBonus = 0;
@@ -3138,19 +2758,25 @@ export class Combat extends Scene {
       bakunawaBonus = 5;
     }
 
-    // Format the damage display with relic bonuses
-    let damageText = `DMG: ${evaluation.totalValue}`;
-    if (strength && strength.value > 0) {
-      damageText += ` + ${strength.value} (Str)`;
+    // Format the damage display with new calculation system
+    let damageText = `DMG: ${evaluation.baseValue} (cards)`;
+    if (evaluation.handBonus > 0) {
+      damageText += ` +${evaluation.handBonus}`;
     }
-    if (RelicManager.calculateSigbinHeartDamage(this.combatState.player) > 0) {
-      damageText += ` + ${RelicManager.calculateSigbinHeartDamage(this.combatState.player)} (Sigbin)`;
+    if (evaluation.elementalBonus > 0) {
+      damageText += ` +${evaluation.elementalBonus} (elem)`;
+    }
+    if (evaluation.handMultiplier > 1) {
+      damageText += ` ×${evaluation.handMultiplier}`;
+    }
+    if (sigbinBonus > 0) {
+      damageText += ` +${sigbinBonus} (Sigbin)`;
     }
     if (vulnerableBonus > 0) {
-      damageText += ` + ${vulnerableBonus} (Vuln)`;
+      damageText += ` +${Math.floor(vulnerableBonus)} (Vuln)`;
     }
     if (bakunawaBonus > 0) {
-      damageText += ` + ${bakunawaBonus} (Bakunawa)`;
+      damageText += ` +${bakunawaBonus} (Bakunawa)`;
     }
     damageText += ` = ${Math.floor(damage)}`;
 
@@ -3413,10 +3039,6 @@ export class Combat extends Scene {
       this.actionsText.setPosition(screenWidth - 200, 80);
     }
     
-    if (this.handIndicatorText) {
-      this.handIndicatorText.setPosition(screenWidth - 200, 110);
-    }
-    
     if (this.actionResultText) {
       this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
     }
@@ -3440,7 +3062,7 @@ export class Combat extends Scene {
     this.ui.updatePlayedHandDisplay();
     this.ui.updateActionButtons();
     this.updateRelicsUI();
-    this.updateRelicInventory();
+    this.ui.updateRelicInventory();
     this.updateTurnUI();
   }
 
@@ -3691,7 +3313,6 @@ export class Combat extends Scene {
     // Hide text elements
     if (this.turnText) this.turnText.setVisible(false);
     if (this.actionsText) this.actionsText.setVisible(false);
-    if (this.handIndicatorText) this.handIndicatorText.setVisible(false);
     if (this.handEvaluationText) this.handEvaluationText.setVisible(false);
     if (this.enemyIntentText) this.enemyIntentText.setVisible(false);
     if (this.actionResultText) this.actionResultText.setVisible(false);
@@ -3722,7 +3343,6 @@ export class Combat extends Scene {
     // Restore text elements
     if (this.turnText) this.turnText.setVisible(true);
     if (this.actionsText) this.actionsText.setVisible(true);
-    if (this.handIndicatorText) this.handIndicatorText.setVisible(true);
     if (this.handEvaluationText) this.handEvaluationText.setVisible(true);
     if (this.enemyIntentText) this.enemyIntentText.setVisible(true);
     if (this.actionResultText) this.actionResultText.setVisible(true);

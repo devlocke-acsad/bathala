@@ -21,8 +21,8 @@ import { Preloader } from "./scenes/Preloader";
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
 const config: Phaser.Types.Core.GameConfig = {
   type: AUTO,
-  width: 1024, // Fixed width to prevent scaling issues
-  height: 768, // Fixed height to prevent scaling issues
+  width: 1920, // 16:9 resolution width
+  height: 1080, // 16:9 resolution height
   parent: "game-container",
   backgroundColor: "#150E10",
   scene: [Boot, Preloader, MainMenu, Prologue, Settings, Overworld, Combat, Shop, Campfire, Treasure, Discover, Credits, DDADebugScene, MainGame, GameOver, PokerHandReference, EventScene],
@@ -32,12 +32,12 @@ const config: Phaser.Types.Core.GameConfig = {
   //   antialias: true,
   // },
 
-  // Scale settings - DISABLED to prevent card positioning bugs
+  // Scale settings - RESIZE mode for true fullscreen 16:9
   scale: {
-    mode: Phaser.Scale.NONE, // Disable auto-scaling to prevent coordinate issues
-    autoCenter: Phaser.Scale.NO_CENTER,
-    width: 1024, // Fixed width
-    height: 768, // Fixed height
+    mode: Phaser.Scale.RESIZE, // Resize to fill entire screen
+    autoCenter: Phaser.Scale.CENTER_BOTH, // Center the game canvas
+    width: 1920, // Base 16:9 width
+    height: 1080, // Base 16:9 height
   },
   
   // Enable DOM elements for UI components

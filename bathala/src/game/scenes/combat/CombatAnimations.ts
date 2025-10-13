@@ -174,9 +174,7 @@ export class CombatAnimations {
         fontFamily: "dungeon-mode",
         fontSize: 72,
         color: '#ffffff',
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 8
+        align: "center"
       }
     ).setOrigin(0.5).setAlpha(0).setScale(0.3).setDepth(1003);
     
@@ -353,9 +351,7 @@ export class CombatAnimations {
         fontFamily: "dungeon-mode",
         fontSize: 64,
         color: '#ffd700', // Gold color like in Final Fantasy
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 6
+        align: "center"
       }
     ).setOrigin(0.5).setAlpha(0).setScale(0.5).setDepth(1001);
     
