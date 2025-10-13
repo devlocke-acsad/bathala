@@ -264,8 +264,8 @@ export class Combat extends Scene {
       player = {
         id: existingPlayerData.id || "player",
         name: existingPlayerData.name || "Hero",
-        maxHealth: existingPlayerData.maxHealth || 220,      // Increased for rebalanced damage
-        currentHealth: existingPlayerData.currentHealth || 220,
+        maxHealth: existingPlayerData.maxHealth || 120,      // Increased for rebalanced damage
+        currentHealth: existingPlayerData.currentHealth || 120,
         block: 0, // Always reset block at start of combat
         statusEffects: [], // Always reset status effects at start of combat
         hand: [], // Will be populated below
@@ -307,8 +307,8 @@ export class Combat extends Scene {
       player = {
         id: "player",
         name: "Hero",
-        maxHealth: 220,      // Increased for rebalanced damage
-        currentHealth: 220,
+        maxHealth: 120,      // Increased for rebalanced damage
+        currentHealth: 120,
         block: 0,
         statusEffects: [],
         hand: [],
