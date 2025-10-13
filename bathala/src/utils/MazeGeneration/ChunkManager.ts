@@ -1,10 +1,25 @@
 import { MapNode } from "../../core/types/MapTypes";
 import { ChunkData, ChunkRegion } from "./types";
 
-/**
- * Chunk caching and management utilities
- */
+/*
+  ChunkManager
+  -------------
+  Manages caching and retrieval of maze chunks for performance.
+  
+  Features:
+    - LRU-like cache with automatic eviction when full
+    - Batch operations for region loading
+    - Preloading for smoother gameplay
+    - Statistics tracking for debugging
+  
+  Key parameters:
+    - maxCachedChunks: Maximum number of chunks to keep in memory
+*/
 export class ChunkManager {
+  // =============================
+  // Cache Management
+  // =============================
+  
   private static chunks: Map<string, ChunkData> = new Map();
   private static generatedChunks: Set<string> = new Set();
   private static maxCachedChunks: number = 100; // Memory management

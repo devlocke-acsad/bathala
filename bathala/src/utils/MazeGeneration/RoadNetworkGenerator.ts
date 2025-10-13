@@ -1,16 +1,41 @@
 import { SeededRandom, RoadConnection } from "./types";
 
-/**
- * Road network generation and drawing utilities
- */
+/*
+  RoadNetworkGenerator
+  --------------------
+  Generates road networks within chunks using Bresenham's algorithm.
+  
+  Process:
+    1. Generate major roads (horizontal or vertical) through chunk center
+    2. Add secondary roads with random angles and lengths
+    3. Remove isolated roads to improve connectivity
+  
+  Key parameters:
+    - roadDensity: Probability of generating major roads
+    - secondaryRoadChance: Probability of generating secondary roads
+    - roadWidth: Width of generated roads
+    - subChunkSize: Size of sub-chunks for isolated road removal
+*/
 export class RoadNetworkGenerator {
+  // =============================
+  // Road Generation Constants
+  // =============================
+  
   private static readonly WALL = 1;
   private static readonly PATH = 0;
   
-  // Road network parameters
-  private static readonly ROAD_DENSITY = 0.8; // Probability of major road per chunk
-  private static readonly SECONDARY_ROAD_CHANCE = 0.9;
-  private static readonly ROAD_WIDTH = 1;
+  // =============================
+  // Road Generation Parameters
+  // =============================
+  
+  private static readonly ROAD_DENSITY = 0.8;           // Probability of major road per chunk
+  private static readonly SECONDARY_ROAD_CHANCE = 0.9;   // Probability of secondary roads
+  private static readonly ROAD_WIDTH = 1;               // Width of generated roads
+  private static readonly MIN_SECONDARY_ROADS = 1;      // Minimum secondary roads
+  private static readonly MAX_SECONDARY_ROADS = 2;      // Maximum secondary roads
+  private static readonly MIN_ROAD_LENGTH = 8;          // Minimum road length
+  private static readonly MAX_ROAD_LENGTH = 22;         // Maximum road length
+  private static readonly SUB_CHUNK_SIZE = 4;           // Size for isolated road removal
 
   /**
    * Generate road network within chunk
@@ -46,12 +71,12 @@ export class RoadNetworkGenerator {
     
     // Add secondary roads
     if (rng.next() < this.SECONDARY_ROAD_CHANCE) {
-      const numSecondary = Math.floor(rng.next() * 2) + 1; // 1-2 secondary roads
+      const numSecondary = Math.floor(rng.next() * (this.MAX_SECONDARY_ROADS - this.MIN_SECONDARY_ROADS + 1)) + this.MIN_SECONDARY_ROADS;
       
       for (let i = 0; i < numSecondary; i++) {
         const startX = Math.floor(rng.next() * (chunkSize - 4)) + 2;
         const startY = Math.floor(rng.next() * (chunkSize - 4)) + 2;
-        const length = Math.floor(rng.next() * 15) + 8; // 8-22 length
+        const length = Math.floor(rng.next() * (this.MAX_ROAD_LENGTH - this.MIN_ROAD_LENGTH + 1)) + this.MIN_ROAD_LENGTH;
         const angle = rng.next() * Math.PI * 2;
         
         const endX = Math.max(2, Math.min(chunkSize - 3, 
@@ -59,7 +84,7 @@ export class RoadNetworkGenerator {
         const endY = Math.max(2, Math.min(chunkSize - 3, 
           startY + Math.floor(length * Math.sin(angle))));
         
-        this.drawRoad(maze, startX, startY, endX, endY, 1, chunkSize);
+        this.drawRoad(maze, startX, startY, endX, endY, this.ROAD_WIDTH, chunkSize);
       }
     }
     
@@ -132,7 +157,7 @@ export class RoadNetworkGenerator {
    */
   static removeIsolatedRoads(maze: number[][], chunkSize: number): void {
     // Define sub-chunk size (must be smaller than chunkSize)
-    const subChunkSize = 4; // Process in 4x4 chunks
+    const subChunkSize = this.SUB_CHUNK_SIZE; // Process in 4x4 chunks
     
     let hasIsolatedRoads = true;
     while (hasIsolatedRoads) {

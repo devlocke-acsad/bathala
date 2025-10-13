@@ -5,7 +5,6 @@ import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { GameState } from "../../core/managers/GameState";
 import { Player } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
-import { Potion } from "../../data/potions/Act1Potions";
 import { Overworld_KeyInputManager } from "./Overworld_KeyInputManager";
 import { Overworld_MazeGenManager } from "./Overworld_MazeGenManager";
 import { Overworld_TooltipManager } from "./Overworld_TooltipManager";
@@ -13,12 +12,11 @@ export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   private keyInputManager!: Overworld_KeyInputManager;
   private mazeGenManager!: Overworld_MazeGenManager;
-  private gridSize: number = 32;
   private isMoving: boolean = false;
   private isTransitioningToCombat: boolean = false;
   private gameState: OverworldGameState;
   private dayNightProgressFill!: Phaser.GameObjects.Rectangle;
-  private dayNightIndicator!: Phaser.GameObjects.Triangle;
+  private dayNightIndicator!: Phaser.GameObjects.Text;
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
   private bossText!: Phaser.GameObjects.Text;
   private actionButtons: Phaser.GameObjects.Container[] = [];
@@ -135,8 +133,8 @@ export class Overworld extends Scene {
       console.log('🖱️ Input enabled:', this.input.enabled);
     });
     
-    // Initialize maze generation manager
-    this.mazeGenManager = new Overworld_MazeGenManager(this, this.gridSize);
+    // Initialize maze generation manager with dev mode flag
+    this.mazeGenManager = new Overworld_MazeGenManager(this, 32, this.testButtonsVisible);
     
     // Check if we're returning from another scene
     const gameState = GameState.getInstance();
@@ -602,6 +600,15 @@ export class Overworld extends Scene {
     bossIcon.setScale(2.0);
     bossIcon.setScrollFactor(0).setDepth(103);
     
+    // Create progress fill (initially empty)
+    this.dayNightProgressFill = this.add.rectangle(
+      progressBarX,
+      progressBarY,
+      0, // Width will be updated in updateDayNightProgressBar
+      8, // Height of the progress fill
+      0xFFFFFF // White color, can be changed
+    ).setOrigin(0, 0.5).setScrollFactor(0).setDepth(99);
+    
     // Create player indicator (▲ symbol pointing up from below the axis line)
     this.dayNightIndicator = this.add.text(0, 0, "▲", {
       fontFamily: 'dungeon-mode-inverted',
@@ -738,6 +745,11 @@ export class Overworld extends Scene {
     this.actionButtons.forEach(button => {
       button.setVisible(this.testButtonsVisible);
     });
+    
+    // Update dev mode in MazeGenManager
+    if (this.mazeGenManager) {
+      this.mazeGenManager.setDevMode(this.testButtonsVisible);
+    }
   }
   
   hideTestButtons(): void {
@@ -745,6 +757,11 @@ export class Overworld extends Scene {
     this.actionButtons.forEach(button => {
       button.setVisible(false);
     });
+    
+    // Update dev mode in MazeGenManager
+    if (this.mazeGenManager) {
+      this.mazeGenManager.setDevMode(false);
+    }
   }
 
   updateUI(): void {
@@ -776,6 +793,10 @@ export class Overworld extends Scene {
     // Calculate progress (0 to 1)
     const totalProgress = Math.min(this.gameState.actionsTaken / this.gameState.totalActionsUntilBoss, 1);
     
+    // Update progress fill width
+    if (this.dayNightProgressFill) {
+      this.dayNightProgressFill.width = progressBarWidth * totalProgress;
+    }
     
     // Update player indicator position (below the bar)
     this.dayNightIndicator.x = progressBarX + (progressBarWidth * totalProgress);
@@ -914,7 +935,7 @@ export class Overworld extends Scene {
         targets: this.player,
         x: targetX,
         y: targetY,
-        duration: 150, // Slightly faster movement
+        duration: 80, // Slightly faster movement
         onComplete: () => {
           this.isMoving = false;
           this.checkNodeInteraction();
@@ -1190,187 +1211,12 @@ export class Overworld extends Scene {
    * Move enemy nodes toward the player during nighttime
    */
   moveEnemiesNighttime(): void {
-    // Only move enemies during nighttime
-    if (this.gameState.isDay) {
-      return;
-    }
-
-    // Define proximity threshold for enemy movement (in pixels)
-    const movementRange = this.gridSize * 10; // Reduced to 10 grid squares for more breathing room
-
     // Get player position
     const playerX = this.player.x;
     const playerY = this.player.y;
     
-    // Get all nodes from manager
-    const allNodes = this.mazeGenManager.getNodes();
-
-    // Find nearby enemy nodes that should move
-    const enemyNodes = allNodes.filter((node: MapNode) => 
-      (node.type === "combat" || node.type === "elite") &&
-      Phaser.Math.Distance.Between(
-        playerX, playerY,
-        node.x + this.gridSize / 2, 
-        node.y + this.gridSize / 2
-      ) <= movementRange
-    );
-
-    // Move each enemy node with enhanced AI
-    enemyNodes.forEach((enemyNode: MapNode) => {
-      this.moveEnemyWithEnhancedAI(enemyNode, playerX, playerY);
-    });
-  }
-
-  /**
-   * Enhanced AI movement system for enemies
-   */
-  private moveEnemyWithEnhancedAI(enemyNode: MapNode, playerX: number, playerY: number): void {
-    const currentX = enemyNode.x + this.gridSize / 2;
-    const currentY = enemyNode.y + this.gridSize / 2;
-    const distance = Phaser.Math.Distance.Between(currentX, currentY, playerX, playerY);
-    
-    // Different movement strategies based on distance and enemy type
-    let movementSpeed = this.calculateEnemyMovementSpeed(enemyNode, distance);
-    let movements: {x: number, y: number}[] = [];
-    
-    // Calculate multiple movement steps for faster enemies
-    for (let i = 0; i < movementSpeed; i++) {
-      const stepPosition = this.calculateSingleEnemyStep(
-        currentX + (movements.length > 0 ? movements[movements.length - 1].x - currentX : 0),
-        currentY + (movements.length > 0 ? movements[movements.length - 1].y - currentY : 0),
-        playerX, 
-        playerY
-      );
-      
-      if (stepPosition && this.isValidPosition(stepPosition.x, stepPosition.y)) {
-        movements.push(stepPosition);
-      } else {
-        break; // Stop if we hit a wall or invalid position
-      }
-    }
-    
-    // Execute the movements with staggered timing
-    if (movements.length > 0) {
-      this.executeMultiStepMovement(enemyNode, movements);
-    }
-  }
-
-  /**
-   * Calculate enemy movement speed based on type and distance
-   */
-  private calculateEnemyMovementSpeed(enemyNode: MapNode, distanceToPlayer: number): number {
-    let baseSpeed = 1;
-    
-    // Elite enemies only get a small speed boost
-    if (enemyNode.type === "elite") {
-      baseSpeed = 1; // Reduced from 2 to 1
-    }
-    
-    // Much more conservative distance-based speed increases
-    const gridDistance = distanceToPlayer / this.gridSize;
-    if (gridDistance <= 2) {
-      baseSpeed += 1; // Only very close enemies (2 grids) get +1 speed
-    }
-    
-    // Reduced randomization chance and impact
-    if (Math.random() < 0.15) { // Reduced from 30% to 15%
-      baseSpeed += 1;
-    }
-    
-    return Math.min(baseSpeed, 2); // Cap at 2 movements per turn instead of 4
-  }
-
-  /**
-   * Calculate a single movement step toward the player
-   */
-  private calculateSingleEnemyStep(currentX: number, currentY: number, playerX: number, playerY: number): { x: number, y: number } | null {
-    // Calculate direction to player
-    const deltaX = playerX - currentX;
-    const deltaY = playerY - currentY;
-    
-    // If already at player position, don't move
-    if (Math.abs(deltaX) < this.gridSize / 2 && Math.abs(deltaY) < this.gridSize / 2) {
-      return null;
-    }
-    
-    // More predictable movement: mostly stick to axis-aligned movement
-    let newX = currentX;
-    let newY = currentY;
-    
-    // Reduced diagonal movement chance for more predictable behavior
-    if (Math.abs(deltaX) > this.gridSize / 2 && Math.abs(deltaY) > this.gridSize / 2 && Math.random() < 0.3) {
-      newX = currentX + (deltaX > 0 ? this.gridSize : -this.gridSize);
-      newY = currentY + (deltaY > 0 ? this.gridSize : -this.gridSize);
-    } else {
-      // Standard movement: prioritize the axis with larger distance
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        newX = currentX + (deltaX > 0 ? this.gridSize : -this.gridSize);
-      } else {
-        newY = currentY + (deltaY > 0 ? this.gridSize : -this.gridSize);
-      }
-    }
-    
-    // Convert back to node coordinates (top-left corner)
-    return {
-      x: newX - this.gridSize / 2,
-      y: newY - this.gridSize / 2
-    };
-  }
-
-  /**
-   * Execute multiple movement steps with staggered timing
-   */
-  private executeMultiStepMovement(enemyNode: MapNode, movements: {x: number, y: number}[]): void {
-    movements.forEach((movement, index) => {
-      this.time.delayedCall(index * 300, () => { // Increased to 300ms delay between each step
-        this.animateEnemyMovement(enemyNode, movement.x, movement.y);
-      });
-    });
-  }
-
-
-  /**
-   * Animate enemy movement to new position
-   */
-  private animateEnemyMovement(enemyNode: MapNode, newX: number, newY: number): void {
-    // Update node position
-    enemyNode.x = newX;
-    enemyNode.y = newY;
-    
-    // Update position in manager
-    this.mazeGenManager.updateNodePosition(enemyNode);
-    
-    // Get the corresponding sprite from manager
-    const sprite = this.mazeGenManager.getNodeSprite(enemyNode.id);
-    if (sprite) {
-      // Add visual feedback for aggressive movement
-      const isAggressiveMove = enemyNode.type === "elite";
-      
-      // Create a brief flash effect for elite enemies
-      if (isAggressiveMove) {
-        sprite.setTint(0xff4444); // Red tint for aggressive movement
-        this.time.delayedCall(150, () => {
-          sprite.clearTint();
-        });
-      }
-      
-      // Animate sprite movement with dynamic timing
-      this.tweens.add({
-        targets: sprite,
-        x: newX + this.gridSize / 2,
-        y: newY + this.gridSize / 2,
-        duration: isAggressiveMove ? 120 : 180, // Faster movement for elite enemies
-        ease: 'Power2',
-        onStart: () => {
-          // Slightly scale up during movement for emphasis
-          sprite.setScale(1.6);
-        },
-        onComplete: () => {
-          // Return to normal scale
-          sprite.setScale(1.5);
-        }
-      });
-    }
+    // Delegate to MazeGenManager
+    this.mazeGenManager.moveEnemiesNighttime(this.gameState, playerX, playerY, this.mazeGenManager.getGridSize(), this);
   }
 
   updateVisibleChunks(): void {
@@ -1475,15 +1321,15 @@ export class Overworld extends Scene {
     }
     
     // Check if player is close to any node
-    const threshold = this.gridSize;
+    const threshold = this.mazeGenManager.getGridSize();
     const nodes = this.mazeGenManager.getNodes();
 
     const nodeIndex = nodes.findIndex((n: MapNode) => {
       const distance = Phaser.Math.Distance.Between(
         this.player.x, 
         this.player.y, 
-        n.x + this.gridSize / 2, 
-        n.y + this.gridSize / 2
+        n.x + this.mazeGenManager.getGridSize() / 2, 
+        n.y + this.mazeGenManager.getGridSize() / 2
       );
       return distance < threshold;
     });
@@ -2186,7 +2032,7 @@ export class Overworld extends Scene {
 
     // Handle player movement if not moving or in transition
     if (!this.isMoving && !this.isTransitioningToCombat) {
-      const gridSize = this.gridSize;
+      const gridSize = this.mazeGenManager.getGridSize();
       let moved = false;
       
       // Check for movement input using KeyInputManager
@@ -2947,46 +2793,6 @@ export class Overworld extends Scene {
     targetObject.on('pointerout', () => {
       tooltip.setVisible(false);
     });
-  }
-
-  /**
-   * Use a potion
-   */
-  private usePotion(index: number): void {
-    if (index >= 0 && index < this.playerData.potions.length) {
-      const potion = this.playerData.potions[index];
-      console.log(`Using potion: ${potion.name}`);
-      
-      // Apply potion effects here
-      switch (potion.effect) {
-        case "draw_3_cards":
-          console.log("Would draw 3 cards");
-          break;
-        case "gain_15_block":
-          console.log("Would gain 15 block");
-          break;
-        default:
-          console.log(`Unknown potion effect: ${potion.effect}`);
-      }
-      
-      // Remove potion after use
-      this.playerData.potions.splice(index, 1);
-      this.updateOverworldUI();
-    }
-  }
-
-  /**
-   * Discard a potion
-   */
-  private discardPotion(index: number): void {
-    if (index >= 0 && index < this.playerData.potions.length) {
-      const potion = this.playerData.potions[index];
-      console.log(`Discarding potion: ${potion.name}`);
-      
-      // Remove potion
-      this.playerData.potions.splice(index, 1);
-      this.updateOverworldUI();
-    }
   }
 
   /**

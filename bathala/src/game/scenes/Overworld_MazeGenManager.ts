@@ -29,17 +29,23 @@ export class Overworld_MazeGenManager {
   
   // Wall textures for randomization (wall1 and wall2 appear more often as they are trees)
   private wallTextures: string[] = ['wall1', 'wall1', 'wall1', 'wall2', 'wall2', 'wall2', 'wall3', 'wall4', 'wall5', 'wall6'];
+  
+  // Outer tile markers for chunk connections
+  private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
+  private devMode: boolean = false;
 
   /**
    * Constructor
    * @param scene - The Overworld scene instance
    * @param gridSize - The size of each grid cell in pixels (default: 32)
+   * @param devMode - Whether to show debug features like outer tile markers
    */
-  constructor(scene: Scene, gridSize: number = 32) {
+  constructor(scene: Scene, gridSize: number = 32, devMode: boolean = false) {
     this.scene = scene;
     this.gridSize = gridSize;
+    this.devMode = devMode;
     
-    console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize);
+    console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize, 'devMode:', devMode);
   }
 
   /**
@@ -56,6 +62,10 @@ export class Overworld_MazeGenManager {
     this.visibleChunks.clear();
     this.nodes = [];
     this.nodeSprites.clear();
+    
+    // Clear outer tile markers
+    this.outerTileMarkers.forEach(marker => marker.destroy());
+    this.outerTileMarkers = [];
   }
 
   /**
@@ -191,7 +201,8 @@ export class Overworld_MazeGenManager {
   private renderChunk(chunkX: number, chunkY: number, maze: number[][]): Phaser.GameObjects.GameObject {
     // Create a container with tile sprites for better performance
     const container = this.scene.add.container(0, 0);
-    const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
+    const chunkSize = MazeOverworldGenerator['chunkSize'];
+    const chunkSizePixels = chunkSize * this.gridSize;
     const offsetX = chunkX * chunkSizePixels;
     const offsetY = chunkY * chunkSizePixels;
     
@@ -216,11 +227,105 @@ export class Overworld_MazeGenManager {
           floorSprite.setOrigin(0.5);
           floorSprite.clearTint();
           container.add(floorSprite);
+          
+          // Check if this is an outer tile (on chunk border) and is a path
+          if (this.isOuterTile(x, y, chunkSize)) {
+            this.markOuterTile(tileX, tileY, chunkX, chunkY);
+          }
         }
       }
     }
     
     return container;
+  }
+  
+  /**
+   * Check if a tile position is on the border of a chunk
+   */
+  private isOuterTile(x: number, y: number, chunkSize: number): boolean {
+    return x === 0 || x === chunkSize - 1 || y === 0 || y === chunkSize - 1;
+  }
+  
+  /**
+   * Mark an outer tile with a visual indicator
+   */
+  private markOuterTile(tileX: number, tileY: number, _chunkX: number, _chunkY: number): void {
+    // Only create markers when in dev mode
+    if (this.devMode) {
+      // Create a subtle border indicator for outer tiles
+      const marker = this.scene.add.graphics();
+      marker.lineStyle(2, 0x00ff00, 0.7); // Green border
+      marker.strokeRect(tileX, tileY, this.gridSize, this.gridSize);
+      this.outerTileMarkers.push(marker);
+    }
+  }
+
+  /**
+   * Set dev mode on or off
+   * @param devMode - Whether to enable or disable dev mode
+   */
+  setDevMode(devMode: boolean): void {
+    const oldDevMode = this.devMode;
+    this.devMode = devMode;
+    
+    // If turning dev mode off, hide all outer tile markers
+    if (!devMode) {
+      this.hideOuterTileMarkers();
+    }
+    // If dev mode state changed, we might want to re-render visible chunks
+    // to show or hide the markers
+    else if (devMode && !oldDevMode) {
+      this.reRenderVisibleChunks();
+    }
+  }
+
+  /**
+   * Re-render all currently visible chunks to show/hide dev markers
+   */
+  private reRenderVisibleChunks(): void {
+    // Store current visible chunks data
+    const visibleChunkData = new Map<string, number[][]>();
+    
+    for (const [key, chunk] of this.visibleChunks) {
+      visibleChunkData.set(key, chunk.maze);
+    }
+    
+    // Clear current visible chunks
+    this.clearVisibleChunks();
+    
+    // Re-render all previously visible chunks
+    for (const [key, maze] of visibleChunkData) {
+      const [chunkX, chunkY] = key.split(',').map(Number);
+      this.renderChunk(chunkX, chunkY, maze);
+    }
+  }
+
+  /**
+   * Clear all currently visible chunks
+   */
+  private clearVisibleChunks(): void {
+    // Destroy all visible chunk graphics
+    for (const chunk of this.visibleChunks.values()) {
+      chunk.graphics.destroy();
+    }
+    
+    this.visibleChunks.clear();
+    this.nodes = [];
+    this.nodeSprites.clear();
+    
+    // Clear outer tile markers
+    this.outerTileMarkers.forEach(marker => marker.destroy());
+    this.outerTileMarkers = [];
+  }
+
+  /**
+   * Hide all outer tile markers
+   */
+  private hideOuterTileMarkers(): void {
+    for (const marker of this.outerTileMarkers) {
+      marker.destroy();
+    }
+    this.outerTileMarkers = [];
   }
 
   /**
@@ -430,18 +535,190 @@ export class Overworld_MazeGenManager {
   }
 
   /**
+   * Move enemy nodes toward the player during nighttime
+   */
+  moveEnemiesNighttime(gameState: any, playerX: number, playerY: number, gridSize: number, scene: Scene): void {
+    // Only move enemies during nighttime
+    if (gameState.isDay) {
+      return;
+    }
+
+    // Define proximity threshold for enemy movement (in pixels)
+    const movementRange = gridSize * 10; // Reduced to 10 grid squares for more breathing room
+
+    // Find nearby enemy nodes that should move
+    const enemyNodes = this.nodes.filter((node: MapNode) => 
+      (node.type === "combat" || node.type === "elite") &&
+      Phaser.Math.Distance.Between(
+        playerX, playerY,
+        node.x + gridSize / 2, 
+        node.y + gridSize / 2
+      ) <= movementRange
+    );
+
+    // Move each enemy node with enhanced AI
+    enemyNodes.forEach((enemyNode: MapNode) => {
+      this.moveEnemyWithEnhancedAI(enemyNode, playerX, playerY, gridSize, scene);
+    });
+  }
+
+  /**
+   * Enhanced AI movement system for enemies
+   */
+  private moveEnemyWithEnhancedAI(enemyNode: MapNode, playerX: number, playerY: number, gridSize: number, scene: Scene): void {
+    const currentX = enemyNode.x + gridSize / 2;
+    const currentY = enemyNode.y + gridSize / 2;
+    const distance = Phaser.Math.Distance.Between(currentX, currentY, playerX, playerY);
+    
+    // Different movement strategies based on distance and enemy type
+    let movementSpeed = this.calculateEnemyMovementSpeed(enemyNode, distance);
+    let movements: {x: number, y: number}[] = [];
+    
+    // Calculate multiple movement steps for faster enemies
+    for (let i = 0; i < movementSpeed; i++) {
+      const stepPosition = this.calculateSingleEnemyStep(
+        currentX + (movements.length > 0 ? movements[movements.length - 1].x - currentX : 0),
+        currentY + (movements.length > 0 ? movements[movements.length - 1].y - currentY : 0),
+        playerX, 
+        playerY,
+        gridSize
+      );
+      
+      if (stepPosition && this.isValidPosition(stepPosition.x + gridSize / 2, stepPosition.y + gridSize / 2)) {
+        movements.push(stepPosition);
+      } else {
+        break; // Stop if we hit a wall or invalid position
+      }
+    }
+    
+    // Execute the movements with staggered timing
+    if (movements.length > 0) {
+      this.executeMultiStepMovement(enemyNode, movements, gridSize, scene);
+    }
+  }
+
+  /**
+   * Calculate enemy movement speed based on type and distance
+   */
+  private calculateEnemyMovementSpeed(enemyNode: MapNode, distanceToPlayer: number): number {
+    let baseSpeed = 1;
+    
+    // Elite enemies only get a small speed boost
+    if (enemyNode.type === "elite") {
+      baseSpeed = 1; // Reduced from 2 to 1
+    }
+    
+    // Much more conservative distance-based speed increases
+    const gridDistance = distanceToPlayer / this.gridSize;
+    if (gridDistance <= 2) {
+      baseSpeed += 1; // Only very close enemies (2 grids) get +1 speed
+    }
+    
+    // Reduced randomization chance and impact
+    if (Math.random() < 0.15) { // Reduced from 30% to 15%
+      baseSpeed += 1;
+    }
+    
+    return Math.min(baseSpeed, 2); // Cap at 2 movements per turn instead of 4
+  }
+
+  /**
+   * Calculate a single movement step toward the player
+   */
+  private calculateSingleEnemyStep(currentX: number, currentY: number, playerX: number, playerY: number, gridSize: number): { x: number, y: number } | null {
+    // Calculate direction to player
+    const deltaX = playerX - currentX;
+    const deltaY = playerY - currentY;
+    
+    // If already at player position, don't move
+    if (Math.abs(deltaX) < gridSize / 2 && Math.abs(deltaY) < gridSize / 2) {
+      return null;
+    }
+    
+    // More predictable movement: mostly stick to axis-aligned movement
+    let newX = currentX;
+    let newY = currentY;
+    
+    // Reduced diagonal movement chance for more predictable behavior
+    if (Math.abs(deltaX) > gridSize / 2 && Math.abs(deltaY) > gridSize / 2 && Math.random() < 0.3) {
+      newX = currentX + (deltaX > 0 ? gridSize : -gridSize);
+      newY = currentY + (deltaY > 0 ? gridSize : -gridSize);
+    } else {
+      // Standard movement: prioritize the axis with larger distance
+      if (Math.abs(deltaX) > Math.abs(deltaY)) {
+        newX = currentX + (deltaX > 0 ? gridSize : -gridSize);
+      } else {
+        newY = currentY + (deltaY > 0 ? gridSize : -gridSize);
+      }
+    }
+    
+    // Convert back to node coordinates (top-left corner)
+    return {
+      x: newX - gridSize / 2,
+      y: newY - gridSize / 2
+    };
+  }
+
+  /**
+   * Execute multiple movement steps with staggered timing
+   */
+  private executeMultiStepMovement(enemyNode: MapNode, movements: {x: number, y: number}[], gridSize: number, scene: Scene): void {
+    movements.forEach((movement, index) => {
+      scene.time.delayedCall(index * 300, () => { // Increased to 300ms delay between each step
+        this.animateEnemyMovement(enemyNode, movement.x, movement.y, gridSize, scene);
+      });
+    });
+  }
+
+  /**
+   * Animate enemy movement to new position
+   */
+  private animateEnemyMovement(enemyNode: MapNode, newX: number, newY: number, gridSize: number, scene: Scene): void {
+    // Update node position
+    enemyNode.x = newX;
+    enemyNode.y = newY;
+    
+    // Update position in manager
+    this.updateNodePosition(enemyNode);
+    
+    // Get the corresponding sprite from manager
+    const sprite = this.getNodeSprite(enemyNode.id);
+    if (sprite) {
+      // Add visual feedback for aggressive movement
+      const isAggressiveMove = enemyNode.type === "elite";
+      
+      // Create a brief flash effect for elite enemies
+      if (isAggressiveMove) {
+        sprite.setTint(0xff4444); // Red tint for aggressive movement
+        scene.time.delayedCall(150, () => {
+          sprite.clearTint();
+        });
+      }
+      
+      // Animate sprite movement with dynamic timing
+      scene.tweens.add({
+        targets: sprite,
+        x: newX + gridSize / 2,
+        y: newY + gridSize / 2,
+        duration: isAggressiveMove ? 120 : 180, // Faster movement for elite enemies
+        ease: 'Power2',
+        onStart: () => {
+          // Slightly scale up during movement for emphasis
+          sprite.setScale(1.6);
+        },
+        onComplete: () => {
+          // Return to normal scale
+          sprite.setScale(1.5);
+        }
+      });
+    }
+  }
+
+  /**
    * Clean up resources
    */
   destroy(): void {
     console.log('🗺️ MazeGenManager cleanup');
-    
-    // Destroy all visible chunk graphics
-    for (const chunk of this.visibleChunks.values()) {
-      chunk.graphics.destroy();
-    }
-    
-    this.visibleChunks.clear();
-    this.nodes = [];
-    this.nodeSprites.clear();
+    this.clearVisibleChunks();
   }
 }
