@@ -12,7 +12,6 @@ export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   private keyInputManager!: Overworld_KeyInputManager;
   private mazeGenManager!: Overworld_MazeGenManager;
-  private gridSize: number = 32;
   private isMoving: boolean = false;
   private isTransitioningToCombat: boolean = false;
   private gameState: OverworldGameState;
@@ -135,7 +134,7 @@ export class Overworld extends Scene {
     });
     
     // Initialize maze generation manager
-    this.mazeGenManager = new Overworld_MazeGenManager(this, this.gridSize);
+    this.mazeGenManager = new Overworld_MazeGenManager(this, 32);
     
     // Check if we're returning from another scene
     const gameState = GameState.getInstance();
@@ -601,6 +600,15 @@ export class Overworld extends Scene {
     bossIcon.setScale(2.0);
     bossIcon.setScrollFactor(0).setDepth(103);
     
+    // Create progress fill (initially empty)
+    this.dayNightProgressFill = this.add.rectangle(
+      progressBarX,
+      progressBarY,
+      0, // Width will be updated in updateDayNightProgressBar
+      8, // Height of the progress fill
+      0xFFFFFF // White color, can be changed
+    ).setOrigin(0, 0.5).setScrollFactor(0).setDepth(99);
+    
     // Create player indicator (▲ symbol pointing up from below the axis line)
     this.dayNightIndicator = this.add.text(0, 0, "▲", {
       fontFamily: 'dungeon-mode-inverted',
@@ -775,6 +783,10 @@ export class Overworld extends Scene {
     // Calculate progress (0 to 1)
     const totalProgress = Math.min(this.gameState.actionsTaken / this.gameState.totalActionsUntilBoss, 1);
     
+    // Update progress fill width
+    if (this.dayNightProgressFill) {
+      this.dayNightProgressFill.width = progressBarWidth * totalProgress;
+    }
     
     // Update player indicator position (below the bar)
     this.dayNightIndicator.x = progressBarX + (progressBarWidth * totalProgress);
@@ -1194,7 +1206,7 @@ export class Overworld extends Scene {
     const playerY = this.player.y;
     
     // Delegate to MazeGenManager
-    this.mazeGenManager.moveEnemiesNighttime(this.gameState, playerX, playerY, this.gridSize, this);
+    this.mazeGenManager.moveEnemiesNighttime(this.gameState, playerX, playerY, this.mazeGenManager.getGridSize(), this);
   }
 
   updateVisibleChunks(): void {
@@ -1299,15 +1311,15 @@ export class Overworld extends Scene {
     }
     
     // Check if player is close to any node
-    const threshold = this.gridSize;
+    const threshold = this.mazeGenManager.getGridSize();
     const nodes = this.mazeGenManager.getNodes();
 
     const nodeIndex = nodes.findIndex((n: MapNode) => {
       const distance = Phaser.Math.Distance.Between(
         this.player.x, 
         this.player.y, 
-        n.x + this.gridSize / 2, 
-        n.y + this.gridSize / 2
+        n.x + this.mazeGenManager.getGridSize() / 2, 
+        n.y + this.mazeGenManager.getGridSize() / 2
       );
       return distance < threshold;
     });
@@ -2010,7 +2022,7 @@ export class Overworld extends Scene {
 
     // Handle player movement if not moving or in transition
     if (!this.isMoving && !this.isTransitioningToCombat) {
-      const gridSize = this.gridSize;
+      const gridSize = this.mazeGenManager.getGridSize();
       let moved = false;
       
       // Check for movement input using KeyInputManager
