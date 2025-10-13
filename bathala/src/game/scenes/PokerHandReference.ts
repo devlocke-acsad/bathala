@@ -9,23 +9,35 @@ export class PokerHandReference extends Scene {
   private activeTab: Tab = 'poker';
   private pokerTabButton!: Phaser.GameObjects.Container;
   private elementsTabButton!: Phaser.GameObjects.Container;
-  private scrollContainer!: Phaser.GameObjects.Container;
+  private currentPokerPage: number = 0;
+  private totalPokerPages: number = 0;
 
   constructor() {
     super({ key: "PokerHandReference" });
   }
 
   create() {
-    // Dark overlay background
-    this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.85).setDepth(0);
+    // Dark overlay background - much darker for better contrast
+    this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x000000, 0.96).setDepth(0);
 
-    // Title with smaller, cleaner font
-    this.add.text(this.cameras.main.width / 2, 40, "GAME REFERENCE", { 
+    // Main content background panel with clean double border
+    const panelWidth = this.cameras.main.width * 0.92;
+    const panelHeight = this.cameras.main.height * 0.88;
+    
+    const outerBorder = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 + 30, panelWidth + 6, panelHeight + 6, undefined, 0);
+    outerBorder.setStrokeStyle(2, 0x77888C, 0.8);
+    outerBorder.setDepth(1);
+    
+    const panelBg = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2 + 30, panelWidth, panelHeight, 0x0a0a0a, 0.95);
+    panelBg.setDepth(1);
+
+    // Title - clean, no stroke, positioned higher
+    this.add.text(this.cameras.main.width / 2, 60, "GAME REFERENCE", { 
       fontFamily: "dungeon-mode", 
-      fontSize: 28, 
-      color: "#ffd700", 
-      align: "center" 
-    }).setOrigin(0.5).setDepth(5);
+      fontSize: 32, 
+      color: "#FFD700", 
+      align: "center"
+    }).setOrigin(0.5).setDepth(25);
 
     this.createBackButton();
     this.createTabs();
@@ -35,29 +47,42 @@ export class PokerHandReference extends Scene {
   }
 
   private createTabs(): void {
-    const tabY = 85;
-    this.pokerTabButton = this.createTabButton("Poker Hands", this.cameras.main.width / 2 - 110, tabY, () => this.showTab('poker'));
-    this.elementsTabButton = this.createTabButton("Elemental Effects", this.cameras.main.width / 2 + 110, tabY, () => this.showTab('elements'));
+    const tabY = 135; // Moved down to be inside container
+    this.pokerTabButton = this.createTabButton("Poker Hands", this.cameras.main.width / 2 - 120, tabY, () => this.showTab('poker'));
+    this.elementsTabButton = this.createTabButton("Elements", this.cameras.main.width / 2 + 120, tabY, () => this.showTab('elements'));
   }
 
   private createTabButton(text: string, x: number, y: number, onClick: () => void): Phaser.GameObjects.Container {
     const button = this.add.container(x, y).setDepth(21);
-    const bg = this.add.rectangle(0, 0, 200, 40, 0x2f3542);
-    bg.setStrokeStyle(2, 0x57606f);
+    
+    // Double border design matching game style
+    const outerBorder = this.add.rectangle(0, 0, 214, 46, undefined, 0);
+    outerBorder.setStrokeStyle(2, 0x77888C, 0.8);
+    
+    const bg = this.add.rectangle(0, 0, 210, 42, 0x150E10);
+    bg.setStrokeStyle(2, 0x77888C);
+    
+    const innerBorder = this.add.rectangle(0, 0, 202, 34, undefined, 0);
+    innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
+    
     const buttonText = this.add.text(0, 0, text, { 
       fontFamily: "dungeon-mode", 
-      fontSize: 14, 
-      color: "#e8eced", 
+      fontSize: 15, 
+      color: "#77888C", 
       align: "center" 
     }).setOrigin(0.5);
 
-    button.add([bg, buttonText]);
-    button.setInteractive(new Phaser.Geom.Rectangle(-100, -20, 200, 40), Phaser.Geom.Rectangle.Contains);
+    button.add([outerBorder, bg, innerBorder, buttonText]);
+    button.setInteractive(new Phaser.Geom.Rectangle(-107, -23, 214, 46), Phaser.Geom.Rectangle.Contains);
     button.on("pointerdown", onClick);
-    button.on("pointerover", () => bg.setFillStyle(0x3d4454));
+    button.on("pointerover", () => {
+      bg.setFillStyle(0x2a1a1f);
+      buttonText.setColor("#E8ECED");
+    });
     button.on("pointerout", () => {
         if (this.activeTab !== (text === "Poker Hands" ? 'poker' : 'elements')) {
-            bg.setFillStyle(0x2f3542);
+            bg.setFillStyle(0x150E10);
+            buttonText.setColor("#77888C");
         }
     });
 
@@ -78,89 +103,294 @@ export class PokerHandReference extends Scene {
         this.pokerHandsContainer.setAlpha(0);
     }
 
-    const pokerBg = this.pokerTabButton.first as Phaser.GameObjects.Rectangle;
-    const elementsBg = this.elementsTabButton.first as Phaser.GameObjects.Rectangle;
+    // Update button styles for active state
+    const pokerBg = this.pokerTabButton.list[1] as Phaser.GameObjects.Rectangle;
+    const elementsBg = this.elementsTabButton.list[1] as Phaser.GameObjects.Rectangle;
+    const pokerText = this.pokerTabButton.list[3] as Phaser.GameObjects.Text;
+    const elementsText = this.elementsTabButton.list[3] as Phaser.GameObjects.Text;
 
-    pokerBg.setFillStyle(tab === 'poker' ? 0x4a4a4a : 0x2f3542);
-    elementsBg.setFillStyle(tab === 'elements' ? 0x4a4a4a : 0x2f3542);
+    if (tab === 'poker') {
+      pokerBg.setFillStyle(0x2a1a1f);
+      pokerText.setColor("#FFD700");
+      elementsBg.setFillStyle(0x150E10);
+      elementsText.setColor("#77888C");
+    } else {
+      elementsBg.setFillStyle(0x2a1a1f);
+      elementsText.setColor("#FFD700");
+      pokerBg.setFillStyle(0x150E10);
+      pokerText.setColor("#77888C");
+    }
   }
 
   private createPokerHandContent(): void {
-    const contentY = 140;
-    const ySpacing = 140;
-    const totalContentHeight = POKER_HAND_LIST.length * ySpacing + 50;
-
-    this.pokerHandsContainer = this.add.container(0, 0);
-    this.scrollContainer = this.add.container(this.cameras.main.width / 2, contentY);
-    this.pokerHandsContainer.add(this.scrollContainer);
-
-    const cardScale = 0.35;
-    const cardWidth = 80 * cardScale;
-
-    POKER_HAND_LIST.forEach((handInfo, index) => {
-      const currentY = index * ySpacing;
-      
-      // Background card for each entry
-      const entryBg = this.add.rectangle(0, currentY + 60, 750, 125, 0x2a2d3a, 0.8);
-      entryBg.setStrokeStyle(1, 0x4a5060);
-      
-      // Hand name - smaller and cleaner
-      const handName = this.add.text(0, currentY + 15, handInfo.name.toUpperCase(), { 
-        fontFamily: "dungeon-mode", 
-        fontSize: 16, 
-        color: "#ffd700", 
-        align: "center" 
-      }).setOrigin(0.5, 0);
-      
-      // Stats in a more compact format
-      const valueAndActions = this.add.text(0, currentY + 38, 
-        `Value: ${handInfo.value}  |  Attack: ${handInfo.attackValue}  |  Defense: ${handInfo.defenseValue}  |  Special: ${handInfo.specialValue}`, 
-        { 
-          fontFamily: "dungeon-mode", 
-          fontSize: 11, 
-          color: "#a0c4ff", 
-          align: "center" 
-        }).setOrigin(0.5, 0);
-      
-      // Card visuals
-      const visualContainer = this.add.container(0, currentY + 75);
-      this.addSampleCards(visualContainer, handInfo.handType, cardWidth, cardScale);
-
-      // Description with better formatting
-      const howToMake = this.add.text(0, currentY + 110, handInfo.howToMake, { 
-        fontFamily: "dungeon-mode", 
-        fontSize: 10, 
-        color: "#c8d1da", 
-        wordWrap: { width: 700 }, 
-        align: "center" 
-      }).setOrigin(0.5, 0);
-
-      this.scrollContainer.add([entryBg, handName, valueAndActions, visualContainer, howToMake]);
-    });
-
-    // Add scroll instruction at the bottom
-    const scrollHint = this.add.text(0, POKER_HAND_LIST.length * ySpacing + 20, 
-      "Scroll for more", 
-      { 
-        fontFamily: "dungeon-mode", 
-        fontSize: 12, 
-        color: "#666", 
-        align: "center" 
-      }).setOrigin(0.5, 0);
-    this.scrollContainer.add(scrollHint);
-
-    const scrollArea = this.add.zone(0, contentY - 20, this.cameras.main.width, this.cameras.main.height - contentY + 20).setOrigin(0).setInteractive();
-
-    scrollArea.on('wheel', (_pointer: Phaser.Input.Pointer, _dx: number, dy: number) => {
-        if (this.activeTab === 'poker') {
-            const maxScroll = Math.max(0, totalContentHeight - (this.cameras.main.height - contentY + 20));
-            const newY = Phaser.Math.Clamp(this.scrollContainer.y - dy, contentY - maxScroll, contentY);
-            this.scrollContainer.y = newY;
+    this.pokerHandsContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2 + 60);
+    this.pokerHandsContainer.setDepth(10);
+    
+    // Pagination: 2 hands per page to prevent overflow
+    const handsPerPage = 2;
+    this.totalPokerPages = Math.ceil(POKER_HAND_LIST.length / handsPerPage);
+    this.currentPokerPage = 0;
+    
+    // Create navigation arrows and page counter
+    this.createPokerNavigation();
+    
+    // Render first page
+    this.renderPokerPage(0);
+  }
+  
+  private createPokerNavigation(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Previous button (left arrow) - positioned inside the panel
+    const prevButton = this.createNavigationButton(
+      -screenWidth * 0.35,
+      screenHeight * 0.28,
+      "◄",
+      () => {
+        if (this.currentPokerPage > 0) {
+          this.currentPokerPage--;
+          this.renderPokerPage(this.currentPokerPage);
+          this.updateNavigationButtons();
         }
+      }
+    );
+    (prevButton as any).isPrevButton = true;
+    this.pokerHandsContainer.add(prevButton);
+    
+    // Next button (right arrow) - positioned inside the panel
+    const nextButton = this.createNavigationButton(
+      screenWidth * 0.35,
+      screenHeight * 0.28,
+      "►",
+      () => {
+        if (this.currentPokerPage < this.totalPokerPages - 1) {
+          this.currentPokerPage++;
+          this.renderPokerPage(this.currentPokerPage);
+          this.updateNavigationButtons();
+        }
+      }
+    );
+    (nextButton as any).isNextButton = true;
+    this.pokerHandsContainer.add(nextButton);
+    
+    // Page counter - positioned at bottom, centered
+    const pageCounter = this.add.text(0, screenHeight * 0.28, `Page 1 / ${this.totalPokerPages}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#ffffff",
+      align: "center",
+    }).setOrigin(0.5);
+    (pageCounter as any).isPageCounter = true;
+    this.pokerHandsContainer.add(pageCounter);
+  }
+  
+  private renderPokerPage(page: number): void {
+    // Clear previous page content
+    this.pokerHandsContainer.list
+      .filter(item => (item as any).isPageContent)
+      .forEach(item => item.destroy());
+    
+    const handsPerPage = 2;
+    const startIndex = page * handsPerPage;
+    const endIndex = Math.min(startIndex + handsPerPage, POKER_HAND_LIST.length);
+    const pageHands = POKER_HAND_LIST.slice(startIndex, endIndex);
+    
+    const cardScale = 0.7; // Slightly smaller to prevent overflow
+    const entryHeight = 260; // Increased spacing between entries for better separation
+    const startY = -(pageHands.length - 1) * entryHeight / 2 - 70; // Adjusted for new tab position
+    
+    pageHands.forEach((handInfo, index) => {
+      const currentY = startY + index * entryHeight;
+      
+      // Elegant single-layer background with gradient effect - TALLER with proper padding
+      const gradientBg = this.add.rectangle(0, currentY, 820, 252, 0x1a1a1a, 0.92);
+      gradientBg.setStrokeStyle(2, 0x8b4513, 0.7);
+      (gradientBg as any).isPageContent = true;
+      
+      const innerAccent = this.add.rectangle(0, currentY, 810, 242, undefined, 0);
+      innerAccent.setStrokeStyle(1, 0xcd853f, 0.4);
+      (innerAccent as any).isPageContent = true;
+      
+      // Hand name - clean, bold, no stroke
+      const handName = this.add.text(0, currentY - 95, handInfo.name.toUpperCase(), { 
+        fontFamily: "dungeon-mode", 
+        fontSize: 24, 
+        color: "#FFD700", 
+        align: "center"
+      }).setOrigin(0.5);
+      (handName as any).isPageContent = true;
+      
+      // Stats badges - cleaner, more spaced out with better spacing from title
+      const statsY = currentY - 55;
+      const statSpacing = 125;
+      const startX = -statSpacing * 1.5;
+      
+      // Value badge
+      const valueBadge = this.createCleanStatBadge(startX, statsY, "VALUE", handInfo.value.toString(), "#FF6B6B");
+      (valueBadge as any).isPageContent = true;
+      
+      // Attack badge
+      const attackBadge = this.createCleanStatBadge(startX + statSpacing, statsY, "ATTACK", handInfo.attackValue.toString(), "#FF9F43");
+      (attackBadge as any).isPageContent = true;
+      
+      // Defense badge
+      const defenseBadge = this.createCleanStatBadge(startX + statSpacing * 2, statsY, "DEFENSE", handInfo.defenseValue.toString(), "#54A0FF");
+      (defenseBadge as any).isPageContent = true;
+      
+      // Special badge
+      const specialBadge = this.createCleanStatBadge(startX + statSpacing * 3, statsY, "SPECIAL", handInfo.specialValue.toString(), "#A29BFE");
+      (specialBadge as any).isPageContent = true;
+      
+      // Card visuals - properly sized and spaced
+      const visualContainer = this.add.container(0, currentY + 20);
+      this.addSampleCards(visualContainer, handInfo.handType, 0, cardScale);
+      (visualContainer as any).isPageContent = true;
+
+      // Description - clean, readable, well-spaced
+      const howToMake = this.add.text(0, currentY + 86, handInfo.howToMake, { 
+        fontFamily: "dungeon-mode", 
+        fontSize: 13, 
+        color: "#E8ECED", 
+        wordWrap: { width: 780 }, 
+        align: "center",
+        lineSpacing: 2
+      }).setOrigin(0.5);
+      (howToMake as any).isPageContent = true;
+
+      this.pokerHandsContainer.add([
+        gradientBg, innerAccent,
+        handName, valueBadge, attackBadge, defenseBadge, specialBadge,
+        visualContainer, howToMake
+      ]);
     });
+    
+    this.updateNavigationButtons();
+  }
+  
+  private createCleanStatBadge(x: number, y: number, label: string, value: string, color: string): Phaser.GameObjects.Container {
+    const badge = this.add.container(x, y);
+    
+    // Clean background with subtle border
+    const bg = this.add.rectangle(0, 0, 105, 36, 0x0a0a0a, 0.9);
+    bg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(color).color, 0.6);
+    
+    const innerBg = this.add.rectangle(0, 0, 101, 32, 0x1a1a1a, 0.8);
+    
+    // Label text - smaller, uppercase, subtle
+    const labelText = this.add.text(0, -9, label, {
+      fontFamily: "dungeon-mode",
+      fontSize: 8,
+      color: "#888888",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Value text - larger, colored, no stroke
+    const valueText = this.add.text(0, 7, value, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: color,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    badge.add([bg, innerBg, labelText, valueText]);
+    return badge;
+  }
+  
+  private updateNavigationButtons(): void {
+    const prevButton = this.pokerHandsContainer.list.find(item => (item as any).isPrevButton);
+    const nextButton = this.pokerHandsContainer.list.find(item => (item as any).isNextButton);
+    const pageCounter = this.pokerHandsContainer.list.find(item => (item as any).isPageCounter) as Phaser.GameObjects.Text;
+    
+    if (prevButton) {
+      (prevButton as any).setAlpha(this.currentPokerPage > 0 ? 1 : 0.3);
+    }
+    if (nextButton) {
+      (nextButton as any).setAlpha(this.currentPokerPage < this.totalPokerPages - 1 ? 1 : 0.3);
+    }
+    if (pageCounter) {
+      pageCounter.setText(`Page ${this.currentPokerPage + 1} / ${this.totalPokerPages}`);
+    }
+  }
+  
+  private createNavigationButton(
+    x: number,
+    y: number,
+    symbol: string,
+    callback: () => void
+  ): Phaser.GameObjects.Container {
+    const button = this.add.container(x, y);
+    
+    const bg = this.add.rectangle(0, 0, 60, 60, 0x150E10);
+    bg.setStrokeStyle(3, 0x77888C);
+    
+    const innerBorder = this.add.rectangle(0, 0, 54, 54, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C);
+    
+    const text = this.add.text(0, 0, symbol, {
+      fontFamily: "dungeon-mode",
+      fontSize: 32,
+      color: "#77888C",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    button.add([bg, innerBorder, text]);
+    button.setSize(80, 80);
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-40, -40, 80, 80),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    button.on("pointerover", () => {
+      if (button.alpha === 1) {
+        bg.setFillStyle(0x1f1410);
+        text.setColor("#e8eced");
+        this.tweens.add({
+          targets: button,
+          scale: 1.15,
+          duration: 150,
+          ease: 'Back.easeOut'
+        });
+      }
+    });
+    
+    button.on("pointerout", () => {
+      bg.setFillStyle(0x150E10);
+      text.setColor("#77888C");
+      this.tweens.add({
+        targets: button,
+        scale: 1,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    });
+    
+    button.on("pointerdown", () => {
+      if (button.alpha === 1) {
+        this.tweens.add({
+          targets: button,
+          scale: 0.95,
+          duration: 80,
+          ease: 'Power2',
+          onComplete: () => {
+            this.tweens.add({
+              targets: button,
+              scale: 1.15,
+              duration: 80,
+              ease: 'Power2',
+              onComplete: () => {
+                callback();
+              }
+            });
+          }
+        });
+      }
+    });
+    
+    return button;
   }
 
-  private addSampleCards(container: Phaser.GameObjects.Container, handType: string, cardWidth: number, cardScale: number) {
+  private addSampleCards(container: Phaser.GameObjects.Container, handType: string, _cardWidth: number, cardScale: number) {
     const handInfo = POKER_HAND_LIST.find(h => h.handType === handType);
     if (!handInfo) return;
 
@@ -179,83 +409,120 @@ export class PokerHandReference extends Scene {
         case 'five_of_a_kind': cards = [{rank: '13', suit: 'Lupa'}, {rank: '13', suit: 'Lupa'}, {rank: '13', suit: 'Lupa'}, {rank: '13', suit: 'Lupa'}, {rank: '13', suit: 'Lupa'}]; break;
     }
 
-    const totalWidth = cards.length * (cardWidth + 5);
+    const cardWidth = 80 * cardScale;
+    const cardSpacing = 10; // Proper spacing between cards
+    const totalWidth = cards.length * cardWidth + (cards.length - 1) * cardSpacing;
     let startX = -totalWidth / 2 + cardWidth / 2;
 
     cards.forEach((card, index) => {
-        this.addSampleCard(container, card.rank, card.suit, startX + index * (cardWidth + 5), 0, cardScale);
+        this.addSampleCard(container, card.rank, card.suit, startX + index * (cardWidth + cardSpacing), 0, cardScale);
     });
   }
 
   private createElementalEffectsContent(): void {
-    this.elementalEffectsContainer = this.add.container(this.cameras.main.width / 2, 170).setDepth(10).setVisible(false);
+    this.elementalEffectsContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2 + 20).setDepth(10).setVisible(false);
     const elementalInfo = [
-      { suit: "Apoy", icon: "🔥", name: "Fire", description: "Deals 50% of hand value as AoE damage and applies 2 Burn to all enemies.", color: "#ff6b6b" },
-      { suit: "Tubig", icon: "💧", name: "Water", description: "Heals for 80% of hand value and cleanses 1 debuff from the player.", color: "#4ecdc4" },
-      { suit: "Lupa", icon: "🌿", name: "Earth", description: "Gains 120% of hand value as Block and grants 1 Strength.", color: "#95e1d3" },
-      { suit: "Hangin", icon: "💨", name: "Air", description: "Draws 2 cards and grants 2 Dexterity.", color: "#a8dadc" }
+      { suit: "Apoy", icon: "🔥", name: "Fire", description: "Deals 50% of hand value as AoE damage and applies 2 Burn to all enemies.", color: "#FF6B6B" },
+      { suit: "Tubig", icon: "💧", name: "Water", description: "Heals for 80% of hand value and cleanses 1 debuff from the player.", color: "#54A0FF" },
+      { suit: "Lupa", icon: "🌿", name: "Earth", description: "Gains 120% of hand value as Block and grants 1 Strength.", color: "#00D2D3" },
+      { suit: "Hangin", icon: "💨", name: "Air", description: "Draws 2 cards and grants 2 Dexterity.", color: "#A29BFE" }
     ];
 
-    let yPos = 0;
+    let yPos = -220;
+    const entrySpacing = 130;
+    
     elementalInfo.forEach(info => {
-      // Background box with cleaner design
-      const bg = this.add.rectangle(0, yPos, 700, 90, 0x2a2d3a, 0.8).setStrokeStyle(1, 0x4a5060);
+      // Clean single-layer background
+      const bg = this.add.rectangle(0, yPos, 880, 110, 0x1a1a1a, 0.92);
+      bg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(info.color).color, 0.6);
       
-      // Icon with better sizing
-      const icon = this.add.text(-330, yPos, info.icon, { fontSize: 36 }).setOrigin(0.5);
+      const innerAccent = this.add.rectangle(0, yPos, 870, 100, undefined, 0);
+      innerAccent.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(info.color).color, 0.3);
       
-      // Element name with color coding
-      const name = this.add.text(-280, yPos - 20, `${info.suit} (${info.name})`, { 
+      // Icon with subtle background
+      const iconBg = this.add.circle(-390, yPos, 32, 0x0a0a0a, 0.9);
+      iconBg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(info.color).color, 0.5);
+      
+      const icon = this.add.text(-390, yPos, info.icon, { 
+        fontSize: 44 
+      }).setOrigin(0.5);
+      
+      // Element name - clean, no stroke
+      const name = this.add.text(-320, yPos - 30, info.suit.toUpperCase(), { 
         fontFamily: "dungeon-mode", 
-        fontSize: 16, 
-        color: info.color 
+        fontSize: 22, 
+        color: info.color
       }).setOrigin(0, 0.5);
       
-      // Description with better readability
-      const description = this.add.text(-280, yPos + 10, info.description, { 
+      const subName = this.add.text(-320, yPos - 8, info.name, { 
         fontFamily: "dungeon-mode", 
-        fontSize: 11, 
-        color: "#c8d1da", 
-        wordWrap: { width: 550 } 
+        fontSize: 13, 
+        color: "#888888"
       }).setOrigin(0, 0.5);
       
-      this.elementalEffectsContainer.add([bg, icon, name, description]);
-      yPos += 105;
+      // Description - clean, well-spaced
+      const description = this.add.text(-320, yPos + 20, info.description, { 
+        fontFamily: "dungeon-mode", 
+        fontSize: 14, 
+        color: "#E8ECED", 
+        wordWrap: { width: 650 },
+        lineSpacing: 3
+      }).setOrigin(0, 0.5);
+      
+      this.elementalEffectsContainer.add([bg, innerAccent, iconBg, icon, name, subName, description]);
+      yPos += entrySpacing;
     });
 
-    // Add helpful note at the bottom
-    const note = this.add.text(0, yPos + 20, 
+    // Bottom note with clean styling
+    const noteBg = this.add.rectangle(0, yPos + 40, 750, 70, 0x1a1a1a, 0.92);
+    noteBg.setStrokeStyle(2, 0xFFD700, 0.7);
+    
+    const noteAccent = this.add.rectangle(0, yPos + 40, 740, 60, undefined, 0);
+    noteAccent.setStrokeStyle(1, 0xFFD700, 0.4);
+    
+    const note = this.add.text(0, yPos + 40, 
       "Playing 3+ cards of the same element triggers its special effect!", 
       { 
         fontFamily: "dungeon-mode", 
-        fontSize: 12, 
-        color: "#ffd700", 
-        wordWrap: { width: 650 }, 
-        align: "center" 
-      }).setOrigin(0.5, 0);
-    this.elementalEffectsContainer.add(note);
+        fontSize: 16, 
+        color: "#FFD700", 
+        wordWrap: { width: 700 }, 
+        align: "center",
+        lineSpacing: 2
+      }).setOrigin(0.5);
+    this.elementalEffectsContainer.add([noteBg, noteAccent, note]);
   }
 
   private createBackButton(): void {
     const button = this.add.container(70, 40).setDepth(21);
-    const bg = this.add.rectangle(0, 0, 100, 35, 0x2f3542).setStrokeStyle(2, 0x57606f);
+    
+    // Double border design matching game style
+    const outerBorder = this.add.rectangle(0, 0, 104, 39, undefined, 0);
+    outerBorder.setStrokeStyle(2, 0x77888C, 0.8);
+    
+    const bg = this.add.rectangle(0, 0, 100, 35, 0x150E10);
+    bg.setStrokeStyle(2, 0x77888C);
+    
+    const innerBorder = this.add.rectangle(0, 0, 92, 27, undefined, 0);
+    innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
+    
     const buttonText = this.add.text(0, 0, "← Back", { 
       fontFamily: "dungeon-mode", 
       fontSize: 14, 
-      color: "#e8eced", 
+      color: "#77888C", 
       align: "center" 
     }).setOrigin(0.5);
 
-    button.add([bg, buttonText]);
-    button.setInteractive(new Phaser.Geom.Rectangle(-50, -17.5, 100, 35), Phaser.Geom.Rectangle.Contains);
+    button.add([outerBorder, bg, innerBorder, buttonText]);
+    button.setInteractive(new Phaser.Geom.Rectangle(-52, -19.5, 104, 39), Phaser.Geom.Rectangle.Contains);
     button.on("pointerdown", () => this.scene.stop());
     button.on("pointerover", () => {
-      bg.setFillStyle(0x3d4454);
-      buttonText.setColor("#ffd700");
+      bg.setFillStyle(0x2a1a1f);
+      buttonText.setColor("#FFD700");
     });
     button.on("pointerout", () => {
-      bg.setFillStyle(0x2f3542);
-      buttonText.setColor("#e8eced");
+      bg.setFillStyle(0x150E10);
+      buttonText.setColor("#77888C");
     });
   }
 
