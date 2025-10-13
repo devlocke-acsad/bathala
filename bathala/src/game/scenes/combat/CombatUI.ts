@@ -430,23 +430,23 @@ export class CombatUI {
    */
   private createTurnUI(): void {
     const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
     
-    this.turnText = this.scene.add.text(screenWidth - 200, 50, "", {
+    // Move turn text to center below inventory (inventory is at y=60, height=90)
+    this.turnText = this.scene.add.text(screenWidth / 2, 165, "", {
       fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#e8eced",
-    });
+      align: "center"
+    }).setOrigin(0.5);
 
-    this.actionsText = this.scene.add.text(screenWidth - 200, 80, "", {
+    // Move discard counter higher above action buttons to avoid overlap with sort buttons
+    this.actionsText = this.scene.add.text(screenWidth / 2, screenHeight - 140, "", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#ffd93d",
-    });
-
-    this.handIndicatorText = this.scene.add.text(screenWidth - 200, 110, "", {
-      fontFamily: "dungeon-mode",
-      color: "#4ecdc4",
-    });
+      align: "center"
+    }).setOrigin(0.5);
 
     this.createPokerHandInfoButton();
     this.updateTurnUI();
@@ -914,30 +914,19 @@ export class CombatUI {
     try {
       this.turnText.setText(`Turn: ${combatState.turn}`);
       this.actionsText.setText(
-        `Discards: ${this.scene.getDiscardsUsedThisTurn()}/${this.scene.getMaxDiscardsPerTurn()} | Hand: ${combatState.player.hand.length}/8`
+        `Discards: ${this.scene.getDiscardsUsedThisTurn()}/${this.scene.getMaxDiscardsPerTurn()}`
       );
-      this.updateHandIndicator();
+      // Hand indicator removed - now using selection counter above cards
     } catch (error) {
       console.error("Error updating turn UI:", error);
     }
   }
   
   /**
-   * Update hand indicator to show current selected hand type
+   * Update hand indicator to show current selected hand type (DEPRECATED - using selection counter instead)
    */
   public updateHandIndicator(): void {
-    const selectedCards = this.scene.getSelectedCards();
-    
-    if (selectedCards.length === 0) {
-      this.handIndicatorText.setText("");
-      return;
-    }
-
-    const evaluation = HandEvaluator.evaluateHand(selectedCards, "attack");
-    const handTypeText = this.getHandTypeDisplayText(evaluation.type);
-    const valueText = evaluation.totalValue > 0 ? ` (${evaluation.totalValue} value)` : "";
-
-    this.handIndicatorText.setText(`Selected: ${handTypeText}${valueText}`);
+    // No longer used - hand info now shown in selection counter above cards
   }
   
   /**
