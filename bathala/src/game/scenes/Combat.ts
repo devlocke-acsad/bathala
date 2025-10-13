@@ -54,9 +54,9 @@ export class Combat extends Scene {
   private actionButtons!: Phaser.GameObjects.Container;
   private turnText!: Phaser.GameObjects.Text;
   private discardsUsedThisTurn: number = 0;
-  private maxDiscardsPerTurn: number = 1;
-  private actionsText!: Phaser.GameObjects.Text;
-  private handIndicatorText!: Phaser.GameObjects.Text;
+  private maxDiscardsPerTurn: number = 3;  // Increased from 1 to 3
+  private specialUsedThisCombat: boolean = false;  // Track if Special has been used
+  private actionsText!: Phaser.GameObjects.Text;  // Shows Discard and Special counters on one line
   private relicsContainer!: Phaser.GameObjects.Container;
   private playerStatusContainer!: Phaser.GameObjects.Container;
   private enemyStatusContainer!: Phaser.GameObjects.Container;
@@ -285,8 +285,8 @@ export class Combat extends Scene {
           },
         ],
         potions: existingPlayerData.potions || [],
-        discardCharges: existingPlayerData.discardCharges || 1,
-        maxDiscardCharges: existingPlayerData.maxDiscardCharges || 1,
+        discardCharges: existingPlayerData.discardCharges || 3,  // Changed from 1 to 3
+        maxDiscardCharges: existingPlayerData.maxDiscardCharges || 3,  // Changed from 1 to 3
       };
       
       // If the deck is in discard pile, shuffle it back to draw pile
@@ -333,8 +333,8 @@ export class Combat extends Scene {
           commonPotions[1], // Elixir of Fortitude
           commonPotions[2], // Draught of Swiftness
         ],
-        discardCharges: 1,
-        maxDiscardCharges: 1,
+        discardCharges: 3,  // Changed from 1 to 3
+        maxDiscardCharges: 3,  // Changed from 1 to 3
       };
     }
 
@@ -452,12 +452,6 @@ export class Combat extends Scene {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#ffd93d",
-    });
-
-    // Hand indicator text - shows current selected hand type
-    this.handIndicatorText = this.add.text(screenWidth - 200, 110, "", {
-      fontFamily: "dungeon-mode",
-      color: "#4ecdc4",
     });
 
     // Info button for poker hand reference is created by CombatUI.initialize()
@@ -1322,9 +1316,21 @@ export class Combat extends Scene {
     
     try {
       this.turnText.setText(`Turn: ${this.combatState.turn}`);
+      
+      // Show discard and special counters on one line
+      const specialStatus = this.specialUsedThisCombat ? "USED" : "READY";
+      
       this.actionsText.setText(
-        `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Hand: ${this.combatState.player.hand.length}/8`
+        `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`
       );
+      
+      // Color code the special status within the text
+      if (this.specialUsedThisCombat) {
+        this.actionsText.setColor("#cccccc"); // Grayed out when used
+      } else {
+        this.actionsText.setColor("#ffd93d"); // Yellow when ready
+      }
+      
       this.ui.updateHandIndicator();
     } catch (error) {
       console.error("Error updating turn UI:", error);
@@ -2007,9 +2013,6 @@ export class Combat extends Scene {
       if (this.actionsText) {
         this.actionsText.destroy();
       }
-      if (this.handIndicatorText) {
-        this.handIndicatorText.destroy();
-      }
       // Clean up battle start dialogue if it exists
       if (this.battleStartDialogueContainer) {
         this.battleStartDialogueContainer.destroy();
@@ -2074,6 +2077,13 @@ export class Combat extends Scene {
     // Prevent action spamming
     if (this.isActionProcessing) {
       console.log("Action already processing, ignoring input");
+      return;
+    }
+    
+    // Check if Special has already been used this combat
+    if (actionType === "special" && this.specialUsedThisCombat) {
+      console.log("Special attack already used this combat!");
+      this.showActionResult("Special already used!");
       return;
     }
     
@@ -2155,6 +2165,10 @@ export class Combat extends Scene {
         this.showBlockCalculation(evaluation.baseValue, 0, relicBonuses);
         break;
       case "special":
+        // Mark special as used
+        this.specialUsedThisCombat = true;
+        this.updateTurnUI();
+        
         // Start cinematic special action animation
         this.animations.animateSpecialAction(dominantSuit);
         
@@ -3223,10 +3237,6 @@ export class Combat extends Scene {
       this.actionsText.setPosition(screenWidth - 200, 80);
     }
     
-    if (this.handIndicatorText) {
-      this.handIndicatorText.setPosition(screenWidth - 200, 110);
-    }
-    
     if (this.actionResultText) {
       this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
     }
@@ -3501,7 +3511,6 @@ export class Combat extends Scene {
     // Hide text elements
     if (this.turnText) this.turnText.setVisible(false);
     if (this.actionsText) this.actionsText.setVisible(false);
-    if (this.handIndicatorText) this.handIndicatorText.setVisible(false);
     if (this.handEvaluationText) this.handEvaluationText.setVisible(false);
     if (this.enemyIntentText) this.enemyIntentText.setVisible(false);
     if (this.actionResultText) this.actionResultText.setVisible(false);
@@ -3532,7 +3541,6 @@ export class Combat extends Scene {
     // Restore text elements
     if (this.turnText) this.turnText.setVisible(true);
     if (this.actionsText) this.actionsText.setVisible(true);
-    if (this.handIndicatorText) this.handIndicatorText.setVisible(true);
     if (this.handEvaluationText) this.handEvaluationText.setVisible(true);
     if (this.enemyIntentText) this.enemyIntentText.setVisible(true);
     if (this.actionResultText) this.actionResultText.setVisible(true);
