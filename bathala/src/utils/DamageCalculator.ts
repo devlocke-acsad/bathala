@@ -4,6 +4,7 @@ import {
   Rank,
   Player,
   StatusEffect,
+  Suit,
 } from "../core/types/CombatTypes";
 
 /**
@@ -15,9 +16,10 @@ export interface DamageCalculation {
   baseValue: number;          // Sum of all card values
   handBonus: number;          // Bonus from hand type
   handMultiplier: number;     // Multiplier from hand type
+  elementalBonus: number;     // Bonus from dominant element
   statusBonus: number;        // Bonus from status effects (Strength/Dexterity)
   relicBonuses: { name: string; amount: number }[];
-  subtotal: number;           // (baseValue + handBonus + statusBonus)
+  subtotal: number;           // (baseValue + handBonus + elementalBonus + statusBonus)
   finalValue: number;         // subtotal × handMultiplier
   breakdown: string[];        // Human-readable breakdown
 }
@@ -65,12 +67,55 @@ export class DamageCalculator {
   };
 
   /**
+   * Elemental bonuses based on card count of dominant element
+   * Rewards building elemental synergies
+   */
+  private static readonly ELEMENTAL_BONUSES: Record<number, number> = {
+    0: 0,    // No cards of dominant element
+    1: 2,    // 1 card: +2 bonus
+    2: 5,    // 2 cards: +5 bonus
+    3: 10,   // 3 cards: +10 bonus
+    4: 18,   // 4 cards: +18 bonus
+    5: 30,   // 5 cards (pure element): +30 bonus
+  };
+
+  /**
    * Calculate base value from all cards in hand
    */
   static calculateBaseValue(cards: PlayingCard[]): number {
     return cards.reduce((sum, card) => {
       return sum + this.CARD_VALUES[card.rank];
     }, 0);
+  }
+
+  /**
+   * Calculate elemental bonus based on dominant suit count
+   * Only applies to Special attacks to maintain balance
+   */
+  static calculateElementalBonus(cards: PlayingCard[], actionType: "attack" | "defend" | "special"): number {
+    // Elemental bonuses only apply to Special actions
+    if (actionType !== "special") {
+      return 0;
+    }
+
+    if (cards.length === 0) return 0;
+
+    // Count cards per suit
+    const suitCounts: Record<Suit, number> = {
+      Apoy: 0,
+      Tubig: 0,
+      Lupa: 0,
+      Hangin: 0,
+    };
+
+    cards.forEach((card) => {
+      suitCounts[card.suit]++;
+    });
+
+    // Get the dominant suit count
+    const maxCount = Math.max(...Object.values(suitCounts));
+
+    return this.ELEMENTAL_BONUSES[maxCount] || 0;
   }
 
   /**
@@ -100,7 +145,13 @@ export class DamageCalculator {
     const handMultiplier = handData.multiplier;
     breakdown.push(`Hand Bonus: +${handBonus}`);
 
-    // 3. Calculate status effect bonuses
+    // 3. Calculate elemental bonus (only for Special actions)
+    const elementalBonus = this.calculateElementalBonus(cards, actionType);
+    if (elementalBonus > 0) {
+      breakdown.push(`Elemental: +${elementalBonus}`);
+    }
+
+    // 4. Calculate status effect bonuses
     let statusBonus = 0;
     if (player) {
       // For attack actions, add Strength bonus
@@ -125,8 +176,8 @@ export class DamageCalculator {
       }
     }
 
-    // 4. Calculate subtotal (before multiplier)
-    let subtotal = baseValue + handBonus + statusBonus;
+    // 5. Calculate subtotal (before multiplier)
+    let subtotal = baseValue + handBonus + elementalBonus + statusBonus;
 
     // Add relic bonuses to subtotal (they get multiplied too)
     const totalRelicBonus = relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
@@ -139,11 +190,11 @@ export class DamageCalculator {
 
     breakdown.push(`Subtotal: ${subtotal}`);
 
-    // 5. Apply multiplier
+    // 6. Apply multiplier
     let finalValue = Math.floor(subtotal * handMultiplier);
     breakdown.push(`Multiplier: ×${handMultiplier}`);
 
-    // 6. Apply action type modifiers
+    // 7. Apply action type modifiers
     if (actionType === "defend") {
       // Defense is slightly less efficient to maintain balance
       finalValue = Math.floor(finalValue * 0.8);
@@ -160,6 +211,7 @@ export class DamageCalculator {
       baseValue,
       handBonus,
       handMultiplier,
+      elementalBonus,
       statusBonus,
       relicBonuses,
       subtotal,

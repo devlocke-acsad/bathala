@@ -49,7 +49,7 @@ export interface HandEvaluation {
   baseValue: number;           // Sum of card values
   handBonus: number;            // Bonus from hand type
   handMultiplier: number;       // Multiplier from hand type
-  elementalBonus: number;       // Legacy, kept for compatibility
+  elementalBonus: number;       // Bonus from dominant element
   totalValue: number;           // Final calculated value
   description: string;
   breakdown?: string[];         // Optional breakdown for display

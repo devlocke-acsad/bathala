@@ -4,16 +4,18 @@ import { Enemy } from "../../core/types/CombatTypes";
  * Act 1 Enemies - The Corrupted Ancestral Forests
  * Based on Filipino mythology creatures from the GDD
  * 
- * BALANCE UPDATE: Enemy stats scaled for new Balatro-inspired damage system
- * - Health multiplied by 5× for common enemies, 4× for elites/boss
+ * BALANCE UPDATE v2: Enemy stats scaled for new Balatro-inspired damage system
+ * - Health multiplied by 8× for common enemies (was 5×, now 8×)
+ * - Health multiplied by 6× for elites/boss (was 4×, now 6×)
  * - Damage multiplied by 3× to maintain challenge
+ * - Elemental bonuses now only apply to Special attacks for better balance
  */
 
 // Common Enemies
 export const TIKBALANG_SCOUT: Omit<Enemy, "id"> = {
   name: "Tikbalang Scout",
-  maxHealth: 140,        // Was 28, now 28 × 5 = 140
-  currentHealth: 140,
+  maxHealth: 224,        // Was 28, now 28 × 8 = 224 (increased from 140)
+  currentHealth: 224,
   block: 0,
   statusEffects: [],
   intent: {
@@ -29,8 +31,8 @@ export const TIKBALANG_SCOUT: Omit<Enemy, "id"> = {
 
 export const BALETE_WRAITH: Omit<Enemy, "id"> = {
   name: "Balete Wraith",
-  maxHealth: 110,        // Was 22, now 22 × 5 = 110
-  currentHealth: 110,
+  maxHealth: 176,        // Was 22, now 22 × 8 = 176 (increased from 110)
+  currentHealth: 176,
   block: 0,
   statusEffects: [
     {
@@ -56,8 +58,8 @@ export const BALETE_WRAITH: Omit<Enemy, "id"> = {
 
 export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
   name: "Sigbin Charger",
-  maxHealth: 175,        // Was 35, now 35 × 5 = 175
-  currentHealth: 175,
+  maxHealth: 280,        // Was 35, now 35 × 8 = 280 (increased from 175)
+  currentHealth: 280,
   block: 0,
   statusEffects: [],
   intent: {
@@ -73,8 +75,8 @@ export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
 
 export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
   name: "Duwende Trickster",
-  maxHealth: 90,         // Was 18, now 18 × 5 = 90
-  currentHealth: 90,
+  maxHealth: 144,        // Was 18, now 18 × 8 = 144 (increased from 90)
+  currentHealth: 144,
   block: 0,
   statusEffects: [],
   intent: {
@@ -90,8 +92,8 @@ export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
 
 export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
   name: "Tiyanak Ambusher",
-  maxHealth: 125,        // Was 25, now 25 × 5 = 125
-  currentHealth: 125,
+  maxHealth: 200,        // Was 25, now 25 × 8 = 200 (increased from 125)
+  currentHealth: 200,
   block: 0,
   statusEffects: [],
   intent: {
@@ -107,8 +109,8 @@ export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
 
 export const AMOMONGO: Omit<Enemy, "id"> = {
   name: "Amomongo",
-  maxHealth: 120,        // Was 24, now 24 × 5 = 120
-  currentHealth: 120,
+  maxHealth: 192,        // Was 24, now 24 × 8 = 192 (increased from 120)
+  currentHealth: 192,
   block: 0,
   statusEffects: [],
   intent: {
@@ -124,8 +126,8 @@ export const AMOMONGO: Omit<Enemy, "id"> = {
 
 export const BUNGISNGIS: Omit<Enemy, "id"> = {
   name: "Bungisngis",
-  maxHealth: 150,        // Was 30, now 30 × 5 = 150
-  currentHealth: 150,
+  maxHealth: 240,        // Was 30, now 30 × 8 = 240 (increased from 150)
+  currentHealth: 240,
   block: 0,
   statusEffects: [],
   intent: {
@@ -142,8 +144,8 @@ export const BUNGISNGIS: Omit<Enemy, "id"> = {
 // Elite Enemies
 export const KAPRE_SHADE: Omit<Enemy, "id"> = {
   name: "Kapre Shade",
-  maxHealth: 260,        // Was 65, now 65 × 4 = 260
-  currentHealth: 260,
+  maxHealth: 390,        // Was 65, now 65 × 6 = 390 (increased from 260)
+  currentHealth: 390,
   block: 0,
   statusEffects: [],
   intent: {
@@ -159,8 +161,8 @@ export const KAPRE_SHADE: Omit<Enemy, "id"> = {
 
 export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
   name: "Tawong Lipod",
-  maxHealth: 240,        // Was 60, now 60 × 4 = 240
-  currentHealth: 240,
+  maxHealth: 360,        // Was 60, now 60 × 6 = 360 (increased from 240)
+  currentHealth: 360,
   block: 0,
   statusEffects: [
     {
@@ -187,8 +189,8 @@ export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
 // Boss
 export const MANGNANGAWAY: Omit<Enemy, "id"> = {
   name: "Mangangaway",
-  maxHealth: 480,        // Was 120, now 120 × 4 = 480
-  currentHealth: 480,
+  maxHealth: 720,        // Was 120, now 120 × 6 = 720 (increased from 480)
+  currentHealth: 720,
   block: 0,
   statusEffects: [],
   intent: {

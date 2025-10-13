@@ -2947,6 +2947,9 @@ export class Combat extends Scene {
     if (evaluation.handBonus > 0) {
       damageText += ` +${evaluation.handBonus}`;
     }
+    if (evaluation.elementalBonus > 0) {
+      damageText += ` +${evaluation.elementalBonus} (elem)`;
+    }
     if (evaluation.handMultiplier > 1) {
       damageText += ` ×${evaluation.handMultiplier}`;
     }

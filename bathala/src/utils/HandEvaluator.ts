@@ -73,7 +73,7 @@ export class HandEvaluator {
       baseValue: calculation.baseValue,
       handBonus: calculation.handBonus,
       handMultiplier: calculation.handMultiplier,
-      elementalBonus: 0, // Legacy field, kept for compatibility
+      elementalBonus: calculation.elementalBonus,
       totalValue: calculation.finalValue,
       description: this.getHandDescription(handType, cards),
       breakdown: calculation.breakdown,
