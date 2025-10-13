@@ -14,8 +14,8 @@ import { Enemy } from "../../core/types/CombatTypes";
 // Common Enemies
 export const TIKBALANG_SCOUT: Omit<Enemy, "id"> = {
   name: "Tikbalang Scout",
-  maxHealth: 224,        // Was 28, now 28 × 8 = 224 (increased from 140)
-  currentHealth: 224,
+  maxHealth: 350,        // Increased for rebalanced damage
+  currentHealth: 350,
   block: 0,
   statusEffects: [],
   intent: {
@@ -31,8 +31,8 @@ export const TIKBALANG_SCOUT: Omit<Enemy, "id"> = {
 
 export const BALETE_WRAITH: Omit<Enemy, "id"> = {
   name: "Balete Wraith",
-  maxHealth: 176,        // Was 22, now 22 × 8 = 176 (increased from 110)
-  currentHealth: 176,
+  maxHealth: 280,        // Increased for rebalanced damage
+  currentHealth: 280,
   block: 0,
   statusEffects: [
     {
@@ -58,8 +58,8 @@ export const BALETE_WRAITH: Omit<Enemy, "id"> = {
 
 export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
   name: "Sigbin Charger",
-  maxHealth: 280,        // Was 35, now 35 × 8 = 280 (increased from 175)
-  currentHealth: 280,
+  maxHealth: 420,        // Increased for rebalanced damage
+  currentHealth: 420,
   block: 0,
   statusEffects: [],
   intent: {
@@ -75,8 +75,8 @@ export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
 
 export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
   name: "Duwende Trickster",
-  maxHealth: 144,        // Was 18, now 18 × 8 = 144 (increased from 90)
-  currentHealth: 144,
+  maxHealth: 240,        // Increased for rebalanced damage
+  currentHealth: 240,
   block: 0,
   statusEffects: [],
   intent: {
@@ -92,8 +92,8 @@ export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
 
 export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
   name: "Tiyanak Ambusher",
-  maxHealth: 200,        // Was 25, now 25 × 8 = 200 (increased from 125)
-  currentHealth: 200,
+  maxHealth: 320,        // Increased for rebalanced damage
+  currentHealth: 320,
   block: 0,
   statusEffects: [],
   intent: {
@@ -109,8 +109,8 @@ export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
 
 export const AMOMONGO: Omit<Enemy, "id"> = {
   name: "Amomongo",
-  maxHealth: 192,        // Was 24, now 24 × 8 = 192 (increased from 120)
-  currentHealth: 192,
+  maxHealth: 310,        // Increased for rebalanced damage
+  currentHealth: 310,
   block: 0,
   statusEffects: [],
   intent: {
@@ -126,8 +126,8 @@ export const AMOMONGO: Omit<Enemy, "id"> = {
 
 export const BUNGISNGIS: Omit<Enemy, "id"> = {
   name: "Bungisngis",
-  maxHealth: 240,        // Was 30, now 30 × 8 = 240 (increased from 150)
-  currentHealth: 240,
+  maxHealth: 380,        // Increased for rebalanced damage
+  currentHealth: 380,
   block: 0,
   statusEffects: [],
   intent: {
@@ -144,8 +144,8 @@ export const BUNGISNGIS: Omit<Enemy, "id"> = {
 // Elite Enemies
 export const KAPRE_SHADE: Omit<Enemy, "id"> = {
   name: "Kapre Shade",
-  maxHealth: 390,        // Was 65, now 65 × 6 = 390 (increased from 260)
-  currentHealth: 390,
+  maxHealth: 600,        // Elite enemy - increased for rebalanced damage
+  currentHealth: 600,
   block: 0,
   statusEffects: [],
   intent: {
@@ -161,8 +161,8 @@ export const KAPRE_SHADE: Omit<Enemy, "id"> = {
 
 export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
   name: "Tawong Lipod",
-  maxHealth: 360,        // Was 60, now 60 × 6 = 360 (increased from 240)
-  currentHealth: 360,
+  maxHealth: 560,        // Elite enemy - increased for rebalanced damage
+  currentHealth: 560,
   block: 0,
   statusEffects: [
     {
@@ -189,8 +189,8 @@ export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
 // Boss
 export const MANGNANGAWAY: Omit<Enemy, "id"> = {
   name: "Mangangaway",
-  maxHealth: 720,        // Was 120, now 120 × 6 = 720 (increased from 480)
-  currentHealth: 720,
+  maxHealth: 1200,       // Boss enemy - increased for rebalanced damage
+  currentHealth: 1200,
   block: 0,
   statusEffects: [],
   intent: {

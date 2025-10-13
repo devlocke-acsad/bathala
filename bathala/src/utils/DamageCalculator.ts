@@ -30,19 +30,19 @@ export class DamageCalculator {
    * Similar to Balatro's chip values
    */
   private static readonly CARD_VALUES: Record<Rank, number> = {
-    "1": 11,        // Ace = 11 (like in Balatro)
+    "1": 6,        // Ace = 6 (reduced from 11)
     "2": 2,
-    "3": 3,
-    "4": 4,
-    "5": 5,
-    "6": 6,
-    "7": 7,
-    "8": 8,
-    "9": 9,
-    "10": 10,
-    "Mandirigma": 10,  // Jack equivalent
-    "Babaylan": 10,    // Queen equivalent
-    "Datu": 10,        // King equivalent
+    "3": 2,
+    "4": 3,
+    "5": 3,
+    "6": 4,
+    "7": 4,
+    "8": 5,
+    "9": 5,
+    "10": 6,
+    "Mandirigma": 6,  // Jack equivalent
+    "Babaylan": 7,    // Queen equivalent
+    "Datu": 7,        // King equivalent
   };
 
   /**
@@ -53,17 +53,17 @@ export class DamageCalculator {
     HandType,
     { bonus: number; multiplier: number }
   > = {
-    high_card: { bonus: 5, multiplier: 1 },
-    pair: { bonus: 10, multiplier: 2 },
-    two_pair: { bonus: 20, multiplier: 2 },
-    three_of_a_kind: { bonus: 30, multiplier: 3 },
-    straight: { bonus: 30, multiplier: 4 },
-    flush: { bonus: 35, multiplier: 4 },
-    full_house: { bonus: 40, multiplier: 4 },
-    four_of_a_kind: { bonus: 60, multiplier: 7 },
-    straight_flush: { bonus: 100, multiplier: 8 },
-    royal_flush: { bonus: 100, multiplier: 8 },
-    five_of_a_kind: { bonus: 120, multiplier: 12 },
+    high_card: { bonus: 0, multiplier: 1 },
+    pair: { bonus: 3, multiplier: 1.2 },
+    two_pair: { bonus: 6, multiplier: 1.3 },
+    three_of_a_kind: { bonus: 10, multiplier: 1.5 },
+    straight: { bonus: 12, multiplier: 1.6 },
+    flush: { bonus: 15, multiplier: 1.7 },
+    full_house: { bonus: 20, multiplier: 2 },
+    four_of_a_kind: { bonus: 25, multiplier: 2.2 },
+    straight_flush: { bonus: 35, multiplier: 2.5 },
+    royal_flush: { bonus: 40, multiplier: 2.8 },
+    five_of_a_kind: { bonus: 38, multiplier: 2.6 },
   };
 
   /**
@@ -72,11 +72,11 @@ export class DamageCalculator {
    */
   private static readonly ELEMENTAL_BONUSES: Record<number, number> = {
     0: 0,    // No cards of dominant element
-    1: 2,    // 1 card: +2 bonus
-    2: 5,    // 2 cards: +5 bonus
-    3: 10,   // 3 cards: +10 bonus
-    4: 18,   // 4 cards: +18 bonus
-    5: 30,   // 5 cards (pure element): +30 bonus
+    1: 1,    // 1 card: +1 bonus
+    2: 3,    // 2 cards: +3 bonus
+    3: 6,    // 3 cards: +6 bonus
+    4: 10,   // 4 cards: +10 bonus
+    5: 15,   // 5 cards (pure element): +15 bonus
   };
 
   /**
@@ -160,8 +160,8 @@ export class DamageCalculator {
           (e: StatusEffect) => e.name === "Strength"
         );
         if (strength) {
-          statusBonus += strength.value * 5; // Each stack adds 5 base value
-          breakdown.push(`Strength: +${strength.value * 5}`);
+          statusBonus += strength.value * 3; // Each stack adds 3 base value (reduced from 5)
+          breakdown.push(`Strength: +${strength.value * 3}`);
         }
       }
       // For defend actions, add Dexterity bonus
@@ -170,8 +170,8 @@ export class DamageCalculator {
           (e: StatusEffect) => e.name === "Dexterity"
         );
         if (dexterity) {
-          statusBonus += dexterity.value * 5; // Each stack adds 5 base value
-          breakdown.push(`Dexterity: +${dexterity.value * 5}`);
+          statusBonus += dexterity.value * 3; // Each stack adds 3 base value (reduced from 5)
+          breakdown.push(`Dexterity: +${dexterity.value * 3}`);
         }
       }
     }
