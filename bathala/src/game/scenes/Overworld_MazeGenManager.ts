@@ -29,6 +29,9 @@ export class Overworld_MazeGenManager {
   
   // Wall textures for randomization (wall1 and wall2 appear more often as they are trees)
   private wallTextures: string[] = ['wall1', 'wall1', 'wall1', 'wall2', 'wall2', 'wall2', 'wall3', 'wall4', 'wall5', 'wall6'];
+  
+  // Outer tile markers for chunk connections
+  private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
 
   /**
    * Constructor
@@ -56,6 +59,10 @@ export class Overworld_MazeGenManager {
     this.visibleChunks.clear();
     this.nodes = [];
     this.nodeSprites.clear();
+    
+    // Clear outer tile markers
+    this.outerTileMarkers.forEach(marker => marker.destroy());
+    this.outerTileMarkers = [];
   }
 
   /**
@@ -191,7 +198,8 @@ export class Overworld_MazeGenManager {
   private renderChunk(chunkX: number, chunkY: number, maze: number[][]): Phaser.GameObjects.GameObject {
     // Create a container with tile sprites for better performance
     const container = this.scene.add.container(0, 0);
-    const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
+    const chunkSize = MazeOverworldGenerator['chunkSize'];
+    const chunkSizePixels = chunkSize * this.gridSize;
     const offsetX = chunkX * chunkSizePixels;
     const offsetY = chunkY * chunkSizePixels;
     
@@ -216,11 +224,34 @@ export class Overworld_MazeGenManager {
           floorSprite.setOrigin(0.5);
           floorSprite.clearTint();
           container.add(floorSprite);
+          
+          // Check if this is an outer tile (on chunk border) and is a path
+          if (this.isOuterTile(x, y, chunkSize)) {
+            this.markOuterTile(tileX, tileY, chunkX, chunkY);
+          }
         }
       }
     }
     
     return container;
+  }
+  
+  /**
+   * Check if a tile position is on the border of a chunk
+   */
+  private isOuterTile(x: number, y: number, chunkSize: number): boolean {
+    return x === 0 || x === chunkSize - 1 || y === 0 || y === chunkSize - 1;
+  }
+  
+  /**
+   * Mark an outer tile with a visual indicator
+   */
+  private markOuterTile(tileX: number, tileY: number, _chunkX: number, _chunkY: number): void {
+    // Create a subtle border indicator for outer tiles
+    const marker = this.scene.add.graphics();
+    marker.lineStyle(2, 0x00ff00, 0.7); // Green border
+    marker.strokeRect(tileX, tileY, this.gridSize, this.gridSize);
+    this.outerTileMarkers.push(marker);
   }
 
   /**
@@ -623,5 +654,9 @@ export class Overworld_MazeGenManager {
     this.visibleChunks.clear();
     this.nodes = [];
     this.nodeSprites.clear();
+    
+    // Clear outer tile markers
+    this.outerTileMarkers.forEach(marker => marker.destroy());
+    this.outerTileMarkers = [];
   }
 }

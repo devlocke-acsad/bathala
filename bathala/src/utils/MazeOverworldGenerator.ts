@@ -1,18 +1,13 @@
 import { MapNode } from "../core/types/MapTypes";
-import { 
-  ChunkData,
-  ChunkRegion,
-  RandomUtil,
-  CellularAutomataMazeGenerator,
-  RoadNetworkGenerator,
-  ChunkConnectivityManager,
-  NodeGenerator,
-  ChunkManager
-} from "./MazeGeneration";
+import { ChunkData, ChunkRegion } from "./MazeGeneration/types";
+import { ChunkManager } from "./MazeGeneration/ChunkManager";
+import { DelaunayMazeGenerator } from "./MazeGeneration/DelaunayMazeGenerator";
+import { NodeGenerator } from "./MazeGeneration/NodeGenerator";
+import { RandomUtil } from "./MazeGeneration/RandomUtil";
 
 export class MazeOverworldGenerator {
-  private static chunkSize: number = 8; // Increased for better performance ratio
-  private static globalSeed: number = RandomUtil.get5DigitRandom(); // Global seed for deterministic generation
+  private static chunkSize: number = 50; // Larger chunk size for corridor generation
+  private static globalSeed: number = Math.floor(Math.random() * 100000); // Global seed for deterministic generation
 
   /**
    * Generate or retrieve a maze chunk with guaranteed connections
@@ -30,45 +25,94 @@ export class MazeOverworldGenerator {
     }
     
     // Generate new chunk
-    const chunk = this.generateOptimizedChunk(chunkX, chunkY, gridSize);
+    const chunk = this.generateCorridorChunk(chunkX, chunkY, gridSize);
     ChunkManager.cacheChunk(chunkKey, chunk);
     
     return { maze: chunk.maze, nodes: chunk.nodes };
   }
 
   /**
-   * Generate an optimized chunk using Perlin-inspired noise and road networks
+   * Generate a chunk using Delaunay triangulation and A* pathfinding
    */
-  private static generateOptimizedChunk(chunkX: number, chunkY: number, gridSize: number): ChunkData {
-    const chunkSeed = RandomUtil.getChunkSeed(chunkX, chunkY, this.globalSeed);
-    const rng = RandomUtil.createSeededRandom(chunkSeed);
+  private static generateCorridorChunk(chunkX: number, chunkY: number, gridSize: number): ChunkData {
+    // Create generator instance
+    const generator = new DelaunayMazeGenerator();
     
-    // Initialize maze with cellular automata base
-    let maze = CellularAutomataMazeGenerator.generateCellularAutomataMaze(this.chunkSize, rng);
+    // Configure generator for this chunk
+    generator.levelSize = [this.chunkSize, this.chunkSize];
+    generator.regionCount = Math.max(this.chunkSize, this.chunkSize) * 2; // More regions for denser connections
+    generator.minRegionDistance = 3;
     
-    // Add road network
-    const roadConnections = RoadNetworkGenerator.generateRoadNetwork(maze, this.chunkSize, rng);
+    // Generate the layout
+    const intGrid = generator.generateLayout();
     
-    // Ensure connectivity between chunks
-    ChunkConnectivityManager.ensureChunkConnectivity(maze, chunkX, chunkY, this.chunkSize, rng);
+    // Convert IntGrid to number[][] format (0 = path, 1 = wall)
+    const maze: number[][] = [];
+    for (let y = 0; y < this.chunkSize; y++) {
+      const row: number[] = [];
+      for (let x = 0; x < this.chunkSize; x++) {
+        row.push(intGrid.getTile(x, y));
+      }
+      maze.push(row);
+    }
     
-    // Remove any isolated roads
-    RoadNetworkGenerator.removeIsolatedRoads(maze, this.chunkSize);
-    
-    // Post-process for better structure
-    const processedMaze = CellularAutomataMazeGenerator.postProcessMaze(maze, this.chunkSize, rng);
+    // Generate connection points on borders for chunk connectivity
+    const roadConnections = this.generateConnectionPoints(maze);
     
     // Generate nodes efficiently
     const nodes = NodeGenerator.generateOptimizedNodes(
-      processedMaze, 
+      maze, 
       chunkX, 
       chunkY, 
       this.chunkSize, 
       gridSize, 
-      rng
+      // Create seeded random generator
+      RandomUtil.createSeededRandom(RandomUtil.getChunkSeed(chunkX, chunkY, this.globalSeed))
     );
     
-    return { maze: processedMaze, nodes, roadConnections };
+    return { maze, nodes, roadConnections };
+  }
+
+  /**
+   * Generate connection points on chunk borders
+   */
+  private static generateConnectionPoints(maze: number[][]): { x: number; y: number; direction: 'north' | 'south' | 'east' | 'west' }[] {
+    const connections: { x: number; y: number; direction: 'north' | 'south' | 'east' | 'west' }[] = [];
+    const size = this.chunkSize;
+    
+    // North border (y = size-1)
+    for (let x = 1; x < size - 1; x++) {
+      if (maze[size - 1][x] === 0) { // Path tile
+        connections.push({ x, y: size - 1, direction: 'north' });
+        break; // Just one connection per border for simplicity
+      }
+    }
+    
+    // South border (y = 0)
+    for (let x = 1; x < size - 1; x++) {
+      if (maze[0][x] === 0) { // Path tile
+        connections.push({ x, y: 0, direction: 'south' });
+        break;
+      }
+    }
+    
+    // East border (x = size-1)
+    for (let y = 1; y < size - 1; y++) {
+      if (maze[y][size - 1] === 0) { // Path tile
+        connections.push({ x: size - 1, y, direction: 'east' });
+        break;
+      }
+    }
+    
+    // West border (x = 0)
+    for (let y = 1; y < size - 1; y++) {
+      if (maze[y][0] === 0) { // Path tile
+        connections.push({ x: 0, y, direction: 'west' });
+        break;
+      }
+    }
+    
+    return connections;
   }
 
   /**
