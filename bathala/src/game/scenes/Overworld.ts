@@ -56,7 +56,7 @@ export class Overworld extends Scene {
       this.playerData = {
         id: savedPlayerData.id || "player",
         name: savedPlayerData.name || "Hero",
-        maxHealth: savedPlayerData.maxHealth || 80,
+        maxHealth: savedPlayerData.maxHealth || 120,
         currentHealth: savedPlayerData.currentHealth !== undefined ? savedPlayerData.currentHealth : 80,
         block: savedPlayerData.block || 0,
         statusEffects: savedPlayerData.statusEffects || [],
@@ -79,7 +79,7 @@ export class Overworld extends Scene {
       this.playerData = {
         id: "player",
         name: "Hero",
-        maxHealth: 80,
+        maxHealth: 120,
         currentHealth: 80,
         block: 0,
         statusEffects: [],
@@ -253,7 +253,7 @@ export class Overworld extends Scene {
       const safePlayerData = this.playerData || {
         id: "player",
         name: "Hero",
-        maxHealth: 80,
+        maxHealth: 120,
         currentHealth: 80,
         block: 0,
         statusEffects: [],
@@ -309,7 +309,7 @@ export class Overworld extends Scene {
         player: {
           id: "player",
           name: "Hero",
-          maxHealth: 80,
+          maxHealth: 120,
           currentHealth: 80,
           block: 0,
           statusEffects: [],
@@ -407,7 +407,7 @@ export class Overworld extends Scene {
         player: {
           id: "player",
           name: "Hero",
-          maxHealth: 80,
+          maxHealth: 120,
           currentHealth: 80,
           block: 0,
           statusEffects: [],
@@ -439,7 +439,7 @@ export class Overworld extends Scene {
       const safePlayerData = this.playerData || {
         id: "player",
         name: "Hero",
-        maxHealth: 80,
+        maxHealth: 120,
         currentHealth: 80,
         block: 0,
         statusEffects: [],
@@ -1465,7 +1465,7 @@ export class Overworld extends Scene {
           const safePlayerData = this.playerData || {
             id: "player",
             name: "Hero",
-            maxHealth: 80,
+            maxHealth: 120,
             currentHealth: 80,
             block: 0,
             statusEffects: [],
@@ -2373,7 +2373,7 @@ export class Overworld extends Scene {
     healthLabel.setShadow(2, 2, '#000000', 2, false, true);
     
     // Enhanced health value with larger font
-    this.healthText = this.add.text(x + 35, y + 26, "80/80", {
+    this.healthText = this.add.text(x + 35, y + 26, "120/120", {
       fontFamily: "dungeon-mode",
       fontSize: "18px",
       color: "#ff3333",

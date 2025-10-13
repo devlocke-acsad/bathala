@@ -264,8 +264,8 @@ export class Combat extends Scene {
       player = {
         id: existingPlayerData.id || "player",
         name: existingPlayerData.name || "Hero",
-        maxHealth: existingPlayerData.maxHealth || 160,      // Increased from 80 to 160 for new damage system
-        currentHealth: existingPlayerData.currentHealth || 160,
+        maxHealth: existingPlayerData.maxHealth || 120,      // Increased for rebalanced damage
+        currentHealth: existingPlayerData.currentHealth || 120,
         block: 0, // Always reset block at start of combat
         statusEffects: [], // Always reset status effects at start of combat
         hand: [], // Will be populated below
@@ -307,8 +307,8 @@ export class Combat extends Scene {
       player = {
         id: "player",
         name: "Hero",
-        maxHealth: 160,      // Increased from 80 to 160 for new damage system
-        currentHealth: 160,
+        maxHealth: 120,      // Increased for rebalanced damage
+        currentHealth: 120,
         block: 0,
         statusEffects: [],
         hand: [],
@@ -2236,135 +2236,77 @@ export class Combat extends Scene {
     suit: Suit,
     value: number
   ): void {
+    // Elemental effects ONLY apply to Special actions
+    if (actionType !== "special") {
+      return;
+    }
+    
     switch (suit) {
       case "Apoy": // Fire
-        if (actionType === "attack") {
-          this.damageEnemy(2); // +2 damage
-          this.addStatusEffect(this.combatState.enemy, {
-            id: "burn",
-            name: "Burn",
-            type: "debuff",
-            duration: 2,
-            value: 2,
-            description: "Takes 2 damage at the start of the turn.",
-            emoji: "🔥",
-          });
-        } else if (actionType === "defend") {
-          this.addStatusEffect(this.combatState.player, {
-            id: "strength",
-            name: "Strength",
-            type: "buff",
-            duration: 999,
-            value: 1,
-            description: "Deal +1 additional damage per stack with Attack actions.",
-            emoji: "†",
-          });
-        } else {
-          // AoE Damage + Burn
-          // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
-          const additionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
-          this.damageEnemy(Math.floor(value * 0.5) + additionalDamage);
-          this.addStatusEffect(this.combatState.enemy, {
-            id: "burn",
-            name: "Burn",
-            type: "debuff",
-            duration: 2,
-            value: 2,
-            description: "Takes 2 damage at the start of the turn.",
-            emoji: "🔥",
-          });
-        }
+        // AoE Damage + Burn
+        // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
+        const apoyAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+        this.damageEnemy(Math.floor(value * 0.5) + apoyAdditionalDamage);
+        this.addStatusEffect(this.combatState.enemy, {
+          id: "burn",
+          name: "Burn",
+          type: "debuff",
+          duration: 2,
+          value: 2,
+          description: "Takes 2 damage at the start of the turn.",
+          emoji: "🔥",
+        });
         break;
       case "Tubig": // Water
-        if (actionType === "attack") {
-          // Ignores 50% of enemy block
-          const enemy = this.combatState.enemy;
-          const damage = value;
-          const damageToBlock = Math.min(enemy.block, damage);
-          const damageThroughBlock = damage - damageToBlock;
-          const damageToHealth = damageThroughBlock + damageToBlock * 0.5;
-          this.damageEnemy(damageToHealth);
-        } else if (actionType === "defend") {
-          this.combatState.player.currentHealth = Math.min(
-            this.combatState.player.maxHealth,
-            this.combatState.player.currentHealth + 2
-          );
-          this.ui.updatePlayerUI();
-        } else {
-          // Heal + Cleanse Debuff
-          this.combatState.player.currentHealth = Math.min(
-            this.combatState.player.maxHealth,
-            this.combatState.player.currentHealth + Math.floor(value * 0.5)
-          );
-          // TODO: Cleanse Debuff
-          this.ui.updatePlayerUI();
-        }
+        // Heal + Cleanse Debuff
+        this.combatState.player.currentHealth = Math.min(
+          this.combatState.player.maxHealth,
+          this.combatState.player.currentHealth + Math.floor(value * 0.5)
+        );
+        // TODO: Cleanse Debuff
+        this.ui.updatePlayerUI();
         break;
       case "Lupa": // Earth
-        if (actionType === "attack") {
-          const lupaCards = this.combatState.player.playedHand.filter(
-            (card) => card.suit === "Lupa"
-          ).length;
-          this.damageEnemy(lupaCards);
-        } else if (actionType === "defend") {
-          // 50% of unspent block carries over
-          // This needs to be handled at the end of the turn
-        } else {
-          // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
-          const additionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
-          if (additionalDamage > 0) {
-            this.damageEnemy(additionalDamage);
-          }
-          
-          this.addStatusEffect(this.combatState.enemy, {
-            id: "vulnerable",
-            name: "Vulnerable",
-            type: "debuff",
-            duration: 2,
-            value: 1.5,
-            description: "Take +50% damage from all incoming attacks.",
-            emoji: "†",
-          });
+        // Apply Vulnerable debuff
+        // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
+        const lupaAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+        if (lupaAdditionalDamage > 0) {
+          this.damageEnemy(lupaAdditionalDamage);
         }
+        
+        this.addStatusEffect(this.combatState.enemy, {
+          id: "vulnerable",
+          name: "Vulnerable",
+          type: "debuff",
+          duration: 2,
+          value: 1.5,
+          description: "Take +50% damage from all incoming attacks.",
+          emoji: "†",
+        });
         break;
       case "Hangin": // Air
-        if (actionType === "attack") {
-          // Hits all enemies for 75% damage
-          this.damageEnemy(Math.floor(value * 0.75));
-        } else if (actionType === "defend") {
-          this.addStatusEffect(this.combatState.player, {
-            id: "dexterity",
-            name: "Dexterity",
-            type: "buff",
-            duration: 999,
-            value: 1,
-            description: "Gain +1 additional block per stack with Defend actions.",
-            emoji: "⛨",
-          });
-        } else {
-          // Draw cards + Apply Weak
-          // Apply "Wind Veil" effect: Additional cards drawn based on Hangin cards played
-          let cardsToDraw = 2;
-          cardsToDraw += RelicManager.calculateWindVeilCardDraw(this.combatState.player.playedHand, this.combatState.player);
-          
-          this.drawCards(cardsToDraw);
-          
-          // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
-          const additionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
-          if (additionalDamage > 0) {
-            this.damageEnemy(additionalDamage);
-          }
-          
-          this.addStatusEffect(this.combatState.enemy, {
-            id: "weak",
-            name: "Weak",
-            type: "debuff",
-            duration: 2,
-            value: 0.5,
-            description: "Deal -50% damage with Attack actions.",
-            emoji: "†",
-          });
+        // Draw cards + Apply Weak
+        // Apply "Wind Veil" effect: Additional cards drawn based on Hangin cards played
+        let cardsToDraw = 2;
+        cardsToDraw += RelicManager.calculateWindVeilCardDraw(this.combatState.player.playedHand, this.combatState.player);
+        
+        this.drawCards(cardsToDraw);
+        
+        // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
+        const hanginAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+        if (hanginAdditionalDamage > 0) {
+          this.damageEnemy(hanginAdditionalDamage);
         }
+        
+        this.addStatusEffect(this.combatState.enemy, {
+          id: "weak",
+          name: "Weak",
+          type: "debuff",
+          duration: 2,
+          value: 0.5,
+          description: "Deal -50% damage with Attack actions.",
+          emoji: "†",
+        });
         break;
     }
   }

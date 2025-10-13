@@ -1,8 +1,8 @@
 # Combat Damage Calculation System
 
-**Version**: 1.0  
+**Version**: 2.0  
 **Last Updated**: January 2025  
-**System**: Balatro-Inspired Damage Calculation
+**System**: Balatro-Inspired Damage Calculation (Rebalanced)
 
 ---
 
@@ -48,38 +48,42 @@ Each card contributes to the base damage:
 
 | Rank | Value | Notes |
 |------|-------|-------|
-| 1 (Ace) | 11 | Highest single card value |
+| 1 (Ace) | 6 | High single card value (reduced v2.0) |
 | 2 | 2 | |
-| 3 | 3 | |
-| 4 | 4 | |
-| 5 | 5 | |
-| 6 | 6 | |
-| 7 | 7 | |
-| 8 | 8 | |
-| 9 | 9 | |
-| 10 | 10 | |
-| Mandirigma (Jack) | 10 | |
-| Babaylan (Queen) | 10 | |
-| Datu (King) | 10 | |
+| 3 | 2 | |
+| 4 | 3 | |
+| 5 | 3 | |
+| 6 | 4 | |
+| 7 | 4 | |
+| 8 | 5 | |
+| 9 | 5 | |
+| 10 | 6 | |
+| Mandirigma (Jack) | 6 | |
+| Babaylan (Queen) | 7 | |
+| Datu (King) | 7 | |
 
-**Example**: Playing 7, 7, Datu, Babaylan, Ace = 7 + 7 + 10 + 10 + 11 = **45 base value**
+**Example**: Playing 7, 7, Datu, Babaylan, Ace = 4 + 4 + 7 + 7 + 6 = **28 base value**
+
+**v2.0 Change**: Card values reduced by ~40-45% to balance gameplay and prevent 2-3 turn enemy kills.
 
 ---
 
 ## Elemental Bonuses
 
-**IMPORTANT: Elemental bonuses ONLY apply to Special attacks** for game balance. Attack and Defend actions do not receive elemental damage bonuses, though they still trigger elemental effects.
+**IMPORTANT: Elemental bonuses ONLY apply to Special attacks** for game balance. Attack and Defend actions do NOT receive elemental damage bonuses or elemental effects.
 
 Elemental synergy rewards playing multiple cards of the same suit (element) **when using Special actions**. The bonus is based on the **count of the dominant element** in your hand:
 
 | Element Count | Bonus | Description |
 |---------------|-------|-------------|
 | 0 cards | +0 | No dominant element |
-| 1 card | +2 | Weak elemental presence |
-| 2 cards | +5 | Moderate elemental synergy |
-| 3 cards | +10 | Strong elemental focus |
-| 4 cards | +18 | Very strong elemental build |
-| 5 cards | +30 | Pure elemental hand (mono-element) |
+| 1 card | +1 | Weak elemental presence (reduced v2.0) |
+| 2 cards | +3 | Moderate elemental synergy (reduced v2.0) |
+| 3 cards | +6 | Strong elemental focus (reduced v2.0) |
+| 4 cards | +10 | Very strong elemental build (reduced v2.0) |
+| 5 cards | +15 | Pure elemental hand / mono-element (reduced v2.0) |
+
+**v2.0 Change**: Elemental bonuses reduced by ~50% and now ONLY apply to Special actions.
 
 ### Elements (Suits)
 - **Apoy** (Fire) - Red cards
@@ -89,72 +93,72 @@ Elemental synergy rewards playing multiple cards of the same suit (element) **wh
 
 ### Elemental Effects Beyond Damage
 
-In addition to providing damage bonuses, the **dominant element** in your hand triggers special effects:
+**v2.0 CRITICAL CHANGE**: Elemental effects now ONLY trigger when using **Special actions**. Attack and Defend actions no longer gain any elemental bonuses, effects, or status applications.
 
-#### Apoy (Fire)
-- **Attack**: +2 extra damage, applies Burn (2 damage/turn for 2 turns)
-- **Defend**: Gain 1 Strength (permanent damage buff)
-- **Special**: AoE damage + Burn effect
+In addition to providing damage bonuses, the **dominant element** in your hand triggers special effects **ONLY when using Special actions**:
 
-#### Tubig (Water)
-- **Attack**: Ignores 50% of enemy block
-- **Defend**: Heal 2 HP
-- **Special**: Heal based on damage + cleanse debuffs
+#### Apoy (Fire) - Special Action Only
+- **Special**: AoE damage (50% of calculated value) + Burn effect (2 damage/turn for 2 turns)
 
-#### Lupa (Earth)
-- **Attack**: +1 damage per Lupa card in hand
-- **Defend**: 50% of unspent block carries to next turn
-- **Special**: Apply Vulnerable to enemy (take +50% damage)
+#### Tubig (Water) - Special Action Only
+- **Special**: Heal player for 50% of calculated value + cleanse debuffs (planned)
 
-#### Hangin (Air)
-- **Attack**: Hit all enemies for 75% damage (AoE)
-- **Defend**: Gain 1 Dexterity (permanent block buff)
-- **Special**: Draw 2 cards + apply Weak to enemy
+#### Lupa (Earth) - Special Action Only
+- **Special**: Apply Vulnerable to enemy (take +50% damage for 2 turns)
 
-**Note**: Elemental effects are based on the dominant element (most common suit) in your played hand, separate from the elemental damage bonus calculation.
+#### Hangin (Air) - Special Action Only
+- **Special**: Draw 2 cards + apply Weak to enemy (deal -50% damage for 2 turns)
+
+**Note**: The dominant element (most common suit) in your played hand determines which effect triggers, but ONLY during Special actions. Attack and Defend actions are now pure damage/block respectively.
 
 ### Elemental Synergy Examples
 
 **Example 1**: 3 Apoy cards + 2 Tubig cards (Attack action)
 - Dominant element: Apoy (3 cards)
 - Elemental Bonus: **+0** (doesn't apply to Attack)
-- Triggers Apoy elemental effects only
+- Elemental Effects: **NONE** (only Special triggers effects in v2.0)
 
 **Example 2**: 5 Lupa cards (Special action)
 - Dominant element: Lupa (5 cards)
-- Elemental Bonus: **+30** (maximum! Only for Special)
-- Triggers Lupa elemental effects
+- Elemental Bonus: **+15** (maximum! Only for Special, reduced from +30)
+- Triggers Lupa elemental effects (Vulnerable debuff)
 
 **Example 3**: Flush (5 cards, same suit) with Special action
 - Dominant element: Automatic 5 cards
-- Elemental Bonus: **+30** (in addition to Flush hand bonus!)
+- Elemental Bonus: **+15** (in addition to Flush hand bonus!)
 - Triggers that element's strongest effects
 
 ### Strategic Note
-**Attack & Defend**: Get elemental effects (Burn, Heal, Strength, etc.) but NO damage bonuses.
-**Special**: Gets BOTH elemental effects AND damage bonuses, making it the most element-focused action!
+**v2.0 Balance Philosophy**:
+- **Attack**: Pure damage, no elemental bonuses or effects. Consistent and reliable.
+- **Defend**: Pure block, no elemental bonuses or effects. Straightforward defense.
+- **Special**: Gets BOTH elemental damage bonuses AND unique elemental effects. Makes Special the ONLY element-focused action!
 
-Building mono-element decks is especially rewarding for Special-focused strategies.
+Building mono-element decks is ONLY rewarding for Special-focused strategies. Attack/Defend builds benefit from raw card values and hand types, not elements.
 
 ---
 
 ## Hand Type Bonuses & Multipliers
 
+**v2.0 Changes**: Multipliers reduced to prevent excessive damage. Bonuses slightly adjusted for better scaling.
+
 | Hand Type | Hand Bonus | Multiplier | Notes |
 |-----------|-----------|------------|-------|
-| High Card | +5 | ×1 | Minimum viable hand |
-| Pair | +10 | ×2 | Two matching ranks |
-| Two Pair | +20 | ×2 | Two different pairs |
-| Three of a Kind | +30 | ×3 | Three matching ranks |
-| Straight | +30 | ×4 | Five consecutive ranks |
-| Flush | +35 | ×4 | Five same-suit cards |
-| Full House | +40 | ×4 | Three of a kind + pair |
-| Four of a Kind | +60 | ×7 | Four matching ranks |
-| Straight Flush | +100 | ×8 | Straight + Flush |
-| Royal Flush | +100 | ×8 | A-K-Q-J-10 suited |
-| Five of a Kind* | +120 | ×12 | Requires Echo of Ancestors relic |
+| High Card | +0 | ×1 | Minimum viable hand |
+| Pair | +3 | ×1.2 | Two matching ranks (reduced mult) |
+| Two Pair | +6 | ×1.3 | Two different pairs (reduced mult) |
+| Three of a Kind | +10 | ×1.5 | Three matching ranks (reduced mult) |
+| Straight | +12 | ×1.6 | Five consecutive ranks (reduced mult) |
+| Flush | +15 | ×1.7 | Five same-suit cards (reduced mult) |
+| Full House | +20 | ×2.0 | Three of a kind + pair (reduced mult) |
+| Four of a Kind | +25 | ×2.2 | Four matching ranks (reduced mult) |
+| Straight Flush | +35 | ×2.5 | Straight + Flush (reduced mult) |
+| Royal Flush | +40 | ×2.8 | A-K-Q-J-10 suited (reduced mult) |
+| Five of a Kind* | +38 | ×2.6 | Requires Echo of Ancestors relic (reduced mult) |
 
 *Five of a Kind is only possible with the "Echo of the Ancestors" relic
+
+**v2.0 Philosophy**: Maximum multiplier reduced from ×12 to ×2.8 to create longer, more strategic combats.
 
 ---
 
@@ -163,15 +167,15 @@ Building mono-element decks is especially rewarding for Special-focused strategi
 Status effects add to the base value **before** multiplication:
 
 ### Attack Actions
-- **Strength**: +5 base value per stack
-  - Example: 2 stacks of Strength = +10 base value
+- **Strength**: +3 base value per stack (reduced from +5 in v2.0)
+  - Example: 2 stacks of Strength = +6 base value
 
 ### Defend Actions
-- **Dexterity**: +5 base value per stack
-  - Example: 3 stacks of Dexterity = +15 base value
+- **Dexterity**: +3 base value per stack (reduced from +5 in v2.0)
+  - Example: 3 stacks of Dexterity = +9 base value
 
 ### Debuffs
-- **Weak**: Reduces final damage by 25% (applied after calculation)
+- **Weak**: Reduces final damage by 50% (applied after calculation)
 - **Vulnerable**: Target takes 50% more damage (applied to receiver)
 
 ---
@@ -188,44 +192,45 @@ Different actions have different efficiency:
 
 ---
 
-## Calculation Examples
+## Calculation Examples (v2.0)
 
 ### Example 1: Basic High Card (Attack)
 **Cards**: Single Datu (King)
 
 ```
-Base Value: 10 (Datu)
-Hand Bonus: +5 (High Card)
+Base Value: 7 (Datu)
+Hand Bonus: +0 (High Card)
 Elemental Bonus: +0 (doesn't apply to Attack)
-Subtotal: 10 + 5 = 15
+Subtotal: 7 + 0 = 7
 Hand Multiplier: ×1 (High Card)
-Final Damage: 15 × 1 = 15 damage
+Final Damage: 7 × 1 = 7 damage
 ```
 
 ### Example 2: Pair with High Cards (Attack)
-**Cards**: Datu, Datu (pair of Kings, both same element)
+**Cards**: Datu, Datu (pair of Kings)
 
 ```
-Base Value: 10 + 10 = 20
-Hand Bonus: +10 (Pair)
-Elemental Bonus: +0 (doesn't apply to Attack)
-Subtotal: 20 + 10 = 30
-Hand Multiplier: ×2 (Pair)
-Final Damage: 30 × 2 = 60 damage
+Base Value: 7 + 7 = 14
+Hand Bonus: +3 (Pair)
+Elemental Bonus: +0 (doesn't apply to Attack, v2.0)
+Elemental Effects: NONE (v2.0: only Special triggers)
+Subtotal: 14 + 3 = 17
+Hand Multiplier: ×1.2 (Pair)
+Final Damage: 17 × 1.2 = 20 damage
 ```
 
 ### Example 3: Three of a Kind with Strength (Attack)
-**Cards**: 7, 7, 7 (three 7s, all Apoy/Fire)  
+**Cards**: 7, 7, 7 (three 7s)  
 **Status**: 2 stacks of Strength
 
 ```
-Base Value: 7 + 7 + 7 = 21
-Hand Bonus: +30 (Three of a Kind)
+Base Value: 4 + 4 + 4 = 12
+Hand Bonus: +10 (Three of a Kind)
 Elemental Bonus: +0 (doesn't apply to Attack)
-Status Bonus: +10 (2 × Strength)
-Subtotal: 21 + 30 + 10 = 61
-Hand Multiplier: ×3 (Three of a Kind)
-Final Damage: 61 × 3 = 183 damage
+Status Bonus: +6 (2 × 3 Strength, v2.0)
+Subtotal: 12 + 10 + 6 = 28
+Hand Multiplier: ×1.5 (Three of a Kind)
+Final Damage: 28 × 1.5 = 42 damage
 ```
 
 ### Example 4: Flush with Special Action (High Power)
@@ -233,96 +238,141 @@ Final Damage: 61 × 3 = 183 damage
 **Action**: SPECIAL
 
 ```
-Base Value: 5 + 7 + 9 + 10 + 10 = 41
-Hand Bonus: +35 (Flush)
-Elemental Bonus: +30 (5 cards same element - ONLY for Special!)
-Subtotal: 41 + 35 + 30 = 106
-Hand Multiplier: ×4 (Flush)
-Pre-modifier: 106 × 4 = 424
+Base Value: 3 + 4 + 5 + 7 + 7 = 26
+Hand Bonus: +15 (Flush, v2.0)
+Elemental Bonus: +15 (5 cards same element - ONLY for Special! v2.0)
+Subtotal: 26 + 15 + 15 = 56
+Hand Multiplier: ×1.7 (Flush, v2.0)
+Pre-modifier: 56 × 1.7 = 95
 Special Modifier: ×0.6
-Final Damage: 424 × 0.6 = 254 damage (+ elemental effects!)
+Final Damage: 95 × 0.6 = 57 damage (+ Apoy special effects!)
 ```
-*Note: Special action gets elemental bonus AND triggers Apoy special effects!*
+*Note: Special action gets elemental bonus AND triggers Apoy effects (Burn)!*
 
 ### Example 5: Flush with Attack Action (Comparison)
 **Cards**: 5, 7, 9, Babaylan, Datu (all Apoy/Fire suit)  
 **Action**: ATTACK
 
 ```
-Base Value: 5 + 7 + 9 + 10 + 10 = 41
-Hand Bonus: +35 (Flush)
-Elemental Bonus: +0 (doesn't apply to Attack)
-Subtotal: 41 + 35 = 76
-Hand Multiplier: ×4 (Flush)
-Final Damage: 76 × 4 = 304 damage (+ Apoy attack effects)
+Base Value: 3 + 4 + 5 + 7 + 7 = 26
+Hand Bonus: +15 (Flush, v2.0)
+Elemental Bonus: +0 (doesn't apply to Attack, v2.0)
+Elemental Effects: NONE (v2.0: only Special triggers)
+Subtotal: 26 + 15 = 41
+Hand Multiplier: ×1.7 (Flush, v2.0)
+Final Damage: 41 × 1.7 = 70 damage (NO elemental effects, v2.0)
 ```
-*Note: Attack is stronger for pure damage, Special gets unique effects!*
+*Note: In v2.0, Attack is better for pure damage, Special gets unique effects + bonuses!*
 
-### Example 6: Straight Flush with Special (Maximum Power)
+### Example 6: Straight Flush with Special (Maximum Power, v2.0)
 **Cards**: 6, 7, 8, 9, 10 (all Tubig/Water suit)  
 **Action**: SPECIAL
 
 ```
-Base Value: 6 + 7 + 8 + 9 + 10 = 40
-Hand Bonus: +100 (Straight Flush)
-Elemental Bonus: +30 (5 cards same element)
-Subtotal: 40 + 100 + 30 = 170
-Hand Multiplier: ×8 (Straight Flush)
-Pre-modifier: 170 × 8 = 1,360
+Base Value: 4 + 4 + 5 + 5 + 6 = 24
+Hand Bonus: +35 (Straight Flush, v2.0)
+Elemental Bonus: +15 (5 cards same element, v2.0)
+Subtotal: 24 + 35 + 15 = 74
+Hand Multiplier: ×2.5 (Straight Flush, v2.0)
+Pre-modifier: 74 × 2.5 = 185
 Special Modifier: ×0.6
-Final Damage: 1,360 × 0.6 = 816 damage (+ Tubig healing!)
+Final Damage: 185 × 0.6 = 111 damage (+ Tubig healing!)
 ```
-*Note: Straight Flush Special is devastating with element bonus + healing!*
+*Note: Straight Flush Special is the best combination with element bonus + healing!*
 
-### Example 7: Defend Action with Elemental Synergy
-**Cards**: Pair of 8s (both Lupa/Earth)  
+### Example 7: Defend Action (v2.0)
+**Cards**: Pair of 8s  
 **Status**: 1 stack of Dexterity
 
 ```
-Base Value: 8 + 8 = 16
-Hand Bonus: +10 (Pair)
-Elemental Bonus: +0 (doesn't apply to Defend)
-Status Bonus: +5 (1 × Dexterity)
-Subtotal: 16 + 10 + 5 = 31
-Hand Multiplier: ×2 (Pair)
-Pre-modifier: 31 × 2 = 62
+Base Value: 5 + 5 = 10
+Hand Bonus: +3 (Pair, v2.0)
+Elemental Bonus: +0 (doesn't apply to Defend, v2.0)
+Elemental Effects: NONE (v2.0: only Special triggers)
+Status Bonus: +3 (1 × 3 Dexterity, v2.0)
+Subtotal: 10 + 3 + 3 = 16
+Hand Multiplier: ×1.2 (Pair, v2.0)
+Pre-modifier: 16 × 1.2 = 19
 Defense Modifier: ×0.8
-Final Block: 62 × 0.8 = 49 block (+ Lupa effects)
+Final Block: 19 × 0.8 = 15 block (NO Lupa effects in v2.0)
 ```
+*Note: In v2.0, Defend actions no longer trigger elemental effects.*
 
 ---
 
 ## Balance Changes Summary
 
+### Version 2.0 - Combat Rebalance (January 2025)
+
+**Problem Identified**: 
+- Players were defeating common enemies in 2-3 turns
+- Elemental effects on Attack/Defend actions provided too much free damage and buffs
+- Multipliers too high (max ×12), leading to one-shot potential
+
+**Solutions Implemented**:
+
+#### 1. Card Values Reduced (~40-45%)
+- Ace: 11 → 6
+- Face cards: 10 → 6-7
+- Number cards: Proportionally reduced
+- **Impact**: Base damage significantly lower
+
+#### 2. Hand Multipliers Nerfed
+- Maximum multiplier: ×12 → ×2.8 (Royal Flush)
+- All multipliers reduced by 50-75%
+- **Impact**: Prevents excessive burst damage
+
+#### 3. Elemental System Restricted
+- **Before**: All actions had elemental effects
+- **After**: Only Special actions trigger elemental effects
+- Attack/Defend: Pure damage/block, no bonuses
+- **Impact**: Special action becomes truly special
+
+#### 4. Status Bonuses Reduced
+- Strength/Dexterity: +5 per stack → +3 per stack
+- **Impact**: Still valuable but less dominant
+
+#### 5. Enemy Health Increased
+
 To accommodate the new damage system, all combat stats were scaled:
 
 ### Player Stats
-- **Max Health**: 80 → **160** (×2)
-- Starting health scales with progression
+- **Max Health**: 80 → **120 HP** (+50%)
+- More survivability for longer combats
 
-### Enemy Stats (Common) - v2 Balance
-- **Health**: ×8 multiplier (increased from ×5)
-  - Example: Tikbalang Scout 28 → **224 HP** (was 140)
-  - Example: Sigbin Charger 35 → **280 HP** (was 175)
-  - Example: Bungisngis 30 → **240 HP** (was 150)
-- **Damage**: ×3 multiplier
+### Enemy Stats (Common) - v2.0 Balance (Reduced 25% from initial v2.0)
+- **Health**: Final values after reduction
+  - Tikbalang Scout: 224 → 350 → **260 HP**
+  - Balete Wraith: 176 → 280 → **210 HP**
+  - Sigbin Charger: 280 → 420 → **320 HP**
+  - Duwende Trickster: 144 → 240 → **180 HP**
+  - Tiyanak Ambusher: 200 → 320 → **240 HP**
+  - Amomongo: 192 → 310 → **230 HP**
+  - Bungisngis: 240 → 380 → **290 HP**
+- **Damage**: ×3 multiplier (unchanged)
   - Example: Tikbalang 7 → **21 damage**
-  - Example: Sigbin 10 → **30 damage**
 
-### Enemy Stats (Elite/Boss) - v2 Balance
-- **Health**: ×6 multiplier (increased from ×4)
-  - Example: Kapre Shade 65 → **390 HP** (was 260)
-  - Example: Tawong Lipod 60 → **360 HP** (was 240)
-  - Example: Mangangaway (Boss) 120 → **720 HP** (was 480)
-- **Damage**: ×3 multiplier
+### Enemy Stats (Elite) - v2.0 Balance (Reduced 25% from initial v2.0)
+- **Health**: Final values after reduction
+  - Kapre Shade: 390 → 600 → **450 HP**
+  - Tawong Lipod: 360 → 560 → **420 HP**
+- **Damage**: ×3 multiplier (unchanged)
   - Example: Kapre 12 → **36 damage**
+
+### Enemy Stats (Boss) - v2.0 Balance (Reduced 25% from initial v2.0)
+- **Health**: Final values after reduction
+  - Mangangaway: 720 → 1200 → **900 HP**
+- **Damage**: ×3 multiplier (unchanged)
   - Example: Mangangaway 15 → **45 damage**
 
-### Balance Philosophy
-- Elemental bonuses restricted to Special actions only
-- Attack actions provide consistent, reliable damage
-- Special actions trade raw damage for elemental synergy + unique effects
-- Combat should take 5-8 turns for common enemies, 10-15 for bosses
+### Balance Philosophy v2.0
+- Elemental bonuses and effects ONLY on Special actions
+- Attack actions: Consistent, reliable damage
+- Defend actions: Straightforward blocking
+- Special actions: High-risk, high-reward with elemental synergy
+- Combat duration: Common 4-6 turns, Elite 7-10 turns, Boss 15-20 turns
+- Strategy and deck building become critical
+- Hand quality matters more than ever
 
 ---
 
@@ -438,34 +488,36 @@ Final: 304
 
 ## Testing Guidelines
 
-### Common Enemy (224 HP average)
-- Should be defeated in 5-8 turns with average hands
-- Pair/Two Pair (Attack): 4-6 attacks needed
-- Three of a Kind (Attack): 2-3 attacks needed
-- Special actions viable with element focus
+### Common Enemy (180-320 HP average, v2.0)
+- Should be defeated in 4-5 turns with average hands
+- Pair/Two Pair (Attack): 5-7 attacks needed
+- Three of a Kind (Attack): 3-4 attacks needed
+- Special action viable with element focus (once per combat)
 
-### Elite Enemy (360-390 HP)
-- Should take 8-12 turns
+### Elite Enemy (420-450 HP, v2.0)
+- Should take 6-8 turns
 - Requires mix of offense and defense
 - Status effect buildup becomes important
-- Special actions can speed up with element synergy
+- Special action can provide crucial advantage
 
-### Boss (720 HP)
-- Should take 12-18 turns
+### Boss (900 HP, v2.0)
+- Should take 12-16 turns
 - Multiple high-tier hands needed
 - Deck optimization crucial
-- Special strategies with pure elements can reduce time
+- Strategic Special use can turn the tide
 
-### Balance Checks
-- ✅ High Card deals meaningful damage (15-20)
-- ✅ Attack actions provide consistent damage (60-200)
-- ✅ Special actions with elements feel powerful (150-500+)
-- ✅ Straight Flush Special is game-changing (800+)
+### Balance Checks (v2.0)
+- ✅ High Card deals meaningful damage (8-12)
+- ✅ Attack actions provide consistent damage (20-80)
+- ✅ Special actions with elements feel powerful (40-120 + effects)
+- ✅ Straight Flush Special is game-changing (150-250)
 - ✅ Card quality matters for all hand types
-- ✅ Elemental synergy exclusive to Special creates strategic choice
-- ✅ Pure element builds are viable but require Special focus
-- ✅ Rainbow/Attack builds are consistent and reliable
-- ✅ Status effects provide noticeable advantage
+- ✅ Elemental synergy exclusive to Special creates clear strategic choice
+- ✅ Pure element builds are viable but require Special-focused play
+- ✅ Rainbow/Attack builds are consistent and don't depend on elements
+- ✅ Status effects provide noticeable but not overwhelming advantage
+- ✅ Combat duration feels strategic, not grindy
+- ✅ No more 2-3 turn kills on common enemies
 
 ---
 
@@ -537,6 +589,25 @@ const elementalBonus = ELEMENTAL_BONUSES[maxCount];
 
 ---
 
-**Document Version**: 1.0  
-**System Version**: Post-Balatro Update  
+**Document Version**: 2.0  
+**System Version**: Post-Balatro Update + v2.0 Combat Rebalance  
 **Compatibility**: Bathala v5.8.14.25+
+
+---
+
+## Version History
+
+### v2.0 (January 2025) - Combat Rebalance
+- **Card values reduced by ~40-45%** to prevent 2-3 turn enemy kills
+- **Hand multipliers reduced** from max ×12 to max ×2.8
+- **Elemental effects restricted to Special actions only**
+- **Status bonuses reduced** from +5 to +3 per stack
+- **Enemy health increased** by 50-75%, then reduced by 25% (net: ~12-30% increase)
+- **Player health increased** from 80 to 120 HP
+- **Combat duration targets**: Common 4-5 turns, Elite 6-8 turns, Boss 12-16 turns
+
+### v1.0 (January 2025) - Balatro-Inspired System
+- Introduced base card values with damage calculation
+- Added hand bonuses and multipliers
+- Implemented elemental bonus system
+- Scaled enemy and player stats ×8 and ×2 respectively
