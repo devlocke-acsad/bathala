@@ -173,6 +173,13 @@ export class Campfire extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
+    // Clear existing health display elements
+    this.children.list.forEach(child => {
+      if (child.name && (child.name.startsWith('healthBar') || child.name.startsWith('healthText'))) {
+        child.destroy();
+      }
+    });
+    
     // Create health bar background
     const healthBarBg = this.add.rectangle(
       screenWidth / 2,
@@ -182,6 +189,7 @@ export class Campfire extends Scene {
       0x333333
     );
     healthBarBg.setStrokeStyle(2, 0x555555);
+    healthBarBg.setName('healthBarBg');
     
     // Create health bar fill
     const healthPercent = this.player.currentHealth / this.player.maxHealth;
@@ -192,9 +200,10 @@ export class Campfire extends Scene {
       20,
       healthPercent > 0.5 ? 0x2ed573 : healthPercent > 0.25 ? 0xff9f43 : 0xff4757
     );
+    healthBarFill.setName('healthBarFill');
     
     // Create health text
-    this.add.text(
+    const healthText = this.add.text(
       screenWidth / 2,
       screenHeight / 2 - 130,
       `Health: ${this.player.currentHealth}/${this.player.maxHealth}`,
@@ -205,6 +214,7 @@ export class Campfire extends Scene {
         align: "center",
       }
     ).setOrigin(0.5);
+    healthText.setName('healthText');
   }
 
   private createResponsiveActionButtons(): void {
@@ -1483,6 +1493,15 @@ export class Campfire extends Scene {
     this.player.discardPile = this.player.discardPile.filter(c => c.id !== card.id);
     this.player.hand = this.player.hand.filter(c => c.id !== card.id);
     
+    // Update GameState
+    const gameState = GameState.getInstance();
+    gameState.updatePlayerData({
+      deck: this.player.deck,
+      drawPile: this.player.drawPile,
+      discardPile: this.player.discardPile,
+      hand: this.player.hand
+    });
+    
     // Show purification effect
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
@@ -1545,6 +1564,15 @@ export class Campfire extends Scene {
       this.player.drawPile = updateCardRank(this.player.drawPile);
       this.player.discardPile = updateCardRank(this.player.discardPile);
       this.player.hand = updateCardRank(this.player.hand);
+      
+      // Update GameState
+      const gameState = GameState.getInstance();
+      gameState.updatePlayerData({
+        deck: this.player.deck,
+        drawPile: this.player.drawPile,
+        discardPile: this.player.discardPile,
+        hand: this.player.hand
+      });
       
       // Show upgrade effect
       const screenWidth = this.cameras.main.width;
