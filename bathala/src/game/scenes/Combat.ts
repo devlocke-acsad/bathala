@@ -28,6 +28,7 @@ import { CombatUI } from "./combat/CombatUI";
 import { CombatDialogue } from "./combat/CombatDialogue";
 import { CombatAnimations } from "./combat/CombatAnimations";
 import { CombatDDA } from "./combat/CombatDDA";
+import { commonPotions } from "../../data/potions/Act1Potions";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -201,8 +202,8 @@ export class Combat extends Scene {
     this.scale.on('resize', this.handleResize, this);
     this.handleResize();
     
-    // Create relic inventory
-    this.createRelicInventory();
+    // Relic inventory is now created by CombatUI.initialize()
+    // (no longer needed here - removed to prevent duplicate UI)
     
     // Create deck sprite
     this.createDeckSprite();
@@ -326,7 +327,12 @@ export class Combat extends Scene {
             emoji: "",
           },
         ],
-        potions: [],
+        potions: [
+          // Add some test potions to showcase the new inventory UI
+          commonPotions[0], // Potion of Clarity
+          commonPotions[1], // Elixir of Fortitude
+          commonPotions[2], // Draught of Swiftness
+        ],
         discardCharges: 1,
         maxDiscardCharges: 1,
       };
@@ -627,209 +633,7 @@ export class Combat extends Scene {
     });
   }
 
-  /**
-   * Create relic inventory in top left corner with vignette design
-   */
-  private createRelicInventory(): void {
-    // Create container for the inventory - positioned at top center for better accessibility
-    const screenWidth = this.cameras.main.width;
-    this.relicInventory = this.add.container(screenWidth / 2, 80);
-    
-    // Make the relic inventory visible by default
-    this.relicInventory.setVisible(true);
-    
-    // Initialize tooltip reference
-    this.currentRelicTooltip = null;
-    
-    // Create the main background rectangle with vignette effect
-    const inventoryWidth = 400; // Optimized width for top placement
-    const inventoryHeight = 80;
-    
-    // Main background with elegant dark theme
-    const mainBg = this.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x1a1a1a, 0.95);
-    mainBg.setStrokeStyle(2, 0x8b4513, 0.8); // Bronze-like border
-    
-    // Inner highlight for depth
-    const innerBg = this.add.rectangle(0, 0, inventoryWidth - 6, inventoryHeight - 6, 0x2a2a2a, 0.6);
-    innerBg.setStrokeStyle(1, 0xcd853f, 0.5); // Light bronze highlight
-    
-    // Title text positioned at top left of the box
-    const titleText = this.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
-      fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#ffffff",
-      align: "left"
-    }).setOrigin(0, 0.5);
-    
-    // Create toggle button for showing/hiding relic inventory
-    const toggleButton = this.createRelicInventoryToggle(inventoryWidth/2 - 30, -inventoryHeight/2 + 15);
-    
-    // Create relic slots grid (6x1 = 6 slots for horizontal layout)
-    const slotSize = 30;
-    const slotsPerRow = 6;
-    const rows = 1;
-    const slotSpacing = 45;
-    
-    const startX = -(slotsPerRow - 1) * slotSpacing / 2;
-    const startY = 10;
-    
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < slotsPerRow; col++) {
-        const slotX = startX + col * slotSpacing;
-        const slotY = startY + row * slotSpacing;
-        
-        // Create elegant slot background
-        const slot = this.add.rectangle(slotX, slotY, slotSize, slotSize, 0x0f0f0f, 0.9);
-        slot.setStrokeStyle(2, 0x8b4513, 0.6); // Bronze border for slots
-        
-        this.relicInventory.add(slot);
-      }
-    }
-    
-    // Add all elements to container
-    this.relicInventory.add([mainBg, innerBg, titleText, toggleButton]);
-    
-    // Update with current relics
-    this.updateRelicInventory();
-  }
-
-  /**
-   * Create toggle button for relic inventory
-   */
-  private createRelicInventoryToggle(x: number, y: number): Phaser.GameObjects.Container {
-    const toggleButton = this.add.container(x, y);
-    
-    // Button background
-    const bg = this.add.rectangle(0, 0, 20, 20, 0x4a4a4a, 0.9);
-    bg.setStrokeStyle(1, 0x6a6a6a);
-    
-    // Toggle text (eye icon)
-    const toggleText = this.add.text(0, 0, "👁", {
-      fontSize: 12,
-      color: "#ffffff"
-    }).setOrigin(0.5);
-    
-    toggleButton.add([bg, toggleText]);
-    
-    // Make button interactive
-    toggleButton.setInteractive(new Phaser.Geom.Rectangle(-10, -10, 20, 20), Phaser.Geom.Rectangle.Contains);
-    
-    // Toggle visibility when clicked
-    toggleButton.on("pointerdown", () => {
-      const isVisible = this.relicInventory.visible;
-      this.relicInventory.setVisible(!isVisible);
-      toggleText.setText(isVisible ? "✕" : "👁");
-    });
-    
-    // Hover effects
-    toggleButton.on("pointerover", () => {
-      bg.setFillStyle(0x5a5a5a, 0.9);
-    });
-    
-    toggleButton.on("pointerout", () => {
-      bg.setFillStyle(0x4a4a4a, 0.9);
-    });
-    
-    return toggleButton;
-  }
-
-  /**
-   * Update relic inventory with current relics
-   */
-  private updateRelicInventory(): void {
-    if (!this.relicInventory) return;
-    
-    const relics = this.combatState.player.relics;
-    const slotSize = 25;
-    const slotsPerRow = 4; // Updated to match new grid
-    const slotSpacing = 35;
-    const startX = -(slotsPerRow - 1) * slotSpacing / 2;
-    const startY = -10;
-    
-    // Remove existing relic displays (keep slots and background)
-    this.relicInventory.list.forEach(child => {
-      if ((child as any).isRelicDisplay || (child as any).isTooltip) {
-        child.destroy();
-      }
-    });
-    
-    // Add current relics to slots
-    relics.forEach((relic, index) => {
-      if (index < 8) { // Max 8 slots now (4x2)
-        const row = Math.floor(index / slotsPerRow);
-        const col = index % slotsPerRow;
-        const slotX = startX + col * slotSpacing;
-        const slotY = startY + row * slotSpacing;
-        
-        // Create relic emoji/icon
-        const relicIcon = this.add.text(slotX, slotY, relic.emoji || "?", {
-          fontSize: 18,
-          align: "center"
-        }).setOrigin(0.5);
-        
-        // Mark as relic display for cleanup
-        (relicIcon as any).isRelicDisplay = true;
-        
-        // Add modern hover and click interactions
-        relicIcon.setInteractive();
-        
-        // Store reference for hover effects
-        let hoverGlow: Phaser.GameObjects.Graphics | null = null;
-        
-        relicIcon.on("pointerover", () => {
-          // Create elegant glow effect
-          if (hoverGlow) {
-            hoverGlow.destroy();
-            hoverGlow = null;
-          }
-          
-          hoverGlow = this.add.graphics();
-          hoverGlow.lineStyle(3, 0x7c3aed, 0.8);
-          hoverGlow.strokeCircle(slotX, slotY, 18);
-          this.relicInventory.add(hoverGlow);
-          
-          // Scale up the icon slightly
-          this.tweens.add({
-            targets: relicIcon,
-            scaleX: 1.2,
-            scaleY: 1.2,
-            duration: 150,
-            ease: 'Back.easeOut'
-          });
-          
-          // Show elegant tooltip with relic name only
-          this.showRelicTooltip(relic.name, slotX, slotY - 40);
-        });
-        
-        relicIcon.on("pointerout", () => {
-          // Remove glow effect
-          if (hoverGlow) {
-            hoverGlow.destroy();
-            hoverGlow = null;
-          }
-          
-          // Scale back to normal
-          this.tweens.add({
-            targets: relicIcon,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 150,
-            ease: 'Back.easeOut'
-          });
-          
-          // Hide tooltip
-          this.hideRelicTooltip();
-        });
-        
-        relicIcon.on("pointerdown", () => {
-          // Show detailed description in a modal-style overlay
-          this.showRelicDetailModal(relic);
-        });
-        
-        this.relicInventory.add(relicIcon);
-      }
-    });
-  }
+  // Old relic inventory methods removed - now handled by CombatUI.ts
 
   /**
    * Create a button with text and callback using Balatro/Prologue styling
@@ -1599,7 +1403,7 @@ export class Combat extends Scene {
           emoji: "🏆",
         });
         this.updateRelicsUI();
-        this.updateRelicInventory();
+        this.ui.updateRelicInventory();
       }
       
       // Victory - show post-combat dialogue with delay to prevent double calls
@@ -3440,7 +3244,7 @@ export class Combat extends Scene {
     this.ui.updatePlayedHandDisplay();
     this.ui.updateActionButtons();
     this.updateRelicsUI();
-    this.updateRelicInventory();
+    this.ui.updateRelicInventory();
     this.updateTurnUI();
   }
 
