@@ -2,6 +2,7 @@ import { Scene } from "phaser";
 import { GameState } from "../../core/managers/GameState";
 import { Player, PlayingCard } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
+import { RelicManager } from "../../core/managers/RelicManager";
 
 export class Campfire extends Scene {
   private player!: Player;
