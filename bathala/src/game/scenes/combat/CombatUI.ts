@@ -215,22 +215,14 @@ export class CombatUI {
     const playerX = screenWidth * 0.25;
     const playerY = screenHeight * 0.4;
 
-    // Create player shadow circle
-    this.playerShadow = this.scene.add.graphics();
-    this.playerShadow.fillStyle(0x000000, 0.3);
-    this.playerShadow.fillEllipse(playerX, playerY + 60, 80, 20);
-
-    // Player sprite with idle animation
+    // Player sprite (static image - mc_combat.png)
     this.playerSprite = this.scene.add.sprite(playerX, playerY, "combat_player");
     this.playerSprite.setScale(2);
-    this.playerSprite.setFlipX(true);
+    
+    // Disable texture smoothing for pixel-perfect rendering
+    this.playerSprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
 
-    // Try to play animation, fallback if it fails
-    try {
-      this.playerSprite.play("player_idle");
-    } catch (error) {
-      console.warn("Player idle animation not found, using static sprite");
-    }
+    // No animation needed - using static sprite
 
     // Player name
     this.scene.add
@@ -277,17 +269,15 @@ export class CombatUI {
     const enemyX = screenWidth * 0.75;
     const enemyY = screenHeight * 0.4;
     
-    // Create enemy shadow circle
-    this.enemyShadow = this.scene.add.graphics();
-    this.enemyShadow.fillStyle(0x000000, 0.3);
-    this.enemyShadow.fillEllipse(enemyX, enemyY + 90, 120, 30);
-
     const combatState = this.scene.getCombatState();
     const enemyName = combatState.enemy.name;
     const enemySpriteKey = this.getEnemySpriteKey(enemyName);
 
     // Enemy sprite
     this.enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
+    
+    // Disable texture smoothing for pixel-perfect rendering
+    this.enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
 
     // Scale the sprite to fit within a 250x250 box
     const sprite = this.enemySprite;
