@@ -1,4 +1,4 @@
-import { Player, Relic, PlayingCard, HandType } from "../types/CombatTypes";
+import { Player, Relic, PlayingCard, HandType, StatusEffect } from "../types/CombatTypes";
 import { HandEvaluator } from "../../utils/HandEvaluator";
 
 /**
@@ -24,14 +24,33 @@ export class RelicManager {
       player.maxDiscardCharges += 1;
     }
 
+    // Apply "Bakunawa Scale" effect: Gain 5 Max HP and damage reduction
+    const bakunawaScale = player.relics.find(r => r.id === "bakunawa_scale");
+    if (bakunawaScale) {
+      player.maxHealth += 5;
+      player.currentHealth += 5; // Also heal when first obtained
+    }
+
+    // Apply "Merchant's Scale" effect: All shop items are 20% cheaper
+    const merchantsScale = player.relics.find(r => r.id === "merchants_scale");
+    if (merchantsScale) {
+      // This is handled in shop pricing logic
+    }
+
+    // Apply "Tigmamanukan's Eye" effect: Draw 1 additional card at start
+    const tigmamanukanEye = player.relics.find(r => r.id === "tigmamanukan_eye");
+    if (tigmamanukanEye) {
+      // This is handled in the initial draw logic in Combat.ts
+    }
+
     // Apply "Umalagad's Spirit" effect: Gain 1 temporary Dexterity
     const umalagadSpirit = player.relics.find(r => r.id === "umalagad_spirit");
     if (umalagadSpirit) {
       // Add temporary dexterity status effect
-      const dexterityEffect = {
+      const dexterityEffect: StatusEffect = {
         id: "dexterity_relic",
         name: "Dexterity",
-        type: "buff",
+        type: "buff" as const,
         duration: 999, // Permanent for this combat
         value: 1,
         description: "Gain +1 additional block per stack with Defend actions.",
@@ -51,10 +70,10 @@ export class RelicManager {
       // Add the 10 block
       player.block += 10;
       // Add temporary dexterity status effect
-      const dexterityEffect = {
+      const dexterityEffect: StatusEffect = {
         id: "dexterity_diwata",
         name: "Dexterity",
-        type: "buff",
+        type: "buff" as const,
         duration: 999, // Permanent for this combat
         value: 1,
         description: "Gain +1 additional block per stack with Defend actions.",
@@ -66,15 +85,6 @@ export class RelicManager {
       if (!existingEffect) {
         player.statusEffects.push(dexterityEffect);
       }
-    }
-
-    // Apply "Tidal Amulet" effect: Heal 2 HP for each card in hand at end of turn
-    // (This effect is handled at the end of the turn in Combat.ts)
-    
-    // Apply "Tigmamanukan's Eye" effect: Draw 1 additional card at start of combat
-    const tigmamanukanEye = player.relics.find(r => r.id === "tigmamanukan_eye");
-    if (tigmamanukanEye) {
-      // In Combat.ts, this is handled by increasing the initial hand draw
     }
 
     // Apply "Stone Golem's Heart" effect: Gain 10 Max HP and 2 Block at start
@@ -109,10 +119,10 @@ export class RelicManager {
     const emberFetish = player.relics.find(r => r.id === "ember_fetish");
     if (emberFetish && player.block === 0) {
       // Add temporary strength status effect
-      const strengthEffect = {
+      const strengthEffect: StatusEffect = {
         id: "strength_ember",
         name: "Strength",
-        type: "buff",
+        type: "buff" as const,
         duration: 999, // Permanent for this combat
         value: 3,
         description: "Deal +3 additional damage per stack with Attack actions.",
@@ -138,10 +148,10 @@ export class RelicManager {
     const ancestralBlade = player.relics.find(r => r.id === "ancestral_blade");
     if (ancestralBlade && evaluation.type === "flush") {
       // Add temporary strength status effect
-      const strengthEffect = {
+      const strengthEffect: StatusEffect = {
         id: "strength_ancestral",
         name: "Strength",
-        type: "buff",
+        type: "buff" as const,
         duration: 999, // Permanent for this combat
         value: 2,
         description: "Deal +2 additional damage per stack with Attack actions.",
@@ -210,13 +220,127 @@ export class RelicManager {
   static calculateSigbinHeartDamage(player: Player): number {
     const sigbinHeart = player.relics.find(r => r.id === "sigbin_heart");
     if (sigbinHeart) {
-      // In the context of Filipino mythology theme where certain effects happen "on burst"
-      // This would apply when the player is at low health or under specific conditions
-      if (player.currentHealth < player.maxHealth * 0.3) { // If below 30% health
-        return 5; // +5 damage
+      // "On burst" means when player is at low health (below 30%)
+      if (player.currentHealth < player.maxHealth * 0.3) {
+        return 5; // +5 damage when low on health
       }
     }
     return 0;
+  }
+
+  /**
+   * Calculate damage reduction from "Bakunawa Scale" effect
+   */
+  static calculateDamageReduction(incomingDamage: number, player: Player): number {
+    const bakunawaScale = player.relics.find(r => r.id === "bakunawa_scale");
+    if (bakunawaScale) {
+      return Math.max(0, incomingDamage - 1); // Reduce all damage by 1
+    }
+    return incomingDamage;
+  }
+
+  /**
+   * Calculate shop price reduction from "Merchant's Scale" effect
+   */
+  static calculateShopPriceReduction(originalPrice: number, player: Player): number {
+    const merchantsScale = player.relics.find(r => r.id === "merchants_scale");
+    if (merchantsScale) {
+      return Math.floor(originalPrice * 0.8); // 20% cheaper (80% of original price)
+    }
+    return originalPrice;
+  }
+
+  /**
+   * Check if first shop item is free with "Bargain Talisman"
+   */
+  static isFirstShopItemFree(player: Player, _actNumber: number): boolean {
+    const bargainTalisman = player.relics.find(r => r.id === "bargain_talisman");
+    if (bargainTalisman) {
+      // This would need to track if the first item has been purchased this act
+      // For now, return false - would need game state tracking
+      return false;
+    }
+    return false;
+  }
+
+  /**
+   * Calculate initial hand size with "Tigmamanukan's Eye" effect
+   */
+  static calculateInitialHandSize(baseHandSize: number, player: Player): number {
+    const tigmamanukanEye = player.relics.find(r => r.id === "tigmamanukan_eye");
+    if (tigmamanukanEye) {
+      return baseHandSize + 1; // Draw 1 additional card
+    }
+    return baseHandSize;
+  }
+
+  /**
+   * Apply relic effects when a relic is first obtained
+   */
+  static applyRelicAcquisitionEffect(relicId: string, player: Player): void {
+    switch (relicId) {
+      case "stone_golem_heart":
+        // Gain 10 Max HP permanently
+        player.maxHealth += 10;
+        player.currentHealth += 10; // Also heal when first obtained
+        break;
+        
+      case "bakunawa_scale":
+        // Gain 5 Max HP permanently
+        player.maxHealth += 5;
+        player.currentHealth += 5; // Also heal when first obtained
+        break;
+        
+      case "tigmamanukan_eye":
+        // This relic's effect is passive, no immediate bonus
+        break;
+        
+      case "merchant_scale":
+      case "bargain_talisman":
+        // These are passive shop effects, no immediate bonus
+        break;
+        
+      case "earthwardens_plate":
+      case "swift_wind_agimat":
+      case "ember_fetish":
+      case "umalagad_spirit":
+      case "babaylans_talisman":
+      case "ancestral_blade":
+      case "tidal_amulet":
+      case "sarimanok_feather":
+      case "echo_ancestors":
+      case "diwatas_crown":
+      case "lucky_charm":
+        // These are combat-only effects, no permanent bonuses
+        break;
+        
+      default:
+        // Handle mythological relics
+        RelicManager.applyMythologicalRelicAcquisition(relicId, player);
+        break;
+    }
+  }
+
+  /**
+   * Apply mythological relic acquisition effects
+   */
+  private static applyMythologicalRelicAcquisition(relicId: string, player: Player): void {
+    // Most mythological relics are passive combat effects
+    // Only permanent effects would go here
+    switch (relicId) {
+      case "tikbalangs_hoof":
+      case "balete_root":
+      case "sigbin_heart":
+      case "duwende_charm":
+      case "tiyanak_tear":
+      case "amomongo_claw":
+      case "bungisngis_grin":
+      case "kapres_cigar":
+      case "wind_veil":
+      case "mangangaway_wand":
+        // These are all passive combat effects, no permanent bonuses
+        break;
+    }
   }
 
   /**
