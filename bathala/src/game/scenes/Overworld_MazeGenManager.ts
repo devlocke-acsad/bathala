@@ -32,17 +32,20 @@ export class Overworld_MazeGenManager {
   
   // Outer tile markers for chunk connections
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
+  private devMode: boolean = false;
 
   /**
    * Constructor
    * @param scene - The Overworld scene instance
    * @param gridSize - The size of each grid cell in pixels (default: 32)
+   * @param devMode - Whether to show debug features like outer tile markers
    */
-  constructor(scene: Scene, gridSize: number = 32) {
+  constructor(scene: Scene, gridSize: number = 32, devMode: boolean = false) {
     this.scene = scene;
     this.gridSize = gridSize;
+    this.devMode = devMode;
     
-    console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize);
+    console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize, 'devMode:', devMode);
   }
 
   /**
@@ -247,11 +250,82 @@ export class Overworld_MazeGenManager {
    * Mark an outer tile with a visual indicator
    */
   private markOuterTile(tileX: number, tileY: number, _chunkX: number, _chunkY: number): void {
-    // Create a subtle border indicator for outer tiles
-    const marker = this.scene.add.graphics();
-    marker.lineStyle(2, 0x00ff00, 0.7); // Green border
-    marker.strokeRect(tileX, tileY, this.gridSize, this.gridSize);
-    this.outerTileMarkers.push(marker);
+    // Only create markers when in dev mode
+    if (this.devMode) {
+      // Create a subtle border indicator for outer tiles
+      const marker = this.scene.add.graphics();
+      marker.lineStyle(2, 0x00ff00, 0.7); // Green border
+      marker.strokeRect(tileX, tileY, this.gridSize, this.gridSize);
+      this.outerTileMarkers.push(marker);
+    }
+  }
+
+  /**
+   * Set dev mode on or off
+   * @param devMode - Whether to enable or disable dev mode
+   */
+  setDevMode(devMode: boolean): void {
+    const oldDevMode = this.devMode;
+    this.devMode = devMode;
+    
+    // If turning dev mode off, hide all outer tile markers
+    if (!devMode) {
+      this.hideOuterTileMarkers();
+    }
+    // If dev mode state changed, we might want to re-render visible chunks
+    // to show or hide the markers
+    else if (devMode && !oldDevMode) {
+      this.reRenderVisibleChunks();
+    }
+  }
+
+  /**
+   * Re-render all currently visible chunks to show/hide dev markers
+   */
+  private reRenderVisibleChunks(): void {
+    // Store current visible chunks data
+    const visibleChunkData = new Map<string, number[][]>();
+    
+    for (const [key, chunk] of this.visibleChunks) {
+      visibleChunkData.set(key, chunk.maze);
+    }
+    
+    // Clear current visible chunks
+    this.clearVisibleChunks();
+    
+    // Re-render all previously visible chunks
+    for (const [key, maze] of visibleChunkData) {
+      const [chunkX, chunkY] = key.split(',').map(Number);
+      this.renderChunk(chunkX, chunkY, maze);
+    }
+  }
+
+  /**
+   * Clear all currently visible chunks
+   */
+  private clearVisibleChunks(): void {
+    // Destroy all visible chunk graphics
+    for (const chunk of this.visibleChunks.values()) {
+      chunk.graphics.destroy();
+    }
+    
+    this.visibleChunks.clear();
+    this.nodes = [];
+    this.nodeSprites.clear();
+    
+    // Clear outer tile markers
+    this.outerTileMarkers.forEach(marker => marker.destroy());
+    this.outerTileMarkers = [];
+  }
+
+  /**
+   * Hide all outer tile markers
+   */
+  private hideOuterTileMarkers(): void {
+    for (const marker of this.outerTileMarkers) {
+      marker.destroy();
+    }
+    this.outerTileMarkers = [];
   }
 
   /**
@@ -645,18 +719,6 @@ export class Overworld_MazeGenManager {
    */
   destroy(): void {
     console.log('🗺️ MazeGenManager cleanup');
-    
-    // Destroy all visible chunk graphics
-    for (const chunk of this.visibleChunks.values()) {
-      chunk.graphics.destroy();
-    }
-    
-    this.visibleChunks.clear();
-    this.nodes = [];
-    this.nodeSprites.clear();
-    
-    // Clear outer tile markers
-    this.outerTileMarkers.forEach(marker => marker.destroy());
-    this.outerTileMarkers = [];
+    this.clearVisibleChunks();
   }
 }

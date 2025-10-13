@@ -133,8 +133,8 @@ export class Overworld extends Scene {
       console.log('🖱️ Input enabled:', this.input.enabled);
     });
     
-    // Initialize maze generation manager
-    this.mazeGenManager = new Overworld_MazeGenManager(this, 32);
+    // Initialize maze generation manager with dev mode flag
+    this.mazeGenManager = new Overworld_MazeGenManager(this, 32, this.testButtonsVisible);
     
     // Check if we're returning from another scene
     const gameState = GameState.getInstance();
@@ -745,6 +745,11 @@ export class Overworld extends Scene {
     this.actionButtons.forEach(button => {
       button.setVisible(this.testButtonsVisible);
     });
+    
+    // Update dev mode in MazeGenManager
+    if (this.mazeGenManager) {
+      this.mazeGenManager.setDevMode(this.testButtonsVisible);
+    }
   }
   
   hideTestButtons(): void {
@@ -752,6 +757,11 @@ export class Overworld extends Scene {
     this.actionButtons.forEach(button => {
       button.setVisible(false);
     });
+    
+    // Update dev mode in MazeGenManager
+    if (this.mazeGenManager) {
+      this.mazeGenManager.setDevMode(false);
+    }
   }
 
   updateUI(): void {
@@ -925,7 +935,7 @@ export class Overworld extends Scene {
         targets: this.player,
         x: targetX,
         y: targetY,
-        duration: 150, // Slightly faster movement
+        duration: 80, // Slightly faster movement
         onComplete: () => {
           this.isMoving = false;
           this.checkNodeInteraction();
