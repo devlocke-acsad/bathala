@@ -226,13 +226,13 @@ export class PokerHandReference extends Scene {
       const statSpacing = 125;
       const startX = -statSpacing * 1.5;
       
-      // Value badge
-      const valueBadge = this.createCleanStatBadge(startX, statsY, "VALUE", handInfo.value.toString(), "#FF6B6B");
-      (valueBadge as any).isPageContent = true;
+      // Bonus badge (was "VALUE")
+      const bonusBadge = this.createCleanStatBadge(startX, statsY, "BONUS", handInfo.bonus.toString(), "#FF6B6B");
+      (bonusBadge as any).isPageContent = true;
       
-      // Attack badge
-      const attackBadge = this.createCleanStatBadge(startX + statSpacing, statsY, "ATTACK", handInfo.attackValue.toString(), "#FF9F43");
-      (attackBadge as any).isPageContent = true;
+      // Multiplier badge (was "ATTACK")
+      const multiplierBadge = this.createCleanStatBadge(startX + statSpacing, statsY, "MULT", `${handInfo.multiplier}x`, "#FF9F43");
+      (multiplierBadge as any).isPageContent = true;
       
       // Defense badge
       const defenseBadge = this.createCleanStatBadge(startX + statSpacing * 2, statsY, "DEFENSE", handInfo.defenseValue.toString(), "#54A0FF");
@@ -260,7 +260,7 @@ export class PokerHandReference extends Scene {
 
       this.pokerHandsContainer.add([
         gradientBg, innerAccent,
-        handName, valueBadge, attackBadge, defenseBadge, specialBadge,
+        handName, bonusBadge, multiplierBadge, defenseBadge, specialBadge,
         visualContainer, howToMake
       ]);
     });
