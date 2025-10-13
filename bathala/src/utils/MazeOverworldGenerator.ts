@@ -24,7 +24,7 @@ export class MazeOverworldGenerator {
   // Generation Configuration
   // =============================
   
-  private static chunkSize: number = 50; // Larger chunk size for corridor generation
+  private static chunkSize: number = 20; // Larger chunk size for corridor generation
   private static globalSeed: number = Math.floor(Math.random() * 100000); // Global seed for deterministic generation
 
   /**
