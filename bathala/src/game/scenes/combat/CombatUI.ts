@@ -610,6 +610,35 @@ export class CombatUI {
       
       slotContainer.add([outerBorder, innerBorder, bg]);
       (slotContainer as any).isRelicSlot = true;
+      (slotContainer as any).slotIndex = i;
+      
+      // Make slot interactive for relic details
+      slotContainer.setSize(relicSlotSize, relicSlotSize);
+      slotContainer.setInteractive();
+      
+      // Add hover effects
+      slotContainer.on('pointerover', () => {
+        const combatState = this.scene.getCombatState();
+        if (combatState.player.relics && combatState.player.relics[i]) {
+          outerBorder.setStrokeStyle(3, 0xffd93d, 1.0); // Golden highlight
+          innerBorder.setStrokeStyle(2, 0xffd93d, 0.8);
+          bg.setFillStyle(0x2a2520); // Slight golden tint
+        }
+      });
+      
+      slotContainer.on('pointerout', () => {
+        outerBorder.setStrokeStyle(2, 0x77888C, 0.8); // Reset to normal
+        innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
+        bg.setFillStyle(0x1a1520); // Reset background
+      });
+      
+      // Add click handler for relic details
+      slotContainer.on('pointerdown', () => {
+        const combatState = this.scene.getCombatState();
+        if (combatState.player.relics && combatState.player.relics[i]) {
+          this.showRelicDetailModal(combatState.player.relics[i]);
+        }
+      });
       
       this.relicInventory.add(slotContainer);
     }
@@ -2066,11 +2095,157 @@ export class CombatUI {
   }
   
   /**
-   * Show relic detail modal
+   * Show relic detail modal with comprehensive information
    */
   private showRelicDetailModal(relic: any): void {
-    // Placeholder for relic detail modal
-    console.log("Show relic detail:", relic);
+    console.log("Showing relic detail modal for:", relic.name);
+    
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Create modal container
+    const modalContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2);
+    modalContainer.setDepth(3000);
+    
+    // Semi-transparent overlay background
+    const overlay = this.scene.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7);
+    overlay.setInteractive();
+    overlay.on('pointerdown', () => {
+      modalContainer.destroy();
+    });
+    
+    // Modal window dimensions
+    const modalWidth = 450;
+    const modalHeight = 300;
+    
+    // Main modal background with Prologue styling
+    const modalBg = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, 0x0f0a0b);
+    const outerBorder = this.scene.add.rectangle(0, 0, modalWidth + 6, modalHeight + 6, undefined, 0);
+    outerBorder.setStrokeStyle(3, 0x77888C, 1.0);
+    const innerBorder = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C, 0.8);
+    
+    // Title section with relic icon
+    const titleY = -modalHeight/2 + 40;
+    const relicIcon = this.scene.add.text(-150, titleY, relic.emoji || "⚙️", {
+      fontSize: 32,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    const relicName = this.scene.add.text(-100, titleY, relic.name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#ffd93d",
+      align: "left",
+      wordWrap: { width: 250 }
+    }).setOrigin(0, 0.5);
+    
+    // Rarity indicator (if available)
+    let rarityColor = "#77888C";
+    let rarityText = "COMMON";
+    if (relic.rarity) {
+      switch (relic.rarity.toLowerCase()) {
+        case "uncommon": rarityColor = "#4ecdc4"; rarityText = "UNCOMMON"; break;
+        case "rare": rarityColor = "#ffd93d"; rarityText = "RARE"; break;
+        case "legendary": rarityColor = "#ff6b6b"; rarityText = "LEGENDARY"; break;
+      }
+    }
+    
+    const rarityLabel = this.scene.add.text(150, titleY, rarityText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: rarityColor,
+      align: "right"
+    }).setOrigin(1, 0.5);
+    
+    // Description section
+    const descriptionY = titleY + 60;
+    const description = this.scene.add.text(0, descriptionY, relic.description || "A mysterious relic with unknown powers.", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: modalWidth - 40 }
+    }).setOrigin(0.5, 0);
+    
+    // Effect section (if available)
+    let effectText = "";
+    if (relic.effect) {
+      effectText = this.getRelicEffectDescription(relic);
+    }
+    
+    const effectLabel = this.scene.add.text(0, descriptionY + 80, "EFFECT:", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    const effectDescription = this.scene.add.text(0, descriptionY + 100, effectText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 13,
+      color: "#4ecdc4",
+      align: "center",
+      wordWrap: { width: modalWidth - 40 }
+    }).setOrigin(0.5, 0);
+    
+    // Close button
+    const closeButton = this.createCloseButton(modalWidth/2 - 30, -modalHeight/2 + 30);
+    closeButton.on('pointerdown', () => {
+      modalContainer.destroy();
+    });
+    
+    // Add all elements to modal
+    modalContainer.add([
+      overlay,
+      outerBorder,
+      innerBorder,
+      modalBg,
+      relicIcon,
+      relicName,
+      rarityLabel,
+      description,
+      effectLabel,
+      effectDescription,
+      closeButton
+    ]);
+    
+    // Add entrance animation
+    modalContainer.setScale(0.8);
+    modalContainer.setAlpha(0);
+    this.scene.tweens.add({
+      targets: modalContainer,
+      scale: 1,
+      alpha: 1,
+      duration: 200,
+      ease: 'Back.Out'
+    });
+  }
+  
+  /**
+   * Get detailed effect description for relic
+   */
+  private getRelicEffectDescription(relic: any): string {
+    // Map common relic effects to user-friendly descriptions
+    const effectDescriptions: { [key: string]: string } = {
+      "hand_tier_increase": "Your poker hands are evaluated as one tier higher.",
+      "extra_discard": "Gain +1 discard charge per combat.",
+      "persistent_block": "Start each combat with 5 block.",
+      "lupa_block_bonus": "Gain +2 block when playing Lupa (Earth) cards.",
+      "apoy_damage_bonus": "Deal +3 damage when playing Apoy (Fire) cards.",
+      "tubig_healing": "Heal 2 HP when playing Tubig (Water) cards.",
+      "hangin_draw": "Draw +1 card when playing Hangin (Air) cards.",
+      "five_of_a_kind_unlock": "Enables Five of a Kind poker hands.",
+      "start_with_strength": "Start each combat with 2 Strength.",
+      "burn_immunity": "Immune to Burn status effects."
+    };
+    
+    if (relic.effect && effectDescriptions[relic.effect]) {
+      return effectDescriptions[relic.effect];
+    }
+    
+    // Fallback to generic description
+    return relic.effect || "This relic provides a powerful passive benefit during combat.";
   }
   
   /**
