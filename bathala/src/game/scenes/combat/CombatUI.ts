@@ -65,6 +65,9 @@ export class CombatUI {
   public relicsContainer!: Phaser.GameObjects.Container;
   public relicInventory!: Phaser.GameObjects.Container;
   public currentRelicTooltip!: Phaser.GameObjects.Container | null;
+  private relicUpdatePending: boolean = false;
+  private lastRelicCount: number = 0;
+  private lastPotionCount: number = 0;
   
   // Modal/Overlay Elements
   public landasChoiceContainer!: Phaser.GameObjects.Container;
@@ -86,6 +89,9 @@ export class CombatUI {
     this.battleStartDialogueContainer = null;
     this.currentRelicTooltip = null;
     this.ddaDebugContainer = null;
+    this.relicUpdatePending = false;
+    this.lastRelicCount = 0;
+    this.lastPotionCount = 0;
   }
   
   /**
@@ -656,7 +662,7 @@ export class CombatUI {
     }
     
     this.relicInventory.add([outerBorder, innerBorder, mainBg, dividerLine, topGridLine, bottomGridLine, relicsTitle, potionsTitle]);
-    this.updateRelicInventory();
+    this.scheduleRelicInventoryUpdate();
   }
   
 
@@ -946,8 +952,8 @@ export class CombatUI {
     this.playerHealthText.setText(`♥ ${currentHealth}/${maxHealth}`);
     this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
     
-    // Update relic inventory to show current relics
-    this.updateRelicInventory();
+    // Schedule relic inventory update instead of immediate update
+    this.scheduleRelicInventoryUpdate();
   }
   
   /**
@@ -1010,7 +1016,7 @@ export class CombatUI {
   }
   
   /**
-   * Update relic inventory with current relics and potions
+   * Update relic inventory with current relics and potions - optimized version
    */
   public updateRelicInventory(): void {
     if (!this.relicInventory) return;
@@ -1018,6 +1024,15 @@ export class CombatUI {
     const combatState = this.scene.getCombatState();
     const relics = combatState.player.relics;
     const potions = combatState.player.potions || [];
+    
+    // Skip update if counts haven't changed (optimization)
+    if (relics.length === this.lastRelicCount && potions.length === this.lastPotionCount && !this.relicUpdatePending) {
+      return;
+    }
+    
+    this.lastRelicCount = relics.length;
+    this.lastPotionCount = potions.length;
+    this.relicUpdatePending = false;
     
     console.log("Updating relic inventory. Relics:", relics.length, "Potions:", potions.length);
     
@@ -1066,6 +1081,9 @@ export class CombatUI {
           new Phaser.Geom.Rectangle(-(relicSlotSize + 4)/2, -(relicSlotSize + 4)/2, relicSlotSize + 4, relicSlotSize + 4),
           Phaser.Geom.Rectangle.Contains
         );
+        
+        // Clear any existing event listeners to prevent memory leaks
+        slot.removeAllListeners();
         
         // Get border references from slot
         const borders = slot.list as Phaser.GameObjects.Rectangle[];
@@ -1131,6 +1149,9 @@ export class CombatUI {
           Phaser.Geom.Rectangle.Contains
         );
         
+        // Clear any existing event listeners to prevent memory leaks
+        slot.removeAllListeners();
+        
         // Get border references from slot
         const borders = slot.list as Phaser.GameObjects.Rectangle[];
         const outerBorder = borders[0];
@@ -1173,6 +1194,28 @@ export class CombatUI {
         });
       }
     });
+  }
+  
+  /**
+   * Schedule a relic inventory update to be executed on the next frame (optimized for batching)
+   */
+  public scheduleRelicInventoryUpdate(): void {
+    if (this.relicUpdatePending) return; // Already scheduled
+    
+    this.relicUpdatePending = true;
+    this.scene.time.delayedCall(1, () => {
+      if (this.relicUpdatePending) { // Check if still needed
+        this.updateRelicInventory();
+      }
+    });
+  }
+  
+  /**
+   * Force relic inventory update (for use after major changes like shop purchases)
+   */
+  public forceRelicInventoryUpdate(): void {
+    this.relicUpdatePending = true;
+    this.updateRelicInventory();
   }
   
   /**
@@ -2018,7 +2061,7 @@ export class CombatUI {
     const combatState = this.scene.getCombatState();
     if (combatState.player.potions) {
       combatState.player.potions.splice(index, 1);
-      this.updateRelicInventory();
+      this.forceRelicInventoryUpdate(); // Force update after potion use
     }
   }
   

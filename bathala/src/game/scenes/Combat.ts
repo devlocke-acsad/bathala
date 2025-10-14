@@ -1412,7 +1412,7 @@ export class Combat extends Scene {
           emoji: "🏆",
         });
         this.updateRelicsUI();
-        this.ui.updateRelicInventory();
+        this.ui.forceRelicInventoryUpdate(); // Force update after adding relic
       }
       
       // Victory - show post-combat dialogue with delay to prevent double calls
@@ -3009,7 +3009,7 @@ export class Combat extends Scene {
     this.ui.updatePlayedHandDisplay();
     this.ui.updateActionButtons();
     this.updateRelicsUI();
-    this.ui.updateRelicInventory();
+    this.ui.scheduleRelicInventoryUpdate(); // Schedule instead of immediate update
     this.updateTurnUI();
   }
 
@@ -3294,5 +3294,23 @@ export class Combat extends Scene {
     if (this.enemyIntentText) this.enemyIntentText.setVisible(true);
     if (this.actionResultText) this.actionResultText.setVisible(true);
     if (this.enemyAttackPreviewText) this.enemyAttackPreviewText.setVisible(true);
+  }
+
+  /**
+   * Resume method called when scene is resumed (e.g., after returning from Shop)
+   */
+  public resume(): void {
+    console.log("Combat scene resumed - refreshing UI");
+    
+    // Refresh relic inventory to show any new items purchased
+    if (this.ui && this.ui.forceRelicInventoryUpdate) {
+      this.ui.forceRelicInventoryUpdate();
+    }
+    
+    // Update all UI elements
+    this.updateTurnUI();
+    this.ui?.updatePlayerUI();
+    this.ui?.updateEnemyUI();
+    this.ui?.updateActionButtons();
   }
 }
