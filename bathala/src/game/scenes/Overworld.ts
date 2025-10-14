@@ -141,8 +141,10 @@ export class Overworld extends Scene {
     const gameState = GameState.getInstance();
     const savedPlayerData = gameState.getPlayerData();
     
-    // If GameState has no player data, this is a fresh start - reinitialize
-    if (!savedPlayerData || Object.keys(savedPlayerData).length === 0) {
+    // If GameState has no player data (null or empty), this is a fresh start - reinitialize
+    const isFreshStart = !savedPlayerData || (typeof savedPlayerData === 'object' && Object.keys(savedPlayerData).length === 0);
+    
+    if (isFreshStart) {
       console.log('🔄 Fresh game detected - initializing new player data');
       const newDeck = DeckManager.createFullDeck();
       this.playerData = {
