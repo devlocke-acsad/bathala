@@ -1408,6 +1408,13 @@ export class Overworld extends Scene {
       const nodes = this.mazeGenManager.getNodes();
       const node = nodes[nodeIndex];
       
+      // Check if this node has already been visited and prevent re-interaction
+      // (for non-consumable nodes like shop, campfire, treasure)
+      if (node.visited && (node.type === "shop" || node.type === "campfire" || node.type === "treasure")) {
+        console.log(`Node ${node.type} at ${node.x}, ${node.y} has already been visited`);
+        return;
+      }
+      
       // Handle different node types
       switch (node.type) {
         case "combat":
@@ -1447,13 +1454,14 @@ export class Overworld extends Scene {
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
           
-          // Remove the node from the manager's list
-          nodes.splice(nodeIndex, 1);
+          // Mark node as visited instead of removing it
+          node.visited = true;
           
-          // Clean up the corresponding sprite from manager
+          // Update sprite appearance to show it's been visited
           const shopSprite = this.mazeGenManager.getNodeSprite(node.id);
           if (shopSprite) {
-            shopSprite.destroy();
+            shopSprite.setAlpha(0.6); // Make it semi-transparent
+            shopSprite.setTint(0x888888); // Give it a gray tint
           }
           
           // Save player position before transitioning
@@ -1471,13 +1479,14 @@ export class Overworld extends Scene {
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
           
-          // Remove the node from the manager's list
-          nodes.splice(nodeIndex, 1);
+          // Mark node as visited instead of removing it
+          node.visited = true;
           
-          // Clean up the corresponding sprite from manager
+          // Update sprite appearance to show it's been visited
           const campfireSprite = this.mazeGenManager.getNodeSprite(node.id);
           if (campfireSprite) {
-            campfireSprite.destroy();
+            campfireSprite.setAlpha(0.6); // Make it semi-transparent
+            campfireSprite.setTint(0x888888); // Give it a gray tint
           }
           
           // Save player position before transitioning
@@ -1495,13 +1504,14 @@ export class Overworld extends Scene {
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
           
-          // Remove the node from the manager's list
-          nodes.splice(nodeIndex, 1);
+          // Mark node as visited instead of removing it
+          node.visited = true;
           
-          // Clean up the corresponding sprite from manager
+          // Update sprite appearance to show it's been visited
           const treasureSprite = this.mazeGenManager.getNodeSprite(node.id);
           if (treasureSprite) {
-            treasureSprite.destroy();
+            treasureSprite.setAlpha(0.6); // Make it semi-transparent
+            treasureSprite.setTint(0x888888); // Give it a gray tint
           }
           
           // Save player position before transitioning
