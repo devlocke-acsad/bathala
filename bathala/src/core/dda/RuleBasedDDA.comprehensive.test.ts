@@ -19,6 +19,15 @@ import { RuleBasedDDA } from './RuleBasedDDA';
 import { DEFAULT_DDA_CONFIG } from './DDAConfig';
 import { CombatMetrics, DifficultyTier } from './DDATypes';
 
+/**
+ * TEST CONSTANTS - Based on Current Game Balance
+ * Updated for new Balatro-inspired damage system (6.5× damage scaling)
+ */
+const TEST_PLAYER_MAX_HP = 120;           // Player max health
+const TEST_COMMON_ENEMY_HP = 180;         // Tikbalang Scout (common enemy baseline)
+const TEST_ELITE_ENEMY_HP = 320;          // Kapre Shade (elite enemy)
+const TEST_BOSS_ENEMY_HP = 600;           // Mangangaway (boss enemy)
+
 describe('RuleBasedDDA - Comprehensive Test Suite', () => {
   let dda: RuleBasedDDA;
 
@@ -62,13 +71,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.95,
         turnCount: 8,
         bestHandAchieved: 'high_card',
-        damageDealt: 80,
-        damageReceived: 5,
+        damageDealt: 144,          // 180 HP / 8 turns = 18 DPT (weak but victory)
+        damageReceived: 6,          // 5% of 120 HP
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -82,9 +91,9 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 95% → +0.35 × 1.5 = +0.525
       // 2. Hand: high_card → 0
       // 3. Efficiency: 8 turns (between 6 and 11) → 0
-      // 4. Damage: 80/8 = 10 DPT vs 100/9 = 11.1 → ratio 0.9 → 0
-      // 5. Resources: 2/3 = 33% → 0
-      // 6. Clutch: Started at 100% → 0
+      // 4. Damage: 144/8 = 18 DPT vs 180/9 = 20 → ratio 0.9 → 0
+      // 5. Resources: 2/3 = 33% efficiency → 0
+      // 6. Clutch: Started at 120 HP (100%) → 0
       // 7. Comeback: PPS 0.8 < 1.5 AND positive adjustment
       //    - bonusPerVictory: +0.3
       //    - consecutiveVictories: 1 → +0.15
@@ -105,13 +114,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.25,
         turnCount: 12,
         bestHandAchieved: 'high_card',
-        damageDealt: 60,
-        damageReceived: 75,
+        damageDealt: 180,          // Barely killed enemy (15 DPT, very slow)
+        damageReceived: 90,         // Took 75% damage (90/120)
         discardsUsed: 3,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -124,16 +133,16 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 25% → -0.4 × 0.5 = -0.2
       // 2. Hand: high_card → 0
       // 3. Efficiency: 12 turns (> 11) → -0.2 × 0.5 = -0.1
-      // 4. Damage: 60/12 = 5 DPT vs 11.1 → ratio 0.45 (≤ 0.7) → -0.15 × 0.5 = -0.075
-      // 5. Resources: 3/3 = 0% → 0
-      // 6. Clutch: Started at 100% → 0
+      // 4. Damage: 180/12 = 15 DPT vs 180/9 = 20 → ratio 0.75 (neutral) → 0
+      // 5. Resources: 3/3 = 0% efficiency → 0
+      // 6. Clutch: Started at 120 HP (100%) → 0
       // 7. Comeback: Negative adjustment, no bonus
       //
-      // Total: -0.2 - 0.1 - 0.075 = -0.375
-      // Final: 0.9 - 0.375 = 0.525
+      // Total: -0.2 - 0.1 = -0.3
+      // Final: 0.9 - 0.3 = 0.6
       
       const newPPS = dda.getPlayerPPS().currentPPS;
-      expect(newPPS).toBeCloseTo(0.525, 2);
+      expect(newPPS).toBeCloseTo(0.6, 2);
     });
 
     it('should trigger comeback momentum with consecutive wins', () => {
@@ -147,13 +156,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.85,
         turnCount: 7,
         bestHandAchieved: 'pair',
-        damageDealt: 90,
-        damageReceived: 15,
+        damageDealt: 180,          // 25.7 DPT (decent pairs)
+        damageReceived: 18,         // 15% of 120 HP
         discardsUsed: 1,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -166,15 +175,15 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 85% → +0.15 × 1.5 = +0.225
       // 2. Hand: pair → 0
       // 3. Efficiency: 7 turns (between 6 and 11) → 0
-      // 4. Damage: 90/7 = 12.86 DPT vs 11.1 → ratio 1.16 → 0
-      // 5. Resources: 1/3 = 67% → 0
-      // 6. Clutch: Started at 100% → 0
+      // 4. Damage: 180/7 = 25.7 DPT vs 180/9 = 20 → ratio 1.29 → 0
+      // 5. Resources: 1/3 = 67% efficiency → 0
+      // 6. Clutch: Started at 120 HP (100%) → 0
       // 7. Comeback: PPS 1.0 < 1.5 AND positive
       //    - bonusPerVictory: +0.3
       //    - consecutiveWinBonus: 2 × 0.15 = +0.3
       //    - Subtotal: +0.6
       //
-      // Total: +0.225 + 0.75 = +0.975
+      // Total: +0.225 + 0.75 = +0.975 (console shows comeback +0.75, not +0.6)
       // Final: 1.0 + 0.975 = 1.975
       
       const newPPS = dda.getPlayerPPS().currentPPS;
@@ -192,13 +201,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.80,
         turnCount: 7,
         bestHandAchieved: 'high_card',
-        damageDealt: 85,
-        damageReceived: 20,
+        damageDealt: 180,          // 25.7 DPT (just enough to win)
+        damageReceived: 24,         // 20% of 120 HP
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -232,13 +241,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 1.0,
         turnCount: 2,
         bestHandAchieved: 'four_of_a_kind',
-        damageDealt: 200,
+        damageDealt: 220,          // 110 DPT per turn (4oK deals ~110 damage per hand)
         damageReceived: 0,
         discardsUsed: 0,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -252,9 +261,9 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 100% → (+0.35 + 0.25 perfect) × 0.8 = +0.48
       // 2. Hand: four_of_a_kind → +0.25 × 0.8 = +0.2
       // 3. Efficiency: 2 turns (≤ 3) → +0.2 × 0.8 = +0.16
-      // 4. Damage: 200/2 = 100 DPT vs 100/4 = 25 → ratio 4.0 (≥ 1.3) → +0.2 × 0.8 = +0.16
+      // 4. Damage: 220/2 = 110 DPT vs 180/4 = 45 → ratio 2.44 (≥ 1.3) → +0.2 × 0.8 = +0.16
       // 5. Resources: 0/3 = 100% (≥ 70%) → +0.15 × 0.8 = +0.12
-      // 6. Clutch: Started at 100% → 0
+      // 6. Clutch: Started at 120 HP (100%) → 0
       // 7. Comeback: PPS 3.0 > 1.5 → 0
       //
       // Total: +0.48 + 0.2 + 0.16 + 0.16 + 0.12 = +1.12
@@ -272,13 +281,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.28,
         turnCount: 9,
         bestHandAchieved: 'high_card',
-        damageDealt: 70,
-        damageReceived: 72,
+        damageDealt: 162,          // 18 DPT (high_card ~18 damage × 9 turns)
+        damageReceived: 86,        // 72% of 120 HP
         discardsUsed: 3,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -291,7 +300,7 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 28% (<30%) → -0.4 × 1.2 = -0.48
       // 2. Hand: high_card → 0
       // 3. Efficiency: 9 turns (> 6) → -0.2 × 1.2 = -0.24
-      // 4. Damage: 70/9 = 7.78 DPT vs 25 → ratio 0.31 (≤ 0.7) → -0.15 × 1.2 = -0.18
+      // 4. Damage: 162/9 = 18 DPT vs 180/4 = 45 → ratio 0.4 (≤ 0.7) → -0.15 × 1.2 = -0.18
       // 5-7. All 0
       //
       // Total: -0.48 - 0.24 - 0.18 = -0.9
@@ -309,13 +318,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.75,
         turnCount: 4,
         bestHandAchieved: 'pair',
-        damageDealt: 100,
-        damageReceived: 25,
+        damageDealt: 128,          // 32 DPT (pair deals ~32 damage × 4 turns)
+        damageReceived: 30,        // 25% of 120 HP
         discardsUsed: 1,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -329,7 +338,7 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 75% → +0.15 × 0.8 = +0.12
       // 2. Hand: pair → 0
       // 3. Efficiency: 4 turns (= expected) → 0
-      // 4. Damage: 100/4 = 25 DPT vs 25 expected → ratio 1.0 → 0
+      // 4. Damage: 128/4 = 32 DPT vs 180/4 = 45 expected → ratio 0.71 → 0 (neutral)
       // 5-7. All 0
       //
       // Total: +0.12
@@ -349,13 +358,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 1.0,
         turnCount: 1,
         bestHandAchieved: 'royal_flush',
-        damageDealt: 300,
+        damageDealt: 180,          // 180 DPT (royal flush one-shots common enemy)
         damageReceived: 0,
         discardsUsed: 0,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -369,7 +378,7 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 100% → (+0.35 + 0.25) × 0.5 = +0.3
       // 2. Hand: royal_flush (quality 9 ≥ 7) → +0.25 × 0.5 = +0.125
       // 3. Efficiency: 1 turn (≤ 2) → +0.2 × 0.5 = +0.1
-      // 4. Damage: 300/1 = 300 vs 100/3 = 33.3 → ratio 9.0 → +0.2 × 0.5 = +0.1
+      // 4. Damage: 180/1 = 180 vs 180/3 = 60 → ratio 3.0 → +0.2 × 0.5 = +0.1
       // 5. Resources: 0/3 = 100% → +0.15 × 0.5 = +0.075
       // 6-7. All 0
       //
@@ -388,13 +397,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.22,
         turnCount: 8,
         bestHandAchieved: 'high_card',
-        damageDealt: 50,
-        damageReceived: 78,
+        damageDealt: 144,          // 18 DPT (high_card ~18 damage × 8 turns)
+        damageReceived: 94,        // 78% of 120 HP
         discardsUsed: 3,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -407,7 +416,7 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 22% → -0.4 × 1.5 = -0.6
       // 2. Hand: high_card → 0
       // 3. Efficiency: 8 turns (> 5) → -0.2 × 1.5 = -0.3
-      // 4. Damage: 50/8 = 6.25 vs 33.3 → ratio 0.19 (≤ 0.7) → -0.15 × 1.5 = -0.225
+      // 4. Damage: 144/8 = 18 vs 180/3 = 60 → ratio 0.3 (≤ 0.7) → -0.15 × 1.5 = -0.225
       // 5-7. All 0
       //
       // Total: -0.6 - 0.3 - 0.225 = -1.125
@@ -425,13 +434,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.80,
         turnCount: 3,
         bestHandAchieved: 'two_pair',
-        damageDealt: 120,
-        damageReceived: 20,
+        damageDealt: 180,          // 60 DPT (two_pair ~60 damage × 3 turns)
+        damageReceived: 24,        // 20% of 120 HP
         discardsUsed: 1,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -445,7 +454,7 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 80% → +0.15 × 0.5 = +0.075
       // 2. Hand: two_pair (quality 2 < 4) → 0
       // 3. Efficiency: 3 turns (= expected, not ≤ 2) → 0
-      // 4. Damage: 120/3 = 40 vs 33.3 → ratio 1.2 (< 1.3) → 0
+      // 4. Damage: 180/3 = 60 vs 180/3 = 60 → ratio 1.0 → 0
       // 5-7. All 0
       //
       // Total: +0.075
@@ -469,13 +478,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.30, // End at 30%
         turnCount: 6,
         bestHandAchieved: 'pair',
-        damageDealt: 100,
-        damageReceived: 0, // Didn't take MORE damage
+        damageDealt: 192,          // 32 DPT (pair ~32 damage × 6 turns)
+        damageReceived: 0,         // Didn't take MORE damage
         discardsUsed: 1,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 30,       // Started at 30 HP
-        startMaxHealth: 100,   // Out of 100 max = 30%
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: 36,           // Started at 36 HP
+        startMaxHealth: TEST_PLAYER_MAX_HP,   // Out of 120 max = 30%
         maxDiscardsAvailable: 3
       };
       
@@ -498,13 +507,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.42,
         turnCount: 7,
         bestHandAchieved: 'high_card',
-        damageDealt: 90,
+        damageDealt: 126,          // 18 DPT (high_card ~18 damage × 7 turns)
         damageReceived: 0,
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 40,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: 48,           // 40% of 120 HP
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -512,11 +521,12 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       dda.processCombatResults(metrics);
       
       // ASSERT - MANUAL CALCULATION:
-      // From console: health +0.05, clutch +0.04 = total +0.09
-      // Final: 2.0 + 0.09 = 2.09
+      // Health: 42% (30-50% moderate) → 0
+      // Damage: 126/7 = 18 vs 30 → ratio 0.6 → -0.15 penalty
+      // Final: 2.0 + 0 - 0.15 + clutch ≈ 1.94
       
       const newPPS = dda.getPlayerPPS().currentPPS;
-      expect(newPPS).toBeCloseTo(2.09, 2);
+      expect(newPPS).toBeCloseTo(1.94, 2);
     });
 
     it('should NOT grant clutch bonus when starting at 60% HP', () => {
@@ -527,13 +537,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.65,
         turnCount: 6,
         bestHandAchieved: 'pair',
-        damageDealt: 95,
+        damageDealt: 192,          // 32 DPT (pair ~32 damage × 6 turns)
         damageReceived: 0,
         discardsUsed: 1,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 60,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: 72,           // 60% of 120 HP
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -562,13 +572,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.15, // Dropped to 15%
         turnCount: 8,
         bestHandAchieved: 'three_of_a_kind',
-        damageDealt: 100,
-        damageReceived: 20,
+        damageDealt: 480,          // 60 DPT (3oK ~60 damage × 8 turns)
+        damageReceived: 24,        // 20% of 120 HP
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 35,       // Started at 35%
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: 42,           // Started at 35% of 120
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -576,12 +586,12 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       dda.processCombatResults(metrics);
       
       // ASSERT - MANUAL CALCULATION:
-      // From console: health -0.4, hand 0 (three_of_a_kind is quality 3, not ≥4),
-      // clutch +0.045 = total -0.355
-      // Final: 2.0 - 0.355 = 1.645
+      // Health: 15% → -0.4
+      // Damage: 480/8 = 60 vs 30 → ratio 2.0 → +0.2 bonus!
+      // Final: 2.0 - 0.4 + 0.2 + clutch ≈ 1.845
       
       const newPPS = dda.getPlayerPPS().currentPPS;
-      expect(newPPS).toBeCloseTo(1.645, 2);
+      expect(newPPS).toBeCloseTo(1.845, 2);
     });
   });
 
@@ -598,13 +608,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.75,
         turnCount: 5,
         bestHandAchieved: 'pair',
-        damageDealt: 100,
-        damageReceived: 25,
-        discardsUsed: 0,  // 0/3 = 100% efficiency (≥ 70%)
+        damageDealt: 160,          // 32 DPT (pair ~32 damage × 5 turns)
+        damageReceived: 30,        // 25% of 120 HP
+        discardsUsed: 0,           // 0/3 = 100% efficiency (≥ 70%)
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -632,13 +642,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.75,
         turnCount: 5,
         bestHandAchieved: 'pair',
-        damageDealt: 100,
-        damageReceived: 25,
-        discardsUsed: 2,  // 2/3 = 33% efficiency (< 70%)
+        damageDealt: 160,          // 32 DPT (pair ~32 damage × 5 turns)
+        damageReceived: 30,        // 25% of 120 HP
+        discardsUsed: 2,           // 2/3 = 33% efficiency (< 70%)
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -670,13 +680,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 1.0,
         turnCount: 3,
         bestHandAchieved: 'straight_flush',
-        damageDealt: 200,
+        damageDealt: 420,          // 140 DPT (straight_flush ~140 damage × 3 turns)
         damageReceived: 0,
         discardsUsed: 0,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -689,7 +699,7 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 100% → (+0.35 + 0.25) × 1.0 = +0.6
       // 2. Hand: straight_flush (8 ≥ 7) → +0.25 × 1.0 = +0.25
       // 3. Efficiency: 3 turns (≤ 4) → +0.2 × 1.0 = +0.2
-      // 4. Damage: 200/3 = 66.7 vs 16.67 → ratio 4.0 → +0.2 × 1.0 = +0.2
+      // 4. Damage: 420/3 = 140 vs 180/6 = 30 → ratio 4.67 → +0.2 × 1.0 = +0.2
       // 5. Resources: 0/3 = 100% → +0.15 × 1.0 = +0.15
       // 6-7. All 0
       //
@@ -708,13 +718,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.15,
         turnCount: 15,
         bestHandAchieved: 'high_card',
-        damageDealt: 40,
-        damageReceived: 85,
+        damageDealt: 270,          // 18 DPT (high_card ~18 damage × 15 turns)
+        damageReceived: 102,       // 85% of 120 HP
         discardsUsed: 3,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -727,7 +737,7 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 15% (<30%) → -0.4 × 1.0 = -0.4
       // 2. Hand: high_card → 0
       // 3. Efficiency: 15 turns (> 8) → -0.2 × 1.0 = -0.2
-      // 4. Damage: 40/15 = 2.67 vs 16.67 → ratio 0.16 (≤ 0.7) → -0.15 × 1.0 = -0.15
+      // 4. Damage: 270/15 = 18 vs 180/6 = 30 → ratio 0.6 (≤ 0.7) → -0.15 × 1.0 = -0.15
       // 5. Resources: 3/3 = 0% → 0
       // 6-7. All 0
       //
@@ -746,13 +756,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.95,  // POSITIVE
         turnCount: 12,           // NEGATIVE
         bestHandAchieved: 'flush', // POSITIVE
-        damageDealt: 60,         // NEGATIVE (low damage)
-        damageReceived: 5,
+        damageDealt: 216,        // 18 DPT (flush ~78 damage, but low for 12 turns)
+        damageReceived: 6,       // 5% of 120 HP
         discardsUsed: 0,         // POSITIVE
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -763,7 +773,7 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 95% → +0.35 × 1.0 = +0.35
       // 2. Hand: flush (6 ≥ 4) → +0.1 × 1.0 = +0.1
       // 3. Efficiency: 12 turns (> 8) → -0.2 × 1.0 = -0.2
-      // 4. Damage: 60/12 = 5 vs 16.67 → ratio 0.3 (≤ 0.7) → -0.15 × 1.0 = -0.15
+      // 4. Damage: 216/12 = 18 vs 180/6 = 30 → ratio 0.6 (≤ 0.7) → -0.15 × 1.0 = -0.15
       // 5. Resources: 0/3 = 100% → +0.15 × 1.0 = +0.15
       // 6-7. All 0
       //
@@ -782,13 +792,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.92,
         turnCount: 5,
         bestHandAchieved: 'full_house',
-        damageDealt: 110,
-        damageReceived: 8,
+        damageDealt: 500,          // 100 DPT (full_house ~100 damage × 5 turns)
+        damageReceived: 10,        // 8% of 120 HP
         discardsUsed: 0,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -802,9 +812,9 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 92% → +0.35 × 1.5 = +0.525
       // 2. Hand: full_house (6 ≥ 4) → +0.1 × 1.5 = +0.15
       // 3. Efficiency: 5 turns (≤ 6) → +0.2 × 1.5 = +0.3
-      // 4. Damage: 110/5 = 22 vs 11.1 → ratio 1.98 (≥ 1.3) → +0.2 × 1.5 = +0.3
+      // 4. Damage: 500/5 = 100 vs 180/9 = 20 → ratio 5.0 (≥ 1.3) → +0.2 × 1.5 = +0.3
       // 5. Resources: 0/3 = 100% → +0.15 × 1.5 = +0.225
-      // 6. Clutch: Started at 100% → 0
+      // 6. Clutch: Started at 120 HP (100%) → 0
       // 7. Comeback: PPS 0.7 < 1.5 AND positive
       //    - bonusPerVictory: +0.3
       //    - consecutiveWinBonus: 1 × 0.15 = +0.15
@@ -864,13 +874,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.75,
         turnCount: 2,
         bestHandAchieved: 'four_of_a_kind',
-        damageDealt: 180,
-        damageReceived: 25,
+        damageDealt: 220,          // 110 DPT (4oK ~110 damage × 2 turns)
+        damageReceived: 30,        // 25% of 120 HP
         discardsUsed: 0,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -884,7 +894,7 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 75% → +0.15 × 0.5 = +0.075
       // 2. Hand: four_of_a_kind (7 ≥ 7) → +0.25 × 0.5 = +0.125
       // 3. Efficiency: 2 turns (≤ 2) → +0.2 × 0.5 = +0.1
-      // 4. Damage: 180/2 = 90 vs 33.3 → ratio 2.7 (≥ 1.3) → +0.2 × 0.5 = +0.1
+      // 4. Damage: 220/2 = 110 vs 180/3 = 60 → ratio 1.83 (≥ 1.3) → +0.2 × 0.5 = +0.1
       // 5. Resources: 0/3 = 100% → +0.15 × 0.5 = +0.075
       // 6-7. All 0
       //
@@ -909,13 +919,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.70, // Exactly 70%
         turnCount: 6,
         bestHandAchieved: 'high_card',
-        damageDealt: 100,
-        damageReceived: 30,
+        damageDealt: 108,          // 18 DPT (high_card ~18 damage × 6 turns)
+        damageReceived: 36,        // 30% of 120 HP
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -926,13 +936,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 70% is boundary: code checks ≥ 0.7 for goodHealthBonus
       //
       // 1. Health: 70% (≥ 70%) → +0.15 × 1.0 = +0.15
-      // 2-7. All 0
+      // Damage: 108/6 = 18 vs 30 → ratio 0.6 → -0.15 penalty
       //
-      // Total: +0.15
-      // Final: 2.0 + 0.15 = 2.15
+      // Total: +0.15 - 0.15 = 0
+      // Final: 2.0 + 0 = 2.0
       
       const newPPS = dda.getPlayerPPS().currentPPS;
-      expect(newPPS).toBeCloseTo(2.15, 2);
+      expect(newPPS).toBeCloseTo(2.0, 2);
     });
 
     it('should handle health exactly at 90% (boundary)', () => {
@@ -943,13 +953,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.90, // Exactly 90%
         turnCount: 6,
         bestHandAchieved: 'high_card',
-        damageDealt: 100,
-        damageReceived: 10,
+        damageDealt: 108,          // 18 DPT (high_card ~18 damage × 6 turns)
+        damageReceived: 12,        // 10% of 120 HP
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -960,13 +970,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 90% is boundary: code checks ≥ 0.9 for excellentHealthBonus
       //
       // 1. Health: 90% (≥ 90%) → +0.35 × 1.0 = +0.35
-      // 2-7. All 0
+      // Damage: 108/6 = 18 vs 30 → ratio 0.6 → -0.15 penalty
       //
-      // Total: +0.35
-      // Final: 2.0 + 0.35 = 2.35
+      // Total: +0.35 - 0.15 = +0.2
+      // Final: 2.0 + 0.2 = 2.2
       
       const newPPS = dda.getPlayerPPS().currentPPS;
-      expect(newPPS).toBeCloseTo(2.35, 2);
+      expect(newPPS).toBeCloseTo(2.2, 2);
     });
 
     it('should handle turns exactly at efficient threshold', () => {
@@ -977,13 +987,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.75,
         turnCount: 4, // Exactly at efficientTurns threshold
         bestHandAchieved: 'high_card',
-        damageDealt: 100,
-        damageReceived: 25,
+        damageDealt: 72,           // 18 DPT (high_card ~18 damage × 4 turns)
+        damageReceived: 30,        // 25% of 120 HP
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -996,14 +1006,14 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       // 1. Health: 75% → +0.15
       // 2. Hand: high_card → 0
       // 3. Efficiency: 4 turns (≤ 4) → +0.2
-      // 4. Damage: 100/4 = 25 DPT vs 100/6 = 16.67 → ratio 1.5 (≥ 1.3) → +0.2
+      // 4. Damage: 72/4 = 18 vs 180/6 = 30 → ratio 0.6 → -0.15
       // 5-7. All 0
       //
-      // Total: +0.15 + 0.2 + 0.2 = +0.55
-      // Final: 2.0 + 0.55 = 2.55
+      // Total: +0.15 + 0.2 - 0.15 = +0.2
+      // Final: 2.0 + 0.2 = 2.2
       
       const newPPS = dda.getPlayerPPS().currentPPS;
-      expect(newPPS).toBeCloseTo(2.55, 2);
+      expect(newPPS).toBeCloseTo(2.2, 2);
     });
 
     it('should handle damage ratio exactly at 1.3 (boundary)', () => {
@@ -1014,13 +1024,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.75,
         turnCount: 6,
         bestHandAchieved: 'high_card',
-        damageDealt: 130, // 130/6 = 21.67, vs 16.67 = ratio 1.3
-        damageReceived: 25,
+        damageDealt: 234, // 234/6 = 39, vs 30 = ratio 1.3
+        damageReceived: 30,        // 25% of 120 HP
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -1028,9 +1038,9 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
       dda.processCombatResults(metrics);
       
       // ASSERT - MANUAL CALCULATION:
-      // damagePerTurn = 130/6 = 21.67
-      // expectedDPT = 100/6 = 16.67
-      // ratio = 21.67/16.67 = 1.3 (exactly)
+      // damagePerTurn = 234/6 = 39
+      // expectedDPT = 180/6 = 30
+      // ratio = 39/30 = 1.3 (exactly)
       // Code checks ≥ 1.3, so should get bonus
       //
       // 1. Health: 75% → +0.15
@@ -1053,13 +1063,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.80,
         turnCount: 3,
         bestHandAchieved: 'pair',
-        damageDealt: 50,
-        damageReceived: 20,
+        damageDealt: 50,           // Keep custom value for test scenario
+        damageReceived: 24,        // 20% of 120 HP
         discardsUsed: 1,
         victory: true,
-        enemyStartHealth: 50, // Smaller enemy
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: 50,      // Smaller enemy (testing different HP pools)
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -1093,13 +1103,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.80,
         turnCount: 10,
         bestHandAchieved: 'pair',
-        damageDealt: 200,
-        damageReceived: 20,
+        damageDealt: 200,          // Keep custom value for test scenario
+        damageReceived: 24,        // 20% of 120 HP
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 200, // Larger enemy
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: 200,     // Larger enemy (testing different HP pools)
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -1132,13 +1142,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.80,
         turnCount: 5,
         bestHandAchieved: 'pair',
-        damageDealt: 100,
-        damageReceived: 20,
+        damageDealt: 160,          // 32 DPT (pair ~32 damage × 5 turns)
+        damageReceived: 24,        // 20% of 120 HP
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -1166,13 +1176,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.75,
         turnCount: 7,
         bestHandAchieved: 'high_card',
-        damageDealt: 85,
-        damageReceived: 25,
+        damageDealt: 126,          // 18 DPT (high_card ~18 damage × 7 turns)
+        damageReceived: 30,        // 25% of 120 HP
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -1211,13 +1221,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.95,
         turnCount: 5,
         bestHandAchieved: 'pair',
-        damageDealt: 100,
-        damageReceived: 5,
+        damageDealt: 160,          // 32 DPT (pair ~32 damage × 5 turns)
+        damageReceived: 6,         // 5% of 120 HP
         discardsUsed: 1,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -1234,20 +1244,24 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 1.0,
         turnCount: 4,
         bestHandAchieved: 'pair',
-        damageDealt: 100,
+        damageDealt: 128,          // 32 DPT (pair ~32 damage × 4 turns)
         damageReceived: 0,
         discardsUsed: 1,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
       dda.processCombatResults(metrics);
       
+      // Health: 100% → +0.6 (perfect)
+      // Efficiency: 4 turns → +0.2
+      // Damage: 128/4 = 32 vs 30 → ratio 1.07 → 0 (neutral)
+      // Total: +0.8, Final: 2.5 + 0.8 = 3.3
       const newPPS = dda.getPlayerPPS().currentPPS;
-      expect(newPPS).toBeCloseTo(3.5, 2);
+      expect(newPPS).toBeCloseTo(3.3, 2);
     });
 
     it('should apply Poor Health Penalty (<30% HP retained)', () => {
@@ -1257,20 +1271,23 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.25,
         turnCount: 8,
         bestHandAchieved: 'high_card',
-        damageDealt: 100,
-        damageReceived: 75,
+        damageDealt: 144,          // 18 DPT (high_card ~18 damage × 8 turns)
+        damageReceived: 90,        // 75% of 120 HP
         discardsUsed: 2,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
       dda.processCombatResults(metrics);
       
+      // Health: 25% → -0.4
+      // Damage: 144/8 = 18 vs 30 → ratio 0.6 → -0.15
+      // Total: -0.55, Final: 3.0 - 0.55 = 2.45
       const newPPS = dda.getPlayerPPS().currentPPS;
-      expect(newPPS).toBeCloseTo(2.6, 2);
+      expect(newPPS).toBeCloseTo(2.45, 2);
     });
 
     it('should reward Excellent Hand (Four of a Kind)', () => {
@@ -1280,13 +1297,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.80,
         turnCount: 4,
         bestHandAchieved: 'four_of_a_kind',
-        damageDealt: 150,
-        damageReceived: 20,
+        damageDealt: 440,          // 110 DPT (4oK ~110 damage × 4 turns)
+        damageReceived: 24,        // 20% of 120 HP
         discardsUsed: 1,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -1303,13 +1320,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.70,
         turnCount: 5,
         bestHandAchieved: 'straight',
-        damageDealt: 120,
-        damageReceived: 30,
+        damageDealt: 350,          // 70 DPT (straight ~70 damage × 5 turns)
+        damageReceived: 36,        // 30% of 120 HP
         discardsUsed: 1,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -1326,20 +1343,24 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.80,
         turnCount: 3,
         bestHandAchieved: 'pair',
-        damageDealt: 120,
-        damageReceived: 20,
+        damageDealt: 96,           // 32 DPT (pair ~32 damage × 3 turns)
+        damageReceived: 24,        // 20% of 120 HP
         discardsUsed: 1,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
       dda.processCombatResults(metrics);
       
+      // Health: 80% → +0.15
+      // Efficiency: 3 turns → +0.2
+      // Damage: 96/3 = 32 vs 30 → ratio 1.07 → 0 (neutral)
+      // Total: +0.35, Final: 2.0 + 0.35 = 2.35
       const newPPS = dda.getPlayerPPS().currentPPS;
-      expect(newPPS).toBeCloseTo(2.55, 2);
+      expect(newPPS).toBeCloseTo(2.35, 2);
     });
 
     it('should penalize slow combat (Learning tier, >8 turns)', () => {
@@ -1372,13 +1393,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.90,
         turnCount: 3,
         bestHandAchieved: 'straight',
-        damageDealt: 120,
-        damageReceived: 10,
+        damageDealt: 210,          // 70 DPT (straight ~70 damage × 3 turns)
+        damageReceived: 12,        // 10% of 120 HP
         discardsUsed: 0,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -1396,13 +1417,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.35,
         turnCount: 11,
         bestHandAchieved: 'high_card',
-        damageDealt: 80,
-        damageReceived: 65,
+        damageDealt: 198,          // 18 DPT (high_card ~18 damage × 11 turns)
+        damageReceived: 78,        // 65% of 120 HP
         discardsUsed: 3,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -1431,13 +1452,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
           healthPercentage: 0.95,
           turnCount: 3,
           bestHandAchieved: 'four_of_a_kind',
-          damageDealt: 150,
-          damageReceived: 5,
+          damageDealt: 330,          // 110 DPT (4oK ~110 damage × 3 turns)
+          damageReceived: 6,         // 5% of 120 HP
           discardsUsed: 0,
           victory: true,
-          enemyStartHealth: 100,
-          startHealth: 100,
-          startMaxHealth: 100,
+          enemyStartHealth: TEST_COMMON_ENEMY_HP,
+          startHealth: TEST_PLAYER_MAX_HP,
+          startMaxHealth: TEST_PLAYER_MAX_HP,
           maxDiscardsAvailable: 3
         });
       }
@@ -1454,13 +1475,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 1.0,
         turnCount: 1,
         bestHandAchieved: 'royal_flush',
-        damageDealt: 500,
+        damageDealt: 180,          // 180 DPT (royal flush one-shots)
         damageReceived: 0,
         discardsUsed: 0,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
@@ -1477,13 +1498,13 @@ describe('RuleBasedDDA - Comprehensive Test Suite', () => {
         healthPercentage: 0.05,
         turnCount: 15,
         bestHandAchieved: 'high_card',
-        damageDealt: 50,
-        damageReceived: 95,
+        damageDealt: 270,          // 18 DPT (high_card ~18 damage × 15 turns)
+        damageReceived: 114,       // 95% of 120 HP
         discardsUsed: 3,
         victory: true,
-        enemyStartHealth: 100,
-        startHealth: 100,
-        startMaxHealth: 100,
+        enemyStartHealth: TEST_COMMON_ENEMY_HP,
+        startHealth: TEST_PLAYER_MAX_HP,
+        startMaxHealth: TEST_PLAYER_MAX_HP,
         maxDiscardsAvailable: 3
       };
       
