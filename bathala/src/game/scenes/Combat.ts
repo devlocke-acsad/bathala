@@ -1443,7 +1443,7 @@ export class Combat extends Scene {
           defeatedBy: this.combatState.enemy.name,
           enemySpriteKey: this.combatState.enemy.spriteKey,
           finalHealth: this.combatState.player.currentHealth,
-          turnsPlayed: this.currentTurn || 0
+          turnsPlayed: this.turnCount || 0
         });
       });
     }
