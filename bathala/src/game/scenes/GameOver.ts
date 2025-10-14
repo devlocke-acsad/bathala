@@ -51,9 +51,9 @@ export class GameOver extends Scene
      * Create UI elements
      */
     private createUI(): void {
-        // Get screen dimensions
-        const screenWidth = this.cameras.main.width;
-        const screenHeight = this.cameras.main.height;
+        // Get screen dimensions safely
+        const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
+        const screenHeight = this.cameras.main?.height || this.scale.height || 768;
         const scaleFactor = Math.min(screenWidth / 1024, screenHeight / 768);
         
         // Create container for all UI elements
@@ -211,6 +211,11 @@ export class GameOver extends Scene
      * Handle scene resize
      */
     private handleResize(): void {
+        // Only resize if scene is active and cameras are ready
+        if (!this.scene.isActive() || !this.cameras.main) {
+            return;
+        }
+        
         // Clear and recreate UI
         if (this.uiContainer) {
             this.uiContainer.destroy();

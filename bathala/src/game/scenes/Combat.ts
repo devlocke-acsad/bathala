@@ -1438,7 +1438,12 @@ export class Combat extends Scene {
         // Reset cursor before transitioning
         this.input.setDefaultCursor('default');
         
-        // Pass defeat data to GameOver scene
+        // Stop the Overworld scene if it's running (paused from combat launch)
+        if (this.scene.isActive('Overworld') || this.scene.isPaused('Overworld')) {
+          this.scene.stop('Overworld');
+        }
+        
+        // Pass defeat data to GameOver scene and stop this scene
         this.scene.start("GameOver", {
           defeatedBy: this.combatState.enemy.name,
           enemySpriteKey: this.combatState.enemy.spriteKey,

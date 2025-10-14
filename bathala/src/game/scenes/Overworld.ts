@@ -120,6 +120,10 @@ export class Overworld extends Scene {
   }
 
   create(): void {
+    // Reset movement and transition flags
+    this.isMoving = false;
+    this.isTransitioningToCombat = false;
+    
     // Set camera background color to match forest theme
     this.cameras.main.setBackgroundColor(0x323C39);
     
@@ -133,11 +137,60 @@ export class Overworld extends Scene {
       console.log('🖱️ Input enabled:', this.input.enabled);
     });
     
+    // Check if we need to reset player data (fresh game start)
+    const gameState = GameState.getInstance();
+    const savedPlayerData = gameState.getPlayerData();
+    
+    // If GameState has no player data, this is a fresh start - reinitialize
+    if (!savedPlayerData || Object.keys(savedPlayerData).length === 0) {
+      console.log('🔄 Fresh game detected - initializing new player data');
+      const newDeck = DeckManager.createFullDeck();
+      this.playerData = {
+        id: "player",
+        name: "Hero",
+        maxHealth: 120,
+        currentHealth: 120,
+        block: 0,
+        statusEffects: [],
+        hand: [],
+        deck: newDeck,
+        discardPile: [],
+        drawPile: [...newDeck],
+        playedHand: [],
+        landasScore: 0,
+        ginto: 9999,
+        diamante: 20,
+        relics: [], // Start with no relics
+        potions: [
+          {
+            id: "clarity_potion",
+            name: "Potion of Clarity",
+            description: "Draw 3 cards.",
+            effect: "draw_3_cards",
+            emoji: "🧠",
+            rarity: "common" as const
+          },
+          {
+            id: "fortitude_potion",
+            name: "Elixir of Fortitude", 
+            description: "Gain 15 Block.",
+            effect: "gain_15_block",
+            emoji: "🛡️",
+            rarity: "common" as const
+          }
+        ],
+        discardCharges: 1,
+        maxDiscardCharges: 1
+      };
+      
+      // Save fresh player data to GameState
+      gameState.updatePlayerData(this.playerData);
+    }
+    
     // Initialize maze generation manager with dev mode flag
     this.mazeGenManager = new Overworld_MazeGenManager(this, 32, this.testButtonsVisible);
     
     // Check if we're returning from another scene
-    const gameState = GameState.getInstance();
     const savedPosition = gameState.getPlayerPosition();
     
     if (savedPosition) {
@@ -168,6 +221,11 @@ export class Overworld extends Scene {
     // Initialize pointer/mouse tracking with debug logging enabled
     this.keyInputManager.initializePointerTracking(true);
     
+    // Explicitly enable input
+    this.keyInputManager.enableInput();
+    console.log('🎮 Overworld: Input explicitly enabled after initialization');
+    console.log('🎮 Overworld: isMoving =', this.isMoving, ', isTransitioningToCombat =', this.isTransitioningToCombat);
+    
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
     
@@ -182,6 +240,16 @@ export class Overworld extends Scene {
 
     // Listen for resize events
     this.scale.on('resize', this.handleResize, this);
+    
+    // Debug: Log final state after scene is fully created
+    this.time.delayedCall(100, () => {
+      console.log('🔍 Overworld Debug State:');
+      console.log('   - isMoving:', this.isMoving);
+      console.log('   - isTransitioningToCombat:', this.isTransitioningToCombat);
+      console.log('   - input.keyboard.enabled:', this.input.keyboard?.enabled);
+      console.log('   - player position:', { x: this.player.x, y: this.player.y });
+      console.log('   - keyInputManager exists:', !!this.keyInputManager);
+    });
   }
 
   createUI(): void {
@@ -2008,12 +2076,20 @@ export class Overworld extends Scene {
    * Shutdown method to clean up scene state
    */
   shutdown(): void {
-    console.log('🖱️ Overworld: Cleaning up and resetting cursor');
+    console.log('🧹 Overworld: Cleaning up scene resources');
+    
     // Reset cursor when leaving the scene
     this.input.setDefaultCursor('default');
     
+    // Clean up KeyInputManager
+    if (this.keyInputManager) {
+      this.keyInputManager.destroy();
+    }
+    
     // Clean up event listeners
     this.scale.off('resize', this.handleResize, this);
+    
+    console.log('✅ Overworld: Shutdown complete');
   }
 
   /**
