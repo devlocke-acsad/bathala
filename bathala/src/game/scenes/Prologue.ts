@@ -1,6 +1,9 @@
 import { Scene, GameObjects } from 'phaser';
 import { HandEvaluator } from '../../utils/HandEvaluator';
 import { PlayingCard, Suit, Rank } from '../../core/types/CombatTypes';
+import { GameState } from '../../core/managers/GameState';
+import { OverworldGameState } from '../../core/managers/OverworldGameState';
+import { RuleBasedDDA } from '../../core/dda/RuleBasedDDA';
 
 enum TutorialStage {
     INTRODUCTION,
@@ -440,6 +443,13 @@ export class Prologue extends Scene {
         if (this.skipButton && this.skipButton.active) {
             this.skipButton.destroy();
         }
+        
+        // Reset game state for a fresh run
+        console.log('🔄 Resetting game state for new run...');
+        GameState.getInstance().reset();
+        OverworldGameState.getInstance().reset();
+        RuleBasedDDA.getInstance().resetSession();
+        
         if (skipped) {
             this.scene.start('Overworld');
             return;

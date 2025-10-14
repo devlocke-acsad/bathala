@@ -1433,11 +1433,23 @@ export class Combat extends Scene {
         })
         .setOrigin(0.5);
 
-      // Return to overworld after 3 seconds
-      this.time.delayedCall(3000, () => {
+      // Transition to Game Over scene after 2 seconds
+      this.time.delayedCall(2000, () => {
         // Reset cursor before transitioning
         this.input.setDefaultCursor('default');
-        this.scene.start("Overworld");
+        
+        // Stop the Overworld scene if it's running (paused from combat launch)
+        if (this.scene.isActive('Overworld') || this.scene.isPaused('Overworld')) {
+          this.scene.stop('Overworld');
+        }
+        
+        // Pass defeat data to GameOver scene and stop this scene
+        this.scene.start("GameOver", {
+          defeatedBy: this.combatState.enemy.name,
+          enemySpriteKey: this.combatState.enemy.spriteKey,
+          finalHealth: this.combatState.player.currentHealth,
+          turnsPlayed: this.turnCount || 0
+        });
       });
     }
   }
