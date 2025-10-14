@@ -85,6 +85,11 @@ export class Combat extends Scene {
   private bestHandAchieved: HandType = "high_card";
   private battleStartDialogueContainer!: Phaser.GameObjects.Container | null;
   
+  // Performance optimization flags
+  private uiUpdatePending: boolean = false;
+  private lastUIUpdateTime: number = 0;
+  private readonly UI_UPDATE_THROTTLE_MS: number = 16; // ~60fps
+  
   // DDA tracking
   public dda!: CombatDDA;
   
@@ -119,6 +124,43 @@ export class Combat extends Scene {
 
   public getCombatEnded(): boolean {
     return this.combatEnded;
+  }
+
+  /**
+   * Throttled UI update method to prevent excessive updates
+   */
+  private scheduleUIUpdate(): void {
+    if (this.uiUpdatePending) return;
+    
+    const now = this.time.now;
+    const timeSinceLastUpdate = now - this.lastUIUpdateTime;
+    
+    if (timeSinceLastUpdate >= this.UI_UPDATE_THROTTLE_MS) {
+      // Update immediately if enough time has passed
+      this.performUIUpdate();
+    } else {
+      // Schedule update for next frame
+      this.uiUpdatePending = true;
+      this.time.delayedCall(this.UI_UPDATE_THROTTLE_MS - timeSinceLastUpdate, () => {
+        this.performUIUpdate();
+      });
+    }
+  }
+
+  /**
+   * Perform batched UI updates
+   */
+  private performUIUpdate(): void {
+    if (this.combatEnded || !this.ui) return;
+    
+    this.uiUpdatePending = false;
+    this.lastUIUpdateTime = this.time.now;
+    
+    // Batch all UI updates together
+    this.ui.updatePlayerUI();
+    this.ui.updateEnemyUI();
+    this.updateTurnUI();
+    this.ui.updateSelectionCounter();
   }
 
   public getIsDrawingCards(): boolean {
@@ -887,10 +929,10 @@ export class Combat extends Scene {
       this.ui.updateActionButtons();
     }
     
-    // Update displays
+    // Batch UI updates for better performance
     this.ui.updateHandDisplay();
     this.ui.updatePlayedHandDisplay();
-    this.ui.updateHandIndicator();
+    this.scheduleUIUpdate(); // Use batched update instead of individual calls
     
     // Update damage preview based on current phase
     this.updateDamagePreview(this.combatState.phase === "action_selection");
@@ -924,7 +966,7 @@ export class Combat extends Scene {
     // Enter action selection phase
     this.combatState.phase = "action_selection";
 
-    // Update displays
+    // Update displays with batched updates
     this.ui.updateHandDisplay();
     this.ui.updatePlayedHandDisplay();
     this.ui.updateActionButtons();
@@ -932,8 +974,8 @@ export class Combat extends Scene {
     // Update damage preview for the new hand
     this.updateDamagePreview(true);
     
-    // Update selection counter (should show 0/5)
-    this.updateSelectionCounter();
+    // Schedule UI update instead of immediate individual updates
+    this.scheduleUIUpdate();
   }
 
   /**
@@ -986,11 +1028,10 @@ export class Combat extends Scene {
     // Clear selection
     this.selectedCards = [];
 
+    // Batch UI updates instead of individual calls
     this.ui.updateHandDisplay();
-    this.updateTurnUI();
-    this.ui.updateHandIndicator(); // Update hand indicator after discarding
-    this.updateSelectionCounter(); // Update selection counter after discarding
     this.updateDiscardDisplay(); // Update discard pile display
+    this.scheduleUIUpdate(); // Batched update for turn UI, selection counter, etc.
   }
 
   /**
@@ -1104,10 +1145,11 @@ export class Combat extends Scene {
       this.drawCards(cardsNeeded);
     }
 
-    this.updateTurnUI();
+    // Batch all UI updates together for better performance
     this.ui.updateHandDisplay();
     this.ui.updatePlayedHandDisplay(); // Clear the played hand display
     this.ui.updateActionButtons(); // Reset to card selection buttons
+    this.scheduleUIUpdate(); // Batched update for turn UI and other elements
     
     // Apply start-of-turn relic effects
     RelicManager.applyStartOfTurnEffects(this.combatState.player);
@@ -1205,13 +1247,16 @@ export class Combat extends Scene {
     // Check if enemy is defeated
     if (this.combatState.enemy.currentHealth <= 0) {
       this.combatState.enemy.currentHealth = 0;
-      this.ui.updateEnemyUI();
       console.log("Enemy defeated!");
+      
+      // Batch UI update instead of immediate call
+      this.scheduleUIUpdate();
       
       // Play death animation
       this.animations.animateEnemyDeath();
       
-      this.time.delayedCall(500, () => {
+      // Use shorter delay for better responsiveness
+      this.time.delayedCall(300, () => {
         this.endCombat(true);
       });
     }
@@ -1259,14 +1304,16 @@ export class Combat extends Scene {
 
     // Add visual feedback for player taking damage
     this.animations.animateSpriteDamage(this.playerSprite);
-    this.ui.updatePlayerUI();
+    
+    // Batch UI update instead of immediate call
+    this.scheduleUIUpdate();
 
     // Check if player is defeated
     if (this.combatState.player.currentHealth <= 0) {
       this.combatState.player.currentHealth = 0;
-      this.ui.updatePlayerUI();
       console.log("Player defeated!");
-      this.time.delayedCall(500, () => {
+      // Use shorter delay and batch UI update
+      this.time.delayedCall(300, () => {
         this.endCombat(false);
       });
     }
@@ -1305,7 +1352,7 @@ export class Combat extends Scene {
 
 
   /**
-   * Update turn UI elements
+   * Update turn UI elements - optimized version with caching
    */
   private updateTurnUI(): void {
     // Don't update UI if combat has ended
@@ -1314,23 +1361,30 @@ export class Combat extends Scene {
     }
     
     try {
-      this.turnText.setText(`Turn: ${this.combatState.turn}`);
-      
-      // Show discard and special counters on one line
+      // Cache text values to avoid unnecessary setText calls
+      const turnText = `Turn: ${this.combatState.turn}`;
       const specialStatus = this.specialUsedThisCombat ? "USED" : "READY";
+      const actionsText = `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`;
       
-      this.actionsText.setText(
-        `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`
-      );
-      
-      // Color code the special status within the text
-      if (this.specialUsedThisCombat) {
-        this.actionsText.setColor("#cccccc"); // Grayed out when used
-      } else {
-        this.actionsText.setColor("#ffd93d"); // Yellow when ready
+      // Only update if text has actually changed
+      if (this.turnText.text !== turnText) {
+        this.turnText.setText(turnText);
       }
       
-      this.ui.updateHandIndicator();
+      if (this.actionsText.text !== actionsText) {
+        this.actionsText.setText(actionsText);
+        
+        // Color code the special status within the text - only when text changes
+        const newColor = this.specialUsedThisCombat ? "#cccccc" : "#ffd93d";
+        if (this.actionsText.style.color !== newColor) {
+          this.actionsText.setColor(newColor);
+        }
+      }
+      
+      // Only update hand indicator if needed (this can be expensive)
+      if (this.ui && this.ui.updateHandIndicator) {
+        this.ui.updateHandIndicator();
+      }
     } catch (error) {
       console.error("Error updating turn UI:", error);
     }
