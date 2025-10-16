@@ -4,11 +4,13 @@ import {
   HandEvaluation,
   Rank,
   Element,
+  Player,
 } from "../core/types/CombatTypes";
+import { DamageCalculator } from "./DamageCalculator";
 
 /**
- * HandEvaluator - Evaluates poker hands and applies elemental bonuses
- * Core mechanic for Bathala's combat system
+ * HandEvaluator - Evaluates poker hands and calculates damage
+ * Core mechanic for Bathala's combat system with Balatro-inspired calculations
  */
 export class HandEvaluator {
   private static readonly RANK_VALUES: Record<Rank, number> = {
@@ -27,31 +29,20 @@ export class HandEvaluator {
     "1": 1,
   };
 
-  private static readonly HAND_BONUSES: Record<HandType, { attack: number; defense: number; special: number }> = {
-    high_card: { attack: 0, defense: 0, special: 0 },
-    pair: { attack: 2, defense: 2, special: 1 },
-    two_pair: { attack: 4, defense: 4, special: 2 },
-    three_of_a_kind: { attack: 7, defense: 7, special: 3 },
-    straight: { attack: 10, defense: 10, special: 4 },
-    flush: { attack: 14, defense: 14, special: 5 },
-    full_house: { attack: 18, defense: 18, special: 6 },
-    four_of_a_kind: { attack: 22, defense: 22, special: 7 },
-    straight_flush: { attack: 35, defense: 35, special: 15 },
-    five_of_a_kind: { attack: 30, defense: 30, special: 12 },
-    royal_flush: { attack: 35, defense: 35, special: 15 }, // Same as straight flush
-  };
-
   /**
-   * Evaluate a hand of cards and return damage value
+   * Evaluate a hand of cards and return complete damage calculation
    */
-  static evaluateHand(cards: PlayingCard[], action: "attack" | "defend" | "special", player: any = null): HandEvaluation {
+  static evaluateHand(cards: PlayingCard[], action: "attack" | "defend" | "special", player: Player | null = null): HandEvaluation {
     if (cards.length === 0) {
       return {
         type: "high_card",
         baseValue: 0,
+        handBonus: 0,
+        handMultiplier: 1,
         elementalBonus: 0,
         totalValue: 0,
         description: "No cards played",
+        breakdown: ["No cards played"],
       };
     }
 
@@ -68,15 +59,24 @@ export class HandEvaluator {
       handType = this.applyBabaylansTalismanEffect(handType, player);
     }
     
-    const baseValue = this.HAND_BONUSES[handType][action];
-    const totalValue = baseValue; // Elemental bonus is now handled in Combat.ts
+    // Use DamageCalculator for the new calculation system
+    const calculation = DamageCalculator.calculate(
+      cards,
+      handType,
+      action,
+      player || undefined,
+      [] // Relic bonuses will be added in Combat.ts
+    );
 
     return {
       type: handType,
-      baseValue,
-      elementalBonus: 0, // No longer calculated here
-      totalValue,
+      baseValue: calculation.baseValue,
+      handBonus: calculation.handBonus,
+      handMultiplier: calculation.handMultiplier,
+      elementalBonus: calculation.elementalBonus,
+      totalValue: calculation.finalValue,
       description: this.getHandDescription(handType, cards),
+      breakdown: calculation.breakdown,
     };
   }
 

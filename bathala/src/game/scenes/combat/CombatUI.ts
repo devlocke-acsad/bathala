@@ -65,6 +65,9 @@ export class CombatUI {
   public relicsContainer!: Phaser.GameObjects.Container;
   public relicInventory!: Phaser.GameObjects.Container;
   public currentRelicTooltip!: Phaser.GameObjects.Container | null;
+  private relicUpdatePending: boolean = false;
+  private lastRelicCount: number = 0;
+  private lastPotionCount: number = 0;
   
   // Modal/Overlay Elements
   public landasChoiceContainer!: Phaser.GameObjects.Container;
@@ -86,6 +89,9 @@ export class CombatUI {
     this.battleStartDialogueContainer = null;
     this.currentRelicTooltip = null;
     this.ddaDebugContainer = null;
+    this.relicUpdatePending = false;
+    this.lastRelicCount = 0;
+    this.lastPotionCount = 0;
   }
   
   /**
@@ -175,18 +181,7 @@ export class CombatUI {
    * Create the main combat UI layout
    */
   private createCombatUI(): void {
-    const screenWidth = this.scene.cameras.main.width;
-    const screenHeight = this.scene.cameras.main.height;
-    
-    // Title
-    this.scene.add
-      .text(screenWidth/2, 30, "Combat - Forest Encounter", {
-        fontFamily: "dungeon-mode",
-        fontSize: 28,
-        color: "#e8eced",
-        align: "center",
-      })
-      .setOrigin(0.5);
+    // Title removed - inventory UI now at top center
 
     // Player section (left side)
     this.createPlayerUI();
@@ -226,26 +221,26 @@ export class CombatUI {
     const playerX = screenWidth * 0.25;
     const playerY = screenHeight * 0.4;
 
-    // Create player shadow circle
-    this.playerShadow = this.scene.add.graphics();
-    this.playerShadow.fillStyle(0x000000, 0.3);
-    this.playerShadow.fillEllipse(playerX, playerY + 60, 80, 20);
-
-    // Player sprite with idle animation
+    // Player sprite (static image - mc_combat.png)
     this.playerSprite = this.scene.add.sprite(playerX, playerY, "combat_player");
     this.playerSprite.setScale(2);
-    this.playerSprite.setFlipX(true);
+    
+    // Disable texture smoothing for pixel-perfect rendering
+    this.playerSprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
 
-    // Try to play animation, fallback if it fails
-    try {
-      this.playerSprite.play("player_idle");
-    } catch (error) {
-      console.warn("Player idle animation not found, using static sprite");
-    }
+    // No animation needed - using static sprite
 
-    // Player name
+    // Calculate dynamic Y offset based on player sprite's scaled height
+    const playerScale = 2;
+    const playerSpriteScaledHeight = this.playerSprite.height * playerScale;
+    const playerNameYOffset = playerY - (playerSpriteScaledHeight / 2) - 20; // 20px padding above sprite
+    const playerHealthYOffset = playerY + (playerSpriteScaledHeight / 2) + 20; // 20px padding below sprite
+    const playerBlockYOffset = playerHealthYOffset + 25;
+    const playerStatusYOffset = playerBlockYOffset + 30;
+
+    // Player name - dynamically positioned above sprite
     this.scene.add
-      .text(playerX, playerY - 120, this.scene.getCombatState().player.name, {
+      .text(playerX, playerNameYOffset, this.scene.getCombatState().player.name, {
         fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#77888C",
@@ -253,9 +248,9 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Health display
+    // Health display - dynamically positioned below sprite
     this.playerHealthText = this.scene.add
-      .text(playerX, playerY + 85, "", {
+      .text(playerX, playerHealthYOffset, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#ff6b6b",
@@ -265,7 +260,7 @@ export class CombatUI {
 
     // Block display
     this.playerBlockText = this.scene.add
-      .text(playerX, playerY + 110, "", {
+      .text(playerX, playerBlockYOffset, "", {
         fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#4ecdc4",
@@ -273,7 +268,7 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    this.playerStatusContainer = this.scene.add.container(playerX, playerY + 140);
+    this.playerStatusContainer = this.scene.add.container(playerX, playerStatusYOffset);
 
     this.updatePlayerUI();
   }
@@ -288,28 +283,41 @@ export class CombatUI {
     const enemyX = screenWidth * 0.75;
     const enemyY = screenHeight * 0.4;
     
-    // Create enemy shadow circle
-    this.enemyShadow = this.scene.add.graphics();
-    this.enemyShadow.fillStyle(0x000000, 0.3);
-    this.enemyShadow.fillEllipse(enemyX, enemyY + 90, 120, 30);
-
     const combatState = this.scene.getCombatState();
     const enemyName = combatState.enemy.name;
     const enemySpriteKey = this.getEnemySpriteKey(enemyName);
 
     // Enemy sprite
     this.enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
+    
+    // Disable texture smoothing for pixel-perfect rendering
+    this.enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
 
-    // Scale the sprite to fit within a 250x250 box
+    // Scale the sprite - adjust for smaller enemies (Tiyanak and Duwende)
     const sprite = this.enemySprite;
-    const targetWidth = 250;
-    const targetHeight = 250;
+    const lowerCaseName = enemyName.toLowerCase();
+    let targetWidth = 250;
+    let targetHeight = 250;
+    
+    // Smaller enemies should be scaled down to emphasize size difference
+    if (lowerCaseName.includes("tiyanak") || lowerCaseName.includes("duwende")) {
+      targetWidth = 150;  // Smaller target for baby-sized enemies
+      targetHeight = 150;
+    }
+    
     const scale = Math.min(targetWidth / sprite.width, targetHeight / sprite.height);
     sprite.setScale(scale);
 
-    // Enemy name
+    // Calculate dynamic Y offset based on sprite's scaled height
+    const spriteScaledHeight = sprite.height * scale;
+    const nameYOffset = enemyY - (spriteScaledHeight / 2) - 20; // 20px padding above sprite
+    const healthYOffset = enemyY + (spriteScaledHeight / 2) + 20; // 20px padding below sprite
+    const blockYOffset = healthYOffset + 25;
+    const statusYOffset = blockYOffset + 30;
+
+    // Enemy name - dynamically positioned above sprite
     this.scene.add
-      .text(enemyX, enemyY - 180, combatState.enemy.name, {
+      .text(enemyX, nameYOffset, combatState.enemy.name, {
         fontFamily: "dungeon-mode",
         fontSize: 28,
         color: "#77888C",
@@ -317,9 +325,9 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Health display
+    // Health display - dynamically positioned below sprite based on actual size
     this.enemyHealthText = this.scene.add
-      .text(enemyX, enemyY - 150, "", {
+      .text(enemyX, healthYOffset, "", {
         fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#ff6b6b",
@@ -329,7 +337,7 @@ export class CombatUI {
 
     // Block display
     this.enemyBlockText = this.scene.add
-      .text(enemyX, enemyY - 120, "", {
+      .text(enemyX, blockYOffset, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#4ecdc4",
@@ -337,19 +345,20 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Intent display
+    // Intent display - hidden for now
     this.enemyIntentText = this.scene.add
-      .text(enemyX, enemyY + 180, "", {
+      .text(enemyX, statusYOffset + 30, "", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#feca57",
         align: "center",
         wordWrap: { width: 200 }
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setVisible(false); // Hidden
 
-    // Status effects container
-    this.enemyStatusContainer = this.scene.add.container(enemyX, enemyY + 210);
+    // Status effects container - positioned dynamically
+    this.enemyStatusContainer = this.scene.add.container(enemyX, statusYOffset);
 
     // Information button for enemy lore
     this.createEnemyInfoButton(enemyX, enemyY - 200);
@@ -441,23 +450,23 @@ export class CombatUI {
    */
   private createTurnUI(): void {
     const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
     
-    this.turnText = this.scene.add.text(screenWidth - 200, 50, "", {
+    // Move turn text to center below inventory (inventory is at y=60, height=90)
+    this.turnText = this.scene.add.text(screenWidth / 2, 165, "", {
       fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#e8eced",
-    });
+      align: "center"
+    }).setOrigin(0.5);
 
-    this.actionsText = this.scene.add.text(screenWidth - 200, 80, "", {
+    // Move discard counter higher above action buttons to avoid overlap with sort buttons
+    this.actionsText = this.scene.add.text(screenWidth / 2, screenHeight - 140, "", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#ffd93d",
-    });
-
-    this.handIndicatorText = this.scene.add.text(screenWidth - 200, 110, "", {
-      fontFamily: "dungeon-mode",
-      color: "#4ecdc4",
-    });
+      align: "center"
+    }).setOrigin(0.5);
 
     this.createPokerHandInfoButton();
     this.updateTurnUI();
@@ -513,94 +522,179 @@ export class CombatUI {
   }
   
   /**
-   * Create relic inventory in top center
+   * Create relic inventory in top center (new design matching screenshot with Prologue color scheme)
    */
   public createRelicInventory(): void {
     const screenWidth = this.scene.cameras.main.width;
-    this.relicInventory = this.scene.add.container(screenWidth / 2, 80);
+    this.relicInventory = this.scene.add.container(screenWidth / 2, 60);
     this.relicInventory.setVisible(true);
     this.currentRelicTooltip = null;
     
-    const inventoryWidth = 400;
-    const inventoryHeight = 80;
+    console.log("Creating relic inventory container at:", screenWidth / 2, 60);
     
-    // Main background
-    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x1a1a1a, 0.95);
-    mainBg.setStrokeStyle(2, 0x8b4513, 0.8);
+    const inventoryWidth = 520;
+    const inventoryHeight = 90;
     
-    // Inner highlight
-    const innerBg = this.scene.add.rectangle(0, 0, inventoryWidth - 6, inventoryHeight - 6, 0x2a2a2a, 0.6);
-    innerBg.setStrokeStyle(1, 0xcd853f, 0.5);
+    // Enhanced Prologue-style double border design with grid pattern
+    const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
+    outerBorder.setStrokeStyle(3, 0x77888C, 0.9); // Enhanced visibility
     
-    // Title text
-    const titleText = this.scene.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
+    const innerBorder = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C, 0.8); // Enhanced visibility
+    
+    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x120C0E); // Slightly lighter background
+    
+    // Create divider line between relics and potions with enhanced visibility
+    const dividerX = 50; // Position of vertical divider
+    const dividerLine = this.scene.add.rectangle(dividerX, 0, 3, inventoryHeight - 10, 0x77888C, 0.7);
+    
+    // Add horizontal grid lines for better structure
+    const topGridLine = this.scene.add.rectangle(0, -inventoryHeight/2 + 25, inventoryWidth - 10, 1, 0x77888C, 0.3);
+    const bottomGridLine = this.scene.add.rectangle(0, inventoryHeight/2 - 10, inventoryWidth - 10, 1, 0x77888C, 0.3);
+    
+    // Title texts (Prologue style)
+    const relicsTitle = this.scene.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#ffffff",
+      fontSize: 12,
+      color: "#77888C", // Prologue text color
       align: "left"
     }).setOrigin(0, 0.5);
     
-    // Toggle button
-    const toggleButton = this.createRelicInventoryToggle(inventoryWidth/2 - 30, -inventoryHeight/2 + 15);
+    const potionsTitle = this.scene.add.text(dividerX + 15, -inventoryHeight/2 + 15, "POTIONS", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C", // Prologue text color
+      align: "left"
+    }).setOrigin(0, 0.5);
     
-    // Create relic slots
-    const slotSize = 30;
-    const slotsPerRow = 6;
-    const rows = 1;
-    const slotSpacing = 45;
+    // Create relic slots (6 slots in 1 row) - Prologue double border style with grid background
+    const relicSlotSize = 40;
+    const relicSlotsCount = 6;
+    const relicSlotSpacing = 50;
+    const relicStartX = -inventoryWidth/2 + 60;
+    const relicStartY = 15;
     
-    const startX = -(slotsPerRow - 1) * slotSpacing / 2;
-    const startY = 10;
+    // Create visible grid background for relic section
+    const relicGridWidth = (relicSlotsCount - 1) * relicSlotSpacing + relicSlotSize + 10;
+    const relicGridHeight = relicSlotSize + 10;
+    const relicGridCenterX = relicStartX + ((relicSlotsCount - 1) * relicSlotSpacing) / 2;
+    const relicGridBg = this.scene.add.rectangle(relicGridCenterX, relicStartY, relicGridWidth, relicGridHeight, 0x2a2030, 0.3);
+    relicGridBg.setStrokeStyle(1, 0x77888C, 0.5);
+    this.relicInventory.add(relicGridBg);
     
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < slotsPerRow; col++) {
-        const slotX = startX + col * slotSpacing;
-        const slotY = startY + row * slotSpacing;
-        
-        const slot = this.scene.add.rectangle(slotX, slotY, slotSize, slotSize, 0x0f0f0f, 0.9);
-        slot.setStrokeStyle(2, 0x8b4513, 0.6);
-        
-        this.relicInventory.add(slot);
+    for (let i = 0; i < relicSlotsCount; i++) {
+      const slotX = relicStartX + i * relicSlotSpacing;
+      const slotY = relicStartY;
+      
+      // Create slot container for double border effect
+      const slotContainer = this.scene.add.container(slotX, slotY);
+      
+      // Outer border (thicker) - more visible
+      const outerBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 4, relicSlotSize + 4, undefined, 0);
+      outerBorder.setStrokeStyle(2, 0x77888C, 0.8);
+      
+      // Inner border (thinner) - more visible
+      const innerBorder = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, undefined, 0);
+      innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
+      
+      // Background - slightly lighter to contrast with grid
+      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x1a1520);
+      
+      // Add vertical grid lines between slots
+      if (i < relicSlotsCount - 1) {
+        const gridLineX = slotX + relicSlotSpacing / 2;
+        const gridLine = this.scene.add.line(0, 0, gridLineX - slotX, -relicGridHeight/2 + 2, gridLineX - slotX, relicGridHeight/2 - 2, 0x77888C, 0.3);
+        gridLine.setLineWidth(1);
+        slotContainer.add(gridLine);
       }
+      
+      slotContainer.add([outerBorder, innerBorder, bg]);
+      (slotContainer as any).isRelicSlot = true;
+      (slotContainer as any).slotIndex = i;
+      
+      // Make slot interactive for relic details
+      slotContainer.setSize(relicSlotSize, relicSlotSize);
+      slotContainer.setInteractive();
+      
+      // Add hover effects
+      slotContainer.on('pointerover', () => {
+        const combatState = this.scene.getCombatState();
+        if (combatState.player.relics && combatState.player.relics[i]) {
+          outerBorder.setStrokeStyle(3, 0xffd93d, 1.0); // Golden highlight
+          innerBorder.setStrokeStyle(2, 0xffd93d, 0.8);
+          bg.setFillStyle(0x2a2520); // Slight golden tint
+        }
+      });
+      
+      slotContainer.on('pointerout', () => {
+        outerBorder.setStrokeStyle(2, 0x77888C, 0.8); // Reset to normal
+        innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
+        bg.setFillStyle(0x1a1520); // Reset background
+      });
+      
+      // Add click handler for relic details
+      slotContainer.on('pointerdown', () => {
+        const combatState = this.scene.getCombatState();
+        if (combatState.player.relics && combatState.player.relics[i]) {
+          this.showRelicDetailModal(combatState.player.relics[i]);
+        }
+      });
+      
+      this.relicInventory.add(slotContainer);
     }
     
-    this.relicInventory.add([mainBg, innerBg, titleText, toggleButton]);
-    this.updateRelicInventory();
+    // Create potion slots (3 slots in 1 row) - Prologue double border style with grid background
+    const potionSlotSize = 40;
+    const potionSlotsCount = 3;
+    const potionSlotSpacing = 50;
+    const potionStartX = dividerX + 80;
+    const potionStartY = 15;
+    
+    // Create visible grid background for potion section
+    const potionGridWidth = (potionSlotsCount - 1) * potionSlotSpacing + potionSlotSize + 10;
+    const potionGridHeight = potionSlotSize + 10;
+    const potionGridCenterX = potionStartX + ((potionSlotsCount - 1) * potionSlotSpacing) / 2;
+    const potionGridBg = this.scene.add.rectangle(potionGridCenterX, potionStartY, potionGridWidth, potionGridHeight, 0x203020, 0.3);
+    potionGridBg.setStrokeStyle(1, 0x77888C, 0.5);
+    this.relicInventory.add(potionGridBg);
+    
+    for (let i = 0; i < potionSlotsCount; i++) {
+      const slotX = potionStartX + i * potionSlotSpacing;
+      const slotY = potionStartY;
+      
+      // Create slot container for double border effect
+      const slotContainer = this.scene.add.container(slotX, slotY);
+      
+      // Outer border (thicker) - more visible
+      const outerBorder = this.scene.add.rectangle(0, 0, potionSlotSize + 4, potionSlotSize + 4, undefined, 0);
+      outerBorder.setStrokeStyle(2, 0x77888C, 0.8);
+      
+      // Inner border (thinner) - more visible
+      const innerBorder = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, undefined, 0);
+      innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
+      
+      // Background - slightly lighter with green tint for potions
+      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x151a15);
+      
+      // Add vertical grid lines between slots
+      if (i < potionSlotsCount - 1) {
+        const gridLineX = slotX + potionSlotSpacing / 2;
+        const gridLine = this.scene.add.line(0, 0, gridLineX - slotX, -potionGridHeight/2 + 2, gridLineX - slotX, potionGridHeight/2 - 2, 0x77888C, 0.3);
+        gridLine.setLineWidth(1);
+        slotContainer.add(gridLine);
+      }
+      
+      slotContainer.add([outerBorder, innerBorder, bg]);
+      (slotContainer as any).isPotionSlot = true;
+      
+      this.relicInventory.add(slotContainer);
+    }
+    
+    this.relicInventory.add([outerBorder, innerBorder, mainBg, dividerLine, topGridLine, bottomGridLine, relicsTitle, potionsTitle]);
+    this.scheduleRelicInventoryUpdate();
   }
   
-  /**
-   * Create toggle button for relic inventory
-   */
-  private createRelicInventoryToggle(x: number, y: number): Phaser.GameObjects.Container {
-    const toggleButton = this.scene.add.container(x, y);
-    
-    const bg = this.scene.add.rectangle(0, 0, 20, 20, 0x4a4a4a, 0.9);
-    bg.setStrokeStyle(1, 0x6a6a6a);
-    
-    const toggleText = this.scene.add.text(0, 0, "👁", {
-      fontSize: 12,
-      color: "#ffffff"
-    }).setOrigin(0.5);
-    
-    toggleButton.add([bg, toggleText]);
-    toggleButton.setInteractive(new Phaser.Geom.Rectangle(-10, -10, 20, 20), Phaser.Geom.Rectangle.Contains);
-    
-    toggleButton.on("pointerdown", () => {
-      const isVisible = this.relicInventory.visible;
-      this.relicInventory.setVisible(!isVisible);
-      toggleText.setText(isVisible ? "✕" : "👁");
-    });
-    
-    toggleButton.on("pointerover", () => {
-      bg.setFillStyle(0x5a5a5a, 0.9);
-    });
-    
-    toggleButton.on("pointerout", () => {
-      bg.setFillStyle(0x4a4a4a, 0.9);
-    });
-    
-    return toggleButton;
-  }
+
   
   /**
    * Create deck sprite (Balatro-style stacked cards with depth)
@@ -879,8 +973,16 @@ export class CombatUI {
   public updatePlayerUI(): void {
     const combatState = this.scene.getCombatState();
     const player = combatState.player;
-    this.playerHealthText.setText(`♥ ${player.currentHealth}/${player.maxHealth}`);
+    
+    // Ensure health values are properly rounded and clamped
+    const currentHealth = Math.max(0, Math.floor(player.currentHealth));
+    const maxHealth = Math.max(1, Math.floor(player.maxHealth));
+    
+    this.playerHealthText.setText(`♥ ${currentHealth}/${maxHealth}`);
     this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
+    
+    // Schedule relic inventory update instead of immediate update
+    this.scheduleRelicInventoryUpdate();
   }
   
   /**
@@ -907,30 +1009,19 @@ export class CombatUI {
     try {
       this.turnText.setText(`Turn: ${combatState.turn}`);
       this.actionsText.setText(
-        `Discards: ${this.scene.getDiscardsUsedThisTurn()}/${this.scene.getMaxDiscardsPerTurn()} | Hand: ${combatState.player.hand.length}/8`
+        `Discards: ${this.scene.getDiscardsUsedThisTurn()}/${this.scene.getMaxDiscardsPerTurn()}`
       );
-      this.updateHandIndicator();
+      // Hand indicator removed - now using selection counter above cards
     } catch (error) {
       console.error("Error updating turn UI:", error);
     }
   }
   
   /**
-   * Update hand indicator to show current selected hand type
+   * Update hand indicator to show current selected hand type (DEPRECATED - using selection counter instead)
    */
   public updateHandIndicator(): void {
-    const selectedCards = this.scene.getSelectedCards();
-    
-    if (selectedCards.length === 0) {
-      this.handIndicatorText.setText("");
-      return;
-    }
-
-    const evaluation = HandEvaluator.evaluateHand(selectedCards, "attack");
-    const handTypeText = this.getHandTypeDisplayText(evaluation.type);
-    const valueText = evaluation.totalValue > 0 ? ` (${evaluation.totalValue} value)` : "";
-
-    this.handIndicatorText.setText(`Selected: ${handTypeText}${valueText}`);
+    // No longer used - hand info now shown in selection counter above cards
   }
   
   /**
@@ -954,68 +1045,100 @@ export class CombatUI {
   }
   
   /**
-   * Update relic inventory with current relics
+   * Update relic inventory with current relics and potions - optimized version
    */
   public updateRelicInventory(): void {
     if (!this.relicInventory) return;
     
     const combatState = this.scene.getCombatState();
     const relics = combatState.player.relics;
-    const slotsPerRow = 6;
-    const slotSpacing = 45;
-    const startX = -(slotsPerRow - 1) * slotSpacing / 2;
-    const startY = 10;
+    const potions = combatState.player.potions || [];
     
-    // Remove existing relic displays
+    // Skip update if counts haven't changed (optimization)
+    if (relics.length === this.lastRelicCount && potions.length === this.lastPotionCount && !this.relicUpdatePending) {
+      return;
+    }
+    
+    this.lastRelicCount = relics.length;
+    this.lastPotionCount = potions.length;
+    this.relicUpdatePending = false;
+    
+    console.log("Updating relic inventory. Relics:", relics.length, "Potions:", potions.length);
+    
+    // Relic slots configuration
+    const relicSlotSize = 40;
+    const relicSlotsCount = 6;
+    const relicSlotSpacing = 50;
+    const relicStartX = -260 + 60; // Adjust based on inventoryWidth
+    const relicStartY = 15;
+    
+    // Potion slots configuration
+    const potionSlotSize = 40;
+    const potionSlotsCount = 3;
+    const potionSlotSpacing = 50;
+    const potionStartX = 50 + 80; // After divider
+    const potionStartY = 15;
+    
+    // Remove only the item icons and tooltips (keep the permanent slot frames)
     this.relicInventory.list.forEach(child => {
-      if ((child as any).isRelicDisplay || (child as any).isTooltip) {
+      if ((child as any).isRelicIcon || (child as any).isPotionIcon || (child as any).isTooltip) {
         child.destroy();
       }
     });
     
-    // Add current relics to slots
+    // Get references to existing slot containers
+    const relicSlots = this.relicInventory.list.filter(child => (child as any).isRelicSlot) as Phaser.GameObjects.Container[];
+    const potionSlots = this.relicInventory.list.filter(child => (child as any).isPotionSlot) as Phaser.GameObjects.Container[];
+    
+    // Add relic icons to existing slots
     relics.forEach((relic, index) => {
-      if (index < 6) {
-        const slotX = startX + index * slotSpacing;
-        const slotY = startY;
+      if (index < relicSlotsCount && relicSlots[index]) {
+        const slot = relicSlots[index];
         
-        const relicIcon = this.scene.add.text(slotX, slotY, relic.emoji || "?", {
-          fontSize: 18,
+        // Add relic icon to the slot
+        const relicIcon = this.scene.add.text(0, 0, relic.emoji || "?", {
+          fontSize: 24,
           align: "center"
         }).setOrigin(0.5);
         
-        (relicIcon as any).isRelicDisplay = true;
-        relicIcon.setInteractive();
+        (relicIcon as any).isRelicIcon = true;
+        slot.add(relicIcon);
         
-        let hoverGlow: Phaser.GameObjects.Graphics | null = null;
+        // Make slot interactive with hover effects
+        slot.setSize(relicSlotSize + 4, relicSlotSize + 4);
+        slot.setInteractive(
+          new Phaser.Geom.Rectangle(-(relicSlotSize + 4)/2, -(relicSlotSize + 4)/2, relicSlotSize + 4, relicSlotSize + 4),
+          Phaser.Geom.Rectangle.Contains
+        );
         
-        relicIcon.on("pointerover", () => {
-          if (hoverGlow) {
-            hoverGlow.destroy();
-            hoverGlow = null;
-          }
-          
-          hoverGlow = this.scene.add.graphics();
-          hoverGlow.lineStyle(3, 0x7c3aed, 0.8);
-          hoverGlow.strokeCircle(slotX, slotY, 18);
-          this.relicInventory.add(hoverGlow);
+        // Clear any existing event listeners to prevent memory leaks
+        slot.removeAllListeners();
+        
+        // Get border references from slot
+        const borders = slot.list as Phaser.GameObjects.Rectangle[];
+        const outerBorder = borders[0];
+        const innerBorder = borders[1];
+        
+        slot.on("pointerover", () => {
+          outerBorder.setStrokeStyle(2, 0xe8eced); // Brighten to white
+          innerBorder.setStrokeStyle(1, 0xe8eced);
           
           this.scene.tweens.add({
             targets: relicIcon,
-            scaleX: 1.2,
-            scaleY: 1.2,
+            scaleX: 1.15,
+            scaleY: 1.15,
             duration: 150,
             ease: 'Back.easeOut'
           });
           
-          this.showRelicTooltip(relic.name, slotX, slotY - 40);
+          const slotX = relicStartX + index * relicSlotSpacing;
+          const slotY = relicStartY;
+          this.showRelicTooltip(relic.name, slotX, slotY - 50);
         });
         
-        relicIcon.on("pointerout", () => {
-          if (hoverGlow) {
-            hoverGlow.destroy();
-            hoverGlow = null;
-          }
+        slot.on("pointerout", () => {
+          outerBorder.setStrokeStyle(2, 0x77888C); // Reset to gray
+          innerBorder.setStrokeStyle(1, 0x77888C);
           
           this.scene.tweens.add({
             targets: relicIcon,
@@ -1028,13 +1151,100 @@ export class CombatUI {
           this.hideRelicTooltip();
         });
         
-        relicIcon.on("pointerdown", () => {
+        slot.on("pointerdown", () => {
           this.showRelicDetailModal(relic);
         });
-        
-        this.relicInventory.add(relicIcon);
       }
     });
+    
+    // Add potion icons to existing slots (using gray borders like relics)
+    potions.forEach((potion, index) => {
+      if (index < potionSlotsCount && potionSlots[index]) {
+        const slot = potionSlots[index];
+        
+        // Add potion icon to the slot
+        const potionIcon = this.scene.add.text(0, 0, potion.emoji || "🧪", {
+          fontSize: 24,
+          align: "center"
+        }).setOrigin(0.5);
+        
+        (potionIcon as any).isPotionIcon = true;
+        slot.add(potionIcon);
+        
+        // Make slot interactive with hover effects
+        slot.setSize(potionSlotSize + 4, potionSlotSize + 4);
+        slot.setInteractive(
+          new Phaser.Geom.Rectangle(-(potionSlotSize + 4)/2, -(potionSlotSize + 4)/2, potionSlotSize + 4, potionSlotSize + 4),
+          Phaser.Geom.Rectangle.Contains
+        );
+        
+        // Clear any existing event listeners to prevent memory leaks
+        slot.removeAllListeners();
+        
+        // Get border references from slot
+        const borders = slot.list as Phaser.GameObjects.Rectangle[];
+        const outerBorder = borders[0];
+        const innerBorder = borders[1];
+        
+        slot.on("pointerover", () => {
+          outerBorder.setStrokeStyle(2, 0xe8eced); // Brighten to white (same as relics)
+          innerBorder.setStrokeStyle(1, 0xe8eced);
+          
+          this.scene.tweens.add({
+            targets: potionIcon,
+            scaleX: 1.15,
+            scaleY: 1.15,
+            duration: 150,
+            ease: 'Back.easeOut'
+          });
+          
+          const slotX = potionStartX + index * potionSlotSpacing;
+          const slotY = potionStartY;
+          this.showPotionTooltip(potion.name, slotX, slotY - 50);
+        });
+        
+        slot.on("pointerout", () => {
+          outerBorder.setStrokeStyle(2, 0x77888C); // Reset to gray
+          innerBorder.setStrokeStyle(1, 0x77888C);
+          
+          this.scene.tweens.add({
+            targets: potionIcon,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 150,
+            ease: 'Back.easeOut'
+          });
+          
+          this.hidePotionTooltip();
+        });
+        
+        slot.on("pointerdown", () => {
+          this.usePotionInCombat(potion, index);
+        });
+      }
+    });
+  }
+  
+  /**
+   * Schedule a relic inventory update to be executed on the next frame (optimized for batching)
+   */
+  public scheduleRelicInventoryUpdate(): void {
+    if (this.relicUpdatePending) return; // Already scheduled
+    
+    this.relicUpdatePending = true;
+    this.scene.time.delayedCall(1, () => {
+      if (this.relicUpdatePending) { // Check if still needed
+        this.updateRelicInventory();
+      }
+    });
+  }
+  
+  /**
+   * Force relic inventory update (for use after major changes like shop purchases)
+   */
+  public forceRelicInventoryUpdate(): void {
+    this.relicUpdatePending = true;
+    this.updateRelicInventory();
   }
   
   /**
@@ -1783,7 +1993,7 @@ export class CombatUI {
   }
   
   /**
-   * Show relic tooltip
+   * Show relic tooltip (Prologue style)
    */
   private showRelicTooltip(name: string, x: number, y: number): void {
     this.hideRelicTooltip();
@@ -1792,18 +2002,25 @@ export class CombatUI {
     const tooltipWidth = Math.min(name.length * 8 + 20, 200);
     const tooltipHeight = 30;
     
-    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x1a1a1a, 0.95);
-    bg.setStrokeStyle(2, 0x8b4513);
+    // Prologue-style double border
+    const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0);
+    outerBorder.setStrokeStyle(2, 0x77888C);
+    
+    const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C);
+    
+    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
     
     const text = this.scene.add.text(0, 0, name, {
       fontFamily: "dungeon-mode",
       fontSize: 14,
-      color: "#ffffff",
+      color: "#77888C", // Prologue text color
       align: "center"
     }).setOrigin(0.5);
     
-    tooltipContainer.add([bg, text]);
+    tooltipContainer.add([outerBorder, innerBorder, bg, text]);
     tooltipContainer.setDepth(6000);
+    (tooltipContainer as any).isTooltip = true;
     
     this.currentRelicTooltip = tooltipContainer;
     this.relicInventory.add(tooltipContainer);
@@ -1820,11 +2037,215 @@ export class CombatUI {
   }
   
   /**
-   * Show relic detail modal
+   * Show potion tooltip (Prologue style with cyan accent)
+   */
+  private showPotionTooltip(name: string, x: number, y: number): void {
+    this.hideRelicTooltip(); // Reuse the same tooltip system
+    
+    const tooltipContainer = this.scene.add.container(x, y);
+    const tooltipWidth = Math.min(name.length * 8 + 20, 200);
+    const tooltipHeight = 30;
+    
+    // Prologue-style double border with cyan accent for potions
+    const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0);
+    outerBorder.setStrokeStyle(2, 0x4ecdc4); // Cyan for potions
+    
+    const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x4ecdc4); // Cyan for potions
+    
+    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+    
+    const text = this.scene.add.text(0, 0, name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#4ecdc4", // Cyan text for potions
+      align: "center"
+    }).setOrigin(0.5);
+    
+    tooltipContainer.add([outerBorder, innerBorder, bg, text]);
+    tooltipContainer.setDepth(6000);
+    (tooltipContainer as any).isTooltip = true;
+    
+    this.currentRelicTooltip = tooltipContainer; // Reuse the same reference
+    this.relicInventory.add(tooltipContainer);
+  }
+  
+  /**
+   * Hide potion tooltip
+   */
+  private hidePotionTooltip(): void {
+    this.hideRelicTooltip(); // Same as hiding relic tooltip
+  }
+  
+  /**
+   * Use potion in combat
+   */
+  private usePotionInCombat(potion: any, index: number): void {
+    console.log(`Using potion: ${potion.name}`);
+    // TODO: Implement potion effects based on potion.effect
+    // For now, just show a message and remove the potion
+    this.showActionResult(`Used ${potion.name}!`);
+    
+    // Remove potion from player inventory
+    const combatState = this.scene.getCombatState();
+    if (combatState.player.potions) {
+      combatState.player.potions.splice(index, 1);
+      this.forceRelicInventoryUpdate(); // Force update after potion use
+    }
+  }
+  
+  /**
+   * Show relic detail modal with comprehensive information
    */
   private showRelicDetailModal(relic: any): void {
-    // Placeholder for relic detail modal
-    console.log("Show relic detail:", relic);
+    console.log("Showing relic detail modal for:", relic.name);
+    
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Create modal container
+    const modalContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2);
+    modalContainer.setDepth(3000);
+    
+    // Semi-transparent overlay background
+    const overlay = this.scene.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7);
+    overlay.setInteractive();
+    overlay.on('pointerdown', () => {
+      modalContainer.destroy();
+    });
+    
+    // Modal window dimensions
+    const modalWidth = 450;
+    const modalHeight = 300;
+    
+    // Main modal background with Prologue styling
+    const modalBg = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, 0x0f0a0b);
+    const outerBorder = this.scene.add.rectangle(0, 0, modalWidth + 6, modalHeight + 6, undefined, 0);
+    outerBorder.setStrokeStyle(3, 0x77888C, 1.0);
+    const innerBorder = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C, 0.8);
+    
+    // Title section with relic icon
+    const titleY = -modalHeight/2 + 40;
+    const relicIcon = this.scene.add.text(-150, titleY, relic.emoji || "⚙️", {
+      fontSize: 32,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    const relicName = this.scene.add.text(-100, titleY, relic.name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#ffd93d",
+      align: "left",
+      wordWrap: { width: 250 }
+    }).setOrigin(0, 0.5);
+    
+    // Rarity indicator (if available)
+    let rarityColor = "#77888C";
+    let rarityText = "COMMON";
+    if (relic.rarity) {
+      switch (relic.rarity.toLowerCase()) {
+        case "uncommon": rarityColor = "#4ecdc4"; rarityText = "UNCOMMON"; break;
+        case "rare": rarityColor = "#ffd93d"; rarityText = "RARE"; break;
+        case "legendary": rarityColor = "#ff6b6b"; rarityText = "LEGENDARY"; break;
+      }
+    }
+    
+    const rarityLabel = this.scene.add.text(150, titleY, rarityText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: rarityColor,
+      align: "right"
+    }).setOrigin(1, 0.5);
+    
+    // Description section
+    const descriptionY = titleY + 60;
+    const description = this.scene.add.text(0, descriptionY, relic.description || "A mysterious relic with unknown powers.", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: modalWidth - 40 }
+    }).setOrigin(0.5, 0);
+    
+    // Effect section (if available)
+    let effectText = "";
+    if (relic.effect) {
+      effectText = this.getRelicEffectDescription(relic);
+    }
+    
+    const effectLabel = this.scene.add.text(0, descriptionY + 80, "EFFECT:", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    const effectDescription = this.scene.add.text(0, descriptionY + 100, effectText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 13,
+      color: "#4ecdc4",
+      align: "center",
+      wordWrap: { width: modalWidth - 40 }
+    }).setOrigin(0.5, 0);
+    
+    // Close button
+    const closeButton = this.createCloseButton(modalWidth/2 - 30, -modalHeight/2 + 30);
+    closeButton.on('pointerdown', () => {
+      modalContainer.destroy();
+    });
+    
+    // Add all elements to modal
+    modalContainer.add([
+      overlay,
+      outerBorder,
+      innerBorder,
+      modalBg,
+      relicIcon,
+      relicName,
+      rarityLabel,
+      description,
+      effectLabel,
+      effectDescription,
+      closeButton
+    ]);
+    
+    // Add entrance animation
+    modalContainer.setScale(0.8);
+    modalContainer.setAlpha(0);
+    this.scene.tweens.add({
+      targets: modalContainer,
+      scale: 1,
+      alpha: 1,
+      duration: 200,
+      ease: 'Back.Out'
+    });
+  }
+  
+  /**
+   * Get detailed effect description for relic
+   */
+  private getRelicEffectDescription(relic: any): string {
+    // Map common relic effects to user-friendly descriptions
+    const effectDescriptions: { [key: string]: string } = {
+      "hand_tier_increase": "Your poker hands are evaluated as one tier higher.",
+      "extra_discard": "Gain +1 discard charge per combat.",
+      "persistent_block": "Start each combat with 5 block.",
+      "lupa_block_bonus": "Gain +2 block when playing Lupa (Earth) cards.",
+      "apoy_damage_bonus": "Deal +3 damage when playing Apoy (Fire) cards.",
+      "tubig_healing": "Heal 2 HP when playing Tubig (Water) cards.",
+      "hangin_draw": "Draw +1 card when playing Hangin (Air) cards.",
+      "five_of_a_kind_unlock": "Enables Five of a Kind poker hands.",
+      "start_with_strength": "Start each combat with 2 Strength.",
+      "burn_immunity": "Immune to Burn status effects."
+    };
+    
+    if (relic.effect && effectDescriptions[relic.effect]) {
+      return effectDescriptions[relic.effect];
+    }
+    
+    // Fallback to generic description
+    return relic.effect || "This relic provides a powerful passive benefit during combat.";
   }
   
   /**

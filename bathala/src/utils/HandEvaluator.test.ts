@@ -49,7 +49,7 @@ describe("HandEvaluator", () => {
 		const result = HandEvaluator.evaluateHand(hand, "special");
 
 		expect(result.type).toBe("royal_flush");
-		expect(result.baseValue).toBe(15);
+		expect(result.baseValue).toBe(32); // 10(6) + J(6) + Q(7) + K(7) + A(6) = 32
 		expect(result.description).toContain("Royal Flush");
 	});
 
@@ -123,11 +123,10 @@ describe("HandEvaluator", () => {
 		}));
 	}
 
-	function createPlayerWithRelics(relicIds: string[]): {
-		relics: Array<{ id: string }>;
-	} {
+	function createPlayerWithRelics(relicIds: string[]): any {
 		return {
 			relics: relicIds.map((id) => ({ id })),
+			statusEffects: [], // Required for DamageCalculator.calculate
 		};
 	}
 });

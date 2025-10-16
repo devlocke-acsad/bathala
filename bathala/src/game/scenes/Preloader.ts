@@ -97,11 +97,8 @@ export class Preloader extends Scene {
     this.loadFont("HeinzHeinrich", "fonts/heinzheinrich/HeinzHeinrich-Regular.otf");
     this.loadFont("Pixeled English Font", "fonts/pixeled-english/Pixeled English Font.ttf");
 
-    // Player sprite sheet for Combat - 32x64 each
-    this.load.spritesheet("combat_player", "sprites/combat/player/player_combat.png", {
-      frameWidth: 32,
-      frameHeight: 64,
-    });
+    // Player sprite for Combat
+    this.load.image("combat_player", "sprites/combat/player/mc_combat.png");
 
     // Avatar sprite sheet for Overworld - 1 row, 10 columns of 16x16 (160x16 total)
     this.load.spritesheet("overworld_player", "sprites/overworld/player.png", {
@@ -315,7 +312,8 @@ export class Preloader extends Scene {
    * Create player animations
    */
   private createPlayerAnimations(): void {
-    // Player idle animation (first frame)
+    // Combat player is now a static image (mc_combat.png), no animations needed
+    /* Animations removed - using static sprite
     this.anims.create({
       key: "player_idle",
       frames: [{ key: "combat_player", frame: 0 }],
@@ -323,7 +321,6 @@ export class Preloader extends Scene {
       repeat: -1,
     });
 
-    // Player idle down animation (first frame)
     this.anims.create({
       key: "player_idle_down",
       frames: [{ key: "combat_player", frame: 0 }],
@@ -331,13 +328,13 @@ export class Preloader extends Scene {
       repeat: -1,
     });
 
-    // Player walk animation (frames 0-3)
     this.anims.create({
       key: "player_walk",
       frames: this.anims.generateFrameNumbers("combat_player", { start: 0, end: 3 }),
       frameRate: 8,
       repeat: -1,
     });
+    */
   }
 
   /**
