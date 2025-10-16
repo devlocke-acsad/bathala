@@ -27,7 +27,7 @@
         "jest": "^29.7.0",
         "ts-jest": "^29.2.5",
         "typescript": "~5.7.2",
-        "vite": "^6.3.1"
+        "vite": "^6.3.7"
     },
     "dependencies": {
         "phaser": "^3.90.0",
