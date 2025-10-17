@@ -2491,13 +2491,11 @@ export class CombatUI {
     }).setOrigin(0.5);
     
     button.add([bg, text]);
-    button.setSize(60, 60); // Larger hit area
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-30, -30, 60, 60),
-      Phaser.Geom.Rectangle.Contains
-    );
     
-    button.on("pointerover", () => {
+    // Fix: Use the bg circle directly for interaction
+    bg.setInteractive({ useHandCursor: true });
+    
+    bg.on("pointerover", () => {
       bg.setFillStyle(0xff6b6b, 0.3);
       bg.setScale(1.1);
       this.scene.tweens.add({
@@ -2508,7 +2506,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerout", () => {
+    bg.on("pointerout", () => {
       bg.setFillStyle(0x1a1a1a);
       bg.setScale(1);
       this.scene.tweens.add({
@@ -2519,7 +2517,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerdown", () => {
+    bg.on("pointerdown", () => {
       this.scene.tweens.add({
         targets: button,
         scale: 0.9,
@@ -2559,13 +2557,13 @@ export class CombatUI {
     }).setOrigin(0.5);
     
     button.add([bg, innerBorder, text]);
-    button.setSize(90, 90); // Much larger hit area for better responsiveness
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-45, -45, 90, 90),
-      Phaser.Geom.Rectangle.Contains
-    );
     
-    button.on("pointerover", () => {
+    // Fix: Use the bg rectangle directly for interaction instead of creating a separate hit area
+    // This ensures the interactive area perfectly matches the visual button
+    bg.setInteractive({ useHandCursor: true });
+    
+    // Transfer events from bg to button container for proper behavior
+    bg.on("pointerover", () => {
       if (button.alpha === 1) { // Only animate if button is active
         bg.setFillStyle(0x1f1410);
         text.setColor("#e8eced");
@@ -2578,7 +2576,7 @@ export class CombatUI {
       }
     });
     
-    button.on("pointerout", () => {
+    bg.on("pointerout", () => {
       bg.setFillStyle(0x150E10);
       text.setColor("#77888C");
       this.scene.tweens.add({
@@ -2589,7 +2587,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerdown", () => {
+    bg.on("pointerdown", () => {
       if (button.alpha === 1) { // Only trigger if button is active
         this.scene.tweens.add({
           targets: button,
@@ -2860,13 +2858,11 @@ export class CombatUI {
     }).setOrigin(0.5);
     
     button.add([bg, text]);
-    button.setSize(60, 60); // Larger hit area
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-30, -30, 60, 60),
-      Phaser.Geom.Rectangle.Contains
-    );
     
-    button.on("pointerover", () => {
+    // Fix: Use the bg circle directly for interaction
+    bg.setInteractive({ useHandCursor: true });
+    
+    bg.on("pointerover", () => {
       bg.setFillStyle(0xff6b6b, 0.3);
       bg.setScale(1.1);
       this.scene.tweens.add({
@@ -2877,7 +2873,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerout", () => {
+    bg.on("pointerout", () => {
       bg.setFillStyle(0x1a1a1a);
       bg.setScale(1);
       this.scene.tweens.add({
@@ -2888,7 +2884,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerdown", () => {
+    bg.on("pointerdown", () => {
       this.scene.tweens.add({
         targets: button,
         scale: 0.9,
@@ -2928,13 +2924,13 @@ export class CombatUI {
     }).setOrigin(0.5);
     
     button.add([bg, innerBorder, text]);
-    button.setSize(90, 90); // Much larger hit area for better responsiveness
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-45, -45, 90, 90),
-      Phaser.Geom.Rectangle.Contains
-    );
     
-    button.on("pointerover", () => {
+    // Fix: Use the bg rectangle directly for interaction instead of creating a separate hit area
+    // This ensures the interactive area perfectly matches the visual button
+    bg.setInteractive({ useHandCursor: true });
+    
+    // Transfer events from bg to button container for proper behavior
+    bg.on("pointerover", () => {
       if (button.alpha === 1) { // Only animate if button is active
         bg.setFillStyle(0x1f1410);
         text.setColor("#e8eced");
@@ -2947,7 +2943,7 @@ export class CombatUI {
       }
     });
     
-    button.on("pointerout", () => {
+    bg.on("pointerout", () => {
       bg.setFillStyle(0x150E10);
       text.setColor("#77888C");
       this.scene.tweens.add({
@@ -2958,7 +2954,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerdown", () => {
+    bg.on("pointerdown", () => {
       if (button.alpha === 1) { // Only trigger if button is active
         this.scene.tweens.add({
           targets: button,
