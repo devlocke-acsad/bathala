@@ -335,13 +335,13 @@ export class PokerHandReference extends Scene {
     }).setOrigin(0.5);
     
     button.add([bg, innerBorder, text]);
-    button.setSize(80, 80);
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-40, -40, 80, 80),
-      Phaser.Geom.Rectangle.Contains
-    );
     
-    button.on("pointerover", () => {
+    // Fix: Use the bg rectangle directly for interaction instead of creating a separate hit area
+    // This ensures the interactive area perfectly matches the visual button
+    bg.setInteractive({ useHandCursor: true });
+    
+    // Transfer events from bg to button container for proper behavior
+    bg.on("pointerover", () => {
       if (button.alpha === 1) {
         bg.setFillStyle(0x1f1410);
         text.setColor("#e8eced");
@@ -354,7 +354,7 @@ export class PokerHandReference extends Scene {
       }
     });
     
-    button.on("pointerout", () => {
+    bg.on("pointerout", () => {
       bg.setFillStyle(0x150E10);
       text.setColor("#77888C");
       this.tweens.add({
@@ -365,7 +365,7 @@ export class PokerHandReference extends Scene {
       });
     });
     
-    button.on("pointerdown", () => {
+    bg.on("pointerdown", () => {
       if (button.alpha === 1) {
         this.tweens.add({
           targets: button,
