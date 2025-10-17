@@ -2305,9 +2305,44 @@ export class CombatUI {
     if (nextButton) (nextButton as any).setVisible(true);
     if (pageCounter) (pageCounter as any).setVisible(true);
     
-    // Pagination settings
-    const cardsPerPage = 12; // 2 rows of 6 cards
-    const totalPages = Math.ceil(cards.length / cardsPerPage);
+    // Categorize cards by suit and sort by value (2 to Ace)
+    const suitOrder = ["Apoy", "Tubig", "Lupa", "Hangin"];
+    const cardsBySuit: { [key: string]: any[] } = {
+      "Apoy": [],
+      "Tubig": [],
+      "Lupa": [],
+      "Hangin": []
+    };
+    
+    // Group cards by suit
+    cards.forEach(card => {
+      if (cardsBySuit[card.suit]) {
+        cardsBySuit[card.suit].push(card);
+      }
+    });
+    
+    // Convert rank to numeric value for sorting
+    const getRankValue = (rank: string): number => {
+      if (rank === "1") return 14; // Ace is highest
+      if (rank === "Mandirigma") return 11; // Jack
+      if (rank === "Babaylan") return 12; // Queen
+      if (rank === "Datu") return 13; // King
+      return parseInt(rank); // 2-10
+    };
+    
+    // Sort each suit: 2-10, then Mandirigma (11), Babaylan (12), Datu (13), 1 (Ace=14)
+    const sortByValue = (a: any, b: any) => {
+      const valueA = getRankValue(a.rank);
+      const valueB = getRankValue(b.rank);
+      return valueA - valueB;
+    };
+    
+    Object.keys(cardsBySuit).forEach(suit => {
+      cardsBySuit[suit].sort(sortByValue);
+    });
+    
+    // 4 pages - one for each suit
+    const totalPages = 4;
     let currentPage = 0;
     
     // Store current page in container
@@ -2315,14 +2350,38 @@ export class CombatUI {
     (this.deckViewContainer as any).totalPages = totalPages;
     
     const renderPage = (page: number) => {
-      // Clear previous page cards
+      // Clear previous page cards and suit label
       this.deckViewContainer.list
-        .filter(item => (item as any).isPageCard)
+        .filter(item => (item as any).isPageCard || (item as any).isSuitLabel)
         .forEach(item => item.destroy());
       
-      const startIndex = page * cardsPerPage;
-      const endIndex = Math.min(startIndex + cardsPerPage, cards.length);
-      const pageCards = cards.slice(startIndex, endIndex);
+      const suit = suitOrder[page];
+      const pageCards = cardsBySuit[suit];
+      
+      // Suit label with color and icon
+      const suitColors: { [key: string]: string } = {
+        "Apoy": "#FF6B6B",
+        "Tubig": "#54A0FF",
+        "Lupa": "#00D2D3",
+        "Hangin": "#A29BFE"
+      };
+      
+      const suitIcons: { [key: string]: string } = {
+        "Apoy": "🔥",
+        "Tubig": "💧",
+        "Lupa": "🌿",
+        "Hangin": "💨"
+      };
+      
+      const suitLabel = this.scene.add.text(0, -screenHeight * 0.28, `${suitIcons[suit]} ${suit.toUpperCase()} (${pageCards.length} cards)`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 24,
+        color: suitColors[suit],
+        align: "center",
+      }).setOrigin(0.5);
+      (suitLabel as any).isSuitLabel = true;
+      (suitLabel as any).isDeckContent = true;
+      this.deckViewContainer.add(suitLabel);
       
       // Grid layout - 2 rows of 6 cards (Balatro-style)
       const columns = 6;
@@ -2352,10 +2411,10 @@ export class CombatUI {
         this.deckViewContainer.add(cardSprite);
       });
       
-      // Update page counter
+      // Update page counter with suit name
       const pageCounter = this.deckViewContainer.list.find(item => (item as any).isPageCounter) as Phaser.GameObjects.Text;
       if (pageCounter) {
-        pageCounter.setText(`Page ${page + 1} / ${totalPages}`);
+        pageCounter.setText(`${suit} - Page ${page + 1} / ${totalPages}`);
       }
       
       // Update button states
@@ -2461,14 +2520,53 @@ export class CombatUI {
       this.deckViewContainer.add(pageCounter);
     } else {
       // Update card count if UI already exists
-      const cardCountText = this.deckViewContainer.list.find(item => (item as any).isDeckContent && item.type === 'Text') as Phaser.GameObjects.Text;
+      const cardCountText = this.deckViewContainer.list.find(item => (item as any).isDeckContent && item.type === 'Text' && !(item as any).isSuitLabel) as Phaser.GameObjects.Text;
       if (cardCountText) {
         cardCountText.setText(`${cards.length} cards`);
       }
+      
+      // Update button callbacks with new closure references
+      const prevButton = this.deckViewContainer.list.find(item => (item as any).isPrevButton) as Phaser.GameObjects.Container;
+      const nextButton = this.deckViewContainer.list.find(item => (item as any).isNextButton) as Phaser.GameObjects.Container;
+      
+      if (prevButton) {
+        // Remove old listeners
+        const prevBg = prevButton.list[0] as Phaser.GameObjects.Rectangle;
+        prevBg.removeAllListeners('pointerdown');
+        
+        // Add new listener with updated closure
+        prevBg.on("pointerdown", () => {
+          // Get current page from container storage
+          const storedPage = (this.deckViewContainer as any).currentPage || 0;
+          if (prevButton.alpha === 1 && storedPage > 0) {
+            const newPage = storedPage - 1;
+            (this.deckViewContainer as any).currentPage = newPage;
+            renderPage(newPage);
+          }
+        });
+      }
+      
+      if (nextButton) {
+        // Remove old listeners
+        const nextBg = nextButton.list[0] as Phaser.GameObjects.Rectangle;
+        nextBg.removeAllListeners('pointerdown');
+        
+        // Add new listener with updated closure
+        nextBg.on("pointerdown", () => {
+          // Get current page from container storage
+          const storedPage = (this.deckViewContainer as any).currentPage || 0;
+          if (nextButton.alpha === 1 && storedPage < totalPages - 1) {
+            const newPage = storedPage + 1;
+            (this.deckViewContainer as any).currentPage = newPage;
+            renderPage(newPage);
+          }
+        });
+      }
     }
     
-    // Render first page
-    renderPage(currentPage);
+    // Render current page (or first page if starting fresh)
+    const pageToRender = (this.deckViewContainer as any).currentPage || 0;
+    renderPage(pageToRender);
     
     // Show container
     this.deckViewContainer.setVisible(true);
