@@ -2,7 +2,14 @@ import { Scene } from "phaser";
 import { GameState } from "../../core/managers/GameState";
 import { RelicManager } from "../../core/managers/RelicManager";
 import { Player, Relic } from "../../core/types/CombatTypes";
-import { act1TreasureRelics } from "../../data/relics";
+import { 
+  act1CommonRelics, 
+  act1EliteRelics, 
+  act1BossRelics, 
+  act1TreasureRelics,
+  act1MythologicalRelics
+} from "../../data/relics";
+import { allShopItems } from "../../data/relics/ShopItems";
 
 export class Treasure extends Scene {
   private player!: Player;
@@ -28,24 +35,48 @@ export class Treasure extends Scene {
       this.player = data.player;
     }
     
-    // For now, use Act 1 treasure relics
-    // TODO: Implement act-based relic selection when act tracking is added to GameState
-    const treasureRelics = act1TreasureRelics;
+    // Get all shop relic IDs to exclude from treasure
+    const shopRelicIds = new Set(allShopItems.map(item => item.item.id));
+    
+    // Create weighted pool with drop rates
+    // After filtering shop relics, primary pool is Mythological relics (9 relics)
+    // EXCLUDES: Shop relics (15 total) and Boss relics (reserved for boss rewards)
+    const weightedPool: Array<{ relic: Relic; weight: number }> = [
+      // Common relics - 50% total (filter out shop relics)
+      ...act1CommonRelics
+        .filter(relic => !shopRelicIds.has(relic.id))
+        .map(relic => ({ relic, weight: 12.5 })),
+      // Elite relics - 35% total (filter out shop relics)
+      ...act1EliteRelics
+        .filter(relic => !shopRelicIds.has(relic.id))
+        .map(relic => ({ relic, weight: 8.75 })),
+      // Treasure relics - 15% total (filter out shop relics)
+      ...act1TreasureRelics
+        .filter(relic => !shopRelicIds.has(relic.id))
+        .map(relic => ({ relic, weight: 7.5 })),
+      // Mythological relics - Equal weight distribution (NOT in shop)
+      ...act1MythologicalRelics
+        .map(relic => ({ relic, weight: 11.11 })),
+    ];
     
     // Filter out relics player already has
-    const availableRelics = treasureRelics.filter(
-      relic => !this.player.relics.some(r => r.id === relic.id)
+    const availablePool = weightedPool.filter(
+      item => !this.player.relics.some(r => r.id === item.relic.id)
     );
     
-    // Shuffle available relics and take first 3 unique
-    const shuffled = this.shuffleArray(availableRelics);
+    // Select 3 unique relics using weighted randomization
     const uniqueRelics: Relic[] = [];
     const seenIds = new Set<string>();
+    const poolCopy = [...availablePool];
     
-    for (const relic of shuffled) {
-      if (!seenIds.has(relic.id) && uniqueRelics.length < 3) {
-        uniqueRelics.push(relic);
-        seenIds.add(relic.id);
+    while (uniqueRelics.length < 3 && poolCopy.length > 0) {
+      const selectedRelic = this.weightedRandomSelect(poolCopy);
+      if (!seenIds.has(selectedRelic.id)) {
+        uniqueRelics.push(selectedRelic);
+        seenIds.add(selectedRelic.id);
+        // Remove selected relic from pool to ensure uniqueness
+        const index = poolCopy.findIndex(item => item.relic.id === selectedRelic.id);
+        if (index !== -1) poolCopy.splice(index, 1);
       }
     }
     
@@ -138,6 +169,37 @@ export class Treasure extends Scene {
     return newArray;
   }
 
+  /**
+   * Weighted random selection from a pool of relics
+   * @param pool Array of relics with their weights
+   * @returns Selected relic based on weighted probability
+   */
+  private weightedRandomSelect(pool: Array<{ relic: Relic; weight: number }>): Relic {
+    // Calculate total weight
+    const totalWeight = pool.reduce((sum, item) => sum + item.weight, 0);
+    
+    // Generate random number between 0 and total weight
+    let random = Math.random() * totalWeight;
+    
+    // Select relic based on weight
+    for (const item of pool) {
+      random -= item.weight;
+      if (random <= 0) {
+        return item.relic;
+      }
+    }
+    
+    // Fallback to last item (shouldn't happen)
+    return pool[pool.length - 1].relic;
+  }
+
+  /**
+   * Get the sprite texture key for a relic based on its ID
+   */
+  private getRelicSpriteKey(relicId: string): string {
+    return `relic_${relicId}`;
+  }
+
   private createRelicOptions(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
@@ -163,12 +225,25 @@ export class Treasure extends Scene {
       slotBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
       slotBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
       
-      // Relic emoji
-      const emoji = this.add.text(0, 0, relic.emoji, {
-        fontSize: isNarrow ? 40 : 48,
-      }).setOrigin(0.5);
+      // Relic sprite (use sprite if available, fallback to emoji)
+      const spriteKey = this.getRelicSpriteKey(relic.id);
+      let relicVisual: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
       
-      button.add([slotBg, emoji]);
+      if (this.textures.exists(spriteKey)) {
+        // Use sprite
+        relicVisual = this.add.image(0, 0, spriteKey).setOrigin(0.5);
+        // Scale sprite to fit nicely in the button
+        const spriteSize = isNarrow ? 70 : 80;
+        const scale = Math.min(spriteSize / relicVisual.width, spriteSize / relicVisual.height);
+        relicVisual.setScale(scale);
+      } else {
+        // Fallback to emoji
+        relicVisual = this.add.text(0, 0, relic.emoji, {
+          fontSize: isNarrow ? 40 : 48,
+        }).setOrigin(0.5);
+      }
+      
+      button.add([slotBg, relicVisual]);
       
       // Make interactive
       button.setInteractive(
