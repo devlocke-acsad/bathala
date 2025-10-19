@@ -381,6 +381,7 @@ export class Combat extends Scene {
     }
 
     // Draw initial hand (8 cards + relic bonuses)
+    // RelicManager.calculateInitialHandSize handles Swift Wind Agimat's +1 card draw bonus
     const baseHandSize = 8;
     const modifiedHandSize = RelicManager.calculateInitialHandSize(baseHandSize, player);
     const { drawnCards, remainingDeck } = DeckManager.drawCards(player.drawPile, modifiedHandSize);
@@ -1152,7 +1153,7 @@ export class Combat extends Scene {
     this.ui.updateActionButtons(); // Reset to card selection buttons
     this.scheduleUIUpdate(); // Batched update for turn UI and other elements
     
-    // Apply start-of-turn relic effects
+    // Apply start-of-turn relic effects (handles ALL relics with START_OF_TURN effects)
     RelicManager.applyStartOfTurnEffects(this.combatState.player);
     
     // Ensure action processing is reset
@@ -2182,7 +2183,7 @@ export class Combat extends Scene {
       this.bestHandAchieved = evaluation.type;
     }
     
-    // Apply relic effects after playing a hand
+    // Apply relic effects after playing a hand (handles ALL relics with AFTER_HAND_PLAYED effects)
     RelicManager.applyAfterHandPlayedEffects(this.combatState.player, this.combatState.player.playedHand, evaluation);
     
     const dominantSuit = this.getDominantSuit(
