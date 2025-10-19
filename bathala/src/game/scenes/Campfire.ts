@@ -589,6 +589,136 @@ export class Campfire extends Scene {
     this.viewDeckButton.setInteractive(); // Always re-enable view deck
   }
 
+  private createCloseButton(x: number, y: number, callback: () => void): Phaser.GameObjects.Container {
+    const button = this.add.container(x, y);
+    
+    const bg = this.add.circle(0, 0, 24, 0x1a1a1a);
+    bg.setStrokeStyle(2, 0xff6b6b);
+    
+    const text = this.add.text(0, 0, "✕", {
+      fontFamily: "dungeon-mode",
+      fontSize: 28,
+      color: "#ff6b6b",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    button.add([bg, text]);
+    button.setDepth(1001);
+    
+    bg.setInteractive({ useHandCursor: true });
+    
+    bg.on("pointerover", () => {
+      bg.setFillStyle(0xff6b6b, 0.3);
+      bg.setScale(1.1);
+      this.tweens.add({
+        targets: button,
+        scale: 1.15,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    });
+    
+    bg.on("pointerout", () => {
+      bg.setFillStyle(0x1a1a1a);
+      bg.setScale(1);
+      this.tweens.add({
+        targets: button,
+        scale: 1,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    });
+    
+    bg.on("pointerdown", () => {
+      this.tweens.add({
+        targets: button,
+        scale: 0.9,
+        duration: 80,
+        ease: 'Power2',
+        onComplete: () => {
+          callback();
+        }
+      });
+    });
+    
+    return button;
+  }
+
+  private createNavigationButton(
+    x: number,
+    y: number,
+    symbol: string,
+    callback: () => void
+  ): Phaser.GameObjects.Container {
+    const button = this.add.container(x, y);
+    
+    const bg = this.add.rectangle(0, 0, 70, 70, 0x150E10);
+    bg.setStrokeStyle(3, 0x77888C);
+    
+    const innerBorder = this.add.rectangle(0, 0, 64, 64, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C);
+    
+    const text = this.add.text(0, 0, symbol, {
+      fontFamily: "dungeon-mode",
+      fontSize: 36,
+      color: "#77888C",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    button.add([bg, innerBorder, text]);
+    button.setDepth(1001);
+    
+    bg.setInteractive({ useHandCursor: true });
+    
+    bg.on("pointerover", () => {
+      if (button.alpha === 1) {
+        bg.setFillStyle(0x1f1410);
+        text.setColor("#e8eced");
+        this.tweens.add({
+          targets: button,
+          scale: 1.15,
+          duration: 150,
+          ease: 'Back.easeOut'
+        });
+      }
+    });
+    
+    bg.on("pointerout", () => {
+      bg.setFillStyle(0x150E10);
+      text.setColor("#77888C");
+      this.tweens.add({
+        targets: button,
+        scale: 1,
+        duration: 150,
+        ease: 'Back.easeOut'
+      });
+    });
+    
+    bg.on("pointerdown", () => {
+      if (button.alpha === 1) {
+        this.tweens.add({
+          targets: button,
+          scale: 0.95,
+          duration: 80,
+          ease: 'Power2',
+          onComplete: () => {
+            this.tweens.add({
+              targets: button,
+              scale: 1.15,
+              duration: 80,
+              ease: 'Power2',
+              onComplete: () => {
+                callback();
+              }
+            });
+          }
+        });
+      }
+    });
+    
+    return button;
+  }
+
   private createCardViewBackButton(onBack: () => void): Phaser.GameObjects.Container {
     const screenWidth = this.cameras.main.width;
     const backButton = this.add.container(screenWidth / 2, this.cameras.main.height - 150);
@@ -1093,29 +1223,225 @@ export class Campfire extends Scene {
       ...this.player.hand
     ];
     
-    // Remove duplicates and set up for pagination
+    // Remove duplicates
     this.displayedCards = allCards.filter(
       (card, index, self) => index === self.findIndex(c => c.id === card.id)
     );
-    this.currentPage = 0;
 
-    // Create enhanced deck statistics
-    const deckStats = this.generateDeckStatistics(this.displayedCards);
+    // Clear any existing display
+    this.clearCardDisplay();
 
-    // Draw the first page of cards with enhanced header
-    this.drawEnhancedCardPage(
-      "🂠 YOUR COMPLETE DECK 🂠", 
-      `Total Cards: ${this.displayedCards.length} | ${deckStats}`,
-      undefined,
-      true // isViewMode
-    );
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
 
-    // Create an enhanced back button to close the deck view
-    const backButton = this.createEnhancedCardViewBackButton(() => {
-      this.clearCardDisplay();
-      this.reEnableActionButtons();
-      backButton.destroy();
+    // Categorize cards by suit (matching Combat's system)
+    const suitOrder = ["Apoy", "Tubig", "Lupa", "Hangin"];
+    const cardsBySuit: { [key: string]: PlayingCard[] } = {
+      "Apoy": [],
+      "Tubig": [],
+      "Lupa": [],
+      "Hangin": []
+    };
+
+    // Group cards by suit
+    this.displayedCards.forEach(card => {
+      if (cardsBySuit[card.suit]) {
+        cardsBySuit[card.suit].push(card);
+      }
     });
+
+    // Convert rank to numeric value for sorting
+    const getRankValue = (rank: string): number => {
+      if (rank === "1") return 14; // Ace is highest
+      if (rank === "Mandirigma") return 11;
+      if (rank === "Babaylan") return 12;
+      if (rank === "Datu") return 13;
+      return parseInt(rank);
+    };
+
+    // Sort each suit
+    Object.keys(cardsBySuit).forEach(suit => {
+      cardsBySuit[suit].sort((a, b) => getRankValue(a.rank) - getRankValue(b.rank));
+    });
+
+    // 4 pages - one for each suit (matching Combat)
+    const totalPages = 4;
+    let currentPage = 0;
+
+    const renderPage = (page: number) => {
+      // Clear previous page cards and suit label
+      this.cardSprites
+        .filter((item: any) => item.isPageCard || item.isSuitLabel)
+        .forEach(item => item.destroy());
+      this.cardSprites = this.cardSprites.filter((item: any) => !item.isPageCard && !item.isSuitLabel);
+
+      const suit = suitOrder[page];
+      const pageCards = cardsBySuit[suit];
+
+      // Suit label with color and icon (matching Combat exactly)
+      const suitColors: { [key: string]: string } = {
+        "Apoy": "#FF6B6B",
+        "Tubig": "#54A0FF",
+        "Lupa": "#00D2D3",
+        "Hangin": "#A29BFE"
+      };
+
+      const suitIcons: { [key: string]: string } = {
+        "Apoy": "🔥",
+        "Tubig": "💧",
+        "Lupa": "🌿",
+        "Hangin": "💨"
+      };
+
+      const suitLabel = this.add.text(
+        screenWidth / 2,
+        screenHeight / 2 - screenHeight * 0.28,
+        `${suitIcons[suit]} ${suit.toUpperCase()} (${pageCards.length} cards)`,
+        {
+          fontFamily: "dungeon-mode",
+          fontSize: 24,
+          color: suitColors[suit],
+          align: "center",
+        }
+      ).setOrigin(0.5).setDepth(1001);
+      (suitLabel as any).isSuitLabel = true;
+      this.cardSprites.push(suitLabel);
+
+      // Grid layout - 2 rows of 6 cards (Balatro-style, matching Combat)
+      const columns = 6;
+      const rows = 2;
+      const cardWidth = 100;
+      const cardHeight = 140;
+      const horizontalSpacing = 20;
+      const verticalSpacing = 30;
+
+      // Center the grid (relative to screen center)
+      const totalGridWidth = (columns * cardWidth) + ((columns - 1) * horizontalSpacing);
+      const totalGridHeight = (rows * cardHeight) + ((rows - 1) * verticalSpacing);
+      const startX = screenWidth / 2 - totalGridWidth / 2 + cardWidth / 2;
+      const startY = screenHeight / 2 - totalGridHeight / 2 + cardHeight / 2 - 20;
+
+      pageCards.forEach((card, index) => {
+        const col = index % columns;
+        const row = Math.floor(index / columns);
+        const x = startX + col * (cardWidth + horizontalSpacing);
+        const y = startY + row * (cardHeight + verticalSpacing);
+
+        const cardSprite = this.createCardSprite(card, x, y, false);
+        (cardSprite as any).isPageCard = true;
+        cardSprite.setScale(1.25);
+        cardSprite.setDepth(1001);
+
+        this.cardSprites.push(cardSprite);
+      });
+
+      // Update page counter with suit name (matching Combat)
+      const pageCounter = this.cardSprites.find((item: any) => item.isPageCounter) as Phaser.GameObjects.Text;
+      if (pageCounter) {
+        pageCounter.setText(`${suit} - Page ${page + 1} / ${totalPages}`);
+      }
+
+      // Update button states
+      const prevButton = this.cardSprites.find((item: any) => item.isPrevButton) as Phaser.GameObjects.Text;
+      const nextButton = this.cardSprites.find((item: any) => item.isNextButton) as Phaser.GameObjects.Text;
+
+      if (prevButton) {
+        prevButton.setAlpha(page > 0 ? 1 : 0.3);
+      }
+      if (nextButton) {
+        nextButton.setAlpha(page < totalPages - 1 ? 1 : 0.3);
+      }
+    };
+
+    // Background - Double border design (Balatro style, matching Combat exactly)
+    const modalWidth = screenWidth * 0.8;
+    const modalHeight = screenHeight * 0.8;
+
+    const outerBorder = this.add.rectangle(screenWidth / 2, screenHeight / 2, modalWidth + 8, modalHeight + 8, undefined, 0);
+    outerBorder.setStrokeStyle(3, 0x77888C);
+    outerBorder.setDepth(1000);
+    this.cardSprites.push(outerBorder);
+
+    const innerBorder = this.add.rectangle(screenWidth / 2, screenHeight / 2, modalWidth, modalHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C);
+    innerBorder.setDepth(1000);
+    this.cardSprites.push(innerBorder);
+
+    const bg = this.add.rectangle(screenWidth / 2, screenHeight / 2, modalWidth, modalHeight, 0x150E10, 0.98);
+    bg.setDepth(1000);
+    this.cardSprites.push(bg);
+
+    // Title (matching Combat exactly - positioned at top)
+    const title = this.add.text(screenWidth / 2, screenHeight / 2 - screenHeight * 0.35, "Your Deck", {
+      fontFamily: "dungeon-mode",
+      fontSize: 32,
+      color: "#ffffff",
+      align: "center",
+    }).setOrigin(0.5).setDepth(1001);
+    this.cardSprites.push(title);
+
+    // Card count (matching Combat exactly)
+    const cardCount = this.add.text(screenWidth / 2, screenHeight / 2 - screenHeight * 0.35 + 40, `${this.displayedCards.length} cards`, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#77888C",
+      align: "center",
+    }).setOrigin(0.5).setDepth(1001);
+    this.cardSprites.push(cardCount);
+
+    // Close button (matching Combat exactly)
+    const closeButton = this.createCloseButton(
+      screenWidth / 2 + modalWidth * 0.4, 
+      screenHeight / 2 - screenHeight * 0.35,
+      () => {
+        this.clearCardDisplay();
+        this.reEnableActionButtons();
+      }
+    );
+    this.cardSprites.push(closeButton);
+
+    // Previous button (left arrow, matching Combat exactly)
+    const prevButton = this.createNavigationButton(
+      screenWidth / 2 - screenWidth * 0.25, 
+      screenHeight / 2 + screenHeight * 0.3,
+      "◄",
+      () => {
+        if (currentPage > 0) {
+          currentPage--;
+          renderPage(currentPage);
+        }
+      }
+    );
+    (prevButton as any).isPrevButton = true;
+    this.cardSprites.push(prevButton);
+
+    // Next button (right arrow, matching Combat exactly)
+    const nextButton = this.createNavigationButton(
+      screenWidth / 2 + screenWidth * 0.25, 
+      screenHeight / 2 + screenHeight * 0.3,
+      "►",
+      () => {
+        if (currentPage < totalPages - 1) {
+          currentPage++;
+          renderPage(currentPage);
+        }
+      }
+    );
+    (nextButton as any).isNextButton = true;
+    this.cardSprites.push(nextButton);
+
+    // Page counter (matching Combat exactly)
+    const pageCounter = this.add.text(screenWidth / 2, screenHeight / 2 + screenHeight * 0.3, `Page 1 / ${totalPages}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#ffffff",
+      align: "center",
+    }).setOrigin(0.5).setDepth(1001);
+    (pageCounter as any).isPageCounter = true;
+    this.cardSprites.push(pageCounter);
+
+    // Render first page
+    renderPage(currentPage);
   }
 
   private showPurifyCards(): void {
