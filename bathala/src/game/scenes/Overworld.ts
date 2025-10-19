@@ -38,6 +38,57 @@ function getRelicSpriteKey(relicId: string): string {
   
   return spriteMap[relicId] || '';
 }
+import { Overworld_FogOfWarManager } from "./Overworld_FogOfWarManager";
+
+/**
+ * === DEPTH LAYER CONFIGURATION ===
+ * Centralized depth values for easy editing
+ * 
+ * Layer Order (bottom to top):
+ * 0-99: Map and world elements
+ * 100-998: UI elements (progress bars, indicators, etc.)
+ * 999: Night overlay
+ * 1000-1999: Player and interactive UI
+ * 2000-2999: Tooltips and overlays
+ * 3000+: Transitions and boss effects
+ */
+const DEPTH = {
+  // World Layer (0-99)
+  MAP_TILES: 0,
+  FOG_OF_WAR: 50,        // Covers map tiles only
+  MAP_NPCS: 51,          // NPCs above fog
+  
+  // UI Layer (100-998)
+  DAY_NIGHT_PROGRESS: 100,
+  DAY_NIGHT_FILL: 100,
+  DAY_NIGHT_TICKS: 101,
+  DAY_NIGHT_MAJOR_TICKS: 102,
+  DAY_NIGHT_MINOR_TICKS: 103,
+  DAY_NIGHT_ICONS: 104,
+  DAY_NIGHT_INDICATOR: 105,
+  BOSS_TEXT: 110,
+  
+  // Night Overlay
+  NIGHT_OVERLAY: 999,
+  
+  // Player and Interactive UI (1000-1999)
+  PLAYER: 1000,
+  UI_BASE: 1000,
+  ACTION_BUTTONS: 1000,
+  
+  // Tooltips and Overlays (2000-2999)
+  TOGGLE_BUTTON: 2000,
+  TRANSITION_OVERLAY: 2000,
+  TRANSITION_EFFECTS: 2001,
+  DIALOG_OVERLAY: 2000,
+  DIALOG_BOX: 2001,
+  DIALOG_CONTENT: 2002,
+  TOOLTIP: 2500,         // Tooltips above everything except boss effects
+  
+  // Boss Effects (3000+)
+  BOSS_OVERLAY: 3000,
+  BOSS_EFFECTS: 3001
+};
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
@@ -48,6 +99,7 @@ export class Overworld extends Scene {
   private gameState: OverworldGameState;
   private dayNightProgressFill!: Phaser.GameObjects.Rectangle;
   private dayNightIndicator!: Phaser.GameObjects.Text;
+  private dayNightProgressContainer!: Phaser.GameObjects.Container;
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
   private bossText!: Phaser.GameObjects.Text;
   private actionButtons: Phaser.GameObjects.Container[] = [];
@@ -73,6 +125,9 @@ export class Overworld extends Scene {
   
   // Tooltip Manager
   private tooltipManager!: Overworld_TooltipManager;
+  
+  // Fog of War Manager
+  private fogOfWarManager!: Overworld_FogOfWarManager;
 
   constructor() {
     super({ key: "Overworld" });
@@ -262,11 +317,22 @@ export class Overworld extends Scene {
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
     
+    // Set initial camera zoom (will be managed by fog of war system)
+    // Start with day zoom since game starts during day
+    this.cameras.main.setZoom(1.0);
+    
     // Create enemy info tooltip
     this.createEnemyTooltip();
     
+    // Create fog of war system
+    this.createFogOfWar();
+    
     // Create UI elements with a slight delay to ensure camera is ready
-    this.time.delayedCall(10, this.createUI, [], this);
+    this.time.delayedCall(10, () => {
+      this.createUI();
+      // Set initial UI scale to compensate for camera zoom
+      this.setInitialUIScale();
+    }, [], this);
     
     // Render initial chunks around player with a slight delay to ensure camera is ready
     this.time.delayedCall(20, this.updateVisibleChunks, [], this);
@@ -596,6 +662,10 @@ export class Overworld extends Scene {
       return;
     }
     
+    // Create container for all progress bar elements
+    this.dayNightProgressContainer = this.add.container(0, 0);
+    this.dayNightProgressContainer.setScrollFactor(0).setDepth(100);
+    
     const screenWidth = this.cameras.main.width;
     const progressBarWidth = screenWidth * 0.6;
     const progressBarX = (screenWidth - progressBarWidth) / 2;
@@ -608,13 +678,14 @@ export class Overworld extends Scene {
       const segmentX = progressBarX + (i * segmentWidth) + (segmentWidth / 2);
       const isDay = i % 2 === 0;
       
-      this.add.rectangle(
+      const segment = this.add.rectangle(
         segmentX,
         progressBarY,
         segmentWidth,
         4,
         isDay ? 0xFFD368 : 0x7144FF // Day or night color
-      ).setAlpha(1).setScrollFactor(0).setDepth(100); // Fixed to camera with depth
+      ).setAlpha(1);
+      this.dayNightProgressContainer.add(segment);
     }
     
     // Create major ticks (taller bars) at icon positions with thicker lines and matching colors
@@ -632,13 +703,14 @@ export class Overworld extends Scene {
       }
       
       // Major tick (taller bar) with thicker line
-      this.add.rectangle(
+      const majorTick = this.add.rectangle(
         tickX,
         progressBarY,
         4,
         16,
         color
-      ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(101);
+      ).setOrigin(0.5, 0.5);
+      this.dayNightProgressContainer.add(majorTick);
     }
     
     // Create minor ticks (shorter bars) between icons with thicker lines and matching colors
@@ -663,13 +735,14 @@ export class Overworld extends Scene {
         const tickX = segmentStartX + (step * stepWidth);
         
         // Minor tick (shorter bar) with thicker line
-        this.add.rectangle(
+        const minorTick = this.add.rectangle(
           tickX,
           progressBarY,
           3,
           10,
           color
-        ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102);
+        ).setOrigin(0.5, 0.5);
+        this.dayNightProgressContainer.add(minorTick);
       }
     }
     
@@ -684,12 +757,12 @@ export class Overworld extends Scene {
         // Day icon (sun) - even positions
         const sunIcon = this.add.image(iconX, iconY, "bathala_sun_icon");
         sunIcon.setScale(1.8);
-        sunIcon.setScrollFactor(0).setDepth(103);
+        this.dayNightProgressContainer.add(sunIcon);
       } else {
         // Night icon (moon) - odd positions
         const moonIcon = this.add.image(iconX, iconY, "bathala_moon_icon");
         moonIcon.setScale(1.8);
-        moonIcon.setScrollFactor(0).setDepth(103);
+        this.dayNightProgressContainer.add(moonIcon);
       }
     }
     
@@ -699,7 +772,7 @@ export class Overworld extends Scene {
     const bossIconY = progressBarY - 50; // Position above the axis line (moved down to match new position)
     const bossIcon = this.add.image(bossIconX, bossIconY, "bathala_boss_icon");
     bossIcon.setScale(2.0);
-    bossIcon.setScrollFactor(0).setDepth(103);
+    this.dayNightProgressContainer.add(bossIcon);
     
     // Create progress fill (initially empty)
     this.dayNightProgressFill = this.add.rectangle(
@@ -708,7 +781,8 @@ export class Overworld extends Scene {
       0, // Width will be updated in updateDayNightProgressBar
       8, // Height of the progress fill
       0xFFFFFF // White color, can be changed
-    ).setOrigin(0, 0.5).setScrollFactor(0).setDepth(99);
+    ).setOrigin(0, 0.5);
+    this.dayNightProgressContainer.add(this.dayNightProgressFill);
     
     // Create player indicator (▲ symbol pointing up from below the axis line)
     this.dayNightIndicator = this.add.text(0, 0, "▲", {
@@ -716,7 +790,8 @@ export class Overworld extends Scene {
       fontSize: '36px',
       color: '#E54646',
       align: 'center'
-    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(104); // Fixed to camera with depth, positioned below axis line
+    }).setOrigin(0.5, 0);
+    this.dayNightProgressContainer.add(this.dayNightIndicator);
     
     // Update the progress bar
     this.updateDayNightProgressBar();
@@ -917,11 +992,16 @@ export class Overworld extends Scene {
         this.cameras.main.width,
         this.cameras.main.height,
         0x000033
-      ).setAlpha(0.4).setScrollFactor(0).setDepth(999);
+      ).setAlpha(0.4).setScrollFactor(0).setDepth(DEPTH.NIGHT_OVERLAY);
     } else if (this.gameState.isDay && this.nightOverlay) {
       // Remove night overlay
       this.nightOverlay.destroy();
       this.nightOverlay = null;
+    }
+    
+    // Update fog of war visibility based on day/night
+    if (this.fogOfWarManager) {
+      this.fogOfWarManager.updateDayNight(this.gameState.isDay);
     }
   }
 
@@ -1065,6 +1145,11 @@ export class Overworld extends Scene {
           // Update visible chunks as player moves
           this.updateVisibleChunks();
           
+          // Update fog of war
+          if (this.fogOfWarManager) {
+            this.fogOfWarManager.update(this.player.x, this.player.y);
+          }
+          
           // Move nearby enemy nodes toward player during nighttime
           this.moveEnemiesNighttime();
         }
@@ -1098,11 +1183,16 @@ export class Overworld extends Scene {
         this.cameras.main.width,
         this.cameras.main.height,
         0x000033
-      ).setAlpha(0.4).setScrollFactor(0).setDepth(999);
+      ).setAlpha(0.4).setScrollFactor(0).setDepth(DEPTH.NIGHT_OVERLAY);
     } else if (this.gameState.isDay && this.nightOverlay) {
       // Remove night overlay
       this.nightOverlay.destroy();
       this.nightOverlay = null;
+    }
+    
+    // Update fog of war visibility based on day/night
+    if (this.fogOfWarManager) {
+      this.fogOfWarManager.updateDayNight(this.gameState.isDay);
     }
   }
 
@@ -4131,7 +4221,94 @@ ${potion.description}`, {
     console.log("Creating enemy tooltip system...");
     this.tooltipManager = new Overworld_TooltipManager(this);
     this.tooltipManager.initialize();
-    console.log("Enemy tooltip system created successfully via TooltipManager");
   }
-  
+
+  /**
+   * Create fog of war system
+   */
+  private createFogOfWar(): void {
+    console.log("Creating fog of war system...");
+    this.fogOfWarManager = new Overworld_FogOfWarManager(this);
+    this.fogOfWarManager.initialize(this.player.x, this.player.y);
+    
+    // Configure fog depth (all other parameters are set in FogOfWarManager)
+    this.fogOfWarManager.setFogParameters({
+      fogDepth: DEPTH.FOG_OF_WAR      // Above map tiles, below NPCs and UI
+    });
+    
+    // Set initial fog state based on current day/night
+    this.fogOfWarManager.updateDayNight(this.gameState.isDay);
+    
+    console.log("✅ Fog of war system initialized");
+  }
+
+  /**
+   * Set initial UI scale to compensate for camera zoom
+   * Keeps UI elements at their original size and position
+   */
+  private setInitialUIScale(): void {
+    const cameraZoom = this.cameras.main.zoom;
+    const uiScale = 1 / cameraZoom;
+    
+    // Get camera dimensions
+    const cameraWidth = this.cameras.main.width;
+    const cameraHeight = this.cameras.main.height;
+    
+    // Calculate position offset to keep UI in place
+    const offsetX = (cameraWidth * (cameraZoom - 1)) / (2 * cameraZoom);
+    const offsetY = (cameraHeight * (cameraZoom - 1)) / (2 * cameraZoom);
+    
+    // Scale and reposition UI container (left panel)
+    if (this.uiContainer) {
+      this.uiContainer.setScale(uiScale);
+      this.uiContainer.setPosition(offsetX, offsetY);
+    }
+    
+    // Day/night progress bar container - scale, center horizontally, and shift down
+    if (this.dayNightProgressContainer) {
+      this.dayNightProgressContainer.setScale(uiScale);
+      // Horizontal: center the scaled container
+      const progressBarCenterOffset = (cameraWidth * (1 - uiScale)) / 2;
+      // Vertical: shift down to stay at top
+      this.dayNightProgressContainer.setPosition(progressBarCenterOffset, offsetY);
+      
+      // Update indicator position within the container
+      if (this.dayNightIndicator) {
+        const progressBarWidth = cameraWidth * 0.6;
+        const progressBarX = (cameraWidth - progressBarWidth) / 2;
+        const progressBarY = 80;
+        const totalProgress = Math.min(this.gameState.actionsTaken / this.gameState.totalActionsUntilBoss, 1);
+        this.dayNightIndicator.x = progressBarX + (progressBarWidth * totalProgress);
+        this.dayNightIndicator.y = progressBarY + 25;
+      }
+    }
+    
+    // Boss text (top left)
+    if (this.bossText) {
+      this.bossText.setScale(uiScale);
+      this.bossText.setPosition(10 + offsetX, 40 + offsetY);
+    }
+    
+    // Toggle button (top right)
+    if (this.toggleButton) {
+      this.toggleButton.setScale(uiScale);
+      const toggleX = cameraWidth - 60 - offsetX;
+      const toggleY = 50 + offsetY;
+      this.toggleButton.setPosition(toggleX, toggleY);
+    }
+    
+    // Test buttons container
+    if (this.testButtonsContainer) {
+      this.testButtonsContainer.setScale(uiScale);
+    }
+    
+    // Scale action buttons
+    if (this.actionButtons) {
+      this.actionButtons.forEach(button => {
+        button.setScale(uiScale);
+      });
+    }
+    
+    console.log(`🎮 Initial UI scale set to ${uiScale} (camera zoom: ${cameraZoom})`);
+  }
 }

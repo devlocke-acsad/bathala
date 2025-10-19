@@ -2,11 +2,10 @@ import * as Phaser from 'phaser';
 import { HeIsComingGenerator } from './map-generation/level-generator';
 import { IntGrid } from './map-generation/data-structures';
 import { OuterTileMarker } from './map-generation/outer-tile-marker';
-import { ChunkManager, Chunk } from './map-generation/chunk-manager';
 import { Player } from './user-movement/player';
 import { VisibilitySystem } from './user-movement/visibility-system';
 import { GameUI } from './game-UI';
-import { ViewportCulling, CullingMode, CullingBounds } from './viewport-culling';
+import { ViewportCulling, CullingMode } from './viewport-culling';
 
 /*
     GameScene
@@ -56,8 +55,7 @@ export class GameScene extends Phaser.Scene {
     private static readonly STROKE_ALPHA = 0.3;
 
     private generator: HeIsComingGenerator;
-    private currentGrid: IntGrid | null = null; // Legacy grid reference
-    private chunkManager: ChunkManager;
+    private currentGrid: IntGrid | null = null;
     private graphics!: Phaser.GameObjects.Graphics;
     private cellSize: number = GameScene.DEFAULT_CELL_SIZE;                 // Pixels per grid cell.
     private lastDrawTime: number = 0;
@@ -74,7 +72,6 @@ export class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
         this.generator = new HeIsComingGenerator();
-        this.chunkManager = new ChunkManager(GameScene.DEFAULT_WIDTH, GameScene.DEFAULT_HEIGHT);
         this.visibilitySystem = new VisibilitySystem();
         this.ui = new GameUI();
         this.viewportCulling = new ViewportCulling();
@@ -188,12 +185,13 @@ export class GameScene extends Phaser.Scene {
             // Auto-calculate regions if set to 0 (double the max of width/height)
             const finalRegions = regions === 0 ? Math.max(width, height) * 2 : regions;
             
-            // Create new chunk manager with updated settings
-            this.chunkManager = new ChunkManager(width, height);
-            
-            // Generate the initial chunk (0, 0)
-            const initialChunk = this.chunkManager.generateChunk(0, 0);
-            this.currentGrid = initialChunk.grid; // Keep for compatibility
+            // Update generator settings
+            this.generator.levelSize = [width, height];
+            this.generator.regionCount = finalRegions;
+            this.generator.minRegionDistance = minDistance;
+
+            // Generate the grid
+            this.currentGrid = this.generator.generateLayout();
 
             // Create/respawn player
             this.createPlayer();
@@ -211,88 +209,64 @@ export class GameScene extends Phaser.Scene {
     }
 
     /**
-     * Render all loaded chunks onto the graphics layer.
+     * Render currentGrid onto the graphics layer.
      * Steps:
-     *   1. Get all chunks from chunk manager
-     *   2. For each chunk, calculate its world position and render tiles
-     *   3. Apply culling and visibility effects
-     *   4. Update performance stats
+     *   1. Compute center offset so grid is visually centered.
+     *   2. Optionally compute culling bounds based on camera viewport.
+     *   3. Iterate visible tiles and draw filled rectangles with outline.
+     *   4. Update performance stats + expand camera bounds for smoother panning.
      */
     private drawGrid(): void {
+        if (!this.currentGrid) return;
+
         this.graphics.clear();
 
-        const allChunks = this.chunkManager.getAllChunks();
-        if (allChunks.length === 0) return;
+        const width = this.currentGrid.width;
+        const height = this.currentGrid.height;
 
-        const chunkSize = this.chunkManager.getChunkSize();
-        let totalTilesRendered = 0;
-        let totalTiles = 0;
+    // Center the grid in the view (keeps smaller grids aesthetically placed).
+        const offsetX = (this.scale.width - width * this.cellSize) / 2;
+        const offsetY = (this.scale.height - height * this.cellSize) / 2;
 
-        // Calculate base offset for centering (based on the first chunk)
-        // In a multi-chunk world, this might need adjustment
-        const baseOffsetX = (this.scale.width - chunkSize.width * this.cellSize) / 2;
-        const baseOffsetY = (this.scale.height - chunkSize.height * this.cellSize) / 2;
-
+        // Calculate culling bounds using the viewport culling system
+        const cullingBounds = this.viewportCulling.calculateCullingBounds(
+            this.currentGrid,
+            this.cameras.main,
+            this.cellSize,
+            offsetX,
+            offsetY,
+            this.scale.width,
+            this.scale.height,
+            this.player?.x,
+            this.player?.y,
+            this.visibilitySystem.getMaxTintRadius()
+        );
+        
         // Handle fog-of-war culling camera focusing
         if (this.viewportCulling.getCullingMode() === CullingMode.FOG_OF_WAR && this.player) {
-            this.focusCameraOnPlayerMultiChunk();
+            this.focusCameraOnPlayer(offsetX, offsetY, height);
         }
-
-        // Render each chunk
-        for (const chunk of allChunks) {
-            const { tilesRendered, totalChunkTiles } = this.renderChunk(chunk, baseOffsetX, baseOffsetY);
-            totalTilesRendered += tilesRendered;
-            totalTiles += totalChunkTiles;
-        }
-
-        // Update performance info
-        this.updatePerformanceInfo(totalTilesRendered, totalTiles);
-
-        // Draw player if it exists
-        if (this.player) {
-            this.drawPlayerMultiChunk(baseOffsetX, baseOffsetY);
-        }
-
-        // Set camera bounds to encompass all chunks
-        this.updateCameraBounds(allChunks, baseOffsetX, baseOffsetY);
-    }
-
-    /**
-     * Render a single chunk
-     */
-    private renderChunk(chunk: Chunk, baseOffsetX: number, baseOffsetY: number): { tilesRendered: number; totalChunkTiles: number } {
-        const chunkSize = this.chunkManager.getChunkSize();
-        const grid = chunk.grid;
         
-        // Calculate chunk's world offset
-        const chunkWorldOffsetX = chunk.chunkX * chunkSize.width * this.cellSize;
-        const chunkWorldOffsetY = chunk.chunkY * chunkSize.height * this.cellSize;
+        const startX = cullingBounds.startX;
+        const endX = cullingBounds.endX;
+        const startY = cullingBounds.startY;
+        const endY = cullingBounds.endY;
 
+        // Only draw visible tiles
         let tilesRendered = 0;
-        const totalChunkTiles = chunkSize.width * chunkSize.height;
+        for (let x = startX; x <= endX; x++) {
+            for (let y = startY; y <= endY; y++) {
+                // Convert logical grid Y to screen Y (flip so y increases upwards visually).
+                const screenY = (height - 1 - y) * this.cellSize + offsetY;
+                const screenX = x * this.cellSize + offsetX;
 
-        // Calculate culling bounds for this chunk
-        const cullingBounds = this.calculateChunkCullingBounds(chunk, baseOffsetX, baseOffsetY, chunkWorldOffsetX, chunkWorldOffsetY);
+                const tileType = this.currentGrid.getTile(x, y);
 
-        for (let localX = cullingBounds.startX; localX <= cullingBounds.endX; localX++) {
-            for (let localY = cullingBounds.startY; localY <= cullingBounds.endY; localY++) {
-                if (localX < 0 || localX >= chunkSize.width || localY < 0 || localY >= chunkSize.height) continue;
-
-                // Calculate world coordinates
-                const worldX = chunk.chunkX * chunkSize.width + localX;
-                const worldY = chunk.chunkY * chunkSize.height + localY;
-
-                // Convert to screen coordinates
-                const screenX = baseOffsetX + chunkWorldOffsetX + localX * this.cellSize;
-                const screenY = baseOffsetY + chunkWorldOffsetY + (chunkSize.height - 1 - localY) * this.cellSize;
-
-                const tileType = grid.getTile(localX, localY);
-
-                // Color key (match with generator tile constants)
+                // Color key (match with generator tile constants).
                 let color: number;
                 if (tileType === this.generator.PATH_TILE) {
                     // Check if this is an outside intersection or corner
-                    if (OuterTileMarker.isOutsideIntersectionOrCorner(localX, localY, grid, this.generator.PATH_TILE)) {
+                    if (OuterTileMarker.isOutsideIntersectionOrCorner(x, y, this.currentGrid, this.generator.PATH_TILE)) {
                         color = GameScene.COLOR_PATH_OUTSIDE; // Darker green for outside intersections/corners
                     } else {
                         color = GameScene.COLOR_PATH; // Light green for normal paths
@@ -305,9 +279,9 @@ export class GameScene extends Phaser.Scene {
                     color = GameScene.COLOR_EMPTY; // Light gray for empty
                 }
 
-                // Apply visibility tinting if player exists (using world coordinates)
+                // Apply visibility tinting if player exists
                 if (this.player) {
-                    const tintIntensity = this.visibilitySystem.calculateTintIntensity(this.player.x, this.player.y, worldX, worldY);
+                    const tintIntensity = this.visibilitySystem.calculateTintIntensity(this.player.x, this.player.y, x, y);
                     color = this.visibilitySystem.applyRedTint(color, tintIntensity);
                 }
 
@@ -315,7 +289,7 @@ export class GameScene extends Phaser.Scene {
                 this.graphics.fillStyle(color);
                 this.graphics.fillRect(screenX, screenY, this.cellSize, this.cellSize);
 
-                // Subtle border to aid visual parsing of shapes
+                // Subtle border to aid visual parsing of shapes.
                 this.graphics.lineStyle(1, GameScene.STROKE_COLOR, GameScene.STROKE_ALPHA);
                 this.graphics.strokeRect(screenX, screenY, this.cellSize, this.cellSize);
                 
@@ -323,124 +297,34 @@ export class GameScene extends Phaser.Scene {
             }
         }
 
-        return { tilesRendered, totalChunkTiles };
-    }
+        // Update performance info
+        this.updatePerformanceInfo(tilesRendered, width * height);
 
-    /**
-     * Calculate culling bounds for a specific chunk
-     */
-    private calculateChunkCullingBounds(chunk: Chunk, baseOffsetX: number, baseOffsetY: number, chunkWorldOffsetX: number, chunkWorldOffsetY: number): CullingBounds {
-        const chunkSize = this.chunkManager.getChunkSize();
-        
-        if (!this.viewportCulling.isEnabled()) {
-            return {
-                startX: 0,
-                endX: chunkSize.width - 1,
-                startY: 0,
-                endY: chunkSize.height - 1
-            };
-        }
-
-        // For now, use simplified culling - render entire chunks
-        // In a more sophisticated system, you'd cull tiles within chunks based on viewport
-        switch (this.viewportCulling.getCullingMode()) {
-            case CullingMode.CHUNK:
-                // Only render current chunk and adjacent chunks
-                if (this.player) {
-                    const playerChunk = this.player.getCurrentChunk();
-                    if (playerChunk) {
-                        const chunkDistance = Math.abs(chunk.chunkX - playerChunk.chunkX) + Math.abs(chunk.chunkY - playerChunk.chunkY);
-                        if (chunkDistance <= 1) {
-                            return {
-                                startX: 0,
-                                endX: chunkSize.width - 1,
-                                startY: 0,
-                                endY: chunkSize.height - 1
-                            };
-                        }
-                    }
-                }
-                // If not within range, don't render
-                return { startX: 0, endX: -1, startY: 0, endY: -1 };
-
-            case CullingMode.FOG_OF_WAR:
-                if (this.player) {
-                    const maxTintRadius = this.visibilitySystem.getMaxTintRadius();
-                    const focusBuffer = this.viewportCulling.getFogOfWarFocusAreaBuffer();
-                    const focusRadius = maxTintRadius + focusBuffer;
-                    
-                    // Convert player world coordinates to chunk-local coordinates
-                    const playerLocalX = this.player.x - chunk.chunkX * chunkSize.width;
-                    const playerLocalY = this.player.y - chunk.chunkY * chunkSize.height;
-                    
-                    const startX = Math.max(0, playerLocalX - focusRadius);
-                    const endX = Math.min(chunkSize.width - 1, playerLocalX + focusRadius);
-                    const startY = Math.max(0, playerLocalY - focusRadius);
-                    const endY = Math.min(chunkSize.height - 1, playerLocalY + focusRadius);
-                    
-                    return { startX, endX, startY, endY };
-                }
-                break;
-
-            default:
-                // Viewport culling - render all tiles in chunk for now
-                return {
-                    startX: 0,
-                    endX: chunkSize.width - 1,
-                    startY: 0,
-                    endY: chunkSize.height - 1
-                };
-        }
-
-        return {
-            startX: 0,
-            endX: chunkSize.width - 1,
-            startY: 0,
-            endY: chunkSize.height - 1
-        };
-    }
-
-    /** Display chunk and connection information. */
-    private updateInfoDisplay(): void {
-        const allChunks = this.chunkManager.getAllChunks();
-        const chunkCount = allChunks.length;
-        
-        let totalConnections = 0;
-        for (const chunk of allChunks) {
-            totalConnections += chunk.connectionPoints.length;
-        }
-
-        let playerInfo = '';
+        // Draw player if it exists
         if (this.player) {
-            const playerChunk = this.player.getCurrentChunk();
-            if (playerChunk) {
-                playerInfo = ` | Player at chunk (${playerChunk.chunkX}, ${playerChunk.chunkY})`;
-            }
+            this.drawPlayer(offsetX, offsetY, height);
         }
 
-        this.ui.updateInfo(`${chunkCount} chunk(s) loaded | ${totalConnections} connection points${playerInfo}`);
+        // Expand camera bounds around grid with padding to allow some panning freedom.
+        const gridWidth = width * this.cellSize;
+        const gridHeight = height * this.cellSize;
+        const pad = GameScene.CAMERA_PADDING;
+        this.cameras.main.setBounds(offsetX - pad, offsetY - pad, gridWidth + pad * 2, gridHeight + pad * 2);
+    }
+
+    /** Display simple connection count summary (called after generation). */
+    private updateInfoDisplay(): void {
+        if (this.generator.edges) {
+            this.ui.updateInfo(`Generated ${this.generator.edges.length} connections between regions`);
+        }
     }
 
     /** Update render diagnostics (visible vs total tiles). */
     private updatePerformanceInfo(tilesRendered: number, totalTiles: number): void {
-        const allChunks = this.chunkManager.getAllChunks();
-        const chunkCount = allChunks.length;
-        
-        let totalConnections = 0;
-        for (const chunk of allChunks) {
-            totalConnections += chunk.connectionPoints.length;
+        if (this.generator.edges) {
+            const percentage = ((tilesRendered / totalTiles) * 100).toFixed(1);
+            this.ui.updateInfo(`Generated ${this.generator.edges.length} connections | Rendering ${tilesRendered}/${totalTiles} tiles (${percentage}%)`);
         }
-
-        let playerInfo = '';
-        if (this.player) {
-            const playerChunk = this.player.getCurrentChunk();
-            if (playerChunk) {
-                playerInfo = ` | Player at chunk (${playerChunk.chunkX}, ${playerChunk.chunkY})`;
-            }
-        }
-
-        const percentage = totalTiles > 0 ? ((tilesRendered / totalTiles) * 100).toFixed(1) : '0';
-        this.ui.updateInfo(`${chunkCount} chunk(s) | ${totalConnections} connections | Rendering ${tilesRendered}/${totalTiles} tiles (${percentage}%)${playerInfo}`);
     }
 
     /** Flash error message in info-text area (auto resets color). */
@@ -454,21 +338,11 @@ export class GameScene extends Phaser.Scene {
      * Create or recreate the player at a valid spawn position
      */
     private createPlayer(): void {
-        // Create new player with chunk manager support
-        this.player = new Player(0, 0, this.generator.PATH_TILE);
-        this.player.setChunkManager(this.chunkManager);
-        
-        // Set up chunk generation callback
-        this.player.setOnChunkGenerated((chunkX: number, chunkY: number) => {
-            console.log(`New chunk generated at (${chunkX}, ${chunkY})`);
-            this.drawGrid(); // Redraw to show new chunk
-            this.updateInfoDisplay();
-        });
+        if (!this.currentGrid) return;
 
-        // Legacy grid support (for compatibility)
-        if (this.currentGrid) {
-            this.player.setGrid(this.currentGrid);
-        }
+        // Create new player
+        this.player = new Player(0, 0, this.generator.PATH_TILE);
+        this.player.setGrid(this.currentGrid);
         
         // Find a valid spawn position
         if (!this.player.findValidSpawnPosition()) {
@@ -543,128 +417,6 @@ export class GameScene extends Phaser.Scene {
         // Clamp zoom to reasonable bounds
         const clampedZoom = Math.max(GameScene.MIN_ZOOM, Math.min(GameScene.MAX_ZOOM, targetZoom));
         this.cameras.main.setZoom(clampedZoom);
-    }
-
-    /**
-     * Focus camera on player for multi-chunk fog-of-war culling mode
-     */
-    private focusCameraOnPlayerMultiChunk(): void {
-        if (!this.player) return;
-
-        const chunkSize = this.chunkManager.getChunkSize();
-        const playerChunk = this.player.getCurrentChunk();
-        if (!playerChunk) return;
-
-        // Calculate player's screen position in the multi-chunk world
-        const baseOffsetX = (this.scale.width - chunkSize.width * this.cellSize) / 2;
-        const baseOffsetY = (this.scale.height - chunkSize.height * this.cellSize) / 2;
-        
-        const chunkWorldOffsetX = playerChunk.chunkX * chunkSize.width * this.cellSize;
-        const chunkWorldOffsetY = playerChunk.chunkY * chunkSize.height * this.cellSize;
-        
-        const playerLocal = this.player.getLocalCoordinates();
-        if (!playerLocal) return;
-
-        const screenX = baseOffsetX + chunkWorldOffsetX + playerLocal.localX * this.cellSize;
-        const screenY = baseOffsetY + chunkWorldOffsetY + (chunkSize.height - 1 - playerLocal.localY) * this.cellSize;
-
-        // Center camera on player
-        const centerX = screenX + this.cellSize / 2;
-        const centerY = screenY + this.cellSize / 2;
-        
-        this.cameras.main.centerOn(centerX, centerY);
-        this.cameras.main.removeBounds();
-
-        // Adjust zoom for fog-of-war
-        const maxTintRadius = this.visibilitySystem.getMaxTintRadius();
-        const focusBuffer = this.viewportCulling.getFogOfWarFocusAreaBuffer();
-        const focusRadius = (maxTintRadius + focusBuffer) * this.cellSize;
-        
-        const viewportWidth = this.scale.width;
-        const viewportHeight = this.scale.height;
-        const scaleX = viewportWidth / (focusRadius * 2);
-        const scaleY = viewportHeight / (focusRadius * 2);
-        const targetZoom = Math.min(scaleX, scaleY) * 0.9;
-        
-        const clampedZoom = Math.max(GameScene.MIN_ZOOM, Math.min(GameScene.MAX_ZOOM, targetZoom));
-        this.cameras.main.setZoom(clampedZoom);
-    }
-
-    /**
-     * Draw the player in a multi-chunk world
-     */
-    private drawPlayerMultiChunk(baseOffsetX: number, baseOffsetY: number): void {
-        if (!this.player) return;
-
-        const chunkSize = this.chunkManager.getChunkSize();
-        const playerChunk = this.player.getCurrentChunk();
-        if (!playerChunk) return;
-
-        const playerLocal = this.player.getLocalCoordinates();
-        if (!playerLocal) return;
-
-        // Calculate player's screen position
-        const chunkWorldOffsetX = playerChunk.chunkX * chunkSize.width * this.cellSize;
-        const chunkWorldOffsetY = playerChunk.chunkY * chunkSize.height * this.cellSize;
-        
-        const screenX = baseOffsetX + chunkWorldOffsetX + playerLocal.localX * this.cellSize;
-        const screenY = baseOffsetY + chunkWorldOffsetY + (chunkSize.height - 1 - playerLocal.localY) * this.cellSize;
-
-        // Draw red triangle pointing up
-        this.graphics.fillStyle(0xFF0000); // Red color
-        this.graphics.beginPath();
-        
-        const centerX = screenX + this.cellSize / 2;
-        const centerY = screenY + this.cellSize / 2;
-        const size = this.cellSize * 0.4; // Triangle size relative to cell
-        
-        // Triangle vertices (pointing up)
-        this.graphics.moveTo(centerX, centerY - size); // Top point
-        this.graphics.lineTo(centerX - size, centerY + size); // Bottom left
-        this.graphics.lineTo(centerX + size, centerY + size); // Bottom right
-        this.graphics.closePath();
-        this.graphics.fill();
-
-        // Add a black outline for visibility
-        this.graphics.lineStyle(1, 0x000000, 1);
-        this.graphics.strokePath();
-    }
-
-    /**
-     * Update camera bounds to encompass all loaded chunks
-     */
-    private updateCameraBounds(allChunks: Chunk[], baseOffsetX: number, baseOffsetY: number): void {
-        if (allChunks.length === 0) return;
-
-        const chunkSize = this.chunkManager.getChunkSize();
-        const pad = GameScene.CAMERA_PADDING;
-
-        // Find the bounding box of all chunks
-        let minChunkX = allChunks[0].chunkX;
-        let maxChunkX = allChunks[0].chunkX;
-        let minChunkY = allChunks[0].chunkY;
-        let maxChunkY = allChunks[0].chunkY;
-
-        for (const chunk of allChunks) {
-            if (chunk.chunkX < minChunkX) minChunkX = chunk.chunkX;
-            if (chunk.chunkX > maxChunkX) maxChunkX = chunk.chunkX;
-            if (chunk.chunkY < minChunkY) minChunkY = chunk.chunkY;
-            if (chunk.chunkY > maxChunkY) maxChunkY = chunk.chunkY;
-        }
-
-        // Calculate world bounds
-        const worldMinX = baseOffsetX + minChunkX * chunkSize.width * this.cellSize;
-        const worldMaxX = baseOffsetX + (maxChunkX + 1) * chunkSize.width * this.cellSize;
-        const worldMinY = baseOffsetY + minChunkY * chunkSize.height * this.cellSize;
-        const worldMaxY = baseOffsetY + (maxChunkY + 1) * chunkSize.height * this.cellSize;
-
-        // Set camera bounds
-        this.cameras.main.setBounds(
-            worldMinX - pad,
-            worldMinY - pad,
-            (worldMaxX - worldMinX) + pad * 2,
-            (worldMaxY - worldMinY) + pad * 2
-        );
     }
 
     // Method to be called from UI
