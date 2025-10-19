@@ -99,43 +99,43 @@
 
 ### 🐴 Tikbalang's Hoof
 - **Effect**: +15% chance to dodge enemy attacks.
-- **Inspiration**: Trickery (Ramos, 1990)
+- **Lore**: Based on the Tikbalang's supernatural trickery and ability to confuse travelers.
 
 ### 🌳 Balete Root
 - **Effect**: Gain +3 Block for each Lupa (Earth) card in your played hand.
-- **Inspiration**: Spirit portals (Samar, 2019)
+- **Lore**: The Balete tree is a sacred portal to the spirit realm.
 
 ### 🐐 Sigbin Heart
 - **Effect**: When you deal 40+ damage in one attack, deal +8 additional damage.
-- **Inspiration**: Amulet power (Eugenio, 2001)
+- **Lore**: The Sigbin's heart holds immense dark power.
 
 ### 🧚 Duwende Charm
-- **Effect**: +20% chance to resist Weak status.
-- **Inspiration**: Fortune magic (Aswang Project)
+- **Effect**: +20% chance to resist Weak status (which reduces Attack damage by 50%).
+- **Lore**: Blessed by the fortune-bringing duwende spirits.
 
 ### 💧 Tiyanak Tear
 - **Effect**: Immune to the first Fear status effect each combat.
-- **Inspiration**: Wailing spirits (Ramos, 1990)
+- **Lore**: The crystallized tear of a corrupted infant spirit.
 
 ### 🪲 Amomongo Claw
 - **Effect**: All Bleed effects deal +4 damage per turn.
-- **Inspiration**: Sharp claws (Samar, 2019)
+- **Lore**: The razor-sharp claw of the ape-like creature.
 
 ### 👹 Bungisngis Grin
 - **Effect**: Deal +8 damage when attacking an enemy with any debuff.
-- **Inspiration**: Mocking laughter (Jocano, 1969)
+- **Lore**: The giant's mocking laughter empowers your strikes.
 
 ### 🚬 Kapre's Cigar
 - **Effect**: Once per combat, summon a minion that deals 12 damage.
-- **Inspiration**: Tree giant smoke (Ramos, 1990)
+- **Lore**: The tree giant's cigar smoke takes physical form.
 
 ### 💨 Wind Veil
 - **Effect**: Draw +1 card for each Hangin (Air) card in your played hand.
-- **Inspiration**: Invisibility (Samar, 2019)
+- **Lore**: The invisible Tawong Lipod's wind magic aids your card draw.
 
 ### 🪄 Mangangaway Wand
 - **Effect**: Immune to the first Curse effect each combat.
-- **Inspiration**: Hex magic (Eugenio, 2001)
+- **Lore**: The sorcerer's wand shields you from dark hexes.
 
 ---
 
@@ -229,6 +229,163 @@ All Act 1 relics are based on authentic Filipino mythology from the Corrupted An
 
 ---
 
+## 🌟 Relic Effect Categories
+
+### **Extraordinary/Unique Effects**
+
+#### **Game-Changing Mechanics**
+Relics that fundamentally alter core gameplay:
+
+1. **📿 Babaylan's Talisman** - Changes poker hand evaluation (Pair → Two Pair)
+   - **Why Unique**: Literally alters the core game mechanic
+   
+2. **🌟 Echo of the Ancestors** - Unlocks impossible hand (Five of a Kind)
+   - **Why Unique**: Enables a hand type that doesn't exist normally
+   
+3. **🚬 Kapre's Cigar** - Summons a minion entity
+   - **Why Unique**: Creates a new combat entity
+
+#### **Multi-Conditional Effects**
+Relics with complex triggers:
+
+4. **🔥 Ember Fetish** - Different bonuses based on Block state (4 Attack vs 2 Attack)
+   - **Why Unique**: Adapts to your defensive state
+   
+5. **🐐 Sigbin Heart** - Bonus only triggers on 40+ damage attacks
+   - **Why Unique**: Rewards burst damage, creates "breakpoint" strategy
+   
+6. **👹 Bungisngis Grin** - Only works when enemy has ANY debuff
+   - **Why Unique**: Requires status effect synergy
+
+#### **Passive Defense Systems**
+Relics that protect without player action:
+
+7. **🧚 Duwende Charm** - 20% chance to completely prevent Weak status
+   - **Why Unique**: RNG-based immunity, not just resistance
+   
+8. **💧 Tiyanak Tear** - Complete immunity to first Fear
+   - **Why Unique**: Binary "shield" effect
+   
+9. **🪄 Mangangaway Wand** - Complete immunity to first Curse
+   - **Why Unique**: Binary "shield" effect
+
+#### **Scaling with Hand Composition**
+Relics that reward specific deck building:
+
+10. **🌳 Balete Root** - Scales with Lupa card count in hand
+    - **Why Unique**: Rewards mono-element strategy
+    
+11. **💨 Wind Veil** - Scales with Hangin card count, draws MORE cards
+    - **Why Unique**: Card draw scales exponentially with element
+    
+12. **🐴 Tikbalang's Hoof** - Dodge chance (complete damage negation)
+    - **Why Unique**: RNG-based complete avoidance vs damage reduction
+
+#### **Turn-Based Scaling**
+Relics that get stronger over time:
+
+13. **⚔️ Ancestral Blade** - Permanent stacking Attack bonus
+    - **Why Unique**: Combat-long snowball effect
+    
+14. **🌊 Tidal Amulet** - Healing based on cards in hand
+    - **Why Unique**: Rewards NOT playing cards (anti-tempo)
+
+---
+
+### **Ordinary Stat Bonuses**
+
+#### Simple Stat Increases
+- **🛡️ Earthwarden's Plate**: +12 Block start, +2 per turn
+- **💨 Swift Wind Agimat**: +2 discard charges, +1 card draw
+- **🐍 Umalagad's Spirit**: +8 Block on Defend, +3 per card
+- **👑 Diwata's Crown**: +15 Block start, +6 on Defend
+- **❤️ Stone Golem's Heart**: +15 Max HP, +3 Block
+- **👁️ Tigmamanukan's Eye**: +2 cards at start
+- **🌙 Bakunawa Scale**: -2 incoming damage, +10 Max HP
+- **🪲 Amomongo Claw**: +4 bleed damage
+
+#### Simple Economy
+- **🦚 Sarimanok Feather**: +2 Ginto on Straight+
+- **🍀 Lucky Charm**: +2 Ginto on Straight+ *(Duplicate effect)*
+- **⚖️ Merchant's Scale**: -25% shop prices
+- **💎 Bargain Talisman**: First item free
+
+---
+
+## 🎯 Relics Grouped by Similar Mechanics
+
+### **Group 1: Complete Immunity (One-Time Shield)**
+- **💧 Tiyanak Tear** - Immune to first Fear
+- **🪄 Mangangaway Wand** - Immune to first Curse
+- **🧚 Duwende Charm** - 20% chance to prevent Weak (RNG variant)
+
+**Similarity**: All create a "shield" against debuffs, but Duwende has RNG element.
+
+---
+
+### **Group 2: Conditional Damage Amplifiers**
+- **🐐 Sigbin Heart** - +8 damage when dealing 40+ damage
+- **👹 Bungisngis Grin** - +8 damage vs debuffed enemies
+
+**Similarity**: Both require specific combat conditions to trigger bonus damage.
+
+---
+
+### **Group 3: Hand Composition Scalers**
+- **🌳 Balete Root** - Scales with Lupa cards (Block)
+- **💨 Wind Veil** - Scales with Hangin cards (Card Draw)
+
+**Similarity**: Both reward mono-element hand building.
+
+---
+
+### **Group 4: Economy Generators**
+- **🦚 Sarimanok Feather** - +2 Ginto on Straight+
+- **🍀 Lucky Charm** - +2 Ginto on Straight+ *(IDENTICAL EFFECT)*
+
+**Note**: These relics have identical effects and may need differentiation.
+
+---
+
+### **Group 5: Hand Manipulation**
+- **📿 Babaylan's Talisman** - Hand tier +1
+- **🌟 Echo of the Ancestors** - Enables Five of a Kind
+
+**Similarity**: Both fundamentally change hand evaluation.
+
+---
+
+### **Group 6: Dynamic Attack Bonuses**
+- **🔥 Ember Fetish** - 4 Attack (no Block) / 2 Attack (with Block)
+- **⚔️ Ancestral Blade** - +3 Attack per Flush (stacking)
+
+**Similarity**: Both add Attack dynamically, but Ember adapts to state while Blade snowballs.
+
+---
+
+## 💡 Build Prioritization Guide
+
+### **For Unique Gameplay** (Extraordinary Effects)
+Focus on relics that change fundamental mechanics:
+
+1. **📿 Babaylan's Talisman** - Changes fundamental mechanic
+2. **🌟 Echo of the Ancestors** - Enables impossible plays
+3. **🚬 Kapre's Cigar** - Unique minion mechanic
+4. **💨 Wind Veil** - Exponential card draw potential
+5. **🔥 Ember Fetish** - Adaptive playstyle (aggressive vs defensive)
+
+### **For Consistent Power** (Ordinary Effects)
+Focus on reliable stat bonuses:
+
+1. **🛡️ Earthwarden's Plate** - Guaranteed Block every combat
+2. **🐍 Umalagad's Spirit** - Massive Block scaling
+3. **❤️ Stone Golem's Heart** - Permanent HP increase
+4. **👁️ Tigmamanukan's Eye** - More cards = more options
+5. **🌙 Bakunawa Scale** - Damage reduction every hit
+
+---
+
 **Total Act 1 Relics**: 20+  
-**Document Version**: 1.0  
-**Last Updated**: October 19, 2025
+**Document Version**: 1.1  
+**Last Updated**: October 19, 2025  
+**New Section**: Relic Effect Categories & Groupings

@@ -101,9 +101,6 @@ export class Combat extends Scene {
   private relicInventory!: Phaser.GameObjects.Container;
   private currentRelicTooltip!: Phaser.GameObjects.Container | null;
   private pokerHandInfoButton!: Phaser.GameObjects.Container;
-  
-  // 🎮 CHEAT MODE - Set to true to deal 9999 damage with any hand
-  private readonly CHEAT_MODE_ENABLED: boolean = true;
 
   constructor() {
     super({ key: "Combat" });
@@ -1232,24 +1229,18 @@ export class Combat extends Scene {
     let vulnerableBonus = 0;
     let bakunawaBonus = 0;
     
-    // 🎮 CHEAT MODE: Deal 9999 damage with any hand
-    if (this.CHEAT_MODE_ENABLED) {
-      finalDamage = 9999;
-      console.log("🎮 CHEAT MODE ACTIVE: Dealing 9999 damage!");
-    } else {
-      // Normal damage calculations
-      if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
-        finalDamage *= 1.5;
-        vulnerableBonus = finalDamage - damage;
-        console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
-      }
-      
-      // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
-      const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
-      if (bakunawaFang) {
-        finalDamage += 5;
-        bakunawaBonus = 5;
-      }
+    // Normal damage calculations
+    if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
+      finalDamage *= 1.5;
+      vulnerableBonus = finalDamage - damage;
+      console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
+    }
+    
+    // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
+    const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
+    if (bakunawaFang) {
+      finalDamage += 5;
+      bakunawaBonus = 5;
     }
     
     const actualDamage = Math.max(0, finalDamage - this.combatState.enemy.block);
@@ -1267,10 +1258,8 @@ export class Combat extends Scene {
     this.animations.animateSpriteDamage(this.enemySprite);
     this.ui.updateEnemyUI();
 
-    // Show detailed damage calculation if there are special bonuses or cheat mode
-    if (this.CHEAT_MODE_ENABLED) {
-      this.showEnhancedActionResult("🎮 CHEAT MODE: 9999 DAMAGE!", "#ff0000");
-    } else if (vulnerableBonus > 0 || bakunawaBonus > 0) {
+    // Show detailed damage calculation if there are special bonuses
+    if (vulnerableBonus > 0 || bakunawaBonus > 0) {
       let message = `Damage: ${damage}`;
       if (vulnerableBonus > 0) message += ` + ${vulnerableBonus} (Vulnerable)`;
       if (bakunawaBonus > 0) message += ` + ${bakunawaBonus} (Bakunawa Fang)`;
@@ -2482,8 +2471,8 @@ export class Combat extends Scene {
           type: "debuff",
           duration: 2,
           value: 0.5,
-          description: "Deal -50% damage with Attack actions.",
-          emoji: "†",
+          description: "Deal -50% damage with all Attack actions.",
+          emoji: "⚠️",
         });
         break;
     }

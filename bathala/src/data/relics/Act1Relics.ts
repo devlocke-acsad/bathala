@@ -128,61 +128,61 @@ export const mythologicalRelics: Relic[] = [
   {
     id: "tikbalangs_hoof",
     name: "Tikbalang's Hoof",
-    description: "+15% dodge. Inspiration: Trickery (Ramos, 1990)",
+    description: "+15% chance to dodge enemy attacks. Based on the Tikbalang's supernatural trickery and ability to confuse travelers.",
     emoji: "🐴"
   },
   {
     id: "balete_root",
     name: "Balete Root",
-    description: "+3 Block per Lupa card. Inspiration: Portals (Samar, 2019)",
+    description: "Gain +3 Block for each Lupa (Earth) card in your played hand. The Balete tree is a sacred portal to the spirit realm.",
     emoji: "🌳"
   },
   {
     id: "sigbin_heart",
     name: "Sigbin Heart",
-    description: "+8 damage when dealing 40+ damage in a single attack. Inspiration: Amulets (Eugenio, 2001)",
+    description: "When you deal 40+ damage in a single attack, deal +8 additional damage. The Sigbin's heart holds immense dark power.",
     emoji: "🐐"
   },
   {
     id: "duwende_charm",
     name: "Duwende Charm",
-    description: "+20% resist Weak. Inspiration: Fortune (Aswang Project)",
+    description: "+20% chance to resist Weak status (which reduces Attack damage by 50%). Blessed by the fortune-bringing duwende spirits.",
     emoji: "🧚"
   },
   {
     id: "tiyanak_tear",
     name: "Tiyanak Tear",
-    description: "Ignore 1 Fear. Inspiration: Wails (Ramos, 1990)",
+    description: "Immune to the first Fear status effect each combat. The crystallized tear of a corrupted infant spirit.",
     emoji: "💧"
   },
   {
     id: "amomongo_claw",
     name: "Amomongo Claw",
-    description: "+4 bleed damage. Inspiration: Nails (Samar, 2019)",
+    description: "All Bleed effects deal +4 additional damage per turn. The razor-sharp claw of the ape-like creature.",
     emoji: "🪲"
   },
   {
     id: "bungisngis_grin",
     name: "Bungisngis Grin",
-    description: "+8 damage on debuff. Inspiration: Laughter (Jocano, 1969)",
+    description: "Deal +8 damage when attacking enemies with any debuff (Weak, Vulnerable, Burn, etc.). The giant's mocking laughter empowers your strikes.",
     emoji: "👹"
   },
   {
     id: "kapres_cigar",
     name: "Kapre's Cigar",
-    description: "Summons minion once per combat that deals 12 damage. Inspiration: Smoke (Ramos, 1990)",
+    description: "Once per combat, summon a smoke minion that deals 12 damage. The tree giant's cigar smoke takes physical form.",
     emoji: "🚬"
   },
   {
     id: "wind_veil",
     name: "Wind Veil",
-    description: "+1 draw on Air cards. Inspiration: Invisibility (Samar, 2019)",
+    description: "Draw +1 card for each Hangin (Air) card in your played hand. The invisible Tawong Lipod's wind magic aids your card draw.",
     emoji: "💨"
   },
   {
     id: "mangangaway_wand",
     name: "Mangangaway Wand",
-    description: "Ignore 1 curse. Inspiration: Hexes (Eugenio, 2001)",
+    description: "Immune to the first Curse effect each combat. The sorcerer's wand shields you from dark hexes.",
     emoji: "🪄"
   }
 ];
