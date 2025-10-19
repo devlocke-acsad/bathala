@@ -300,10 +300,10 @@ export class Discover extends Scene {
     // Clear existing cards
     this.cards = [];
     
-    // Calculate grid positions
-    const cardWidth = 180;
-    const cardHeight = 160;
-    const cardSpacing = 25;
+    // Calculate grid positions - EVEN LARGER CARDS with better proportions
+    const cardWidth = 260;
+    const cardHeight = 280;
+    const cardSpacing = 35;
     const cardsPerRow = Math.floor((screenWidth - 100) / (cardWidth + cardSpacing));
     const startX = (screenWidth - (cardsPerRow * cardWidth + (cardsPerRow - 1) * cardSpacing)) / 2;
     const startY = 150;
@@ -334,56 +334,108 @@ export class Discover extends Scene {
   private createCharacterCard(entry: any, x: number, y: number, width: number, height: number): GameObjects.Container {
     const container = this.add.container(x, y);
     
-    // Card background with subtle styling
-    const background = this.add.rectangle(0, 0, width, height, 0x1d151a)
-      .setStrokeStyle(1, 0x4a3a40)
+    // Type-based colors
+    const typeColorHex = entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#06d6a0";
+    const typeColor = entry.type === "Boss" ? 0xff6b6b : entry.type === "Elite" ? 0xffd93d : 0x06d6a0;
+    
+    // Layered card background for depth
+    const outerGlow = this.add.rectangle(0, 0, width, height, typeColor, 0.12)
+      .setStrokeStyle(2, typeColor, 0.5)
       .setOrigin(0);
       
+    const background = this.add.rectangle(4, 4, width - 8, height - 8, 0x1d151a)
+      .setStrokeStyle(1, 0x4a3a40)
+      .setOrigin(0);
+    
+    // Top decorative accent bar
+    const topBar = this.add.rectangle(8, 8, width - 16, 6, typeColor, 0.7)
+      .setOrigin(0);
+    
+    // Character type badge at top
+    const typeBadge = this.add.rectangle(width/2, 35, 110, 28, 0x2a1f24)
+      .setStrokeStyle(2, typeColor)
+      .setOrigin(0.5);
+      
+    const typeText = this.add.text(width/2, 35, entry.type.toUpperCase(), {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: typeColorHex,
+      fontStyle: "bold"
+    }).setOrigin(0.5);
+    
+    // Sprite container frame with subtle shadow
+    const spriteFrame = this.add.rectangle(width/2, 135, 150, 150, 0x0f0a0d)
+      .setStrokeStyle(1, typeColor, 0.4)
+      .setOrigin(0.5);
+    
     // Get sprite key for this character
     const spriteKey = this.getCharacterSpriteKey(entry.id);
     
-    // Character sprite (instead of emoji)
-    let characterSprite: Phaser.GameObjects.Image;
+    // Character sprite - MUCH LARGER for prominence
     if (this.textures.exists(spriteKey)) {
-      characterSprite = this.add.image(width/2, 45, spriteKey)
+      const sprite = this.add.image(width/2, 135, spriteKey)
         .setOrigin(0.5)
-        .setDisplaySize(70, 70); // Fit sprite in card
+        .setDisplaySize(140, 140); // Big sprite!
+      container.add(sprite);
     } else {
       // Fallback to emoji if sprite not found
       const symbol = this.getCharacterSymbol(entry.id);
-      characterSprite = this.add.text(width/2, 45, symbol, {
+      const emojiText = this.add.text(width/2, 135, symbol, {
         fontFamily: "dungeon-mode-inverted",
-        fontSize: 48,
-        color: entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#77888C"
-      }).setOrigin(0.5) as any;
+        fontSize: 90,
+        color: typeColorHex
+      }).setOrigin(0.5);
+      container.add(emojiText);
     }
     
-    // Character name (cleaner styling)
-    const nameText = this.add.text(width/2, 95, entry.name, {
+    // Character name with better visibility
+    const nameText = this.add.text(width/2, 225, entry.name, {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 14,
+      fontSize: 18,
       color: "#e8eced",
-      wordWrap: { width: width - 20 },
+      wordWrap: { width: width - 30 },
       align: "center"
     }).setOrigin(0.5);
     
-    // Character type badge
-    const typeColorHex = entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#06d6a0";
-    const typeColor = entry.type === "Boss" ? 0xff6b6b : entry.type === "Elite" ? 0xffd93d : 0x06d6a0;
-    const typeBadge = this.add.rectangle(width/2, 125, 80, 20, 0x2a1f24)
-      .setStrokeStyle(1, typeColor)
+    // Stats display panel at bottom
+    const statsPanel = this.add.rectangle(width/2, 260, width - 16, 35, 0x0f0a0d)
+      .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0.5);
-      
-    const typeText = this.add.text(width/2, 125, entry.type, {
+    
+    // HP stat
+    const hpLabel = this.add.text(width/4, 250, "HP", {
       fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: typeColorHex
+      fontSize: 11,
+      color: "#77888C"
     }).setOrigin(0.5);
     
-    // Subtle hover effect
+    const hpValue = this.add.text(width/4, 268, entry.health.toString(), {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: "#ff6b6b"
+    }).setOrigin(0.5);
+    
+    // ATK stat
+    const atkLabel = this.add.text((width * 3) / 4, 250, "ATK", {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: "#77888C"
+    }).setOrigin(0.5);
+    
+    const atkValue = this.add.text((width * 3) / 4, 268, entry.attack.toString(), {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: "#ffd93d"
+    }).setOrigin(0.5);
+    
+    // Add all elements to container
+    container.add([outerGlow, background, topBar, typeBadge, typeText, spriteFrame, 
+                   nameText, statsPanel, hpLabel, hpValue, atkLabel, atkValue]);
+    
+    // Enhanced hover effects
     background.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains)
       .on('pointerdown', () => {
-        // Add a press effect
+        // Press effect
         this.tweens.add({
           targets: container,
           scale: 0.95,
@@ -395,27 +447,30 @@ export class Discover extends Scene {
         });
       })
       .on('pointerover', () => {
-        // Subtle hover effect
-        background.setFillStyle(0x2a1f24);
+        // Enhanced hover with glow
+        outerGlow.setStrokeStyle(3, typeColor, 0.9);
+        background.setStrokeStyle(2, typeColor, 0.8);
         this.tweens.add({
           targets: container,
-          scale: 1.05,
+          y: y - 10,
+          scale: 1.03,
           duration: 200,
           ease: 'Power2'
         });
       })
       .on('pointerout', () => {
-        // Reset effect
-        background.setFillStyle(0x1d151a);
+        // Reset hover
+        outerGlow.setStrokeStyle(2, typeColor, 0.5);
+        background.setStrokeStyle(1, 0x4a3a40);
         this.tweens.add({
           targets: container,
+          y: y,
           scale: 1,
           duration: 200,
           ease: 'Power2'
         });
       });
     
-    container.add([background, characterSprite, nameText, typeBadge, typeText]);
     return container;
   }
   
@@ -492,105 +547,105 @@ export class Discover extends Scene {
     // Character name with improved styling
     this.detailNameText = this.add.text(screenWidth/2, 130, "", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 28,
+      fontSize: 32,
       color: "#e8eced"
     }).setOrigin(0.5);
     
     // Character type with consistent badge styling
-    const typeBadge = this.add.rectangle(screenWidth/2, 170, 100, 25, 0x2a1f24)
-      .setStrokeStyle(1, 0x77888C)
+    const typeBadge = this.add.rectangle(screenWidth/2, 180, 120, 30, 0x2a1f24)
+      .setStrokeStyle(2, 0x77888C)
       .setOrigin(0.5);
     
-    this.detailTypeText = this.add.text(screenWidth/2, 170, "", {
+    this.detailTypeText = this.add.text(screenWidth/2, 180, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 16,
       color: "#77888C"
     }).setOrigin(0.5);
     
-    // Character symbol
-    this.detailSymbolText = this.add.text(screenWidth/2, 230, "", {
+    // Character symbol - LARGER SPRITE AREA
+    this.detailSymbolText = this.add.text(screenWidth/2, 280, "", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 70,
+      fontSize: 90,
       color: "#e8eced"
     }).setOrigin(0.5);
     
-    // Stats section title
-    const statsTitle = this.add.text(screenWidth/2 - 150, 300, "STATS", {
+    // Stats section title - MOVED DOWN
+    const statsTitle = this.add.text(screenWidth/2 - 200, 380, "STATS", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 16,
       color: "#77888C"
     }).setOrigin(0);
     
     // Stats container
-    const statsContainer = this.add.rectangle(screenWidth/2 - 150, 330, 140, 60, 0x2a1f24)
+    const statsContainer = this.add.rectangle(screenWidth/2 - 200, 410, 160, 70, 0x2a1f24)
       .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0);
     
     // Stats text
-    this.detailStatsText = this.add.text(screenWidth/2 - 140, 340, "", {
+    this.detailStatsText = this.add.text(screenWidth/2 - 185, 425, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 15,
       color: "#a9b4b8",
-      wordWrap: { width: 120 }
+      wordWrap: { width: 130 }
     }).setOrigin(0);
     
     // Abilities section title
-    const abilitiesTitle = this.add.text(screenWidth/2 + 50, 300, "ABILITIES", {
+    const abilitiesTitle = this.add.text(screenWidth/2 + 40, 380, "ABILITIES", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 16,
       color: "#77888C"
     }).setOrigin(0);
     
     // Abilities container
-    const abilitiesContainer = this.add.rectangle(screenWidth/2 + 50, 330, 200, 60, 0x2a1f24)
+    const abilitiesContainer = this.add.rectangle(screenWidth/2 + 40, 410, 220, 70, 0x2a1f24)
       .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0);
     
     // Abilities text
-    this.detailAbilitiesText = this.add.text(screenWidth/2 + 60, 340, "", {
+    this.detailAbilitiesText = this.add.text(screenWidth/2 + 55, 425, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 15,
       color: "#c9a74a",
-      wordWrap: { width: 180 }
+      wordWrap: { width: 190 }
     }).setOrigin(0);
     
-    // Description section
-    const descriptionTitle = this.add.text(screenWidth/2, 420, "DESCRIPTION", {
+    // Description section - MOVED DOWN
+    const descriptionTitle = this.add.text(screenWidth/2, 510, "DESCRIPTION", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 18,
+      fontSize: 20,
       color: "#e8eced"
     }).setOrigin(0.5);
     
-    const descriptionContainer = this.add.rectangle(screenWidth/2, 460, screenWidth - 200, 80, 0x2a1f24)
+    const descriptionContainer = this.add.rectangle(screenWidth/2, 555, screenWidth - 200, 90, 0x2a1f24)
       .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0.5, 0);
     
-    this.detailDescriptionText = this.add.text(screenWidth/2, 470, "", {
+    this.detailDescriptionText = this.add.text(screenWidth/2, 570, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 15,
       color: "#a9b4b8",
       wordWrap: { width: screenWidth - 220 },
-      lineSpacing: 2
+      lineSpacing: 3
     }).setOrigin(0.5, 0);
     
-    // Lore section
-    const loreTitle = this.add.text(screenWidth/2, 560, "MYTHOLOGY & LORE", {
+    // Lore section - MOVED DOWN
+    const loreTitle = this.add.text(screenWidth/2, 665, "MYTHOLOGY & LORE", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 18,
+      fontSize: 20,
       color: "#e8eced"
     }).setOrigin(0.5);
     
-    const loreContainer = this.add.rectangle(screenWidth/2, 600, screenWidth - 200, 120, 0x2a1f24)
+    const loreContainer = this.add.rectangle(screenWidth/2, 710, screenWidth - 200, 130, 0x2a1f24)
       .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0.5, 0);
     
-    this.detailLoreText = this.add.text(screenWidth/2, 610, "", {
+    this.detailLoreText = this.add.text(screenWidth/2, 725, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 15,
       color: "#8a9a9f",
       fontStyle: "italic",
       wordWrap: { width: screenWidth - 220 },
-      lineSpacing: 2
+      lineSpacing: 3
     }).setOrigin(0.5, 0);
     
     this.detailViewContainer.add([
@@ -627,10 +682,10 @@ export class Discover extends Scene {
       // Hide emoji text
       this.detailSymbolText.setVisible(false);
       
-      // Create new sprite
-      this.detailSpriteImage = this.add.image(screenWidth/2, 230, spriteKey)
+      // Create new sprite - MUCH LARGER for detail view
+      this.detailSpriteImage = this.add.image(screenWidth/2, 280, spriteKey)
         .setOrigin(0.5)
-        .setDisplaySize(120, 120);
+        .setDisplaySize(180, 180); // Increased from 120x120 to 180x180
       
       // Add to detail view container (move to front)
       this.detailViewContainer.add(this.detailSpriteImage);
