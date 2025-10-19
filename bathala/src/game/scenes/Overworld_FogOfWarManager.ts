@@ -30,7 +30,10 @@ export class Overworld_FogOfWarManager {
   public dayVisibilityRadius: number = 11;
   
   /** Current visibility radius (dynamically updated based on day/night) */
-  private currentVisibilityRadius: number = 5;
+  private currentVisibilityRadius: number = 8;
+  
+  /** Transition duration for day/night fog changes (in milliseconds) */
+  public transitionDuration: number = 2000;
   
   /** Number of gradient steps from visible to fog (pixel-stepped gradient) */
   public gradientSteps: number = 4;
@@ -65,6 +68,9 @@ export class Overworld_FogOfWarManager {
   private playerX: number = 0;
   private playerY: number = 0;
   private isDay: boolean = true;
+  private transitionTween: Phaser.Tweens.Tween | null = null;
+  private transitionStartRadius: number = 8;
+  private transitionTargetRadius: number = 8;
 
   /**
    * Constructor
@@ -334,19 +340,51 @@ export class Overworld_FogOfWarManager {
   }
 
   /**
-   * Update fog based on day/night cycle
+   * Update fog based on day/night cycle with smooth transition
    * @param isDay - Whether it's currently day time
    */
   updateDayNight(isDay: boolean): void {
     // Only update if state changed
     if (this.isDay !== isDay) {
       this.isDay = isDay;
-      this.currentVisibilityRadius = isDay ? this.dayVisibilityRadius : this.nightVisibilityRadius;
+      const targetRadius = isDay ? this.dayVisibilityRadius : this.nightVisibilityRadius;
       
-      // Re-render fog with new visibility radius
-      this.renderFog();
+      // Cancel any existing transition
+      if (this.transitionTween) {
+        this.transitionTween.stop();
+        this.transitionTween = null;
+      }
       
-      console.log(`🌫️ FogOfWarManager: ${isDay ? 'Day' : 'Night'} fog activated (radius: ${this.currentVisibilityRadius})`);
+      // Store transition values
+      this.transitionStartRadius = this.currentVisibilityRadius;
+      this.transitionTargetRadius = targetRadius;
+      
+      // Create smooth transition tween
+      const transitionObject = { progress: 0 };
+      this.transitionTween = this.scene.tweens.add({
+        targets: transitionObject,
+        progress: 1,
+        duration: this.transitionDuration,
+        ease: 'Sine.easeInOut',
+        onUpdate: () => {
+          // Interpolate between start and target radius
+          this.currentVisibilityRadius = this.transitionStartRadius + 
+            (this.transitionTargetRadius - this.transitionStartRadius) * transitionObject.progress;
+          
+          // Re-render fog with interpolated visibility radius
+          this.renderFog();
+        },
+        onComplete: () => {
+          // Ensure we end at exact target radius
+          this.currentVisibilityRadius = targetRadius;
+          this.renderFog();
+          this.transitionTween = null;
+          
+          console.log(`🌫️ FogOfWarManager: ${isDay ? 'Day' : 'Night'} fog transition complete (radius: ${this.currentVisibilityRadius})`);
+        }
+      });
+      
+      console.log(`🌫️ FogOfWarManager: Starting ${isDay ? 'Day' : 'Night'} fog transition (${this.transitionStartRadius} → ${targetRadius})`);
     }
   }
 
