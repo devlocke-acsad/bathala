@@ -250,6 +250,11 @@ export class Preloader extends Scene {
     this.load.image("bathala_moon_icon", "ui/icons/bathala_moon_icon.png");
     this.load.image("bathala_boss_icon", "ui/icons/bathala_boss_icon.png");
     
+    // Load background music
+    // Note: Using placeholder music for all scenes
+    // Supported formats: .mp3, .ogg, .wav
+    this.load.audio("placeholder_music", "music/bathalaMusicPLHDR.mp3");
+    
     // Debug: Log when assets are loaded
     this.load.on('filecomplete', (key: string, type: string) => {
       console.log(`Loaded asset: ${key} (${type})`);

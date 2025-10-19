@@ -5,6 +5,7 @@ import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { Player, Relic } from "../../core/types/CombatTypes";
 import { allShopItems, ShopItem } from "../../data/relics/ShopItems";
 import { getRelicById } from "../../data/relics/Act1Relics";
+import { MusicManager } from "../../core/managers/MusicManager";
 
 /**
  * Helper function to get the sprite key for a relic based on its ID
@@ -152,6 +153,10 @@ export class Shop extends Scene {
   create(): void {
     if (!this.cameras.main) return;
     this.cameras.main.setBackgroundColor(0x150E10); // Match combat background
+
+    // Initialize MusicManager and play scene music automatically
+    MusicManager.getInstance().setScene(this);
+    MusicManager.getInstance().playSceneMusic();
 
     // Create animated background elements
     this.createBackgroundElements();

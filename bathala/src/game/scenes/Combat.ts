@@ -34,6 +34,7 @@ import { CombatDDA } from "./combat/CombatDDA";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { DifficultyAdjustment } from "../../core/dda/DDATypes";
 import { commonPotions } from "../../data/potions/Act1Potions";
+import { MusicManager } from "../../core/managers/MusicManager";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -232,6 +233,10 @@ export class Combat extends Scene {
 
     // Initialize combat state
     this.initializeCombat(data.nodeType, data.enemyId);
+    
+    // Initialize MusicManager and play scene music automatically
+    MusicManager.getInstance().setScene(this);
+    MusicManager.getInstance().playSceneMusic();
 
     // Initialize managers
     this.enemyDialogueManager = new EnemyDialogueManager(this);

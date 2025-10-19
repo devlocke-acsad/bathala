@@ -1,4 +1,5 @@
 import { Scene, GameObjects } from "phaser";
+import { MusicManager } from "../../core/managers/MusicManager";
 
 export class Settings extends Scene {
   background: GameObjects.Image;
@@ -186,7 +187,7 @@ export class Settings extends Scene {
   }
 
   /**
-   * Placeholder methods for settings categories
+   * Audio settings with functional volume controls
    */
   private showAudioSettings(): void {
     // Clear existing UI
@@ -202,59 +203,159 @@ export class Settings extends Scene {
     // Add title
     this.createStraightTitle(screenWidth/2, 100, "audio settings");
     
-    // Add placeholder content
-    this.add.text(
+    // Get current music volume from MusicManager
+    const musicManager = MusicManager.getInstance();
+    const currentMusicVolume = musicManager.getVolume();
+    const currentMasterVolume = this.sound.volume; // Phaser's master volume
+    
+    // Master Volume Slider
+    this.createVolumeSlider(
       screenWidth/2,
-      screenHeight/2 - 50,
-      "Audio Settings - Placeholder",
+      screenHeight/2 - 80,
+      "Master Volume",
+      currentMasterVolume,
+      (volume: number) => {
+        // Update Phaser's master volume
+        this.sound.volume = volume;
+        console.log(`Master Volume set to: ${Math.round(volume * 100)}%`);
+      }
+    );
+    
+    // Music Volume Slider
+    this.createVolumeSlider(
+      screenWidth/2,
+      screenHeight/2,
+      "Music Volume",
+      currentMusicVolume,
+      (volume: number) => {
+        // Update MusicManager volume
+        musicManager.setVolume(volume, true);
+        console.log(`Music Volume set to: ${Math.round(volume * 100)}%`);
+      }
+    );
+    
+    // Add mute/unmute button for music
+    const muteButton = this.add.text(
+      screenWidth/2,
+      screenHeight/2 + 80,
+      musicManager.isMusicMuted() ? "Unmute Music" : "Mute Music",
       {
         fontFamily: "dungeon-mode-inverted",
-        fontSize: 24,
+        fontSize: 20,
         color: "#77888C",
         align: "center",
       }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2,
-      "Master Volume: [----|----|----|----|----] 50%",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 + 40,
-      "Music Volume: [----|----|----|----|----] 70%",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 + 80,
-      "SFX Volume: [----|----|----|----|----] 80%",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
+    ).setOrigin(0.5)
+    .setInteractive({ useHandCursor: true })
+    .on("pointerdown", () => {
+      musicManager.toggleMute();
+      muteButton.setText(musicManager.isMusicMuted() ? "Unmute Music" : "Mute Music");
+    })
+    .on("pointerover", () => {
+      muteButton.setColor("#e8eced");
+    })
+    .on("pointerout", () => {
+      muteButton.setColor("#77888C");
+    });
     
     // Add back button
     this.createBackButton();
   }
+  
+  /**
+   * Create an interactive volume slider
+   */
+  private createVolumeSlider(
+    x: number,
+    y: number,
+    label: string,
+    initialVolume: number,
+    onChange: (volume: number) => void
+  ): void {
+    // Label
+    this.add.text(x, y - 30, label, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#e8eced",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    // Slider background
+    const sliderWidth = 400;
+    const sliderHeight = 20;
+    this.add.rectangle(x, y, sliderWidth, sliderHeight, 0x1f1410)
+      .setStrokeStyle(2, 0x77888C);
+    
+    // Slider fill - positioned from left edge
+    const sliderFill = this.add.rectangle(
+      x - sliderWidth/2,
+      y,
+      sliderWidth * initialVolume,
+      sliderHeight - 4,
+      0x77888C
+    ).setOrigin(0, 0.5);
+    
+    // Slider handle
+    const handleSize = 30;
+    const sliderHandle = this.add.rectangle(
+      x - sliderWidth/2 + sliderWidth * initialVolume,
+      y,
+      handleSize,
+      handleSize,
+      0xe8eced
+    ).setStrokeStyle(2, 0x77888C);
+    
+    // Volume percentage text
+    const volumeText = this.add.text(
+      x + sliderWidth/2 + 60,
+      y,
+      `${Math.round(initialVolume * 100)}%`,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
+        color: "#e8eced",
+        align: "left",
+      }
+    ).setOrigin(0, 0.5);
+    
+    // Make slider interactive
+    const sliderZone = this.add.rectangle(x, y, sliderWidth + 40, sliderHeight + 40, 0x000000, 0)
+      .setInteractive({ useHandCursor: true, draggable: true });
+    
+    const updateSlider = (pointer: Phaser.Input.Pointer) => {
+      const localX = pointer.x - (x - sliderWidth/2);
+      const volume = Phaser.Math.Clamp(localX / sliderWidth, 0, 1);
+      
+      // Update visuals - fill grows from left
+      sliderFill.width = sliderWidth * volume;
+      sliderHandle.x = x - sliderWidth/2 + sliderWidth * volume;
+      volumeText.setText(`${Math.round(volume * 100)}%`);
+      
+      // Call onChange callback
+      onChange(volume);
+    };
+    
+    sliderZone.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      updateSlider(pointer);
+    });
+    
+    sliderZone.on("drag", (pointer: Phaser.Input.Pointer) => {
+      updateSlider(pointer);
+    });
+    
+    // Hover effect on handle
+    sliderZone.on("pointerover", () => {
+      sliderHandle.setFillStyle(0xffffff);
+    });
+    
+    sliderZone.on("pointerout", () => {
+      sliderHandle.setFillStyle(0xe8eced);
+    });
+  }
 
+  /**
+   * Placeholder methods for settings categories
+   */
   private showVideoSettings(): void {
     // Clear existing UI
     this.children.removeAll();

@@ -8,6 +8,7 @@ import { DeckManager } from "../../utils/DeckManager";
 import { Overworld_KeyInputManager } from "./Overworld_KeyInputManager";
 import { Overworld_MazeGenManager } from "./Overworld_MazeGenManager";
 import { Overworld_TooltipManager } from "./Overworld_TooltipManager";
+import { MusicManager } from "../../core/managers/MusicManager";
 
 /**
  * Helper function to get the sprite key for a relic based on its ID
@@ -212,6 +213,10 @@ export class Overworld extends Scene {
     
     // Set camera background color to match forest theme
     this.cameras.main.setBackgroundColor(0x323C39);
+    
+    // Initialize MusicManager and play scene music automatically
+    MusicManager.getInstance().setScene(this);
+    MusicManager.getInstance().playSceneMusic();
     
     // Explicitly set default cursor to prevent pointer cursor from persisting
     this.input.setDefaultCursor('default');

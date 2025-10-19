@@ -5,6 +5,7 @@ import { Player } from '../../core/types/CombatTypes';
 import { GameEvent, EventChoice, EventContext } from '../../data/events/EventTypes';
 import { Act1Events } from '../../data/events/Act1Events';
 import { OverworldGameState } from '../../core/managers/OverworldGameState';
+import { MusicManager } from '../../core/managers/MusicManager';
 
 export class EventScene extends Scene {
   private player!: Player;
@@ -32,6 +33,10 @@ export class EventScene extends Scene {
   }
 
   create() {
+    // Initialize MusicManager and play scene music automatically
+    MusicManager.getInstance().setScene(this);
+    MusicManager.getInstance().playSceneMusic();
+
     this.createBackground();
     this.createEventDisplay();
     this.createIllustration();
