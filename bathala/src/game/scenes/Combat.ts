@@ -82,6 +82,7 @@ export class Combat extends Scene {
   private isDrawingCards: boolean = false;
   private isActionProcessing: boolean = false;
   private combatEnded: boolean = false;
+  private isSorting: boolean = false; // Track if cards are currently being sorted
   private turnCount: number = 0;
   private kapresCigarUsed: boolean = false; // Track if Kapre's Cigar minion summon has been used this combat
   private deckPosition!: { x: number; y: number };
@@ -130,6 +131,10 @@ export class Combat extends Scene {
 
   public getCombatEnded(): boolean {
     return this.combatEnded;
+  }
+
+  public getIsSorting(): boolean {
+    return this.isSorting;
   }
 
   /**
@@ -853,6 +858,23 @@ export class Combat extends Scene {
    * Select/deselect a card with popup animation (Balatro style - keeps position stable)
    */
   public selectCard(card: PlayingCard): void {
+    // BUGFIX: Prevent selection during combat phase transitions
+    if (this.isActionProcessing || this.isDrawingCards || this.combatEnded || this.isSorting) {
+      return;
+    }
+    
+    // BUGFIX: Only allow card selection during player_turn phase
+    if (this.combatState.phase !== "player_turn") {
+      return;
+    }
+    
+    // Find the card in hand to ensure it still exists
+    const cardInHand = this.combatState.player.hand.find(c => c.id === card.id);
+    if (!cardInHand) {
+      console.warn("Card not found in hand, ignoring selection");
+      return;
+    }
+    
     // If trying to select a new card when already 5 are selected, ignore
     if (!card.selected && this.selectedCards.length >= 5) {
       this.showActionResult("Cannot select more than 5 cards!");
@@ -862,12 +884,16 @@ export class Combat extends Scene {
     // Toggle selection state
     card.selected = !card.selected;
     
-    // Manage selectedCards array
+    // BUGFIX: Synchronize selectedCards array with card state
     const selIndex = this.selectedCards.findIndex(c => c.id === card.id);
-    if (card.selected && selIndex === -1 && this.selectedCards.length < 5) {
-      this.selectedCards.push(card);
-    } else if (!card.selected && selIndex > -1) {
-      this.selectedCards.splice(selIndex, 1);
+    if (card.selected) {
+      if (selIndex === -1 && this.selectedCards.length < 5) {
+        this.selectedCards.push(card);
+      }
+    } else {
+      if (selIndex > -1) {
+        this.selectedCards.splice(selIndex, 1);
+      }
     }
 
     // Find the card sprite and its index
@@ -988,15 +1014,23 @@ export class Combat extends Scene {
       return;
     }
 
+    // BUGFIX: Create a copy of selected cards before clearing
+    const cardsToPlay = [...this.selectedCards];
+
     // Move selected cards to played hand
-    this.combatState.player.playedHand = [...this.selectedCards];
+    this.combatState.player.playedHand = cardsToPlay;
 
     // Remove played cards from hand
     this.combatState.player.hand = this.combatState.player.hand.filter(
-      (card) => !this.selectedCards.includes(card)
+      (card) => !cardsToPlay.includes(card)
     );
 
-    // Clear selection
+    // BUGFIX: Clear selection state on played cards
+    cardsToPlay.forEach(card => {
+      card.selected = false;
+    });
+
+    // Clear selection arrays
     this.selectedCards = [];
     this.combatState.selectedCards = [];
 
@@ -1019,9 +1053,65 @@ export class Combat extends Scene {
    * Sort hand by rank or suit
    */
   public sortHand(sortBy: "rank" | "suit"): void {
+    // BUGFIX: Prevent spam clicking - don't sort if already sorting
+    if (this.isSorting) {
+      console.log("Already sorting, ignoring sort request");
+      return;
+    }
+    
+    // BUGFIX: Don't sort during combat transitions or when processing actions
+    if (this.isActionProcessing || this.isDrawingCards || this.combatEnded) {
+      console.log("Cannot sort during combat transitions");
+      return;
+    }
+    
+    // BUGFIX: Only allow sorting during player's turn
+    if (this.combatState.phase !== "player_turn") {
+      console.log("Can only sort during player turn");
+      return;
+    }
+    
+    // Set sorting flag
+    this.isSorting = true;
+    
+    // BUGFIX: Store which cards are currently selected BEFORE sorting
+    // We need to track by card identity (suit + rank) not by reference
+    const selectedCardIdentities = this.selectedCards.map(card => ({
+      suit: card.suit,
+      rank: card.rank,
+      id: card.id
+    }));
+    
+    // Disable card interactions during sorting
+    this.ui.cardSprites.forEach(sprite => {
+      sprite.disableInteractive();
+    });
+    
     // Create shuffling animation before sorting
     this.animations.animateCardShuffle(sortBy, () => {
-      // Animation handles the sorting internally
+      // BUGFIX: After sorting, restore selection state to the cards
+      // The cards have been reordered, so we need to find them by identity
+      this.selectedCards = [];
+      this.combatState.player.hand.forEach(card => {
+        const wasSelected = selectedCardIdentities.some(
+          identity => identity.suit === card.suit && identity.rank === card.rank && identity.id === card.id
+        );
+        if (wasSelected) {
+          card.selected = true;
+          this.selectedCards.push(card);
+        }
+      });
+      
+      // BUGFIX: Update hand display to refresh card sprites and listeners
+      // This will now show the correct selection state
+      this.ui.updateHandDisplay();
+      
+      // Update UI elements that depend on selection
+      this.updateSelectionCounter();
+      this.ui.updateHandIndicator();
+      
+      // Clear sorting flag AFTER hand display is updated
+      this.isSorting = false;
     });
   }
 
@@ -1047,6 +1137,11 @@ export class Combat extends Scene {
 
     const discardCount = this.selectedCards.length;
 
+    // BUGFIX: Clear selection state before moving cards
+    this.selectedCards.forEach(card => {
+      card.selected = false;
+    });
+
     // Move selected cards to discard pile
     this.combatState.player.discardPile.push(...this.selectedCards);
 
@@ -1055,15 +1150,16 @@ export class Combat extends Scene {
       (card) => !this.selectedCards.includes(card)
     );
 
+    // Clear selection BEFORE drawing new cards
+    this.selectedCards = [];
+    this.combatState.selectedCards = [];
+
     // Draw the same number of cards as discarded
     this.drawCards(discardCount);
 
     // Increment discard counter
     this.discardsUsedThisTurn++;
     this.dda.trackDiscard(); // Track total for DDA
-
-    // Clear selection
-    this.selectedCards = [];
 
     // Batch UI updates instead of individual calls
     this.ui.updateHandDisplay();
