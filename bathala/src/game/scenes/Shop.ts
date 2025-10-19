@@ -89,9 +89,9 @@ export class Shop extends Scene {
 
   init(data: { player: Player }) {
     this.player = data.player;
-    // Filter out relics the player already has
+    // Filter out relics the player already has and exclude merchants_scale (moved to treasure)
     this.shopItems = allShopItems.filter(
-      item => !this.player.relics.some(relic => relic.id === item.item.id)
+      item => item.item.id !== 'merchants_scale' && !this.player.relics.some(relic => relic.id === item.item.id)
     );
   }
 
