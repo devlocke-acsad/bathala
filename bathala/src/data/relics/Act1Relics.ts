@@ -340,3 +340,48 @@ export function getRelicById(id: string): Relic {
   }
   return relic;
 }
+
+/**
+ * Helper function to get a random common relic
+ * @returns A random relic from the common relic pool
+ */
+export function getRandomCommonRelic(): Relic {
+  const index = Math.floor(Math.random() * commonRelics.length);
+  return commonRelics[index];
+}
+
+/**
+ * Helper function to get a random elite relic
+ * @returns A random relic from the elite relic pool
+ */
+export function getRandomEliteRelic(): Relic {
+  const index = Math.floor(Math.random() * eliteRelics.length);
+  return eliteRelics[index];
+}
+
+/**
+ * Helper function to get a random boss relic
+ * @returns A random relic from the boss relic pool
+ */
+export function getRandomBossRelic(): Relic {
+  const index = Math.floor(Math.random() * bossRelics.length);
+  return bossRelics[index];
+}
+
+/**
+ * Helper function to get a random treasure relic
+ * @returns A random relic from the treasure relic pool
+ */
+export function getRandomTreasureRelic(): Relic {
+  const index = Math.floor(Math.random() * treasureRelics.length);
+  return treasureRelics[index];
+}
+
+/**
+ * Helper function to get a random mythological relic
+ * @returns A random relic from the mythological relic pool
+ */
+export function getRandomMythologicalRelic(): Relic {
+  const index = Math.floor(Math.random() * mythologicalRelics.length);
+  return mythologicalRelics[index];
+}

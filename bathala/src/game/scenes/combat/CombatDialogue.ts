@@ -1,5 +1,10 @@
 import { Combat } from "../Combat";
 import { CreatureDialogue } from "../../../core/types/CombatTypes";
+import { 
+  getRandomCommonRelic, 
+  getRandomEliteRelic, 
+  getRandomBossRelic 
+} from "../../../data/relics/Act1Relics";
 
 /**
  * CombatDialogue - Handles all dialogue display and management for combat
@@ -15,71 +20,211 @@ export class CombatDialogue {
       name: "Tikbalang Scout",
       spareDialogue: "Hah! You show mercy to a forest guardian turned to shadow? Once I guided lost souls to safety, but now... now I lead them astray. Still, your compassion awakens something deep in me. Take this blessing of sure footing.",
       killDialogue: "My essence... it feeds the darkness you call shadow. You've only made the forest more treacherous, traveler!",
-      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Sure footing" },
-      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Deceptive paths" },
+      spareReward: { 
+        ginto: 45, 
+        diamante: 0, 
+        healthHealing: 8, 
+        bonusEffect: "Sure footing",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
+      killReward: { 
+        ginto: 70, 
+        diamante: 1, 
+        healthHealing: 0, 
+        bonusEffect: "Deceptive paths",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
     },
     balete_wraith: {
       name: "Balete Wraith",
       spareDialogue: "These roots once held sacred conversations between anito and Bathala, but the engkanto's lies... they poisoned our very essence. Spare me, and I'll grant you the wisdom of the sacred grove.",
       killDialogue: "My spirit feeds the impostor's power! The forest remembers your violence, traveler!",
-      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Sacred grove wisdom" },
-      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Cursed bark" },
+      spareReward: { 
+        ginto: 45, 
+        diamante: 0, 
+        healthHealing: 8, 
+        bonusEffect: "Sacred grove wisdom",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
+      killReward: { 
+        ginto: 70, 
+        diamante: 1, 
+        healthHealing: 0, 
+        bonusEffect: "Cursed bark",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
     },
     sigbin_charger: {
       name: "Sigbin Charger",
       spareDialogue: "We once served Bathala faithfully, our hearts pure and our purpose noble. But the false god's whispers... they corrupted us. If you spare me, I'll share the secret of the night paths.",
       killDialogue: "Take my power, but beware—darkness flows to the one who commands shadows!",
-      spareReward: { ginto: 55, diamante: 0, healthHealing: 7, bonusEffect: "Night path secrets" },
-      killReward: { ginto: 80, diamante: 1, healthHealing: 0, bonusEffect: "Heart of shadow" },
+      spareReward: { 
+        ginto: 55, 
+        diamante: 0, 
+        healthHealing: 7, 
+        bonusEffect: "Night path secrets",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
+      killReward: { 
+        ginto: 80, 
+        diamante: 1, 
+        healthHealing: 0, 
+        bonusEffect: "Heart of shadow",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
     },
     duwende_trickster: {
       name: "Duwende Trickster",
       spareDialogue: "You have the eyes of one who sees beyond surface, mortal. We are indeed spirits of great power, though the engkanto's web has twisted our nature. Accept this gift of hidden sight.",
       killDialogue: "My tricks scatter to the wind, but the forest remembers! Your ruthlessness feeds the impostor's growing strength!",
-      spareReward: { ginto: 40, diamante: 0, healthHealing: 5, bonusEffect: "Hidden sight" },
-      killReward: { ginto: 60, diamante: 1, healthHealing: 0, bonusEffect: "Mischievous whispers" },
+      spareReward: { 
+        ginto: 40, 
+        diamante: 0, 
+        healthHealing: 5, 
+        bonusEffect: "Hidden sight",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
+      killReward: { 
+        ginto: 60, 
+        diamante: 1, 
+        healthHealing: 0, 
+        bonusEffect: "Mischievous whispers",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
     },
     tiyanak_ambusher: {
       name: "Tiyanak Ambusher",
       spareDialogue: "Innocent? Yes, once I was just a babe lost between realms... but the false god's corruption runs deep. Your mercy stirs something in my cursed heart. Take this blessing of true sight.",
       killDialogue: "You strike at innocence, but know this—your violence feeds the shadow that corrupts all!",
-      spareReward: { ginto: 35, diamante: 0, healthHealing: 15, bonusEffect: "True sight" },
-      killReward: { ginto: 55, diamante: 1, healthHealing: 0, bonusEffect: "Crying echo" },
+      spareReward: { 
+        ginto: 35, 
+        diamante: 0, 
+        healthHealing: 15, 
+        bonusEffect: "True sight",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
+      killReward: { 
+        ginto: 55, 
+        diamante: 1, 
+        healthHealing: 0, 
+        bonusEffect: "Crying echo",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
     },
     amomongo: {
       name: "Amomongo",
       spareDialogue: "My claws once only defended the mountain folk from true threats. The engkanto's poison has changed my purpose. Your mercy awakens old memories. Take this strength.",
       killDialogue: "My bones may break, but the shadow grows stronger with each soul you destroy!",
-      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Primal strength" },
-      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Bleeding claws" },
+      spareReward: { 
+        ginto: 45, 
+        diamante: 0, 
+        healthHealing: 8, 
+        bonusEffect: "Primal strength",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
+      killReward: { 
+        ginto: 70, 
+        diamante: 1, 
+        healthHealing: 0, 
+        bonusEffect: "Bleeding claws",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
     },
     bungisngis: {
       name: "Bungisngis",
       spareDialogue: "Ha ha ha! You have the spirit of a true mountain dweller! Once we laughed with joy, not malice. Take this gift of hearty laughter to protect you.",
       killDialogue: "My laughter dies, but the echo haunts... and the shadow grows stronger!",
-      spareReward: { ginto: 45, diamante: 0, healthHealing: 8, bonusEffect: "Joyful resilience" },
-      killReward: { ginto: 70, diamante: 1, healthHealing: 0, bonusEffect: "Maddening laughter" },
+      spareReward: { 
+        ginto: 45, 
+        diamante: 0, 
+        healthHealing: 8, 
+        bonusEffect: "Joyful resilience",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
+      killReward: { 
+        ginto: 70, 
+        diamante: 1, 
+        healthHealing: 0, 
+        bonusEffect: "Maddening laughter",
+        relics: [getRandomCommonRelic()],
+        relicDropChance: 0.35
+      },
     },
     kapre_shade: {
       name: "Kapre Shade",
       spareDialogue: "In my tree, I once smoked in peace, guardian of the forest paths. The false god's corruption has made me a shadow of my former self. Your mercy stirs the old honor. Take this blessing of forest protection.",
       killDialogue: "Burn me down, but the smoke carries the impostor's whispers! Your violence only feeds the growing shadow!",
-      spareReward: { ginto: 80, diamante: 1, healthHealing: 20, bonusEffect: "Forest protection" },
-      killReward: { ginto: 120, diamante: 2, healthHealing: 0, bonusEffect: "Smoke whispers" },
+      spareReward: { 
+        ginto: 80, 
+        diamante: 1, 
+        healthHealing: 20, 
+        bonusEffect: "Forest protection",
+        relics: [getRandomEliteRelic()],
+        relicDropChance: 0.75
+      },
+      killReward: { 
+        ginto: 120, 
+        diamante: 2, 
+        healthHealing: 0, 
+        bonusEffect: "Smoke whispers",
+        relics: [getRandomEliteRelic()],
+        relicDropChance: 0.75
+      },
     },
     tawong_lipod: {
       name: "Tawong Lipod",
       spareDialogue: "Ah... you move with the wind's understanding. We once brought harmony to the Bikol lands, before the false god's lies. Accept this gift of swift movement and hidden sight.",
       killDialogue: "You cannot scatter what has no form! The wind remembers your violence, and it feeds the impostor's power!",
-      spareReward: { ginto: 80, diamante: 1, healthHealing: 20, bonusEffect: "Wind's grace" },
-      killReward: { ginto: 120, diamante: 2, healthHealing: 0, bonusEffect: "Air superiority" },
+      spareReward: { 
+        ginto: 80, 
+        diamante: 1, 
+        healthHealing: 20, 
+        bonusEffect: "Wind's grace",
+        relics: [getRandomEliteRelic()],
+        relicDropChance: 0.75
+      },
+      killReward: { 
+        ginto: 120, 
+        diamante: 2, 
+        healthHealing: 0, 
+        bonusEffect: "Air superiority",
+        relics: [getRandomEliteRelic()],
+        relicDropChance: 0.75
+      },
     },
     mangangaway: {
       name: "Mangangaway",
       spareDialogue: "Wise traveler... you see through my curses to the spirit beneath. I was once a healer, a protector of the people. Take this gift of protection against the false god's influence.",
       killDialogue: "My curses may end, but the shadow you serve grows stronger! Your power feeds the impostor's corruption!",
-      spareReward: { ginto: 150, diamante: 3, healthHealing: 30, bonusEffect: "Hex protection" },
-      killReward: { ginto: 200, diamante: 5, healthHealing: 0, bonusEffect: "Curse mastery" },
+      spareReward: { 
+        ginto: 150, 
+        diamante: 3, 
+        healthHealing: 30, 
+        bonusEffect: "Hex protection",
+        relics: [getRandomBossRelic()],
+        relicDropChance: 1.0
+      },
+      killReward: { 
+        ginto: 200, 
+        diamante: 5, 
+        healthHealing: 0, 
+        bonusEffect: "Curse mastery",
+        relics: [getRandomBossRelic()],
+        relicDropChance: 1.0
+      },
     },
   };
 

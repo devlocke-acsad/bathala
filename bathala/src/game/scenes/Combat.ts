@@ -1782,6 +1782,32 @@ export class Combat extends Scene {
         );
       }
 
+      // Handle relic drops with drop chance
+      if (reward.relics && reward.relics.length > 0 && reward.relicDropChance) {
+        const dropRoll = Math.random();
+        console.log(`Relic drop roll: ${dropRoll.toFixed(2)} vs ${reward.relicDropChance.toFixed(2)}`);
+        
+        if (dropRoll <= reward.relicDropChance) {
+          // Successful drop - add first relic from the reward
+          const droppedRelic = reward.relics[0];
+          console.log(`✅ Relic dropped: ${droppedRelic.name} (${droppedRelic.emoji})`);
+          
+          // Add to player's relics (max 6)
+          if (!this.combatState.player.relics) {
+            this.combatState.player.relics = [];
+          }
+          
+          if (this.combatState.player.relics.length < 6) {
+            this.combatState.player.relics.push(droppedRelic);
+            console.log(`Added relic to inventory. Total relics: ${this.combatState.player.relics.length}/6`);
+          } else {
+            console.log(`⚠️ Relic inventory full (6/6). Relic not added.`);
+          }
+        } else {
+          console.log(`❌ Relic drop failed (rolled ${dropRoll.toFixed(2)}, needed ≤${reward.relicDropChance.toFixed(2)})`);
+        }
+      }
+
       console.log("Clearing dialogue and showing results...");
 
       // Simply clear all children - the rewards screen will create new UI
