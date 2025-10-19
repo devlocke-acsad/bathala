@@ -41,7 +41,6 @@ export class Shop extends Scene {
   private shopItems: ShopItem[] = [];
   private relicButtons: Phaser.GameObjects.Container[] = [];
   private gintoText!: Phaser.GameObjects.Text;
-  private diamanteText!: Phaser.GameObjects.Text;
   private healthText!: Phaser.GameObjects.Text;
   private tooltipBox!: Phaser.GameObjects.Container;
   private scrollContainer: Phaser.GameObjects.Container | null = null;
@@ -741,26 +740,13 @@ export class Shop extends Scene {
     // Currency section with proper centering
     const currencyY = 135;
     
-    // Ginto section - left aligned within currency area
-    const gintoX = screenWidth - 210;
-    const gintoIcon = this.add.text(gintoX - 15, currencyY, "💰", {
+    // Gold section - centered within currency area
+    const gintoX = screenWidth - 154; // Center the gold display
+    const gintoIcon = this.add.text(gintoX - 20, currencyY, "�", {
       fontSize: 18,
     }).setOrigin(0.5, 0.5);
     
-    this.gintoText = this.add.text(gintoX + 15, currencyY, `${this.player.ginto}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 16,
-      color: "#77888C",
-      fontStyle: "bold"
-    }).setOrigin(0, 0.5);
-    
-    // Diamante section - right aligned within currency area
-    const diamanteX = screenWidth - 110;
-    const diamanteIcon = this.add.text(diamanteX - 15, currencyY, "💎", {
-      fontSize: 18,
-    }).setOrigin(0.5, 0.5);
-    
-    this.diamanteText = this.add.text(diamanteX + 15, currencyY, `${this.player.diamante}`, {
+    this.gintoText = this.add.text(gintoX + 10, currencyY, `${this.player.ginto}`, {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#77888C",
@@ -768,7 +754,7 @@ export class Shop extends Scene {
     }).setOrigin(0, 0.5);
     
     // Add subtle pulse animation to currency
-    const currencyElements = [this.gintoText, gintoIcon, this.diamanteText, diamanteIcon];
+    const currencyElements = [this.gintoText, gintoIcon];
     currencyElements.forEach((element, index) => {
       this.tweens.add({
         targets: element,
@@ -790,20 +776,12 @@ export class Shop extends Scene {
     const scrollContainer = this.add.container(0, 0);
     scrollContainer.setDepth(1000);
     
-    // Separate items by currency
-    const gintoItems = this.shopItems.filter(item => item.currency === "ginto");
-    const diamanteItems = this.shopItems.filter(item => item.currency === "diamante");
+    // All items now use gold currency
+    const allItems = this.shopItems;
     
-    // Create category sections with even better spacing
-    // Start position for first section (gold items) - account for title space above
-    const goldSectionY = 320; // Even higher starting position for better title clearance
-    this.createCategorySection("Gold Items 💰", gintoItems, screenWidth, goldSectionY, scrollContainer);
-    
-    // Calculate position for diamante section with generous spacing
-    const gintoRows = Math.ceil(gintoItems.length / 5);
-    const diamanteSectionY = goldSectionY + (gintoRows * 190) + 200; // Extra generous space for clean separation
-    
-    this.createCategorySection("Diamante Items 💎", diamanteItems, screenWidth, diamanteSectionY, scrollContainer);
+    // Create single clean section
+    const sectionY = 320;
+    this.createCategorySection("Shop Items 💰", allItems, screenWidth, sectionY, scrollContainer);
     
     // Add scroll functionality
     this.setupScrolling(scrollContainer, screenHeight);
@@ -868,49 +846,45 @@ export class Shop extends Scene {
   }
 
   private createCategorySection(title: string, items: ShopItem[], screenWidth: number, startY: number, scrollContainer: Phaser.GameObjects.Container): void {
-    // Create category title WELL ABOVE the items section
-    const titleY = startY - 140; // Move title even higher above the item grid
+    // Create category title with Prologue styling
+    const titleY = startY - 100;
     
     const categoryTitle = this.add.text(screenWidth / 2, titleY, title, {
       fontFamily: "dungeon-mode",
-      fontSize: 24, // Slightly larger font
+      fontSize: 28,
       color: "#77888C",
       align: "center",
       fontStyle: "bold"
     }).setOrigin(0.5);
     
-    // Add double border background for title - made much wider
+    // Simple title background
     const titleBg = this.add.graphics();
-    const titleWidth = 450; // Even wider for better visual impact
-    const titleHeight = 55; // Slightly taller
+    const titleWidth = 350;
+    const titleHeight = 50;
     
-    // Outer border
+    // Single border with Prologue colors
     titleBg.lineStyle(2, 0x77888C);
-    titleBg.strokeRoundedRect(screenWidth / 2 - titleWidth / 2 - 4, titleY - titleHeight / 2 - 4, titleWidth + 8, titleHeight + 8, 8);
-    
-    // Inner border  
-    titleBg.lineStyle(2, 0x77888C);
-    titleBg.strokeRoundedRect(screenWidth / 2 - titleWidth / 2, titleY - titleHeight / 2, titleWidth, titleHeight, 8);
+    titleBg.strokeRoundedRect(screenWidth / 2 - titleWidth / 2, titleY - titleHeight / 2, titleWidth, titleHeight, 10);
     
     // Background
     titleBg.fillStyle(0x150E10, 0.9);
-    titleBg.fillRoundedRect(screenWidth / 2 - titleWidth / 2, titleY - titleHeight / 2, titleWidth, titleHeight, 8);
+    titleBg.fillRoundedRect(screenWidth / 2 - titleWidth / 2, titleY - titleHeight / 2, titleWidth, titleHeight, 10);
     
-    // Set depth order - titles should be above items
+    // Set depth
     titleBg.setDepth(1100);
     categoryTitle.setDepth(1101);
     
     // Add to scroll container
     scrollContainer.add([titleBg, categoryTitle]);
     
-    // Create items grid with proper spacing - items start at startY
-    const cardWidth = 120;
-    const cardHeight = 140;
-    const itemsPerRow = 5;
-    const spacingX = 40;
-    const spacingY = 50;
+    // Clean grid layout - 3 items per row like Prologue
+    const cardWidth = 140;
+    const cardHeight = 160;
+    const itemsPerRow = 3;
+    const spacingX = 60; // More generous horizontal spacing
+    const spacingY = 80; // More generous vertical spacing
     const gridStartX = (screenWidth - (itemsPerRow * (cardWidth + spacingX) - spacingX)) / 2;
-    const gridStartY = startY; // Items start at the designated startY position
+    const gridStartY = startY;
 
     items.forEach((item, index) => {
       const row = Math.floor(index / itemsPerRow);
@@ -923,40 +897,28 @@ export class Shop extends Scene {
       // Check if player already owns this relic
       const isOwned = this.player.relics.some(relic => relic.id === item.item.id);
       
-      // Create shadow effect
-      const shadow = this.add.graphics();
-      shadow.fillStyle(0x000000, 0.3);
-      shadow.fillRoundedRect(-cardWidth/2 + 4, -cardHeight/2 + 4, cardWidth, cardHeight, 12);
-      
-      // Main card background with prologue/combat theme
+      // Clean card background with Prologue theme
       const cardBg = this.add.graphics();
       if (isOwned) {
-        // Owned state with muted colors
-        cardBg.fillStyle(0x2a2a2a, 0.8);
-        cardBg.lineStyle(2, 0x444444, 0.6);
+        // Owned state - muted
+        cardBg.fillStyle(0x2a2a2a, 0.7);
+        cardBg.lineStyle(2, 0x444444, 0.5);
       } else {
-        // Available items with prologue/combat styling
+        // Available items with clean Prologue styling
         cardBg.fillStyle(0x150E10, 0.95);
-        cardBg.lineStyle(3, 0x77888C, 0.8);
+        cardBg.lineStyle(2, 0x77888C, 0.9);
       }
       cardBg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
       cardBg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
       
-      // Inner highlight for depth (only for available items)
-      const innerHighlight = this.add.graphics();
-      if (!isOwned) {
-        innerHighlight.lineStyle(1, 0x77888C, 0.4);
-        innerHighlight.strokeRoundedRect(-cardWidth/2 + 2, -cardHeight/2 + 2, cardWidth - 4, cardHeight - 4, 10);
-      }
-      
       // Icon area background
       const iconArea = this.add.graphics();
       if (isOwned) {
-        iconArea.fillStyle(0x374151, 0.6);
+        iconArea.fillStyle(0x374151, 0.5);
       } else {
-        iconArea.fillStyle(0x77888C, 0.2);
+        iconArea.fillStyle(0x77888C, 0.15);
       }
-      iconArea.fillRoundedRect(-cardWidth/2 + 8, -cardHeight/2 + 8, cardWidth - 16, 70, 8);
+      iconArea.fillRoundedRect(-cardWidth/2 + 10, -cardHeight/2 + 10, cardWidth - 20, 80, 8);
       
       // Get sprite key for this relic
       const spriteKey = getRelicSpriteKey(item.item.id);
@@ -966,7 +928,7 @@ export class Shop extends Scene {
       
       if (spriteKey && this.textures.exists(spriteKey)) {
         // Use sprite if available
-        itemIcon = this.add.image(0, -cardHeight/2 + 43, spriteKey)
+        itemIcon = this.add.image(0, -cardHeight/2 + 50, spriteKey)
           .setOrigin(0.5)
           .setDisplaySize(64, 64); // Larger sprite for better visibility
         if (isOwned) {
@@ -982,36 +944,29 @@ export class Shop extends Scene {
         }
       }
       
-      // Currency badge
-      let currencyColor;
-      let currencyEmoji;
-      if (item.currency === "ginto") {
-        currencyColor = 0xfbbf24;
-        currencyEmoji = "💰";
-      } else {
-        currencyColor = 0x06b6d4;
-        currencyEmoji = "💎";
-      }
+      // Currency badge - gold only now
+      const currencyColor = 0xfbbf24;
+      const currencyEmoji = "�";
       
       const currencyBadge = this.add.graphics();
       currencyBadge.fillStyle(currencyColor, isOwned ? 0.4 : 0.9);
-      currencyBadge.fillRoundedRect(cardWidth/2 - 25, -cardHeight/2 + 5, 20, 20, 10);
+      currencyBadge.fillRoundedRect(cardWidth/2 - 28, -cardHeight/2 + 8, 22, 22, 11);
       
-      const currencyIcon = this.add.text(cardWidth/2 - 15, -cardHeight/2 + 15, currencyEmoji, {
-        fontSize: 12,
+      const currencyIcon = this.add.text(cardWidth/2 - 17, -cardHeight/2 + 19, currencyEmoji, {
+        fontSize: 14,
       }).setOrigin(0.5, 0.5);
       
-      // Price section
+      // Price section with Prologue styling
       const actualPrice = this.getActualPrice(item);
       const hasDiscount = actualPrice < item.price;
       
       const priceArea = this.add.graphics();
       priceArea.fillStyle(0x1f2937, isOwned ? 0.5 : 0.8);
-      priceArea.fillRoundedRect(-cardWidth/2 + 8, cardHeight/2 - 35, cardWidth - 16, 27, 6);
+      priceArea.fillRoundedRect(-cardWidth/2 + 10, cardHeight/2 - 40, cardWidth - 20, 30, 6);
       
-      const priceText = this.add.text(0, cardHeight/2 - 21, `${actualPrice}`, {
+      const priceText = this.add.text(0, cardHeight/2 - 25, `${actualPrice}`, {
         fontFamily: "dungeon-mode",
-        fontSize: 16,
+        fontSize: 18,
         color: isOwned ? "#9ca3af" : (hasDiscount ? "#2ed573" : "#77888C"),
         fontStyle: "bold"
       }).setOrigin(0.5, 0.5);
@@ -1019,9 +974,9 @@ export class Shop extends Scene {
       // Add original price with strikethrough if discounted
       let originalPriceText = null;
       if (hasDiscount && !isOwned) {
-        originalPriceText = this.add.text(-30, cardHeight/2 - 21, `${item.price}`, {
+        originalPriceText = this.add.text(-35, cardHeight/2 - 25, `${item.price}`, {
           fontFamily: "dungeon-mode",
-          fontSize: 12,
+          fontSize: 14,
           color: "#9ca3af",
         }).setOrigin(0.5, 0.5);
         originalPriceText.setStroke("#666666", 1);
@@ -1033,24 +988,24 @@ export class Shop extends Scene {
       let checkMark = null;
       if (isOwned) {
         ownedOverlay = this.add.graphics();
-        ownedOverlay.fillStyle(0x000000, 0.6);
+        ownedOverlay.fillStyle(0x000000, 0.65);
         ownedOverlay.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
         
         ownedText = this.add.text(0, 0, "OWNED", {
           fontFamily: "dungeon-mode",
-          fontSize: 18,
+          fontSize: 20,
           color: "#10b981",
           fontStyle: "bold"
         }).setOrigin(0.5);
         
-        checkMark = this.add.text(0, -25, "✓", {
-          fontSize: 32,
+        checkMark = this.add.text(0, -30, "✓", {
+          fontSize: 36,
           color: "#10b981",
         }).setOrigin(0.5);
       }
       
-      // Assemble the button
-      const components = [shadow, cardBg, innerHighlight, iconArea, itemIcon, currencyBadge, currencyIcon, priceArea, priceText];
+      // Assemble the button with clean components
+      const components = [cardBg, iconArea, itemIcon, currencyBadge, currencyIcon, priceArea, priceText];
       if (originalPriceText) components.push(originalPriceText);
       if (ownedOverlay) {
         components.push(ownedOverlay);
@@ -1721,8 +1676,9 @@ export class Shop extends Scene {
       return;
     }
     
-    if (item.currency === "diamante" && this.player.diamante < actualPrice) {
-      this.showMessage("Not enough Diamante!", "#ff4757");
+    // Check if player has enough gold
+    if (this.player.ginto < actualPrice) {
+      this.showMessage("Not enough Gold!", "#ff4757");
       return;
     }
     
@@ -1774,19 +1730,9 @@ export class Shop extends Scene {
     const actualPrice = this.getActualPrice(item);
     const hasDiscount = actualPrice < item.price;
     
-    // Price
-    let priceColor;
-    let priceEmoji;
-    if (item.currency === "ginto") {
-      priceColor = "#ffd93d";
-      priceEmoji = "💰";
-    } else if (item.currency === "diamante") {
-      priceColor = "#00ffff";
-      priceEmoji = "💎";
-    } else {
-      priceColor = "#4ecdc4";
-      priceEmoji = "💎";
-    }
+    // All items use gold now
+    const priceColor = "#ffd93d";
+    const priceEmoji = "�";
     
     // Show original price with strikethrough if discounted
     const priceY = hasDiscount ? 0 : 10;
@@ -1889,12 +1835,8 @@ export class Shop extends Scene {
     // Calculate actual price with discounts
     const actualPrice = this.getActualPrice(item);
     
-    // Deduct currency
-    if (item.currency === "ginto") {
-      this.player.ginto -= actualPrice;
-    } else if (item.currency === "diamante") {
-      this.player.diamante -= actualPrice;
-    }
+    // Deduct gold
+    this.player.ginto -= actualPrice;
     
     // Add relic to player
     if (item.type === "relic") {
@@ -1907,7 +1849,6 @@ export class Shop extends Scene {
     // Update UI with new currency format
     this.healthText.setText(`Health: ${this.player.currentHealth}/${this.player.maxHealth} ♥`);
     this.gintoText.setText(`${this.player.ginto}`);
-    this.diamanteText.setText(`${this.player.diamante}`);
     
     // Show success message with animation
     this.showMessage(`Purchased ${item.name}!`, "#2ed573");
