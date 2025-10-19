@@ -56,10 +56,6 @@ export class Phase4_CombatActions extends TutorialPhase {
         
         // Fade out previous content
         if (this.currentSection > 1) {
-            // Nullify played hand container reference so it can be recreated
-            // (it will be destroyed automatically with container.removeAll)
-            this.playedHandContainer = null as any;
-            
             this.scene.tweens.add({
                 targets: this.container.getAll(),
                 alpha: 0,
@@ -76,11 +72,6 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     private continueSection() {
-        // Reset played hand container for new section
-        if (this.playedHandContainer && !this.playedHandContainer.scene) {
-            this.playedHandContainer = null as any;
-        }
-        
         switch (this.currentSection) {
             case 1:
                 this.showThreeActions();
@@ -359,11 +350,6 @@ export class Phase4_CombatActions extends TutorialPhase {
             ).setOrigin(0.5);
             this.container.add(this.selectionCounter);
 
-            // Ensure hand container is visible and at correct position
-            this.tutorialUI.handContainer.setVisible(true);
-            this.tutorialUI.handContainer.setAlpha(1);
-            this.tutorialUI.handContainer.setDepth(1500);
-            
             // Draw cards
             if (actionType === 'Special') {
                 this.tutorialUI.drawHand(3);
@@ -375,13 +361,10 @@ export class Phase4_CombatActions extends TutorialPhase {
                     { id: '11-Apoy', rank: 'Mandirigma', suit: 'Apoy', element: 'fire', selected: false, playable: true },
                 ];
                 this.tutorialUI.addCardsToHand(flushCards);
-                console.log('[Phase4] Special: Added flush cards, total cards:', this.tutorialUI.handContainer.length);
             } else {
                 this.tutorialUI.drawHand(8);
-                console.log('[Phase4] Drew 8 cards, total cards:', this.tutorialUI.handContainer.length);
             }
             this.tutorialUI.updateHandDisplay();
-            console.log('[Phase4] Updated hand display, sprites:', this.tutorialUI.cardSprites.length);
 
             // Card selection listener
             const selectCardHandler = (card: PlayingCard) => {
@@ -405,12 +388,20 @@ export class Phase4_CombatActions extends TutorialPhase {
                 // Enable/disable Play Hand button
                 if (this.selectedCards.length === 5 && this.playHandButton) {
                     this.playHandButton.setAlpha(1);
-                    this.playHandButton.setInteractive();
-                    (this.playHandButton as any).isEnabled = true;
+                    const buttonChildren = this.playHandButton.getAll();
+                    buttonChildren.forEach(child => {
+                        if (child instanceof Phaser.GameObjects.Rectangle) {
+                            (child as any).setInteractive({ useHandCursor: true });
+                        }
+                    });
                 } else if (this.playHandButton) {
                     this.playHandButton.setAlpha(0.5);
-                    this.playHandButton.disableInteractive();
-                    (this.playHandButton as any).isEnabled = false;
+                    const buttonChildren = this.playHandButton.getAll();
+                    buttonChildren.forEach(child => {
+                        if (child instanceof Phaser.GameObjects.Rectangle) {
+                            (child as any).disableInteractive();
+                        }
+                    });
                 }
             };
 
@@ -422,16 +413,15 @@ export class Phase4_CombatActions extends TutorialPhase {
                 screenWidth / 2,
                 screenHeight - 100,
                 'Play Hand',
-                () => {
-                    // Only allow click if enabled
-                    if ((this.playHandButton as any).isEnabled) {
-                        this.playHand(actionType, enemyHPText, playerBlockText, onSuccess, selectCardHandler);
-                    }
-                }
+                () => this.playHand(actionType, enemyHPText, playerBlockText, onSuccess, selectCardHandler)
             );
             this.playHandButton.setAlpha(0.5);
-            this.playHandButton.disableInteractive();
-            (this.playHandButton as any).isEnabled = false;
+            const playButtonChildren = this.playHandButton.getAll();
+            playButtonChildren.forEach(child => {
+                if (child instanceof Phaser.GameObjects.Rectangle) {
+                    (child as any).disableInteractive();
+                }
+            });
             this.container.add(this.playHandButton);
         });
     }
@@ -447,13 +437,11 @@ export class Phase4_CombatActions extends TutorialPhase {
         selectCardHandler: (card: PlayingCard) => void
     ) {
         if (this.selectedCards.length !== 5) return;
-        if (this.combatPhase !== 'card_selection') return; // Prevent double-click
         
-        // Disable Play Hand button completely
+        // Disable Play Hand button
         if (this.playHandButton) {
             this.playHandButton.disableInteractive();
             this.playHandButton.setAlpha(0.5);
-            (this.playHandButton as any).isEnabled = false;
         }
         
         // Move to played hand
@@ -466,7 +454,7 @@ export class Phase4_CombatActions extends TutorialPhase {
         this.selectionCounter.setVisible(false);
         
         // Hide hand display, show played cards
-        this.tutorialUI.handContainer.setVisible(false);
+        this.tutorialUI.getHandContainer().setVisible(false);
         this.playedHandContainer.setVisible(true);
         
         // Display played cards in center
@@ -601,32 +589,28 @@ export class Phase4_CombatActions extends TutorialPhase {
                 onComplete: () => damageText.destroy()
             });
 
-            // Create success message
-            const successMessage = this.enemyHP <= 0 
-                ? '🎉 Victory! You defeated the enemy!'
-                : `⚔️ Great attack! You dealt ${damage} damage!`;
-            
-            const success = createInfoBox(
-                this.scene,
-                successMessage,
-                'success'
-            );
-            this.container.add(success);
+            if (this.enemyHP <= 0) {
+                const success = createInfoBox(
+                    this.scene,
+                    '🎉 Victory! You defeated the enemy!',
+                    'success'
+                );
+                this.container.add(success);
 
-            // Always proceed after delay
-            this.scene.time.delayedCall(2500, () => {
-                this.scene.events.off('selectCard', selectCardHandler);
-                this.scene.tweens.add({
-                    targets: this.container.getAll(),
-                    alpha: 0,
-                    duration: 400,
-                    ease: 'Power2',
-                    onComplete: () => {
-                        this.container.removeAll(true);
-                        onSuccess();
-                    }
+                this.scene.time.delayedCall(2500, () => {
+                    this.scene.events.off('selectCard', selectCardHandler);
+                    this.scene.tweens.add({
+                        targets: this.container.getAll(),
+                        alpha: 0,
+                        duration: 400,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            this.container.removeAll(true);
+                            onSuccess();
+                        }
+                    });
                 });
-            });
+            }
 
         } else if (actionType === 'Defend') {
             const block = 5 + evaluation.totalValue;
@@ -688,6 +672,224 @@ export class Phase4_CombatActions extends TutorialPhase {
                 // Re-enable button
                 if (this.actionButtons) {
                     this.actionButtons.setVisible(true);
+                }
+                return;
+            }
+
+            const damage = 15 + evaluation.totalValue;
+            this.enemyHP -= damage;
+            enemyHPText.setText(`HP: ${Math.max(0, this.enemyHP)}/${this.enemyMaxHP}`);
+
+            // Animate special effect
+            const fireEffect = this.scene.add.text(
+                this.scene.cameras.main.width / 2,
+                this.scene.cameras.main.height / 2,
+                '🔥',
+                { fontSize: 96 }
+            ).setOrigin(0.5).setAlpha(0);
+            this.container.add(fireEffect);
+
+            this.scene.tweens.add({
+                targets: fireEffect,
+                scale: 2,
+                alpha: 1,
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.scene.tweens.add({
+                        targets: fireEffect,
+                        alpha: 0,
+                        duration: 400,
+                        onComplete: () => fireEffect.destroy()
+                    });
+                }
+            });
+
+            // Animate enemy hit
+            this.scene.tweens.add({
+                targets: this.enemySprite,
+                tint: 0xff6600,
+                duration: 300,
+                yoyo: true,
+                repeat: 2,
+                ease: 'Power2'
+            });
+
+            const success = createInfoBox(
+                this.scene,
+                `🔥 Apoy Special! You dealt ${damage} damage and applied Burn!`,
+                'success'
+            );
+            this.container.add(success);
+
+            this.scene.time.delayedCall(3000, () => {
+                this.scene.events.off('selectCard', selectCardHandler);
+                this.scene.tweens.add({
+                    targets: this.container.getAll(),
+                    alpha: 0,
+                    duration: 400,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        this.container.removeAll(true);
+                        onSuccess();
+                    }
+                });
+            });
+        }
+    }
+
+    /**
+     * Get enemy sprite key (EXACT as real combat CombatUI.ts)
+     */
+    private getEnemySpriteKey(enemyName: string): string {
+        const lowerCaseName = enemyName.toLowerCase();
+        
+        if (lowerCaseName.includes("tikbalang")) return "tikbalang_combat";
+        if (lowerCaseName.includes("balete")) return "balete_combat";
+        if (lowerCaseName.includes("sigbin")) return "sigbin_combat";
+        if (lowerCaseName.includes("duwende")) return "duwende_combat";
+        if (lowerCaseName.includes("tiyanak")) return "tiyanak_combat";
+        if (lowerCaseName.includes("amomongo")) return "amomongo_combat";
+        if (lowerCaseName.includes("bungisngis")) return "bungisngis_combat";
+        if (lowerCaseName.includes("kapre")) return "kapre_combat";
+        if (lowerCaseName.includes("tawong")) return "tawong_lipod_combat";
+        
+        return "tikbalang_combat"; // fallback
+    }
+}
+            const damage = 10 + evaluation.totalValue;
+            this.enemyHP -= damage;
+            enemyHPText.setText(`HP: ${Math.max(0, this.enemyHP)}/${this.enemyMaxHP}`);
+
+            // Animate player attack
+            this.scene.tweens.add({
+                targets: this.playerSprite,
+                x: '+=50',
+                duration: 200,
+                yoyo: true,
+                ease: 'Power2'
+            });
+
+            // Animate enemy hit
+            this.scene.tweens.add({
+                targets: this.enemySprite,
+                tint: 0xff0000,
+                duration: 200,
+                yoyo: true,
+                ease: 'Power2'
+            });
+
+            // Show damage
+            const damageText = this.scene.add.text(
+                this.enemySprite.x,
+                this.enemySprite.y - 50,
+                `-${damage}`,
+                {
+                    fontFamily: 'dungeon-mode',
+                    fontSize: 32,
+                    color: '#ff6b6b'
+                }
+            ).setOrigin(0.5);
+            this.container.add(damageText);
+
+            this.scene.tweens.add({
+                targets: damageText,
+                y: '-=40',
+                alpha: 0,
+                duration: 1000,
+                ease: 'Power2',
+                onComplete: () => damageText.destroy()
+            });
+
+            if (this.enemyHP <= 0) {
+                const success = createInfoBox(
+                    this.scene,
+                    '🎉 Victory! You defeated the enemy!',
+                    'success'
+                );
+                this.container.add(success);
+
+                this.scene.time.delayedCall(2500, () => {
+                    this.scene.events.off('selectCard', selectCardHandler);
+                    this.scene.tweens.add({
+                        targets: this.container.getAll(),
+                        alpha: 0,
+                        duration: 400,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            this.container.removeAll(true);
+                            onSuccess();
+                        }
+                    });
+                });
+            }
+
+        } else if (actionType === 'Defend') {
+            const block = 5 + evaluation.totalValue;
+            this.playerBlock += block;
+            playerBlockText.setText(`Block: ${this.playerBlock}`);
+            playerBlockText.setColor('#4CAF50');
+
+            // Animate shield
+            const shieldIcon = this.scene.add.text(
+                this.playerSprite.x,
+                this.playerSprite.y,
+                '🛡️',
+                { fontSize: 48 }
+            ).setOrigin(0.5);
+            this.container.add(shieldIcon);
+
+            this.scene.tweens.add({
+                targets: shieldIcon,
+                scale: 1.5,
+                alpha: 0,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => shieldIcon.destroy()
+            });
+
+            const success = createInfoBox(
+                this.scene,
+                `You gained ${block} block! This will absorb incoming damage!`,
+                'success'
+            );
+            this.container.add(success);
+
+            this.scene.time.delayedCall(2500, () => {
+                this.scene.events.off('selectCard', selectCardHandler);
+                this.scene.tweens.add({
+                    targets: this.container.getAll(),
+                    alpha: 0,
+                    duration: 400,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        this.container.removeAll(true);
+                        onSuccess();
+                    }
+                });
+            });
+
+        } else if (actionType === 'Special') {
+            if (evaluation.type !== 'flush' && evaluation.type !== 'straight_flush') {
+                const warning = createInfoBox(
+                    this.scene,
+                    'You need a Flush or better to use Special! Try again.',
+                    'warning',
+                    this.scene.cameras.main.width / 2,
+                    this.scene.cameras.main.height - 200
+                );
+                this.container.add(warning);
+                this.scene.time.delayedCall(1500, () => warning.destroy());
+                
+                // Re-enable button
+                if (this.actionButton) {
+                    const buttonChildren = this.actionButton.getAll();
+                    buttonChildren.forEach(child => {
+                        if (child instanceof Phaser.GameObjects.Rectangle) {
+                            (child as any).setInteractive({ useHandCursor: true });
+                        }
+                    });
+                    this.actionButton.setAlpha(1);
                 }
                 return;
             }

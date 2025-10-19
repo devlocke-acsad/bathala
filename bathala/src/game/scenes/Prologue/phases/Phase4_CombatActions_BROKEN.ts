@@ -48,6 +48,9 @@ export class Phase4_CombatActions extends TutorialPhase {
 
     public shutdown() {
         this.scene.events.off('selectCard');
+        if (this.playedHandContainer) {
+            this.playedHandContainer.destroy();
+        }
         this.container.destroy();
     }
 
@@ -56,9 +59,18 @@ export class Phase4_CombatActions extends TutorialPhase {
         
         // Fade out previous content
         if (this.currentSection > 1) {
-            // Nullify played hand container reference so it can be recreated
-            // (it will be destroyed automatically with container.removeAll)
-            this.playedHandContainer = null as any;
+            // Cleanup played hand container if it exists (it's at scene level, not in main container)
+            if (this.playedHandContainer) {
+                console.log('[Phase4] Destroying previous played hand container');
+                this.playedHandContainer.removeAll(true);
+                this.playedHandContainer.destroy(true);
+                this.playedHandContainer = null as any;
+            }
+            
+            // Also cleanup TutorialUI hand if visible
+            if (this.tutorialUI && this.tutorialUI.handContainer) {
+                this.tutorialUI.handContainer.setVisible(false);
+            }
             
             this.scene.tweens.add({
                 targets: this.container.getAll(),
@@ -76,11 +88,6 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     private continueSection() {
-        // Reset played hand container for new section
-        if (this.playedHandContainer && !this.playedHandContainer.scene) {
-            this.playedHandContainer = null as any;
-        }
-        
         switch (this.currentSection) {
             case 1:
                 this.showThreeActions();
@@ -147,9 +154,14 @@ export class Phase4_CombatActions extends TutorialPhase {
         this.enemyHP = enemyData.currentHealth;
         this.enemyMaxHP = enemyData.maxHealth;
         
+        // Reset state for this section
+        this.selectedCards = [];
+        this.playedCards = [];
+        
         this.createCombatScene('Attack', enemyData, () => {
             // Reset for next section
             this.selectedCards = [];
+            this.playedCards = [];
             this.playerBlock = 0;
             this.nextSection();
         });
@@ -160,8 +172,13 @@ export class Phase4_CombatActions extends TutorialPhase {
         this.enemyHP = enemyData.currentHealth;
         this.enemyMaxHP = enemyData.maxHealth;
         
+        // Reset state for this section
+        this.selectedCards = [];
+        this.playedCards = [];
+        
         this.createCombatScene('Defend', enemyData, () => {
             this.selectedCards = [];
+            this.playedCards = [];
             this.nextSection();
         });
     }
@@ -171,8 +188,13 @@ export class Phase4_CombatActions extends TutorialPhase {
         this.enemyHP = enemyData.currentHealth;
         this.enemyMaxHP = enemyData.maxHealth;
         
+        // Reset state for this section
+        this.selectedCards = [];
+        this.playedCards = [];
+        
         this.createCombatScene('Special', enemyData, () => {
             this.selectedCards = [];
+            this.playedCards = [];
             this.nextSection();
         });
     }
@@ -326,9 +348,21 @@ export class Phase4_CombatActions extends TutorialPhase {
             this.container.add(enemyIntent);
 
             // Played hand container (center, hidden initially)
+            // DO NOT add to container - keep it at scene level for proper visibility
             this.playedHandContainer = this.scene.add.container(screenWidth / 2, screenHeight * 0.55);
             this.playedHandContainer.setVisible(false);
-            this.container.add(this.playedHandContainer);
+            this.playedHandContainer.setDepth(2000); // Very high depth to ensure visibility above all
+            this.playedHandContainer.setAlpha(1); // Full opacity
+            this.playedHandContainer.setActive(true); // Ensure active
+            
+            console.log('[Phase4] Created NEW played hand container for', actionType, 'at:', screenWidth / 2, screenHeight * 0.55);
+            console.log('[Phase4] Container initial state:', {
+                exists: !!this.playedHandContainer,
+                visible: this.playedHandContainer.visible,
+                alpha: this.playedHandContainer.alpha,
+                depth: this.playedHandContainer.depth,
+                active: this.playedHandContainer.active
+            });
 
             // PHASE 1 instruction
             this.instructionText = this.scene.add.text(
@@ -359,11 +393,6 @@ export class Phase4_CombatActions extends TutorialPhase {
             ).setOrigin(0.5);
             this.container.add(this.selectionCounter);
 
-            // Ensure hand container is visible and at correct position
-            this.tutorialUI.handContainer.setVisible(true);
-            this.tutorialUI.handContainer.setAlpha(1);
-            this.tutorialUI.handContainer.setDepth(1500);
-            
             // Draw cards
             if (actionType === 'Special') {
                 this.tutorialUI.drawHand(3);
@@ -375,13 +404,10 @@ export class Phase4_CombatActions extends TutorialPhase {
                     { id: '11-Apoy', rank: 'Mandirigma', suit: 'Apoy', element: 'fire', selected: false, playable: true },
                 ];
                 this.tutorialUI.addCardsToHand(flushCards);
-                console.log('[Phase4] Special: Added flush cards, total cards:', this.tutorialUI.handContainer.length);
             } else {
                 this.tutorialUI.drawHand(8);
-                console.log('[Phase4] Drew 8 cards, total cards:', this.tutorialUI.handContainer.length);
             }
             this.tutorialUI.updateHandDisplay();
-            console.log('[Phase4] Updated hand display, sprites:', this.tutorialUI.cardSprites.length);
 
             // Card selection listener
             const selectCardHandler = (card: PlayingCard) => {
@@ -404,13 +430,31 @@ export class Phase4_CombatActions extends TutorialPhase {
                 
                 // Enable/disable Play Hand button
                 if (this.selectedCards.length === 5 && this.playHandButton) {
+                    // Enable Play Hand button
                     this.playHandButton.setAlpha(1);
-                    this.playHandButton.setInteractive();
-                    (this.playHandButton as any).isEnabled = true;
+                    const buttonChildren = this.playHandButton.getAll();
+                    buttonChildren.forEach(child => {
+                        if (child instanceof Phaser.GameObjects.Rectangle) {
+                            const rect = child as Phaser.GameObjects.Rectangle;
+                            rect.setInteractive({ useHandCursor: true });
+                            // Re-add click listener
+                            rect.removeAllListeners('pointerdown');
+                            rect.on('pointerdown', () => {
+                                this.playHand(actionType, enemyHPText, playerBlockText, onSuccess, selectCardHandler);
+                            });
+                        }
+                    });
                 } else if (this.playHandButton) {
+                    // Disable Play Hand button
                     this.playHandButton.setAlpha(0.5);
-                    this.playHandButton.disableInteractive();
-                    (this.playHandButton as any).isEnabled = false;
+                    const buttonChildren = this.playHandButton.getAll();
+                    buttonChildren.forEach(child => {
+                        if (child instanceof Phaser.GameObjects.Rectangle) {
+                            const rect = child as Phaser.GameObjects.Rectangle;
+                            rect.disableInteractive();
+                            rect.removeAllListeners('pointerdown');
+                        }
+                    });
                 }
             };
 
@@ -422,16 +466,15 @@ export class Phase4_CombatActions extends TutorialPhase {
                 screenWidth / 2,
                 screenHeight - 100,
                 'Play Hand',
-                () => {
-                    // Only allow click if enabled
-                    if ((this.playHandButton as any).isEnabled) {
-                        this.playHand(actionType, enemyHPText, playerBlockText, onSuccess, selectCardHandler);
-                    }
-                }
+                () => this.playHand(actionType, enemyHPText, playerBlockText, onSuccess, selectCardHandler)
             );
             this.playHandButton.setAlpha(0.5);
-            this.playHandButton.disableInteractive();
-            (this.playHandButton as any).isEnabled = false;
+            const playButtonChildren = this.playHandButton.getAll();
+            playButtonChildren.forEach(child => {
+                if (child instanceof Phaser.GameObjects.Rectangle) {
+                    (child as any).disableInteractive();
+                }
+            });
             this.container.add(this.playHandButton);
         });
     }
@@ -446,19 +489,38 @@ export class Phase4_CombatActions extends TutorialPhase {
         onSuccess: () => void,
         selectCardHandler: (card: PlayingCard) => void
     ) {
-        if (this.selectedCards.length !== 5) return;
-        if (this.combatPhase !== 'card_selection') return; // Prevent double-click
+        console.log('[Phase4] playHand called with', this.selectedCards.length, 'cards');
+        console.log('[Phase4] Current combat phase:', this.combatPhase);
         
-        // Disable Play Hand button completely
-        if (this.playHandButton) {
-            this.playHandButton.disableInteractive();
-            this.playHandButton.setAlpha(0.5);
-            (this.playHandButton as any).isEnabled = false;
+        if (this.selectedCards.length !== 5) {
+            console.warn('[Phase4] Cannot play hand: need 5 cards, have', this.selectedCards.length);
+            return;
         }
+        if (this.combatPhase !== 'card_selection') {
+            console.warn('[Phase4] Cannot play hand: not in card_selection phase');
+            return; // Prevent double execution
+        }
+        
+        console.log('[Phase4] Playing hand for', actionType);
         
         // Move to played hand
         this.playedCards = [...this.selectedCards];
         this.combatPhase = 'action_selection';
+        
+        console.log('[Phase4] Played cards:', this.playedCards);
+        
+        // Disable Play Hand button
+        if (this.playHandButton) {
+            const buttonChildren = this.playHandButton.getAll();
+            buttonChildren.forEach(child => {
+                if (child instanceof Phaser.GameObjects.Rectangle) {
+                    const rect = child as Phaser.GameObjects.Rectangle;
+                    rect.disableInteractive();
+                    rect.removeAllListeners('pointerdown');
+                }
+            });
+            this.playHandButton.setAlpha(0.5);
+        }
         
         // Update instruction for Phase 2
         this.instructionText.setText(`Step 2: Click "${actionType}" to execute your action`);
@@ -466,6 +528,7 @@ export class Phase4_CombatActions extends TutorialPhase {
         this.selectionCounter.setVisible(false);
         
         // Hide hand display, show played cards
+        console.log('[Phase4] Hiding hand container, showing played hand container');
         this.tutorialUI.handContainer.setVisible(false);
         this.playedHandContainer.setVisible(true);
         
@@ -496,45 +559,170 @@ export class Phase4_CombatActions extends TutorialPhase {
             () => this.performAction(actionType, enemyHPText, playerBlockText, onSuccess, selectCardHandler)
         );
         this.actionButtons.add(actionButton);
+        
+        console.log('[Phase4] Action button created for', actionType);
     }
     
     /**
-     * Display played cards in the center area
+     * Display played cards in the center area using REAL card sprites
      */
     private displayPlayedCards() {
+        console.log('[Phase4] === DISPLAY PLAYED CARDS START ===');
+        console.log('[Phase4] Container exists?', !!this.playedHandContainer);
+        
+        if (!this.playedHandContainer) {
+            console.error('[Phase4] ERROR: playedHandContainer is null/undefined!');
+            return;
+        }
+        
+        console.log('[Phase4] Container active?', this.playedHandContainer.active);
+        console.log('[Phase4] Container scene?', !!this.playedHandContainer.scene);
+        
         this.playedHandContainer.removeAll(true);
         
-        const cardSpacing = 70;
+        const cardSpacing = 90;
         const startX = -(this.playedCards.length - 1) * cardSpacing / 2;
+        
+        console.log('[Phase4] Displaying played cards:', this.playedCards.map(c => `${c.rank} of ${c.suit}`));
+        console.log('[Phase4] Played hand container BEFORE adding cards:', {
+            x: this.playedHandContainer.x,
+            y: this.playedHandContainer.y,
+            visible: this.playedHandContainer.visible,
+            alpha: this.playedHandContainer.alpha,
+            depth: this.playedHandContainer.depth,
+            active: this.playedHandContainer.active,
+            childCount: this.playedHandContainer.list.length
+        });
         
         this.playedCards.forEach((card, index) => {
             const cardX = startX + (index * cardSpacing);
             
-            // Card background
-            const cardBg = this.scene.add.rectangle(cardX, 0, 60, 85, 0x2c3e50, 0.9);
-            cardBg.setStrokeStyle(2, 0xecf0f1);
-            this.playedHandContainer.add(cardBg);
+            console.log(`[Phase4] Creating card sprite ${index + 1}/${this.playedCards.length}: ${card.rank} of ${card.suit}`);
             
-            // Card rank
-            const rankText = this.scene.add.text(cardX, -20, card.rank, {
-                fontFamily: 'dungeon-mode',
-                fontSize: 20,
-                color: '#ecf0f1'
-            }).setOrigin(0.5);
-            this.playedHandContainer.add(rankText);
+            // Use REAL card sprites from the game
+            const cardSprite = this.createCardSprite(card, cardX, 0);
+            cardSprite.setAlpha(1); // Ensure visible
+            cardSprite.setVisible(true); // Ensure visible
+            cardSprite.setDepth(2100); // Ensure above everything (higher than container)
+            cardSprite.setActive(true); // Ensure active
+            this.playedHandContainer.add(cardSprite);
             
-            // Card suit emoji
+            console.log(`[Phase4] Added card sprite ${index + 1} to container:`, {
+                visible: cardSprite.visible,
+                alpha: cardSprite.alpha,
+                depth: cardSprite.depth,
+                active: cardSprite.active,
+                children: cardSprite.list?.length || 0
+            });
+        });
+        
+        // Ensure container is visible and properly positioned
+        this.playedHandContainer.setVisible(true);
+        this.playedHandContainer.setAlpha(1);
+        this.playedHandContainer.setActive(true);
+        this.playedHandContainer.setDepth(2000); // Ensure above everything
+        
+        console.log('[Phase4] Played hand container AFTER adding cards:', {
+            position: { x: this.playedHandContainer.x, y: this.playedHandContainer.y },
+            children: this.playedHandContainer.list.length,
+            visible: this.playedHandContainer.visible,
+            alpha: this.playedHandContainer.alpha,
+            depth: this.playedHandContainer.depth,
+            active: this.playedHandContainer.active
+        });
+        console.log('[Phase4] === DISPLAY PLAYED CARDS END ===');
+        
+        // Force render update
+        this.scene.sys.displayList.queueDepthSort();
+    }
+    
+    /**
+     * Create card sprite (same as CombatUI.ts)
+     */
+    private createCardSprite(
+        card: PlayingCard,
+        x: number,
+        y: number
+    ): Phaser.GameObjects.Container {
+        const cardContainer = this.scene.add.container(x, y);
+        const cardWidth = 80;
+        const cardHeight = 112;
+
+        const rankMap: Record<string, string> = {
+            "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
+            "6": "6", "7": "7", "8": "8", "9": "9", "10": "10",
+            "Mandirigma": "11", "Babaylan": "12", "Datu": "13"
+        };
+        const spriteRank = rankMap[card.rank] || "1";
+        
+        const suitMap: Record<string, string> = {
+            "Apoy": "apoy", "Tubig": "tubig", "Lupa": "lupa", "Hangin": "hangin"
+        };
+        const spriteSuit = suitMap[card.suit] || "apoy";
+        
+        const textureKey = `card_${spriteRank}_${spriteSuit}`;
+        console.log(`[Phase4] Creating card sprite: ${card.rank} of ${card.suit} → texture key: ${textureKey}`);
+        console.log(`[Phase4] Texture exists: ${this.scene.textures.exists(textureKey)}`);
+        
+        let cardSprite: Phaser.GameObjects.GameObject;
+        
+        if (this.scene.textures.exists(textureKey)) {
+            cardSprite = this.scene.add.image(0, 0, textureKey);
+            (cardSprite as Phaser.GameObjects.Image).setDisplaySize(cardWidth, cardHeight);
+            (cardSprite as Phaser.GameObjects.Image).setVisible(true);
+            (cardSprite as Phaser.GameObjects.Image).setAlpha(1);
+            (cardSprite as Phaser.GameObjects.Image).setDepth(2100);
+            console.log(`[Phase4] Using real card texture: ${textureKey}`);
+        } else {
+            // Fallback to rectangle if texture doesn't exist
+            console.warn(`[Phase4] Texture not found: ${textureKey}, using fallback`);
+            const rect = this.scene.add.rectangle(0, 0, cardWidth, cardHeight, 0x2C2F33);
+            rect.setVisible(true);
+            rect.setAlpha(1);
+            rect.setDepth(2100);
+            cardSprite = rect;
+            
+            const rankText = this.scene.add.text(-cardWidth/2 + 5, -cardHeight/2 + 5, card.rank, {
+                fontFamily: "dungeon-mode",
+                fontSize: 14,
+                color: "#FFFFFF",
+            }).setOrigin(0, 0);
+            rankText.setDepth(2110); // Higher than card
+            cardContainer.add(rankText);
+            
             const suitEmoji = card.suit === 'Apoy' ? '🔥' :
                             card.suit === 'Tubig' ? '💧' :
                             card.suit === 'Lupa' ? '🌿' : '💨';
-            const suitText = this.scene.add.text(cardX, 10, suitEmoji, {
-                fontSize: 24
-            }).setOrigin(0.5);
-            this.playedHandContainer.add(suitText);
+            const suitText = this.scene.add.text(cardWidth/2 - 5, -cardHeight/2 + 5, suitEmoji, {
+                fontSize: 16,
+            }).setOrigin(1, 0);
+            suitText.setDepth(2110); // Higher than card
+            cardContainer.add(suitText);
+        }
+        
+        // Add border
+        const border = this.scene.add.rectangle(0, 0, cardWidth + 4, cardHeight + 4, 0x000000, 0);
+        border.setStrokeStyle(2, 0xFFD700);
+        border.setVisible(true);
+        border.setDepth(2101); // Slightly higher than sprite
+        
+        // Add background first, then sprite, then border
+        cardContainer.add([cardSprite, border]);
+        cardContainer.setVisible(true);
+        cardContainer.setAlpha(1);
+        cardContainer.setDepth(2100); // Ensure container is at high depth
+        
+        console.log(`[Phase4] Card container created at (${x}, ${y}) with ${cardContainer.list.length} children`, {
+            visible: cardContainer.visible,
+            alpha: cardContainer.alpha,
+            depth: cardContainer.depth
         });
+        
+        return cardContainer;
     }
     /**
      * Perform combat action (Phase 2: Execute the action with played cards)
+     * Tutorial version: Proceeds after ONE action (no need to defeat enemy)
      */
     private performAction(
         actionType: 'Attack' | 'Defend' | 'Special',
@@ -543,9 +731,10 @@ export class Phase4_CombatActions extends TutorialPhase {
         onSuccess: () => void,
         selectCardHandler: (card: PlayingCard) => void
     ) {
-        // Disable action buttons
+        // Disable action buttons to prevent repeated clicks
         if (this.actionButtons) {
             this.actionButtons.setVisible(false);
+            this.actionButtons.disableInteractive();
         }
         
         // Update instruction
@@ -601,21 +790,23 @@ export class Phase4_CombatActions extends TutorialPhase {
                 onComplete: () => damageText.destroy()
             });
 
-            // Create success message
-            const successMessage = this.enemyHP <= 0 
-                ? '🎉 Victory! You defeated the enemy!'
-                : `⚔️ Great attack! You dealt ${damage} damage!`;
-            
+            // Tutorial: Proceed after action (no need to defeat enemy)
             const success = createInfoBox(
                 this.scene,
-                successMessage,
+                `Great! You dealt ${damage} damage! This is how Attack works.`,
                 'success'
             );
             this.container.add(success);
 
-            // Always proceed after delay
-            this.scene.time.delayedCall(2500, () => {
+            this.scene.time.delayedCall(2000, () => {
                 this.scene.events.off('selectCard', selectCardHandler);
+                
+                // Clean up played hand container
+                if (this.playedHandContainer) {
+                    this.playedHandContainer.destroy();
+                    this.playedHandContainer = null as any;
+                }
+                
                 this.scene.tweens.add({
                     targets: this.container.getAll(),
                     alpha: 0,
@@ -654,13 +845,20 @@ export class Phase4_CombatActions extends TutorialPhase {
 
             const success = createInfoBox(
                 this.scene,
-                `You gained ${block} block! This will absorb incoming damage!`,
+                `Perfect! You gained ${block} block! This will absorb incoming damage.`,
                 'success'
             );
             this.container.add(success);
 
-            this.scene.time.delayedCall(2500, () => {
+            this.scene.time.delayedCall(2000, () => {
                 this.scene.events.off('selectCard', selectCardHandler);
+                
+                // Clean up played hand container
+                if (this.playedHandContainer) {
+                    this.playedHandContainer.destroy();
+                    this.playedHandContainer = null as any;
+                }
+                
                 this.scene.tweens.add({
                     targets: this.container.getAll(),
                     alpha: 0,
@@ -688,7 +886,10 @@ export class Phase4_CombatActions extends TutorialPhase {
                 // Re-enable button
                 if (this.actionButtons) {
                     this.actionButtons.setVisible(true);
+                    this.actionButtons.setInteractive();
                 }
+                this.instructionText.setText(`Step 2: Click "${actionType}" to execute your action`);
+                this.instructionText.setColor('#4CAF50');
                 return;
             }
 
@@ -733,13 +934,20 @@ export class Phase4_CombatActions extends TutorialPhase {
 
             const success = createInfoBox(
                 this.scene,
-                `🔥 Apoy Special! You dealt ${damage} damage and applied Burn!`,
+                `Excellent! 🔥 Apoy Special dealt ${damage} damage and applied Burn!`,
                 'success'
             );
             this.container.add(success);
 
-            this.scene.time.delayedCall(3000, () => {
+            this.scene.time.delayedCall(2000, () => {
                 this.scene.events.off('selectCard', selectCardHandler);
+                
+                // Clean up played hand container
+                if (this.playedHandContainer) {
+                    this.playedHandContainer.destroy();
+                    this.playedHandContainer = null as any;
+                }
+                
                 this.scene.tweens.add({
                     targets: this.container.getAll(),
                     alpha: 0,

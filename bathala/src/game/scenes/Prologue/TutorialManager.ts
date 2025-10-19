@@ -20,6 +20,7 @@ export class TutorialManager {
     private phases: any[];
     private currentPhaseIndex: number;
     private skipButton: GameObjects.Container;
+    private skipPhaseButton: GameObjects.Container;
     private particles?: Phaser.GameObjects.Particles.ParticleEmitter;
 
     constructor(scene: Scene) {
@@ -99,7 +100,7 @@ export class TutorialManager {
             }
         }
 
-        // Enhanced skip button with hover effects
+        // Enhanced skip button with hover effects (bottom right)
         const skipButtonX = this.scene.cameras.main.width * 0.88;
         const skipButtonY = this.scene.cameras.main.height * 0.92;
         this.skipButton = createButton(
@@ -123,7 +124,31 @@ export class TutorialManager {
             ease: 'Sine.easeInOut'
         });
         
-        this.container.add([skipGlow, this.skipButton]);
+        // Add Skip Phase button (bottom right, above Skip Tutorial)
+        const skipPhaseButtonX = this.scene.cameras.main.width * 0.88;
+        const skipPhaseButtonY = this.scene.cameras.main.height * 0.85; // Above Skip Tutorial
+        this.skipPhaseButton = createButton(
+            this.scene, 
+            skipPhaseButtonX, 
+            skipPhaseButtonY, 
+            'Skip Phase ➜', 
+            () => this.skipCurrentPhase()
+        );
+        
+        // Add glow to skip phase button
+        const skipPhaseGlow = this.scene.add.circle(skipPhaseButtonX, skipPhaseButtonY, 70, 0xFFAA00, 0.05)
+            .setBlendMode(Phaser.BlendModes.ADD);
+        this.scene.tweens.add({
+            targets: skipPhaseGlow,
+            alpha: 0.12,
+            scale: 1.15,
+            duration: 1800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        this.container.add([skipGlow, this.skipButton, skipPhaseGlow, this.skipPhaseButton]);
 
         const tutorialUI = new TutorialUI(this.scene);
 
@@ -217,6 +242,50 @@ export class TutorialManager {
             scale: 1,
             duration: 400,
             ease: 'Back.easeOut'
+        });
+    }
+
+    private skipCurrentPhase() {
+        // Clean up current phase
+        const currentPhase = this.phases[this.currentPhaseIndex - 1];
+        if (currentPhase && currentPhase.cleanup) {
+            currentPhase.cleanup();
+        }
+        
+        // Show brief notification
+        const notification = this.scene.add.text(
+            this.scene.cameras.main.width / 2,
+            this.scene.cameras.main.height * 0.3,
+            '⏩ Phase Skipped',
+            {
+                fontFamily: 'dungeon-mode',
+                fontSize: 28,
+                color: '#FFAA00',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setAlpha(0).setDepth(2500);
+
+        this.scene.tweens.add({
+            targets: notification,
+            alpha: 1,
+            y: notification.y - 20,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.scene.time.delayedCall(800, () => {
+                    this.scene.tweens.add({
+                        targets: notification,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => notification.destroy()
+                    });
+                });
+            }
+        });
+
+        // Move to next phase
+        this.scene.time.delayedCall(500, () => {
+            this.startNextPhase();
         });
     }
 
