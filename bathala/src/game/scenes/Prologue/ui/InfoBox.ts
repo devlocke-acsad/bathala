@@ -175,8 +175,7 @@ export function createHighlight(
         duration: 1200,
         yoyo: true,
         repeat: -1,
-        ease: 'Sine.easeInOut',
-        delay: scene.tweens.stagger(100)
+        ease: 'Sine.easeInOut'
     });
 
     return container;

@@ -170,7 +170,7 @@ export class Phase7_Items extends TutorialPhase {
                 name: 'Elixir of Fortitude', 
                 description: 'Gain 15 Block', 
                 emoji: '🧪' 
-            };
+            } as any; // Type assertion for tutorial
             this.player.potions.push(elixirOfFortitude);
             this.tutorialUI.updatePotionsDisplay(this.player.potions);
 

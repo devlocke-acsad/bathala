@@ -6,6 +6,10 @@ import { DeckManager } from '../../../../utils/DeckManager';
 import { HandEvaluator } from '../../../../utils/HandEvaluator';
 import { TutorialPhase } from './TutorialPhase';
 import { TutorialUI } from '../ui/TutorialUI';
+import { createPhaseHeader } from '../ui/PhaseHeader';
+import { createProgressIndicator } from '../ui/ProgressIndicator';
+import { createInfoBox } from '../ui/InfoBox';
+import { showDialogue } from '../ui/Dialogue';
 
 export class Phase4_CombatActions extends TutorialPhase {
     private onComplete: () => void;
@@ -48,195 +52,383 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     private showThreeActions() {
-        const text = `"Three actions determine combat:\n\n⚔️ ATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus + Buffs\n\n🛡️ DEFEND: Gain Block to absorb damage\n   Base block = 5 + Hand Bonus + Buffs\n\n✨ SPECIAL: Elemental ability (requires Flush or better)\n   Effect varies by dominant element"`;
+        // Progress indicator
+        const progress = createProgressIndicator(this.scene, 4, 11);
+        this.container.add(progress);
 
-        const textPanel = this.scene.add.text(this.scene.cameras.main.width / 2, this.scene.cameras.main.height / 2, text, {
-            fontFamily: 'dungeon-mode',
-            fontSize: 24,
-            color: '#ffffff',
-            align: 'center',
-            wordWrap: { width: this.scene.cameras.main.width * 0.6 }
-        }).setOrigin(0.5);
+        // Phase header
+        const header = createPhaseHeader(
+            this.scene,
+            'Combat Actions',
+            'Three ways to engage in battle'
+        );
+        this.container.add(header);
 
-        const continueButton = createButton(this.scene, this.scene.cameras.main.width / 2, this.scene.cameras.main.height * 0.8, 'Continue', () => {
-            textPanel.destroy();
-            continueButton.destroy();
-            this.nextSection();
+        const dialogue = "Three actions determine combat:\n\n⚔️ ATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus + Buffs\n\n🛡️ DEFEND: Gain Block to absorb damage\n   Base block = 5 + Hand Bonus + Buffs\n\n✨ SPECIAL: Elemental ability (requires Flush or better)\n   Effect varies by dominant element";
+
+        this.scene.time.delayedCall(700, () => {
+            const dialogueBox = showDialogue(this.scene, dialogue, () => {
+                const tip = createInfoBox(
+                    this.scene,
+                    'Choose your action wisely based on the situation!',
+                    'tip'
+                );
+                this.container.add(tip);
+
+                this.scene.time.delayedCall(1800, () => {
+                    this.scene.tweens.add({
+                        targets: [progress, header, dialogueBox, tip],
+                        alpha: 0,
+                        duration: 400,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            this.container.removeAll(true);
+                            this.nextSection();
+                        }
+                    });
+                });
+            });
+            this.container.add(dialogueBox);
         });
-
-        this.container.add([textPanel, continueButton]);
     }
 
     private attackPractice() {
-        const enemyData = { ...TIKBALANG_SCOUT, id: 'tutorial_tikbalang' };
+        // Progress indicator
+        const progress = createProgressIndicator(this.scene, 4, 11);
+        this.container.add(progress);
 
-        const instructions = this.scene.add.text(this.scene.cameras.main.width / 2, 100, 'A Tikbalang Scout appears! Its intent shows it will attack for 21 damage.\n\nForm a strong hand and ATTACK to defeat it.', {
-            fontFamily: 'dungeon-mode',
-            fontSize: 20,
-            color: '#ffffff',
-            align: 'center',
-            wordWrap: { width: this.scene.cameras.main.width * 0.8 }
-        }).setOrigin(0.5);
+        const header = createPhaseHeader(
+            this.scene,
+            'Practice: Attack',
+            'Deal damage to defeat the enemy'
+        );
+        this.container.add(header);
 
-        const enemyName = this.scene.add.text(this.scene.cameras.main.width / 2, 200, enemyData.name, {
-            fontFamily: 'dungeon-mode',
-            fontSize: 24,
-            color: '#ff0000'
-        }).setOrigin(0.5);
+        this.scene.time.delayedCall(600, () => {
+            const enemyData = { ...TIKBALANG_SCOUT, id: 'tutorial_tikbalang' };
 
-        const enemyHP = this.scene.add.text(this.scene.cameras.main.width / 2, 230, `HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`,
-            { fontFamily: 'dungeon-mode', fontSize: 20, color: '#ffffff' }).setOrigin(0.5);
+            // Enemy display
+            const enemyContainer = this.scene.add.container(this.scene.cameras.main.width / 2, 240);
+            
+            const enemyNameShadow = this.scene.add.text(2, 2, enemyData.name, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 30,
+                color: '#000000'
+            }).setOrigin(0.5).setAlpha(0.5);
 
-        const enemyIntent = this.scene.add.text(this.scene.cameras.main.width / 2, 260, `Intent: ${enemyData.intent.type} ${enemyData.intent.value}`,
-            { fontFamily: 'dungeon-mode', fontSize: 20, color: '#ffffff' }).setOrigin(0.5);
+            const enemyName = this.scene.add.text(0, 0, enemyData.name, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 30,
+                color: '#ff6b6b'
+            }).setOrigin(0.5);
 
-        this.tutorialUI.drawHand(8);
+            const enemyHP = this.scene.add.text(0, 40, `HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 24,
+                color: '#E8E8E8'
+            }).setOrigin(0.5);
 
-        this.scene.events.on('selectCard', (card: PlayingCard) => {
-            this.tutorialUI.selectCard(card);
-        });
+            const enemyIntent = this.scene.add.text(0, 75, `⚔️ Intent: Attack ${enemyData.intent.value}`, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 22,
+                color: '#FFD700'
+            }).setOrigin(0.5);
 
-        const attackButton = createButton(this.scene, this.scene.cameras.main.width / 2, 500, 'Attack', () => {
-            if (this.tutorialUI.selectedCards.length === 5) {
-                const evaluation = HandEvaluator.evaluateHand(this.tutorialUI.selectedCards, "attack");
-                const damage = 10 + evaluation.totalValue;
-                enemyData.currentHealth -= damage;
-                enemyHP.setText(`HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`);
+            enemyContainer.add([enemyNameShadow, enemyName, enemyHP, enemyIntent]);
+            this.container.add(enemyContainer);
 
-                if (enemyData.currentHealth <= 0) {
-                    instructions.setText('You defeated the Tikbalang Scout!');
-                    this.scene.time.delayedCall(2000, () => {
-                        this.container.destroy();
-                        this.nextSection();
-                    });
-                } else {
-                    // Handle enemy attack if it survives
+            this.tutorialUI.drawHand(8);
+
+            this.scene.events.on('selectCard', (card: PlayingCard) => {
+                this.tutorialUI.selectCard(card);
+            });
+
+            const attackButton = createButton(
+                this.scene,
+                this.scene.cameras.main.width / 2,
+                this.scene.cameras.main.height - 100,
+                '⚔️ Attack',
+                () => {
+                    if (this.tutorialUI.selectedCards.length !== 5) {
+                        const warning = createInfoBox(
+                            this.scene,
+                            'Select 5 cards to form your hand!',
+                            'warning',
+                            this.scene.cameras.main.width / 2,
+                            this.scene.cameras.main.height - 200
+                        );
+                        this.container.add(warning);
+                        this.scene.time.delayedCall(1500, () => warning.destroy());
+                        return;
+                    }
+
+                    const evaluation = HandEvaluator.evaluateHand(this.tutorialUI.selectedCards, "attack");
+                    const damage = 10 + evaluation.totalValue;
+                    enemyData.currentHealth -= damage;
+                    enemyHP.setText(`HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`);
+
+                    if (enemyData.currentHealth <= 0) {
+                        this.scene.events.off('selectCard');
+                        const success = createInfoBox(
+                            this.scene,
+                            'Victory! You defeated the Tikbalang Scout!',
+                            'success'
+                        );
+                        this.container.add(success);
+
+                        this.scene.time.delayedCall(2500, () => {
+                            this.scene.tweens.add({
+                                targets: this.container.getAll(),
+                                alpha: 0,
+                                duration: 400,
+                                ease: 'Power2',
+                                onComplete: () => {
+                                    this.container.removeAll(true);
+                                    this.nextSection();
+                                }
+                            });
+                        });
+                    }
                 }
-            }
-        });
+            );
 
-        this.container.add([instructions, enemyName, enemyHP, enemyIntent, this.tutorialUI.handContainer, attackButton]);
+            this.container.add(attackButton);
+        });
     }
 
     private defendPractice() {
-        const enemyData = { ...BALETE_WRAITH, id: 'tutorial_balete' };
+        // Progress indicator
+        const progress = createProgressIndicator(this.scene, 4, 11);
+        this.container.add(progress);
 
-        const instructions = this.scene.add.text(this.scene.cameras.main.width / 2, 100, 'This wraith strikes hard! Sometimes survival requires defense.\n\nForm a hand and use DEFEND to block its attack.', {
-            fontFamily: 'dungeon-mode',
-            fontSize: 20,
-            color: '#ffffff',
-            align: 'center',
-            wordWrap: { width: this.scene.cameras.main.width * 0.8 }
-        }).setOrigin(0.5);
+        const header = createPhaseHeader(
+            this.scene,
+            'Practice: Defend',
+            'Gain block to absorb incoming damage'
+        );
+        this.container.add(header);
 
-        const enemyName = this.scene.add.text(this.scene.cameras.main.width / 2, 200, enemyData.name, {
-            fontFamily: 'dungeon-mode',
-            fontSize: 24,
-            color: '#ff0000'
-        }).setOrigin(0.5);
+        this.scene.time.delayedCall(600, () => {
+            const enemyData = { ...BALETE_WRAITH, id: 'tutorial_wraith' };
 
-        const enemyHP = this.scene.add.text(this.scene.cameras.main.width / 2, 230, `HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`,
-            { fontFamily: 'dungeon-mode', fontSize: 20, color: '#ffffff' }).setOrigin(0.5);
+            // Enemy display
+            const enemyContainer = this.scene.add.container(this.scene.cameras.main.width / 2, 240);
+            
+            const enemyNameShadow = this.scene.add.text(2, 2, enemyData.name, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 30,
+                color: '#000000'
+            }).setOrigin(0.5).setAlpha(0.5);
 
-        const enemyIntent = this.scene.add.text(this.scene.cameras.main.width / 2, 260, `Intent: ${enemyData.intent.type} ${enemyData.intent.value}`,
-            { fontFamily: 'dungeon-mode', fontSize: 20, color: '#ffffff' }).setOrigin(0.5);
+            const enemyName = this.scene.add.text(0, 0, enemyData.name, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 30,
+                color: '#ff6b6b'
+            }).setOrigin(0.5);
 
-        this.tutorialUI.drawHand(8);
+            const enemyHP = this.scene.add.text(0, 40, `HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 24,
+                color: '#E8E8E8'
+            }).setOrigin(0.5);
 
-        const defendButton = createButton(this.scene, this.scene.cameras.main.width / 2, 500, 'Defend', () => {
-            if (this.tutorialUI.selectedCards.length === 5) {
-                const evaluation = HandEvaluator.evaluateHand(this.tutorialUI.selectedCards, "defend");
-                const block = 5 + evaluation.totalValue;
-                instructions.setText(`You gained ${block} block!`);
+            const enemyIntent = this.scene.add.text(0, 75, `⚔️ Intent: Attack 12`, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 22,
+                color: '#FFD700'
+            }).setOrigin(0.5);
 
-                this.scene.time.delayedCall(2000, () => {
-                    const damage = enemyData.damage - block;
-                    if (damage > 0) {
-                        instructions.setText(`The wraith attacks! You take ${damage} damage.`);
-                    } else {
-                        instructions.setText('The wraith attacks! You blocked all the damage!');
+            enemyContainer.add([enemyNameShadow, enemyName, enemyHP, enemyIntent]);
+            this.container.add(enemyContainer);
+
+            // Player block display
+            const blockText = this.scene.add.text(
+                this.scene.cameras.main.width / 2,
+                340,
+                `Your Block: 0`,
+                {
+                    fontFamily: 'dungeon-mode',
+                    fontSize: 24,
+                    color: '#77888C'
+                }
+            ).setOrigin(0.5);
+            this.container.add(blockText);
+
+            this.tutorialUI.drawHand(8);
+
+            this.scene.events.on('selectCard', (card: PlayingCard) => {
+                this.tutorialUI.selectCard(card);
+            });
+
+            const defendButton = createButton(
+                this.scene,
+                this.scene.cameras.main.width / 2,
+                this.scene.cameras.main.height - 100,
+                '🛡️ Defend',
+                () => {
+                    if (this.tutorialUI.selectedCards.length !== 5) {
+                        const warning = createInfoBox(
+                            this.scene,
+                            'Select 5 cards to form your hand!',
+                            'warning',
+                            this.scene.cameras.main.width / 2,
+                            this.scene.cameras.main.height - 200
+                        );
+                        this.container.add(warning);
+                        this.scene.time.delayedCall(1500, () => warning.destroy());
+                        return;
                     }
 
-                    this.scene.time.delayedCall(2000, () => {
-                        this.container.destroy();
-                        this.nextSection();
-                    });
-                });
-            }
-        });
+                    const evaluation = HandEvaluator.evaluateHand(this.tutorialUI.selectedCards, "defend");
+                    const block = 5 + evaluation.totalValue;
+                    this.player.block += block;
+                    blockText.setText(`Your Block: ${this.player.block}`);
+                    blockText.setColor('#4CAF50');
 
-        this.container.add([instructions, enemyName, enemyHP, enemyIntent, this.tutorialUI.handContainer, defendButton]);
+                    this.scene.events.off('selectCard');
+                    const success = createInfoBox(
+                        this.scene,
+                        `You gained ${block} block! This will absorb the enemy's attack!`,
+                        'success'
+                    );
+                    this.container.add(success);
+
+                    this.scene.time.delayedCall(2500, () => {
+                        this.scene.tweens.add({
+                            targets: this.container.getAll(),
+                            alpha: 0,
+                            duration: 400,
+                            ease: 'Power2',
+                            onComplete: () => {
+                                this.container.removeAll(true);
+                                this.nextSection();
+                            }
+                        });
+                    });
+                }
+            );
+
+            this.container.add(defendButton);
+        });
     }
 
     private specialPractice() {
-        const enemyData = { ...SIGBIN_CHARGER, id: 'tutorial_sigbin' };
+        // Progress indicator
+        const progress = createProgressIndicator(this.scene, 4, 11);
+        this.container.add(progress);
 
-        const instructions = this.scene.add.text(this.scene.cameras.main.width / 2, 100, 'Face a Sigbin! Use SPECIAL to unleash elemental power.\n\nForm a FLUSH (5 cards of same element) to unlock Special.', {
-            fontFamily: 'dungeon-mode',
-            fontSize: 20,
-            color: '#ffffff',
-            align: 'center',
-            wordWrap: { width: this.scene.cameras.main.width * 0.8 }
-        }).setOrigin(0.5);
+        const header = createPhaseHeader(
+            this.scene,
+            'Practice: Special',
+            'Unleash elemental abilities with Flush or better'
+        );
+        this.container.add(header);
 
-        const enemyName = this.scene.add.text(this.scene.cameras.main.width / 2, 200, enemyData.name, {
-            fontFamily: 'dungeon-mode',
-            fontSize: 24,
-            color: '#ff0000'
-        }).setOrigin(0.5);
+        this.scene.time.delayedCall(600, () => {
+            const enemyData = { ...SIGBIN_CHARGER, id: 'tutorial_sigbin' };
 
-        const enemyHP = this.scene.add.text(this.scene.cameras.main.width / 2, 230, `HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`,
-            { fontFamily: 'dungeon-mode', fontSize: 20, color: '#ffffff' }).setOrigin(0.5);
+            // Enemy display
+            const enemyContainer = this.scene.add.container(this.scene.cameras.main.width / 2, 240);
+            
+            const enemyNameShadow = this.scene.add.text(2, 2, enemyData.name, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 30,
+                color: '#000000'
+            }).setOrigin(0.5).setAlpha(0.5);
 
-        const enemyIntent = this.scene.add.text(this.scene.cameras.main.width / 2, 260, `Intent: ${enemyData.intent.type} ${enemyData.intent.value}`,
-            { fontFamily: 'dungeon-mode', fontSize: 20, color: '#ffffff' }).setOrigin(0.5);
+            const enemyName = this.scene.add.text(0, 0, enemyData.name, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 30,
+                color: '#ff6b6b'
+            }).setOrigin(0.5);
 
-        // Manipulate the hand to guarantee a flush
-        this.tutorialUI.drawHand(3);
-        const flushCards: PlayingCard[] = [
-            { id: '1-Apoy', rank: '1', suit: 'Apoy', element: 'fire', selected: false, playable: true },
-            { id: '2-Apoy', rank: '2', suit: 'Apoy', element: 'fire', selected: false, playable: true },
-            { id: '3-Apoy', rank: '3', suit: 'Apoy', element: 'fire', selected: false, playable: true },
-            { id: '4-Apoy', rank: '4', suit: 'Apoy', element: 'fire', selected: false, playable: true },
-            { id: '5-Apoy', rank: '5', suit: 'Apoy', element: 'fire', selected: false, playable: true },
-        ];
-        this.tutorialUI.addCardsToHand(flushCards);
-        this.tutorialUI.updateHandDisplay();
+            const enemyHP = this.scene.add.text(0, 40, `HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 24,
+                color: '#E8E8E8'
+            }).setOrigin(0.5);
 
+            enemyContainer.add([enemyNameShadow, enemyName, enemyHP]);
+            this.container.add(enemyContainer);
 
-        const specialButton = createButton(this.scene, this.scene.cameras.main.width / 2, 500, 'Special', () => {
-            if (this.tutorialUI.selectedCards.length === 5) {
-                const evaluation = HandEvaluator.evaluateHand(this.tutorialUI.selectedCards, "special");
-                if (evaluation.type === 'flush') {
-                    const dominantElement = HandEvaluator.getDominantElement(this.tutorialUI.selectedCards);
-                    let specialText = '';
-                    switch (dominantElement) {
-                        case 'fire':
-                            specialText = 'Apoy: Heavy damage + Burn';
-                            break;
-                        case 'water':
-                            specialText = 'Tubig: Moderate damage + Heal';
-                            break;
-                        case 'earth':
-                            specialText = 'Lupa: Damage + Strength buff';
-                            break;
-                        case 'air':
-                            specialText = 'Hangin: Damage + Dexterity buff';
-                            break;
+            // Give player a Flush hand
+            this.tutorialUI.drawHand(3);
+            const flushCards: PlayingCard[] = [
+                { id: '7-Apoy', rank: '7', suit: 'Apoy', element: 'fire', selected: false, playable: true },
+                { id: '8-Apoy', rank: '8', suit: 'Apoy', element: 'fire', selected: false, playable: true },
+                { id: '9-Apoy', rank: '9', suit: 'Apoy', element: 'fire', selected: false, playable: true },
+                { id: '10-Apoy', rank: '10', suit: 'Apoy', element: 'fire', selected: false, playable: true },
+                { id: '11-Apoy', rank: 'Mandirigma', suit: 'Apoy', element: 'fire', selected: false, playable: true },
+            ];
+            this.tutorialUI.addCardsToHand(flushCards);
+            this.tutorialUI.updateHandDisplay();
+
+            this.scene.events.on('selectCard', (card: PlayingCard) => {
+                this.tutorialUI.selectCard(card);
+            });
+
+            const specialButton = createButton(
+                this.scene,
+                this.scene.cameras.main.width / 2,
+                this.scene.cameras.main.height - 100,
+                '✨ Special (Apoy Flush)',
+                () => {
+                    if (this.tutorialUI.selectedCards.length !== 5) {
+                        const warning = createInfoBox(
+                            this.scene,
+                            'Select all 5 Apoy cards to form a Flush!',
+                            'warning',
+                            this.scene.cameras.main.width / 2,
+                            this.scene.cameras.main.height - 200
+                        );
+                        this.container.add(warning);
+                        this.scene.time.delayedCall(1500, () => warning.destroy());
+                        return;
                     }
-                    instructions.setText(`Your dominant element is ${dominantElement}!\n${specialText}`);
+
+                    const evaluation = HandEvaluator.evaluateHand(this.tutorialUI.selectedCards, "special");
+                    
+                    if (evaluation.type !== 'flush' && evaluation.type !== 'straight_flush') {
+                        const warning = createInfoBox(
+                            this.scene,
+                            'You need a Flush or better to use Special!',
+                            'warning',
+                            this.scene.cameras.main.width / 2,
+                            this.scene.cameras.main.height - 200
+                        );
+                        this.container.add(warning);
+                        this.scene.time.delayedCall(1500, () => warning.destroy());
+                        return;
+                    }
+
+                    const damage = 15 + evaluation.totalValue;
+                    enemyData.currentHealth -= damage;
+                    enemyHP.setText(`HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`);
+
+                    this.scene.events.off('selectCard');
+                    const success = createInfoBox(
+                        this.scene,
+                        `🔥 Apoy Special! You dealt ${damage} damage and applied Burn!`,
+                        'success'
+                    );
+                    this.container.add(success);
 
                     this.scene.time.delayedCall(3000, () => {
-                        this.container.destroy();
-                        this.nextSection();
+                        this.scene.tweens.add({
+                            targets: this.container.getAll(),
+                            alpha: 0,
+                            duration: 400,
+                            ease: 'Power2',
+                            onComplete: () => {
+                                this.container.removeAll(true);
+                                this.nextSection();
+                            }
+                        });
                     });
-                } else {
-                    instructions.setText('You need a Flush (5 cards of the same element) to use a Special action.');
                 }
-            }
-        });
+            );
 
-        this.container.add([instructions, enemyName, enemyHP, enemyIntent, this.tutorialUI.handContainer, specialButton]);
+            this.container.add(specialButton);
+        });
     }
 }
-

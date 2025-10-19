@@ -75,9 +75,8 @@ export function createPhaseHeader(
             fontFamily: 'dungeon-mode',
             fontSize: 20,
             color: '#99A0A5',
-            align: 'center',
-            alpha: 0.9
-        }).setOrigin(0.5);
+            align: 'center'
+        }).setOrigin(0.5).setAlpha(0.9);
         container.add(subtitleText);
     }
 

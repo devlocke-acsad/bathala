@@ -5,59 +5,177 @@ import { TutorialUI } from '../ui/TutorialUI';
 import { BUNGISNGIS } from '../../../../data/enemies/Act1Enemies';
 import { createButton } from '../../../ui/Button';
 import { HandEvaluator } from '../../../../utils/HandEvaluator';
+import { createPhaseHeader } from '../ui/PhaseHeader';
+import { createProgressIndicator } from '../ui/ProgressIndicator';
+import { createInfoBox } from '../ui/InfoBox';
 
 export class Phase8_EnemyIntents extends TutorialPhase {
-    private turn: number = 1;
+    private turn: number = 0;
+    private maxTurns: number = 3;
 
     constructor(scene: Scene, tutorialUI: TutorialUI, private onComplete: () => void) {
         super(scene, tutorialUI);
     }
 
     public start(): void {
+        // Progress indicator
+        const progress = createProgressIndicator(this.scene, 8, 11);
+        this.container.add(progress);
+
+        // Phase header
+        const header = createPhaseHeader(
+            this.scene,
+            'Enemy Intents',
+            'Learn to read and respond to enemy actions'
+        );
+        this.container.add(header);
+
         const dialogue = "Enemies telegraph their next move - their INTENT:\n\n⚔️ Attack [X]: Will deal X damage\n🛡️ Defend: Will gain Block\n💪 Buff: Will gain beneficial status\n🔮 Special: Will use unique ability\n❓ Unknown: Unpredictable\n\nThis Bungisngis shows its intent each turn. Adapt your strategy!";
 
-        const dialogueBox = showDialogue(this.scene, dialogue, () => {
-            this.practiceIntents();
+        this.scene.time.delayedCall(700, () => {
+            const dialogueBox = showDialogue(this.scene, dialogue, () => {
+                const tip = createInfoBox(
+                    this.scene,
+                    'Watch the intent and choose your action wisely!',
+                    'tip'
+                );
+                this.container.add(tip);
+
+                this.scene.time.delayedCall(1800, () => {
+                    this.scene.tweens.add({
+                        targets: [progress, header, dialogueBox, tip],
+                        alpha: 0,
+                        duration: 400,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            this.container.removeAll(true);
+                            this.practiceIntents();
+                        }
+                    });
+                });
+            });
+            this.container.add(dialogueBox);
         });
-        this.container.add(dialogueBox);
     }
 
     private practiceIntents(): void {
-        const enemyData = { ...BUNGISNGIS, id: 'tutorial_bungisngis' };
+        this.turn++;
 
-        const instructions = this.scene.add.text(this.scene.cameras.main.width / 2, 100, `Turn ${this.turn}: The Bungisngis will use ${enemyData.attackPattern[this.turn - 1]}!`, { fontFamily: 'dungeon-mode', fontSize: 20, color: '#ffffff', align: 'center', wordWrap: { width: this.scene.cameras.main.width * 0.8 } }).setOrigin(0.5);
+        // Progress indicator
+        const progress = createProgressIndicator(this.scene, 8, 11);
+        this.container.add(progress);
 
-        const enemyName = this.scene.add.text(this.scene.cameras.main.width / 2, 200, enemyData.name, { fontFamily: 'dungeon-mode', fontSize: 24, color: '#ff0000' }).setOrigin(0.5);
+        const header = createPhaseHeader(
+            this.scene,
+            `Turn ${this.turn} of ${this.maxTurns}`,
+            'React to the enemy intent'
+        );
+        this.container.add(header);
 
-        const enemyHP = this.scene.add.text(this.scene.cameras.main.width / 2, 230, `HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`, { fontFamily: 'dungeon-mode', fontSize: 20, color: '#ffffff' }).setOrigin(0.5);
+        this.scene.time.delayedCall(600, () => {
+            const enemyData = { ...BUNGISNGIS, id: 'tutorial_bungisngis' };
+            const intentPattern = ['Attack 8', 'Defend', 'Buff'];
+            const currentIntent = intentPattern[(this.turn - 1) % intentPattern.length];
 
-        const enemyIntent = this.scene.add.text(this.scene.cameras.main.width / 2, 260, `Intent: ${enemyData.attackPattern[this.turn - 1]}`, { fontFamily: 'dungeon-mode', fontSize: 20, color: '#ffffff' }).setOrigin(0.5);
+            // Enemy display
+            const enemyContainer = this.scene.add.container(this.scene.cameras.main.width / 2, 280);
+            
+            const enemyNameShadow = this.scene.add.text(2, 2, enemyData.name, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 32,
+                color: '#000000'
+            }).setOrigin(0.5).setAlpha(0.5);
 
-        this.tutorialUI.drawHand(8);
+            const enemyName = this.scene.add.text(0, 0, enemyData.name, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 32,
+                color: '#ff6b6b'
+            }).setOrigin(0.5);
 
-        const attackButton = createButton(this.scene, this.scene.cameras.main.width / 2 - 150, 500, 'Attack', () => {
-            this.handlePlayerAction(enemyData, instructions, enemyHP, enemyIntent);
+            const enemyHP = this.scene.add.text(0, 45, `HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 24,
+                color: '#E8E8E8'
+            }).setOrigin(0.5);
+
+            // Intent with icon
+            const intentIcon = this.getIntentIcon(currentIntent);
+            const enemyIntent = this.scene.add.text(0, 85, `${intentIcon} Intent: ${currentIntent}`, {
+                fontFamily: 'dungeon-mode',
+                fontSize: 26,
+                color: '#FFD700'
+            }).setOrigin(0.5);
+
+            enemyContainer.add([enemyNameShadow, enemyName, enemyHP, enemyIntent]);
+            this.container.add(enemyContainer);
+
+            // Draw hand
+            this.tutorialUI.drawHand(8);
+
+            this.scene.events.on('selectCard', (card: any) => {
+                this.tutorialUI.selectCard(card);
+            });
+
+            // Action buttons
+            const attackButton = createButton(
+                this.scene,
+                this.scene.cameras.main.width / 2 - 120,
+                this.scene.cameras.main.height - 120,
+                '⚔️ Attack',
+                () => this.handlePlayerAction()
+            );
+
+            const defendButton = createButton(
+                this.scene,
+                this.scene.cameras.main.width / 2 + 120,
+                this.scene.cameras.main.height - 120,
+                '🛡️ Defend',
+                () => this.handlePlayerAction()
+            );
+
+            this.container.add([attackButton, defendButton]);
         });
-
-        const defendButton = createButton(this.scene, this.scene.cameras.main.width / 2 + 150, 500, 'Defend', () => {
-            this.handlePlayerAction(enemyData, instructions, enemyHP, enemyIntent);
-        });
-
-        this.container.add([instructions, enemyName, enemyHP, enemyIntent, this.tutorialUI.handContainer, attackButton, defendButton]);
     }
 
-    private handlePlayerAction(enemyData: any, instructions: Phaser.GameObjects.Text, enemyHP: Phaser.GameObjects.Text, enemyIntent: Phaser.GameObjects.Text): void {
-        this.turn++;
-        if (this.turn > enemyData.attackPattern.length) {
-            instructions.setText('You have survived the Bungisngis!\nReading intents is key to survival!');
-            this.scene.time.delayedCall(3000, () => {
-                this.onComplete();
+    private getIntentIcon(intent: string): string {
+        if (intent.includes('Attack')) return '⚔️';
+        if (intent.includes('Defend')) return '🛡️';
+        if (intent.includes('Buff')) return '💪';
+        return '🔮';
+    }
+
+    private handlePlayerAction(): void {
+        this.scene.events.off('selectCard');
+
+        if (this.turn >= this.maxTurns) {
+            const success = createInfoBox(
+                this.scene,
+                'Perfect! Reading intents is key to survival!',
+                'success'
+            );
+            this.container.add(success);
+
+            this.scene.time.delayedCall(2500, () => {
+                this.scene.tweens.add({
+                    targets: this.container.getAll(),
+                    alpha: 0,
+                    duration: 500,
+                    ease: 'Power2',
+                    onComplete: () => this.onComplete()
+                });
             });
             return;
         }
 
-        instructions.setText(`Turn ${this.turn}: The Bungisngis will use ${enemyData.attackPattern[this.turn - 1]}!`);
-        enemyIntent.setText(`Intent: ${enemyData.attackPattern[this.turn - 1]}`);
-        this.tutorialUI.drawHand(8);
+        this.scene.tweens.add({
+            targets: this.container.getAll(),
+            alpha: 0,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+                this.container.removeAll(true);
+                this.practiceIntents();
+            }
+        });
     }
 }
