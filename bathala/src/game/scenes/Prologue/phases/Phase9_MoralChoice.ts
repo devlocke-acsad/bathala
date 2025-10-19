@@ -60,7 +60,7 @@ export class Phase9_MoralChoice extends TutorialPhase {
 
     private presentChoice(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 7, 9);
+        const progress = createProgressIndicator(this.scene, 7, 8);
         this.container.add(progress);
 
         const header = createPhaseHeader(
@@ -70,23 +70,63 @@ export class Phase9_MoralChoice extends TutorialPhase {
         );
         this.container.add(header);
 
-        this.scene.time.delayedCall(600, () => {
-            // Enemy representation (defeated)
-            const enemyContainer = this.scene.add.container(this.scene.cameras.main.width / 2, 340);
-            
-            const enemySprite = this.scene.add.text(0, -40, '👹', {
-                fontFamily: 'dungeon-mode',
-                fontSize: 64
-            }).setOrigin(0.5).setAlpha(0.5);
+        // Skip Phase button
+        this.createSkipPhaseButton(() => {
+            this.scene.tweens.add({
+                targets: this.container.getAll(),
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.container.removeAll(true);
+                    this.onComplete();
+                }
+            });
+        });
 
-            const defeatedText = this.scene.add.text(0, 40, 'Kapre Shade - Defeated', {
+        this.scene.time.delayedCall(600, () => {
+            // Enemy sprite display (Kapre Shade) - centered
+            const enemyX = this.scene.cameras.main.width / 2;
+            const enemyY = 280;
+            
+            const enemySpriteKey = 'kapre_combat'; // Kapre Shade sprite
+            const enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
+            
+            // Scale the enemy sprite appropriately
+            const targetWidth = 200;
+            const targetHeight = 200;
+            const scaleX = targetWidth / enemySprite.width;
+            const scaleY = targetHeight / enemySprite.height;
+            const finalScale = Math.min(scaleX, scaleY);
+            enemySprite.setScale(finalScale);
+            enemySprite.setAlpha(0.5); // Defeated/faded appearance
+            
+            if (enemySprite.texture) {
+                enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+            }
+            this.container.add(enemySprite);
+            
+            // Enemy shadow
+            const enemyShadow = this.scene.add.ellipse(
+                enemyX,
+                enemyY + 80,
+                100,
+                25,
+                0x000000,
+                0.3
+            );
+            this.container.add(enemyShadow);
+
+            // Calculate proper Y position for name (below sprite)
+            const enemySpriteScaledHeight = enemySprite.height * finalScale;
+            const enemyNameY = enemyY + (enemySpriteScaledHeight / 2) + 20;
+
+            const defeatedText = this.scene.add.text(enemyX, enemyNameY, 'Kapre Shade - Defeated', {
                 fontFamily: 'dungeon-mode',
                 fontSize: 24,
                 color: '#77888C'
             }).setOrigin(0.5);
-
-            enemyContainer.add([enemySprite, defeatedText]);
-            this.container.add(enemyContainer);
+            this.container.add(defeatedText);
 
             // Choice buttons
             const slayButton = createButton(

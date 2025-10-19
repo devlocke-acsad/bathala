@@ -52,6 +52,20 @@ export class Phase7_Items extends TutorialPhase {
         );
         this.container.add(header);
 
+        // Skip Phase button
+        this.createSkipPhaseButton(() => {
+            this.scene.tweens.add({
+                targets: this.container.getAll(),
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.container.removeAll(true);
+                    this.onComplete();
+                }
+            });
+        });
+
         const dialogue = "Relics provide permanent passive bonuses:\n\n• Babaylan's Talisman: Treat hands as one tier higher\n• Agimat of Swift Wind: +1 discard charge\n• Earthwarden's Plate: Start combat with 5 Block\n\nYou can hold up to 6 relics. They activate automatically!\n\nHere, take this starter relic:";
 
         this.scene.time.delayedCall(700, () => {
@@ -102,6 +116,20 @@ export class Phase7_Items extends TutorialPhase {
         );
         this.container.add(header);
 
+        // Skip Phase button
+        this.createSkipPhaseButton(() => {
+            this.scene.tweens.add({
+                targets: this.container.getAll(),
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.container.removeAll(true);
+                    this.onComplete();
+                }
+            });
+        });
+
         const dialogue = "Potions are single-use combat items:\n\n• Potion of Clarity: Draw 3 cards\n• Elixir of Fortitude: Gain 15 Block\n• Phial of Elements: Choose dominant element\n\nYou can hold up to 3 potions. Use them strategically!\n\nHere's a potion to try:";
 
         this.scene.time.delayedCall(700, () => {
@@ -141,6 +169,20 @@ export class Phase7_Items extends TutorialPhase {
             'See how potions can help in combat'
         );
         this.container.add(header);
+
+        // Skip Phase button
+        this.createSkipPhaseButton(() => {
+            this.scene.tweens.add({
+                targets: this.container.getAll(),
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.container.removeAll(true);
+                    this.onComplete();
+                }
+            });
+        });
 
         this.scene.time.delayedCall(600, () => {
             const enemyData = { ...AMOMONGO, id: 'tutorial_amomongo' };

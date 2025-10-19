@@ -69,35 +69,75 @@ export class Phase11_FinalTrial extends TutorialPhase {
         this.tutorialUI.handContainer.removeAll(true);
         this.tutorialUI.cardSprites = [];
 
-        // Progress indicator - always visible
-        const progress = createProgressIndicator(this.scene, 9, 9);
-        this.container.add(progress);
+        const screenWidth = this.scene.cameras.main.width;
+        const screenHeight = this.scene.cameras.main.height;
 
-        // Turn counter
-        const turnText = this.scene.add.text(
-            this.scene.cameras.main.width / 2,
-            50,
-            `Turn ${this.turn}`,
-            {
-                fontFamily: 'dungeon-mode',
-                fontSize: 24,
-                color: '#FFD700',
-                align: 'center'
-            }
-        ).setOrigin(0.5);
-        this.container.add(turnText);
+        // === MATCH ACTUAL COMBAT LAYOUT ===
+        
+        // Player section (left side) - EXACT as Combat.ts
+        const playerX = screenWidth * 0.25;
+        const playerY = screenHeight * 0.4;
 
-        // Enemy sprite display
-        const enemyX = this.scene.cameras.main.width / 2;
-        const enemyY = 160;
+        // Player sprite
+        const playerSprite = this.scene.add.sprite(playerX, playerY, 'combat_player');
+        playerSprite.setScale(2);
+        if (playerSprite.texture) {
+            playerSprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+        }
+        this.container.add(playerSprite);
+
+        // Calculate dynamic Y offsets for player (EXACT as Combat.ts)
+        const playerScale = 2;
+        const playerSpriteScaledHeight = playerSprite.height * playerScale;
+        const playerNameY = playerY - (playerSpriteScaledHeight / 2) - 20;
+        const playerHealthY = playerY + (playerSpriteScaledHeight / 2) + 20;
+        const playerBlockY = playerHealthY + 25;
+
+        // Player name
+        const playerName = this.scene.add.text(playerX, playerNameY, 'You', {
+            fontFamily: 'dungeon-mode',
+            fontSize: 24,
+            color: '#77888C',
+            align: 'center'
+        }).setOrigin(0.5);
+        this.container.add(playerName);
+
+        // Player health
+        const playerHealthText = this.scene.add.text(playerX, playerHealthY, `HP: ${this.playerHP}/100`, {
+            fontFamily: 'dungeon-mode',
+            fontSize: 20,
+            color: '#ff6b6b',
+            align: 'center'
+        }).setOrigin(0.5);
+        this.container.add(playerHealthText);
+
+        // Player block
+        const playerBlockText = this.scene.add.text(playerX, playerBlockY, `Block: ${this.playerBlock}`, {
+            fontFamily: 'dungeon-mode',
+            fontSize: 18,
+            color: '#4ecdc4',
+            align: 'center'
+        }).setOrigin(0.5);
+        this.container.add(playerBlockText);
+
+        // Enemy section (right side) - EXACT as Combat.ts
+        const enemyX = screenWidth * 0.75;
+        const enemyY = screenHeight * 0.4;
         
         const enemyData = { ...TAWONG_LIPOD };
         const enemySpriteKey = this.getEnemySpriteKey(enemyData.name);
         const enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
         
-        // Scale the enemy sprite
-        const targetWidth = 180;
-        const targetHeight = 180;
+        // Scale enemy sprite (EXACT as Combat.ts)
+        const lowerCaseName = enemyData.name.toLowerCase();
+        let targetWidth = 250;
+        let targetHeight = 250;
+        
+        if (lowerCaseName.includes("tiyanak") || lowerCaseName.includes("duwende")) {
+            targetWidth = 150;
+            targetHeight = 150;
+        }
+        
         const scaleX = targetWidth / enemySprite.width;
         const scaleY = targetHeight / enemySprite.height;
         const finalScale = Math.min(scaleX, scaleY);
@@ -107,100 +147,109 @@ export class Phase11_FinalTrial extends TutorialPhase {
             enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
         }
         this.container.add(enemySprite);
-        
-        // Enemy shadow
-        const enemyShadow = this.scene.add.ellipse(
-            enemyX,
-            enemyY + 70,
-            90,
-            22,
-            0x000000,
-            0.3
-        );
-        this.container.add(enemyShadow);
 
-        // Calculate proper Y position for enemy info (below sprite)
+        // Calculate dynamic Y offsets for enemy (EXACT as Combat.ts)
         const enemySpriteScaledHeight = enemySprite.height * finalScale;
-        const enemyInfoY = enemyY + (enemySpriteScaledHeight / 2) + 20;
+        const enemyNameY = enemyY - (enemySpriteScaledHeight / 2) - 20;
+        const enemyHealthY = enemyY + (enemySpriteScaledHeight / 2) + 20;
+        const enemyBlockY = enemyHealthY + 25;
+        const enemyIntentY = enemyBlockY + 25;
 
-        // Enemy display container
-        const enemyContainer = this.scene.add.container(enemyX, enemyInfoY);
-        
-        const enemyNameShadow = this.scene.add.text(2, 2, enemyData.name, {
+        // Enemy name
+        const enemyName = this.scene.add.text(enemyX, enemyNameY, enemyData.name, {
             fontFamily: 'dungeon-mode',
-            fontSize: 26,
-            color: '#000000'
-        }).setOrigin(0.5).setAlpha(0.5);
-
-        const enemyName = this.scene.add.text(0, 0, enemyData.name, {
-            fontFamily: 'dungeon-mode',
-            fontSize: 26,
-            color: '#ff6b6b'
+            fontSize: 24,
+            color: '#ff6b6b',
+            align: 'center'
         }).setOrigin(0.5);
+        this.container.add(enemyName);
 
-        const enemyHP = this.scene.add.text(0, 30, `HP: ${this.enemyHP}/${this.enemyMaxHP}`, {
+        // Enemy health
+        const enemyHP = this.scene.add.text(enemyX, enemyHealthY, `HP: ${this.enemyHP}/${this.enemyMaxHP}`, {
             fontFamily: 'dungeon-mode',
-            fontSize: 22,
-            color: '#E8E8E8'
+            fontSize: 20,
+            color: '#ff6b6b',
+            align: 'center'
         }).setOrigin(0.5);
+        this.container.add(enemyHP);
 
-        // Intent
+        // Enemy block (if any)
+        const enemyBlockText = this.scene.add.text(enemyX, enemyBlockY, 'Block: 0', {
+            fontFamily: 'dungeon-mode',
+            fontSize: 18,
+            color: '#4ecdc4',
+            align: 'center'
+        }).setOrigin(0.5);
+        this.container.add(enemyBlockText);
+
+        // Enemy intent
         const intentPattern = ['Attack 15', 'Defend +10', 'Buff +2 STR'];
         const currentIntent = intentPattern[(this.turn - 1) % intentPattern.length];
         const intentIcon = this.getIntentIcon(currentIntent);
         
-        const enemyIntent = this.scene.add.text(0, 60, `${intentIcon} ${currentIntent}`, {
+        const enemyIntent = this.scene.add.text(enemyX, enemyIntentY, `${intentIcon} ${currentIntent}`, {
             fontFamily: 'dungeon-mode',
-            fontSize: 20,
-            color: '#FFD700'
+            fontSize: 18,
+            color: '#ffd700',
+            align: 'center'
         }).setOrigin(0.5);
+        this.container.add(enemyIntent);
 
-        enemyContainer.add([enemyNameShadow, enemyName, enemyHP, enemyIntent]);
-        this.container.add(enemyContainer);
-
-        // Player stats
-        const playerStats = this.scene.add.text(
-            this.scene.cameras.main.width / 2,
-            320,
-            `Your HP: ${this.playerHP}/100 | Block: ${this.playerBlock}`,
+        // Turn counter (top center)
+        const turnText = this.scene.add.text(
+            screenWidth / 2,
+            40,
+            `Turn ${this.turn}`,
             {
                 fontFamily: 'dungeon-mode',
-                fontSize: 22,
-                color: '#4CAF50'
+                fontSize: 24,
+                color: '#ffd700',
+                align: 'center'
             }
         ).setOrigin(0.5);
-        this.container.add(playerStats);
+        this.container.add(turnText);
 
-        // Draw hand
+        // Progress indicator (top left corner, small)
+        const progress = createProgressIndicator(this.scene, 9, 9);
+        progress.setPosition(80, 30);
+        progress.setScale(0.8);
+        this.container.add(progress);
+
+        // Draw hand (bottom center) - EXACT as Combat.ts
+        this.tutorialUI.handContainer.setVisible(true);
         this.tutorialUI.drawHand(8);
 
         this.scene.events.on('selectCard', (card: PlayingCard) => {
             this.tutorialUI.selectCard(card);
         });
 
-        // Action buttons
+        // Action buttons (bottom center) - EXACT as Combat.ts layout
+        const buttonY = screenHeight - 100;
+        const buttonSpacing = 200;
+        const centerX = screenWidth / 2;
+
         const attackButton = createButton(
             this.scene,
-            this.scene.cameras.main.width / 2 - 180,
-            this.scene.cameras.main.height - 100,
+            centerX - buttonSpacing,
+            buttonY,
             '⚔️ Attack',
-            () => this.handlePlayerAction('attack', enemyHP, playerStats)
+            () => this.handlePlayerAction('attack', enemyHP, playerHealthText, playerBlockText, enemyBlockText)
         );
 
         const defendButton = createButton(
             this.scene,
-            this.scene.cameras.main.width / 2,
-            this.scene.cameras.main.height - 100,
+            centerX,
+            buttonY,
             '🛡️ Defend',
-            () => this.handlePlayerAction('defend', enemyHP, playerStats)
+            () => this.handlePlayerAction('defend', enemyHP, playerHealthText, playerBlockText, enemyBlockText)
         );
 
         const specialButton = createButton(
             this.scene,
-            this.scene.cameras.main.width / 2 + 180,
-            this.scene.cameras.main.height - 100,
+            centerX + buttonSpacing,
+            buttonY,
             '✨ Special',
-            () => this.handlePlayerAction('special', enemyHP, playerStats)
+            () => this.handlePlayerAction('special', enemyHP, playerHealthText, playerBlockText, enemyBlockText)
         );
 
         this.container.add([attackButton, defendButton, specialButton]);
@@ -216,7 +265,9 @@ export class Phase11_FinalTrial extends TutorialPhase {
     private handlePlayerAction(
         action: 'attack' | 'defend' | 'special',
         enemyHPText: Phaser.GameObjects.Text,
-        playerStatsText: Phaser.GameObjects.Text
+        playerHPText: Phaser.GameObjects.Text,
+        playerBlockText: Phaser.GameObjects.Text,
+        enemyBlockText: Phaser.GameObjects.Text
     ): void {
         if (this.tutorialUI.selectedCards.length !== 5) {
             const warning = createInfoBox(
@@ -237,7 +288,7 @@ export class Phase11_FinalTrial extends TutorialPhase {
         if (action === 'attack') {
             const damage = 10 + evaluation.totalValue;
             this.enemyHP -= damage;
-            enemyHPText.setText(`HP: ${this.enemyHP}/${this.enemyMaxHP}`);
+            enemyHPText.setText(`HP: ${Math.max(0, this.enemyHP)}/${this.enemyMaxHP}`);
             
             if (this.enemyHP <= 0) {
                 this.victorySequence();
@@ -246,17 +297,16 @@ export class Phase11_FinalTrial extends TutorialPhase {
         } else if (action === 'defend') {
             const block = 5 + evaluation.totalValue;
             this.playerBlock += block;
-            playerStatsText.setText(`Your HP: ${this.playerHP}/100 | Block: ${this.playerBlock}`);
+            playerBlockText.setText(`Block: ${this.playerBlock}`);
         } else if (action === 'special') {
-            if (evaluation.type === 'flush' || evaluation.type === 'straight_flush') {
-                const damage = 15 + evaluation.totalValue;
-                this.enemyHP -= damage;
-                enemyHPText.setText(`HP: ${this.enemyHP}/${this.enemyMaxHP}`);
-                
-                if (this.enemyHP <= 0) {
-                    this.victorySequence();
-                    return;
-                }
+            // Special works with any hand now (no flush requirement)
+            const damage = 15 + evaluation.totalValue;
+            this.enemyHP -= damage;
+            enemyHPText.setText(`HP: ${Math.max(0, this.enemyHP)}/${this.enemyMaxHP}`);
+            
+            if (this.enemyHP <= 0) {
+                this.victorySequence();
+                return;
             }
         }
 
@@ -276,6 +326,8 @@ export class Phase11_FinalTrial extends TutorialPhase {
                 }
             }
             this.playerHP -= damage;
+            playerHPText.setText(`HP: ${Math.max(0, this.playerHP)}/100`);
+            playerBlockText.setText(`Block: ${this.playerBlock}`);
             
             if (this.playerHP <= 0) {
                 this.defeatSequence();

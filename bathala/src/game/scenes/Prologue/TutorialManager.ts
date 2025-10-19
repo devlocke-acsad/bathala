@@ -9,7 +9,7 @@ import { Phase7_Items } from './phases/Phase7_Items';
 // import { Phase8_EnemyIntents } from './phases/Phase8_EnemyIntents'; // REMOVED - Intents deferred
 import { Phase9_MoralChoice } from './phases/Phase9_MoralChoice';
 import { Phase10_AdvancedConcepts } from './phases/Phase10_AdvancedConcepts';
-import { Phase11_FinalTrial } from './phases/Phase11_FinalTrial';
+// import { Phase11_FinalTrial } from './phases/Phase11_FinalTrial'; // REMOVED - Transition directly to game
 import { createButton } from '../../ui/Button';
 import { TutorialUI } from './ui/TutorialUI';
 
@@ -162,8 +162,8 @@ export class TutorialManager {
             new Phase7_Items(this.scene, tutorialUI, this.startNextPhase.bind(this)),
             // Phase8_EnemyIntents - Removed (intents deferred)
             new Phase9_MoralChoice(this.scene, tutorialUI, this.startNextPhase.bind(this)),
-            new Phase10_AdvancedConcepts(this.scene, tutorialUI, this.startNextPhase.bind(this)),
-            new Phase11_FinalTrial(this.scene, tutorialUI, this.startNextPhase.bind(this))
+            new Phase10_AdvancedConcepts(this.scene, tutorialUI, this.completeTutorial.bind(this))
+            // Phase11_FinalTrial - Removed (transition directly to game)
         ];
         
         // Fade in everything
@@ -302,52 +302,107 @@ export class TutorialManager {
         }
     }
 
+    /**
+     * Complete tutorial and transition to main game
+     */
+    private completeTutorial() {
+        // Clear phase containers
+        this.scene.children.list.forEach((child) => {
+            if (child instanceof Phaser.GameObjects.Container) {
+                child.removeAll(true);
+            }
+        });
+
+        // Completion message
+        const { width, height } = this.scene.cameras.main;
+        
+        const completionText = this.scene.add.text(
+            width / 2,
+            height / 2 - 80,
+            '🎉 Tutorial Complete! 🎉',
+            {
+                fontFamily: 'dungeon-mode',
+                fontSize: 42,
+                color: '#FFD700',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setAlpha(0).setDepth(3000);
+
+        const messageText = this.scene.add.text(
+            width / 2,
+            height / 2,
+            'You have learned the ways of the Babaylan.\n\nThe corrupted realms await your judgment.\n\nRestore balance to the sacred lands!',
+            {
+                fontFamily: 'dungeon-mode',
+                fontSize: 24,
+                color: '#77888C',
+                align: 'center',
+                wordWrap: { width: width * 0.7 }
+            }
+        ).setOrigin(0.5).setAlpha(0).setDepth(3000);
+
+        const readyText = this.scene.add.text(
+            width / 2,
+            height / 2 + 100,
+            'Click anywhere to begin your journey...',
+            {
+                fontFamily: 'dungeon-mode',
+                fontSize: 20,
+                color: '#FFAA00',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setAlpha(0).setDepth(3000);
+
+        // Fade in completion screen
+        this.scene.tweens.add({
+            targets: [completionText, messageText, readyText],
+            alpha: 1,
+            duration: 1000,
+            ease: 'Power2',
+            stagger: 200
+        });
+
+        // Pulse ready text
+        this.scene.tweens.add({
+            targets: readyText,
+            alpha: 0.5,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Click to continue
+        this.scene.input.once('pointerdown', () => {
+            this.scene.tweens.add({
+                targets: [completionText, messageText, readyText],
+                alpha: 0,
+                duration: 600,
+                ease: 'Power2',
+                onComplete: () => {
+                    completionText.destroy();
+                    messageText.destroy();
+                    readyText.destroy();
+                    this.endTutorial();
+                }
+            });
+        });
+    }
+
     private endTutorial(skipped = false) {
         if (this.particles) {
             this.particles.stop();
         }
 
-        if (skipped) {
-            this.scene.cameras.main.fadeOut(800, 21, 14, 16);
-            this.scene.time.delayedCall(800, () => {
-                this.scene.scene.start('Overworld');
-            });
-            return;
-        }
-
-        // Completion celebration
-        const { width, height } = this.scene.cameras.main;
-        const completionText = this.scene.add.text(
-            width / 2, 
-            height / 2, 
-            '✓ Training Complete!\n\nYou are ready to face the corrupted realms.', 
-            {
-                fontFamily: 'dungeon-mode',
-                fontSize: 36,
-                color: '#4CAF50',
-                align: 'center',
-                lineSpacing: 12
-            }
-        ).setOrigin(0.5).setAlpha(0).setDepth(4000);
-
-        this.scene.tweens.add({
-            targets: completionText,
-            alpha: 1,
-            scale: 1.1,
-            duration: 800,
-            ease: 'Back.easeOut'
-        });
-
-        this.scene.time.delayedCall(3000, () => {
-            this.scene.tweens.add({
-                targets: [this.container, this.bgContainer, completionText],
-                alpha: 0,
-                duration: 1000,
-                ease: 'Power2',
-                onComplete: () => {
-                    this.scene.scene.start('Overworld');
-                }
-            });
+        // Fade to main game
+        this.scene.cameras.main.fadeOut(1200, 21, 14, 16);
+        this.scene.time.delayedCall(1200, () => {
+            // Clean up all containers
+            this.container?.destroy();
+            this.bgContainer?.destroy();
+            
+            // Start the overworld
+            this.scene.scene.start('Overworld');
         });
     }
 }
