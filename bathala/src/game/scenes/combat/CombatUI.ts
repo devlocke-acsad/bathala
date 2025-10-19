@@ -10,6 +10,7 @@ import {
 import { DeckManager } from "../../../utils/DeckManager";
 import { HandEvaluator } from "../../../utils/HandEvaluator";
 import { Combat } from "../Combat";
+import { createButton } from "../../ui/Button";
 
 /**
  * CombatUI - Handles all UI creation, updates, and management for Combat scene
@@ -1208,7 +1209,7 @@ export class CombatUI {
       this.selectionCounterText.setVisible(true);
       this.handEvaluationText.setVisible(false);
       
-      const playButton = this.createButton(-adjustedSpacing * 1.2, 0, "Play Hand", () => {
+      const playButton = createButton(this.scene, -adjustedSpacing * 1.2, 0, "Play Hand", () => {
         this.scene.playSelectedCards();
       });
 
@@ -1310,7 +1311,7 @@ export class CombatUI {
         suitButtonContainer
       ]);
 
-      const discardButton = this.createButton(adjustedSpacing * 1.2, 0, "Discard", () => {
+      const discardButton = createButton(this.scene, adjustedSpacing * 1.2, 0, "Discard", () => {
         this.scene.discardSelectedCards();
       });
 
@@ -1326,15 +1327,15 @@ export class CombatUI {
 
       // Reduce spacing to bring buttons closer together
       const buttonSpacing = adjustedSpacing * 0.6; // Make buttons closer
-      const attackButton = this.createButton(-buttonSpacing, 0, "Attack", () => {
+      const attackButton = createButton(this.scene, -buttonSpacing, 0, "Attack", () => {
         this.scene.executeAction("attack");
       });
 
-      const defendButton = this.createButton(0, 0, "Defend", () => {
+      const defendButton = createButton(this.scene, 0, 0, "Defend", () => {
         this.scene.executeAction("defend");
       });
 
-      const specialButton = this.createButton(buttonSpacing, 0, "Special", () => {
+      const specialButton = createButton(this.scene, buttonSpacing, 0, "Special", () => {
         this.scene.executeAction("special");
       });
 
@@ -1392,101 +1393,7 @@ export class CombatUI {
   /**
    * Create button with Balatro/Prologue styling
    */
-  public createButton(
-    x: number,
-    y: number,
-    text: string,
-    callback: () => void
-  ): Phaser.GameObjects.Container {
-    const screenWidth = this.scene.cameras.main.width;
-    const baseButtonWidth = 140;
-    const baseButtonHeight = 45;
-    
-    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    
-    const tempText = this.scene.add.text(0, 0, text, {
-      fontFamily: "dungeon-mode",
-      fontSize: Math.floor(18 * scaleFactor),
-      color: "#77888C",
-      align: "center"
-    });
-    
-    const textWidth = tempText.width;
-    const textHeight = tempText.height;
-    tempText.destroy();
-    
-    const padding = 30;
-    const buttonWidth = Math.max(baseButtonWidth, textWidth + padding);
-    const buttonHeight = Math.max(baseButtonHeight, textHeight + 16);
 
-    const button = this.scene.add.container(x, y);
-
-    const outerBorder = this.scene.add.rectangle(0, 0, buttonWidth + 8, buttonHeight + 8, undefined, 0)
-      .setStrokeStyle(3, 0x77888C);
-    const innerBorder = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0)
-      .setStrokeStyle(2, 0x77888C);
-    const bg = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
-
-    const buttonText = this.scene.add.text(0, 0, text, {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(18 * scaleFactor),
-        color: "#77888C",
-        align: "center",
-      })
-      .setOrigin(0.5);
-
-    button.add([outerBorder, innerBorder, bg, buttonText]);
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
-      Phaser.Geom.Rectangle.Contains
-    );
-    
-    button.on("pointerdown", () => {
-      if (this.scene.getIsActionProcessing()) {
-        return;
-      }
-      
-      this.scene.tweens.add({
-        targets: button,
-        scale: 0.92,
-        duration: 80,
-        ease: 'Power2',
-        onComplete: () => {
-          this.scene.tweens.add({
-            targets: button,
-            scale: 1,
-            duration: 80,
-            ease: 'Power2'
-          });
-        }
-      });
-      callback();
-    });
-    
-    button.on("pointerover", () => {
-      bg.setFillStyle(0x1f1410);
-      buttonText.setColor("#e8eced");
-      this.scene.tweens.add({
-        targets: button,
-        scale: 1.08,
-        duration: 150,
-        ease: 'Back.easeOut'
-      });
-    });
-    
-    button.on("pointerout", () => {
-      bg.setFillStyle(0x150E10);
-      buttonText.setColor("#77888C");
-      this.scene.tweens.add({
-        targets: button,
-        scale: 1,
-        duration: 150,
-        ease: 'Back.easeOut'
-      });
-    });
-
-    return button;
-  }
   
   /**
    * Update deck display with current card count

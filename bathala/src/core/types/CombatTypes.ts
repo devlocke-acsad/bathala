@@ -58,6 +58,8 @@ export interface HandEvaluation {
 export interface CombatEntity {
   id: string;
   name: string;
+  x?: number;
+  y?: number;
   maxHealth: number;
   currentHealth: number;
   block: number;

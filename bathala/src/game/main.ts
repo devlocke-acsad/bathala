@@ -2,7 +2,7 @@ import { Boot } from "./scenes/Boot";
 import { GameOver } from "./scenes/GameOver";
 import { Game as MainGame } from "./scenes/Game";
 import { MainMenu } from "./scenes/MainMenu";
-import { Prologue } from "./scenes/Prologue";
+import { Prologue } from "./scenes/Prologue/Prologue";
 import { Overworld } from "./scenes/Overworld";
 import { Combat } from "./scenes/Combat";
 import { Shop } from "./scenes/Shop";
