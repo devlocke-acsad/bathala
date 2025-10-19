@@ -1197,8 +1197,8 @@ export class CombatUI {
           
           this.scene.tweens.add({
             targets: relicIcon,
-            scaleX: 0.2,
-            scaleY: 0.2,
+            scaleX: 0.1,
+            scaleY: 0.1,
             duration: 150,
             ease: 'Back.easeOut'
           });
