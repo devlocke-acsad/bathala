@@ -187,9 +187,9 @@ export class Phase7_Items extends TutorialPhase {
         this.scene.time.delayedCall(600, () => {
             const enemyData = { ...AMOMONGO, id: 'tutorial_amomongo' };
 
-            // Enemy sprite display (centered)
+            // Enemy sprite display (centered, moved down to avoid inventory)
             const enemyX = this.scene.cameras.main.width / 2;
-            const enemyY = 280;
+            const enemyY = 320;
             
             const enemySpriteKey = this.getEnemySpriteKey(enemyData.name);
             const enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
@@ -206,17 +206,6 @@ export class Phase7_Items extends TutorialPhase {
                 enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
             }
             this.container.add(enemySprite);
-            
-            // Enemy shadow
-            const enemyShadow = this.scene.add.ellipse(
-                enemyX,
-                enemyY + 80,
-                100,
-                25,
-                0x000000,
-                0.3
-            );
-            this.container.add(enemyShadow);
 
             // Calculate proper Y position for name/HP (below sprite)
             const enemySpriteScaledHeight = enemySprite.height * finalScale;
@@ -225,12 +214,6 @@ export class Phase7_Items extends TutorialPhase {
 
             // Enemy display container
             const enemyContainer = this.scene.add.container(enemyX, enemyNameY);
-            
-            const enemyNameShadow = this.scene.add.text(2, 2, enemyData.name, { 
-                fontFamily: 'dungeon-mode', 
-                fontSize: 24, 
-                color: '#000000' 
-            }).setOrigin(0.5).setAlpha(0.5);
 
             const enemyName = this.scene.add.text(0, 0, enemyData.name, { 
                 fontFamily: 'dungeon-mode', 
@@ -244,7 +227,7 @@ export class Phase7_Items extends TutorialPhase {
                 color: '#E8E8E8' 
             }).setOrigin(0.5);
 
-            enemyContainer.add([enemyNameShadow, enemyName, enemyHP]);
+            enemyContainer.add([enemyName, enemyHP]);
             this.container.add(enemyContainer);
 
             // Add potion to player
@@ -257,10 +240,10 @@ export class Phase7_Items extends TutorialPhase {
             this.player.potions.push(elixirOfFortitude);
             this.tutorialUI.updatePotionsDisplay(this.player.potions);
 
-            // Player block display
+            // Player block display (moved down to give more space)
             const playerBlock = this.scene.add.text(
                 this.scene.cameras.main.width / 2, 
-                420, 
+                this.scene.cameras.main.height - 200, 
                 `Your Block: ${this.player.block}`, 
                 { 
                     fontFamily: 'dungeon-mode', 

@@ -34,9 +34,9 @@ export function createButton(
     const button = scene.add.container(x, y);
 
     const outerBorder = scene.add.rectangle(0, 0, buttonWidth + 8, buttonHeight + 8, undefined, 0)
-      .setStrokeStyle(3, 0x77888C);
+      .setStrokeStyle(2, 0x77888C, 0.8);
     const innerBorder = scene.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0)
-      .setStrokeStyle(2, 0x77888C);
+      .setStrokeStyle(1, 0x77888C, 0.6);
     const bg = scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
 
     const buttonText = scene.add.text(0, 0, text, {

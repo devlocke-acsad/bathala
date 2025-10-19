@@ -16,23 +16,49 @@ export class TutorialUI {
         this.scene = scene;
         this.handContainer = this.scene.add.container(this.scene.cameras.main.width / 2, this.scene.cameras.main.height - 350);
         this.handContainer.setDepth(1500); // Ensure hand is visible but below played cards
-        this.relicsContainer = this.scene.add.container(100, 100);
-        this.potionsContainer = this.scene.add.container(100, 200);
+        this.relicsContainer = this.scene.add.container(30, 130);
+        this.potionsContainer = this.scene.add.container(30, 250);
         this.deck = DeckManager.createFullDeck();
     }
 
     public updatePotionsDisplay(potions: any[]): void {
         this.potionsContainer.removeAll(true);
+        
+        // Add label
+        const label = this.scene.add.text(0, -25, 'Potions', { 
+            fontFamily: 'dungeon-mode', 
+            fontSize: 18, 
+            color: '#77888C' 
+        });
+        this.potionsContainer.add(label);
+        
         potions.forEach((potion, index) => {
-            const potionText = this.scene.add.text(0, index * 30, `${potion.emoji} ${potion.name}`, { fontFamily: 'dungeon-mode', fontSize: 24 });
+            const potionText = this.scene.add.text(0, index * 28, potion.name, { 
+                fontFamily: 'dungeon-mode', 
+                fontSize: 20,
+                color: '#E8E8E8'
+            });
             this.potionsContainer.add(potionText);
         });
     }
 
     public updateRelicsDisplay(relics: any[]): void {
         this.relicsContainer.removeAll(true);
+        
+        // Add label
+        const label = this.scene.add.text(0, -25, 'Relics', { 
+            fontFamily: 'dungeon-mode', 
+            fontSize: 18, 
+            color: '#77888C' 
+        });
+        this.relicsContainer.add(label);
+        
         relics.forEach((relic, index) => {
-            const relicText = this.scene.add.text(0, index * 30, `${relic.emoji} ${relic.name}`, { fontFamily: 'dungeon-mode', fontSize: 24 });
+            const relicText = this.scene.add.text(0, index * 28, relic.name, { 
+                fontFamily: 'dungeon-mode', 
+                fontSize: 20,
+                color: '#E8E8E8'
+            });
             this.relicsContainer.add(relicText);
         });
     }
