@@ -1,5 +1,6 @@
 import { Scene } from "phaser";
 import { GameState } from "../../core/managers/GameState";
+import { RelicManager } from "../../core/managers/RelicManager";
 import { Player, Relic } from "../../core/types/CombatTypes";
 import { allShopItems, ShopItem } from "../../data/relics/ShopItems";
 import { getRelicById } from "../../data/relics/Act1Relics";
@@ -52,11 +53,6 @@ export class Shop extends Scene {
         "This spirit will protect you as it protected the ancient fishermen of Panay.",
         "The serpent's wisdom flows through this relic. It will sharpen your reflexes in battle."
       ],
-      "merchants_scale": [
-        "Ah, you have an eye for irony! The Merchant's Scale... it will make all my prices fairer.",
-        "Blessed by Lakambini herself, this scale ensures honest trade. Even I must honor its power.",
-        "This scale has weighed the souls of merchants for centuries. It demands fairness from all."
-      ],
       "ancestral_blade": [
         "The Ancestral Blade... a kampilan that has tasted victory in a thousand battles.",
         "Your ancestors' spirits dwell within this steel. They will guide your strikes true.",
@@ -97,6 +93,13 @@ export class Shop extends Scene {
     this.shopItems = allShopItems.filter(
       item => !this.player.relics.some(relic => relic.id === item.item.id)
     );
+  }
+
+  /**
+   * Calculate the actual price for an item after applying relic discounts
+   */
+  private getActualPrice(item: ShopItem): number {
+    return RelicManager.calculateShopPriceReduction(item.price, this.player);
   }
 
   create(): void {
@@ -956,16 +959,30 @@ export class Shop extends Scene {
       }).setOrigin(0.5, 0.5);
       
       // Price section
+      const actualPrice = this.getActualPrice(item);
+      const hasDiscount = actualPrice < item.price;
+      
       const priceArea = this.add.graphics();
       priceArea.fillStyle(0x1f2937, isOwned ? 0.5 : 0.8);
       priceArea.fillRoundedRect(-cardWidth/2 + 8, cardHeight/2 - 35, cardWidth - 16, 27, 6);
       
-      const priceText = this.add.text(0, cardHeight/2 - 21, `${item.price}`, {
+      const priceText = this.add.text(0, cardHeight/2 - 21, `${actualPrice}`, {
         fontFamily: "dungeon-mode",
         fontSize: 16,
-        color: isOwned ? "#9ca3af" : "#77888C",
+        color: isOwned ? "#9ca3af" : (hasDiscount ? "#2ed573" : "#77888C"),
         fontStyle: "bold"
       }).setOrigin(0.5, 0.5);
+      
+      // Add original price with strikethrough if discounted
+      let originalPriceText = null;
+      if (hasDiscount && !isOwned) {
+        originalPriceText = this.add.text(-30, cardHeight/2 - 21, `${item.price}`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 12,
+          color: "#9ca3af",
+        }).setOrigin(0.5, 0.5);
+        originalPriceText.setStroke("#666666", 1);
+      }
       
       // Owned overlay
       let ownedOverlay = null;
@@ -991,6 +1008,7 @@ export class Shop extends Scene {
       
       // Assemble the button
       const components = [shadow, cardBg, innerHighlight, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
+      if (originalPriceText) components.push(originalPriceText);
       if (ownedOverlay) {
         components.push(ownedOverlay);
         if (ownedText) components.push(ownedText);
@@ -1356,11 +1374,14 @@ export class Shop extends Scene {
     name.setShadow(2, 2, '#000000', 4, false, true);
     
     // Price display with shop theme
+    const actualPrice = this.getActualPrice(item);
+    const hasDiscount = actualPrice < item.price;
+    
     const priceBg = this.add.graphics();
     priceBg.fillStyle(0x150E10, 0.9); // Match shop background
     priceBg.lineStyle(2, 0x77888C, 0.8); // Match shop border
-    priceBg.fillRoundedRect(-80, -panelHeight/2 + 110, 160, 45, 12);
-    priceBg.strokeRoundedRect(-80, -panelHeight/2 + 110, 160, 45, 12);
+    priceBg.fillRoundedRect(-80, -panelHeight/2 + 110, 160, hasDiscount ? 70 : 45, 12);
+    priceBg.strokeRoundedRect(-80, -panelHeight/2 + 110, 160, hasDiscount ? 70 : 45, 12);
     
     let priceEmoji;
     if (item.currency === "ginto") {
@@ -1369,19 +1390,47 @@ export class Shop extends Scene {
       priceEmoji = "💎";
     }
     
-    const priceLabel = this.add.text(0, -panelHeight/2 + 125, "PRICE", {
+    const priceLabel = this.add.text(0, -panelHeight/2 + 125, hasDiscount ? "DISCOUNTED" : "PRICE", {
       fontFamily: "dungeon-mode",
       fontSize: 12,
-      color: "#77888C", // Match shop accent color
+      color: hasDiscount ? "#2ed573" : "#77888C", // Green if discounted
     }).setOrigin(0.5, 0.5);
     
-    const price = this.add.text(0, -panelHeight/2 + 140, `${item.price} ${priceEmoji}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#ffffff", // White for better contrast
-      fontStyle: "bold"
-    }).setOrigin(0.5, 0.5);
-    price.setShadow(1, 1, '#000000', 2, false, true);
+    let tooltipPriceElements: Phaser.GameObjects.GameObject[] = [priceLabel];
+    
+    if (hasDiscount) {
+      const originalPrice = this.add.text(0, -panelHeight/2 + 145, `${item.price} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#888888",
+      }).setOrigin(0.5, 0.5);
+      originalPrice.setStroke("#666666", 2);
+      
+      const price = this.add.text(0, -panelHeight/2 + 165, `${actualPrice} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 24,
+        color: "#2ed573",
+        fontStyle: "bold"
+      }).setOrigin(0.5, 0.5);
+      
+      tooltipPriceElements.push(originalPrice, price);
+    } else {
+      const price = this.add.text(0, -panelHeight/2 + 140, `${actualPrice} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#ffffff",
+        fontStyle: "bold"
+      }).setOrigin(0.5, 0.5);
+      
+      tooltipPriceElements.push(price);
+    }
+    
+    // Add shadow to all price elements
+    tooltipPriceElements.forEach(el => {
+      if (el instanceof Phaser.GameObjects.Text) {
+        el.setShadow(1, 1, '#000000', 2, false, true);
+      }
+    });
     
     // Content sections with shop theme
     const contentStartY = -panelHeight/2 + 200;
@@ -1558,7 +1607,7 @@ export class Shop extends Scene {
     
     // Assemble the modern panel
     panel.add([panelShadow, panelBg, innerHighlight, headerBg, emojiContainer, emoji, name, 
-              priceBg, priceLabel, price, descSection, descTitle, description, 
+              priceBg, ...tooltipPriceElements, descSection, descTitle, description, 
               loreSection, loreTitle, loreText, closeBtn, buyBtn]);
               
     // Entrance animation
@@ -1581,8 +1630,6 @@ export class Shop extends Scene {
         return "An enchanted talisman blessed by the spirits of the wind. It enhances the agility of its bearer, allowing them to move with the swiftness of the breeze and react faster than the eye can see.";
       case "ember_fetish":
         return "A relic imbued with the essence of volcanic fire. When the bearer's defenses are low, the fetish awakens and grants the fury of the forge, empowering them with the strength of molten rock.";
-      case "merchants_scale":
-        return "A mystical scale once used by the legendary Merchant Kings of the ancient trade routes. It bends the laws of commerce in favor of its owner, making all transactions more favorable.";
       case "babaylans_talisman":
         return "A sacred artifact of the Babaylan, the mystical shamans of old. This talisman connects the wearer to ancestral wisdom, allowing them to see the hidden patterns in all things.";
       case "ancestral_blade":
@@ -1611,13 +1658,16 @@ export class Shop extends Scene {
       return;
     }
     
+    // Calculate actual price with relic discounts
+    const actualPrice = this.getActualPrice(item);
+    
     // Check if player can afford the item
-    if (item.currency === "ginto" && this.player.ginto < item.price) {
+    if (item.currency === "ginto" && this.player.ginto < actualPrice) {
       this.showMessage("Not enough Ginto!", "#ff4757");
       return;
     }
     
-    if (item.currency === "diamante" && this.player.diamante < item.price) {
+    if (item.currency === "diamante" && this.player.diamante < actualPrice) {
       this.showMessage("Not enough Diamante!", "#ff4757");
       return;
     }
@@ -1666,6 +1716,10 @@ export class Shop extends Scene {
       color: "#ffd93d",
     }).setOrigin(0.5);
     
+    // Calculate actual price with discounts
+    const actualPrice = this.getActualPrice(item);
+    const hasDiscount = actualPrice < item.price;
+    
     // Price
     let priceColor;
     let priceEmoji;
@@ -1679,11 +1733,41 @@ export class Shop extends Scene {
       priceColor = "#4ecdc4";
       priceEmoji = "💎";
     }
-    const price = this.add.text(0, 10, `Price: ${item.price} ${priceEmoji}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: priceColor,
-    }).setOrigin(0.5);
+    
+    // Show original price with strikethrough if discounted
+    const priceY = hasDiscount ? 0 : 10;
+    let priceElements: Phaser.GameObjects.GameObject[] = [];
+    
+    if (hasDiscount) {
+      const originalPrice = this.add.text(0, priceY, `${item.price} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#888888",
+      }).setOrigin(0.5);
+      originalPrice.setStroke("#666666", 2);
+      
+      const discountedPrice = this.add.text(0, priceY + 25, `${actualPrice} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#2ed573",
+      }).setOrigin(0.5);
+      
+      const discountLabel = this.add.text(0, priceY + 45, `(Merchant's Scale!)`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 12,
+        color: "#2ed573",
+      }).setOrigin(0.5);
+      
+      priceElements.push(originalPrice, discountedPrice, discountLabel);
+    } else {
+      const price = this.add.text(0, priceY, `Price: ${actualPrice} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
+        color: priceColor,
+      }).setOrigin(0.5);
+      
+      priceElements.push(price);
+    }
     
     // Confirm button
     const confirmBtn = this.add.container(-100, dialogHeight/2 - 40);
@@ -1744,20 +1828,26 @@ export class Shop extends Scene {
       cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
     });
     
-    dialog.add([dialogBg, title, itemName, price, confirmBtn, cancelBtn]);
+    dialog.add([dialogBg, title, itemName, ...priceElements, confirmBtn, cancelBtn]);
   }
   
   private proceedWithPurchase(item: ShopItem): void {
+    // Calculate actual price with discounts
+    const actualPrice = this.getActualPrice(item);
+    
     // Deduct currency
     if (item.currency === "ginto") {
-      this.player.ginto -= item.price;
+      this.player.ginto -= actualPrice;
     } else if (item.currency === "diamante") {
-      this.player.diamante -= item.price;
+      this.player.diamante -= actualPrice;
     }
     
     // Add relic to player
     if (item.type === "relic") {
       this.player.relics.push(item.item as Relic);
+      
+      // Apply any immediate relic acquisition effects
+      RelicManager.applyRelicAcquisitionEffect(item.item.id, this.player);
     }
     
     // Update UI with new currency format

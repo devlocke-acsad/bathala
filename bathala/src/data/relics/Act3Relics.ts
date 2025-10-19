@@ -78,17 +78,18 @@ export const treasureRelics: Relic[] = [
     name: "False God's Mask",
     description: "When you play a Five of a Kind, gain 10 Block and draw 2 cards.",
     emoji: "🎭"
+  },
+  {
+    id: "merchants_scale",
+    name: "Merchant's Scale",
+    description: "A balance blessed by Lakambini to ensure fair trade. All shop items are 20% cheaper.",
+    emoji: "⚖️"
   }
 ];
 
 // Shop relics (available for purchase)
+// Note: merchants_scale has been moved to treasureRelics for random encounters
 export const shopRelics: Relic[] = [
-  {
-    id: "merchants_scale",
-    name: "Merchant's Scale",
-    description: "All shop items are 20% cheaper.",
-    emoji: "⚖️"
-  },
   {
     id: "bargain_talisman",
     name: "Bargain Talisman",

@@ -103,17 +103,18 @@ export const treasureRelics: Relic[] = [
     name: "Tigmamanukan's Eye",
     description: "The all-seeing eye of the prophetic bird. Draw 1 additional card at the start of each combat.",
     emoji: "👁️"
-  }
-];
-
-// Shop relics (available for purchase)
-export const shopRelics: Relic[] = [
+  },
   {
     id: "merchants_scale",
     name: "Merchant's Scale",
     description: "A balance blessed by Lakambini to ensure fair trade. All shop items are 20% cheaper.",
     emoji: "⚖️"
-  },
+  }
+];
+
+// Shop relics (available for purchase)
+// Note: merchants_scale has been moved to treasureRelics for random encounters
+export const shopRelics: Relic[] = [
   {
     id: "bargain_talisman",
     name: "Bargain Talisman",

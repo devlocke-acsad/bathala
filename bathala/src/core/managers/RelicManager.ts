@@ -210,19 +210,6 @@ export class RelicManager {
   }
 
   /**
-   * Check if first shop item is free with "Bargain Talisman"
-   */
-  static isFirstShopItemFree(player: Player, _actNumber: number): boolean {
-    const bargainTalisman = player.relics.find(r => r.id === "bargain_talisman");
-    if (bargainTalisman) {
-      // This would need to track if the first item has been purchased this act
-      // For now, return false - would need game state tracking
-      return false;
-    }
-    return false;
-  }
-
-  /**
    * Calculate initial hand size with "Tigmamanukan's Eye" effect
    */
   static calculateInitialHandSize(baseHandSize: number, player: Player): number {
@@ -254,7 +241,7 @@ export class RelicManager {
         // This relic's effect is passive, no immediate bonus
         break;
         
-      case "merchant_scale":
+      case "merchants_scale":
       case "bargain_talisman":
         // These are passive shop effects, no immediate bonus
         break;

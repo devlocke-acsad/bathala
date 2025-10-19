@@ -1,5 +1,6 @@
 import { Scene } from "phaser";
 import { GameState } from "../../core/managers/GameState";
+import { RelicManager } from "../../core/managers/RelicManager";
 import { Player, Relic } from "../../core/types/CombatTypes";
 import { act1TreasureRelics } from "../../data/relics";
 
@@ -22,13 +23,39 @@ export class Treasure extends Scene {
     // TODO: Implement act-based relic selection when act tracking is added to GameState
     const treasureRelics = act1TreasureRelics;
     
-    // Select 3 random treasure relics that player doesn't already have
+    // Filter out relics player already has
     const availableRelics = treasureRelics.filter(
       relic => !this.player.relics.some(r => r.id === relic.id)
     );
     
-    // Shuffle and take first 3
-    this.relicOptions = this.shuffleArray([...availableRelics]).slice(0, 3);
+    // Separate merchants_scale from other relics for weighted random selection
+    const merchantsScale = availableRelics.find(r => r.id === 'merchants_scale');
+    const otherRelics = availableRelics.filter(r => r.id !== 'merchants_scale');
+    
+    // Create weighted pool: merchants_scale has 30% chance to appear (if available)
+    let weightedPool: Relic[] = [];
+    
+    // Add all other relics normally (70% of the pool)
+    weightedPool = weightedPool.concat(otherRelics, otherRelics);
+    
+    // Add merchants_scale with lower weight (30% chance) if available and not owned
+    if (merchantsScale && Math.random() < 0.3) {
+      weightedPool.push(merchantsScale);
+    }
+    
+    // Shuffle weighted pool and take first 3 unique relics
+    const shuffled = this.shuffleArray(weightedPool);
+    const uniqueRelics: Relic[] = [];
+    const seenIds = new Set<string>();
+    
+    for (const relic of shuffled) {
+      if (!seenIds.has(relic.id) && uniqueRelics.length < 3) {
+        uniqueRelics.push(relic);
+        seenIds.add(relic.id);
+      }
+    }
+    
+    this.relicOptions = uniqueRelics;
   }
 
   create(): void {
@@ -336,6 +363,9 @@ export class Treasure extends Scene {
   private selectRelic(relic: Relic, selectedButton: Phaser.GameObjects.Container): void {
     // Add relic to player
     this.player.relics.push(relic);
+    
+    // Apply immediate relic acquisition effects (healing, stat boosts, etc.)
+    RelicManager.applyRelicAcquisitionEffect(relic.id, this.player);
     
     // Persist updated player data so relic is kept after leaving the scene
     const gameState = GameState.getInstance();

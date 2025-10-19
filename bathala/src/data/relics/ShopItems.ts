@@ -36,12 +36,12 @@ function createShopItemFromRelic(relicId: string, price: number, currency: "gint
 }
 
 // Common shop relics (now using centralized relic data)
+// Note: merchants_scale has been moved to treasure nodes (random chance)
 export const shopRelics: ShopItem[] = [
   createShopItemFromRelic("earthwardens_plate", 150, "ginto"),
   createShopItemFromRelic("swift_wind_agimat", 120, "ginto"),
   createShopItemFromRelic("ember_fetish", 100, "ginto"),
   createShopItemFromRelic("umalagad_spirit", 130, "ginto"),
-  createShopItemFromRelic("merchants_scale", 200, "ginto"),
   createShopItemFromRelic("babaylans_talisman", 160, "ginto"),
   createShopItemFromRelic("ancestral_blade", 140, "ginto"),
   createShopItemFromRelic("tidal_amulet", 180, "ginto"),
