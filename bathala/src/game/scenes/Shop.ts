@@ -791,57 +791,72 @@ export class Shop extends Scene {
   }
 
   private setupScrolling(container: Phaser.GameObjects.Container, screenHeight: number): void {
-    let scrollY = 0;
-    const maxScroll = Math.max(0, 1200 - screenHeight + 200); // Calculate based on content height
-    const scrollSpeed = 80; // Increased from 30 to 80 for faster scrolling
-    let isScrolling = false;
+    const maxScroll = Math.max(0, 1200 - screenHeight + 200);
+    const scrollSpeed = 35; // Optimal speed for smooth scrolling
     
-    // Optimized scroll function with throttling
-    const performScroll = (newScrollY: number) => {
-      if (isScrolling) return;
-      
-      isScrolling = true;
-      scrollY = newScrollY;
-      
-      // Use tween for smooth scrolling instead of direct position update
-      this.tweens.add({
-        targets: container,
-        y: -scrollY,
-        duration: 80, // Reduced from 120 to 80 for faster response
-        ease: 'Power2.easeOut',
-        onComplete: () => {
-          isScrolling = false;
-        }
-      });
+    // Smooth interpolation for buttery scrolling
+    let targetScrollY = 0;
+    let currentScrollY = 0;
+    const lerpFactor = 0.2; // Smooth lerp factor (0.1-0.3 recommended)
+    
+    // Scroll update loop using Phaser's update cycle
+    const smoothScrollUpdate = () => {
+      if (Math.abs(targetScrollY - currentScrollY) > 0.1) {
+        // Smoothly interpolate to target position
+        currentScrollY += (targetScrollY - currentScrollY) * lerpFactor;
+        container.y = -currentScrollY;
+      } else {
+        currentScrollY = targetScrollY;
+        container.y = -currentScrollY;
+      }
     };
     
-    // Mouse wheel scrolling with throttling
-    this.input.on('wheel', (_pointer: any, _gameObjects: any, _deltaX: number, deltaY: number) => {
-      if (isScrolling) return;
-      
-      let newScrollY;
-      if (deltaY > 0) {
-        // Scroll down
-        newScrollY = Math.min(scrollY + scrollSpeed, maxScroll);
-      } else {
-        // Scroll up
-        newScrollY = Math.max(scrollY - scrollSpeed, 0);
-      }
-      
-      performScroll(newScrollY);
+    // Add to scene update - no tweens needed
+    this.events.on('update', smoothScrollUpdate);
+    
+    // Clean up on scene shutdown
+    this.events.once('shutdown', () => {
+      this.events.off('update', smoothScrollUpdate);
     });
     
-    // Keyboard scrolling (arrow keys) with throttling
+    // Mouse wheel scrolling - instant response
+    this.input.on('wheel', (_pointer: any, _gameObjects: any, _deltaX: number, deltaY: number) => {
+      if (deltaY > 0) {
+        targetScrollY = Math.min(targetScrollY + scrollSpeed, maxScroll);
+      } else {
+        targetScrollY = Math.max(targetScrollY - scrollSpeed, 0);
+      }
+    });
+    
+    // Keyboard scrolling (arrow keys)
     this.input.keyboard?.on('keydown-UP', () => {
-      if (isScrolling) return;
-      const newScrollY = Math.max(scrollY - scrollSpeed, 0);
-      performScroll(newScrollY);
+      targetScrollY = Math.max(targetScrollY - scrollSpeed, 0);
     });
     
     this.input.keyboard?.on('keydown-DOWN', () => {
-      if (isScrolling) return;
-      const newScrollY = Math.min(scrollY + scrollSpeed, maxScroll);
-      performScroll(newScrollY);
+      targetScrollY = Math.min(targetScrollY + scrollSpeed, maxScroll);
+    });
+    
+    // Optional: Touch/drag scrolling for mobile-like experience
+    let isDragging = false;
+    let dragStartY = 0;
+    let dragStartScrollY = 0;
+    
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      isDragging = true;
+      dragStartY = pointer.y;
+      dragStartScrollY = targetScrollY;
+    });
+    
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      if (isDragging) {
+        const dragDelta = dragStartY - pointer.y;
+        targetScrollY = Phaser.Math.Clamp(dragStartScrollY + dragDelta, 0, maxScroll);
+      }
+    });
+    
+    this.input.on('pointerup', () => {
+      isDragging = false;
     });
   }
 
