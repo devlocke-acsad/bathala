@@ -15,27 +15,22 @@ export function createProgressIndicator(
     const { width } = scene.cameras.main;
     const container = scene.add.container(width / 2, 50);
 
-    // Background bar
+    // Background bar - transparent
     const barWidth = 400;
     const barHeight = 8;
     
-    const barBg = scene.add.rectangle(0, 0, barWidth, barHeight, 0x2A2A2A, 0.8);
+    const barBg = scene.add.rectangle(0, 0, barWidth, barHeight, 0x556065, 0.3);
     const barBgBorder = scene.add.rectangle(0, 0, barWidth + 4, barHeight + 4, undefined, 0)
-        .setStrokeStyle(2, 0x556065);
+        .setStrokeStyle(2, 0x556065, 0.5);
     
-    // Progress fill with gradient effect
+    // Progress fill
     const progressWidth = (currentPhase / totalPhases) * barWidth;
     const progressBar = scene.add.rectangle(-barWidth/2, 0, 0, barHeight, 0x77888C)
         .setOrigin(0, 0.5);
-    
-    // Glow for progress bar
-    const progressGlow = scene.add.rectangle(-barWidth/2, 0, 0, barHeight + 6, 0x99A0A5, 0.4)
-        .setOrigin(0, 0.5)
-        .setBlendMode(Phaser.BlendModes.ADD);
 
     // Animate progress bar fill
     scene.tweens.add({
-        targets: [progressBar, progressGlow],
+        targets: progressBar,
         width: progressWidth,
         duration: 800,
         ease: 'Power2.easeOut'
@@ -51,43 +46,23 @@ export function createProgressIndicator(
         const isComplete = i < currentPhase;
         const isCurrent = i === currentPhase - 1;
         
-        // Dot background
-        const dotBg = scene.add.circle(x, 0, isCurrent ? 8 : 6, 0x2A2A2A);
+        // Dot fill - cleaner, no background circle
+        const dotColor = isComplete || isCurrent ? 0x77888C : 0x556065;
+        const dotSize = isCurrent ? 6 : 4;
+        const dot = scene.add.circle(x, 0, dotSize, dotColor, isCurrent ? 1.0 : 0.5);
         
-        // Dot fill
-        const dotColor = isComplete || isCurrent ? 0x77888C : 0x3A3A3A;
-        const dot = scene.add.circle(x, 0, isCurrent ? 6 : 4, dotColor);
-        
-        // Add glow to current dot
-        if (isCurrent) {
-            const dotGlow = scene.add.circle(x, 0, 10, 0x99A0A5, 0.3)
-                .setBlendMode(Phaser.BlendModes.ADD);
-            dotContainer.add(dotGlow);
-            
-            // Pulse animation for current dot
-            scene.tweens.add({
-                targets: dotGlow,
-                alpha: 0.6,
-                scale: 1.2,
-                duration: 1000,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-        }
-        
-        dotContainer.add([dotBg, dot]);
+        dotContainer.add([dot]);
     }
 
     // Phase text
     const phaseText = scene.add.text(0, -25, `Phase ${currentPhase} of ${totalPhases}`, {
         fontFamily: 'dungeon-mode',
         fontSize: 18,
-        color: '#99A0A5',
+        color: '#77888C',
         align: 'center'
     }).setOrigin(0.5);
 
-    container.add([barBgBorder, barBg, progressGlow, progressBar, dotContainer, phaseText]);
+    container.add([barBgBorder, barBg, progressBar, dotContainer, phaseText]);
     container.setDepth(1500);
     container.setAlpha(0);
 

@@ -5,47 +5,36 @@ export function showDialogue(scene: Scene, text: string, onComplete: () => void)
 
     const dialogueText = scene.add.text(0, 0, text, {
         fontFamily: 'dungeon-mode',
-        fontSize: 24,
-        color: '#E8E8E8',
+        fontSize: 22,
+        color: '#77888C',
         align: 'center',
-        wordWrap: { width: scene.cameras.main.width * 0.7 },
-        lineSpacing: 8
+        wordWrap: { width: scene.cameras.main.width * 0.75 },
+        lineSpacing: 10
     }).setOrigin(0.5);
 
     const textHeight = dialogueText.getBounds().height;
-    const boxWidth = scene.cameras.main.width * 0.75;
-    const boxHeight = textHeight + 80;
+    const boxWidth = Math.min(scene.cameras.main.width * 0.80, 1100);
+    const boxHeight = Math.min(textHeight + 120, scene.cameras.main.height * 0.75);
 
-    // Glow effect (outer shadow)
-    const glowOuter = scene.add.rectangle(0, 0, boxWidth + 20, boxHeight + 20, 0x77888C, 0.15);
-    glowOuter.setBlendMode(Phaser.BlendModes.ADD);
-    
-    // Subtle inner glow
-    const glowInner = scene.add.rectangle(0, 0, boxWidth + 12, boxHeight + 12, 0xAAAAAA, 0.1);
-    glowInner.setBlendMode(Phaser.BlendModes.ADD);
+    // Background - matching intro style
+    const bg = scene.add.rectangle(0, 0, boxWidth, boxHeight, 0x150E10, 0.95).setInteractive();
 
-    // Triple border for depth
+    // Double border design (matching intro style)
     const outerBorder = scene.add.rectangle(0, 0, boxWidth + 8, boxHeight + 8, undefined, 0)
-        .setStrokeStyle(3, 0x99A0A5);
-    const middleBorder = scene.add.rectangle(0, 0, boxWidth + 4, boxHeight + 4, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-    const innerBorder = scene.add.rectangle(0, 0, boxWidth, boxHeight, undefined, 0)
-        .setStrokeStyle(2, 0x556065);
-
-    // Background with subtle gradient effect (simulated with overlays)
-    const bg = scene.add.rectangle(0, 0, boxWidth, boxHeight, 0x1A1215).setInteractive();
-    const bgGradient = scene.add.rectangle(0, -boxHeight * 0.3, boxWidth, boxHeight * 0.4, 0x2A1E25, 0.6);
+        .setStrokeStyle(3, 0x77888C, 0.8);
+    const innerBorder = scene.add.rectangle(0, 0, boxWidth + 2, boxHeight + 2, undefined, 0)
+        .setStrokeStyle(2, 0x556065, 0.6);
 
     dialogueText.setText(''); // Clear text for typing effect
 
-    // Enhanced continue indicator with pulsing effect
-    const continueIndicator = scene.add.text(boxWidth/2 - 50, boxHeight/2 - 30, '▼ Click to Continue', {
+    // Continue indicator - using arrow symbol
+    const continueIndicator = scene.add.text(0, boxHeight/2 - 35, '▼', {
         fontFamily: 'dungeon-mode',
-        fontSize: 18,
-        color: '#99A0A5'
-    }).setOrigin(0.5).setVisible(false);
+        fontSize: 24,
+        color: '#77888C'
+    }).setOrigin(0.5).setAlpha(0.7).setVisible(false);
 
-    dialogueContainer.add([glowOuter, glowInner, outerBorder, middleBorder, bg, bgGradient, innerBorder, dialogueText, continueIndicator]);
+    dialogueContainer.add([bg, outerBorder, innerBorder, dialogueText, continueIndicator]);
     dialogueContainer.setDepth(2000);
 
     // Fade in with scale animation

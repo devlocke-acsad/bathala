@@ -22,10 +22,10 @@ export function createInfoBox(
 
     // Type-specific styling
     const styles = {
-        tip: { icon: '💡', color: 0xFFD700, borderColor: 0xFFD700, bgColor: 0x2A2415 },
-        warning: { icon: '⚠️', color: 0xFF6B35, borderColor: 0xFF6B35, bgColor: 0x2A1815 },
-        info: { icon: 'ℹ️', color: 0x5BA3D0, borderColor: 0x5BA3D0, bgColor: 0x15212A },
-        success: { icon: '✓', color: 0x4CAF50, borderColor: 0x4CAF50, bgColor: 0x152A15 }
+        tip: { icon: '💡', color: 0xFFD700, borderColor: 0x77888C, bgColor: 0x150E10 },
+        warning: { icon: '⚠️', color: 0xFF6B35, borderColor: 0x77888C, bgColor: 0x150E10 },
+        info: { icon: 'ℹ️', color: 0x5BA3D0, borderColor: 0x77888C, bgColor: 0x150E10 },
+        success: { icon: '✓', color: 0x4CAF50, borderColor: 0x77888C, bgColor: 0x150E10 }
     };
 
     const style = styles[type];
@@ -34,27 +34,23 @@ export function createInfoBox(
     const messageText = scene.add.text(0, 0, message, {
         fontFamily: 'dungeon-mode',
         fontSize: 20,
-        color: '#E8E8E8',
+        color: '#77888C',
         align: 'center',
         wordWrap: { width: 600 },
-        lineSpacing: 6
+        lineSpacing: 8
     }).setOrigin(0.5);
 
     const textBounds = messageText.getBounds();
     const boxWidth = Math.min(textBounds.width + 100, 700);
     const boxHeight = textBounds.height + 60;
-
-    // Background with subtle glow
-    const bgGlow = scene.add.rectangle(0, 0, boxWidth + 12, boxHeight + 12, style.color, 0.1)
-        .setBlendMode(Phaser.BlendModes.ADD);
     
     const bg = scene.add.rectangle(0, 0, boxWidth, boxHeight, style.bgColor, 0.95);
     
-    // Triple border for depth
+    // Double border matching intro design
     const outerBorder = scene.add.rectangle(0, 0, boxWidth + 6, boxHeight + 6, undefined, 0)
-        .setStrokeStyle(2, style.borderColor, 0.6);
-    const innerBorder = scene.add.rectangle(0, 0, boxWidth, boxHeight, undefined, 0)
-        .setStrokeStyle(2, style.borderColor, 0.4);
+        .setStrokeStyle(3, style.borderColor, 0.8);
+    const innerBorder = scene.add.rectangle(0, 0, boxWidth + 2, boxHeight + 2, undefined, 0)
+        .setStrokeStyle(2, 0x556065, 0.6);
 
     // Icon on the left
     const iconText = scene.add.text(-boxWidth/2 + 30, 0, style.icon, {
@@ -65,7 +61,7 @@ export function createInfoBox(
     // Adjust message position to account for icon
     messageText.x = 15;
 
-    container.add([bgGlow, bg, outerBorder, innerBorder, iconText, messageText]);
+    container.add([bg, outerBorder, innerBorder, iconText, messageText]);
     container.setDepth(1800);
     container.setAlpha(0).setY(y + 20);
 
@@ -76,18 +72,6 @@ export function createInfoBox(
         y: y,
         duration: 500,
         ease: 'Back.easeOut'
-    });
-
-    // Subtle pulse on glow
-    scene.tweens.add({
-        targets: bgGlow,
-        alpha: 0.2,
-        scaleX: 1.05,
-        scaleY: 1.05,
-        duration: 2000,
-        yoyo: true,
-        repeat: -1,
-        ease: 'Sine.easeInOut'
     });
 
     return container;
@@ -121,7 +105,7 @@ export function createHighlight(
 
     // Corner markers
     const cornerSize = 15;
-    const corners = [];
+    const corners: Phaser.GameObjects.Rectangle[] = [];
     const positions = [
         { x: -width/2 - 5, y: -height/2 - 5 }, // top-left
         { x: width/2 + 5, y: -height/2 - 5 },  // top-right
@@ -129,7 +113,7 @@ export function createHighlight(
         { x: width/2 + 5, y: height/2 + 5 }    // bottom-right
     ];
 
-    positions.forEach((pos, index) => {
+    positions.forEach((pos) => {
         const corner = scene.add.rectangle(pos.x, pos.y, cornerSize, cornerSize, pulseColor, 0.8);
         corners.push(corner);
         container.add(corner);
@@ -194,16 +178,20 @@ export function createFloatingTooltip(
     const tooltipText = scene.add.text(0, 0, text, {
         fontFamily: 'dungeon-mode',
         fontSize: 16,
-        color: '#FFFFFF',
+        color: '#77888C',
         align: 'center',
         padding: { x: 12, y: 8 }
     }).setOrigin(0.5);
 
-    const bg = scene.add.rectangle(0, 0, tooltipText.width + 20, tooltipText.height + 10, 0x1A1215, 0.95);
-    const border = scene.add.rectangle(0, 0, bg.width + 4, bg.height + 4, undefined, 0)
+    const bg = scene.add.rectangle(0, 0, tooltipText.width + 20, tooltipText.height + 10, 0x150E10, 0.95);
+    
+    // Double border design
+    const outerBorder = scene.add.rectangle(0, 0, bg.width + 6, bg.height + 6, undefined, 0)
         .setStrokeStyle(2, 0x77888C, 0.8);
+    const innerBorder = scene.add.rectangle(0, 0, bg.width + 2, bg.height + 2, undefined, 0)
+        .setStrokeStyle(1, 0x556065, 0.6);
 
-    container.add([border, bg, tooltipText]);
+    container.add([bg, outerBorder, innerBorder, tooltipText]);
     container.setDepth(2500);
     container.setAlpha(0);
 
