@@ -944,11 +944,16 @@ export class Overworld extends Scene {
         this.cameras.main.width,
         this.cameras.main.height,
         0x000033
-      ).setAlpha(0.4).setScrollFactor(0).setDepth(999);
+      ).setAlpha(0.4).setScrollFactor(0).setDepth(DEPTH.NIGHT_OVERLAY);
     } else if (this.gameState.isDay && this.nightOverlay) {
       // Remove night overlay
       this.nightOverlay.destroy();
       this.nightOverlay = null;
+    }
+    
+    // Update fog of war visibility based on day/night
+    if (this.fogOfWarManager) {
+      this.fogOfWarManager.updateDayNight(this.gameState.isDay);
     }
   }
 
@@ -1130,11 +1135,16 @@ export class Overworld extends Scene {
         this.cameras.main.width,
         this.cameras.main.height,
         0x000033
-      ).setAlpha(0.4).setScrollFactor(0).setDepth(999);
+      ).setAlpha(0.4).setScrollFactor(0).setDepth(DEPTH.NIGHT_OVERLAY);
     } else if (this.gameState.isDay && this.nightOverlay) {
       // Remove night overlay
       this.nightOverlay.destroy();
       this.nightOverlay = null;
+    }
+    
+    // Update fog of war visibility based on day/night
+    if (this.fogOfWarManager) {
+      this.fogOfWarManager.updateDayNight(this.gameState.isDay);
     }
   }
 
@@ -4132,18 +4142,13 @@ ${potion.description}`, {
     this.fogOfWarManager = new Overworld_FogOfWarManager(this);
     this.fogOfWarManager.initialize(this.player.x, this.player.y);
     
-    // Configure fog parameters (easily editable)
+    // Configure fog depth (all other parameters are set in FogOfWarManager)
     this.fogOfWarManager.setFogParameters({
-      tileSize: 32,              // Size of each fog tile
-      visibilityRadius: 8,       // How far player can see (in tiles)
-      gradientSteps: 4,          // Number of pixel-stepped gradient levels
-      fogColor: 0x000000,        // Black fog
-      maxFogOpacity: 0.85,       // Maximum darkness
-      minFogOpacity: 0.0,        // Fully visible at center
-      persistentFog: true,       // Fog stays revealed
-      fogDepth: DEPTH.FOG_OF_WAR, // Above NPCs (501), below HUDs (1000+)
-      updateInterval: 100        // Update every 100ms
+      fogDepth: DEPTH.FOG_OF_WAR      // Above map tiles, below NPCs and UI
     });
+    
+    // Set initial fog state based on current day/night
+    this.fogOfWarManager.updateDayNight(this.gameState.isDay);
     
     console.log("✅ Fog of war system initialized");
   }

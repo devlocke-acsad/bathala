@@ -23,8 +23,14 @@ export class Overworld_FogOfWarManager {
   /** Size of each fog tile in pixels (pixel-based grid) */
   public tileSize: number = 32;
   
-  /** How far the player can see (in tiles) */
-  public visibilityRadius: number = 8;
+  /** Night fog - How far the player can see at night (in tiles) */
+  public nightVisibilityRadius: number = 8;
+  
+  /** Day fog - How far the player can see during day (in tiles) - 1.4x night fog */
+  public dayVisibilityRadius: number = 11;
+  
+  /** Current visibility radius (dynamically updated based on day/night) */
+  private currentVisibilityRadius: number = 5;
   
   /** Number of gradient steps from visible to fog (pixel-stepped gradient) */
   public gradientSteps: number = 4;
@@ -58,6 +64,7 @@ export class Overworld_FogOfWarManager {
   private lastUpdateTime: number = 0;
   private playerX: number = 0;
   private playerY: number = 0;
+  private isDay: boolean = true;
 
   /**
    * Constructor
@@ -125,8 +132,8 @@ export class Overworld_FogOfWarManager {
     const playerTileY = Math.floor(this.playerY / this.tileSize);
     
     // Reveal tiles within visibility radius
-    for (let dy = -this.visibilityRadius; dy <= this.visibilityRadius; dy++) {
-      for (let dx = -this.visibilityRadius; dx <= this.visibilityRadius; dx++) {
+    for (let dy = -this.currentVisibilityRadius; dy <= this.currentVisibilityRadius; dy++) {
+      for (let dx = -this.currentVisibilityRadius; dx <= this.currentVisibilityRadius; dx++) {
         const tileX = playerTileX + dx;
         const tileY = playerTileY + dy;
         
@@ -134,7 +141,7 @@ export class Overworld_FogOfWarManager {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         // Only reveal tiles within circular radius
-        if (distance <= this.visibilityRadius) {
+        if (distance <= this.currentVisibilityRadius) {
           const key = `${tileX},${tileY}`;
           this.revealedAreas.add(key);
         }
@@ -198,7 +205,7 @@ export class Overworld_FogOfWarManager {
         const worldY = tileY * this.tileSize;
         
         // Check if tile is beyond visibility radius
-        if (distance > this.visibilityRadius) {
+        if (distance > this.currentVisibilityRadius) {
           // Completely black fog - hide everything beyond vision
           this.fogGraphics.fillStyle(this.fogColor, 1.0);
           this.fogGraphics.fillRect(worldX, worldY, this.tileSize, this.tileSize);
@@ -218,9 +225,9 @@ export class Overworld_FogOfWarManager {
    */
   private calculatePixelGradientOpacity(distance: number): number {
     // If within visibility radius, calculate stepped gradient
-    if (distance <= this.visibilityRadius) {
+    if (distance <= this.currentVisibilityRadius) {
       // Calculate which gradient step this distance falls into
-      const normalizedDistance = distance / this.visibilityRadius; // 0 to 1
+      const normalizedDistance = distance / this.currentVisibilityRadius; // 0 to 1
       const stepSize = 1 / this.gradientSteps;
       const step = Math.floor(normalizedDistance / stepSize);
       
@@ -249,7 +256,8 @@ export class Overworld_FogOfWarManager {
    */
   setFogParameters(params: {
     tileSize?: number;
-    visibilityRadius?: number;
+    nightVisibilityRadius?: number;
+    dayVisibilityRadius?: number;
     gradientSteps?: number;
     fogColor?: number;
     maxFogOpacity?: number;
@@ -261,7 +269,8 @@ export class Overworld_FogOfWarManager {
     updateInterval?: number;
   }): void {
     if (params.tileSize !== undefined) this.tileSize = params.tileSize;
-    if (params.visibilityRadius !== undefined) this.visibilityRadius = params.visibilityRadius;
+    if (params.nightVisibilityRadius !== undefined) this.nightVisibilityRadius = params.nightVisibilityRadius;
+    if (params.dayVisibilityRadius !== undefined) this.dayVisibilityRadius = params.dayVisibilityRadius;
     if (params.gradientSteps !== undefined) this.gradientSteps = params.gradientSteps;
     if (params.fogColor !== undefined) this.fogColor = params.fogColor;
     if (params.maxFogOpacity !== undefined) this.maxFogOpacity = params.maxFogOpacity;
@@ -277,6 +286,9 @@ export class Overworld_FogOfWarManager {
     }
     if (params.updateInterval !== undefined) this.updateInterval = params.updateInterval;
     
+    // Update current visibility based on day/night state
+    this.currentVisibilityRadius = this.isDay ? this.dayVisibilityRadius : this.nightVisibilityRadius;
+    
     // Re-render with new parameters
     this.renderFog();
     
@@ -289,7 +301,9 @@ export class Overworld_FogOfWarManager {
    */
   getFogParameters(): {
     tileSize: number;
-    visibilityRadius: number;
+    nightVisibilityRadius: number;
+    dayVisibilityRadius: number;
+    currentVisibilityRadius: number;
     gradientSteps: number;
     fogColor: number;
     maxFogOpacity: number;
@@ -299,10 +313,13 @@ export class Overworld_FogOfWarManager {
     persistentFog: boolean;
     fogDepth: number;
     updateInterval: number;
+    isDay: boolean;
   } {
     return {
       tileSize: this.tileSize,
-      visibilityRadius: this.visibilityRadius,
+      nightVisibilityRadius: this.nightVisibilityRadius,
+      dayVisibilityRadius: this.dayVisibilityRadius,
+      currentVisibilityRadius: this.currentVisibilityRadius,
       gradientSteps: this.gradientSteps,
       fogColor: this.fogColor,
       maxFogOpacity: this.maxFogOpacity,
@@ -311,8 +328,26 @@ export class Overworld_FogOfWarManager {
       edgeHighlightOpacity: this.edgeHighlightOpacity,
       persistentFog: this.persistentFog,
       fogDepth: this.fogDepth,
-      updateInterval: this.updateInterval
+      updateInterval: this.updateInterval,
+      isDay: this.isDay
     };
+  }
+
+  /**
+   * Update fog based on day/night cycle
+   * @param isDay - Whether it's currently day time
+   */
+  updateDayNight(isDay: boolean): void {
+    // Only update if state changed
+    if (this.isDay !== isDay) {
+      this.isDay = isDay;
+      this.currentVisibilityRadius = isDay ? this.dayVisibilityRadius : this.nightVisibilityRadius;
+      
+      // Re-render fog with new visibility radius
+      this.renderFog();
+      
+      console.log(`🌫️ FogOfWarManager: ${isDay ? 'Day' : 'Night'} fog activated (radius: ${this.currentVisibilityRadius})`);
+    }
   }
 
   /**
