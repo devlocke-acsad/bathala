@@ -4193,10 +4193,13 @@ ${potion.description}`, {
       this.uiContainer.setPosition(offsetX, offsetY);
     }
     
-    // Day/night progress bar container - scale and reposition like other HUDs
+    // Day/night progress bar container - scale, center horizontally, and shift down
     if (this.dayNightProgressContainer) {
       this.dayNightProgressContainer.setScale(uiScale);
-      this.dayNightProgressContainer.setPosition(0, offsetY);
+      // Horizontal: center the scaled container
+      const progressBarCenterOffset = (cameraWidth * (1 - uiScale)) / 2;
+      // Vertical: shift down to stay at top
+      this.dayNightProgressContainer.setPosition(progressBarCenterOffset, offsetY);
       
       // Update indicator position within the container
       if (this.dayNightIndicator) {

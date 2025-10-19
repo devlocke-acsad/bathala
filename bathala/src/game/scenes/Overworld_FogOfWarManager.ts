@@ -435,10 +435,13 @@ export class Overworld_FogOfWarManager {
       overworldScene.uiContainer.setPosition(offsetX, offsetY);
     }
     
-    // Day/night progress bar container - scale and reposition like other HUDs
+    // Day/night progress bar container - scale, center horizontally, and shift down
     if (overworldScene.dayNightProgressContainer) {
       overworldScene.dayNightProgressContainer.setScale(uiScale);
-      overworldScene.dayNightProgressContainer.setPosition(0, offsetY);
+      // Horizontal: center the scaled container
+      const progressBarCenterOffset = (cameraWidth * (1 - uiScale)) / 2;
+      // Vertical: shift down to stay at top
+      overworldScene.dayNightProgressContainer.setPosition(progressBarCenterOffset, offsetY);
       
       // Update indicator position within the container
       if (overworldScene.dayNightIndicator) {
