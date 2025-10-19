@@ -343,14 +343,7 @@ export class Combat extends Scene {
         landasScore: existingPlayerData.landasScore || 0,
         ginto: existingPlayerData.ginto || 100,
         diamante: existingPlayerData.diamante || 0,
-        relics: relicsWithEmoji.length > 0 ? relicsWithEmoji : [
-          {
-            id: "placeholder_relic",
-            name: "Placeholder Relic",
-            description: "This is a placeholder relic.",
-            emoji: "⚙️",
-          },
-        ],
+        relics: relicsWithEmoji,
         potions: existingPlayerData.potions || [],
         discardCharges: existingPlayerData.discardCharges || 3,  // Changed from 1 to 3
         maxDiscardCharges: existingPlayerData.maxDiscardCharges || 3,  // Changed from 1 to 3
