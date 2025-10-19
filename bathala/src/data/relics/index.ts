@@ -6,6 +6,7 @@ export {
   bossRelics as act1BossRelics,
   treasureRelics as act1TreasureRelics,
   shopRelics as act1ShopRelics,
+  mythologicalRelics as act1MythologicalRelics,
   allAct1Relics
 } from './Act1Relics';
 
