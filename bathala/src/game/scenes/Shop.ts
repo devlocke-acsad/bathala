@@ -5,6 +5,36 @@ import { Player, Relic } from "../../core/types/CombatTypes";
 import { allShopItems, ShopItem } from "../../data/relics/ShopItems";
 import { getRelicById } from "../../data/relics/Act1Relics";
 
+/**
+ * Helper function to get the sprite key for a relic based on its ID
+ */
+function getRelicSpriteKey(relicId: string): string {
+  const spriteMap: Record<string, string> = {
+    'swift_wind_agimat': 'relic_swift_wind_agimat',
+    'amomongo_claw': 'relic_amomongo_claw',
+    'ancestral_blade': 'relic_ancestral_blade',
+    'balete_root': 'relic_balete_root',
+    'babaylans_talisman': 'relic_babaylans_talisman',
+    'bungisngis_grin': 'relic_bungisngis_grin',
+    'diwatas_crown': 'relic_diwatas_crown',
+    'duwende_charm': 'relic_duwende_charm',
+    'earthwardens_plate': 'relic_earthwardens_plate',
+    'ember_fetish': 'relic_ember_fetish',
+    'kapres_cigar': 'relic_kapres_cigar',
+    'lucky_charm': 'relic_lucky_charm',
+    'mangangaway_wand': 'relic_mangangaway_wand',
+    'sarimanok_feather': 'relic_sarimanok_feather',
+    'sigbin_heart': 'relic_sigbin_heart',
+    'stone_golem_heart': 'relic_stone_golem_heart',
+    'tidal_amulet': 'relic_tidal_amulet',
+    'tikbalangs_hoof': 'relic_tikbalangs_hoof',
+    'tiyanak_tear': 'relic_tiyanak_tear',
+    'umalagad_spirit': 'relic_umalagad_spirit'
+  };
+  
+  return spriteMap[relicId] || '';
+}
+
 export class Shop extends Scene {
   private player!: Player;
   private shopItems: ShopItem[] = [];
@@ -912,12 +942,28 @@ export class Shop extends Scene {
       }
       iconArea.fillRoundedRect(-cardWidth/2 + 8, -cardHeight/2 + 8, cardWidth - 16, 70, 8);
       
-      // Item emoji with enhanced styling
-      const emoji = this.add.text(0, -cardHeight/2 + 43, item.emoji, {
-        fontSize: 42,
-      }).setOrigin(0.5, 0.5);
-      if (isOwned) {
-        emoji.setAlpha(0.6);
+      // Get sprite key for this relic
+      const spriteKey = getRelicSpriteKey(item.item.id);
+      
+      // Item icon - use sprite if available, fallback to emoji
+      let itemIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+      
+      if (spriteKey && this.textures.exists(spriteKey)) {
+        // Use sprite if available
+        itemIcon = this.add.image(0, -cardHeight/2 + 43, spriteKey)
+          .setOrigin(0.5)
+          .setDisplaySize(56, 56); // Fit within the icon area
+        if (isOwned) {
+          itemIcon.setAlpha(0.6);
+        }
+      } else {
+        // Fallback to emoji if sprite not found
+        itemIcon = this.add.text(0, -cardHeight/2 + 43, item.emoji, {
+          fontSize: 42,
+        }).setOrigin(0.5, 0.5);
+        if (isOwned) {
+          itemIcon.setAlpha(0.6);
+        }
       }
       
       // Currency badge
@@ -988,7 +1034,7 @@ export class Shop extends Scene {
       }
       
       // Assemble the button
-      const components = [shadow, cardBg, innerHighlight, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
+      const components = [shadow, cardBg, innerHighlight, iconArea, itemIcon, currencyBadge, currencyIcon, priceArea, priceText];
       if (originalPriceText) components.push(originalPriceText);
       if (ownedOverlay) {
         components.push(ownedOverlay);
@@ -1027,7 +1073,7 @@ export class Shop extends Scene {
           if (scaleTween) scaleTween.stop();
           
           // Optimized hover effect - single tween for all components
-          const componentsToTween = [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
+          const componentsToTween = [cardBg, iconArea, itemIcon, currencyBadge, currencyIcon, priceArea, priceText];
           hoverTween = this.tweens.add({
             targets: componentsToTween,
             alpha: 0.7, // Less dramatic change for better performance
@@ -1069,7 +1115,7 @@ export class Shop extends Scene {
           if (scaleTween) scaleTween.stop();
           
           // Restore opacity
-          const componentsToTween = [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
+          const componentsToTween = [cardBg, iconArea, itemIcon, currencyBadge, currencyIcon, priceArea, priceText];
           hoverTween = this.tweens.add({
             targets: componentsToTween,
             alpha: 1,
@@ -1333,17 +1379,31 @@ export class Shop extends Scene {
     headerBg.fillRoundedRect(-panelWidth/2 + 12, -panelHeight/2 + 12, panelWidth - 24, 80, 12);
     headerBg.strokeRoundedRect(-panelWidth/2 + 12, -panelHeight/2 + 12, panelWidth - 24, 80, 12);
     
-    // Item emoji with enhanced styling and proper container
-    const emojiContainer = this.add.graphics();
-    emojiContainer.fillStyle(0x150E10, 0.8); // Match shop background
-    emojiContainer.fillRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
-    emojiContainer.lineStyle(2, 0x77888C, 0.8); // Shop border color
-    emojiContainer.strokeRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
+    // Item icon with enhanced styling and proper container
+    const iconContainer = this.add.graphics();
+    iconContainer.fillStyle(0x150E10, 0.8); // Match shop background
+    iconContainer.fillRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
+    iconContainer.lineStyle(2, 0x77888C, 0.8); // Shop border color
+    iconContainer.strokeRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
     
-    const emoji = this.add.text(-panelWidth/2 + 60, -panelHeight/2 + 60, item.emoji, {
-      fontSize: 40,
-    }).setOrigin(0.5, 0.5);
-    emoji.setShadow(2, 2, '#1a1625', 4, false, true);
+    // Get sprite key for this relic
+    const spriteKey = getRelicSpriteKey(item.item.id);
+    
+    // Create item icon - use sprite if available, fallback to emoji
+    let itemIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+    
+    if (spriteKey && this.textures.exists(spriteKey)) {
+      // Use sprite if available
+      itemIcon = this.add.image(-panelWidth/2 + 60, -panelHeight/2 + 60, spriteKey)
+        .setOrigin(0.5)
+        .setDisplaySize(48, 48); // Fit within 60px container
+    } else {
+      // Fallback to emoji if sprite not found
+      itemIcon = this.add.text(-panelWidth/2 + 60, -panelHeight/2 + 60, item.emoji, {
+        fontSize: 40,
+      }).setOrigin(0.5, 0.5);
+      (itemIcon as Phaser.GameObjects.Text).setShadow(2, 2, '#1a1625', 4, false, true);
+    }
     
     // Item name with proper alignment, shop theme colors, and word wrap
     const name = this.add.text(-panelWidth/2 + 110, -panelHeight/2 + 40, item.name.toUpperCase(), {
@@ -1588,7 +1648,7 @@ export class Shop extends Scene {
     });
     
     // Assemble the modern panel
-    panel.add([panelShadow, panelBg, innerHighlight, headerBg, emojiContainer, emoji, name, 
+    panel.add([panelShadow, panelBg, innerHighlight, headerBg, iconContainer, itemIcon, name, 
               priceBg, ...tooltipPriceElements, descSection, descTitle, description, 
               loreSection, loreTitle, loreText, closeBtn, buyBtn]);
               
@@ -1618,12 +1678,8 @@ export class Shop extends Scene {
         return "A weapon passed down through generations of warrior families. When wielded with skill, it channels the spirits of ancestors who guide each strike with supernatural precision.";
       case "tidal_amulet":
         return "Born from the heart of the ocean, this amulet pulses with the rhythm of the tides. It grants the wearer the restorative power of the sea, healing their wounds with each passing moment.";
-      case "bargain_talisman":
-        return "A mysterious artifact that embodies the concept of fortune. Once per act, it can manifest incredible luck, allowing its bearer to acquire powerful items without cost.";
       case "lucky_charm":
         return "A small token blessed by fate itself. Those who carry it seem to attract good fortune, finding coins and opportunities where others see only obstacles.";
-      case "echo_ancestors":
-        return "A divine relic that channels the power of the ancestral spirits. It allows the bearer to achieve the impossible - forming a Five of a Kind, the rarest of all poker hands.";
       case "diwatas_crown":
         return "A magnificent crown worn by the Diwata, the celestial beings who watch over the mortal realm. It grants divine protection and enhances the natural abilities of its wearer.";
       case "stone_golem_heart":

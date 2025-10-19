@@ -118,6 +118,28 @@ export class Preloader extends Scene {
     // Main merchant sprite (hooded figure with backpack)
     this.load.image("merchant_main", "sprites/merchant/merchant1.png");
 
+    // Act 1 Relic Sprites (20 relics with sprite assets)
+    this.load.image("relic_swift_wind_agimat", "relics/act1relics/Agimat of the Swift Wind.png");
+    this.load.image("relic_amomongo_claw", "relics/act1relics/Amomongo Claw.png");
+    this.load.image("relic_ancestral_blade", "relics/act1relics/Ancestral Blade.png");
+    this.load.image("relic_balete_root", "relics/act1relics/Balete Root.png");
+    this.load.image("relic_babaylans_talisman", "relics/act1relics/Baybalan's Talisman.png");
+    this.load.image("relic_bungisngis_grin", "relics/act1relics/Bungisngis Grin.png");
+    this.load.image("relic_diwatas_crown", "relics/act1relics/Diwata's Crown.png");
+    this.load.image("relic_duwende_charm", "relics/act1relics/Duwende Charm.png");
+    this.load.image("relic_earthwardens_plate", "relics/act1relics/Earthwarden's Plate.png");
+    this.load.image("relic_ember_fetish", "relics/act1relics/Ember Fetish.png");
+    this.load.image("relic_kapres_cigar", "relics/act1relics/Kapre Cigar.png");
+    this.load.image("relic_lucky_charm", "relics/act1relics/Lucky Charm.png");
+    this.load.image("relic_mangangaway_wand", "relics/act1relics/Mangangaway's Wand.png");
+    this.load.image("relic_sarimanok_feather", "relics/act1relics/Sarimanok Feather.png");
+    this.load.image("relic_sigbin_heart", "relics/act1relics/Sigbin Heart.png");
+    this.load.image("relic_stone_golem_heart", "relics/act1relics/Stone Golem Heart.png");
+    this.load.image("relic_tidal_amulet", "relics/act1relics/Tidal Amulet.png");
+    this.load.image("relic_tikbalangs_hoof", "relics/act1relics/Tikbalang Hoof.png");
+    this.load.image("relic_tiyanak_tear", "relics/act1relics/Tiyanak Tear.png");
+    this.load.image("relic_umalagad_spirit", "relics/act1relics/Umalagad Spirit.png");
+
     // Enemy sprites for Combat
     this.load.image("amomongo_combat", "sprites/combat/enemy/chap1/amomongo_combat.png");
     this.load.image("balete_combat", "sprites/combat/enemy/chap1/balete_combat.png");

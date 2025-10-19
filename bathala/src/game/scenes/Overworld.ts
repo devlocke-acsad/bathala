@@ -8,6 +8,37 @@ import { DeckManager } from "../../utils/DeckManager";
 import { Overworld_KeyInputManager } from "./Overworld_KeyInputManager";
 import { Overworld_MazeGenManager } from "./Overworld_MazeGenManager";
 import { Overworld_TooltipManager } from "./Overworld_TooltipManager";
+
+/**
+ * Helper function to get the sprite key for a relic based on its ID
+ */
+function getRelicSpriteKey(relicId: string): string {
+  const spriteMap: Record<string, string> = {
+    'swift_wind_agimat': 'relic_swift_wind_agimat',
+    'amomongo_claw': 'relic_amomongo_claw',
+    'ancestral_blade': 'relic_ancestral_blade',
+    'balete_root': 'relic_balete_root',
+    'babaylans_talisman': 'relic_babaylans_talisman',
+    'bungisngis_grin': 'relic_bungisngis_grin',
+    'diwatas_crown': 'relic_diwatas_crown',
+    'duwende_charm': 'relic_duwende_charm',
+    'earthwardens_plate': 'relic_earthwardens_plate',
+    'ember_fetish': 'relic_ember_fetish',
+    'kapres_cigar': 'relic_kapres_cigar',
+    'lucky_charm': 'relic_lucky_charm',
+    'mangangaway_wand': 'relic_mangangaway_wand',
+    'sarimanok_feather': 'relic_sarimanok_feather',
+    'sigbin_heart': 'relic_sigbin_heart',
+    'stone_golem_heart': 'relic_stone_golem_heart',
+    'tidal_amulet': 'relic_tidal_amulet',
+    'tikbalangs_hoof': 'relic_tikbalangs_hoof',
+    'tiyanak_tear': 'relic_tiyanak_tear',
+    'umalagad_spirit': 'relic_umalagad_spirit'
+  };
+  
+  return spriteMap[relicId] || '';
+}
+
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   private keyInputManager!: Overworld_KeyInputManager;
@@ -3103,12 +3134,25 @@ export class Overworld extends Scene {
       innerGlow.lineStyle(1, 0x333344, 0.4);
       innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
       
+      // Get sprite key for this relic
+      const spriteKey = getRelicSpriteKey(relic.id);
+      
       // Relic icon with size adjusted for 45px slots
-      const relicIcon = this.add.text(slotSize/2, slotSize/2, relic.emoji, {
-        fontSize: "24px", // Reduced to fit better in 45px slots
-        align: "center"
-      }).setOrigin(0.5);
-      relicIcon.setShadow(1, 1, '#000000', 2, false, true);
+      let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+      
+      if (spriteKey && this.textures.exists(spriteKey)) {
+        // Use sprite if available
+        relicIcon = this.add.image(slotSize/2, slotSize/2, spriteKey)
+          .setOrigin(0.5)
+          .setDisplaySize(48, 48); // Fit within 60px slot with some padding
+      } else {
+        // Fallback to emoji if sprite not found
+        relicIcon = this.add.text(slotSize/2, slotSize/2, relic.emoji, {
+          fontSize: "24px",
+          align: "center"
+        }).setOrigin(0.5);
+        (relicIcon as Phaser.GameObjects.Text).setShadow(1, 1, '#000000', 2, false, true);
+      }
       
       relicContainer.add([relicBg, innerGlow, relicIcon]);
       
@@ -3583,10 +3627,23 @@ export class Overworld extends Scene {
       squareBg.fillRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
       squareBg.strokeRoundedRect(-relicSize/2, -relicSize/2, relicSize, relicSize, 5);
       
+      // Get sprite key for this relic
+      const spriteKey = getRelicSpriteKey(relic.id);
+      
       // Create relic icon
-      const relicIcon = this.add.text(0, 0, relic.emoji, {
-        fontSize: "32px"
-      }).setOrigin(0.5);
+      let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+      
+      if (spriteKey && this.textures.exists(spriteKey)) {
+        // Use sprite if available
+        relicIcon = this.add.image(0, 0, spriteKey)
+          .setOrigin(0.5)
+          .setDisplaySize(48, 48); // Fit within 60px slot
+      } else {
+        // Fallback to emoji if sprite not found
+        relicIcon = this.add.text(0, 0, relic.emoji, {
+          fontSize: "32px"
+        }).setOrigin(0.5);
+      }
       
       // Create tooltip
       const tooltip = this.add.container(0, -70).setVisible(false);
@@ -3866,10 +3923,24 @@ ${potion.description}`, {
     emojiContainer.fillRoundedRect(-panelWidth/2 + 25, -panelHeight/2 + 25, 60, 60, 12);
     emojiContainer.strokeRoundedRect(-panelWidth/2 + 25, -panelHeight/2 + 25, 60, 60, 12);
     
-    const emoji = this.add.text(-panelWidth/2 + 55, -panelHeight/2 + 55, relic.emoji, {
-      fontSize: 36,
-    }).setOrigin(0.5, 0.5);
-    emoji.setShadow(2, 2, '#0a0a0f', 4, false, true);
+    // Get sprite key for this relic
+    const spriteKey = getRelicSpriteKey(relic.id);
+    
+    // Create relic icon
+    let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+    
+    if (spriteKey && this.textures.exists(spriteKey)) {
+      // Use sprite if available
+      relicIcon = this.add.image(-panelWidth/2 + 55, -panelHeight/2 + 55, spriteKey)
+        .setOrigin(0.5)
+        .setDisplaySize(48, 48); // Fit within 60px container
+    } else {
+      // Fallback to emoji if sprite not found
+      relicIcon = this.add.text(-panelWidth/2 + 55, -panelHeight/2 + 55, relic.emoji, {
+        fontSize: 36,
+      }).setOrigin(0.5, 0.5);
+      (relicIcon as Phaser.GameObjects.Text).setShadow(2, 2, '#0a0a0f', 4, false, true);
+    }
     
     // Relic name
     const name = this.add.text(-panelWidth/2 + 110, -panelHeight/2 + 45, relic.name.toUpperCase(), {
@@ -3998,7 +4069,7 @@ ${potion.description}`, {
     });
     
     // Assemble the panel
-    panel.add([panelShadow, panelBg, innerHighlight, headerBg, emojiContainer, emoji, name, 
+    panel.add([panelShadow, panelBg, innerHighlight, headerBg, emojiContainer, relicIcon, name, 
               equippedBadge, equippedText, descSection, descTitle, description, 
               loreSection, loreTitle, loreText, closeBtn]);
               

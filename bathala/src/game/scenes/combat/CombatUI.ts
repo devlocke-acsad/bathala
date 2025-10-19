@@ -12,6 +12,37 @@ import { HandEvaluator } from "../../../utils/HandEvaluator";
 import { Combat } from "../Combat";
 
 /**
+ * Helper function to get the sprite key for a relic based on its ID
+ */
+function getRelicSpriteKey(relicId: string): string {
+  // Map relic IDs to sprite keys
+  const spriteMap: Record<string, string> = {
+    'swift_wind_agimat': 'relic_swift_wind_agimat',
+    'amomongo_claw': 'relic_amomongo_claw',
+    'ancestral_blade': 'relic_ancestral_blade',
+    'balete_root': 'relic_balete_root',
+    'babaylans_talisman': 'relic_babaylans_talisman',
+    'bungisngis_grin': 'relic_bungisngis_grin',
+    'diwatas_crown': 'relic_diwatas_crown',
+    'duwende_charm': 'relic_duwende_charm',
+    'earthwardens_plate': 'relic_earthwardens_plate',
+    'ember_fetish': 'relic_ember_fetish',
+    'kapres_cigar': 'relic_kapres_cigar',
+    'lucky_charm': 'relic_lucky_charm',
+    'mangangaway_wand': 'relic_mangangaway_wand',
+    'sarimanok_feather': 'relic_sarimanok_feather',
+    'sigbin_heart': 'relic_sigbin_heart',
+    'stone_golem_heart': 'relic_stone_golem_heart',
+    'tidal_amulet': 'relic_tidal_amulet',
+    'tikbalangs_hoof': 'relic_tikbalangs_hoof',
+    'tiyanak_tear': 'relic_tiyanak_tear',
+    'umalagad_spirit': 'relic_umalagad_spirit'
+  };
+  
+  return spriteMap[relicId] || '';
+}
+
+/**
  * CombatUI - Handles all UI creation, updates, and management for Combat scene
  * 
  * This class manages:
@@ -1096,19 +1127,34 @@ export class CombatUI {
       if (index < relicSlotsCount && relicSlots[index]) {
         const slot = relicSlots[index];
         
-        console.log(`Adding relic ${index}:`, relic.name, "emoji:", relic.emoji);
+        console.log(`Adding relic ${index}:`, relic.name, "ID:", relic.id);
         
         // Calculate absolute position for the icon (not relative to slot)
         const iconX = relicStartX + index * relicSlotSpacing;
         const iconY = relicStartY;
         
+        // Get sprite key for this relic
+        const spriteKey = getRelicSpriteKey(relic.id);
+        
         // Add relic icon DIRECTLY to relicInventory (not to slot)
-        // This ensures it renders on top of the slot background
-        const relicIcon = this.scene.add.text(iconX, iconY, relic.emoji || "⚙️", {
-          fontSize: 28,
-          color: "#ffffff",
-          align: "center"
-        }).setOrigin(0.5).setDepth(100);
+        let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+        
+        if (spriteKey && this.scene.textures.exists(spriteKey)) {
+          // Use sprite if available
+          relicIcon = this.scene.add.image(iconX, iconY, spriteKey)
+            .setOrigin(0.5)
+            .setDisplaySize(32, 32) // Fit within 40px slot with some padding
+            .setDepth(100);
+          console.log(`Using sprite for relic: ${spriteKey}`);
+        } else {
+          // Fallback to emoji if sprite not found
+          relicIcon = this.scene.add.text(iconX, iconY, relic.emoji || "⚙️", {
+            fontSize: 28,
+            color: "#ffffff",
+            align: "center"
+          }).setOrigin(0.5).setDepth(100);
+          console.warn(`Sprite not found for relic ${relic.id}, using emoji`);
+        }
         
         (relicIcon as any).isRelicIcon = true;
         this.relicInventory.add(relicIcon); // Add to inventory, not slot

@@ -182,23 +182,23 @@ export class CombatDialogue {
     },
     tawong_lipod: {
       name: "Tawong Lipod",
-      spareDialogue: "Ah... you move with the wind's understanding. We once brought harmony to the Bikol lands, before the false god's lies. Accept this gift of swift movement and hidden sight.",
+      spareDialogue: "Ah... you move with the wind's understanding. We once brought harmony to the Bikol lands, before the false god's lies. Accept this gift of swift movement.",
       killDialogue: "You cannot scatter what has no form! The wind remembers your violence, and it feeds the impostor's power!",
       spareReward: { 
         ginto: 80, 
         diamante: 1, 
         healthHealing: 20, 
         bonusEffect: "Wind's grace",
-        relics: [RELIC_REGISTRY.getById("wind_veil")!],
-        relicDropChance: 0.75
+        relics: [], // Removed wind_veil (no sprite)
+        relicDropChance: 0
       },
       killReward: { 
         ginto: 120, 
         diamante: 2, 
         healthHealing: 0, 
         bonusEffect: "Air superiority",
-        relics: [RELIC_REGISTRY.getById("wind_veil")!],
-        relicDropChance: 0.75
+        relics: [], // Removed wind_veil (no sprite)
+        relicDropChance: 0
       },
     },
     mangangaway: {
