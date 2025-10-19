@@ -16,6 +16,8 @@ export class Shop extends Scene {
   private scrollContainer: Phaser.GameObjects.Container | null = null;
   private currentTooltip: Phaser.GameObjects.Container | null = null;
   private merchantCharacter!: Phaser.GameObjects.Container;
+  private typewriterTimer: Phaser.Time.TimerEvent | null = null;
+  private autoDialogueTimer: Phaser.Time.TimerEvent | null = null;
 
   // Merchant dialogue for different relics - now using centralized relic system
   private getRelicDialogue(relicId: string): string[] {
@@ -182,6 +184,24 @@ export class Shop extends Scene {
   }
 
   private cleanup(): void {
+    // Clean up typewriter timer
+    if (this.typewriterTimer) {
+      this.typewriterTimer.destroy();
+      this.typewriterTimer = null;
+    }
+    
+    // Clean up auto dialogue timer
+    if (this.autoDialogueTimer) {
+      this.autoDialogueTimer.destroy();
+      this.autoDialogueTimer = null;
+    }
+    
+    // Clean up dialogue container
+    if (this.dialogueContainer) {
+      this.dialogueContainer.destroy();
+      this.dialogueContainer = undefined;
+    }
+    
     // Clean up any remaining tooltips
     this.hideItemTooltip();
     
@@ -519,7 +539,7 @@ export class Shop extends Scene {
 
   private createMerchantDialogueSystem(): void {
     // Auto-dialogue every 8-12 seconds
-    this.time.addEvent({
+    this.autoDialogueTimer = this.time.addEvent({
       delay: Phaser.Math.Between(8000, 12000),
       callback: () => this.showMerchantDialogue(true),
       loop: true
@@ -527,14 +547,24 @@ export class Shop extends Scene {
   }
 
   private showMerchantDialogue(isAuto: boolean = false): void {
+    // Safety check: don't run if scene is shutting down
+    if (!this.sys || !this.sys.isActive()) {
+      return;
+    }
+    
     // Don't show auto dialogue if manual dialogue is active
     if (isAuto && this.dialogueContainer && this.dialogueContainer.visible) {
       return;
     }
 
-    // Hide existing dialogue
+    // Hide existing dialogue and clean up timer
     if (this.dialogueContainer) {
       this.dialogueContainer.destroy();
+    }
+    
+    if (this.typewriterTimer) {
+      this.typewriterTimer.destroy();
+      this.typewriterTimer = null;
     }
 
     const screenWidth = this.cameras.main.width;
@@ -600,27 +630,59 @@ export class Shop extends Scene {
     // Add elements to container
     this.dialogueContainer.add([dialogueBg, namePlate, characterName, dialogueText, continueText]);
 
-    // Typewriter effect
+    // Clean up existing typewriter timer before creating a new one
+    if (this.typewriterTimer) {
+      this.typewriterTimer.destroy();
+      this.typewriterTimer = null;
+    }
+
+    // Typewriter effect with safety checks
     let currentChar = 0;
-    const typewriterTimer = this.time.addEvent({
+    this.typewriterTimer = this.time.addEvent({
       delay: 50, // Speed of typing
       callback: () => {
+        // Safety check: ensure dialogue container and text still exist
+        if (!this.dialogueContainer || !dialogueText || !dialogueText.active) {
+          const timer = this.typewriterTimer;
+          if (timer) {
+            timer.destroy();
+            this.typewriterTimer = null;
+          }
+          return;
+        }
+        
         if (currentChar < dialogue.length) {
-          dialogueText.text = dialogue.substring(0, currentChar + 1);
-          currentChar++;
+          try {
+            dialogueText.text = dialogue.substring(0, currentChar + 1);
+            currentChar++;
+          } catch (error) {
+            console.warn("Error updating dialogue text:", error);
+            const timer = this.typewriterTimer;
+            if (timer) {
+              timer.destroy();
+              this.typewriterTimer = null;
+            }
+          }
         } else {
-          typewriterTimer.destroy();
-          continueText.setVisible(true);
+          const timer = this.typewriterTimer;
+          if (timer) {
+            timer.destroy();
+            this.typewriterTimer = null;
+          }
           
-          // Pulse animation for continue indicator
-          this.tweens.add({
-            targets: continueText,
-            alpha: 0.3,
-            duration: 800,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-          });
+          if (continueText && continueText.active) {
+            continueText.setVisible(true);
+            
+            // Pulse animation for continue indicator
+            this.tweens.add({
+              targets: continueText,
+              alpha: 0.3,
+              duration: 800,
+              yoyo: true,
+              repeat: -1,
+              ease: 'Sine.easeInOut'
+            });
+          }
         }
       },
       repeat: dialogue.length - 1
