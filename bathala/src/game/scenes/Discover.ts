@@ -300,9 +300,9 @@ export class Discover extends Scene {
     // Clear existing cards
     this.cards = [];
     
-    // Calculate grid positions - EVEN LARGER CARDS with better proportions
+    // Calculate grid positions - TALLER CARDS for full sprite display
     const cardWidth = 260;
-    const cardHeight = 280;
+    const cardHeight = 320; // Increased from 280 to 320 for more vertical space
     const cardSpacing = 35;
     const cardsPerRow = Math.floor((screenWidth - 100) / (cardWidth + cardSpacing));
     const startX = (screenWidth - (cardsPerRow * cardWidth + (cardsPerRow - 1) * cardSpacing)) / 2;
@@ -363,33 +363,56 @@ export class Discover extends Scene {
       fontStyle: "bold"
     }).setOrigin(0.5);
     
-    // Sprite container frame with subtle shadow
-    const spriteFrame = this.add.rectangle(width/2, 135, 150, 150, 0x0f0a0d)
+    // Sprite container frame with subtle shadow - NO HEIGHT LIMIT
+    const spriteFrame = this.add.rectangle(width/2, 160, 200, 200, 0x0f0a0d)
       .setStrokeStyle(1, typeColor, 0.4)
       .setOrigin(0.5);
     
     // Get sprite key for this character
     const spriteKey = this.getCharacterSpriteKey(entry.id);
     
-    // Character sprite - MUCH LARGER for prominence
+    // Character sprite - NATURAL ASPECT RATIO with max width constraint
+    let characterVisual: Phaser.GameObjects.GameObject;
     if (this.textures.exists(spriteKey)) {
-      const sprite = this.add.image(width/2, 135, spriteKey)
-        .setOrigin(0.5)
-        .setDisplaySize(140, 140); // Big sprite!
-      container.add(sprite);
+      const sprite = this.add.image(width/2, 160, spriteKey).setOrigin(0.5);
+      
+      // Base scale to fit width while maintaining aspect ratio
+      const baseMaxWidth = 140;
+      let scaleX = baseMaxWidth / sprite.width;
+      
+      // Apply individual scale adjustments per enemy
+      const scaleAdjustments: Record<string, number> = {
+        "tikbalang_scout": 0.75,      // Small
+        "balete_wraith": 1.15,         // Slightly large
+        "sigbin_charger": 1.0,         // Normal
+        "duwende_trickster": 1.0,      // Normal
+        "tiyanak_ambusher": 0.75,      // Small
+        "amomongo": 0.7,               // Much smaller (was 0.9)
+        "bungisngis": 1.0,             // Normal
+        "kapre_shade": 1.15,           // Slightly large
+        "tawong_lipod": 0.5,           // Very small (was 0.65)
+        "mangangaway": 0.6             // Very small (was 0.75)
+      };
+      
+      // Apply custom scale if exists
+      const customScale = scaleAdjustments[entry.id] || 1.0;
+      scaleX = scaleX * customScale;
+      
+      sprite.setScale(scaleX);
+      
+      characterVisual = sprite;
     } else {
       // Fallback to emoji if sprite not found
       const symbol = this.getCharacterSymbol(entry.id);
-      const emojiText = this.add.text(width/2, 135, symbol, {
+      characterVisual = this.add.text(width/2, 160, symbol, {
         fontFamily: "dungeon-mode-inverted",
-        fontSize: 90,
+        fontSize: 100,
         color: typeColorHex
       }).setOrigin(0.5);
-      container.add(emojiText);
     }
     
-    // Character name with better visibility
-    const nameText = this.add.text(width/2, 225, entry.name, {
+    // Character name with better visibility - MOVED DOWN MORE
+    const nameText = this.add.text(width/2, 270, entry.name, {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 18,
       color: "#e8eced",
@@ -397,40 +420,40 @@ export class Discover extends Scene {
       align: "center"
     }).setOrigin(0.5);
     
-    // Stats display panel at bottom
-    const statsPanel = this.add.rectangle(width/2, 260, width - 16, 35, 0x0f0a0d)
+    // Stats display panel at bottom - MOVED DOWN MORE
+    const statsPanel = this.add.rectangle(width/2, 300, width - 16, 35, 0x0f0a0d)
       .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0.5);
     
-    // HP stat
-    const hpLabel = this.add.text(width/4, 250, "HP", {
+    // HP stat - ADJUSTED POSITION
+    const hpLabel = this.add.text(width/4, 290, "HP", {
       fontFamily: "dungeon-mode",
       fontSize: 11,
       color: "#77888C"
     }).setOrigin(0.5);
     
-    const hpValue = this.add.text(width/4, 268, entry.health.toString(), {
+    const hpValue = this.add.text(width/4, 308, entry.health.toString(), {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 16,
       color: "#ff6b6b"
     }).setOrigin(0.5);
     
-    // ATK stat
-    const atkLabel = this.add.text((width * 3) / 4, 250, "ATK", {
+    // ATK stat - ADJUSTED POSITION
+    const atkLabel = this.add.text((width * 3) / 4, 290, "ATK", {
       fontFamily: "dungeon-mode",
       fontSize: 11,
       color: "#77888C"
     }).setOrigin(0.5);
     
-    const atkValue = this.add.text((width * 3) / 4, 268, entry.attack.toString(), {
+    const atkValue = this.add.text((width * 3) / 4, 308, entry.attack.toString(), {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 16,
       color: "#ffd93d"
     }).setOrigin(0.5);
     
-    // Add all elements to container
+    // Add all elements to container in proper z-order
     container.add([outerGlow, background, topBar, typeBadge, typeText, spriteFrame, 
-                   nameText, statsPanel, hpLabel, hpValue, atkLabel, atkValue]);
+                   characterVisual, nameText, statsPanel, hpLabel, hpValue, atkLabel, atkValue]);
     
     // Enhanced hover effects
     background.setInteractive(new Phaser.Geom.Rectangle(0, 0, width, height), Phaser.Geom.Rectangle.Contains)
@@ -682,10 +705,33 @@ export class Discover extends Scene {
       // Hide emoji text
       this.detailSymbolText.setVisible(false);
       
-      // Create new sprite - MUCH LARGER for detail view
+      // Create new sprite - NATURAL ASPECT RATIO for detail view
       this.detailSpriteImage = this.add.image(screenWidth/2, 280, spriteKey)
-        .setOrigin(0.5)
-        .setDisplaySize(180, 180); // Increased from 120x120 to 180x180
+        .setOrigin(0.5);
+      
+      // Base scale to fit width while maintaining aspect ratio
+      const baseMaxWidth = 180;
+      let scaleX = baseMaxWidth / this.detailSpriteImage.width;
+      
+      // Apply individual scale adjustments per enemy (same as card view)
+      const scaleAdjustments: Record<string, number> = {
+        "tikbalang_scout": 0.75,      // Small
+        "balete_wraith": 1.15,         // Slightly large
+        "sigbin_charger": 1.0,         // Normal
+        "duwende_trickster": 1.0,      // Normal
+        "tiyanak_ambusher": 0.75,      // Small
+        "amomongo": 0.7,               // Much smaller (was 0.9)
+        "bungisngis": 1.0,             // Normal
+        "kapre_shade": 1.15,           // Slightly large
+        "tawong_lipod": 0.5,           // Very small (was 0.65)
+        "mangangaway": 0.6             // Very small (was 0.75)
+      };
+      
+      // Apply custom scale if exists
+      const customScale = scaleAdjustments[entry.id] || 1.0;
+      scaleX = scaleX * customScale;
+      
+      this.detailSpriteImage.setScale(scaleX);
       
       // Add to detail view container (move to front)
       this.detailViewContainer.add(this.detailSpriteImage);
