@@ -47,6 +47,11 @@ export class Discover extends Scene {
   private detailDescriptionText: GameObjects.Text;
   private detailLoreText: GameObjects.Text;
   
+  // Design elements for dynamic coloring
+  private detailTopAccent: GameObjects.Rectangle;
+  private detailTypeBadge: GameObjects.Rectangle;
+  private detailOuterGlow: GameObjects.Rectangle;
+  
   constructor() {
     super({ key: "Discover" });
   }
@@ -536,7 +541,7 @@ export class Discover extends Scene {
   }
   
   /**
-   * Create detailed view for character information with improved styling
+   * Create detailed view for character information - PREMIUM REDESIGN
    */
   private createDetailView(): void {
     const screenWidth = this.cameras.main.width;
@@ -546,151 +551,237 @@ export class Discover extends Scene {
     this.detailViewContainer = this.add.container(0, 0);
     this.detailViewContainer.setVisible(false);
     
-    // Background overlay with subtle transparency
+    // Background overlay with deeper shadow
     const overlay = this.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000)
       .setOrigin(0)
-      .setAlpha(0.7);
+      .setAlpha(0.85);
       
-    // Detailed view background with consistent styling
-    const detailBackground = this.add.rectangle(screenWidth/2, screenHeight/2, screenWidth - 120, screenHeight - 120, 0x1d151a)
-      .setStrokeStyle(1, 0x4a3a40)
+    // Main card background with premium layered design
+    this.detailOuterGlow = this.add.rectangle(screenWidth/2, screenHeight/2, screenWidth - 100, screenHeight - 100, 0x4a3a40)
+      .setOrigin(0.5)
+      .setAlpha(0.3);
+      
+    const detailBackground = this.add.rectangle(screenWidth/2, screenHeight/2, screenWidth - 110, screenHeight - 110, 0x1d151a)
+      .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0.5);
       
-    // Close button
-    const closeButton = this.add.text(screenWidth - 90, 90, "✕", {
+    // Top accent bar (will be colored based on enemy type)
+    this.detailTopAccent = this.add.rectangle(screenWidth/2, 62, screenWidth - 110, 8, 0x4a3a40)
+      .setOrigin(0.5)
+      .setAlpha(0.7);
+      
+    // Close button with better styling
+    const closeButton = this.add.text(screenWidth - 80, 80, "✕", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 20,
+      fontSize: 24,
       color: "#ff6b6b"
     }).setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => {
         this.handleBackNavigation();
+      })
+      .on("pointerover", () => {
+        closeButton.setScale(1.2);
+        closeButton.setColor("#ff4444");
+      })
+      .on("pointerout", () => {
+        closeButton.setScale(1);
+        closeButton.setColor("#ff6b6b");
       });
       
-    // Character name with improved styling
-    this.detailNameText = this.add.text(screenWidth/2, 130, "", {
+    // Character name with enhanced styling
+    this.detailNameText = this.add.text(screenWidth/2, 100, "", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 32,
-      color: "#e8eced"
+      fontSize: 36,
+      color: "#e8eced",
+      stroke: "#000000",
+      strokeThickness: 2
     }).setOrigin(0.5);
     
-    // Character type with consistent badge styling
-    const typeBadge = this.add.rectangle(screenWidth/2, 180, 120, 30, 0x2a1f24)
+    // Character type badge with enhanced design
+    const typeBadgeGlow = this.add.rectangle(screenWidth/2, 155, 140, 36, 0x4a3a40)
+      .setOrigin(0.5)
+      .setAlpha(0.4);
+      
+    this.detailTypeBadge = this.add.rectangle(screenWidth/2, 155, 136, 32, 0x2a1f24)
       .setStrokeStyle(2, 0x77888C)
       .setOrigin(0.5);
     
-    this.detailTypeText = this.add.text(screenWidth/2, 180, "", {
+    this.detailTypeText = this.add.text(screenWidth/2, 155, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 16,
+      fontSize: 18,
       color: "#77888C"
     }).setOrigin(0.5);
     
-    // Character symbol - LARGER SPRITE AREA
+    // Sprite frame with premium border
+    const spriteFrameGlow = this.add.rectangle(screenWidth/2, 280, 224, 224, 0x0f0a0d)
+      .setOrigin(0.5)
+      .setAlpha(0.5);
+      
+    const spriteFrame = this.add.rectangle(screenWidth/2, 280, 220, 220, 0x0f0a0d)
+      .setStrokeStyle(2, 0x4a3a40)
+      .setOrigin(0.5);
+    
+    // Character symbol placeholder
     this.detailSymbolText = this.add.text(screenWidth/2, 280, "", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 90,
       color: "#e8eced"
     }).setOrigin(0.5);
     
-    // Stats section title - MOVED DOWN
-    const statsTitle = this.add.text(screenWidth/2 - 200, 380, "STATS", {
-      fontFamily: "dungeon-mode",
-      fontSize: 16,
-      color: "#77888C"
-    }).setOrigin(0);
-    
-    // Stats container
-    const statsContainer = this.add.rectangle(screenWidth/2 - 200, 410, 160, 70, 0x2a1f24)
-      .setStrokeStyle(1, 0x4a3a40)
-      .setOrigin(0);
-    
-    // Stats text
-    this.detailStatsText = this.add.text(screenWidth/2 - 185, 425, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: 15,
-      color: "#a9b4b8",
-      wordWrap: { width: 130 }
-    }).setOrigin(0);
-    
-    // Abilities section title
-    const abilitiesTitle = this.add.text(screenWidth/2 + 40, 380, "ABILITIES", {
-      fontFamily: "dungeon-mode",
-      fontSize: 16,
-      color: "#77888C"
-    }).setOrigin(0);
-    
-    // Abilities container
-    const abilitiesContainer = this.add.rectangle(screenWidth/2 + 40, 410, 220, 70, 0x2a1f24)
-      .setStrokeStyle(1, 0x4a3a40)
-      .setOrigin(0);
-    
-    // Abilities text
-    this.detailAbilitiesText = this.add.text(screenWidth/2 + 55, 425, "", {
-      fontFamily: "dungeon-mode",
-      fontSize: 15,
-      color: "#c9a74a",
-      wordWrap: { width: 190 }
-    }).setOrigin(0);
-    
-    // Description section - MOVED DOWN
-    const descriptionTitle = this.add.text(screenWidth/2, 510, "DESCRIPTION", {
+    // Stats section with enhanced design
+    const statsTitle = this.add.text(screenWidth/2 - 200, 410, "COMBAT STATS", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 20,
+      fontSize: 18,
       color: "#e8eced"
+    }).setOrigin(0);
+    
+    const statsGlow = this.add.rectangle(screenWidth/2 - 200, 445, 168, 78, 0x4a3a40)
+      .setOrigin(0)
+      .setAlpha(0.3);
+      
+    const statsContainer = this.add.rectangle(screenWidth/2 - 200, 445, 164, 74, 0x2a1f24)
+      .setStrokeStyle(2, 0x4a3a40)
+      .setOrigin(0);
+    
+    this.detailStatsText = this.add.text(screenWidth/2 - 185, 462, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 16,
+      color: "#a9b4b8",
+      wordWrap: { width: 130 },
+      lineSpacing: 4
+    }).setOrigin(0);
+    
+    // Abilities section with enhanced design
+    const abilitiesTitle = this.add.text(screenWidth/2 + 40, 410, "SPECIAL ABILITIES", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 18,
+      color: "#e8eced"
+    }).setOrigin(0);
+    
+    const abilitiesGlow = this.add.rectangle(screenWidth/2 + 40, 445, 228, 78, 0x4a3a40)
+      .setOrigin(0)
+      .setAlpha(0.3);
+      
+    const abilitiesContainer = this.add.rectangle(screenWidth/2 + 40, 445, 224, 74, 0x2a1f24)
+      .setStrokeStyle(2, 0x4a3a40)
+      .setOrigin(0);
+    
+    this.detailAbilitiesText = this.add.text(screenWidth/2 + 55, 462, "", {
+      fontFamily: "dungeon-mode",
+      fontSize: 16,
+      color: "#c9a74a",
+      wordWrap: { width: 190 },
+      lineSpacing: 4
+    }).setOrigin(0);
+    
+    // Description section with premium design
+    const descriptionTitle = this.add.text(screenWidth/2, 550, "━━━ TACTICAL OVERVIEW ━━━", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 22,
+      color: "#e8eced",
+      stroke: "#4a3a40",
+      strokeThickness: 1
     }).setOrigin(0.5);
     
-    const descriptionContainer = this.add.rectangle(screenWidth/2, 555, screenWidth - 200, 90, 0x2a1f24)
-      .setStrokeStyle(1, 0x4a3a40)
+    const descriptionGlow = this.add.rectangle(screenWidth/2, 600, screenWidth - 180, 108, 0x4a3a40)
+      .setOrigin(0.5, 0)
+      .setAlpha(0.3);
+      
+    const descriptionContainer = this.add.rectangle(screenWidth/2, 600, screenWidth - 186, 104, 0x2a1f24)
+      .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0.5, 0);
+      
+    // Decorative corner accents for description
+    const descCornerTL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 600, 12, 12, 0x06d6a0)
+      .setOrigin(0.5)
+      .setAlpha(0.6);
+    const descCornerTR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 600, 12, 12, 0x06d6a0)
+      .setOrigin(0.5)
+      .setAlpha(0.6);
     
-    this.detailDescriptionText = this.add.text(screenWidth/2, 570, "", {
+    this.detailDescriptionText = this.add.text(screenWidth/2, 618, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 15,
-      color: "#a9b4b8",
-      wordWrap: { width: screenWidth - 220 },
-      lineSpacing: 3
+      fontSize: 16,
+      color: "#c4d1d6",
+      wordWrap: { width: screenWidth - 210 },
+      lineSpacing: 5,
+      align: "center"
     }).setOrigin(0.5, 0);
     
-    // Lore section - MOVED DOWN
-    const loreTitle = this.add.text(screenWidth/2, 665, "MYTHOLOGY & LORE", {
+    // Lore section with premium mythological design
+    const loreTitle = this.add.text(screenWidth/2, 730, "━━━ MYTHOLOGY & ANCIENT LORE ━━━", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 20,
-      color: "#e8eced"
+      fontSize: 22,
+      color: "#ffd93d",
+      stroke: "#4a3a40",
+      strokeThickness: 1
     }).setOrigin(0.5);
     
-    const loreContainer = this.add.rectangle(screenWidth/2, 710, screenWidth - 200, 130, 0x2a1f24)
-      .setStrokeStyle(1, 0x4a3a40)
+    const loreGlow = this.add.rectangle(screenWidth/2, 780, screenWidth - 180, 148, 0x4a3a40)
+      .setOrigin(0.5, 0)
+      .setAlpha(0.3);
+      
+    const loreContainer = this.add.rectangle(screenWidth/2, 780, screenWidth - 186, 144, 0x2a1f24)
+      .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0.5, 0);
+      
+    // Decorative corner accents for lore (golden theme)
+    const loreCornerTL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 780, 12, 12, 0xffd93d)
+      .setOrigin(0.5)
+      .setAlpha(0.6);
+    const loreCornerTR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 780, 12, 12, 0xffd93d)
+      .setOrigin(0.5)
+      .setAlpha(0.6);
+    const loreCornerBL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 924, 12, 12, 0xffd93d)
+      .setOrigin(0.5)
+      .setAlpha(0.6);
+    const loreCornerBR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 924, 12, 12, 0xffd93d)
+      .setOrigin(0.5)
+      .setAlpha(0.6);
     
-    this.detailLoreText = this.add.text(screenWidth/2, 725, "", {
+    this.detailLoreText = this.add.text(screenWidth/2, 798, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 15,
-      color: "#8a9a9f",
+      fontSize: 16,
+      color: "#d4b878",
       fontStyle: "italic",
-      wordWrap: { width: screenWidth - 220 },
-      lineSpacing: 3
+      wordWrap: { width: screenWidth - 210 },
+      lineSpacing: 5,
+      align: "center"
     }).setOrigin(0.5, 0);
     
     this.detailViewContainer.add([
-      overlay, detailBackground, closeButton, this.detailNameText, typeBadge, this.detailTypeText, this.detailSymbolText,
-      statsTitle, statsContainer, this.detailStatsText, abilitiesTitle, abilitiesContainer, this.detailAbilitiesText,
-      descriptionTitle, descriptionContainer, this.detailDescriptionText, loreTitle, loreContainer, this.detailLoreText
+      overlay, this.detailOuterGlow, detailBackground, this.detailTopAccent, closeButton, 
+      this.detailNameText, typeBadgeGlow, this.detailTypeBadge, this.detailTypeText, 
+      spriteFrameGlow, spriteFrame, this.detailSymbolText,
+      statsTitle, statsGlow, statsContainer, this.detailStatsText, 
+      abilitiesTitle, abilitiesGlow, abilitiesContainer, this.detailAbilitiesText,
+      descriptionTitle, descriptionGlow, descriptionContainer, descCornerTL, descCornerTR, this.detailDescriptionText, 
+      loreTitle, loreGlow, loreContainer, loreCornerTL, loreCornerTR, loreCornerBL, loreCornerBR, this.detailLoreText
     ]);
   }
   
   /**
-   * Show detailed view of a character with animation
+   * Show detailed view of a character with premium styling and animation
    */
   private showCharacterDetails(entry: any): void {
     this.isDetailViewOpen = true;
     
-    // Update content with consistent styling
-    this.detailNameText.setText(entry.name);
-    
-    this.detailTypeText.setText(entry.type);
+    // Determine type-based colors
     const typeColorHex = entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#06d6a0";
     const typeColor = entry.type === "Boss" ? 0xff6b6b : entry.type === "Elite" ? 0xffd93d : 0x06d6a0;
+    
+    // Update character name
+    this.detailNameText.setText(entry.name);
+    
+    // Update type badge and apply dynamic coloring
+    this.detailTypeText.setText(entry.type);
     this.detailTypeText.setColor(typeColorHex);
+    this.detailTypeBadge.setStrokeStyle(2, typeColor);
+    
+    // Apply type color to top accent bar and outer glow
+    this.detailTopAccent.setFillStyle(typeColor);
+    this.detailOuterGlow.setFillStyle(typeColor);
     
     // Try to use sprite first, fallback to emoji
     const spriteKey = this.getCharacterSpriteKey(entry.id);
