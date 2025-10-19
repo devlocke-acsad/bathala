@@ -2,6 +2,7 @@ import { Scene } from "phaser";
 import { GameState } from "../../core/managers/GameState";
 import { Player, Relic } from "../../core/types/CombatTypes";
 import { allShopItems, ShopItem } from "../../data/relics/ShopItems";
+import { getRelicById } from "../../data/relics/Act1Relics";
 
 export class Shop extends Scene {
   private player!: Player;
@@ -15,66 +16,76 @@ export class Shop extends Scene {
   private currentTooltip: Phaser.GameObjects.Container | null = null;
   private merchantCharacter!: Phaser.GameObjects.Container;
 
-  // Merchant dialogue for different relics
-  private relicDialogues: { [key: string]: string[] } = {
-    "earthwardens_plate": [
-      "Ah, the Earthwarden's Plate! Forged from sacred linga stones in the deepest caves where the earth spirits dwell.",
-      "This armor was blessed by the mountain anitos themselves. It will shield you from harm.",
-      "I found this piece in the ruins of an ancient temple. The earth still whispers its secrets."
-    ],
-    "swift_wind_agimat": [
-      "The Agimat of Swift Wind carries the essence of the Tikbalang's legendary speed!",
-      "This talisman was crafted during the new moon. It grants swiftness to those pure of heart.",
-      "A wind spirit blessed this amulet. It will make your hands faster than the eye can see."
-    ],
-    "babaylans_talisman": [
-      "The Babaylan's Talisman... a powerful artifact from the ancient healers and mystics.",
-      "This belonged to a great babaylan who could speak with the anitos. It enhances one's spiritual power.",
-      "I traded three years of my life to an engkanto for this. It makes your hands blessed by the spirits."
-    ],
-    "echo_of_ancestors": [
-      "The Echo of Ancestors resonates with the voices of those who came before us.",
-      "This relic holds the wisdom of generations. It can unlock possibilities beyond imagination.",
-      "The ancestral spirits whisper through this stone. It grants power over the mystical numbers."
-    ],
-    "ember_fetish": [
-      "This Ember Fetish was carved from the heart of a banana tree at midnight, during Apolaki's sacred hour.",
-      "Feel the warmth of the sun god's blessing! It ignites your inner fire when you're most vulnerable.",
-      "The flames of courage burn within this fetish. Use it wisely, young warrior."
-    ],
-    "umalagad_spirit": [
-      "Umalagad's Spirit... the essence of the great sea serpent that guides lost sailors home.",
-      "This spirit will protect you as it protected the ancient fishermen of Panay.",
-      "The serpent's wisdom flows through this relic. It will sharpen your reflexes in battle."
-    ],
-    "merchants_scale": [
-      "Ah, you have an eye for irony! The Merchant's Scale... it will make all my prices fairer.",
-      "Blessed by Lakambini herself, this scale ensures honest trade. Even I must honor its power.",
-      "This scale has weighed the souls of merchants for centuries. It demands fairness from all."
-    ],
-    "ancestral_blade": [
-      "The Ancestral Blade... a kampilan that has tasted victory in a thousand battles.",
-      "Your ancestors' spirits dwell within this steel. They will guide your strikes true.",
-      "This blade grows stronger when your heart beats in harmony with your heritage."
-    ],
-    "tidal_amulet": [
-      "The Tidal Amulet pulses with the eternal rhythm of the sea. Can you feel its healing power?",
-      "This coral fragment came from the deepest trenches where the diwata dwell.",
-      "The ocean's mercy flows through this charm. It will mend what battle has broken."
-    ],
-    "sarimanok_feather": [
-      "Behold! A feather from the legendary Sarimanok! It brings prosperity to those worthy of its gifts.",
-      "This radiant plume fell from the sky during a solar eclipse. It's worth more than gold itself.",
-      "The Sarimanok's blessing is upon this feather. Success will follow in your wake."
-    ],
-    "default": [
-      "This item holds ancient power from the mystical realms...",
-      "Ah, a fine choice! This artifact has served many heroes before you.",
-      "I acquired this through... unconventional means. But it will serve you well!",
-      "The spirits themselves guided this item to my shop. Perhaps they meant it for you.",
-      "Every relic has a story. This one's tale is written in power and mystery."
-    ]
-  };
+  // Merchant dialogue for different relics - now using centralized relic system
+  private getRelicDialogue(relicId: string): string[] {
+    const relic = getRelicById(relicId);
+    
+    // Return specific dialogues for known relics, or use the relic's description as base
+    const specificDialogues: { [key: string]: string[] } = {
+      "earthwardens_plate": [
+        "Ah, the Earthwarden's Plate! Forged from sacred linga stones in the deepest caves where the earth spirits dwell.",
+        "This armor was blessed by the mountain anitos themselves. It will shield you from harm.",
+        "I found this piece in the ruins of an ancient temple. The earth still whispers its secrets."
+      ],
+      "swift_wind_agimat": [
+        "The Agimat of Swift Wind carries the essence of the Tikbalang's legendary speed!",
+        "This talisman was crafted during the new moon. It grants swiftness to those pure of heart.",
+        "A wind spirit blessed this amulet. It will make your hands faster than the eye can see."
+      ],
+      "babaylans_talisman": [
+        "The Babaylan's Talisman... a powerful artifact from the ancient healers and mystics.",
+        "This belonged to a great babaylan who could speak with the anitos. It enhances one's spiritual power.",
+        "I traded three years of my life to an engkanto for this. It makes your hands blessed by the spirits."
+      ],
+      "echo_ancestors": [
+        "The Echo of Ancestors resonates with the voices of those who came before us.",
+        "This relic holds the wisdom of generations. It can unlock possibilities beyond imagination.",
+        "The ancestral spirits whisper through this stone. It grants power over the mystical numbers."
+      ],
+      "ember_fetish": [
+        "This Ember Fetish was carved from the heart of a banana tree at midnight, during Apolaki's sacred hour.",
+        "Feel the warmth of the sun god's blessing! It ignites your inner fire when you're most vulnerable.",
+        "The flames of courage burn within this fetish. Use it wisely, young warrior."
+      ],
+      "umalagad_spirit": [
+        "Umalagad's Spirit... the essence of the great sea serpent that guides lost sailors home.",
+        "This spirit will protect you as it protected the ancient fishermen of Panay.",
+        "The serpent's wisdom flows through this relic. It will sharpen your reflexes in battle."
+      ],
+      "merchants_scale": [
+        "Ah, you have an eye for irony! The Merchant's Scale... it will make all my prices fairer.",
+        "Blessed by Lakambini herself, this scale ensures honest trade. Even I must honor its power.",
+        "This scale has weighed the souls of merchants for centuries. It demands fairness from all."
+      ],
+      "ancestral_blade": [
+        "The Ancestral Blade... a kampilan that has tasted victory in a thousand battles.",
+        "Your ancestors' spirits dwell within this steel. They will guide your strikes true.",
+        "This blade grows stronger when your heart beats in harmony with your heritage."
+      ],
+      "tidal_amulet": [
+        "The Tidal Amulet pulses with the eternal rhythm of the sea. Can you feel its healing power?",
+        "This coral fragment came from the deepest trenches where the diwata dwell.",
+        "The ocean's mercy flows through this charm. It will mend what battle has broken."
+      ],
+      "sarimanok_feather": [
+        "Behold! A feather from the legendary Sarimanok! It brings prosperity to those worthy of its gifts.",
+        "This radiant plume fell from the sky during a solar eclipse. It's worth more than gold itself.",
+        "The Sarimanok's blessing is upon this feather. Success will follow in your wake."
+      ]
+    };
+
+    // Return specific dialogue if available, otherwise generate from relic description
+    if (specificDialogues[relicId]) {
+      return specificDialogues[relicId];
+    }
+
+    // Generate dialogue from relic description
+    return [
+      `${relic.name}... ${relic.description}`,
+      "This artifact holds ancient power from the mystical realms...",
+      "The spirits themselves guided this item to my shop. Perhaps they meant it for you."
+    ];
+  }
 
   constructor() {
     super({ key: "Shop" });
@@ -1848,9 +1859,9 @@ export class Shop extends Scene {
   }
 
   private showRandomRelicDialogue(item: ShopItem): void {
-    // Get the appropriate dialogue array for this relic
+    // Get the appropriate dialogue array for this relic using centralized system
     const relicId = item.item.id;
-    const dialogues = this.relicDialogues[relicId] || this.relicDialogues["default"];
+    const dialogues = this.getRelicDialogue(relicId);
     
     // Pick a random dialogue
     const randomDialogue = dialogues[Math.floor(Math.random() * dialogues.length)];

@@ -1,5 +1,6 @@
 import { Player, Relic, PlayingCard, HandType, StatusEffect } from "../types/CombatTypes";
 import { HandEvaluator } from "../../utils/HandEvaluator";
+import { RELIC_EFFECTS, hasRelicEffect, getRelicById } from "../../data/relics/Act1Relics";
 
 /**
  * RelicManager - Manages all relic effects in combat and other game systems
@@ -8,185 +9,143 @@ import { HandEvaluator } from "../../utils/HandEvaluator";
 export class RelicManager {
   
   /**
+   * Helper method to add dexterity effect to player
+   */
+  private static addDexterityEffect(player: Player, effectId: string, value: number): void {
+    const dexterityEffect: StatusEffect = {
+      id: effectId,
+      name: "Dexterity",
+      type: "buff" as const,
+      duration: 999, // Permanent for this combat
+      value: value,
+      description: "Gain +1 additional block per stack with Defend actions.",
+      emoji: "⛨",
+    };
+    
+    // Check if dexterity effect already exists to avoid duplicates
+    const existingEffect = player.statusEffects.find(e => e.id === effectId);
+    if (!existingEffect) {
+      player.statusEffects.push(dexterityEffect);
+    }
+  }
+
+  /**
+   * Helper method to add strength effect to player
+   */
+  private static addStrengthEffect(player: Player, effectId: string, value: number): void {
+    const strengthEffect: StatusEffect = {
+      id: effectId,
+      name: "Strength",
+      type: "buff" as const,
+      duration: 999, // Permanent for this combat
+      value: value,
+      description: "Deal +3 additional damage per stack with Attack actions.",
+      emoji: "†",
+    };
+    
+    // Check if strength effect already exists to avoid duplicates
+    const existingEffect = player.statusEffects.find(e => e.id === effectId);
+    if (!existingEffect) {
+      player.statusEffects.push(strengthEffect);
+    }
+  }
+  
+  /**
    * Apply all relevant relic effects at the start of combat
+   * Now uses centralized relic system for easier management
    */
   static applyStartOfCombatEffects(player: Player): void {
-    // Apply "Earthwarden's Plate" effect: Start with 5 persistent block
-    const earthwardensPlate = player.relics.find(r => r.id === "earthwardens_plate");
-    if (earthwardensPlate) {
-      player.block += 5;
-    }
+    // Apply all start-of-combat effects using the centralized system
+    RELIC_EFFECTS.START_OF_COMBAT.forEach(relicId => {
+      const relic = player.relics.find(r => r.id === relicId);
+      if (!relic) return;
 
-    // Apply "Agimat of the Swift Wind" effect: Start with 1 additional discard charge
-    const swiftWindAgimat = player.relics.find(r => r.id === "swift_wind_agimat");
-    if (swiftWindAgimat) {
-      player.discardCharges += 1;
-      player.maxDiscardCharges += 1;
-    }
-
-    // Apply "Bakunawa Scale" effect: Gain 5 Max HP and damage reduction
-    const bakunawaScale = player.relics.find(r => r.id === "bakunawa_scale");
-    if (bakunawaScale) {
-      player.maxHealth += 5;
-      player.currentHealth += 5; // Also heal when first obtained
-    }
-
-    // Apply "Merchant's Scale" effect: All shop items are 20% cheaper
-    const merchantsScale = player.relics.find(r => r.id === "merchants_scale");
-    if (merchantsScale) {
-      // This is handled in shop pricing logic
-    }
-
-    // Apply "Tigmamanukan's Eye" effect: Draw 1 additional card at start
-    const tigmamanukanEye = player.relics.find(r => r.id === "tigmamanukan_eye");
-    if (tigmamanukanEye) {
-      // This is handled in the initial draw logic in Combat.ts
-    }
-
-    // Apply "Umalagad's Spirit" effect: Gain 1 temporary Dexterity
-    const umalagadSpirit = player.relics.find(r => r.id === "umalagad_spirit");
-    if (umalagadSpirit) {
-      // Add temporary dexterity status effect
-      const dexterityEffect: StatusEffect = {
-        id: "dexterity_relic",
-        name: "Dexterity",
-        type: "buff" as const,
-        duration: 999, // Permanent for this combat
-        value: 1,
-        description: "Gain +1 additional block per stack with Defend actions.",
-        emoji: "⛨",
-      };
-      
-      // Check if dexterity effect already exists to avoid duplicates
-      const existingEffect = player.statusEffects.find(e => e.id === "dexterity_relic");
-      if (!existingEffect) {
-        player.statusEffects.push(dexterityEffect);
+      switch (relicId) {
+        case "earthwardens_plate":
+          player.block += 5;
+          break;
+          
+        case "swift_wind_agimat":
+          player.discardCharges += 1;
+          player.maxDiscardCharges += 1;
+          break;
+          
+        case "umalagad_spirit":
+          RelicManager.addDexterityEffect(player, "dexterity_relic", 1);
+          break;
+          
+        case "diwatas_crown":
+          player.block += 10;
+          RelicManager.addDexterityEffect(player, "dexterity_diwata", 1);
+          break;
+          
+        case "stone_golem_heart":
+          player.maxHealth += 10;
+          player.currentHealth += 10;
+          player.block += 2;
+          break;
+          
+        case "bakunawa_scale":
+          player.maxHealth += 5;
+          player.currentHealth += 5;
+          break;
+          
+        case "tigmamanukan_eye":
+          // This is handled in the initial draw logic in Combat.ts
+          break;
       }
-    }
-
-    // Apply "Diwata's Crown" effect: Start with 10 Block and gain 1 temporary Dexterity
-    const diwatasCrown = player.relics.find(r => r.id === "diwatas_crown");
-    if (diwatasCrown) {
-      // Add the 10 block
-      player.block += 10;
-      // Add temporary dexterity status effect
-      const dexterityEffect: StatusEffect = {
-        id: "dexterity_diwata",
-        name: "Dexterity",
-        type: "buff" as const,
-        duration: 999, // Permanent for this combat
-        value: 1,
-        description: "Gain +1 additional block per stack with Defend actions.",
-        emoji: "⛨",
-      };
-      
-      // Check if dexterity effect already exists to avoid duplicates
-      const existingEffect = player.statusEffects.find(e => e.id === "dexterity_diwata");
-      if (!existingEffect) {
-        player.statusEffects.push(dexterityEffect);
-      }
-    }
-
-    // Apply "Stone Golem's Heart" effect: Gain 10 Max HP and 2 Block at start
-    const stoneGolemHeart = player.relics.find(r => r.id === "stone_golem_heart");
-    if (stoneGolemHeart) {
-      player.maxHealth += 10;
-      player.currentHealth += 10; // Also heal 10 HP
-      player.block += 2;
-    }
-    
-    // Apply "Tikbalang's Hoof" effect: +10% dodge
-    // This is handled in Combat.ts during damage calculations
-    
-    // Apply "Balete Root" effect: +2 block per Lupa card
-    // This is handled in Combat.ts when defending
-    
-    // Apply "Duwende Charm" effect: +10% avoid Weak
-    // This is handled in Combat.ts when applying Weak status
-    
-    // Apply "Tiyanak Tear" effect: Ignore 1 Fear
-    // This is handled in Combat.ts when applying Fear status
-    
-    // Apply "Mangangaway Wand" effect: Ignore 1 curse
-    // This is handled in Combat.ts when curses are applied
+    });
   }
 
   /**
    * Apply all relevant relic effects at the start of the player's turn
+   * Now uses centralized relic system for easier management
    */
   static applyStartOfTurnEffects(player: Player): void {
-    // Apply "Ember Fetish" effect: Gain 3 Strength if no block at start of turn
-    const emberFetish = player.relics.find(r => r.id === "ember_fetish");
-    if (emberFetish && player.block === 0) {
-      // Add temporary strength status effect
-      const strengthEffect: StatusEffect = {
-        id: "strength_ember",
-        name: "Strength",
-        type: "buff" as const,
-        duration: 999, // Permanent for this combat
-        value: 3,
-        description: "Deal +3 additional damage per stack with Attack actions.",
-        emoji: "†",
-      };
-      
-      // Check if strength effect already exists to avoid duplicates
-      const existingEffect = player.statusEffects.find(e => e.id === "strength_ember");
-      if (!existingEffect) {
-        player.statusEffects.push(strengthEffect);
+    // Apply all start-of-turn effects using the centralized system
+    RELIC_EFFECTS.START_OF_TURN.forEach(relicId => {
+      const relic = player.relics.find(r => r.id === relicId);
+      if (!relic) return;
+
+      switch (relicId) {
+        case "ember_fetish":
+          if (player.block === 0) {
+            RelicManager.addStrengthEffect(player, "strength_ember", 3);
+          }
+          break;
       }
-    }
+    });
   }
 
   /**
    * Apply relic effects after a hand is played
+   * Now uses centralized relic system for easier management
    */
   static applyAfterHandPlayedEffects(player: Player, hand: PlayingCard[], evaluation: any): void {
-    // Apply "Babaylan's Talisman" effect: Hand is considered one tier higher
-    // (This is handled during hand evaluation in HandEvaluator)
+    // Apply all after-hand-played effects using the centralized system
+    RELIC_EFFECTS.AFTER_HAND_PLAYED.forEach(relicId => {
+      const relic = player.relics.find(r => r.id === relicId);
+      if (!relic) return;
 
-    // Apply "Ancestral Blade" effect: Gain 2 temporary Strength when playing a Flush
-    const ancestralBlade = player.relics.find(r => r.id === "ancestral_blade");
-    if (ancestralBlade && evaluation.type === "flush") {
-      // Add temporary strength status effect
-      const strengthEffect: StatusEffect = {
-        id: "strength_ancestral",
-        name: "Strength",
-        type: "buff" as const,
-        duration: 999, // Permanent for this combat
-        value: 2,
-        description: "Deal +2 additional damage per stack with Attack actions.",
-        emoji: "†",
-      };
-      
-      // Check if strength effect already exists to avoid duplicates
-      const existingEffect = player.statusEffects.find(e => e.id === "strength_ancestral");
-      if (!existingEffect) {
-        player.statusEffects.push(strengthEffect);
+      switch (relicId) {
+        case "ancestral_blade":
+          if (evaluation.type === "flush") {
+            RelicManager.addStrengthEffect(player, "strength_ancestral", 2);
+          }
+          break;
+          
+        case "sarimanok_feather":
+        case "lucky_charm":
+          if (RelicManager.isHandTypeAtLeast(evaluation.type, "straight")) {
+            player.ginto += 1;
+          }
+          break;
+          
+        case "wind_veil":
+          // This needs to be handled in Combat.ts since it needs to modify the hand
+          break;
       }
-    }
-
-    // Apply "Sarimanok Feather" effect: Gain 1 Ginto when playing Straight or better
-    const sarimanokFeather = player.relics.find(r => r.id === "sarimanok_feather");
-    if (sarimanokFeather && RelicManager.isHandTypeAtLeast(evaluation.type, "straight")) {
-      player.ginto += 1;
-    }
-
-    // Apply "Lucky Charm" effect: Gain 1 Ginto when playing Straight or better
-    const luckyCharm = player.relics.find(r => r.id === "lucky_charm");
-    if (luckyCharm && RelicManager.isHandTypeAtLeast(evaluation.type, "straight")) {
-      player.ginto += 1;
-    }
-    
-    // Apply "Wind Veil" effect: +1 draw on Air cards
-    const windVeil = player.relics.find(r => r.id === "wind_veil");
-    const hanginCards = hand.filter(card => card.suit === "Hangin").length;
-    if (windVeil && hanginCards > 0) {
-      // Draw additional cards based on number of Hangin cards played
-      // This needs to be handled in Combat.ts since it needs to modify the hand
-    }
-    
-    // Apply "Balete Root" effect: +2 block per Lupa card (for defend action)
-    // This is handled in Combat.ts when defending
+    });
   }
 
   /**
@@ -415,14 +374,21 @@ export class RelicManager {
 
   /**
    * Apply relic effects at the end of the turn
+   * Now uses centralized relic system for easier management
    */
   static applyEndOfTurnEffects(player: Player): void {
-    // Apply "Tidal Amulet" effect: Heal 2 HP for each card in hand
-    const tidalAmulet = player.relics.find(r => r.id === "tidal_amulet");
-    if (tidalAmulet) {
-      const healAmount = player.hand.length * 2;
-      player.currentHealth = Math.min(player.maxHealth, player.currentHealth + healAmount);
-    }
+    // Apply all end-of-turn effects using the centralized system
+    RELIC_EFFECTS.END_OF_TURN.forEach(relicId => {
+      const relic = player.relics.find(r => r.id === relicId);
+      if (!relic) return;
+
+      switch (relicId) {
+        case "tidal_amulet":
+          const healAmount = player.hand.length * 2;
+          player.currentHealth = Math.min(player.maxHealth, player.currentHealth + healAmount);
+          break;
+      }
+    });
   }
 
   /**
@@ -496,6 +462,27 @@ export class RelicManager {
    */
   static hasFiveOfAKindEnabled(player: Player): boolean {
     return player.relics.some(r => r.id === "echo_ancestors");
+  }
+
+  /**
+   * Get all relics with a specific effect type for a player
+   */
+  static getPlayerRelicsWithEffect(player: Player, effectType: keyof typeof RELIC_EFFECTS): Relic[] {
+    return player.relics.filter(relic => hasRelicEffect(relic.id, effectType));
+  }
+
+  /**
+   * Check if player has any relic with a specific effect type
+   */
+  static hasPlayerRelicWithEffect(player: Player, effectType: keyof typeof RELIC_EFFECTS): boolean {
+    return player.relics.some(relic => hasRelicEffect(relic.id, effectType));
+  }
+
+  /**
+   * Get relic by ID from player's relics
+   */
+  static getPlayerRelicById(player: Player, relicId: string): Relic | undefined {
+    return player.relics.find(relic => relic.id === relicId);
   }
   
   /**
