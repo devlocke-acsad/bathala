@@ -34,6 +34,14 @@ export class Overworld_MazeGenManager {
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
   private devMode: boolean = false;
 
+  // Advanced Pathfinding System
+  private enemyPaths: Map<string, {
+    path: Array<{x: number, y: number}>,
+    targetX: number,
+    targetY: number,
+    age: number
+  }> = new Map();
+
   /**
    * Constructor
    * @param scene - The Overworld scene instance
@@ -143,6 +151,191 @@ export class Overworld_MazeGenManager {
     
     // Check if it's a path (0) not a wall (1)
     return chunk.maze[gridY][gridX] === 0;
+  }
+
+  /**
+   * IMPROVEMENT #1: A* Pathfinding Algorithm
+   * Find optimal path from enemy to player using A* algorithm
+   * 
+   * @param startX - Start X world coordinate
+   * @param startY - Start Y world coordinate
+   * @param targetX - Target X world coordinate
+   * @param targetY - Target Y world coordinate
+   * @param maxDepth - Maximum search depth to prevent performance issues
+   * @returns Array of positions forming the optimal path
+   */
+  private findPathToPlayer(
+    startX: number,
+    startY: number,
+    targetX: number,
+    targetY: number,
+    maxDepth: number = 20
+  ): Array<{x: number, y: number}> {
+    
+    interface PathNode {
+      x: number;
+      y: number;
+      g: number; // Cost from start
+      h: number; // Heuristic to goal
+      f: number; // Total cost (g + h)
+      parent: PathNode | null;
+    }
+    
+    const openSet: PathNode[] = [];
+    const closedSet: Set<string> = new Set();
+    
+    // Helper to convert position to key
+    const posKey = (x: number, y: number) => `${Math.round(x / this.gridSize)},${Math.round(y / this.gridSize)}`;
+    
+    // Manhattan distance heuristic
+    const heuristic = (x: number, y: number) => {
+      return (Math.abs(targetX - x) + Math.abs(targetY - y)) / this.gridSize;
+    };
+    
+    // Start node
+    const startNode: PathNode = {
+      x: startX,
+      y: startY,
+      g: 0,
+      h: heuristic(startX, startY),
+      f: heuristic(startX, startY),
+      parent: null
+    };
+    
+    openSet.push(startNode);
+    let iterations = 0;
+    
+    while (openSet.length > 0 && iterations < maxDepth * 10) {
+      iterations++;
+      
+      // Get node with lowest f score
+      openSet.sort((a, b) => a.f - b.f);
+      const current = openSet.shift()!;
+      
+      // Goal reached
+      if (Math.abs(current.x - targetX) < this.gridSize && 
+          Math.abs(current.y - targetY) < this.gridSize) {
+        // Reconstruct path
+        const path: Array<{x: number, y: number}> = [];
+        let node: PathNode | null = current;
+        while (node && node.parent) {
+          path.unshift({x: node.x, y: node.y});
+          node = node.parent;
+        }
+        
+        console.log(`🎯 A* found path with ${path.length} steps in ${iterations} iterations`);
+        return path;
+      }
+      
+      closedSet.add(posKey(current.x, current.y));
+      
+      // Check neighbors (4-directional + diagonals)
+      const neighbors = [
+        // Cardinal directions
+        {x: current.x + this.gridSize, y: current.y, diagonal: false},
+        {x: current.x - this.gridSize, y: current.y, diagonal: false},
+        {x: current.x, y: current.y + this.gridSize, diagonal: false},
+        {x: current.x, y: current.y - this.gridSize, diagonal: false},
+        // Diagonals
+        {x: current.x + this.gridSize, y: current.y + this.gridSize, diagonal: true},
+        {x: current.x + this.gridSize, y: current.y - this.gridSize, diagonal: true},
+        {x: current.x - this.gridSize, y: current.y + this.gridSize, diagonal: true},
+        {x: current.x - this.gridSize, y: current.y - this.gridSize, diagonal: true},
+      ];
+      
+      for (const neighbor of neighbors) {
+        const key = posKey(neighbor.x, neighbor.y);
+        
+        // Skip if already evaluated
+        if (closedSet.has(key)) continue;
+        
+        // Check walkability
+        if (!this.isValidPosition(neighbor.x, neighbor.y)) continue;
+        
+        // For diagonals, check adjacent tiles to prevent corner-cutting
+        if (neighbor.diagonal) {
+          const dx = neighbor.x - current.x;
+          const dy = neighbor.y - current.y;
+          if (!this.isValidPosition(current.x + dx, current.y) ||
+              !this.isValidPosition(current.x, current.y + dy)) {
+            continue; // Diagonal blocked
+          }
+        }
+        
+        const g = current.g + (neighbor.diagonal ? 1.414 : 1); // Diagonal costs more
+        const h = heuristic(neighbor.x, neighbor.y);
+        const f = g + h;
+        
+        // Check if neighbor is already in open set with lower cost
+        const existingNode = openSet.find(n => 
+          Math.abs(n.x - neighbor.x) < this.gridSize / 2 && 
+          Math.abs(n.y - neighbor.y) < this.gridSize / 2
+        );
+        
+        if (existingNode && existingNode.g <= g) continue;
+        
+        // Add to open set
+        openSet.push({
+          x: neighbor.x,
+          y: neighbor.y,
+          g, h, f,
+          parent: current
+        });
+      }
+    }
+    
+    console.log(`⚠️ A* no path found after ${iterations} iterations`);
+    // No path found - return empty
+    return [];
+  }
+
+  /**
+   * IMPROVEMENT #3: Path Caching System
+   * Get or calculate path for enemy with caching
+   * 
+   * @param enemyId - Unique enemy identifier
+   * @param currentX - Enemy current X coordinate
+   * @param currentY - Enemy current Y coordinate
+   * @param targetX - Player X coordinate
+   * @param targetY - Player Y coordinate
+   * @returns Cached or newly calculated path
+   */
+  private getEnemyPath(
+    enemyId: string,
+    currentX: number,
+    currentY: number,
+    targetX: number,
+    targetY: number
+  ): Array<{x: number, y: number}> {
+    
+    const cached = this.enemyPaths.get(enemyId);
+    
+    // Reuse cached path if:
+    // 1. Path exists
+    // 2. Target hasn't moved much (within 2 grid squares)
+    // 3. Path is recent (< 5 turns old)
+    if (cached && 
+        Math.abs(cached.targetX - targetX) < this.gridSize * 2 &&
+        Math.abs(cached.targetY - targetY) < this.gridSize * 2 &&
+        cached.age < 5) {
+      
+      cached.age++;
+      console.log(`📦 Using cached path for ${enemyId} (age: ${cached.age})`);
+      return cached.path;
+    }
+    
+    // Calculate new path using A*
+    console.log(`🔍 Calculating new path for ${enemyId}`);
+    const path = this.findPathToPlayer(currentX, currentY, targetX, targetY);
+    
+    this.enemyPaths.set(enemyId, {
+      path,
+      targetX,
+      targetY,
+      age: 0
+    });
+    
+    return path;
   }
 
   /**
@@ -611,26 +804,33 @@ export class Overworld_MazeGenManager {
     }
 
     // Define proximity threshold for enemy movement (in pixels)
-    const movementRange = gridSize * 10; // Reduced to 10 grid squares for more breathing room
+    const movementRange = gridSize * 10; // 10 grid squares for breathing room
 
-    // Find nearby enemy nodes that should move
-    const enemyNodes = this.nodes.filter((node: MapNode) => 
-      (node.type === "combat" || node.type === "elite") &&
-      Phaser.Math.Distance.Between(
-        playerX, playerY,
-        node.x + gridSize / 2, 
-        node.y + gridSize / 2
-      ) <= movementRange
-    );
+    // Find nearby enemy nodes based on distance only
+    const enemyNodes = this.nodes.filter((node: MapNode) => {
+      if (node.type !== "combat" && node.type !== "elite") {
+        return false;
+      }
+      
+      const enemyX = node.x + gridSize / 2;
+      const enemyY = node.y + gridSize / 2;
+      const distance = Phaser.Math.Distance.Between(playerX, playerY, enemyX, enemyY);
+      
+      // Only check: within movement range
+      return distance <= movementRange;
+    });
 
-    // Move each enemy node with enhanced AI
+    console.log(`🌙 Night: ${enemyNodes.length} enemies nearby player`);
+
+    // Move each enemy node with enhanced AI (now using A* pathfinding)
     enemyNodes.forEach((enemyNode: MapNode) => {
       this.moveEnemyWithEnhancedAI(enemyNode, playerX, playerY, gridSize, scene);
     });
   }
 
   /**
-   * Enhanced AI movement system for enemies
+   * Enhanced AI movement system for enemies with A* pathfinding
+   * IMPROVEMENT: Integrates A* pathfinding, line-of-sight, and path caching
    */
   private moveEnemyWithEnhancedAI(enemyNode: MapNode, playerX: number, playerY: number, gridSize: number, scene: Scene): void {
     const currentX = enemyNode.x + gridSize / 2;
@@ -648,22 +848,24 @@ export class Overworld_MazeGenManager {
     let movementSpeed = this.calculateEnemyMovementSpeed(enemyNode, distance);
     let movements: {x: number, y: number}[] = [];
     
-    // Calculate multiple movement steps for faster enemies
-    for (let i = 0; i < movementSpeed; i++) {
-      // Calculate next position from current position (or last movement position)
-      const lastX = movements.length > 0 ? movements[movements.length - 1].x + gridSize / 2 : currentX;
-      const lastY = movements.length > 0 ? movements[movements.length - 1].y + gridSize / 2 : currentY;
+    // IMPROVEMENT: Use A* pathfinding with path caching
+    const enemyId = enemyNode.id;
+    const path = this.getEnemyPath(enemyId, currentX, currentY, playerX, playerY);
+    
+    if (path.length > 0) {
+      // Use A* calculated path
+      console.log(`🧭 Following A* path with ${path.length} waypoints`);
       
-      const stepPosition = this.calculateSingleEnemyStep(
-        lastX,
-        lastY,
-        playerX, 
-        playerY,
-        gridSize
-      );
-      
-      // calculateSingleEnemyStep now handles walkability validation internally
-      if (stepPosition) {
+      // Take as many steps from the path as movement speed allows
+      for (let i = 0; i < Math.min(movementSpeed, path.length); i++) {
+        const waypoint = path[i];
+        
+        // Convert world coordinates to grid coordinates
+        const stepPosition = {
+          x: waypoint.x - gridSize / 2,
+          y: waypoint.y - gridSize / 2
+        };
+        
         // Check if this movement would result in collision
         const newDistance = Phaser.Math.Distance.Between(
           playerX,
@@ -680,8 +882,46 @@ export class Overworld_MazeGenManager {
         }
         
         movements.push(stepPosition);
-      } else {
-        break; // Stop if no valid movement found
+      }
+    } else {
+      // Fallback to greedy single-step pathfinding if A* fails
+      console.log(`⚠️ A* failed, falling back to greedy pathfinding`);
+      
+      // Calculate multiple movement steps for faster enemies
+      for (let i = 0; i < movementSpeed; i++) {
+        // Calculate next position from current position (or last movement position)
+        const lastX = movements.length > 0 ? movements[movements.length - 1].x + gridSize / 2 : currentX;
+        const lastY = movements.length > 0 ? movements[movements.length - 1].y + gridSize / 2 : currentY;
+        
+        const stepPosition = this.calculateSingleEnemyStep(
+          lastX,
+          lastY,
+          playerX, 
+          playerY,
+          gridSize
+        );
+        
+        // calculateSingleEnemyStep now handles walkability validation internally
+        if (stepPosition) {
+          // Check if this movement would result in collision
+          const newDistance = Phaser.Math.Distance.Between(
+            playerX,
+            playerY,
+            stepPosition.x + gridSize / 2,
+            stepPosition.y + gridSize / 2
+          );
+          
+          // If movement brings us within collision range, stop here and trigger collision
+          if (newDistance < gridSize) {
+            movements.push(stepPosition);
+            console.log(`💥 Movement will cause collision. Distance after move: ${newDistance.toFixed(2)}`);
+            break; // Stop movement chain, collision will trigger after animation
+          }
+          
+          movements.push(stepPosition);
+        } else {
+          break; // Stop if no valid movement found
+        }
       }
     }
     
