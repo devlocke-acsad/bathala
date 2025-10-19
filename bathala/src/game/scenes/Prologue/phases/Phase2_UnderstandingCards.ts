@@ -39,7 +39,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
             });
         });
 
-        const dialogue = "Your deck contains 52 cards across four sacred elements:\n\n🔥 APOY (Fire) - Inflicts BURN damage over time\n💧 TUBIG (Water) - Provides HEALING\n🌍 LUPA (Earth) - Grants STRENGTH\n💨 HANGIN (Wind) - Grants DEXTERITY";
+        const dialogue = "Your deck contains 52 cards across four sacred elements:\n\nAPOY (Fire) - Inflicts BURN damage over time\nTUBIG (Water) - Provides HEALING\nLUPA (Earth) - STUNS enemies (cannot move for 1 turn)\nHANGIN (Wind) - Applies WEAK (enemy damage halved)";
 
         const cardsToShow: Partial<PlayingCard>[] = [
             { id: '1-Apoy', rank: '1', suit: 'Apoy' },
@@ -86,7 +86,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
                 );
                 this.container.add(header);
 
-                const dialogue = "Each card has a rank from 1 to 13:\n\n1-10: Number Cards (basic values)\n11: Mandirigma (Warrior)\n12: Babaylan (Shaman)\n13: Datu (Chief)\n\nHigher ranks create stronger hands and more powerful actions!";
+                const dialogue = "Each card has a rank from 1 to 13:\n\nAce, 2-10: Number Cards (basic values)\nJack (J): Mandirigma (Warrior)\nQueen (Q): Babaylan (Shaman)\nKing (K): Datu (Chief)\n\nHigher ranks create stronger hands and more powerful actions!";
 
                 const cardsToShow: Partial<PlayingCard>[] = [
                     { id: '1-Apoy', rank: '1', suit: 'Apoy' },
@@ -133,14 +133,14 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
         const divider = createSectionDivider(this.scene, 240);
         this.container.add(divider);
 
-        // Dialogue box
+        // Dialogue box - positioned closer to cards
         this.scene.time.delayedCall(400, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, onDialogueComplete);
-            dialogueBox.setPosition(width / 2, height / 2 - 50);
+            dialogueBox.setPosition(width / 2, height / 2 - 100);
             this.container.add(dialogueBox);
         });
 
-        // Enhanced card display with stagger animation
+        // Enhanced card display with stagger animation - moved up closer to dialogue
         this.scene.time.delayedCall(600, () => {
             const cardContainer = this.scene.add.container(width / 2, height / 2 + 180);
             this.container.add(cardContainer);

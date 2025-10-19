@@ -67,7 +67,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         );
         this.container.add(header);
 
-        const dialogue = "Status effects shape battles. First, BUFFS:\n\n💪 STRENGTH: +[X] damage per stack\n✨ DEXTERITY: +[X] block per stack\n🛡️ BLOCK: Absorbs damage this turn (resets next turn)\n\nBuffs make you stronger! Use Lupa (Earth) Special to gain Strength.";
+        const dialogue = "Status effects shape battles. First, BUFFS:\n\nSTRENGTH: +[X] damage per stack\nDEXTERITY: +[X] block per stack\nBLOCK: Absorbs damage this turn (resets next turn)\n\nBuffs make you stronger! Use Lupa (Earth) Special to gain Strength.";
 
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
@@ -99,7 +99,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         );
         this.container.add(header);
 
-        const dialogue = "Now DEBUFFS - enemies inflict these:\n\n⚠️ WEAK: -25% damage dealt\n💔 VULNERABLE: +50% damage taken\n🔥 BURN: [X] damage at turn end\n😵 STUN: Skip your next turn\n🚫 SEAL: Can't use Special abilities\n\nCleanse debuffs when possible! Some potions can help.";
+        const dialogue = "Now DEBUFFS - enemies inflict these:\n\nWEAK: -25% damage dealt\nVULNERABLE: +50% damage taken\nBURN: [X] damage at turn end\nSTUN: Skip your next turn\nSEAL: Can't use Special abilities\n\nCleanse debuffs when possible! Some potions can help.";
 
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {

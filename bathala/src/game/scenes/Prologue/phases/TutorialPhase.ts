@@ -47,24 +47,11 @@ export abstract class TutorialPhase {
             this.scene,
             skipButtonX,
             skipButtonY,
-            'Skip Phase ➜',
+            'Skip Phase',
             onSkip
         );
         
-        // Add subtle glow
-        const skipGlow = this.scene.add.circle(skipButtonX, skipButtonY, 70, 0xFFAA00, 0.05)
-            .setBlendMode(Phaser.BlendModes.ADD);
-        this.scene.tweens.add({
-            targets: skipGlow,
-            alpha: 0.12,
-            scale: 1.15,
-            duration: 1800,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-        
-        this.container.add([skipGlow, this.skipPhaseButton]);
+        this.container.add(this.skipPhaseButton);
     }
 
     public destroy(): void {

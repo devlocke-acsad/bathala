@@ -5,7 +5,8 @@ export function createButton(
     x: number,
     y: number,
     text: string,
-    callback: () => void
+    callback: () => void,
+    fixedWidth?: number // Optional fixed width parameter
 ): GameObjects.Container {
     const screenWidth = scene.cameras.main.width;
     const baseButtonWidth = 140;
@@ -26,15 +27,16 @@ export function createButton(
     
     const paddingX = 40;
     const paddingY = 20;
-    const buttonWidth = Math.max(baseButtonWidth, textWidth + paddingX);
+    // Use fixed width if provided, otherwise auto-size
+    const buttonWidth = fixedWidth || Math.max(baseButtonWidth, textWidth + paddingX);
     const buttonHeight = Math.max(baseButtonHeight, textHeight + paddingY);
 
     const button = scene.add.container(x, y);
 
     const outerBorder = scene.add.rectangle(0, 0, buttonWidth + 8, buttonHeight + 8, undefined, 0)
-      .setStrokeStyle(3, 0x77888C);
+      .setStrokeStyle(2, 0x77888C, 0.8);
     const innerBorder = scene.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0)
-      .setStrokeStyle(2, 0x77888C);
+      .setStrokeStyle(1, 0x77888C, 0.6);
     const bg = scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
 
     const buttonText = scene.add.text(0, 0, text, {

@@ -129,7 +129,7 @@ export class Phase4_CombatActions extends TutorialPhase {
             });
         });
 
-        const dialogue = "Three actions determine combat:\n\n⚔️ ATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus\n\n🛡️ DEFEND: Gain Block to absorb damage\n   Base block = 5 + Hand Bonus\n\n✨ SPECIAL: Elemental ability\n   Effect varies by dominant element";
+        const dialogue = "Three actions determine combat:\n\nATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus\n\nDEFEND: Gain Block to absorb damage\n   Base block = 5 + Hand Bonus\n\nSPECIAL: Elemental ability\n   Effect varies by dominant element";
 
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
@@ -230,17 +230,6 @@ export class Phase4_CombatActions extends TutorialPhase {
             }
             this.container.add(this.playerSprite);
 
-            // Player shadow
-            const playerShadow = this.scene.add.ellipse(
-                playerX,
-                playerY + 60,
-                80,
-                20,
-                0x000000,
-                0.3
-            );
-            this.container.add(playerShadow);
-
             // Calculate proper Y offsets
             const playerScale = 2;
             const playerSpriteScaledHeight = this.playerSprite.height * playerScale;
@@ -298,17 +287,6 @@ export class Phase4_CombatActions extends TutorialPhase {
                 this.enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
             }
             this.container.add(this.enemySprite);
-
-            // Enemy shadow
-            const enemyShadow = this.scene.add.ellipse(
-                enemyX,
-                enemyY + 100,
-                120,
-                30,
-                0x000000,
-                0.3
-            );
-            this.container.add(enemyShadow);
 
             // Calculate enemy offsets
             const enemySpriteScaledHeight = this.enemySprite.height * finalScale;
@@ -479,9 +457,9 @@ export class Phase4_CombatActions extends TutorialPhase {
         this.actionButtons = this.scene.add.container(screenWidth / 2, screenHeight - 100);
         this.container.add(this.actionButtons);
         
-        const buttonText = actionType === 'Attack' ? '⚔️ Attack' :
-                          actionType === 'Defend' ? '🛡️ Defend' :
-                          '✨ Special';
+        const buttonText = actionType === 'Attack' ? 'Attack' :
+                          actionType === 'Defend' ? 'Defend' :
+                          'Special';
         
         const actionButton = createButton(
             this.scene,
@@ -632,8 +610,8 @@ export class Phase4_CombatActions extends TutorialPhase {
 
             // Create success message
             const successMessage = this.enemyHP <= 0 
-                ? '🎉 Victory! You defeated the enemy!'
-                : `⚔️ Great attack! You dealt ${damage} damage!`;
+                ? 'Victory! You defeated the enemy!'
+                : `Great attack! You dealt ${damage} damage!`;
             
             const success = createInfoBox(
                 this.scene,
@@ -667,8 +645,8 @@ export class Phase4_CombatActions extends TutorialPhase {
             const shieldIcon = this.scene.add.text(
                 this.playerSprite.x,
                 this.playerSprite.y,
-                '🛡️',
-                { fontSize: 48 }
+                'DEFEND',
+                { fontSize: 32, fontFamily: 'dungeon-mode', color: '#5BA3D0' }
             ).setOrigin(0.5);
             this.container.add(shieldIcon);
 
@@ -712,8 +690,8 @@ export class Phase4_CombatActions extends TutorialPhase {
             const fireEffect = this.scene.add.text(
                 this.scene.cameras.main.width / 2,
                 this.scene.cameras.main.height / 2,
-                '🔥',
-                { fontSize: 96 }
+                'BURN',
+                { fontSize: 64, fontFamily: 'dungeon-mode', color: '#FF6B35' }
             ).setOrigin(0.5).setAlpha(0);
             this.container.add(fireEffect);
 
@@ -745,7 +723,7 @@ export class Phase4_CombatActions extends TutorialPhase {
 
             const success = createInfoBox(
                 this.scene,
-                `🔥 Apoy Special! You dealt ${damage} damage and applied Burn!`,
+                `Apoy Special! You dealt ${damage} damage and applied Burn!`,
                 'success'
             );
             this.container.add(success);

@@ -50,16 +50,8 @@ export class TutorialManager {
             this.scene.cameras.main.height, 
             0x150E10
         ).setOrigin(0, 0).setAlpha(0.85);
-        
-        const overlay2 = this.scene.add.rectangle(
-            0,
-            0,
-            this.scene.cameras.main.width, 
-            this.scene.cameras.main.height * 0.3, 
-            0x000000
-        ).setOrigin(0, 0).setAlpha(0.4);
 
-        this.bgContainer.add([bg, overlay1, overlay2]);
+        this.bgContainer.add([bg, overlay1]);
 
         // Subtle parallax scrolling on background
         this.scene.tweens.add({
@@ -103,26 +95,15 @@ export class TutorialManager {
         // Enhanced skip button with hover effects (bottom right)
         const skipButtonX = this.scene.cameras.main.width * 0.88;
         const skipButtonY = this.scene.cameras.main.height * 0.92;
+        const buttonWidth = 300; // Larger width to prevent text wrapping
         this.skipButton = createButton(
             this.scene, 
             skipButtonX, 
             skipButtonY, 
             'Skip Tutorial', 
-            () => this.confirmSkip()
+            () => this.confirmSkip(),
+            buttonWidth
         );
-        
-        // Add glow to skip button
-        const skipGlow = this.scene.add.circle(skipButtonX, skipButtonY, 80, 0xFFFFFF, 0.05)
-            .setBlendMode(Phaser.BlendModes.ADD);
-        this.scene.tweens.add({
-            targets: skipGlow,
-            alpha: 0.15,
-            scale: 1.2,
-            duration: 2000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
         
         // Add Skip Phase button (bottom right, above Skip Tutorial)
         const skipPhaseButtonX = this.scene.cameras.main.width * 0.88;
@@ -131,24 +112,20 @@ export class TutorialManager {
             this.scene, 
             skipPhaseButtonX, 
             skipPhaseButtonY, 
-            'Skip Phase ➜', 
-            () => this.skipCurrentPhase()
+            'Skip Phase', 
+            () => this.skipCurrentPhase(),
+            buttonWidth // Same fixed width for uniformity
         );
         
-        // Add glow to skip phase button
-        const skipPhaseGlow = this.scene.add.circle(skipPhaseButtonX, skipPhaseButtonY, 70, 0xFFAA00, 0.05)
-            .setBlendMode(Phaser.BlendModes.ADD);
-        this.scene.tweens.add({
-            targets: skipPhaseGlow,
-            alpha: 0.12,
-            scale: 1.15,
-            duration: 1800,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
+        // Don't add buttons to container - add them directly to scene so they're always visible
         
-        this.container.add([skipGlow, this.skipButton, skipPhaseGlow, this.skipPhaseButton]);
+        // Ensure buttons are always visible at top depth - add to scene directly
+        this.skipButton.setDepth(5000);
+        this.skipPhaseButton.setDepth(5000);
+        
+        // Make sure buttons are always visible
+        this.skipButton.setAlpha(1);
+        this.skipPhaseButton.setAlpha(1);
 
         const tutorialUI = new TutorialUI(this.scene);
 
@@ -196,26 +173,28 @@ export class TutorialManager {
             this.scene.cameras.main.height / 2
         );
 
-        const bg = this.scene.add.rectangle(0, 0, 500, 250, 0x1A1215, 0.98);
-        const border1 = this.scene.add.rectangle(0, 0, 506, 256, undefined, 0)
-            .setStrokeStyle(3, 0xFF6B35);
-        const border2 = this.scene.add.rectangle(0, 0, 500, 250, undefined, 0)
-            .setStrokeStyle(2, 0x77888C);
+        const bg = this.scene.add.rectangle(0, 0, 500, 250, 0x150E10, 0.98);
+        
+        // Double border design
+        const outerBorder = this.scene.add.rectangle(0, 0, 508, 258, undefined, 0)
+            .setStrokeStyle(3, 0xFF6B35, 0.8);
+        const innerBorder = this.scene.add.rectangle(0, 0, 502, 252, undefined, 0)
+            .setStrokeStyle(2, 0x77888C, 0.6);
 
-        const warningText = this.scene.add.text(0, -60, '⚠️ Skip Tutorial?', {
+        const warningText = this.scene.add.text(0, -60, 'Skip Tutorial?', {
             fontFamily: 'dungeon-mode',
             fontSize: 32,
-            color: '#E8E8E8',
+            color: '#77888C',
             align: 'center'
         }).setOrigin(0.5);
 
         const descText = this.scene.add.text(0, -10, 'You will miss important lessons.\nAre you sure you want to skip?', {
             fontFamily: 'dungeon-mode',
             fontSize: 18,
-            color: '#99A0A5',
+            color: '#77888C',
             align: 'center',
-            lineSpacing: 6
-        }).setOrigin(0.5);
+            lineSpacing: 8
+        }).setOrigin(0.5).setAlpha(0.8);
 
         const yesButton = createButton(this.scene, -100, 60, 'Yes, Skip', () => {
             confirmContainer.destroy();
@@ -233,7 +212,7 @@ export class TutorialManager {
             });
         });
 
-        confirmContainer.add([border1, bg, border2, warningText, descText, yesButton, noButton]);
+        confirmContainer.add([outerBorder, bg, innerBorder, warningText, descText, yesButton, noButton]);
         confirmContainer.setDepth(3000).setAlpha(0).setScale(0.9);
 
         this.scene.tweens.add({
@@ -246,17 +225,28 @@ export class TutorialManager {
     }
 
     private skipCurrentPhase() {
-        // Clean up current phase
+        // Clean up current phase - try all possible cleanup methods
         const currentPhase = this.phases[this.currentPhaseIndex - 1];
-        if (currentPhase && currentPhase.cleanup) {
-            currentPhase.cleanup();
+        if (currentPhase) {
+            // Try cleanup() method first
+            if (currentPhase.cleanup && typeof currentPhase.cleanup === 'function') {
+                currentPhase.cleanup();
+            }
+            // Try shutdown() method
+            else if (currentPhase.shutdown && typeof currentPhase.shutdown === 'function') {
+                currentPhase.shutdown();
+            }
+            // Fall back to destroy() method
+            else if (currentPhase.destroy && typeof currentPhase.destroy === 'function') {
+                currentPhase.destroy();
+            }
         }
         
         // Show brief notification
         const notification = this.scene.add.text(
             this.scene.cameras.main.width / 2,
             this.scene.cameras.main.height * 0.3,
-            '⏩ Phase Skipped',
+            'Phase Skipped',
             {
                 fontFamily: 'dungeon-mode',
                 fontSize: 28,
@@ -292,6 +282,9 @@ export class TutorialManager {
     private startNextPhase() {
         if (this.currentPhaseIndex < this.phases.length) {
             const phase = this.phases[this.currentPhaseIndex++];
+            
+            // Skip phase button is always visible
+            this.skipPhaseButton.setVisible(true);
             
             // Add phase transition effect
             this.scene.cameras.main.flash(300, 21, 14, 16, false); // #150E10 flash
@@ -389,7 +382,7 @@ export class TutorialManager {
         });
     }
 
-    private endTutorial(skipped = false) {
+    private endTutorial(_skipped = false) {
         if (this.particles) {
             this.particles.stop();
         }
