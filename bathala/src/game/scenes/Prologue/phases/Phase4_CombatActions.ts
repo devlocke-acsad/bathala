@@ -114,7 +114,7 @@ export class Phase4_CombatActions extends TutorialPhase {
         );
         this.container.add(header);
 
-        const dialogue = "Three actions determine combat:\n\n⚔️ ATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus + Buffs\n\n🛡️ DEFEND: Gain Block to absorb damage\n   Base block = 5 + Hand Bonus + Buffs\n\n✨ SPECIAL: Elemental ability (requires Flush or better)\n   Effect varies by dominant element";
+        const dialogue = "Three actions determine combat:\n\n⚔️ ATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus\n\n🛡️ DEFEND: Gain Block to absorb damage\n   Base block = 5 + Hand Bonus\n\n✨ SPECIAL: Elemental ability\n   Effect varies by dominant element";
 
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
@@ -317,14 +317,6 @@ export class Phase4_CombatActions extends TutorialPhase {
             }).setOrigin(0.5);
             this.container.add(enemyHPText);
 
-            const enemyIntent = this.scene.add.text(enemyX, enemyHealthY + 25, `⚔️ Intent: Attack ${enemyData.damage || 15}`, {
-                fontFamily: 'dungeon-mode',
-                fontSize: 18,
-                color: '#FFD700',
-                align: 'center'
-            }).setOrigin(0.5);
-            this.container.add(enemyIntent);
-
             // Played hand container (center, hidden initially)
             this.playedHandContainer = this.scene.add.container(screenWidth / 2, screenHeight * 0.55);
             this.playedHandContainer.setVisible(false);
@@ -364,22 +356,10 @@ export class Phase4_CombatActions extends TutorialPhase {
             this.tutorialUI.handContainer.setAlpha(1);
             this.tutorialUI.handContainer.setDepth(1500);
             
-            // Draw cards
-            if (actionType === 'Special') {
-                this.tutorialUI.drawHand(3);
-                const flushCards: PlayingCard[] = [
-                    { id: '7-Apoy', rank: '7', suit: 'Apoy', element: 'fire', selected: false, playable: true },
-                    { id: '8-Apoy', rank: '8', suit: 'Apoy', element: 'fire', selected: false, playable: true },
-                    { id: '9-Apoy', rank: '9', suit: 'Apoy', element: 'fire', selected: false, playable: true },
-                    { id: '10-Apoy', rank: '10', suit: 'Apoy', element: 'fire', selected: false, playable: true },
-                    { id: '11-Apoy', rank: 'Mandirigma', suit: 'Apoy', element: 'fire', selected: false, playable: true },
-                ];
-                this.tutorialUI.addCardsToHand(flushCards);
-                console.log('[Phase4] Special: Added flush cards, total cards:', this.tutorialUI.handContainer.length);
-            } else {
-                this.tutorialUI.drawHand(8);
-                console.log('[Phase4] Drew 8 cards, total cards:', this.tutorialUI.handContainer.length);
-            }
+            // Draw cards - normal draw for all actions
+            this.tutorialUI.drawHand(8);
+            console.log('[Phase4] Drew 8 cards, total cards:', this.tutorialUI.handContainer.length);
+            
             this.tutorialUI.updateHandDisplay();
             console.log('[Phase4] Updated hand display, sprites:', this.tutorialUI.cardSprites.length);
 
@@ -499,39 +479,73 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
     
     /**
-     * Display played cards in the center area
+     * Display played cards in the center area using actual card sprites
      */
     private displayPlayedCards() {
         this.playedHandContainer.removeAll(true);
         
-        const cardSpacing = 70;
+        const cardSpacing = 90;
         const startX = -(this.playedCards.length - 1) * cardSpacing / 2;
         
         this.playedCards.forEach((card, index) => {
             const cardX = startX + (index * cardSpacing);
             
-            // Card background
-            const cardBg = this.scene.add.rectangle(cardX, 0, 60, 85, 0x2c3e50, 0.9);
-            cardBg.setStrokeStyle(2, 0xecf0f1);
-            this.playedHandContainer.add(cardBg);
-            
-            // Card rank
-            const rankText = this.scene.add.text(cardX, -20, card.rank, {
-                fontFamily: 'dungeon-mode',
-                fontSize: 20,
-                color: '#ecf0f1'
-            }).setOrigin(0.5);
-            this.playedHandContainer.add(rankText);
-            
-            // Card suit emoji
-            const suitEmoji = card.suit === 'Apoy' ? '🔥' :
-                            card.suit === 'Tubig' ? '💧' :
-                            card.suit === 'Lupa' ? '🌿' : '💨';
-            const suitText = this.scene.add.text(cardX, 10, suitEmoji, {
-                fontSize: 24
-            }).setOrigin(0.5);
-            this.playedHandContainer.add(suitText);
+            // Use the same card sprite creation as the hand display
+            const cardSprite = this.createCardSpriteForPlayed(card, cardX, 0);
+            this.playedHandContainer.add(cardSprite);
         });
+    }
+    
+    /**
+     * Create card sprite for played hand (non-interactive)
+     */
+    private createCardSpriteForPlayed(card: PlayingCard, x: number, y: number): Phaser.GameObjects.Container {
+        const cardContainer = this.scene.add.container(x, y);
+
+        const cardWidth = 80;
+        const cardHeight = 112;
+
+        const rankMap: Record<string, string> = {
+            "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
+            "6": "6", "7": "7", "8": "8", "9": "9", "10": "10",
+            "Mandirigma": "11", "Babaylan": "12", "Datu": "13"
+        };
+        const spriteRank = rankMap[card.rank] || "1";
+
+        const suitMap: Record<string, string> = {
+            "Apoy": "apoy", "Tubig": "tubig", "Lupa": "lupa", "Hangin": "hangin"
+        };
+        const spriteSuit = suitMap[card.suit] || "apoy";
+
+        const textureKey = `card_${spriteRank}_${spriteSuit}`;
+        let cardSprite;
+
+        if (this.scene.textures.exists(textureKey)) {
+            cardSprite = this.scene.add.image(0, 0, textureKey);
+        } else {
+            // Fallback to basic rectangle if texture not found
+            cardSprite = this.scene.add.rectangle(0, 0, cardWidth, cardHeight, 0xffffff);
+
+            const rankText = this.scene.add.text(-cardWidth / 2 + 5, -cardHeight / 2 + 5, card.rank, {
+                fontFamily: "dungeon-mode",
+                fontSize: 10,
+                color: "#000000",
+            }).setOrigin(0, 0);
+            cardContainer.add(rankText);
+
+            const display = DeckManager.getCardDisplay(card);
+            const suitText = this.scene.add.text(cardWidth / 2 - 5, -cardHeight / 2 + 5, display.symbol, {
+                fontFamily: "dungeon-mode",
+                fontSize: 10,
+                color: display.color,
+            }).setOrigin(1, 0);
+            cardContainer.add(suitText);
+        }
+
+        cardSprite.setDisplaySize(cardWidth, cardHeight);
+        cardContainer.add(cardSprite);
+
+        return cardContainer;
     }
     /**
      * Perform combat action (Phase 2: Execute the action with played cards)
@@ -674,24 +688,7 @@ export class Phase4_CombatActions extends TutorialPhase {
             });
 
         } else if (actionType === 'Special') {
-            if (evaluation.type !== 'flush' && evaluation.type !== 'straight_flush') {
-                const warning = createInfoBox(
-                    this.scene,
-                    'You need a Flush or better to use Special! Try again.',
-                    'warning',
-                    this.scene.cameras.main.width / 2,
-                    this.scene.cameras.main.height - 200
-                );
-                this.container.add(warning);
-                this.scene.time.delayedCall(1500, () => warning.destroy());
-                
-                // Re-enable button
-                if (this.actionButtons) {
-                    this.actionButtons.setVisible(true);
-                }
-                return;
-            }
-
+            // Special ability works with any hand
             const damage = 15 + evaluation.totalValue;
             this.enemyHP -= damage;
             enemyHPText.setText(`HP: ${Math.max(0, this.enemyHP)}/${this.enemyMaxHP}`);

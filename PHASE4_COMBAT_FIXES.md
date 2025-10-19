@@ -68,6 +68,81 @@ const successMessage = this.enemyHP <= 0
 // Always transitions after delay
 ```
 
+### 4. Special Ability Incorrectly Required Flush
+**Problem**: The Special action required a Flush or better hand type to execute, which was inconsistent with the actual game mechanics.
+
+**Root Cause**: Leftover requirement from an earlier design iteration that was checking for flush/straight flush before allowing Special execution.
+
+**Solution**:
+- Removed the flush/straight flush requirement check
+- Special ability now works with any hand type
+- Removed the forced flush cards that were being dealt for Special practice
+- All practice sections now deal 8 random cards consistently
+
+**Files Modified**:
+- `bathala/src/game/scenes/Prologue/phases/Phase4_CombatActions.ts`:
+  - Lines 651-671: Removed flush requirement check
+  - Lines 361-365: Simplified card dealing (8 cards for all actions)
+
+### 5. Played Hand Display Used Rectangles Instead of Card Sprites
+**Problem**: When cards were played (moved to center), they were displayed as simple colored rectangles with text instead of actual card sprite images.
+
+**Root Cause**: The `displayPlayedCards()` method was using basic geometric shapes instead of loading the card textures.
+
+**Solution**:
+- Created new `createCardSpriteForPlayed()` method that mirrors the card sprite creation in `TutorialUI`
+- Uses same texture key mapping (`card_{rank}_{suit}`)
+- Falls back to styled rectangles if texture doesn't exist
+- Maintains consistent visual appearance between hand and played cards
+- Increased card spacing from 70 to 90 pixels for better visibility
+
+**Files Modified**:
+- `bathala/src/game/scenes/Prologue/phases/Phase4_CombatActions.ts` (lines 509-575)
+
+**Code Change**:
+```typescript
+// Before: Rectangle-based display
+const cardBg = this.scene.add.rectangle(cardX, 0, 60, 85, 0x2c3e50, 0.9);
+const rankText = this.scene.add.text(cardX, -20, card.rank, {...});
+const suitEmoji = this.scene.add.text(cardX, 10, suitEmoji, {...});
+
+// After: Sprite-based display
+const textureKey = `card_${spriteRank}_${spriteSuit}`;
+const cardSprite = this.scene.add.image(0, 0, textureKey);
+cardSprite.setDisplaySize(cardWidth, cardHeight);
+```
+
+### 6. Tutorial Displayed Intent, Buffs, and Debuffs Prematurely
+**Problem**: Phase 4 Combat showed enemy intent and mentioned buffs/debuffs in the action descriptions before those mechanics were introduced.
+
+**Root Cause**: UI elements and descriptions from later tutorial phases were included in Phase 4.
+
+**Solution**:
+- Removed enemy intent display from combat scene (was showing "⚔️ Intent: Attack 15")
+- Removed "+ Buffs" reference from Attack and Defend action descriptions
+- Removed "(requires Flush or better)" from Special ability description (already fixed in issue #4)
+- Simplified combat display to focus only on core mechanics: HP, Block, and basic actions
+
+**Files Modified**:
+- `bathala/src/game/scenes/Prologue/phases/Phase4_CombatActions.ts`:
+  - Lines 312-318: Removed enemy intent text display
+  - Line 117: Simplified action descriptions to remove buff references
+
+**Before**:
+```typescript
+const enemyIntent = this.scene.add.text(enemyX, enemyHealthY + 25, 
+    `⚔️ Intent: Attack ${enemyData.damage || 15}`, {...});
+
+"⚔️ ATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus + Buffs"
+```
+
+**After**:
+```typescript
+// Enemy intent removed - will be taught in Phase 8
+
+"⚔️ ATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus"
+```
+
 ## Technical Details
 
 ### Button State Management
@@ -128,7 +203,10 @@ if ((this.playHandButton as any).isEnabled) {
 ✅ Build successful with no errors or warnings
 
 ## Summary
-All three critical bugs in Phase 4 Combat have been fixed:
+All six critical bugs in Phase 4 Combat have been fixed:
 1. ✅ Play Hand button now works correctly
 2. ✅ Cards display reliably 
 3. ✅ Action execution completes properly and transitions to next section
+4. ✅ Special ability works with any hand (no flush requirement)
+5. ✅ Played hand displays with actual card sprites instead of rectangles
+6. ✅ Tutorial focuses on core mechanics without premature intent/buff/debuff displays
