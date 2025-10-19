@@ -30,7 +30,7 @@ export function createInfoBox(
 
     const style = styles[type];
 
-    // Message text
+    // Message text - centered, no icon
     const messageText = scene.add.text(0, 0, message, {
         fontFamily: 'dungeon-mode',
         fontSize: 20,
@@ -52,16 +52,7 @@ export function createInfoBox(
     const innerBorder = scene.add.rectangle(0, 0, boxWidth + 2, boxHeight + 2, undefined, 0)
         .setStrokeStyle(2, 0x556065, 0.6);
 
-    // Icon on the left
-    const iconText = scene.add.text(-boxWidth/2 + 30, 0, style.icon, {
-        fontFamily: 'dungeon-mode',
-        fontSize: 28
-    }).setOrigin(0.5);
-
-    // Adjust message position to account for icon
-    messageText.x = 15;
-
-    container.add([bg, outerBorder, innerBorder, iconText, messageText]);
+    container.add([bg, outerBorder, innerBorder, messageText]);
     container.setDepth(1800);
     container.setAlpha(0).setY(y + 20);
 
