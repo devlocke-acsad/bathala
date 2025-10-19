@@ -86,7 +86,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
                 );
                 this.container.add(header);
 
-                const dialogue = "Each card has a rank from 1 to 13:\n\n1-10: Number Cards (basic values)\n11: Mandirigma (Warrior)\n12: Babaylan (Shaman)\n13: Datu (Chief)\n\nHigher ranks create stronger hands and more powerful actions!";
+                const dialogue = "Each card has a rank from 1 to 13:\n\nAce, 2-10: Number Cards (basic values)\nJack (J): Mandirigma (Warrior)\nQueen (Q): Babaylan (Shaman)\nKing (K): Datu (Chief)\n\nHigher ranks create stronger hands and more powerful actions!";
 
                 const cardsToShow: Partial<PlayingCard>[] = [
                     { id: '1-Apoy', rank: '1', suit: 'Apoy' },
