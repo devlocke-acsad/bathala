@@ -13,6 +13,11 @@ export class Phase9_MoralChoice extends TutorialPhase {
     }
 
     public start(): void {
+        // Clear any lingering cards from previous phases
+        this.tutorialUI.handContainer.setVisible(false);
+        this.tutorialUI.handContainer.removeAll(true);
+        this.tutorialUI.cardSprites = [];
+        
         // Progress indicator
         const progress = createProgressIndicator(this.scene, 7, 9);
         this.container.add(progress);

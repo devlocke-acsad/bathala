@@ -65,6 +65,10 @@ export class Phase11_FinalTrial extends TutorialPhase {
     private startTrial(): void {
         this.turn++;
 
+        // Clear cards from previous turn
+        this.tutorialUI.handContainer.removeAll(true);
+        this.tutorialUI.cardSprites = [];
+
         // Progress indicator - always visible
         const progress = createProgressIndicator(this.scene, 9, 9);
         this.container.add(progress);
@@ -72,36 +76,71 @@ export class Phase11_FinalTrial extends TutorialPhase {
         // Turn counter
         const turnText = this.scene.add.text(
             this.scene.cameras.main.width / 2,
-            90,
+            50,
             `Turn ${this.turn}`,
             {
                 fontFamily: 'dungeon-mode',
-                fontSize: 28,
+                fontSize: 24,
                 color: '#FFD700',
                 align: 'center'
             }
         ).setOrigin(0.5);
         this.container.add(turnText);
 
-        // Enemy display
-        const enemyContainer = this.scene.add.container(this.scene.cameras.main.width / 2, 200);
+        // Enemy sprite display
+        const enemyX = this.scene.cameras.main.width / 2;
+        const enemyY = 160;
         
         const enemyData = { ...TAWONG_LIPOD };
+        const enemySpriteKey = this.getEnemySpriteKey(enemyData.name);
+        const enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
+        
+        // Scale the enemy sprite
+        const targetWidth = 180;
+        const targetHeight = 180;
+        const scaleX = targetWidth / enemySprite.width;
+        const scaleY = targetHeight / enemySprite.height;
+        const finalScale = Math.min(scaleX, scaleY);
+        enemySprite.setScale(finalScale);
+        
+        if (enemySprite.texture) {
+            enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+        }
+        this.container.add(enemySprite);
+        
+        // Enemy shadow
+        const enemyShadow = this.scene.add.ellipse(
+            enemyX,
+            enemyY + 70,
+            90,
+            22,
+            0x000000,
+            0.3
+        );
+        this.container.add(enemyShadow);
+
+        // Calculate proper Y position for enemy info (below sprite)
+        const enemySpriteScaledHeight = enemySprite.height * finalScale;
+        const enemyInfoY = enemyY + (enemySpriteScaledHeight / 2) + 20;
+
+        // Enemy display container
+        const enemyContainer = this.scene.add.container(enemyX, enemyInfoY);
+        
         const enemyNameShadow = this.scene.add.text(2, 2, enemyData.name, {
             fontFamily: 'dungeon-mode',
-            fontSize: 34,
+            fontSize: 26,
             color: '#000000'
         }).setOrigin(0.5).setAlpha(0.5);
 
         const enemyName = this.scene.add.text(0, 0, enemyData.name, {
             fontFamily: 'dungeon-mode',
-            fontSize: 34,
+            fontSize: 26,
             color: '#ff6b6b'
         }).setOrigin(0.5);
 
-        const enemyHP = this.scene.add.text(0, 45, `HP: ${this.enemyHP}/${this.enemyMaxHP}`, {
+        const enemyHP = this.scene.add.text(0, 30, `HP: ${this.enemyHP}/${this.enemyMaxHP}`, {
             fontFamily: 'dungeon-mode',
-            fontSize: 26,
+            fontSize: 22,
             color: '#E8E8E8'
         }).setOrigin(0.5);
 
@@ -110,9 +149,9 @@ export class Phase11_FinalTrial extends TutorialPhase {
         const currentIntent = intentPattern[(this.turn - 1) % intentPattern.length];
         const intentIcon = this.getIntentIcon(currentIntent);
         
-        const enemyIntent = this.scene.add.text(0, 85, `${intentIcon} ${currentIntent}`, {
+        const enemyIntent = this.scene.add.text(0, 60, `${intentIcon} ${currentIntent}`, {
             fontFamily: 'dungeon-mode',
-            fontSize: 24,
+            fontSize: 20,
             color: '#FFD700'
         }).setOrigin(0.5);
 
@@ -300,5 +339,24 @@ export class Phase11_FinalTrial extends TutorialPhase {
                 onComplete: () => this.onComplete()
             });
         });
+    }
+
+    /**
+     * Get enemy sprite key (same as Phase4_CombatActions and Phase7_Items)
+     */
+    private getEnemySpriteKey(enemyName: string): string {
+        const lowerCaseName = enemyName.toLowerCase();
+        
+        if (lowerCaseName.includes("tikbalang")) return "tikbalang_combat";
+        if (lowerCaseName.includes("balete")) return "balete_combat";
+        if (lowerCaseName.includes("sigbin")) return "sigbin_combat";
+        if (lowerCaseName.includes("duwende")) return "duwende_combat";
+        if (lowerCaseName.includes("tiyanak")) return "tiyanak_combat";
+        if (lowerCaseName.includes("amomongo")) return "amomongo_combat";
+        if (lowerCaseName.includes("bungisngis")) return "bungisngis_combat";
+        if (lowerCaseName.includes("kapre")) return "kapre_combat";
+        if (lowerCaseName.includes("tawong")) return "tawong_lipod_combat";
+        
+        return "tikbalang_combat"; // fallback
     }
 }

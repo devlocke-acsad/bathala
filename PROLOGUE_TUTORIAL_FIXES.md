@@ -187,6 +187,94 @@ const enemyIntent = this.scene.add.text(enemyX, enemyHealthY + 25,
 - Reduced tutorial length from 11 phases to 9 phases
 - Progress indicator UI now accurately reflects current position in shortened tutorial
 
+### 8. Card Assets Persisting Between Phases
+**Problem**: Cards from previous phases (Phase 4, Phase 5) were still visible when entering later phases like Phase 6 (Items), Phase 7 (Moral Choice), Phase 8 (Advanced Concepts), and Phase 9 (Final Trial).
+
+**Root Cause**: The tutorial hand container wasn't being explicitly cleared when transitioning between phases, causing card sprites to persist.
+
+**Solution**:
+- Added explicit hand container cleanup in the `start()` method of phases that don't use cards:
+  - Phase 7 (Items - formerly Phase 7)
+  - Phase 7 (Moral Choice - formerly Phase 9)
+  - Phase 8 (Advanced Concepts - formerly Phase 10)
+- Added card cleanup at the start of each turn in Phase 9 (Final Trial)
+- Cleanup includes: hiding container, removing all children, clearing cardSprites array
+
+**Files Modified**:
+- `Phase7_Items.ts`: Added cleanup in `start()` method (lines 18-22)
+- `Phase9_MoralChoice.ts`: Added cleanup in `start()` method (lines 15-19)
+- `Phase10_AdvancedConcepts.ts`: Added cleanup in `start()` method (lines 16-20)
+- `Phase11_FinalTrial.ts`: Added cleanup at start of `startTrial()` method (lines 68-70)
+
+**Code Pattern**:
+```typescript
+public start(): void {
+    // Clear any lingering cards from previous phases
+    this.tutorialUI.handContainer.setVisible(false);
+    this.tutorialUI.handContainer.removeAll(true);
+    this.tutorialUI.cardSprites = [];
+    
+    // Continue with phase logic...
+}
+```
+
+### 9. Enemy Sprites Not Loading (Placeholder Sprites)
+**Problem**: Phase 6 (Items) and Phase 9 (Final Trial) were not displaying enemy sprites - only text (name/HP) was shown. The actual enemy sprite images were missing.
+
+**Root Cause**: These phases created enemy info containers but never added the actual sprite images using Phaser's `add.sprite()` method.
+
+**Solution**:
+- **Phase 7 (Items)**: Added proper enemy sprite rendering for Amomongo
+  - Added sprite creation with texture key lookup
+  - Added proper scaling to target size (200x200)
+  - Added shadow ellipse for depth
+  - Positioned name/HP text below the sprite instead of floating
+  - Added `getEnemySpriteKey()` helper method
+- **Phase 11 (Final Trial)**: Added proper enemy sprite rendering for Tawong Lipod
+  - Added sprite creation with texture key lookup
+  - Added proper scaling to target size (180x180)
+  - Added shadow ellipse for depth
+  - Positioned name/HP/intent text below the sprite
+  - Added `getEnemySpriteKey()` helper method
+  - Adjusted layout to accommodate sprite (moved turn counter up, shifted info down)
+
+**Files Modified**:
+- `Phase7_Items.ts`:
+  - Lines 143-179: Added enemy sprite rendering in `practicePotions()`
+  - Lines 226-246: Added `getEnemySpriteKey()` helper method
+- `Phase11_FinalTrial.ts`:
+  - Lines 68-98: Added enemy sprite rendering in `startTrial()`
+  - Lines 343-363: Added `getEnemySpriteKey()` helper method
+
+**Sprite Loading Pattern**:
+```typescript
+const enemySpriteKey = this.getEnemySpriteKey(enemyData.name);
+const enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
+
+// Scale to target size
+const targetWidth = 200;
+const targetHeight = 200;
+const scaleX = targetWidth / enemySprite.width;
+const scaleY = targetHeight / enemySprite.height;
+const finalScale = Math.min(scaleX, scaleY);
+enemySprite.setScale(finalScale);
+
+// Apply pixel-perfect filtering
+if (enemySprite.texture) {
+    enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+}
+
+// Add shadow for depth
+const enemyShadow = this.scene.add.ellipse(
+    enemyX, enemyY + 80, 100, 25, 0x000000, 0.3
+);
+```
+
+**Enemy Sprite Keys Used**:
+- `amomongo_combat` (Phase 6/Items)
+- `tawong_lipod_combat` (Phase 9/Final Trial)
+- All sprite keys follow pattern: `{enemy_name}_combat`
+
 ## Technical Details
 
 ### Button State Management
@@ -247,7 +335,7 @@ if ((this.playHandButton as any).isEnabled) {
 ✅ Build successful with no errors or warnings
 
 ## Summary
-All seven issues in the Prologue Tutorial have been fixed:
+All nine issues in the Prologue Tutorial have been fixed:
 1. ✅ Play Hand button now works correctly
 2. ✅ Cards display reliably 
 3. ✅ Action execution completes properly and transitions to next section
@@ -255,3 +343,5 @@ All seven issues in the Prologue Tutorial have been fixed:
 5. ✅ Played hand displays with actual card sprites instead of rectangles
 6. ✅ Tutorial focuses on core mechanics without premature intent/buff/debuff displays
 7. ✅ Phase 6 (Status Effects) and Phase 8 (Enemy Intents) removed; tutorial streamlined to 9 phases with updated progress indicators
+8. ✅ Card assets no longer persist between phases - proper cleanup implemented
+9. ✅ Enemy sprites now load correctly in all phases using real sprite assets (no placeholders)

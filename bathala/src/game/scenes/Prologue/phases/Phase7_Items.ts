@@ -16,6 +16,11 @@ export class Phase7_Items extends TutorialPhase {
     }
 
     public start(): void {
+        // Clear any lingering cards from previous phases
+        this.tutorialUI.handContainer.setVisible(false);
+        this.tutorialUI.handContainer.removeAll(true);
+        this.tutorialUI.cardSprites = [];
+        
         this.nextSection();
     }
 
@@ -140,24 +145,60 @@ export class Phase7_Items extends TutorialPhase {
         this.scene.time.delayedCall(600, () => {
             const enemyData = { ...AMOMONGO, id: 'tutorial_amomongo' };
 
-            // Enemy display
-            const enemyContainer = this.scene.add.container(this.scene.cameras.main.width / 2, 300);
+            // Enemy sprite display (centered)
+            const enemyX = this.scene.cameras.main.width / 2;
+            const enemyY = 280;
+            
+            const enemySpriteKey = this.getEnemySpriteKey(enemyData.name);
+            const enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
+            
+            // Scale the enemy sprite appropriately
+            const targetWidth = 200;
+            const targetHeight = 200;
+            const scaleX = targetWidth / enemySprite.width;
+            const scaleY = targetHeight / enemySprite.height;
+            const finalScale = Math.min(scaleX, scaleY);
+            enemySprite.setScale(finalScale);
+            
+            if (enemySprite.texture) {
+                enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+            }
+            this.container.add(enemySprite);
+            
+            // Enemy shadow
+            const enemyShadow = this.scene.add.ellipse(
+                enemyX,
+                enemyY + 80,
+                100,
+                25,
+                0x000000,
+                0.3
+            );
+            this.container.add(enemyShadow);
+
+            // Calculate proper Y position for name/HP (below sprite)
+            const enemySpriteScaledHeight = enemySprite.height * finalScale;
+            const enemyNameY = enemyY + (enemySpriteScaledHeight / 2) + 20;
+            const enemyHPY = enemyNameY + 30;
+
+            // Enemy display container
+            const enemyContainer = this.scene.add.container(enemyX, enemyNameY);
             
             const enemyNameShadow = this.scene.add.text(2, 2, enemyData.name, { 
                 fontFamily: 'dungeon-mode', 
-                fontSize: 28, 
+                fontSize: 24, 
                 color: '#000000' 
             }).setOrigin(0.5).setAlpha(0.5);
 
             const enemyName = this.scene.add.text(0, 0, enemyData.name, { 
                 fontFamily: 'dungeon-mode', 
-                fontSize: 28, 
+                fontSize: 24, 
                 color: '#ff6b6b' 
             }).setOrigin(0.5);
 
-            const enemyHP = this.scene.add.text(0, 40, `HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`, { 
+            const enemyHP = this.scene.add.text(0, 30, `HP: ${enemyData.currentHealth}/${enemyData.maxHealth}`, { 
                 fontFamily: 'dungeon-mode', 
-                fontSize: 22, 
+                fontSize: 20, 
                 color: '#E8E8E8' 
             }).setOrigin(0.5);
 
@@ -222,5 +263,24 @@ export class Phase7_Items extends TutorialPhase {
 
             this.container.add(usePotionButton);
         });
+    }
+
+    /**
+     * Get enemy sprite key (same as Phase4_CombatActions)
+     */
+    private getEnemySpriteKey(enemyName: string): string {
+        const lowerCaseName = enemyName.toLowerCase();
+        
+        if (lowerCaseName.includes("tikbalang")) return "tikbalang_combat";
+        if (lowerCaseName.includes("balete")) return "balete_combat";
+        if (lowerCaseName.includes("sigbin")) return "sigbin_combat";
+        if (lowerCaseName.includes("duwende")) return "duwende_combat";
+        if (lowerCaseName.includes("tiyanak")) return "tiyanak_combat";
+        if (lowerCaseName.includes("amomongo")) return "amomongo_combat";
+        if (lowerCaseName.includes("bungisngis")) return "bungisngis_combat";
+        if (lowerCaseName.includes("kapre")) return "kapre_combat";
+        if (lowerCaseName.includes("tawong")) return "tawong_lipod_combat";
+        
+        return "tikbalang_combat"; // fallback
     }
 }
