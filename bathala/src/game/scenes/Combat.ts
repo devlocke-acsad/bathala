@@ -14,6 +14,7 @@ import {
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
 import { GameState } from "../../core/managers/GameState";
+import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import {
   getRandomCommonEnemy,
   getRandomEliteEnemy,
@@ -310,6 +311,10 @@ export class Combat extends Scene {
     const gameState = GameState.getInstance();
     const existingPlayerData = gameState.getPlayerData();
     
+    // Get and apply next combat buffs from events
+    const overworldState = OverworldGameState.getInstance();
+    const nextCombatBuffs = overworldState.consumeNextCombatBuffs();
+    
     let player: Player;
     
     if (existingPlayerData && Object.keys(existingPlayerData).length > 0) {
@@ -336,7 +341,7 @@ export class Combat extends Scene {
         name: existingPlayerData.name || "Hero",
         maxHealth: existingPlayerData.maxHealth || 120,      // Increased for rebalanced damage
         currentHealth: existingPlayerData.currentHealth || 120,
-        block: 0, // Always reset block at start of combat
+        block: nextCombatBuffs.block, // Apply event-granted block
         statusEffects: [], // Always reset status effects at start of combat
         hand: [], // Will be populated below
         deck: existingPlayerData.deck || DeckManager.createFullDeck(),
@@ -351,6 +356,11 @@ export class Combat extends Scene {
         discardCharges: existingPlayerData.discardCharges || 3,  // Changed from 1 to 3
         maxDiscardCharges: existingPlayerData.maxDiscardCharges || 3,  // Changed from 1 to 3
       };
+      
+      // Apply event-granted health bonus (healing)
+      if (nextCombatBuffs.health > 0) {
+        player.currentHealth = Math.min(player.maxHealth, player.currentHealth + nextCombatBuffs.health);
+      }
       
       // If the deck is in discard pile, shuffle it back to draw pile
       if (player.drawPile.length === 0 && player.discardPile.length > 0) {
@@ -372,7 +382,7 @@ export class Combat extends Scene {
         name: "Hero",
         maxHealth: 120,      // Increased for rebalanced damage
         currentHealth: 120,
-        block: 0,
+        block: nextCombatBuffs.block, // Apply event-granted block
         statusEffects: [],
         hand: [],
         deck: deck,
@@ -397,6 +407,11 @@ export class Combat extends Scene {
         discardCharges: 3,  // Changed from 1 to 3
         maxDiscardCharges: 3,  // Changed from 1 to 3
       };
+      
+      // Apply event-granted health bonus (healing) for new player too
+      if (nextCombatBuffs.health > 0) {
+        player.currentHealth = Math.min(player.maxHealth, player.currentHealth + nextCombatBuffs.health);
+      }
     }
 
     // Draw initial hand (8 cards + relic bonuses)
