@@ -1,6 +1,7 @@
 import { Scene } from "phaser";
 import { GameState } from "../../core/managers/GameState";
 import { RelicManager } from "../../core/managers/RelicManager";
+import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { Player, Relic } from "../../core/types/CombatTypes";
 import { allShopItems, ShopItem } from "../../data/relics/ShopItems";
 import { getRelicById } from "../../data/relics/Act1Relics";
@@ -98,10 +99,25 @@ export class Shop extends Scene {
   }
 
   /**
-   * Calculate the actual price for an item after applying relic discounts
+   * Calculate the actual price for an item after applying DDA and relic discounts
    */
   private getActualPrice(item: ShopItem): number {
-    return RelicManager.calculateShopPriceReduction(item.price, this.player);
+    const basePrice = item.price;
+    
+    // Apply DDA price multiplier FIRST
+    const dda = RuleBasedDDA.getInstance();
+    const adjustment = dda.getCurrentDifficultyAdjustment();
+    const ddaAdjustedPrice = Math.round(basePrice * adjustment.shopPriceMultiplier);
+    
+    // Then apply relic-based discounts (Merchant's Scale)
+    const finalPrice = RelicManager.calculateShopPriceReduction(ddaAdjustedPrice, this.player);
+    
+    // Log for thesis data collection
+    if (ddaAdjustedPrice !== basePrice || finalPrice !== ddaAdjustedPrice) {
+      console.log(`💰 DDA Shop Pricing [${item.name}]: ${basePrice} → ${ddaAdjustedPrice} (DDA ${adjustment.tier}) → ${finalPrice} (relics)`);
+    }
+    
+    return finalPrice;
   }
 
   create(): void {
