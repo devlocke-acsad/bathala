@@ -252,6 +252,9 @@ export class Combat extends Scene {
     // Initialize CombatAnimations
     this.animations = new CombatAnimations(this);
 
+    // Create action result UI for displaying combat messages
+    this.createActionResultUI();
+
     // UI is now fully initialized by CombatUI
     // No need to call createCombatUI() separately
     
@@ -2801,6 +2804,12 @@ export class Combat extends Scene {
    * Show action result message
    */
   private showActionResult(message: string): void {
+    // Safety check: actionResultText might not be initialized yet during scene creation
+    if (!this.actionResultText) {
+      console.warn("actionResultText not initialized yet, skipping message:", message);
+      return;
+    }
+    
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     

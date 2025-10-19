@@ -11,25 +11,25 @@ export const commonRelics: Relic[] = [
   {
     id: "earthwardens_plate",
     name: "Earthwarden's Plate",
-    description: "Forged from the sacred linga stones of the mountain spirits. Start each combat with 12 Block and gain +2 Block at the start of each turn.",
+    description: "Sacred linga stone armor forged by mountain anito. Channels Lupa's enduring strength. Start combat with 12 Block, gain +2 each turn.",
     emoji: "🛡️"
   },
   {
     id: "swift_wind_agimat",
     name: "Agimat of the Swift Wind",
-    description: "A blessed talisman that captures the essence of Tikbalang's speed. Start each combat with 2 additional discard charges (5 total per turn) and draw 1 additional card at start of combat.",
+    description: "Blessed talisman woven with Tikbalang mane hairs. Captures Hangin's swiftness. +2 discard charges, draw 1 extra card at start.",
     emoji: "💨"
   },
   {
     id: "ember_fetish",
     name: "Ember Fetish",
-    description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 4 Attack. If you have Block, gain 2 Attack.",
+    description: "Banana tree heart carved at midnight, blessed by Apolaki's flame. Adapts to danger: +4 Attack when vulnerable, +2 when protected.",
     emoji: "🔥"
   },
   {
     id: "umalagad_spirit",
     name: "Umalagad's Spirit",
-    description: "The protective essence of a sea serpent that guides travelers. All Defend actions gain +8 Block. Gain +3 Block whenever you play a card.",
+    description: "Ancient sea serpent's essence that guided lost sailors. Embodies Tubig's resilience. Defend actions +8 Block, +3 per card played.",
     emoji: "🐍"
   }
 ];
@@ -39,25 +39,25 @@ export const eliteRelics: Relic[] = [
   {
     id: "babaylans_talisman",
     name: "Babaylan's Talisman",
-    description: "A sacred amulet blessed by the ancient shamans. Your hand is always considered one tier higher when evaluating poker hands (Pair → Two Pair, Flush → Full House).",
+    description: "Sacred amulet of ancient shamans who bridged spirit realms. Channels ancestral wisdom. Hand always one tier higher (Pair → Two Pair).",
     emoji: "📿"
   },
   {
     id: "ancestral_blade",
     name: "Ancestral Blade",
-    description: "A kampilan blessed by the spirits of your ancestors. Each time you play a Flush, gain 3 Attack for rest of combat.",
+    description: "Legendary kampilan blessed by warrior ancestors. Perfect elemental strikes awaken fury. Each Flush grants +3 Attack permanently.",
     emoji: "⚔️"
   },
   {
     id: "tidal_amulet",
     name: "Tidal Amulet",
-    description: "An enchanted piece of coral that pulses with the rhythm of the sea. At the end of your turn, heal 3 HP for each card remaining in your hand.",
+    description: "Enchanted coral from sacred underwater grottos where Bathala wove seas. Channels Tubig's rhythm. Heal 3 HP per unplayed card.",
     emoji: "🌊"
   },
   {
     id: "sarimanok_feather",
     name: "Sarimanok Feather",
-    description: "A radiant feather from the mythical bird that brings prosperity. Whenever you play a Straight or better, gain 2 Ginto.",
+    description: "Radiant plumage from mythical Maranao bird of paradise. Rewards mastery with fortune. Straight or better grants 2 Ginto.",
     emoji: "🦚"
   }
 ];
