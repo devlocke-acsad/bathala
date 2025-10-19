@@ -66,6 +66,9 @@ export class CombatUI {
   public relicsContainer!: Phaser.GameObjects.Container;
   public relicInventory!: Phaser.GameObjects.Container;
   public currentRelicTooltip!: Phaser.GameObjects.Container | null;
+  private relicUpdatePending: boolean = false;
+  private lastRelicCount: number = 0;
+  private lastPotionCount: number = 0;
   
   // Modal/Overlay Elements
   public landasChoiceContainer!: Phaser.GameObjects.Container;
@@ -87,6 +90,9 @@ export class CombatUI {
     this.battleStartDialogueContainer = null;
     this.currentRelicTooltip = null;
     this.ddaDebugContainer = null;
+    this.relicUpdatePending = false;
+    this.lastRelicCount = 0;
+    this.lastPotionCount = 0;
   }
   
   /**
@@ -605,6 +611,35 @@ export class CombatUI {
       
       slotContainer.add([outerBorder, innerBorder, bg]);
       (slotContainer as any).isRelicSlot = true;
+      (slotContainer as any).slotIndex = i;
+      
+      // Make slot interactive for relic details
+      slotContainer.setSize(relicSlotSize, relicSlotSize);
+      slotContainer.setInteractive();
+      
+      // Add hover effects
+      slotContainer.on('pointerover', () => {
+        const combatState = this.scene.getCombatState();
+        if (combatState.player.relics && combatState.player.relics[i]) {
+          outerBorder.setStrokeStyle(3, 0xffd93d, 1.0); // Golden highlight
+          innerBorder.setStrokeStyle(2, 0xffd93d, 0.8);
+          bg.setFillStyle(0x2a2520); // Slight golden tint
+        }
+      });
+      
+      slotContainer.on('pointerout', () => {
+        outerBorder.setStrokeStyle(2, 0x77888C, 0.8); // Reset to normal
+        innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
+        bg.setFillStyle(0x1a1520); // Reset background
+      });
+      
+      // Add click handler for relic details
+      slotContainer.on('pointerdown', () => {
+        const combatState = this.scene.getCombatState();
+        if (combatState.player.relics && combatState.player.relics[i]) {
+          this.showRelicDetailModal(combatState.player.relics[i]);
+        }
+      });
       
       this.relicInventory.add(slotContainer);
     }
@@ -657,7 +692,7 @@ export class CombatUI {
     }
     
     this.relicInventory.add([outerBorder, innerBorder, mainBg, dividerLine, topGridLine, bottomGridLine, relicsTitle, potionsTitle]);
-    this.updateRelicInventory();
+    this.scheduleRelicInventoryUpdate();
   }
   
 
@@ -947,8 +982,8 @@ export class CombatUI {
     this.playerHealthText.setText(`♥ ${currentHealth}/${maxHealth}`);
     this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
     
-    // Update relic inventory to show current relics
-    this.updateRelicInventory();
+    // Schedule relic inventory update instead of immediate update
+    this.scheduleRelicInventoryUpdate();
   }
   
   /**
@@ -1011,7 +1046,7 @@ export class CombatUI {
   }
   
   /**
-   * Update relic inventory with current relics and potions
+   * Update relic inventory with current relics and potions - optimized version
    */
   public updateRelicInventory(): void {
     if (!this.relicInventory) return;
@@ -1020,7 +1055,17 @@ export class CombatUI {
     const relics = combatState.player.relics;
     const potions = combatState.player.potions || [];
     
+    // Skip update if counts haven't changed (optimization)
+    if (relics.length === this.lastRelicCount && potions.length === this.lastPotionCount && !this.relicUpdatePending) {
+      return;
+    }
+    
+    this.lastRelicCount = relics.length;
+    this.lastPotionCount = potions.length;
+    this.relicUpdatePending = false;
+    
     console.log("Updating relic inventory. Relics:", relics.length, "Potions:", potions.length);
+    console.log("Relic data:", relics);
     
     // Relic slots configuration
     const relicSlotSize = 40;
@@ -1052,14 +1097,22 @@ export class CombatUI {
       if (index < relicSlotsCount && relicSlots[index]) {
         const slot = relicSlots[index];
         
-        // Add relic icon to the slot
-        const relicIcon = this.scene.add.text(0, 0, relic.emoji || "?", {
-          fontSize: 24,
+        console.log(`Adding relic ${index}:`, relic.name, "emoji:", relic.emoji);
+        
+        // Calculate absolute position for the icon (not relative to slot)
+        const iconX = relicStartX + index * relicSlotSpacing;
+        const iconY = relicStartY;
+        
+        // Add relic icon DIRECTLY to relicInventory (not to slot)
+        // This ensures it renders on top of the slot background
+        const relicIcon = this.scene.add.text(iconX, iconY, relic.emoji || "⚙️", {
+          fontSize: 28,
+          color: "#ffffff",
           align: "center"
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(100);
         
         (relicIcon as any).isRelicIcon = true;
-        slot.add(relicIcon);
+        this.relicInventory.add(relicIcon); // Add to inventory, not slot
         
         // Make slot interactive with hover effects
         slot.setSize(relicSlotSize + 4, relicSlotSize + 4);
@@ -1067,6 +1120,9 @@ export class CombatUI {
           new Phaser.Geom.Rectangle(-(relicSlotSize + 4)/2, -(relicSlotSize + 4)/2, relicSlotSize + 4, relicSlotSize + 4),
           Phaser.Geom.Rectangle.Contains
         );
+        
+        // Clear any existing event listeners to prevent memory leaks
+        slot.removeAllListeners();
         
         // Get border references from slot
         const borders = slot.list as Phaser.GameObjects.Rectangle[];
@@ -1116,14 +1172,22 @@ export class CombatUI {
       if (index < potionSlotsCount && potionSlots[index]) {
         const slot = potionSlots[index];
         
-        // Add potion icon to the slot
-        const potionIcon = this.scene.add.text(0, 0, potion.emoji || "🧪", {
-          fontSize: 24,
+        console.log(`Adding potion ${index}:`, potion.name, "emoji:", potion.emoji);
+        
+        // Calculate absolute position for the icon (not relative to slot)
+        const iconX = potionStartX + index * potionSlotSpacing;
+        const iconY = potionStartY;
+        
+        // Add potion icon DIRECTLY to relicInventory (not to slot)
+        // This ensures it renders on top of the slot background
+        const potionIcon = this.scene.add.text(iconX, iconY, potion.emoji || "🧪", {
+          fontSize: 28,
+          color: "#ffffff",
           align: "center"
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(100);
         
         (potionIcon as any).isPotionIcon = true;
-        slot.add(potionIcon);
+        this.relicInventory.add(potionIcon); // Add to inventory, not slot
         
         // Make slot interactive with hover effects
         slot.setSize(potionSlotSize + 4, potionSlotSize + 4);
@@ -1131,6 +1195,9 @@ export class CombatUI {
           new Phaser.Geom.Rectangle(-(potionSlotSize + 4)/2, -(potionSlotSize + 4)/2, potionSlotSize + 4, potionSlotSize + 4),
           Phaser.Geom.Rectangle.Contains
         );
+        
+        // Clear any existing event listeners to prevent memory leaks
+        slot.removeAllListeners();
         
         // Get border references from slot
         const borders = slot.list as Phaser.GameObjects.Rectangle[];
@@ -1174,6 +1241,28 @@ export class CombatUI {
         });
       }
     });
+  }
+  
+  /**
+   * Schedule a relic inventory update to be executed on the next frame (optimized for batching)
+   */
+  public scheduleRelicInventoryUpdate(): void {
+    if (this.relicUpdatePending) return; // Already scheduled
+    
+    this.relicUpdatePending = true;
+    this.scene.time.delayedCall(1, () => {
+      if (this.relicUpdatePending) { // Check if still needed
+        this.updateRelicInventory();
+      }
+    });
+  }
+  
+  /**
+   * Force relic inventory update (for use after major changes like shop purchases)
+   */
+  public forceRelicInventoryUpdate(): void {
+    this.relicUpdatePending = true;
+    this.updateRelicInventory();
   }
   
   /**
@@ -1925,16 +2014,162 @@ export class CombatUI {
     const combatState = this.scene.getCombatState();
     if (combatState.player.potions) {
       combatState.player.potions.splice(index, 1);
-      this.updateRelicInventory();
+      this.forceRelicInventoryUpdate(); // Force update after potion use
     }
   }
   
   /**
-   * Show relic detail modal
+   * Show relic detail modal with comprehensive information
    */
   private showRelicDetailModal(relic: any): void {
-    // Placeholder for relic detail modal
-    console.log("Show relic detail:", relic);
+    console.log("Showing relic detail modal for:", relic.name);
+    
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Create modal container
+    const modalContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2);
+    modalContainer.setDepth(3000);
+    
+    // Semi-transparent overlay background
+    const overlay = this.scene.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7);
+    overlay.setInteractive();
+    overlay.on('pointerdown', () => {
+      modalContainer.destroy();
+    });
+    
+    // Modal window dimensions
+    const modalWidth = 450;
+    const modalHeight = 300;
+    
+    // Main modal background with Prologue styling
+    const modalBg = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, 0x0f0a0b);
+    const outerBorder = this.scene.add.rectangle(0, 0, modalWidth + 6, modalHeight + 6, undefined, 0);
+    outerBorder.setStrokeStyle(3, 0x77888C, 1.0);
+    const innerBorder = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C, 0.8);
+    
+    // Title section with relic icon
+    const titleY = -modalHeight/2 + 40;
+    const relicIcon = this.scene.add.text(-150, titleY, relic.emoji || "⚙️", {
+      fontSize: 32,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    const relicName = this.scene.add.text(-100, titleY, relic.name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#ffd93d",
+      align: "left",
+      wordWrap: { width: 250 }
+    }).setOrigin(0, 0.5);
+    
+    // Rarity indicator (if available)
+    let rarityColor = "#77888C";
+    let rarityText = "COMMON";
+    if (relic.rarity) {
+      switch (relic.rarity.toLowerCase()) {
+        case "uncommon": rarityColor = "#4ecdc4"; rarityText = "UNCOMMON"; break;
+        case "rare": rarityColor = "#ffd93d"; rarityText = "RARE"; break;
+        case "legendary": rarityColor = "#ff6b6b"; rarityText = "LEGENDARY"; break;
+      }
+    }
+    
+    const rarityLabel = this.scene.add.text(150, titleY, rarityText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: rarityColor,
+      align: "right"
+    }).setOrigin(1, 0.5);
+    
+    // Description section
+    const descriptionY = titleY + 60;
+    const description = this.scene.add.text(0, descriptionY, relic.description || "A mysterious relic with unknown powers.", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: modalWidth - 40 }
+    }).setOrigin(0.5, 0);
+    
+    // Effect section (if available)
+    let effectText = "";
+    if (relic.effect) {
+      effectText = this.getRelicEffectDescription(relic);
+    }
+    
+    const effectLabel = this.scene.add.text(0, descriptionY + 80, "EFFECT:", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    const effectDescription = this.scene.add.text(0, descriptionY + 100, effectText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 13,
+      color: "#4ecdc4",
+      align: "center",
+      wordWrap: { width: modalWidth - 40 }
+    }).setOrigin(0.5, 0);
+    
+    // Close button
+    const closeButton = this.createCloseButton(modalWidth/2 - 30, -modalHeight/2 + 30);
+    closeButton.on('pointerdown', () => {
+      modalContainer.destroy();
+    });
+    
+    // Add all elements to modal
+    modalContainer.add([
+      overlay,
+      outerBorder,
+      innerBorder,
+      modalBg,
+      relicIcon,
+      relicName,
+      rarityLabel,
+      description,
+      effectLabel,
+      effectDescription,
+      closeButton
+    ]);
+    
+    // Add entrance animation
+    modalContainer.setScale(0.8);
+    modalContainer.setAlpha(0);
+    this.scene.tweens.add({
+      targets: modalContainer,
+      scale: 1,
+      alpha: 1,
+      duration: 200,
+      ease: 'Back.Out'
+    });
+  }
+  
+  /**
+   * Get detailed effect description for relic
+   */
+  private getRelicEffectDescription(relic: any): string {
+    // Map common relic effects to user-friendly descriptions
+    const effectDescriptions: { [key: string]: string } = {
+      "hand_tier_increase": "Your poker hands are evaluated as one tier higher.",
+      "extra_discard": "Gain +1 discard charge per combat.",
+      "persistent_block": "Start each combat with 5 block.",
+      "lupa_block_bonus": "Gain +2 block when playing Lupa (Earth) cards.",
+      "apoy_damage_bonus": "Deal +3 damage when playing Apoy (Fire) cards.",
+      "tubig_healing": "Heal 2 HP when playing Tubig (Water) cards.",
+      "hangin_draw": "Draw +1 card when playing Hangin (Air) cards.",
+      "five_of_a_kind_unlock": "Enables Five of a Kind poker hands.",
+      "start_with_strength": "Start each combat with 2 Strength.",
+      "burn_immunity": "Immune to Burn status effects."
+    };
+    
+    if (relic.effect && effectDescriptions[relic.effect]) {
+      return effectDescriptions[relic.effect];
+    }
+    
+    // Fallback to generic description
+    return relic.effect || "This relic provides a powerful passive benefit during combat.";
   }
   
   /**
@@ -1994,9 +2229,44 @@ export class CombatUI {
     if (nextButton) (nextButton as any).setVisible(true);
     if (pageCounter) (pageCounter as any).setVisible(true);
     
-    // Pagination settings
-    const cardsPerPage = 12; // 2 rows of 6 cards
-    const totalPages = Math.ceil(cards.length / cardsPerPage);
+    // Categorize cards by suit and sort by value (2 to Ace)
+    const suitOrder = ["Apoy", "Tubig", "Lupa", "Hangin"];
+    const cardsBySuit: { [key: string]: any[] } = {
+      "Apoy": [],
+      "Tubig": [],
+      "Lupa": [],
+      "Hangin": []
+    };
+    
+    // Group cards by suit
+    cards.forEach(card => {
+      if (cardsBySuit[card.suit]) {
+        cardsBySuit[card.suit].push(card);
+      }
+    });
+    
+    // Convert rank to numeric value for sorting
+    const getRankValue = (rank: string): number => {
+      if (rank === "1") return 14; // Ace is highest
+      if (rank === "Mandirigma") return 11; // Jack
+      if (rank === "Babaylan") return 12; // Queen
+      if (rank === "Datu") return 13; // King
+      return parseInt(rank); // 2-10
+    };
+    
+    // Sort each suit: 2-10, then Mandirigma (11), Babaylan (12), Datu (13), 1 (Ace=14)
+    const sortByValue = (a: any, b: any) => {
+      const valueA = getRankValue(a.rank);
+      const valueB = getRankValue(b.rank);
+      return valueA - valueB;
+    };
+    
+    Object.keys(cardsBySuit).forEach(suit => {
+      cardsBySuit[suit].sort(sortByValue);
+    });
+    
+    // 4 pages - one for each suit
+    const totalPages = 4;
     let currentPage = 0;
     
     // Store current page in container
@@ -2004,14 +2274,38 @@ export class CombatUI {
     (this.deckViewContainer as any).totalPages = totalPages;
     
     const renderPage = (page: number) => {
-      // Clear previous page cards
+      // Clear previous page cards and suit label
       this.deckViewContainer.list
-        .filter(item => (item as any).isPageCard)
+        .filter(item => (item as any).isPageCard || (item as any).isSuitLabel)
         .forEach(item => item.destroy());
       
-      const startIndex = page * cardsPerPage;
-      const endIndex = Math.min(startIndex + cardsPerPage, cards.length);
-      const pageCards = cards.slice(startIndex, endIndex);
+      const suit = suitOrder[page];
+      const pageCards = cardsBySuit[suit];
+      
+      // Suit label with color and icon
+      const suitColors: { [key: string]: string } = {
+        "Apoy": "#FF6B6B",
+        "Tubig": "#54A0FF",
+        "Lupa": "#00D2D3",
+        "Hangin": "#A29BFE"
+      };
+      
+      const suitIcons: { [key: string]: string } = {
+        "Apoy": "🔥",
+        "Tubig": "💧",
+        "Lupa": "🌿",
+        "Hangin": "💨"
+      };
+      
+      const suitLabel = this.scene.add.text(0, -screenHeight * 0.28, `${suitIcons[suit]} ${suit.toUpperCase()} (${pageCards.length} cards)`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 24,
+        color: suitColors[suit],
+        align: "center",
+      }).setOrigin(0.5);
+      (suitLabel as any).isSuitLabel = true;
+      (suitLabel as any).isDeckContent = true;
+      this.deckViewContainer.add(suitLabel);
       
       // Grid layout - 2 rows of 6 cards (Balatro-style)
       const columns = 6;
@@ -2041,10 +2335,10 @@ export class CombatUI {
         this.deckViewContainer.add(cardSprite);
       });
       
-      // Update page counter
+      // Update page counter with suit name
       const pageCounter = this.deckViewContainer.list.find(item => (item as any).isPageCounter) as Phaser.GameObjects.Text;
       if (pageCounter) {
-        pageCounter.setText(`Page ${page + 1} / ${totalPages}`);
+        pageCounter.setText(`${suit} - Page ${page + 1} / ${totalPages}`);
       }
       
       // Update button states
@@ -2150,14 +2444,53 @@ export class CombatUI {
       this.deckViewContainer.add(pageCounter);
     } else {
       // Update card count if UI already exists
-      const cardCountText = this.deckViewContainer.list.find(item => (item as any).isDeckContent && item.type === 'Text') as Phaser.GameObjects.Text;
+      const cardCountText = this.deckViewContainer.list.find(item => (item as any).isDeckContent && item.type === 'Text' && !(item as any).isSuitLabel) as Phaser.GameObjects.Text;
       if (cardCountText) {
         cardCountText.setText(`${cards.length} cards`);
       }
+      
+      // Update button callbacks with new closure references
+      const prevButton = this.deckViewContainer.list.find(item => (item as any).isPrevButton) as Phaser.GameObjects.Container;
+      const nextButton = this.deckViewContainer.list.find(item => (item as any).isNextButton) as Phaser.GameObjects.Container;
+      
+      if (prevButton) {
+        // Remove old listeners
+        const prevBg = prevButton.list[0] as Phaser.GameObjects.Rectangle;
+        prevBg.removeAllListeners('pointerdown');
+        
+        // Add new listener with updated closure
+        prevBg.on("pointerdown", () => {
+          // Get current page from container storage
+          const storedPage = (this.deckViewContainer as any).currentPage || 0;
+          if (prevButton.alpha === 1 && storedPage > 0) {
+            const newPage = storedPage - 1;
+            (this.deckViewContainer as any).currentPage = newPage;
+            renderPage(newPage);
+          }
+        });
+      }
+      
+      if (nextButton) {
+        // Remove old listeners
+        const nextBg = nextButton.list[0] as Phaser.GameObjects.Rectangle;
+        nextBg.removeAllListeners('pointerdown');
+        
+        // Add new listener with updated closure
+        nextBg.on("pointerdown", () => {
+          // Get current page from container storage
+          const storedPage = (this.deckViewContainer as any).currentPage || 0;
+          if (nextButton.alpha === 1 && storedPage < totalPages - 1) {
+            const newPage = storedPage + 1;
+            (this.deckViewContainer as any).currentPage = newPage;
+            renderPage(newPage);
+          }
+        });
+      }
     }
     
-    // Render first page
-    renderPage(currentPage);
+    // Render current page (or first page if starting fresh)
+    const pageToRender = (this.deckViewContainer as any).currentPage || 0;
+    renderPage(pageToRender);
     
     // Show container
     this.deckViewContainer.setVisible(true);
@@ -2180,13 +2513,11 @@ export class CombatUI {
     }).setOrigin(0.5);
     
     button.add([bg, text]);
-    button.setSize(60, 60); // Larger hit area
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-30, -30, 60, 60),
-      Phaser.Geom.Rectangle.Contains
-    );
     
-    button.on("pointerover", () => {
+    // Fix: Use the bg circle directly for interaction
+    bg.setInteractive({ useHandCursor: true });
+    
+    bg.on("pointerover", () => {
       bg.setFillStyle(0xff6b6b, 0.3);
       bg.setScale(1.1);
       this.scene.tweens.add({
@@ -2197,7 +2528,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerout", () => {
+    bg.on("pointerout", () => {
       bg.setFillStyle(0x1a1a1a);
       bg.setScale(1);
       this.scene.tweens.add({
@@ -2208,7 +2539,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerdown", () => {
+    bg.on("pointerdown", () => {
       this.scene.tweens.add({
         targets: button,
         scale: 0.9,
@@ -2248,13 +2579,13 @@ export class CombatUI {
     }).setOrigin(0.5);
     
     button.add([bg, innerBorder, text]);
-    button.setSize(90, 90); // Much larger hit area for better responsiveness
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-45, -45, 90, 90),
-      Phaser.Geom.Rectangle.Contains
-    );
     
-    button.on("pointerover", () => {
+    // Fix: Use the bg rectangle directly for interaction instead of creating a separate hit area
+    // This ensures the interactive area perfectly matches the visual button
+    bg.setInteractive({ useHandCursor: true });
+    
+    // Transfer events from bg to button container for proper behavior
+    bg.on("pointerover", () => {
       if (button.alpha === 1) { // Only animate if button is active
         bg.setFillStyle(0x1f1410);
         text.setColor("#e8eced");
@@ -2267,7 +2598,7 @@ export class CombatUI {
       }
     });
     
-    button.on("pointerout", () => {
+    bg.on("pointerout", () => {
       bg.setFillStyle(0x150E10);
       text.setColor("#77888C");
       this.scene.tweens.add({
@@ -2278,7 +2609,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerdown", () => {
+    bg.on("pointerdown", () => {
       if (button.alpha === 1) { // Only trigger if button is active
         this.scene.tweens.add({
           targets: button,
@@ -2549,13 +2880,11 @@ export class CombatUI {
     }).setOrigin(0.5);
     
     button.add([bg, text]);
-    button.setSize(60, 60); // Larger hit area
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-30, -30, 60, 60),
-      Phaser.Geom.Rectangle.Contains
-    );
     
-    button.on("pointerover", () => {
+    // Fix: Use the bg circle directly for interaction
+    bg.setInteractive({ useHandCursor: true });
+    
+    bg.on("pointerover", () => {
       bg.setFillStyle(0xff6b6b, 0.3);
       bg.setScale(1.1);
       this.scene.tweens.add({
@@ -2566,7 +2895,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerout", () => {
+    bg.on("pointerout", () => {
       bg.setFillStyle(0x1a1a1a);
       bg.setScale(1);
       this.scene.tweens.add({
@@ -2577,7 +2906,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerdown", () => {
+    bg.on("pointerdown", () => {
       this.scene.tweens.add({
         targets: button,
         scale: 0.9,
@@ -2617,13 +2946,13 @@ export class CombatUI {
     }).setOrigin(0.5);
     
     button.add([bg, innerBorder, text]);
-    button.setSize(90, 90); // Much larger hit area for better responsiveness
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-45, -45, 90, 90),
-      Phaser.Geom.Rectangle.Contains
-    );
     
-    button.on("pointerover", () => {
+    // Fix: Use the bg rectangle directly for interaction instead of creating a separate hit area
+    // This ensures the interactive area perfectly matches the visual button
+    bg.setInteractive({ useHandCursor: true });
+    
+    // Transfer events from bg to button container for proper behavior
+    bg.on("pointerover", () => {
       if (button.alpha === 1) { // Only animate if button is active
         bg.setFillStyle(0x1f1410);
         text.setColor("#e8eced");
@@ -2636,7 +2965,7 @@ export class CombatUI {
       }
     });
     
-    button.on("pointerout", () => {
+    bg.on("pointerout", () => {
       bg.setFillStyle(0x150E10);
       text.setColor("#77888C");
       this.scene.tweens.add({
@@ -2647,7 +2976,7 @@ export class CombatUI {
       });
     });
     
-    button.on("pointerdown", () => {
+    bg.on("pointerdown", () => {
       if (button.alpha === 1) { // Only trigger if button is active
         this.scene.tweens.add({
           targets: button,

@@ -211,9 +211,8 @@ export class Overworld_TooltipManager {
       this.tooltipSpriteContainer.add(sprite);
     }
     
-    // Format stats with rich details
-    const statsText = `HP: ${enemyInfo.health} | DMG: ${enemyInfo.damage}\n\n${enemyInfo.abilities}`;
-    this.tooltipStatsText.setText(statsText);
+    // Only show the description (removed HP, DMG, and Abilities)
+    this.tooltipStatsText.setText("");
     this.tooltipDescriptionText.setText(enemyInfo.description);
     
     // Update size and position immediately
@@ -271,7 +270,8 @@ export class Overworld_TooltipManager {
       this.tooltipSpriteContainer.add(sprite);
     }
     
-    this.tooltipStatsText.setText(nodeInfo.stats || "");
+    // Only show the description (removed stats section for consistency)
+    this.tooltipStatsText.setText("");
     this.tooltipStatsText.setColor("#77888C");
     
     this.tooltipDescriptionText.setText(nodeInfo.description);
@@ -364,22 +364,20 @@ export class Overworld_TooltipManager {
     const minWidth = 420;
     const maxWidth = 550;
     
-    // Get actual text bounds
-    const statsHeight = this.tooltipStatsText?.height || 60;
+    // Get actual text bounds (only description now)
     const descHeight = this.tooltipDescriptionText?.height || 80;
     
     // Calculate required height with proper spacing
-    const separatorSpacing = 20;
-    const totalHeight = headerHeight + separatorSpacing + statsHeight + separatorSpacing + descHeight + padding;
+    const separatorSpacing = 15;
+    const totalHeight = headerHeight + separatorSpacing + descHeight + padding;
     
     // Calculate required width
     const nameWidth = this.tooltipNameText?.width || 100;
-    const statsWidth = this.tooltipStatsText?.width || 100;
     const descWidth = this.tooltipDescriptionText?.width || 100;
     const spriteAreaWidth = 80;
-    const maxContentWidth = Math.max(nameWidth + spriteAreaWidth, statsWidth, descWidth);
+    const maxContentWidth = Math.max(nameWidth + spriteAreaWidth, descWidth);
     const tooltipWidth = Math.max(minWidth, Math.min(maxWidth, maxContentWidth + padding * 2));
-    const tooltipHeight = Math.max(280, totalHeight);
+    const tooltipHeight = Math.max(200, totalHeight);
     
     // Get dynamic elements from container data
     const outerBorder = this.tooltipContainer.getData('outerBorder') as Phaser.GameObjects.Rectangle;
@@ -397,25 +395,22 @@ export class Overworld_TooltipManager {
     headerSeparator?.setSize(tooltipWidth - 20, 2);
     headerSeparator?.setPosition(18, 68);
     
-    statsSeparator?.setSize(tooltipWidth - 20, 2);
-    statsSeparator?.setPosition(18, headerHeight + statsHeight + 20);
+    // Hide the stats separator (no longer needed)
+    statsSeparator?.setVisible(false);
     
     // Reposition sprite container
     this.tooltipSpriteContainer?.setPosition(tooltipWidth - 60, 35);
     
-    // Update text wrapping
-    const textWidth = tooltipWidth - 80;
-    this.tooltipStatsText?.setWordWrapWidth(textWidth);
+    // Update text wrapping (only description now)
+    const textWidth = tooltipWidth - 40;
     this.tooltipDescriptionText?.setWordWrapWidth(textWidth);
     
-    // Reposition description separator
-    const descSeparatorY = headerHeight + statsHeight + 30;
-    descSeparator?.setSize(tooltipWidth - 20, 2);
-    descSeparator?.setPosition(18, descSeparatorY);
-    
-    // Reposition description text
-    const descY = descSeparatorY + 10;
+    // Position description text directly after header
+    const descY = headerHeight + 10;
     this.tooltipDescriptionText?.setPosition(18, descY);
+    
+    // Hide the description separator (cleaner look)
+    descSeparator?.setVisible(false);
     
     // Position tooltip based on mouse position
     const camera = this.scene.cameras.main;

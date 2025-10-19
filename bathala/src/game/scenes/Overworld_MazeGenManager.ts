@@ -34,6 +34,14 @@ export class Overworld_MazeGenManager {
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
   private devMode: boolean = false;
 
+  // Advanced Pathfinding System
+  private enemyPaths: Map<string, {
+    path: Array<{x: number, y: number}>,
+    targetX: number,
+    targetY: number,
+    age: number
+  }> = new Map();
+
   /**
    * Constructor
    * @param scene - The Overworld scene instance
@@ -143,6 +151,191 @@ export class Overworld_MazeGenManager {
     
     // Check if it's a path (0) not a wall (1)
     return chunk.maze[gridY][gridX] === 0;
+  }
+
+  /**
+   * IMPROVEMENT #1: A* Pathfinding Algorithm
+   * Find optimal path from enemy to player using A* algorithm
+   * 
+   * @param startX - Start X world coordinate
+   * @param startY - Start Y world coordinate
+   * @param targetX - Target X world coordinate
+   * @param targetY - Target Y world coordinate
+   * @param maxDepth - Maximum search depth to prevent performance issues
+   * @returns Array of positions forming the optimal path
+   */
+  private findPathToPlayer(
+    startX: number,
+    startY: number,
+    targetX: number,
+    targetY: number,
+    maxDepth: number = 20
+  ): Array<{x: number, y: number}> {
+    
+    interface PathNode {
+      x: number;
+      y: number;
+      g: number; // Cost from start
+      h: number; // Heuristic to goal
+      f: number; // Total cost (g + h)
+      parent: PathNode | null;
+    }
+    
+    const openSet: PathNode[] = [];
+    const closedSet: Set<string> = new Set();
+    
+    // Helper to convert position to key
+    const posKey = (x: number, y: number) => `${Math.round(x / this.gridSize)},${Math.round(y / this.gridSize)}`;
+    
+    // Manhattan distance heuristic
+    const heuristic = (x: number, y: number) => {
+      return (Math.abs(targetX - x) + Math.abs(targetY - y)) / this.gridSize;
+    };
+    
+    // Start node
+    const startNode: PathNode = {
+      x: startX,
+      y: startY,
+      g: 0,
+      h: heuristic(startX, startY),
+      f: heuristic(startX, startY),
+      parent: null
+    };
+    
+    openSet.push(startNode);
+    let iterations = 0;
+    
+    while (openSet.length > 0 && iterations < maxDepth * 10) {
+      iterations++;
+      
+      // Get node with lowest f score
+      openSet.sort((a, b) => a.f - b.f);
+      const current = openSet.shift()!;
+      
+      // Goal reached
+      if (Math.abs(current.x - targetX) < this.gridSize && 
+          Math.abs(current.y - targetY) < this.gridSize) {
+        // Reconstruct path
+        const path: Array<{x: number, y: number}> = [];
+        let node: PathNode | null = current;
+        while (node && node.parent) {
+          path.unshift({x: node.x, y: node.y});
+          node = node.parent;
+        }
+        
+        console.log(`🎯 A* found path with ${path.length} steps in ${iterations} iterations`);
+        return path;
+      }
+      
+      closedSet.add(posKey(current.x, current.y));
+      
+      // Check neighbors (4-directional + diagonals)
+      const neighbors = [
+        // Cardinal directions
+        {x: current.x + this.gridSize, y: current.y, diagonal: false},
+        {x: current.x - this.gridSize, y: current.y, diagonal: false},
+        {x: current.x, y: current.y + this.gridSize, diagonal: false},
+        {x: current.x, y: current.y - this.gridSize, diagonal: false},
+        // Diagonals
+        {x: current.x + this.gridSize, y: current.y + this.gridSize, diagonal: true},
+        {x: current.x + this.gridSize, y: current.y - this.gridSize, diagonal: true},
+        {x: current.x - this.gridSize, y: current.y + this.gridSize, diagonal: true},
+        {x: current.x - this.gridSize, y: current.y - this.gridSize, diagonal: true},
+      ];
+      
+      for (const neighbor of neighbors) {
+        const key = posKey(neighbor.x, neighbor.y);
+        
+        // Skip if already evaluated
+        if (closedSet.has(key)) continue;
+        
+        // Check walkability
+        if (!this.isValidPosition(neighbor.x, neighbor.y)) continue;
+        
+        // For diagonals, check adjacent tiles to prevent corner-cutting
+        if (neighbor.diagonal) {
+          const dx = neighbor.x - current.x;
+          const dy = neighbor.y - current.y;
+          if (!this.isValidPosition(current.x + dx, current.y) ||
+              !this.isValidPosition(current.x, current.y + dy)) {
+            continue; // Diagonal blocked
+          }
+        }
+        
+        const g = current.g + (neighbor.diagonal ? 1.414 : 1); // Diagonal costs more
+        const h = heuristic(neighbor.x, neighbor.y);
+        const f = g + h;
+        
+        // Check if neighbor is already in open set with lower cost
+        const existingNode = openSet.find(n => 
+          Math.abs(n.x - neighbor.x) < this.gridSize / 2 && 
+          Math.abs(n.y - neighbor.y) < this.gridSize / 2
+        );
+        
+        if (existingNode && existingNode.g <= g) continue;
+        
+        // Add to open set
+        openSet.push({
+          x: neighbor.x,
+          y: neighbor.y,
+          g, h, f,
+          parent: current
+        });
+      }
+    }
+    
+    console.log(`⚠️ A* no path found after ${iterations} iterations`);
+    // No path found - return empty
+    return [];
+  }
+
+  /**
+   * IMPROVEMENT #3: Path Caching System
+   * Get or calculate path for enemy with caching
+   * 
+   * @param enemyId - Unique enemy identifier
+   * @param currentX - Enemy current X coordinate
+   * @param currentY - Enemy current Y coordinate
+   * @param targetX - Player X coordinate
+   * @param targetY - Player Y coordinate
+   * @returns Cached or newly calculated path
+   */
+  private getEnemyPath(
+    enemyId: string,
+    currentX: number,
+    currentY: number,
+    targetX: number,
+    targetY: number
+  ): Array<{x: number, y: number}> {
+    
+    const cached = this.enemyPaths.get(enemyId);
+    
+    // Reuse cached path if:
+    // 1. Path exists
+    // 2. Target hasn't moved much (within 2 grid squares)
+    // 3. Path is recent (< 5 turns old)
+    if (cached && 
+        Math.abs(cached.targetX - targetX) < this.gridSize * 2 &&
+        Math.abs(cached.targetY - targetY) < this.gridSize * 2 &&
+        cached.age < 5) {
+      
+      cached.age++;
+      console.log(`📦 Using cached path for ${enemyId} (age: ${cached.age})`);
+      return cached.path;
+    }
+    
+    // Calculate new path using A*
+    console.log(`🔍 Calculating new path for ${enemyId}`);
+    const path = this.findPathToPlayer(currentX, currentY, targetX, targetY);
+    
+    this.enemyPaths.set(enemyId, {
+      path,
+      targetX,
+      targetY,
+      age: 0
+    });
+    
+    return path;
   }
 
   /**
@@ -611,50 +804,124 @@ export class Overworld_MazeGenManager {
     }
 
     // Define proximity threshold for enemy movement (in pixels)
-    const movementRange = gridSize * 10; // Reduced to 10 grid squares for more breathing room
+    const movementRange = gridSize * 10; // 10 grid squares for breathing room
 
-    // Find nearby enemy nodes that should move
-    const enemyNodes = this.nodes.filter((node: MapNode) => 
-      (node.type === "combat" || node.type === "elite") &&
-      Phaser.Math.Distance.Between(
-        playerX, playerY,
-        node.x + gridSize / 2, 
-        node.y + gridSize / 2
-      ) <= movementRange
-    );
+    // Find nearby enemy nodes based on distance only
+    const enemyNodes = this.nodes.filter((node: MapNode) => {
+      if (node.type !== "combat" && node.type !== "elite") {
+        return false;
+      }
+      
+      const enemyX = node.x + gridSize / 2;
+      const enemyY = node.y + gridSize / 2;
+      const distance = Phaser.Math.Distance.Between(playerX, playerY, enemyX, enemyY);
+      
+      // Only check: within movement range
+      return distance <= movementRange;
+    });
 
-    // Move each enemy node with enhanced AI
+    console.log(`🌙 Night: ${enemyNodes.length} enemies nearby player`);
+
+    // Move each enemy node with enhanced AI (now using A* pathfinding)
     enemyNodes.forEach((enemyNode: MapNode) => {
       this.moveEnemyWithEnhancedAI(enemyNode, playerX, playerY, gridSize, scene);
     });
   }
 
   /**
-   * Enhanced AI movement system for enemies
+   * Enhanced AI movement system for enemies with A* pathfinding
+   * IMPROVEMENT: Integrates A* pathfinding, line-of-sight, and path caching
    */
   private moveEnemyWithEnhancedAI(enemyNode: MapNode, playerX: number, playerY: number, gridSize: number, scene: Scene): void {
     const currentX = enemyNode.x + gridSize / 2;
     const currentY = enemyNode.y + gridSize / 2;
     const distance = Phaser.Math.Distance.Between(currentX, currentY, playerX, playerY);
     
+    // Check if enemy is already at collision distance before moving
+    if (distance < gridSize) {
+      console.log(`💥 Enemy already at collision distance: ${distance.toFixed(2)}`);
+      this.checkEnemyPlayerCollision(enemyNode, gridSize, scene);
+      return; // Don't move, collision check will handle it
+    }
+    
     // Different movement strategies based on distance and enemy type
     let movementSpeed = this.calculateEnemyMovementSpeed(enemyNode, distance);
     let movements: {x: number, y: number}[] = [];
     
-    // Calculate multiple movement steps for faster enemies
-    for (let i = 0; i < movementSpeed; i++) {
-      const stepPosition = this.calculateSingleEnemyStep(
-        currentX + (movements.length > 0 ? movements[movements.length - 1].x - currentX : 0),
-        currentY + (movements.length > 0 ? movements[movements.length - 1].y - currentY : 0),
-        playerX, 
-        playerY,
-        gridSize
-      );
+    // IMPROVEMENT: Use A* pathfinding with path caching
+    const enemyId = enemyNode.id;
+    const path = this.getEnemyPath(enemyId, currentX, currentY, playerX, playerY);
+    
+    if (path.length > 0) {
+      // Use A* calculated path
+      console.log(`🧭 Following A* path with ${path.length} waypoints`);
       
-      if (stepPosition && this.isValidPosition(stepPosition.x + gridSize / 2, stepPosition.y + gridSize / 2)) {
+      // Take as many steps from the path as movement speed allows
+      for (let i = 0; i < Math.min(movementSpeed, path.length); i++) {
+        const waypoint = path[i];
+        
+        // Convert world coordinates to grid coordinates
+        const stepPosition = {
+          x: waypoint.x - gridSize / 2,
+          y: waypoint.y - gridSize / 2
+        };
+        
+        // Check if this movement would result in collision
+        const newDistance = Phaser.Math.Distance.Between(
+          playerX,
+          playerY,
+          stepPosition.x + gridSize / 2,
+          stepPosition.y + gridSize / 2
+        );
+        
+        // If movement brings us within collision range, stop here and trigger collision
+        if (newDistance < gridSize) {
+          movements.push(stepPosition);
+          console.log(`💥 Movement will cause collision. Distance after move: ${newDistance.toFixed(2)}`);
+          break; // Stop movement chain, collision will trigger after animation
+        }
+        
         movements.push(stepPosition);
-      } else {
-        break; // Stop if we hit a wall or invalid position
+      }
+    } else {
+      // Fallback to greedy single-step pathfinding if A* fails
+      console.log(`⚠️ A* failed, falling back to greedy pathfinding`);
+      
+      // Calculate multiple movement steps for faster enemies
+      for (let i = 0; i < movementSpeed; i++) {
+        // Calculate next position from current position (or last movement position)
+        const lastX = movements.length > 0 ? movements[movements.length - 1].x + gridSize / 2 : currentX;
+        const lastY = movements.length > 0 ? movements[movements.length - 1].y + gridSize / 2 : currentY;
+        
+        const stepPosition = this.calculateSingleEnemyStep(
+          lastX,
+          lastY,
+          playerX, 
+          playerY,
+          gridSize
+        );
+        
+        // calculateSingleEnemyStep now handles walkability validation internally
+        if (stepPosition) {
+          // Check if this movement would result in collision
+          const newDistance = Phaser.Math.Distance.Between(
+            playerX,
+            playerY,
+            stepPosition.x + gridSize / 2,
+            stepPosition.y + gridSize / 2
+          );
+          
+          // If movement brings us within collision range, stop here and trigger collision
+          if (newDistance < gridSize) {
+            movements.push(stepPosition);
+            console.log(`💥 Movement will cause collision. Distance after move: ${newDistance.toFixed(2)}`);
+            break; // Stop movement chain, collision will trigger after animation
+          }
+          
+          movements.push(stepPosition);
+        } else {
+          break; // Stop if no valid movement found
+        }
       }
     }
     
@@ -702,28 +969,88 @@ export class Overworld_MazeGenManager {
       return null;
     }
     
-    // More predictable movement: mostly stick to axis-aligned movement
-    let newX = currentX;
-    let newY = currentY;
+    // Try different movement options in priority order, ensuring each is walkable
+    const movementOptions: Array<{x: number, y: number, priority: number}> = [];
     
-    // Reduced diagonal movement chance for more predictable behavior
-    if (Math.abs(deltaX) > gridSize / 2 && Math.abs(deltaY) > gridSize / 2 && Math.random() < 0.3) {
-      newX = currentX + (deltaX > 0 ? gridSize : -gridSize);
-      newY = currentY + (deltaY > 0 ? gridSize : -gridSize);
-    } else {
-      // Standard movement: prioritize the axis with larger distance
-      if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        newX = currentX + (deltaX > 0 ? gridSize : -gridSize);
-      } else {
-        newY = currentY + (deltaY > 0 ? gridSize : -gridSize);
+    // Calculate potential positions
+    const moveRight = currentX + gridSize;
+    const moveLeft = currentX - gridSize;
+    const moveDown = currentY + gridSize;
+    const moveUp = currentY - gridSize;
+    
+    // Prioritize movements toward the player
+    const shouldMoveRight = deltaX > gridSize / 2;
+    const shouldMoveLeft = deltaX < -gridSize / 2;
+    const shouldMoveDown = deltaY > gridSize / 2;
+    const shouldMoveUp = deltaY < -gridSize / 2;
+    
+    // Build movement options with priorities (lower = higher priority)
+    // Priority 0: Direct diagonal movement toward player
+    // IMPORTANT: Diagonal movement requires BOTH adjacent tiles to be walkable to prevent corner-cutting
+    if (shouldMoveRight && shouldMoveDown && Math.random() < 0.3) {
+      // Only allow diagonal if both horizontal AND vertical paths are clear
+      if (this.isValidPosition(moveRight, currentY) && this.isValidPosition(currentX, moveDown)) {
+        movementOptions.push({x: moveRight, y: moveDown, priority: 0});
+      }
+    }
+    if (shouldMoveRight && shouldMoveUp && Math.random() < 0.3) {
+      // Only allow diagonal if both horizontal AND vertical paths are clear
+      if (this.isValidPosition(moveRight, currentY) && this.isValidPosition(currentX, moveUp)) {
+        movementOptions.push({x: moveRight, y: moveUp, priority: 0});
+      }
+    }
+    if (shouldMoveLeft && shouldMoveDown && Math.random() < 0.3) {
+      // Only allow diagonal if both horizontal AND vertical paths are clear
+      if (this.isValidPosition(moveLeft, currentY) && this.isValidPosition(currentX, moveDown)) {
+        movementOptions.push({x: moveLeft, y: moveDown, priority: 0});
+      }
+    }
+    if (shouldMoveLeft && shouldMoveUp && Math.random() < 0.3) {
+      // Only allow diagonal if both horizontal AND vertical paths are clear
+      if (this.isValidPosition(moveLeft, currentY) && this.isValidPosition(currentX, moveUp)) {
+        movementOptions.push({x: moveLeft, y: moveUp, priority: 0});
       }
     }
     
-    // Convert back to node coordinates (top-left corner)
-    return {
-      x: newX - gridSize / 2,
-      y: newY - gridSize / 2
-    };
+    // Priority 1: Primary axis movement (toward player)
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      // X-axis is primary
+      if (shouldMoveRight) movementOptions.push({x: moveRight, y: currentY, priority: 1});
+      if (shouldMoveLeft) movementOptions.push({x: moveLeft, y: currentY, priority: 1});
+      // Secondary Y-axis
+      if (shouldMoveDown) movementOptions.push({x: currentX, y: moveDown, priority: 2});
+      if (shouldMoveUp) movementOptions.push({x: currentX, y: moveUp, priority: 2});
+    } else {
+      // Y-axis is primary
+      if (shouldMoveDown) movementOptions.push({x: currentX, y: moveDown, priority: 1});
+      if (shouldMoveUp) movementOptions.push({x: currentX, y: moveUp, priority: 1});
+      // Secondary X-axis
+      if (shouldMoveRight) movementOptions.push({x: moveRight, y: currentY, priority: 2});
+      if (shouldMoveLeft) movementOptions.push({x: moveLeft, y: currentY, priority: 2});
+    }
+    
+    // Priority 3: Movements away from player (fallback)
+    if (!shouldMoveRight) movementOptions.push({x: moveRight, y: currentY, priority: 3});
+    if (!shouldMoveLeft) movementOptions.push({x: moveLeft, y: currentY, priority: 3});
+    if (!shouldMoveDown) movementOptions.push({x: currentX, y: moveDown, priority: 3});
+    if (!shouldMoveUp) movementOptions.push({x: currentX, y: moveUp, priority: 3});
+    
+    // Sort by priority and try each option until we find a walkable one
+    movementOptions.sort((a, b) => a.priority - b.priority);
+    
+    for (const option of movementOptions) {
+      // Check if this position is walkable
+      if (this.isValidPosition(option.x, option.y)) {
+        // Convert back to node coordinates (top-left corner)
+        return {
+          x: option.x - gridSize / 2,
+          y: option.y - gridSize / 2
+        };
+      }
+    }
+    
+    // No valid movement found - enemy stays in place
+    return null;
   }
 
   /**
@@ -776,8 +1103,50 @@ export class Overworld_MazeGenManager {
         onComplete: () => {
           // Return to normal scale
           sprite.setScale(1.5);
+          
+          // Check for collision with player after enemy movement completes
+          this.checkEnemyPlayerCollision(enemyNode, gridSize, scene);
         }
       });
+    }
+  }
+
+  /**
+   * Check if enemy has collided with player and trigger combat if so
+   */
+  private checkEnemyPlayerCollision(enemyNode: MapNode, gridSize: number, scene: Scene): void {
+    // Only check for combat/elite nodes
+    if (enemyNode.type !== "combat" && enemyNode.type !== "elite") {
+      return;
+    }
+    
+    // Get player position from the scene (assuming Overworld scene has a player sprite)
+    const overworldScene = scene as any;
+    if (!overworldScene.player) {
+      return;
+    }
+    
+    const playerX = overworldScene.player.x;
+    const playerY = overworldScene.player.y;
+    
+    // Calculate distance between enemy node center and player
+    const distance = Phaser.Math.Distance.Between(
+      playerX,
+      playerY,
+      enemyNode.x + gridSize / 2,
+      enemyNode.y + gridSize / 2
+    );
+    
+    // Use the same threshold as checkNodeInteraction for consistency
+    const collisionThreshold = gridSize;
+    
+    if (distance < collisionThreshold) {
+      console.log(`💥 Enemy collision detected! Distance: ${distance.toFixed(2)}, Threshold: ${collisionThreshold}`);
+      
+      // Trigger the node interaction in the overworld scene
+      if (typeof overworldScene.checkNodeInteraction === 'function') {
+        overworldScene.checkNodeInteraction();
+      }
     }
   }
 

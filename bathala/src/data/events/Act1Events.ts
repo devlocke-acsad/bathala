@@ -1,5 +1,7 @@
-
-import { GameEvent } from "./EventTypes";
+﻿import { GameEvent, EventContext } from "./EventTypes";
+import { commonPotions, uncommonPotions } from "../potions/Act1Potions";
+import { commonRelics, treasureRelics } from "../relics/Act1Relics";
+import { OverworldGameState } from "../../core/managers/OverworldGameState";
 
 export const Act1Events: GameEvent[] = [
   {
@@ -13,30 +15,30 @@ export const Act1Events: GameEvent[] = [
     choices: [
       {
         text: "Pray at the shrine. (Heal 20 HP)",
-        outcome: () => {
-          console.log("Player chose to pray at the Anito Shrine. Healing 20 HP.");
-          // Actual implementation would be handled by the scene
-          // This would update player's health by 20 points
+        outcome: (context: EventContext) => {
+          const { player } = context;
+          player.currentHealth = Math.min(player.maxHealth, player.currentHealth + 20);
+          return "You feel the anito blessing restore your vitality.";
         },
       },
       {
         text: "Meditate in silence. (Gain 15 block)",
         outcome: () => {
-          console.log("Player chose to meditate at the Anito Shrine. Gaining 15 block.");
-          // Actual implementation would be handled by the scene
-          // This would grant 15 block to the player
+          const overworldState = OverworldGameState.getInstance();
+          overworldState.addNextCombatBlock(15);
+          return "Your meditation hardens your resolve. You will start your next combat with 15 block.";
         },
       },
       {
         text: "Leave.",
         outcome: () => {
-          console.log("Player chose to leave the Anito Shrine.");
+          return "You respectfully leave the shrine undisturbed.";
         },
       },
     ],
     dayEvent: true,
   },
-  {
+  {//gold works
     id: "balete_vision",
     name: "Balete Vision",
     description: [
@@ -46,24 +48,35 @@ export const Act1Events: GameEvent[] = [
     choices: [
       {
         text: "Touch the tree. (Upgrade a random card)",
-        outcome: () => {
-          console.log("Player chose to touch the Balete Tree. Upgrading a random card.");
-          // Actual implementation would be handled by the scene
-          // This would upgrade a random card in the player's deck
+        outcome: (context: EventContext) => {
+          const { player } = context;
+          const upgradeableCards = player.deck.filter(card => {
+            const rank = card.rank;
+            const numRank = parseInt(rank as string);
+            return !isNaN(numRank) && numRank < 10;
+          });
+          
+          if (upgradeableCards.length > 0) {
+            const randomCard = upgradeableCards[Math.floor(Math.random() * upgradeableCards.length)];
+            const currentValue = parseInt(randomCard.rank as string);
+            randomCard.rank = (currentValue + 1).toString() as any;
+            return `The tree upgrades your ${randomCard.suit} ${currentValue} to ${currentValue + 1}!`;
+          }
+          return "The tree finds no cards to upgrade.";
         },
       },
       {
         text: "Step away. (Gain 20 Ginto)",
-        outcome: () => {
-          console.log("Player chose to step away from the Balete Tree. Gaining 20 Ginto.");
-          // Actual implementation would be handled by the scene
-          // This would grant 20 Ginto to the player
+        outcome: (context: EventContext) => {
+          const { player } = context;
+          player.ginto += 20;
+          return "You find 20 Ginto on the ground.";
         },
       },
     ],
     dayEvent: false,
   },
-  {
+  {//works
     id: "diwata_whisper",
     name: "Diwata Whisper",
     description: [
@@ -74,18 +87,23 @@ export const Act1Events: GameEvent[] = [
     choices: [
       {
         text: "Follow the whisper. (Gain a random potion)",
-        outcome: () => {
-          console.log("Player chose to follow the Diwata's whisper. Gaining a random potion.");
-          // Actual implementation would be handled by the scene
-          // This would grant a random potion to the player
+        outcome: (context: EventContext) => {
+          const { player } = context;
+          if (player.potions.length < 3) {
+            const availablePotions = [...commonPotions, ...uncommonPotions];
+            const randomPotion = availablePotions[Math.floor(Math.random() * availablePotions.length)];
+            player.potions.push(randomPotion);
+            return `The diwata guides you to a ${randomPotion.name}.`;
+          }
+          return "Your potion pouch is already full.";
         },
       },
       {
         text: "Ignore the whisper. (Gain 2 discard charges)",
-        outcome: () => {
-          console.log("Player chose to ignore the Diwata's whisper. Gaining 2 discard charges.");
-          // Actual implementation would be handled by the scene
-          // This would grant 2 discard charges to the player
+        outcome: (context: EventContext) => {
+          const { player } = context;
+          player.maxDiscardCharges += 2;
+          return "You gain more tactical flexibility in combat.";
         },
       },
     ],
@@ -101,16 +119,21 @@ export const Act1Events: GameEvent[] = [
     choices: [
       {
         text: "Take the flower. (Gain a random relic)",
-        outcome: () => {
-          console.log("Player chose to take the flower from the Forgotten Altar. Gaining a random relic.");
-          // Actual implementation would be handled by the scene
-          // This would grant a random relic to the player
+        outcome: (context: EventContext) => {
+          const { player } = context;
+          if (player.relics.length < 6) {
+            const availableRelics = [...commonRelics, ...treasureRelics];
+            const randomRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
+            player.relics.push(randomRelic);
+            return `The altar grants you ${randomRelic.name}.`;
+          }
+          return "You are carrying too many relics already.";
         },
       },
       {
         text: "Leave it be.",
         outcome: () => {
-          console.log("Player chose to leave the flower at the Forgotten Altar.");
+          return "You leave the offering undisturbed.";
         },
       },
     ],
@@ -126,72 +149,15 @@ export const Act1Events: GameEvent[] = [
     ],
     choices: [
       {
-        text: "Ask the tikbalang for directions. (Gain 15% more rewards from next 3 combats)",
+        text: "Ask the tikbalang for directions.",
         outcome: () => {
-          console.log("Player chose to ask the Tikbalang for directions. Gain 15% more rewards from next 3 combats.");
-          // Actual implementation would be handled by the scene
-          // This would apply a buff for next 3 combats
+          return "The tikbalang grins mischievously and points you in the right direction.";
         },
       },
       {
-        text: "Choose a path yourself. (Skip next combat)",
+        text: "Choose a path yourself.",
         outcome: () => {
-          console.log("Player chose to choose a path themselves. Skipping next combat.");
-          // Actual implementation would be handled by the scene
-          // This would allow player to skip next combat
-        },
-      },
-    ],
-    dayEvent: false,
-  },
-  {
-    id: "ancestral_echo",
-    name: "Ancestral Echo",
-    description: [
-      "A chorus of voices echoes through the trees, speaking in a language you don't understand.",
-      "Yet, you feel a sense of connection to them, a feeling of coming home.",
-    ],
-    choices: [
-      {
-        text: "Listen to the voices. (Gain 50 Spirit Fragments)",
-        outcome: () => {
-          console.log("Player chose to listen to the Ancestral Echo. Gaining 50 Spirit Fragments.");
-          // Actual implementation would be handled by the scene
-          // This would grant 50 Spirit Fragments to the player
-        },
-      },
-      {
-        text: "Block out the noise. (Gain 1 Dexterity)",
-        outcome: () => {
-          console.log("Player chose to block out the Ancestral Echo. Gaining 1 Dexterity.");
-          // Actual implementation would be handled by the scene
-          // This would grant 1 permanent Dexterity to the player
-        },
-      },
-    ],
-    dayEvent: true,
-  },
-  {
-    id: "kapres_smoke",
-    name: "Kapre's Smoke",
-    description: [
-      "The air grows thick with the smell of tobacco.",
-      "You see a large, hairy creature perched on a branch, smoking a massive cigar.",
-      "It's a kapre, a giant of the forest.",
-    ],
-    choices: [
-      {
-        text: "Approach the kapre. (Gain 1 Strength)",
-        outcome: () => {
-          console.log("Player chose to approach the Kapre. Gaining 1 Strength.");
-          // Actual implementation would be handled by the scene
-          // This would grant 1 permanent Strength to the player
-        },
-      },
-      {
-        text: "Avoid the kapre.",
-        outcome: () => {
-          console.log("Player chose to avoid the Kapre.");
+          return "You trust your instincts and find a hidden path.";
         },
       },
     ],
@@ -202,21 +168,21 @@ export const Act1Events: GameEvent[] = [
     name: "Wind Omen",
     description: [
       "A sudden gust of wind rustles the leaves around you.",
-      "It seems to whisper a warning, a premonition of what's to come.",
+      "It seems to whisper a warning, a premonition of what is to come.",
     ],
     choices: [
       {
         text: "Heed the warning. (Start next combat with 20 block)",
         outcome: () => {
-          console.log("Player chose to heed the Wind Omen. Start next combat with 20 block.");
-          // Actual implementation would be handled by the scene
-          // This would grant 20 block for the next combat
+          const overworldState = OverworldGameState.getInstance();
+          overworldState.addNextCombatBlock(20);
+          return "The wind fortifies you. You will start your next combat with 20 block.";
         },
       },
       {
         text: "Ignore the omen.",
         outcome: () => {
-          console.log("Player chose to ignore the Wind Omen.");
+          return "You shake off the superstition and press onward.";
         },
       },
     ],
@@ -232,16 +198,16 @@ export const Act1Events: GameEvent[] = [
     choices: [
       {
         text: "Rest in the grove. (Fully heal HP)",
-        outcome: () => {
-          console.log("Player chose to rest in the Sacred Grove. Fully healing HP.");
-          // Actual implementation would be handled by the scene
-          // This would fully heal the player's HP
+        outcome: (context: EventContext) => {
+          const { player } = context;
+          player.currentHealth = player.maxHealth;
+          return "The grove restores you completely.";
         },
       },
       {
         text: "Move on.",
         outcome: () => {
-          console.log("Player chose to move on from the Sacred Grove.");
+          return "You pay your respects and continue your journey.";
         },
       },
     ],
@@ -258,15 +224,15 @@ export const Act1Events: GameEvent[] = [
       {
         text: "Investigate the cry.",
         outcome: () => {
-          console.log("Player chose to investigate the Tiyanak's wail. Getting attacked!");
-          // Actual implementation would be handled by the scene
-          // This would trigger a combat encounter
+          // TODO: Implement forced combat trigger system
+          // This should trigger an immediate combat with a Tiyanak enemy
+          return "You approach cautiously... it is a trap!";
         },
       },
       {
         text: "Ignore the cry.",
         outcome: () => {
-          console.log("Player chose to ignore the Tiyanak's wail.");
+          return "You recognize the deception and wisely avoid the trap.";
         },
       },
     ],

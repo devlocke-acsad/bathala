@@ -1,4 +1,7 @@
 import { Scene, GameObjects } from "phaser";
+import { GameState } from "../../core/managers/GameState";
+import { OverworldGameState } from "../../core/managers/OverworldGameState";
+import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 
 export class MainMenu extends Scene {
   background: GameObjects.Image;
@@ -173,6 +176,11 @@ export class MainMenu extends Scene {
         .on("pointerdown", () => {
           switch (option) {
             case "Play":
+              // Reset game state when starting a new game
+              console.log('🎮 Starting new game - resetting all game state...');
+              GameState.getInstance().reset();
+              OverworldGameState.getInstance().reset();
+              RuleBasedDDA.getInstance().resetSession();
               this.scene.start("Prologue");
               break;
             case "Discover":

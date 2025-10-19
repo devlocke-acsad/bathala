@@ -1,9 +1,8 @@
 
 import { Scene } from 'phaser';
 import { GameState } from '../../core/managers/GameState';
-import { Player, Relic } from '../../core/types/CombatTypes';
-import { Potion } from '../../data/potions/Act1Potions';
-import { GameEvent } from '../../data/events/EventTypes';
+import { Player } from '../../core/types/CombatTypes';
+import { GameEvent, EventChoice, EventContext } from '../../data/events/EventTypes';
 import { Act1Events } from '../../data/events/Act1Events';
 import { OverworldGameState } from '../../core/managers/OverworldGameState';
 
@@ -62,7 +61,7 @@ export class EventScene extends Scene {
     panel.fillRoundedRect(panelX - panelWidth / 2, panelY - panelHeight / 2, panelWidth, panelHeight, 15);
     panel.strokeRoundedRect(panelX - panelWidth / 2, panelY - panelHeight / 2, panelWidth, panelHeight, 15);
 
-    const title = this.add.text(panelX, panelY - panelHeight / 2 + 40, this.currentEvent.name, {
+    this.add.text(panelX, panelY - panelHeight / 2 + 40, this.currentEvent.name, {
       fontFamily: 'dungeon-mode',
       fontSize: '36px',
       color: '#ffffff',
@@ -213,48 +212,25 @@ export class EventScene extends Scene {
     return button;
   }
 
-  private handleChoice(choice: any): void {
-    this.executeChoiceOutcome(choice.text);
+  private handleChoice(choice: EventChoice): void {
+    const context: EventContext = {
+      player: this.player,
+      scene: this
+    };
+    
+    const resultMessage = choice.outcome(context);
 
     const overworldState = OverworldGameState.getInstance();
     overworldState.recordAction();
 
-    this.showResult(choice.text);
+    if (resultMessage) {
+      this.showResult(resultMessage);
+    } else {
+      this.showResult("Event completed.");
+    }
 
     const gameState = GameState.getInstance();
     gameState.updatePlayerData(this.player);
-  }
-
-  private executeChoiceOutcome(choiceText: string): void {
-    // This logic remains the same as the original file
-    if (choiceText.includes("Heal 20 HP")) {
-        this.player.currentHealth = Math.min(this.player.maxHealth, this.player.currentHealth + 20);
-    } else if (choiceText.includes("Gain 15 block")) {
-        this.player.block += 15;
-    } else if (choiceText.includes("Gain 20 Ginto")) {
-        this.player.ginto += 20;
-    } else if (choiceText.includes("Gain a random potion")) {
-        const potions: Potion[] = [
-            { id: "clarity_potion", name: "Potion of Clarity", description: "Draw 3 cards.", effect: "draw_3_cards", emoji: "🧠", rarity: "common" as const },
-            { id: "fortitude_potion", name: "Elixir of Fortitude", description: "Gain 15 Block.", effect: "gain_15_block", emoji: "🛡️", rarity: "common" as const },
-            { id: "strength_potion", name: "Strength Tonic", description: "Gain 2 Strength for next combat.", effect: "gain_2_strength", emoji: "💪", rarity: "common" as const }
-        ];
-        if (this.player.potions.length < 3) {
-            const randomPotion = potions[Math.floor(Math.random() * potions.length)];
-            this.player.potions.push(randomPotion);
-        }
-    } else if (choiceText.includes("Gain a random relic")) {
-        const relics: Relic[] = [
-            { id: "balete_root", name: "Balete Root", description: "+2 block per Lupa card", emoji: "🌱" },
-            { id: "wind_ward", name: "Wind Ward", description: "+1 draw on Air cards", emoji: "💨" },
-            { id: "sigbin_heart", name: "Sigbin Heart", description: "+5 damage on burst", emoji: "❤️" }
-        ];
-        if (this.player.relics.length < 6) {
-            const randomRelic = relics[Math.floor(Math.random() * relics.length)];
-            this.player.relics.push(randomRelic);
-        }
-    }
-    // ... other outcomes
   }
 
   private showResult(outcome: string): void {

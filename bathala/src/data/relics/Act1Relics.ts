@@ -1,8 +1,9 @@
 import { Relic } from "../../core/types/CombatTypes";
 
 /**
- * Act 1 Relics for Bathala
+ * Act 1 Relics for Bathala - MAIN SOURCE OF TRUTH
  * Based on Filipino mythology - Chapter 1: The Corrupted Ancestral Forests (Lupa/Hangin Focus)
+ * This file contains ALL relic definitions and is the single source of truth
  */
 
 // Common relics (tied to regular enemies)
@@ -10,25 +11,25 @@ export const commonRelics: Relic[] = [
   {
     id: "earthwardens_plate",
     name: "Earthwarden's Plate",
-    description: "Forged from the sacred linga stones of the mountain spirits. Start each combat with 5 Block that cannot be broken by non-attack damage.",
+    description: "Forged from the sacred linga stones of the mountain spirits. Start each combat with 12 Block and gain +2 Block at the start of each turn.",
     emoji: "🛡️"
   },
   {
     id: "swift_wind_agimat",
     name: "Agimat of the Swift Wind",
-    description: "A blessed talisman that captures the essence of Tikbalang's speed. Start each combat with 1 additional discard charge.",
+    description: "A blessed talisman that captures the essence of Tikbalang's speed. Start each combat with 2 additional discard charges (5 total per turn) and draw 1 additional card at start of combat.",
     emoji: "💨"
   },
   {
     id: "ember_fetish",
     name: "Ember Fetish",
-    description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 3 Strength.",
+    description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 4 Attack. If you have Block, gain 2 Attack.",
     emoji: "🔥"
   },
   {
     id: "umalagad_spirit",
     name: "Umalagad's Spirit",
-    description: "The protective essence of a sea serpent that guides travelers. Gain 1 temporary Dexterity at the start of each combat.",
+    description: "The protective essence of a sea serpent that guides travelers. All Defend actions gain +8 Block. Gain +3 Block whenever you play a card.",
     emoji: "🐍"
   }
 ];
@@ -38,25 +39,25 @@ export const eliteRelics: Relic[] = [
   {
     id: "babaylans_talisman",
     name: "Babaylan's Talisman",
-    description: "A sacred amulet blessed by the ancient shamans. Your hand is always considered one tier higher when evaluating poker hands.",
+    description: "A sacred amulet blessed by the ancient shamans. Your hand is always considered one tier higher when evaluating poker hands (Pair → Two Pair, Flush → Full House).",
     emoji: "📿"
   },
   {
     id: "ancestral_blade",
     name: "Ancestral Blade",
-    description: "A kampilan blessed by the spirits of your ancestors. Each time you play a Flush, gain 2 temporary Strength.",
+    description: "A kampilan blessed by the spirits of your ancestors. Each time you play a Flush, gain 3 Attack for rest of combat.",
     emoji: "⚔️"
   },
   {
     id: "tidal_amulet",
     name: "Tidal Amulet",
-    description: "An enchanted piece of coral that pulses with the rhythm of the sea. At the end of your turn, heal 2 HP for each card in your hand.",
+    description: "An enchanted piece of coral that pulses with the rhythm of the sea. At the end of your turn, heal 3 HP for each card remaining in your hand.",
     emoji: "🌊"
   },
   {
     id: "sarimanok_feather",
     name: "Sarimanok Feather",
-    description: "A radiant feather from the mythical bird that brings prosperity. Whenever you play a Straight or better, gain 1 Ginto.",
+    description: "A radiant feather from the mythical bird that brings prosperity. Whenever you play a Straight or better, gain 2 Ginto.",
     emoji: "🦚"
   }
 ];
@@ -66,19 +67,19 @@ export const bossRelics: Relic[] = [
   {
     id: "echo_ancestors",
     name: "Echo of the Ancestors",
-    description: "The whispered wisdom of your forebears that unlocks hidden potential. Enables Five of a Kind poker hands.",
+    description: "The whispered wisdom of your forebears that unlocks hidden potential. Enables Five of a Kind poker hands (+38 bonus, ×2.6 multiplier compared to Four of a Kind).",
     emoji: "🌟"
   },
   {
     id: "diwatas_crown",
     name: "Diwata's Crown",
-    description: "A crown blessed by the benevolent nature spirits. Start each combat with 10 Block and gain 1 temporary Dexterity.",
+    description: "A crown blessed by the benevolent nature spirits. Start each combat with 15 Block. All Defend actions gain +6 Block this turn.",
     emoji: "👑"
   },
   {
     id: "bakunawa_scale",
     name: "Bakunawa Scale",
-    description: "A scale from the great serpent that devours the moon. Reduces all incoming damage by 1 and gain 5 Max HP.",
+    description: "A scale from the great serpent that devours the moon. Reduces all incoming damage by 2 and gain 10 Max HP.",
     emoji: "🌙"
   }
 ];
@@ -88,31 +89,32 @@ export const treasureRelics: Relic[] = [
   {
     id: "lucky_charm",
     name: "Lucky Charm",
-    description: "A mutya jewel that brings fortune to its bearer. Whenever you play a Straight or better, gain 1 Ginto.",
+    description: "A mutya jewel that brings fortune to its bearer. Whenever you play a Straight or better, gain 2 Ginto.",
     emoji: "🍀"
   },
   {
     id: "stone_golem_heart",
     name: "Stone Golem's Heart",
-    description: "The eternal heart of an earth guardian. Gain 10 Max HP. At the start of combat, gain 2 Block.",
+    description: "The eternal heart of an earth guardian. Gain 15 Max HP. At the start of combat, gain 3 Block.",
     emoji: "❤️"
   },
   {
     id: "tigmamanukan_eye",
     name: "Tigmamanukan's Eye",
-    description: "The all-seeing eye of the prophetic bird. Draw 1 additional card at the start of each combat.",
+    description: "The all-seeing eye of the prophetic bird. Draw 2 additional cards at the start of each combat (10 cards total).",
     emoji: "👁️"
+  },
+  {
+    id: "merchants_scale",
+    name: "Merchant's Scale",
+    description: "A balance blessed by Lakambini to ensure fair trade. All shop items are 25% cheaper.",
+    emoji: "⚖️"
   }
 ];
 
 // Shop relics (available for purchase)
+// Note: merchants_scale has been moved to treasureRelics for random encounters
 export const shopRelics: Relic[] = [
-  {
-    id: "merchants_scale",
-    name: "Merchant's Scale",
-    description: "A balance blessed by Lakambini to ensure fair trade. All shop items are 20% cheaper.",
-    emoji: "⚖️"
-  },
   {
     id: "bargain_talisman",
     name: "Bargain Talisman",
@@ -126,61 +128,61 @@ export const mythologicalRelics: Relic[] = [
   {
     id: "tikbalangs_hoof",
     name: "Tikbalang's Hoof",
-    description: "+10% dodge. Inspiration: Trickery (Ramos, 1990)",
+    description: "+15% chance to dodge enemy attacks. Based on the Tikbalang's supernatural trickery and ability to confuse travelers.",
     emoji: "🐴"
   },
   {
     id: "balete_root",
     name: "Balete Root",
-    description: "+2 block per Lupa card. Inspiration: Portals (Samar, 2019)",
+    description: "Gain +3 Block for each Lupa (Earth) card in your played hand. The Balete tree is a sacred portal to the spirit realm.",
     emoji: "🌳"
   },
   {
     id: "sigbin_heart",
     name: "Sigbin Heart",
-    description: "+5 damage on burst. Inspiration: Amulets (Eugenio, 2001)",
+    description: "When you deal 40+ damage in a single attack, deal +8 additional damage. The Sigbin's heart holds immense dark power.",
     emoji: "🐐"
   },
   {
     id: "duwende_charm",
     name: "Duwende Charm",
-    description: "+10% avoid Weak. Inspiration: Fortune (Aswang Project)",
+    description: "+20% chance to resist Weak status (which reduces Attack damage by 50%). Blessed by the fortune-bringing duwende spirits.",
     emoji: "🧚"
   },
   {
     id: "tiyanak_tear",
     name: "Tiyanak Tear",
-    description: "Ignore 1 Fear. Inspiration: Wails (Ramos, 1990)",
+    description: "Immune to the first Fear status effect each combat. The crystallized tear of a corrupted infant spirit.",
     emoji: "💧"
   },
   {
     id: "amomongo_claw",
     name: "Amomongo Claw",
-    description: "+3 bleed damage. Inspiration: Nails (Samar, 2019)",
+    description: "All Bleed effects deal +4 additional damage per turn. The razor-sharp claw of the ape-like creature.",
     emoji: "🪲"
   },
   {
     id: "bungisngis_grin",
     name: "Bungisngis Grin",
-    description: "+5 damage on debuff. Inspiration: Laughter (Jocano, 1969)",
+    description: "Deal +8 damage when attacking enemies with any debuff (Weak, Vulnerable, Burn, etc.). The giant's mocking laughter empowers your strikes.",
     emoji: "👹"
   },
   {
     id: "kapres_cigar",
     name: "Kapre's Cigar",
-    description: "Summons minion once per combat. Inspiration: Smoke (Ramos, 1990)",
+    description: "Once per combat, summon a smoke minion that deals 12 damage. The tree giant's cigar smoke takes physical form.",
     emoji: "🚬"
   },
   {
     id: "wind_veil",
     name: "Wind Veil",
-    description: "+1 draw on Air cards. Inspiration: Invisibility (Samar, 2019)",
+    description: "Draw +1 card for each Hangin (Air) card in your played hand. The invisible Tawong Lipod's wind magic aids your card draw.",
     emoji: "💨"
   },
   {
     id: "mangangaway_wand",
     name: "Mangangaway Wand",
-    description: "Ignore 1 curse. Inspiration: Hexes (Eugenio, 2001)",
+    description: "Immune to the first Curse effect each combat. The sorcerer's wand shields you from dark hexes.",
     emoji: "🪄"
   }
 ];
@@ -194,3 +196,192 @@ export const allAct1Relics: Relic[] = [
   ...shopRelics,
   ...mythologicalRelics
 ];
+
+/**
+ * RELIC REGISTRY - Single source of truth for all relic data
+ * Use this for any relic lookups, effects, or management
+ */
+export const RELIC_REGISTRY = {
+  // Relic categories
+  COMMON: commonRelics,
+  ELITE: eliteRelics,
+  BOSS: bossRelics,
+  TREASURE: treasureRelics,
+  SHOP: shopRelics,
+  MYTHOLOGICAL: mythologicalRelics,
+  ALL: allAct1Relics,
+  
+  // Relic lookup by ID
+  getById: (id: string): Relic | undefined => {
+    return allAct1Relics.find(relic => relic.id === id);
+  },
+  
+  // Get relics by category
+  getByCategory: (category: 'common' | 'elite' | 'boss' | 'treasure' | 'shop' | 'mythological'): Relic[] => {
+    switch (category) {
+      case 'common': return commonRelics;
+      case 'elite': return eliteRelics;
+      case 'boss': return bossRelics;
+      case 'treasure': return treasureRelics;
+      case 'shop': return shopRelics;
+      case 'mythological': return mythologicalRelics;
+      default: return [];
+    }
+  },
+  
+  // Get shop-available relics (common + elite + some treasure)
+  getShopRelics: (): Relic[] => {
+    return [...commonRelics, ...eliteRelics, ...treasureRelics];
+  },
+  
+  // Get boss-only relics
+  getBossRelics: (): Relic[] => {
+    return bossRelics;
+  },
+  
+  // Get mythological relics
+  getMythologicalRelics: (): Relic[] => {
+    return mythologicalRelics;
+  }
+};
+
+/**
+ * RELIC EFFECTS REGISTRY - Maps relic IDs to their effect types
+ * This makes it easy to find which relics have which effects
+ */
+export const RELIC_EFFECTS = {
+  // Start of combat effects
+  START_OF_COMBAT: [
+    'earthwardens_plate',      // +12 Block at start
+    'swift_wind_agimat',       // +2 discard charges, +1 card draw
+    'umalagad_spirit',         // +8 Block on all Defend actions
+    'diwatas_crown',           // +15 Block, +6 Block on all Defend actions
+    'stone_golem_heart',       // +15 max HP, +3 Block
+    'bakunawa_scale',          // +10 max HP, -2 damage reduction
+    'tigmamanukan_eye'         // +2 card draw
+  ],
+  
+  // Start of turn effects
+  START_OF_TURN: [
+    'ember_fetish',            // +4 Attack if no block, +2 Attack if block
+    'earthwardens_plate'       // +2 Block per turn
+  ],
+  
+  // End of turn effects
+  END_OF_TURN: [
+    'tidal_amulet'             // heal 2 HP per card in hand
+  ],
+  
+  // Hand evaluation effects
+  HAND_EVALUATION: [
+    'babaylans_talisman',      // hand tier +1
+    'echo_ancestors'           // enables five of a kind
+  ],
+  
+  // After hand played effects
+  AFTER_HAND_PLAYED: [
+    'ancestral_blade',         // +3 Attack on flush
+    'sarimanok_feather',       // +2 ginto on straight+
+    'lucky_charm',             // +2 ginto on straight+
+    'umalagad_spirit',         // +3 Block per card played
+    'wind_veil'                // +1 draw per hangin card
+  ],
+  
+  // Passive combat effects
+  PASSIVE_COMBAT: [
+    'tikbalangs_hoof',         // +10% dodge
+    'balete_root',             // +2 block per lupa card
+    'sigbin_heart',            // +5 damage when low health
+    'duwende_charm',           // +10% avoid weak
+    'tiyanak_tear',            // ignore 1 fear
+    'amomongo_claw',           // +3 bleed damage
+    'bungisngis_grin',         // +5 damage on debuff
+    'mangangaway_wand',        // ignore 1 curse
+    'kapres_cigar'             // summon minion once per combat
+  ],
+  
+  // Shop effects
+  SHOP_EFFECTS: [
+    'merchants_scale',         // 20% cheaper items
+    'bargain_talisman'         // first item free per act
+  ],
+  
+  // Permanent effects (applied when acquired)
+  PERMANENT_EFFECTS: [
+    'stone_golem_heart',       // +10 max HP
+    'bakunawa_scale',          // +5 max HP
+    'tigmamanukan_eye'         // passive card draw
+  ]
+};
+
+/**
+ * Helper function to check if a relic has a specific effect type
+ */
+export function hasRelicEffect(relicId: string, effectType: keyof typeof RELIC_EFFECTS): boolean {
+  return RELIC_EFFECTS[effectType].includes(relicId);
+}
+
+/**
+ * Helper function to get all relics with a specific effect type
+ */
+export function getRelicsWithEffect(effectType: keyof typeof RELIC_EFFECTS): Relic[] {
+  return RELIC_EFFECTS[effectType]
+    .map(id => RELIC_REGISTRY.getById(id))
+    .filter((relic): relic is Relic => relic !== undefined);
+}
+
+/**
+ * Helper function to get relic by ID with type safety
+ */
+export function getRelicById(id: string): Relic {
+  const relic = RELIC_REGISTRY.getById(id);
+  if (!relic) {
+    throw new Error(`Relic with ID "${id}" not found in registry`);
+  }
+  return relic;
+}
+
+/**
+ * Helper function to get a random common relic
+ * @returns A random relic from the common relic pool
+ */
+export function getRandomCommonRelic(): Relic {
+  const index = Math.floor(Math.random() * commonRelics.length);
+  return commonRelics[index];
+}
+
+/**
+ * Helper function to get a random elite relic
+ * @returns A random relic from the elite relic pool
+ */
+export function getRandomEliteRelic(): Relic {
+  const index = Math.floor(Math.random() * eliteRelics.length);
+  return eliteRelics[index];
+}
+
+/**
+ * Helper function to get a random boss relic
+ * @returns A random relic from the boss relic pool
+ */
+export function getRandomBossRelic(): Relic {
+  const index = Math.floor(Math.random() * bossRelics.length);
+  return bossRelics[index];
+}
+
+/**
+ * Helper function to get a random treasure relic
+ * @returns A random relic from the treasure relic pool
+ */
+export function getRandomTreasureRelic(): Relic {
+  const index = Math.floor(Math.random() * treasureRelics.length);
+  return treasureRelics[index];
+}
+
+/**
+ * Helper function to get a random mythological relic
+ * @returns A random relic from the mythological relic pool
+ */
+export function getRandomMythologicalRelic(): Relic {
+  const index = Math.floor(Math.random() * mythologicalRelics.length);
+  return mythologicalRelics[index];
+}

@@ -1,7 +1,14 @@
 
+import { Player } from "../../core/types/CombatTypes";
+
+export interface EventContext {
+  player: Player;
+  scene?: any; // Reference to the Phaser scene if needed
+}
+
 export interface EventChoice {
   text: string;
-  outcome: () => void; // This will be a function that executes the choice's outcome
+  outcome: (context: EventContext) => string | void; // Returns a message or void
 }
 
 export interface GameEvent {

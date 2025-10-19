@@ -14,6 +14,7 @@ import {
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
 import { GameState } from "../../core/managers/GameState";
+import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import {
   getRandomCommonEnemy,
   getRandomEliteEnemy,
@@ -22,6 +23,7 @@ import {
 } from "../../data/enemies/Act1Enemies";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 import { RelicManager } from "../../core/managers/RelicManager";
+import { RELIC_EFFECTS, hasRelicEffect, getRelicById } from "../../data/relics/Act1Relics";
 import { commonRelics, eliteRelics, bossRelics } from "../../data/relics/Act1Relics";
 import { EnemyDialogueManager } from "../managers/EnemyDialogueManager";
 import { EnemyLoreUI } from "../managers/EnemyLoreUI";
@@ -29,6 +31,8 @@ import { CombatUI } from "./combat/CombatUI";
 import { CombatDialogue } from "./combat/CombatDialogue";
 import { CombatAnimations } from "./combat/CombatAnimations";
 import { CombatDDA } from "./combat/CombatDDA";
+import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
+import { DifficultyAdjustment } from "../../core/dda/DDATypes";
 import { commonPotions } from "../../data/potions/Act1Potions";
 
 /**
@@ -85,8 +89,14 @@ export class Combat extends Scene {
   private bestHandAchieved: HandType = "high_card";
   private battleStartDialogueContainer!: Phaser.GameObjects.Container | null;
   
+  // Performance optimization flags
+  private uiUpdatePending: boolean = false;
+  private lastUIUpdateTime: number = 0;
+  private readonly UI_UPDATE_THROTTLE_MS: number = 16; // ~60fps
+  
   // DDA tracking
   public dda!: CombatDDA;
+  private preCombatDifficultyAdjustment!: DifficultyAdjustment; // Snapshot before combat results processed
   
   // UI properties
   private playerShadow!: Phaser.GameObjects.Graphics;
@@ -119,6 +129,43 @@ export class Combat extends Scene {
 
   public getCombatEnded(): boolean {
     return this.combatEnded;
+  }
+
+  /**
+   * Throttled UI update method to prevent excessive updates
+   */
+  private scheduleUIUpdate(): void {
+    if (this.uiUpdatePending) return;
+    
+    const now = this.time.now;
+    const timeSinceLastUpdate = now - this.lastUIUpdateTime;
+    
+    if (timeSinceLastUpdate >= this.UI_UPDATE_THROTTLE_MS) {
+      // Update immediately if enough time has passed
+      this.performUIUpdate();
+    } else {
+      // Schedule update for next frame
+      this.uiUpdatePending = true;
+      this.time.delayedCall(this.UI_UPDATE_THROTTLE_MS - timeSinceLastUpdate, () => {
+        this.performUIUpdate();
+      });
+    }
+  }
+
+  /**
+   * Perform batched UI updates
+   */
+  private performUIUpdate(): void {
+    if (this.combatEnded || !this.ui) return;
+    
+    this.uiUpdatePending = false;
+    this.lastUIUpdateTime = this.time.now;
+    
+    // Batch all UI updates together
+    this.ui.updatePlayerUI();
+    this.ui.updateEnemyUI();
+    this.updateTurnUI();
+    this.ui.updateSelectionCounter();
   }
 
   public getIsDrawingCards(): boolean {
@@ -221,6 +268,12 @@ export class Combat extends Scene {
 
     // Draw initial hand
     this.drawInitialHand();
+    
+    // Force update relic inventory to ensure relics are visible
+    // (scheduleRelicInventoryUpdate in createRelicInventory might be too early)
+    this.time.delayedCall(100, () => {
+      this.ui.forceRelicInventoryUpdate();
+    });
 
     // Handle transition overlay for fade-in effect
     if (data.transitionOverlay) {
@@ -258,16 +311,37 @@ export class Combat extends Scene {
     const gameState = GameState.getInstance();
     const existingPlayerData = gameState.getPlayerData();
     
+    // Get and apply next combat buffs from events
+    const overworldState = OverworldGameState.getInstance();
+    const nextCombatBuffs = overworldState.consumeNextCombatBuffs();
+    
     let player: Player;
     
     if (existingPlayerData && Object.keys(existingPlayerData).length > 0) {
       // Use existing player data and ensure all required fields are present
+      
+      // Ensure relics have all properties (especially emoji) by looking them up from registry
+      const relicsWithEmoji = (existingPlayerData.relics || []).map(relic => {
+        // If relic already has emoji, use it
+        if (relic.emoji) return relic;
+        
+        // Otherwise, look it up from the registry to get the full relic data
+        try {
+          const fullRelic = getRelicById(relic.id);
+          return fullRelic;
+        } catch (e) {
+          // If relic not found in registry, return as-is with fallback emoji
+          console.warn(`Relic ${relic.id} not found in registry, using fallback`);
+          return { ...relic, emoji: relic.emoji || "⚙️" };
+        }
+      });
+      
       player = {
         id: existingPlayerData.id || "player",
         name: existingPlayerData.name || "Hero",
         maxHealth: existingPlayerData.maxHealth || 120,      // Increased for rebalanced damage
         currentHealth: existingPlayerData.currentHealth || 120,
-        block: 0, // Always reset block at start of combat
+        block: nextCombatBuffs.block, // Apply event-granted block
         statusEffects: [], // Always reset status effects at start of combat
         hand: [], // Will be populated below
         deck: existingPlayerData.deck || DeckManager.createFullDeck(),
@@ -277,18 +351,16 @@ export class Combat extends Scene {
         landasScore: existingPlayerData.landasScore || 0,
         ginto: existingPlayerData.ginto || 100,
         diamante: existingPlayerData.diamante || 0,
-        relics: existingPlayerData.relics || [
-          {
-            id: "placeholder_relic",
-            name: "Placeholder Relic",
-            description: "This is a placeholder relic.",
-            emoji: "",
-          },
-        ],
+        relics: relicsWithEmoji,
         potions: existingPlayerData.potions || [],
         discardCharges: existingPlayerData.discardCharges || 3,  // Changed from 1 to 3
         maxDiscardCharges: existingPlayerData.maxDiscardCharges || 3,  // Changed from 1 to 3
       };
+      
+      // Apply event-granted health bonus (healing)
+      if (nextCombatBuffs.health > 0) {
+        player.currentHealth = Math.min(player.maxHealth, player.currentHealth + nextCombatBuffs.health);
+      }
       
       // If the deck is in discard pile, shuffle it back to draw pile
       if (player.drawPile.length === 0 && player.discardPile.length > 0) {
@@ -310,7 +382,7 @@ export class Combat extends Scene {
         name: "Hero",
         maxHealth: 120,      // Increased for rebalanced damage
         currentHealth: 120,
-        block: 0,
+        block: nextCombatBuffs.block, // Apply event-granted block
         statusEffects: [],
         hand: [],
         deck: deck,
@@ -335,9 +407,15 @@ export class Combat extends Scene {
         discardCharges: 3,  // Changed from 1 to 3
         maxDiscardCharges: 3,  // Changed from 1 to 3
       };
+      
+      // Apply event-granted health bonus (healing) for new player too
+      if (nextCombatBuffs.health > 0) {
+        player.currentHealth = Math.min(player.maxHealth, player.currentHealth + nextCombatBuffs.health);
+      }
     }
 
     // Draw initial hand (8 cards + relic bonuses)
+    // RelicManager.calculateInitialHandSize handles Swift Wind Agimat's +1 card draw bonus
     const baseHandSize = 8;
     const modifiedHandSize = RelicManager.calculateInitialHandSize(baseHandSize, player);
     const { drawnCards, remainingDeck } = DeckManager.drawCards(player.drawPile, modifiedHandSize);
@@ -370,6 +448,9 @@ export class Combat extends Scene {
     
     // Initialize DDA tracking and apply adjustments
     this.dda.initializeDDA();
+    
+    // Capture pre-combat difficulty for fair reward scaling (before combat results update DDA)
+    this.preCombatDifficultyAdjustment = RuleBasedDDA.getInstance().getCurrentDifficultyAdjustment();
     
     // Apply start-of-combat relic effects
     RelicManager.applyStartOfCombatEffects(this.combatState.player);
@@ -887,10 +968,10 @@ export class Combat extends Scene {
       this.ui.updateActionButtons();
     }
     
-    // Update displays
+    // Batch UI updates for better performance
     this.ui.updateHandDisplay();
     this.ui.updatePlayedHandDisplay();
-    this.ui.updateHandIndicator();
+    this.scheduleUIUpdate(); // Use batched update instead of individual calls
     
     // Update damage preview based on current phase
     this.updateDamagePreview(this.combatState.phase === "action_selection");
@@ -924,7 +1005,7 @@ export class Combat extends Scene {
     // Enter action selection phase
     this.combatState.phase = "action_selection";
 
-    // Update displays
+    // Update displays with batched updates
     this.ui.updateHandDisplay();
     this.ui.updatePlayedHandDisplay();
     this.ui.updateActionButtons();
@@ -932,8 +1013,8 @@ export class Combat extends Scene {
     // Update damage preview for the new hand
     this.updateDamagePreview(true);
     
-    // Update selection counter (should show 0/5)
-    this.updateSelectionCounter();
+    // Schedule UI update instead of immediate individual updates
+    this.scheduleUIUpdate();
   }
 
   /**
@@ -986,11 +1067,10 @@ export class Combat extends Scene {
     // Clear selection
     this.selectedCards = [];
 
+    // Batch UI updates instead of individual calls
     this.ui.updateHandDisplay();
-    this.updateTurnUI();
-    this.ui.updateHandIndicator(); // Update hand indicator after discarding
-    this.updateSelectionCounter(); // Update selection counter after discarding
     this.updateDiscardDisplay(); // Update discard pile display
+    this.scheduleUIUpdate(); // Batched update for turn UI, selection counter, etc.
   }
 
   /**
@@ -1104,12 +1184,13 @@ export class Combat extends Scene {
       this.drawCards(cardsNeeded);
     }
 
-    this.updateTurnUI();
+    // Batch all UI updates together for better performance
     this.ui.updateHandDisplay();
     this.ui.updatePlayedHandDisplay(); // Clear the played hand display
     this.ui.updateActionButtons(); // Reset to card selection buttons
+    this.scheduleUIUpdate(); // Batched update for turn UI and other elements
     
-    // Apply start-of-turn relic effects
+    // Apply start-of-turn relic effects (handles ALL relics with START_OF_TURN effects)
     RelicManager.applyStartOfTurnEffects(this.combatState.player);
     
     // Ensure action processing is reset
@@ -1160,7 +1241,9 @@ export class Combat extends Scene {
     console.log(`Applying ${damage} damage to enemy`);
     let finalDamage = damage;
     let vulnerableBonus = 0;
+    let bakunawaBonus = 0;
     
+    // Normal damage calculations
     if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
       finalDamage *= 1.5;
       vulnerableBonus = finalDamage - damage;
@@ -1169,7 +1252,6 @@ export class Combat extends Scene {
     
     // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
     const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
-    let bakunawaBonus = 0;
     if (bakunawaFang) {
       finalDamage += 5;
       bakunawaBonus = 5;
@@ -1205,13 +1287,16 @@ export class Combat extends Scene {
     // Check if enemy is defeated
     if (this.combatState.enemy.currentHealth <= 0) {
       this.combatState.enemy.currentHealth = 0;
-      this.ui.updateEnemyUI();
       console.log("Enemy defeated!");
+      
+      // Batch UI update instead of immediate call
+      this.scheduleUIUpdate();
       
       // Play death animation
       this.animations.animateEnemyDeath();
       
-      this.time.delayedCall(500, () => {
+      // Use shorter delay for better responsiveness
+      this.time.delayedCall(300, () => {
         this.endCombat(true);
       });
     }
@@ -1259,14 +1344,16 @@ export class Combat extends Scene {
 
     // Add visual feedback for player taking damage
     this.animations.animateSpriteDamage(this.playerSprite);
-    this.ui.updatePlayerUI();
+    
+    // Batch UI update instead of immediate call
+    this.scheduleUIUpdate();
 
     // Check if player is defeated
     if (this.combatState.player.currentHealth <= 0) {
       this.combatState.player.currentHealth = 0;
-      this.ui.updatePlayerUI();
       console.log("Player defeated!");
-      this.time.delayedCall(500, () => {
+      // Use shorter delay and batch UI update
+      this.time.delayedCall(300, () => {
         this.endCombat(false);
       });
     }
@@ -1305,7 +1392,7 @@ export class Combat extends Scene {
 
 
   /**
-   * Update turn UI elements
+   * Update turn UI elements - optimized version with caching
    */
   private updateTurnUI(): void {
     // Don't update UI if combat has ended
@@ -1314,23 +1401,30 @@ export class Combat extends Scene {
     }
     
     try {
-      this.turnText.setText(`Turn: ${this.combatState.turn}`);
-      
-      // Show discard and special counters on one line
+      // Cache text values to avoid unnecessary setText calls
+      const turnText = `Turn: ${this.combatState.turn}`;
       const specialStatus = this.specialUsedThisCombat ? "USED" : "READY";
+      const actionsText = `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`;
       
-      this.actionsText.setText(
-        `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`
-      );
-      
-      // Color code the special status within the text
-      if (this.specialUsedThisCombat) {
-        this.actionsText.setColor("#cccccc"); // Grayed out when used
-      } else {
-        this.actionsText.setColor("#ffd93d"); // Yellow when ready
+      // Only update if text has actually changed
+      if (this.turnText.text !== turnText) {
+        this.turnText.setText(turnText);
       }
       
-      this.ui.updateHandIndicator();
+      if (this.actionsText.text !== actionsText) {
+        this.actionsText.setText(actionsText);
+        
+        // Color code the special status within the text - only when text changes
+        const newColor = this.specialUsedThisCombat ? "#cccccc" : "#ffd93d";
+        if (this.actionsText.style.color !== newColor) {
+          this.actionsText.setColor(newColor);
+        }
+      }
+      
+      // Only update hand indicator if needed (this can be expensive)
+      if (this.ui && this.ui.updateHandIndicator) {
+        this.ui.updateHandIndicator();
+      }
     } catch (error) {
       console.error("Error updating turn UI:", error);
     }
@@ -1412,7 +1506,7 @@ export class Combat extends Scene {
           emoji: "🏆",
         });
         this.updateRelicsUI();
-        this.ui.updateRelicInventory();
+        this.ui.forceRelicInventoryUpdate(); // Force update after adding relic
       }
       
       // Victory - show post-combat dialogue with delay to prevent double calls
@@ -1433,11 +1527,23 @@ export class Combat extends Scene {
         })
         .setOrigin(0.5);
 
-      // Return to overworld after 3 seconds
-      this.time.delayedCall(3000, () => {
+      // Transition to Game Over scene after 2 seconds
+      this.time.delayedCall(2000, () => {
         // Reset cursor before transitioning
         this.input.setDefaultCursor('default');
-        this.scene.start("Overworld");
+        
+        // Stop the Overworld scene if it's running (paused from combat launch)
+        if (this.scene.isActive('Overworld') || this.scene.isPaused('Overworld')) {
+          this.scene.stop('Overworld');
+        }
+        
+        // Pass defeat data to GameOver scene and stop this scene
+        this.scene.start("GameOver", {
+          defeatedBy: this.combatState.enemy.name,
+          enemySpriteKey: this.combatState.enemy.spriteKey,
+          finalHealth: this.combatState.player.currentHealth,
+          turnsPlayed: this.turnCount || 0
+        });
       });
     }
   }
@@ -1680,15 +1786,50 @@ export class Combat extends Scene {
       // Update landas score
       this.combatState.player.landasScore += landasChange;
 
-      // Apply rewards
-      this.combatState.player.ginto += reward.ginto;
+      // Apply DDA gold multiplier using PRE-COMBAT difficulty (fair reward scaling)
+      // Rewards are based on the tier active DURING combat, not the tier AFTER combat results are processed
+      const scaledGold = Math.round(reward.ginto * this.preCombatDifficultyAdjustment.goldRewardMultiplier);
+      
+      // Apply scaled rewards
+      this.combatState.player.ginto += scaledGold;
       this.combatState.player.diamante += reward.diamante;
+      
+      // Log for thesis data collection
+      if (scaledGold !== reward.ginto) {
+        console.log(`💰 DDA Gold Reward Scaling (Pre-Combat Tier): ${reward.ginto} → ${scaledGold} (tier: ${this.preCombatDifficultyAdjustment.tier}, multiplier: ${this.preCombatDifficultyAdjustment.goldRewardMultiplier})`);
+      }
 
       if (reward.healthHealing > 0) {
         this.combatState.player.currentHealth = Math.min(
           this.combatState.player.maxHealth,
           this.combatState.player.currentHealth + reward.healthHealing
         );
+      }
+
+      // Handle relic drops with drop chance
+      if (reward.relics && reward.relics.length > 0 && reward.relicDropChance) {
+        const dropRoll = Math.random();
+        console.log(`Relic drop roll: ${dropRoll.toFixed(2)} vs ${reward.relicDropChance.toFixed(2)}`);
+        
+        if (dropRoll <= reward.relicDropChance) {
+          // Successful drop - add first relic from the reward
+          const droppedRelic = reward.relics[0];
+          console.log(`✅ Relic dropped: ${droppedRelic.name} (${droppedRelic.emoji})`);
+          
+          // Add to player's relics (max 6)
+          if (!this.combatState.player.relics) {
+            this.combatState.player.relics = [];
+          }
+          
+          if (this.combatState.player.relics.length < 6) {
+            this.combatState.player.relics.push(droppedRelic);
+            console.log(`Added relic to inventory. Total relics: ${this.combatState.player.relics.length}/6`);
+          } else {
+            console.log(`⚠️ Relic inventory full (6/6). Relic not added.`);
+          }
+        } else {
+          console.log(`❌ Relic drop failed (rolled ${dropRoll.toFixed(2)}, needed ≤${reward.relicDropChance.toFixed(2)})`);
+        }
       }
 
       console.log("Clearing dialogue and showing results...");
@@ -1715,7 +1856,7 @@ export class Combat extends Scene {
       // Add small delay before showing rewards screen
       this.time.delayedCall(200, () => {
         try {
-          this.showRewardsScreen(choice, choiceDialogue, reward, landasChange);
+          this.showRewardsScreen(choice, choiceDialogue, reward, landasChange, scaledGold);
         } catch (error) {
           console.error("Error showing rewards screen:", error);
           // Fallback - return to overworld immediately
@@ -1737,7 +1878,8 @@ export class Combat extends Scene {
     choice: "spare" | "kill",
     dialogue: string,
     reward: PostCombatReward,
-    landasChange: number
+    landasChange: number,
+    scaledGold: number
   ): void {
     const choiceColor = choice === "spare" ? "#2ed573" : "#ff4757";
     const landasChangeText =
@@ -1789,10 +1931,10 @@ export class Combat extends Scene {
 
     let rewardY = 360;
 
-    // Ginto reward
-    if (reward.ginto > 0) {
+    // Ginto reward - display the DDA-scaled amount
+    if (scaledGold > 0) {
       this.add
-        .text(screenWidth/2, rewardY, `💰 ${reward.ginto} Ginto`, {
+        .text(screenWidth/2, rewardY, `💰 ${scaledGold} Ginto`, {
           fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#e8eced",
@@ -1849,6 +1991,50 @@ export class Combat extends Scene {
           align: "center",
         })
         .setOrigin(0.5);
+      rewardY += 25 * scaleFactor;
+    }
+
+    // Relic drop display
+    if (reward.relics && reward.relics.length > 0) {
+      // Check if relic was actually dropped (based on the logic in makeLandasChoice)
+      const droppedRelic = this.combatState.player.relics[this.combatState.player.relics.length - 1];
+      const rewardRelic = reward.relics[0];
+      
+      // If the last relic in player's inventory matches the reward relic, it was dropped
+      if (droppedRelic && droppedRelic.id === rewardRelic.id) {
+        this.add
+          .text(screenWidth/2, rewardY, `${rewardRelic.emoji} Relic: ${rewardRelic.name}`, {
+            fontFamily: "dungeon-mode",
+            fontSize: Math.floor(16 * scaleFactor),
+            color: "#a29bfe",
+            align: "center",
+          })
+          .setOrigin(0.5);
+        rewardY += 25 * scaleFactor;
+        
+        // Show relic description
+        this.add
+          .text(screenWidth/2, rewardY, rewardRelic.description, {
+            fontFamily: "dungeon-mode",
+            fontSize: Math.floor(12 * scaleFactor),
+            color: "#95a5a6",
+            align: "center",
+            wordWrap: { width: screenWidth * 0.7 }
+          })
+          .setOrigin(0.5);
+        rewardY += 40 * scaleFactor;
+      } else {
+        // Relic drop failed
+        this.add
+          .text(screenWidth/2, rewardY, `❌ No relic dropped`, {
+            fontFamily: "dungeon-mode",
+            fontSize: Math.floor(14 * scaleFactor),
+            color: "#7f8c8d",
+            align: "center",
+          })
+          .setOrigin(0.5);
+        rewardY += 25 * scaleFactor;
+      }
     }
 
     // Current landas status
@@ -2115,7 +2301,7 @@ export class Combat extends Scene {
       this.bestHandAchieved = evaluation.type;
     }
     
-    // Apply relic effects after playing a hand
+    // Apply relic effects after playing a hand (handles ALL relics with AFTER_HAND_PLAYED effects)
     RelicManager.applyAfterHandPlayedEffects(this.combatState.player, this.combatState.player.playedHand, evaluation);
     
     const dominantSuit = this.getDominantSuit(
@@ -2309,8 +2495,8 @@ export class Combat extends Scene {
           type: "debuff",
           duration: 2,
           value: 0.5,
-          description: "Deal -50% damage with Attack actions.",
-          emoji: "†",
+          description: "Deal -50% damage with all Attack actions.",
+          emoji: "⚠️",
         });
         break;
     }
@@ -3009,7 +3195,7 @@ export class Combat extends Scene {
     this.ui.updatePlayedHandDisplay();
     this.ui.updateActionButtons();
     this.updateRelicsUI();
-    this.ui.updateRelicInventory();
+    this.ui.scheduleRelicInventoryUpdate(); // Schedule instead of immediate update
     this.updateTurnUI();
   }
 
@@ -3294,5 +3480,23 @@ export class Combat extends Scene {
     if (this.enemyIntentText) this.enemyIntentText.setVisible(true);
     if (this.actionResultText) this.actionResultText.setVisible(true);
     if (this.enemyAttackPreviewText) this.enemyAttackPreviewText.setVisible(true);
+  }
+
+  /**
+   * Resume method called when scene is resumed (e.g., after returning from Shop)
+   */
+  public resume(): void {
+    console.log("Combat scene resumed - refreshing UI");
+    
+    // Refresh relic inventory to show any new items purchased
+    if (this.ui && this.ui.forceRelicInventoryUpdate) {
+      this.ui.forceRelicInventoryUpdate();
+    }
+    
+    // Update all UI elements
+    this.updateTurnUI();
+    this.ui?.updatePlayerUI();
+    this.ui?.updateEnemyUI();
+    this.ui?.updateActionButtons();
   }
 }

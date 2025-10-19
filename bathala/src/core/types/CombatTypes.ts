@@ -142,6 +142,8 @@ export interface PostCombatReward {
   diamante: number;
   healthHealing: number;
   bonusEffect?: string;
+  relics?: any[]; // Optional array of relics that can be dropped
+  relicDropChance?: number; // Chance (0-1) for a relic to drop (e.g., 0.6 = 60%)
 }
 
 export interface CreatureDialogue {
