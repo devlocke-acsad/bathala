@@ -851,8 +851,8 @@ export class Shop extends Scene {
     // 6-column grid configuration with proper left and right margins
     const leftMargin = 380; // Left margin to clear merchant
     const rightMargin = 100; // Right margin for balance
-    const cardWidth = 180;  // Adjusted for 6 columns
-    const cardHeight = 240; // Proportionally adjusted height
+    const cardWidth = 200;  // Restored to original size (was 180)
+    const cardHeight = 260; // Restored to original size (was 240)
     const cardSpacing = 30; // Spacing between cards
     const cardsPerRow = 6; // Fixed 6-column grid
     
@@ -1598,50 +1598,50 @@ export class Shop extends Scene {
   }
   
   private getItemLore(item: ShopItem): string {
-    // Return comprehensive lore based on item name - matching Discover scene style
+    // Return concise lore based on item name - matching Discover scene style (200-300 chars)
     switch(item.item.id) {
       case "earthwardens_plate":
-        return "Forged in mountain sanctuaries by anito guardians, this armor channels Lupa's strength through sacred stones. Once worn by protectors of first settlements, its mystical plates absorb earth's resilience—each impact strengthens the bond between wearer and ancestral soil, providing unwavering defense rooted in kapwa's protective spirit.";
+        return "Sacred linga stone armor forged by mountain anito. Channels Lupa's enduring strength to shield bearers from harm with unwavering defense rooted in kapwa's protective spirit.";
       case "swift_wind_agimat":
-        return "Blessed talisman carrying Hangin's swiftness, crafted during typhoon seasons when wind spirits dance. Tikbalang scouts once wore these to confuse pursuers—the amulet enhances reflexes beyond mortal limits, letting bearers move like breeze through bamboo groves, their hands faster than sight itself.";
+        return "Blessed talisman woven with Tikbalang mane hairs. Captures Hangin's swiftness, letting bearers move like breeze through bamboo groves with hands faster than sight itself.";
       case "ember_fetish":
-        return "Carved from banana tree heart at midnight during Apolaki's sacred hour, this fetish holds sun god's blessing. When defenses crumble and danger looms, dormant flames awaken—channeling volcanic fury to ignite courage within the desperate, transforming weakness into blazing determination.";
+        return "Banana tree heart carved at midnight, blessed by Apolaki's flame. Adapts to danger—dormant flames awaken when vulnerable, transforming weakness into blazing determination.";
       case "babaylans_talisman":
-        return "Sacred artifact of ancient mystical healers who bridged mortal and spirit realms. This talisman connects wearers to ancestral babaylan wisdom, revealing hidden patterns in fate's weave—hand formations align with cosmic rhythms, elevating ordinary skills to blessed supernatural precision.";
+        return "Sacred artifact of ancient mystical healers bridging mortal and spirit realms. Reveals hidden patterns in fate's weave, elevating ordinary skills to blessed supernatural precision.";
       case "ancestral_blade":
-        return "Kampilan passed through generations of warrior lineages, each wielder's spirit dwelling within the steel. Ancestors guide every strike when blade and heart beat in harmony—the weapon hungers for skillful combat, rewarding mastery with devastating critical precision that echoes ancestral victories.";
+        return "Legendary kampilan passed through warrior lineages. Ancestors guide every strike when blade and heart beat in harmony, rewarding mastery with devastating critical precision.";
       case "tidal_amulet":
-        return "Coral fragment from deepest trenches where diwata dwell, pulsing with ocean's eternal rhythm. The sea's mercy flows through this charm—waters of life mend wounds battle has broken, channeling Tubig's healing essence with each tide's gentle embrace, restoring what violence tears asunder.";
+        return "Coral fragment from deepest trenches where diwata dwell. Channels Tubig's healing essence with each tide's gentle embrace, restoring what violence tears asunder.";
       case "lucky_charm":
-        return "Small token blessed by fortune spirits dwelling in anthills and sacred mounds. Duwende magic clings to its surface—those carrying it attract good fortune's gaze, discovering ginto and opportunities hidden from common eyes, as if kapwa's reciprocal blessings manifest as golden rewards.";
+        return "Token blessed by fortune spirits in anthills and sacred mounds. Duwende magic attracts good fortune's gaze, manifesting kapwa's reciprocal blessings as golden rewards.";
       case "diwatas_crown":
-        return "Magnificent circlet worn by celestial beings who watch over mortal realm from sky citadels. Divine protectors' essence radiates from golden bands—granting sacred defense and enhancing natural abilities, the crown channels diwata guardianship to shield worthy bearers from malevolent forces.";
+        return "Magnificent circlet worn by celestial beings watching over mortal realm. Divine essence radiates from golden bands, channeling diwata guardianship to shield worthy bearers.";
       case "stone_golem_heart":
-        return "Crystallized heart from ancient stone sentinel that guarded mountain passes for millennia. Mountains' endurance crystallized into pulsing core—this artifact grants bearer increased vitality, as if earth's immortal strength flows through mortal veins, expanding life force beyond natural limits.";
+        return "Crystallized heart from ancient stone sentinel guarding mountain passes. Earth's immortal strength flows through mortal veins, expanding life force beyond natural limits.";
       case "sarimanok_feather":
-        return "Radiant plume from legendary Sarimanok that brings prosperity to worthy souls. This feather fell from sky during solar eclipse—fortune bird's blessing manifests as increased rewards, success following in bearer's wake as if celestial approval multiplies their achievements.";
+        return "Radiant plume from legendary Maranao bird bringing prosperity. Fortune bird's blessing manifests as increased rewards, as if celestial approval multiplies achievements.";
       case "umalagad_spirit":
-        return "Essence of great sea serpent guiding lost sailors home through treacherous waters. Ancient fishermen of Panay revered this protective spirit—it sharpens reflexes in battle, granting serpent's wisdom and lightning-quick responses as if ocean's guardian watches over each combat decision.";
+        return "Ancient sea serpent essence guiding lost sailors home. Sharpens reflexes in battle, granting serpent's wisdom and lightning-quick responses from ocean's guardian.";
       case "tikbalangs_hoof":
-        return "Backward hoof from horse-headed trickster spirit dwelling in mountain passes. Once guardians serving Bathala, their chaotic nature confuses enemies—this relic grants evasive agility, making bearers as elusive as Tikbalang leading travelers in maddening circles through mist-shrouded trails.";
+        return "Backward hoof from horse-headed trickster spirit. Once Bathala's guardians, their chaotic nature now grants evasive agility like leading travelers through mist-shrouded trails.";
       case "kapres_cigar":
-        return "Enormous cigar perpetually smoked by towering tree giants dwelling in sacred groves. Dark-skinned Kapre (7-9 feet tall) were Bathala's appointed guardians—their tobacco smoke summons lesser fire spirits once per battle, dealing devastating damage as ghostly aid materializes from aromatic haze.";
+        return "Enormous cigar from towering tree giants (7-9 feet tall). Bathala's appointed guardians whose tobacco smoke summons lesser fire spirits once per battle with devastating damage.";
       case "mangangaway_wand":
-        return "Cursed implement wielded by dark sorcerers practicing kulam and barang hex magic. Wearing skull necklaces, Mangangaway broke kapwa's sacred laws—this wand channels their forbidden power, allowing bearers to ignore debilitating curses as if protected by counter-hex wards woven from malevolent spirits.";
+        return "Cursed implement of dark sorcerers practicing kulam and barang hex magic. Channels forbidden power to ignore debilitating curses with counter-hex wards from malevolent spirits.";
       case "sigbin_heart":
-        return "Preserved heart from nocturnal goat-like cryptid walking backward between hind legs. Visayan legends claim captured hearts grant invisibility—this relic channels that power into devastating burst attacks, as if Sigbin's essence erupts with heart-stealing ferocity every third strike.";
+        return "Preserved heart from nocturnal goat-like cryptid walking backward. Visayan legends claim captured hearts grant invisibility—channels power into devastating burst attacks.";
       case "balete_root":
-        return "Aerial root from ancient strangler fig serving as portal between mortal and spirit realms. Balete trees house benevolent anito—cutting without permission invites misfortune, but this blessed root strengthens earth-based defenses, each Lupa card reinforcing protective barriers as sacred roots guard physical form.";
+        return "Aerial root from ancient strangler fig serving as spirit realm portal. Blessed root strengthens earth-based defenses, each Lupa card reinforcing barriers like sacred roots.";
       case "duwende_charm":
-        return "Enchanted token from goblin-folk dwelling in anthills and ancient mounds. 'Nuno sa Punso' demand respect—offending brings illness and bad luck. This charm carries their neutral judgment turned benevolent, weakening debilitating effects as if duwende magic shields bearer from fortune's cruel reversals.";
+        return "Enchanted token from goblin-folk in anthills. 'Nuno sa Punso' demand respect—this charm carries benevolent judgment, weakening debilitating effects with duwende magic.";
       case "tiyanak_tear":
-        return "Crystallized tear from vampiric spirit of unbaptized children mimicking infant cries. Once innocent souls awaiting Bathala's judgment, corruption transformed them—yet this tear holds their original purity, granting resistance to terror's grip as if remembering life before darkness twisted innocent spirits into instruments of malice.";
+        return "Crystallized tear from vampiric spirit mimicking infant cries. Though corrupted, this tear holds original purity, granting resistance to terror's grip before darkness twisted innocence.";
       case "amomongo_claw":
-        return "Razor-sharp talon from ape-like cryptid reported in Negros Occidental mountains. Guardian spirits of mineral veins and sanctuaries turned blood-frenzied predators—their rending claws intensify bleeding wounds, each strike deepening lacerations as if primal fury itself tears through enemy defenses with savage persistence.";
+        return "Razor-sharp talon from ape-like cryptid in Negros Occidental. Once guardian spirits turned blood-frenzied, their rending claws intensify bleeding with savage persistence.";
       case "bungisngis_grin":
-        return "Tusks from enormous one-eyed Cyclops giants known for constant booming laughter. Tagalog and Cebuano forests once echoed with jovial mirth—engkanto corruption twisted laughter into debilitating weapon. This relic channels that power offensively, amplifying damage when enemies suffer weakened states as maddening glee crushes will.";
+        return "Tusks from one-eyed Cyclops giants known for booming laughter. Engkanto twisted jovial mirth into weapon—amplifies damage against weakened enemies as maddening glee crushes will.";
       default:
-        return "This mystical artifact holds ancient power from the spirit realms. Its origins are shrouded in mystery and forgotten legends, but its effects on those who wield it are undeniable. The anito themselves may have guided this item's creation for purposes beyond mortal understanding.";
+        return "Mystical artifact holding ancient power from spirit realms. Origins shrouded in mystery, but effects undeniable. Anito may have guided this creation beyond mortal understanding.";
     }
   }
   
