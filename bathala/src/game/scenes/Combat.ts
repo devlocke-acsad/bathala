@@ -30,6 +30,7 @@ import { CombatUI } from "./combat/CombatUI";
 import { CombatDialogue } from "./combat/CombatDialogue";
 import { CombatAnimations } from "./combat/CombatAnimations";
 import { CombatDDA } from "./combat/CombatDDA";
+import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { commonPotions } from "../../data/potions/Act1Potions";
 
 /**
@@ -1747,9 +1748,19 @@ export class Combat extends Scene {
       // Update landas score
       this.combatState.player.landasScore += landasChange;
 
-      // Apply rewards
-      this.combatState.player.ginto += reward.ginto;
+      // Apply DDA gold multiplier
+      const dda = RuleBasedDDA.getInstance();
+      const adjustment = dda.getCurrentDifficultyAdjustment();
+      const scaledGold = Math.round(reward.ginto * adjustment.goldRewardMultiplier);
+      
+      // Apply scaled rewards
+      this.combatState.player.ginto += scaledGold;
       this.combatState.player.diamante += reward.diamante;
+      
+      // Log for thesis data collection
+      if (scaledGold !== reward.ginto) {
+        console.log(`💰 DDA Gold Reward Scaling: ${reward.ginto} → ${scaledGold} (tier: ${adjustment.tier}, multiplier: ${adjustment.goldRewardMultiplier})`);
+      }
 
       if (reward.healthHealing > 0) {
         this.combatState.player.currentHealth = Math.min(
@@ -1782,7 +1793,7 @@ export class Combat extends Scene {
       // Add small delay before showing rewards screen
       this.time.delayedCall(200, () => {
         try {
-          this.showRewardsScreen(choice, choiceDialogue, reward, landasChange);
+          this.showRewardsScreen(choice, choiceDialogue, reward, landasChange, scaledGold);
         } catch (error) {
           console.error("Error showing rewards screen:", error);
           // Fallback - return to overworld immediately
@@ -1804,7 +1815,8 @@ export class Combat extends Scene {
     choice: "spare" | "kill",
     dialogue: string,
     reward: PostCombatReward,
-    landasChange: number
+    landasChange: number,
+    scaledGold: number
   ): void {
     const choiceColor = choice === "spare" ? "#2ed573" : "#ff4757";
     const landasChangeText =
@@ -1856,10 +1868,10 @@ export class Combat extends Scene {
 
     let rewardY = 360;
 
-    // Ginto reward
-    if (reward.ginto > 0) {
+    // Ginto reward - display the DDA-scaled amount
+    if (scaledGold > 0) {
       this.add
-        .text(screenWidth/2, rewardY, `💰 ${reward.ginto} Ginto`, {
+        .text(screenWidth/2, rewardY, `💰 ${scaledGold} Ginto`, {
           fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#e8eced",
