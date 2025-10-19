@@ -712,8 +712,8 @@ export class Phase4_CombatActions extends TutorialPhase {
             const fireEffect = this.scene.add.text(
                 this.scene.cameras.main.width / 2,
                 this.scene.cameras.main.height / 2,
-                '🔥',
-                { fontSize: 96 }
+                'BURN',
+                { fontSize: 64, fontFamily: 'dungeon-mode', color: '#FF6B35' }
             ).setOrigin(0.5).setAlpha(0);
             this.container.add(fireEffect);
 
@@ -745,7 +745,7 @@ export class Phase4_CombatActions extends TutorialPhase {
 
             const success = createInfoBox(
                 this.scene,
-                `🔥 Apoy Special! You dealt ${damage} damage and applied Burn!`,
+                `Apoy Special! You dealt ${damage} damage and applied Burn!`,
                 'success'
             );
             this.container.add(success);

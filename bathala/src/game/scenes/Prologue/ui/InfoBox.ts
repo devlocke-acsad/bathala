@@ -22,10 +22,10 @@ export function createInfoBox(
 
     // Type-specific styling
     const styles = {
-        tip: { icon: '💡', color: 0xFFD700, borderColor: 0x77888C, bgColor: 0x150E10 },
-        warning: { icon: '⚠️', color: 0xFF6B35, borderColor: 0x77888C, bgColor: 0x150E10 },
-        info: { icon: 'ℹ️', color: 0x5BA3D0, borderColor: 0x77888C, bgColor: 0x150E10 },
-        success: { icon: '✓', color: 0x4CAF50, borderColor: 0x77888C, bgColor: 0x150E10 }
+        tip: { icon: '[TIP]', color: 0xFFD700, borderColor: 0x77888C, bgColor: 0x150E10 },
+        warning: { icon: '[!]', color: 0xFF6B35, borderColor: 0x77888C, bgColor: 0x150E10 },
+        info: { icon: '[i]', color: 0x5BA3D0, borderColor: 0x77888C, bgColor: 0x150E10 },
+        success: { icon: '[OK]', color: 0x4CAF50, borderColor: 0x77888C, bgColor: 0x150E10 }
     };
 
     const style = styles[type];

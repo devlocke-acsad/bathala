@@ -181,7 +181,7 @@ export class TutorialManager {
         const innerBorder = this.scene.add.rectangle(0, 0, 502, 252, undefined, 0)
             .setStrokeStyle(2, 0x77888C, 0.6);
 
-        const warningText = this.scene.add.text(0, -60, '⚠️ Skip Tutorial?', {
+        const warningText = this.scene.add.text(0, -60, 'Skip Tutorial?', {
             fontFamily: 'dungeon-mode',
             fontSize: 32,
             color: '#77888C',

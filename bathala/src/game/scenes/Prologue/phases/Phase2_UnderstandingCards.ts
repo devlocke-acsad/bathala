@@ -39,7 +39,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
             });
         });
 
-        const dialogue = "Your deck contains 52 cards across four sacred elements:\n\n🔥 APOY (Fire) - Inflicts BURN damage over time\n💧 TUBIG (Water) - Provides HEALING\n🌍 LUPA (Earth) - STUNS enemies (cannot move for 1 turn)\n💨 HANGIN (Wind) - Applies WEAK (enemy damage halved)";
+        const dialogue = "Your deck contains 52 cards across four sacred elements:\n\nAPOY (Fire) - Inflicts BURN damage over time\nTUBIG (Water) - Provides HEALING\nLUPA (Earth) - STUNS enemies (cannot move for 1 turn)\nHANGIN (Wind) - Applies WEAK (enemy damage halved)";
 
         const cardsToShow: Partial<PlayingCard>[] = [
             { id: '1-Apoy', rank: '1', suit: 'Apoy' },
