@@ -193,102 +193,102 @@ export class Discover extends Scene {
       {
         id: "tikbalang_scout",
         name: TIKBALANG_SCOUT.name,
-        description: "A creature with the head of a horse that misleads travelers.",
+        description: "Horse-headed trickster spirits that guard mountain passes and mislead travelers with backward hoof prints. Their chaotic nature confuses targeting and disorients those who dare trespass their domain.",
         type: "Common",
         health: TIKBALANG_SCOUT.maxHealth,
         attack: TIKBALANG_SCOUT.damage,
-        abilities: ["Confuse"],
-        lore: "Tikbalang were forest protectors, now they mislead with backward hooves."
+        abilities: ["Confuse", "Misdirection"],
+        lore: "Tagalog mountain spirits with horse heads and human bodies, Tikbalang once protected sacred forests for Bathala. Their backward footprints lead travelers in circles—tradition says wearing your shirt inside-out breaks their spell. Now corrupted by engkanto lies, these former guardians serve only deception."
       },
       {
         id: "balete_wraith",
         name: BALETE_WRAITH.name,
-        description: "A spirit inhabiting a Balete tree, a portal to the spirit world.",
+        description: "Tormented spirits bound to ancient Balete trees—sacred portals between the mortal realm and the spirit world. They gain strength when wounded, feeding on the pain of intrusion.",
         type: "Common",
         health: BALETE_WRAITH.maxHealth,
         attack: BALETE_WRAITH.damage,
-        abilities: ["Strengthen"],
-        lore: "Balete trees are anito portals, haunted by engkanto-twisted spirits."
+        abilities: ["Strengthen When Hurt", "Vulnerable"],
+        lore: "Balete strangler figs are revered as dwelling places of anito spirits, their aerial roots forming curtains between worlds. To cut a Balete without permission invites misfortune. Once benevolent guardians of these sacred portals, engkanto corruption has twisted them into wraiths that ensnare intruders in spectral roots."
       },
       {
         id: "sigbin_charger",
         name: SIGBIN_CHARGER.name,
-        description: "A creature that steals hearts for its amulets.",
+        description: "Goat-like nocturnal creatures that walk backward and emit a foul stench. They steal hearts to forge dark amulets, charging with devastating burst attacks every third turn.",
         type: "Common",
         health: SIGBIN_CHARGER.maxHealth,
         attack: SIGBIN_CHARGER.damage,
-        abilities: ["Charge"],
-        lore: "Sigbin steal hearts for amulets, once loyal to Bathala."
+        abilities: ["Burst Attack (Every 3 Turns)", "Heart Steal"],
+        lore: "Visayan cryptids resembling hornless goats with large ears, Sigbin walk backward with heads lowered between hind legs. Legend says capturing one yields a heart that grants invisibility. Once loyal servants of Bathala, corruption turned them into vicious hunters harvesting hearts for the false god's rise."
       },
       {
         id: "duwende_trickster",
         name: DUWENDE_TRICKSTER.name,
-        description: "A goblin-like creature that can grant boons or curses.",
+        description: "Mischievous goblin-folk dwelling in anthills and ancient mounds. Their unpredictable magic can grant fortune or misfortune, now twisted to steal your defenses and disrupt your strategy.",
         type: "Common",
         health: DUWENDE_TRICKSTER.maxHealth,
         attack: DUWENDE_TRICKSTER.damage,
-        abilities: ["Steal Block", "Disrupt Draw"],
-        lore: "Duwende grant boons/curses, warped by engkanto lies."
+        abilities: ["Steal Block", "Disrupt Draw", "Fortune Reversal"],
+        lore: "Known as 'Nuno sa Punso' (old man of the mound), Duwende inhabit anthills and tree stumps. Tradition demands 'Tabi-tabi po' (Excuse me) when passing their homes—offending them brings illness and bad luck. Once neutral judges of kapwa (reciprocal respect), engkanto lies corrupted them into petty tricksters."
       },
       {
         id: "tiyanak_ambusher",
         name: TIYANAK_AMBUSHER.name,
-        description: "A lost infant spirit that mimics a baby's cry to lure its victims.",
+        description: "Demonic spirits of unbaptized or aborted children that mimic infant cries to lure victims into the forest. Their ambush strikes inspire terror and deal devastating critical damage.",
         type: "Common",
         health: TIYANAK_AMBUSHER.maxHealth,
         attack: TIYANAK_AMBUSHER.damage,
-        abilities: ["Fear", "Critical Attack"],
-        lore: "Tiyanak, lost infant spirits mimicking babies to attack."
+        abilities: ["Fear", "Critical First Strike", "Mimic Cry"],
+        lore: "Appearing as crying babies in the wilderness, Tiyanak are vampiric spirits of children who died before baptism. When picked up, they transform into fanged creatures with sharp claws. Once innocent souls awaiting Bathala's judgment, they've been corrupted into instruments of the false god's malice."
       },
       {
         id: "amomongo",
         name: AMOMONGO.name,
-        description: "An ape-like creature with long nails that attacks livestock.",
+        description: "Ape-like cryptids from the Visayan islands with razor-sharp claws that cause grievous bleeding wounds. These cave-dwelling beasts once protected mountain sanctuaries but now hunt with primal fury.",
         type: "Common",
         health: AMOMONGO.maxHealth,
         attack: AMOMONGO.damage,
-        abilities: ["Bleed"],
-        lore: "Amomongo, ape-like with long nails, attacking livestock."
+        abilities: ["Bleed", "Fast Attacks", "Rending Claws"],
+        lore: "Reported in Negros Occidental, Amomongo are large ape-like creatures with razor-sharp claws that attack livestock and leave deep claw marks. Legends connect them to guardian spirits of mountain sanctuaries and mineral veins. Engkanto influence drove these reclusive protectors into blood-rage, transforming them into frenzied predators."
       },
       {
         id: "bungisngis",
         name: BUNGISNGIS.name,
-        description: "A one-eyed laughing giant.",
+        description: "Enormous one-eyed giants whose perpetual laughter masks their devastating strength. Their unsettling mirth weakens the resolve of all who hear it, while they wield massive clubs with crushing force.",
         type: "Common",
         health: BUNGISNGIS.maxHealth,
         attack: BUNGISNGIS.damage,
-        abilities: ["Laugh Debuff"],
-        lore: "Bungisngis, one-eyed laughing giants, once jovial."
+        abilities: ["Laugh Debuff", "High Swing", "Intimidating Presence"],
+        lore: "Tagalog and Cebuano cyclops giants known for constant booming laughter, Bungisngis were portrayed as strong but foolish forest dwellers, easily tricked despite tremendous strength. Engkanto corruption twisted their jovial nature into a maddening weapon—their laughter now saps the will of all who hear it."
       },
       {
         id: "kapre_shade",
         name: KAPRE_SHADE.name,
-        description: "A tree giant that smokes a large cigar.",
+        description: "Towering tree giants perpetually smoking enormous cigars, their presence marked by the scent of tobacco and burnt leaves. They command flames and summon lesser spirits, defending their sacred trees with primal fury.",
         type: "Elite",
         health: KAPRE_SHADE.maxHealth,
         attack: KAPRE_SHADE.damage,
-        abilities: ["AoE Burn", "Summon Minions"],
-        lore: "Kapre, tree giants smoking cigars, loyal to Bathala."
+        abilities: ["AoE Burn", "Summon Fire Minions", "Cigar Smoke Veil"],
+        lore: "Dark-skinned giants (7-9 feet tall) dwelling in large trees, Kapre are nocturnal beings visible only as glowing red eyes, perpetually smoking enormous cigars. Territorial but generally peaceful, they disorient disrespectful travelers. Once Bathala's appointed guardians of sacred groves, engkanto whispers ignited their ancient rage into infernos."
       },
       {
         id: "tawong_lipod",
         name: TAWONG_LIPOD.name,
-        description: "An invisible wind being.",
+        description: "Invisible wind spirits from Bicolano mythology that exist only as whispers on the breeze. Their unseen presence makes them impossible to target consistently, striking with sudden stuns from the air itself.",
         type: "Elite",
         health: TAWONG_LIPOD.maxHealth,
         attack: TAWONG_LIPOD.damage,
-        abilities: ["Invisible", "Stun"],
-        lore: "Tawong Lipod, invisible Bikol wind beings, once harmonious."
+        abilities: ["Invisibility", "Wind Stun", "Air Affinity Bonus"],
+        lore: "Bikol's 'hidden people' are wind spirits existing beyond human perception, sometimes revealing themselves through inexplicable sounds or sudden breezes. Traditionally neutral or benevolent, they helped lost travelers and warned of danger. Engkanto corruption transformed these peaceful wind-folk into vindictive tormentors striking from nowhere."
       },
       {
         id: "mangangaway",
         name: MANGNANGAWAY.name,
-        description: "A sorcerer who casts evil spells.",
+        description: "Dark sorcerers who wield forbidden hexes and curses, capable of mimicking any elemental force turned against them. They wear necklaces of skulls and channel the spirits of the damned to reverse fate itself.",
         type: "Boss",
         health: MANGNANGAWAY.maxHealth,
         attack: MANGNANGAWAY.damage,
-        abilities: ["Mimic Elements", "Curse Cards"],
-        lore: "Mangangaway, sorcerers casting evil spells."
+        abilities: ["Mimic Elements", "Curse Cards", "Hex of Reversal"],
+        lore: "Dark practitioners of kulam (curse magic) and barang (hex casting), Mangangaway are the opposite of healing Babaylan—they bring illness and death through cursed objects and malevolent spirits. Wearing skull necklaces, their power grows with each life taken. Ancient outcasts who broke kapwa's sacred laws, they now serve the false god as hex-wielding enforcers."
       }
     ];
   }
