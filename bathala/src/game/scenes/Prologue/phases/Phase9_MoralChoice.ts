@@ -99,16 +99,16 @@ export class Phase9_MoralChoice extends TutorialPhase {
         });
 
         this.scene.time.delayedCall(600, () => {
-            // Enemy sprite display (Kapre Shade) - centered
+            // Enemy sprite display (Kapre Shade) - centered, larger size, pushed to bottom
             const enemyX = this.scene.cameras.main.width / 2;
-            const enemyY = 280;
+            const enemyY = this.scene.cameras.main.height * 0.5; // Centered vertically
             
             const enemySpriteKey = 'kapre_combat'; // Kapre Shade sprite
             const enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
             
-            // Scale the enemy sprite appropriately
-            const targetWidth = 200;
-            const targetHeight = 200;
+            // Scale the enemy sprite appropriately - increased size
+            const targetWidth = 280;
+            const targetHeight = 280;
             const scaleX = targetWidth / enemySprite.width;
             const scaleY = targetHeight / enemySprite.height;
             const finalScale = Math.min(scaleX, scaleY);
@@ -119,17 +119,6 @@ export class Phase9_MoralChoice extends TutorialPhase {
                 enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
             }
             this.container.add(enemySprite);
-            
-            // Enemy shadow
-            const enemyShadow = this.scene.add.ellipse(
-                enemyX,
-                enemyY + 80,
-                100,
-                25,
-                0x000000,
-                0.3
-            );
-            this.container.add(enemyShadow);
 
             // Calculate proper Y position for name (below sprite)
             const enemySpriteScaledHeight = enemySprite.height * finalScale;
@@ -142,19 +131,19 @@ export class Phase9_MoralChoice extends TutorialPhase {
             }).setOrigin(0.5);
             this.container.add(defeatedText);
 
-            // Choice buttons
+            // Choice buttons - closer together, pushed to bottom
             const slayButton = createButton(
                 this.scene, 
-                this.scene.cameras.main.width / 2 - 180, 
-                this.scene.cameras.main.height - 120, 
+                this.scene.cameras.main.width / 2 - 120, 
+                this.scene.cameras.main.height - 80, 
                 'Slay', 
                 () => this.handleChoice('slay')
             );
 
             const spareButton = createButton(
                 this.scene, 
-                this.scene.cameras.main.width / 2 + 180, 
-                this.scene.cameras.main.height - 120, 
+                this.scene.cameras.main.width / 2 + 120, 
+                this.scene.cameras.main.height - 80, 
                 'Spare', 
                 () => this.handleChoice('spare')
             );
