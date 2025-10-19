@@ -267,6 +267,12 @@ export class Combat extends Scene {
 
     // Draw initial hand
     this.drawInitialHand();
+    
+    // Force update relic inventory to ensure relics are visible
+    // (scheduleRelicInventoryUpdate in createRelicInventory might be too early)
+    this.time.delayedCall(100, () => {
+      this.ui.forceRelicInventoryUpdate();
+    });
 
     // Handle transition overlay for fade-in effect
     if (data.transitionOverlay) {
@@ -308,6 +314,23 @@ export class Combat extends Scene {
     
     if (existingPlayerData && Object.keys(existingPlayerData).length > 0) {
       // Use existing player data and ensure all required fields are present
+      
+      // Ensure relics have all properties (especially emoji) by looking them up from registry
+      const relicsWithEmoji = (existingPlayerData.relics || []).map(relic => {
+        // If relic already has emoji, use it
+        if (relic.emoji) return relic;
+        
+        // Otherwise, look it up from the registry to get the full relic data
+        try {
+          const fullRelic = getRelicById(relic.id);
+          return fullRelic;
+        } catch (e) {
+          // If relic not found in registry, return as-is with fallback emoji
+          console.warn(`Relic ${relic.id} not found in registry, using fallback`);
+          return { ...relic, emoji: relic.emoji || "⚙️" };
+        }
+      });
+      
       player = {
         id: existingPlayerData.id || "player",
         name: existingPlayerData.name || "Hero",
@@ -323,14 +346,7 @@ export class Combat extends Scene {
         landasScore: existingPlayerData.landasScore || 0,
         ginto: existingPlayerData.ginto || 100,
         diamante: existingPlayerData.diamante || 0,
-        relics: existingPlayerData.relics || [
-          {
-            id: "placeholder_relic",
-            name: "Placeholder Relic",
-            description: "This is a placeholder relic.",
-            emoji: "",
-          },
-        ],
+        relics: relicsWithEmoji,
         potions: existingPlayerData.potions || [],
         discardCharges: existingPlayerData.discardCharges || 3,  // Changed from 1 to 3
         maxDiscardCharges: existingPlayerData.maxDiscardCharges || 3,  // Changed from 1 to 3
@@ -384,6 +400,7 @@ export class Combat extends Scene {
     }
 
     // Draw initial hand (8 cards + relic bonuses)
+    // RelicManager.calculateInitialHandSize handles Swift Wind Agimat's +1 card draw bonus
     const baseHandSize = 8;
     const modifiedHandSize = RelicManager.calculateInitialHandSize(baseHandSize, player);
     const { drawnCards, remainingDeck } = DeckManager.drawCards(player.drawPile, modifiedHandSize);
@@ -1158,7 +1175,7 @@ export class Combat extends Scene {
     this.ui.updateActionButtons(); // Reset to card selection buttons
     this.scheduleUIUpdate(); // Batched update for turn UI and other elements
     
-    // Apply start-of-turn relic effects
+    // Apply start-of-turn relic effects (handles ALL relics with START_OF_TURN effects)
     RelicManager.applyStartOfTurnEffects(this.combatState.player);
     
     // Ensure action processing is reset
@@ -1209,7 +1226,9 @@ export class Combat extends Scene {
     console.log(`Applying ${damage} damage to enemy`);
     let finalDamage = damage;
     let vulnerableBonus = 0;
+    let bakunawaBonus = 0;
     
+    // Normal damage calculations
     if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
       finalDamage *= 1.5;
       vulnerableBonus = finalDamage - damage;
@@ -1218,7 +1237,6 @@ export class Combat extends Scene {
     
     // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
     const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
-    let bakunawaBonus = 0;
     if (bakunawaFang) {
       finalDamage += 5;
       bakunawaBonus = 5;
@@ -1773,6 +1791,32 @@ export class Combat extends Scene {
         );
       }
 
+      // Handle relic drops with drop chance
+      if (reward.relics && reward.relics.length > 0 && reward.relicDropChance) {
+        const dropRoll = Math.random();
+        console.log(`Relic drop roll: ${dropRoll.toFixed(2)} vs ${reward.relicDropChance.toFixed(2)}`);
+        
+        if (dropRoll <= reward.relicDropChance) {
+          // Successful drop - add first relic from the reward
+          const droppedRelic = reward.relics[0];
+          console.log(`✅ Relic dropped: ${droppedRelic.name} (${droppedRelic.emoji})`);
+          
+          // Add to player's relics (max 6)
+          if (!this.combatState.player.relics) {
+            this.combatState.player.relics = [];
+          }
+          
+          if (this.combatState.player.relics.length < 6) {
+            this.combatState.player.relics.push(droppedRelic);
+            console.log(`Added relic to inventory. Total relics: ${this.combatState.player.relics.length}/6`);
+          } else {
+            console.log(`⚠️ Relic inventory full (6/6). Relic not added.`);
+          }
+        } else {
+          console.log(`❌ Relic drop failed (rolled ${dropRoll.toFixed(2)}, needed ≤${reward.relicDropChance.toFixed(2)})`);
+        }
+      }
+
       console.log("Clearing dialogue and showing results...");
 
       // Simply clear all children - the rewards screen will create new UI
@@ -1932,6 +1976,50 @@ export class Combat extends Scene {
           align: "center",
         })
         .setOrigin(0.5);
+      rewardY += 25 * scaleFactor;
+    }
+
+    // Relic drop display
+    if (reward.relics && reward.relics.length > 0) {
+      // Check if relic was actually dropped (based on the logic in makeLandasChoice)
+      const droppedRelic = this.combatState.player.relics[this.combatState.player.relics.length - 1];
+      const rewardRelic = reward.relics[0];
+      
+      // If the last relic in player's inventory matches the reward relic, it was dropped
+      if (droppedRelic && droppedRelic.id === rewardRelic.id) {
+        this.add
+          .text(screenWidth/2, rewardY, `${rewardRelic.emoji} Relic: ${rewardRelic.name}`, {
+            fontFamily: "dungeon-mode",
+            fontSize: Math.floor(16 * scaleFactor),
+            color: "#a29bfe",
+            align: "center",
+          })
+          .setOrigin(0.5);
+        rewardY += 25 * scaleFactor;
+        
+        // Show relic description
+        this.add
+          .text(screenWidth/2, rewardY, rewardRelic.description, {
+            fontFamily: "dungeon-mode",
+            fontSize: Math.floor(12 * scaleFactor),
+            color: "#95a5a6",
+            align: "center",
+            wordWrap: { width: screenWidth * 0.7 }
+          })
+          .setOrigin(0.5);
+        rewardY += 40 * scaleFactor;
+      } else {
+        // Relic drop failed
+        this.add
+          .text(screenWidth/2, rewardY, `❌ No relic dropped`, {
+            fontFamily: "dungeon-mode",
+            fontSize: Math.floor(14 * scaleFactor),
+            color: "#7f8c8d",
+            align: "center",
+          })
+          .setOrigin(0.5);
+        rewardY += 25 * scaleFactor;
+      }
     }
 
     // Current landas status
@@ -2198,7 +2286,7 @@ export class Combat extends Scene {
       this.bestHandAchieved = evaluation.type;
     }
     
-    // Apply relic effects after playing a hand
+    // Apply relic effects after playing a hand (handles ALL relics with AFTER_HAND_PLAYED effects)
     RelicManager.applyAfterHandPlayedEffects(this.combatState.player, this.combatState.player.playedHand, evaluation);
     
     const dominantSuit = this.getDominantSuit(
@@ -2392,8 +2480,8 @@ export class Combat extends Scene {
           type: "debuff",
           duration: 2,
           value: 0.5,
-          description: "Deal -50% damage with Attack actions.",
-          emoji: "†",
+          description: "Deal -50% damage with all Attack actions.",
+          emoji: "⚠️",
         });
         break;
     }

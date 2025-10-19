@@ -153,6 +153,7 @@ export class DamageCalculator {
 
     // 4. Calculate status effect bonuses
     let statusBonus = 0;
+    let hasWeakDebuff = false;
     if (player) {
       // For attack actions, add Strength bonus
       if (actionType === "attack") {
@@ -162,6 +163,14 @@ export class DamageCalculator {
         if (strength) {
           statusBonus += strength.value * 3; // Each stack adds 3 base value (reduced from 5)
           breakdown.push(`Strength: +${strength.value * 3}`);
+        }
+        
+        // Check for Weak debuff (reduces Attack damage by 50%)
+        const weak = player.statusEffects.find(
+          (e: StatusEffect) => e.name === "Weak"
+        );
+        if (weak) {
+          hasWeakDebuff = true;
         }
       }
       // For defend actions, add Dexterity bonus
@@ -203,6 +212,12 @@ export class DamageCalculator {
       // Special deals less direct damage but has elemental effects
       finalValue = Math.floor(finalValue * 0.6);
       breakdown.push(`Special Modifier: ×0.6`);
+    }
+    
+    // 8. Apply Weak debuff (reduces Attack damage by 50%)
+    if (hasWeakDebuff && actionType === "attack") {
+      finalValue = Math.floor(finalValue * 0.5);
+      breakdown.push(`⚠️ Weak: ×0.5`);
     }
 
     breakdown.push(`Final: ${finalValue}`);
