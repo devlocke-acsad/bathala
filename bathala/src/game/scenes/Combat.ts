@@ -101,6 +101,9 @@ export class Combat extends Scene {
   private relicInventory!: Phaser.GameObjects.Container;
   private currentRelicTooltip!: Phaser.GameObjects.Container | null;
   private pokerHandInfoButton!: Phaser.GameObjects.Container;
+  
+  // 🎮 CHEAT MODE - Set to true to deal 9999 damage with any hand
+  private readonly CHEAT_MODE_ENABLED: boolean = true;
 
   constructor() {
     super({ key: "Combat" });
@@ -1227,19 +1230,26 @@ export class Combat extends Scene {
     console.log(`Applying ${damage} damage to enemy`);
     let finalDamage = damage;
     let vulnerableBonus = 0;
-    
-    if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
-      finalDamage *= 1.5;
-      vulnerableBonus = finalDamage - damage;
-      console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
-    }
-    
-    // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
-    const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
     let bakunawaBonus = 0;
-    if (bakunawaFang) {
-      finalDamage += 5;
-      bakunawaBonus = 5;
+    
+    // 🎮 CHEAT MODE: Deal 9999 damage with any hand
+    if (this.CHEAT_MODE_ENABLED) {
+      finalDamage = 9999;
+      console.log("🎮 CHEAT MODE ACTIVE: Dealing 9999 damage!");
+    } else {
+      // Normal damage calculations
+      if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
+        finalDamage *= 1.5;
+        vulnerableBonus = finalDamage - damage;
+        console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
+      }
+      
+      // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
+      const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
+      if (bakunawaFang) {
+        finalDamage += 5;
+        bakunawaBonus = 5;
+      }
     }
     
     const actualDamage = Math.max(0, finalDamage - this.combatState.enemy.block);
@@ -1257,8 +1267,10 @@ export class Combat extends Scene {
     this.animations.animateSpriteDamage(this.enemySprite);
     this.ui.updateEnemyUI();
 
-    // Show detailed damage calculation if there are special bonuses
-    if (vulnerableBonus > 0 || bakunawaBonus > 0) {
+    // Show detailed damage calculation if there are special bonuses or cheat mode
+    if (this.CHEAT_MODE_ENABLED) {
+      this.showEnhancedActionResult("🎮 CHEAT MODE: 9999 DAMAGE!", "#ff0000");
+    } else if (vulnerableBonus > 0 || bakunawaBonus > 0) {
       let message = `Damage: ${damage}`;
       if (vulnerableBonus > 0) message += ` + ${vulnerableBonus} (Vulnerable)`;
       if (bakunawaBonus > 0) message += ` + ${bakunawaBonus} (Bakunawa Fang)`;
@@ -1966,6 +1978,50 @@ export class Combat extends Scene {
           align: "center",
         })
         .setOrigin(0.5);
+      rewardY += 25 * scaleFactor;
+    }
+
+    // Relic drop display
+    if (reward.relics && reward.relics.length > 0) {
+      // Check if relic was actually dropped (based on the logic in makeLandasChoice)
+      const droppedRelic = this.combatState.player.relics[this.combatState.player.relics.length - 1];
+      const rewardRelic = reward.relics[0];
+      
+      // If the last relic in player's inventory matches the reward relic, it was dropped
+      if (droppedRelic && droppedRelic.id === rewardRelic.id) {
+        this.add
+          .text(screenWidth/2, rewardY, `${rewardRelic.emoji} Relic: ${rewardRelic.name}`, {
+            fontFamily: "dungeon-mode",
+            fontSize: Math.floor(16 * scaleFactor),
+            color: "#a29bfe",
+            align: "center",
+          })
+          .setOrigin(0.5);
+        rewardY += 25 * scaleFactor;
+        
+        // Show relic description
+        this.add
+          .text(screenWidth/2, rewardY, rewardRelic.description, {
+            fontFamily: "dungeon-mode",
+            fontSize: Math.floor(12 * scaleFactor),
+            color: "#95a5a6",
+            align: "center",
+            wordWrap: { width: screenWidth * 0.7 }
+          })
+          .setOrigin(0.5);
+        rewardY += 40 * scaleFactor;
+      } else {
+        // Relic drop failed
+        this.add
+          .text(screenWidth/2, rewardY, `❌ No relic dropped`, {
+            fontFamily: "dungeon-mode",
+            fontSize: Math.floor(14 * scaleFactor),
+            color: "#7f8c8d",
+            align: "center",
+          })
+          .setOrigin(0.5);
+        rewardY += 25 * scaleFactor;
+      }
     }
 
     // Current landas status

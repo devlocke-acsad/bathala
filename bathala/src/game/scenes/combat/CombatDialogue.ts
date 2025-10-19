@@ -1,10 +1,6 @@
 import { Combat } from "../Combat";
 import { CreatureDialogue } from "../../../core/types/CombatTypes";
-import { 
-  getRandomCommonRelic, 
-  getRandomEliteRelic, 
-  getRandomBossRelic 
-} from "../../../data/relics/Act1Relics";
+import { RELIC_REGISTRY } from "../../../data/relics/Act1Relics";
 
 /**
  * CombatDialogue - Handles all dialogue display and management for combat
@@ -25,7 +21,7 @@ export class CombatDialogue {
         diamante: 0, 
         healthHealing: 8, 
         bonusEffect: "Sure footing",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("tikbalangs_hoof")!],
         relicDropChance: 0.35
       },
       killReward: { 
@@ -33,7 +29,7 @@ export class CombatDialogue {
         diamante: 1, 
         healthHealing: 0, 
         bonusEffect: "Deceptive paths",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("tikbalangs_hoof")!],
         relicDropChance: 0.35
       },
     },
@@ -46,7 +42,7 @@ export class CombatDialogue {
         diamante: 0, 
         healthHealing: 8, 
         bonusEffect: "Sacred grove wisdom",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("balete_root")!],
         relicDropChance: 0.35
       },
       killReward: { 
@@ -54,7 +50,7 @@ export class CombatDialogue {
         diamante: 1, 
         healthHealing: 0, 
         bonusEffect: "Cursed bark",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("balete_root")!],
         relicDropChance: 0.35
       },
     },
@@ -67,7 +63,7 @@ export class CombatDialogue {
         diamante: 0, 
         healthHealing: 7, 
         bonusEffect: "Night path secrets",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("sigbin_heart")!],
         relicDropChance: 0.35
       },
       killReward: { 
@@ -75,7 +71,7 @@ export class CombatDialogue {
         diamante: 1, 
         healthHealing: 0, 
         bonusEffect: "Heart of shadow",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("sigbin_heart")!],
         relicDropChance: 0.35
       },
     },
@@ -88,7 +84,7 @@ export class CombatDialogue {
         diamante: 0, 
         healthHealing: 5, 
         bonusEffect: "Hidden sight",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("duwende_charm")!],
         relicDropChance: 0.35
       },
       killReward: { 
@@ -96,7 +92,7 @@ export class CombatDialogue {
         diamante: 1, 
         healthHealing: 0, 
         bonusEffect: "Mischievous whispers",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("duwende_charm")!],
         relicDropChance: 0.35
       },
     },
@@ -109,7 +105,7 @@ export class CombatDialogue {
         diamante: 0, 
         healthHealing: 15, 
         bonusEffect: "True sight",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("tiyanak_tear")!],
         relicDropChance: 0.35
       },
       killReward: { 
@@ -117,7 +113,7 @@ export class CombatDialogue {
         diamante: 1, 
         healthHealing: 0, 
         bonusEffect: "Crying echo",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("tiyanak_tear")!],
         relicDropChance: 0.35
       },
     },
@@ -130,7 +126,7 @@ export class CombatDialogue {
         diamante: 0, 
         healthHealing: 8, 
         bonusEffect: "Primal strength",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("amomongo_claw")!],
         relicDropChance: 0.35
       },
       killReward: { 
@@ -138,7 +134,7 @@ export class CombatDialogue {
         diamante: 1, 
         healthHealing: 0, 
         bonusEffect: "Bleeding claws",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("amomongo_claw")!],
         relicDropChance: 0.35
       },
     },
@@ -151,7 +147,7 @@ export class CombatDialogue {
         diamante: 0, 
         healthHealing: 8, 
         bonusEffect: "Joyful resilience",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("bungisngis_grin")!],
         relicDropChance: 0.35
       },
       killReward: { 
@@ -159,7 +155,7 @@ export class CombatDialogue {
         diamante: 1, 
         healthHealing: 0, 
         bonusEffect: "Maddening laughter",
-        relics: [getRandomCommonRelic()],
+        relics: [RELIC_REGISTRY.getById("bungisngis_grin")!],
         relicDropChance: 0.35
       },
     },
@@ -172,7 +168,7 @@ export class CombatDialogue {
         diamante: 1, 
         healthHealing: 20, 
         bonusEffect: "Forest protection",
-        relics: [getRandomEliteRelic()],
+        relics: [RELIC_REGISTRY.getById("kapres_cigar")!],
         relicDropChance: 0.75
       },
       killReward: { 
@@ -180,7 +176,7 @@ export class CombatDialogue {
         diamante: 2, 
         healthHealing: 0, 
         bonusEffect: "Smoke whispers",
-        relics: [getRandomEliteRelic()],
+        relics: [RELIC_REGISTRY.getById("kapres_cigar")!],
         relicDropChance: 0.75
       },
     },
@@ -193,7 +189,7 @@ export class CombatDialogue {
         diamante: 1, 
         healthHealing: 20, 
         bonusEffect: "Wind's grace",
-        relics: [getRandomEliteRelic()],
+        relics: [RELIC_REGISTRY.getById("wind_veil")!],
         relicDropChance: 0.75
       },
       killReward: { 
@@ -201,7 +197,7 @@ export class CombatDialogue {
         diamante: 2, 
         healthHealing: 0, 
         bonusEffect: "Air superiority",
-        relics: [getRandomEliteRelic()],
+        relics: [RELIC_REGISTRY.getById("wind_veil")!],
         relicDropChance: 0.75
       },
     },
@@ -214,7 +210,7 @@ export class CombatDialogue {
         diamante: 3, 
         healthHealing: 30, 
         bonusEffect: "Hex protection",
-        relics: [getRandomBossRelic()],
+        relics: [RELIC_REGISTRY.getById("mangangaway_wand")!],
         relicDropChance: 1.0
       },
       killReward: { 
@@ -222,7 +218,7 @@ export class CombatDialogue {
         diamante: 5, 
         healthHealing: 0, 
         bonusEffect: "Curse mastery",
-        relics: [getRandomBossRelic()],
+        relics: [RELIC_REGISTRY.getById("mangangaway_wand")!],
         relicDropChance: 1.0
       },
     },
