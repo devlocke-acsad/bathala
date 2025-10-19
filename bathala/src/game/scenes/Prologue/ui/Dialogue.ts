@@ -5,7 +5,7 @@ export function showDialogue(scene: Scene, text: string, onComplete: () => void)
 
     // Define box size first
     const boxWidth = Math.min(scene.cameras.main.width * 0.90, 1400);
-    const boxHeight = scene.cameras.main.height * 0.55; // Reduced height to not cover phase title
+    const boxHeight = scene.cameras.main.height * 0.35; // Smaller height to clear phase title
     
     // Text should wrap INSIDE the box with padding
     const textWrapWidth = boxWidth - 100; // 50px padding on each side

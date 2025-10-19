@@ -39,7 +39,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
             });
         });
 
-        const dialogue = "Your deck contains 52 cards across four sacred elements:\n\n🔥 APOY (Fire) - Inflicts BURN damage over time\n💧 TUBIG (Water) - Provides HEALING\n🌍 LUPA (Earth) - Grants STRENGTH\n💨 HANGIN (Wind) - Grants DEXTERITY";
+        const dialogue = "Your deck contains 52 cards across four sacred elements:\n\n🔥 APOY (Fire) - Inflicts BURN damage over time\n💧 TUBIG (Water) - Provides HEALING\n🌍 LUPA (Earth) - STUNS enemies (cannot move for 1 turn)\n💨 HANGIN (Wind) - Applies WEAK (enemy damage halved)";
 
         const cardsToShow: Partial<PlayingCard>[] = [
             { id: '1-Apoy', rank: '1', suit: 'Apoy' },
@@ -133,14 +133,14 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
         const divider = createSectionDivider(this.scene, 240);
         this.container.add(divider);
 
-        // Dialogue box
+        // Dialogue box - positioned closer to cards
         this.scene.time.delayedCall(400, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, onDialogueComplete);
-            dialogueBox.setPosition(width / 2, height / 2 - 50);
+            dialogueBox.setPosition(width / 2, height / 2 - 100);
             this.container.add(dialogueBox);
         });
 
-        // Enhanced card display with stagger animation
+        // Enhanced card display with stagger animation - moved up closer to dialogue
         this.scene.time.delayedCall(600, () => {
             const cardContainer = this.scene.add.container(width / 2, height / 2 + 180);
             this.container.add(cardContainer);
