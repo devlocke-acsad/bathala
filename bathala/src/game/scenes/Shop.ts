@@ -952,14 +952,14 @@ export class Shop extends Scene {
         // Use sprite if available
         itemIcon = this.add.image(0, -cardHeight/2 + 43, spriteKey)
           .setOrigin(0.5)
-          .setDisplaySize(56, 56); // Fit within the icon area
+          .setDisplaySize(64, 64); // Larger sprite for better visibility
         if (isOwned) {
           itemIcon.setAlpha(0.6);
         }
       } else {
         // Fallback to emoji if sprite not found
         itemIcon = this.add.text(0, -cardHeight/2 + 43, item.emoji, {
-          fontSize: 42,
+          fontSize: 48,
         }).setOrigin(0.5, 0.5);
         if (isOwned) {
           itemIcon.setAlpha(0.6);
@@ -1396,11 +1396,11 @@ export class Shop extends Scene {
       // Use sprite if available
       itemIcon = this.add.image(-panelWidth/2 + 60, -panelHeight/2 + 60, spriteKey)
         .setOrigin(0.5)
-        .setDisplaySize(48, 48); // Fit within 60px container
+        .setDisplaySize(56, 56); // Larger sprite for better visibility in detail modal
     } else {
       // Fallback to emoji if sprite not found
       itemIcon = this.add.text(-panelWidth/2 + 60, -panelHeight/2 + 60, item.emoji, {
-        fontSize: 40,
+        fontSize: 48,
       }).setOrigin(0.5, 0.5);
       (itemIcon as Phaser.GameObjects.Text).setShadow(2, 2, '#1a1625', 4, false, true);
     }

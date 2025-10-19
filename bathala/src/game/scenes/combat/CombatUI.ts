@@ -98,7 +98,6 @@ export class CombatUI {
   public currentRelicTooltip!: Phaser.GameObjects.Container | null;
   private relicUpdatePending: boolean = false;
   private lastRelicCount: number = 0;
-  private lastPotionCount: number = 0;
   
   // Modal/Overlay Elements
   public landasChoiceContainer!: Phaser.GameObjects.Container;
@@ -122,7 +121,6 @@ export class CombatUI {
     this.ddaDebugContainer = null;
     this.relicUpdatePending = false;
     this.lastRelicCount = 0;
-    this.lastPotionCount = 0;
   }
   
   /**
@@ -553,176 +551,71 @@ export class CombatUI {
   }
   
   /**
-   * Create relic inventory in top center (new design matching screenshot with Prologue color scheme)
+   * Create relic inventory in top center (grid layout like Overworld - 6 relics per row)
    */
   public createRelicInventory(): void {
     const screenWidth = this.scene.cameras.main.width;
-    this.relicInventory = this.scene.add.container(screenWidth / 2, 60);
+    this.relicInventory = this.scene.add.container(screenWidth / 2, 80);
     this.relicInventory.setVisible(true);
     this.currentRelicTooltip = null;
     
-    console.log("Creating relic inventory container at:", screenWidth / 2, 60);
+    console.log("Creating relic inventory container at:", screenWidth / 2, 80);
     
-    const inventoryWidth = 520;
-    const inventoryHeight = 90;
+    const inventoryWidth = 600;
+    const inventoryHeight = 140;
     
-    // Enhanced Prologue-style double border design with grid pattern
+    // Enhanced Prologue-style double border design
     const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
-    outerBorder.setStrokeStyle(3, 0x77888C, 0.9); // Enhanced visibility
+    outerBorder.setStrokeStyle(3, 0x77888C, 0.9);
     
     const innerBorder = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, undefined, 0);
-    innerBorder.setStrokeStyle(2, 0x77888C, 0.8); // Enhanced visibility
+    innerBorder.setStrokeStyle(2, 0x77888C, 0.8);
     
-    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x120C0E); // Slightly lighter background
+    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x120C0E);
     
-    // Create divider line between relics and potions with enhanced visibility
-    const dividerX = 50; // Position of vertical divider
-    const dividerLine = this.scene.add.rectangle(dividerX, 0, 3, inventoryHeight - 10, 0x77888C, 0.7);
-    
-    // Add horizontal grid lines for better structure
-    const topGridLine = this.scene.add.rectangle(0, -inventoryHeight/2 + 25, inventoryWidth - 10, 1, 0x77888C, 0.3);
-    const bottomGridLine = this.scene.add.rectangle(0, inventoryHeight/2 - 10, inventoryWidth - 10, 1, 0x77888C, 0.3);
-    
-    // Title texts (Prologue style)
+    // Title text
     const relicsTitle = this.scene.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
       fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#77888C", // Prologue text color
+      fontSize: 14,
+      color: "#77888C",
       align: "left"
     }).setOrigin(0, 0.5);
     
-    const potionsTitle = this.scene.add.text(dividerX + 15, -inventoryHeight/2 + 15, "POTIONS", {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#77888C", // Prologue text color
-      align: "left"
-    }).setOrigin(0, 0.5);
+    // Grid layout parameters (like Overworld)
+    const relicSlotSize = 50;
+    const relicsPerRow = 6;
+    const padding = 15;
+    const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
+    const gridStartY = 10;
     
-    // Create relic slots (6 slots in 1 row) - Prologue double border style with grid background
-    const relicSlotSize = 40;
-    const relicSlotsCount = 6;
-    const relicSlotSpacing = 50;
-    const relicStartX = -inventoryWidth/2 + 60;
-    const relicStartY = 15;
-    
-    // Create visible grid background for relic section
-    const relicGridWidth = (relicSlotsCount - 1) * relicSlotSpacing + relicSlotSize + 10;
-    const relicGridHeight = relicSlotSize + 10;
-    const relicGridCenterX = relicStartX + ((relicSlotsCount - 1) * relicSlotSpacing) / 2;
-    const relicGridBg = this.scene.add.rectangle(relicGridCenterX, relicStartY, relicGridWidth, relicGridHeight, 0x2a2030, 0.3);
-    relicGridBg.setStrokeStyle(1, 0x77888C, 0.5);
-    this.relicInventory.add(relicGridBg);
-    
-    for (let i = 0; i < relicSlotsCount; i++) {
-      const slotX = relicStartX + i * relicSlotSpacing;
-      const slotY = relicStartY;
+    // Create 6 relic slots in a single row
+    for (let i = 0; i < relicsPerRow; i++) {
+      const col = i;
+      const slotX = gridStartX + col * (relicSlotSize + padding);
+      const slotY = gridStartY;
       
-      // Create slot container for double border effect
+      // Create slot container
       const slotContainer = this.scene.add.container(slotX, slotY);
       
-      // Outer border (thicker) - more visible
+      // Outer border (matching Overworld style)
       const outerBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 4, relicSlotSize + 4, undefined, 0);
-      outerBorder.setStrokeStyle(2, 0x77888C, 0.8);
+      outerBorder.setStrokeStyle(2, 0x555555, 1.0);
       
-      // Inner border (thinner) - more visible
-      const innerBorder = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, undefined, 0);
-      innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
+      // Inner background
+      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x333333);
       
-      // Background - slightly lighter to contrast with grid
-      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x1a1520);
-      
-      // Add vertical grid lines between slots
-      if (i < relicSlotsCount - 1) {
-        const gridLineX = slotX + relicSlotSpacing / 2;
-        const gridLine = this.scene.add.line(0, 0, gridLineX - slotX, -relicGridHeight/2 + 2, gridLineX - slotX, relicGridHeight/2 - 2, 0x77888C, 0.3);
-        gridLine.setLineWidth(1);
-        slotContainer.add(gridLine);
-      }
-      
-      slotContainer.add([outerBorder, innerBorder, bg]);
+      slotContainer.add([bg, outerBorder]);
       (slotContainer as any).isRelicSlot = true;
       (slotContainer as any).slotIndex = i;
       
-      // Make slot interactive for relic details
-      slotContainer.setSize(relicSlotSize, relicSlotSize);
-      slotContainer.setInteractive();
-      
-      // Add hover effects
-      slotContainer.on('pointerover', () => {
-        const combatState = this.scene.getCombatState();
-        if (combatState.player.relics && combatState.player.relics[i]) {
-          outerBorder.setStrokeStyle(3, 0xffd93d, 1.0); // Golden highlight
-          innerBorder.setStrokeStyle(2, 0xffd93d, 0.8);
-          bg.setFillStyle(0x2a2520); // Slight golden tint
-        }
-      });
-      
-      slotContainer.on('pointerout', () => {
-        outerBorder.setStrokeStyle(2, 0x77888C, 0.8); // Reset to normal
-        innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
-        bg.setFillStyle(0x1a1520); // Reset background
-      });
-      
-      // Add click handler for relic details
-      slotContainer.on('pointerdown', () => {
-        const combatState = this.scene.getCombatState();
-        if (combatState.player.relics && combatState.player.relics[i]) {
-          this.showRelicDetailModal(combatState.player.relics[i]);
-        }
-      });
-      
       this.relicInventory.add(slotContainer);
     }
     
-    // Create potion slots (3 slots in 1 row) - Prologue double border style with grid background
-    const potionSlotSize = 40;
-    const potionSlotsCount = 3;
-    const potionSlotSpacing = 50;
-    const potionStartX = dividerX + 80;
-    const potionStartY = 15;
-    
-    // Create visible grid background for potion section
-    const potionGridWidth = (potionSlotsCount - 1) * potionSlotSpacing + potionSlotSize + 10;
-    const potionGridHeight = potionSlotSize + 10;
-    const potionGridCenterX = potionStartX + ((potionSlotsCount - 1) * potionSlotSpacing) / 2;
-    const potionGridBg = this.scene.add.rectangle(potionGridCenterX, potionStartY, potionGridWidth, potionGridHeight, 0x203020, 0.3);
-    potionGridBg.setStrokeStyle(1, 0x77888C, 0.5);
-    this.relicInventory.add(potionGridBg);
-    
-    for (let i = 0; i < potionSlotsCount; i++) {
-      const slotX = potionStartX + i * potionSlotSpacing;
-      const slotY = potionStartY;
-      
-      // Create slot container for double border effect
-      const slotContainer = this.scene.add.container(slotX, slotY);
-      
-      // Outer border (thicker) - more visible
-      const outerBorder = this.scene.add.rectangle(0, 0, potionSlotSize + 4, potionSlotSize + 4, undefined, 0);
-      outerBorder.setStrokeStyle(2, 0x77888C, 0.8);
-      
-      // Inner border (thinner) - more visible
-      const innerBorder = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, undefined, 0);
-      innerBorder.setStrokeStyle(1, 0x77888C, 0.6);
-      
-      // Background - slightly lighter with green tint for potions
-      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x151a15);
-      
-      // Add vertical grid lines between slots
-      if (i < potionSlotsCount - 1) {
-        const gridLineX = slotX + potionSlotSpacing / 2;
-        const gridLine = this.scene.add.line(0, 0, gridLineX - slotX, -potionGridHeight/2 + 2, gridLineX - slotX, potionGridHeight/2 - 2, 0x77888C, 0.3);
-        gridLine.setLineWidth(1);
-        slotContainer.add(gridLine);
-      }
-      
-      slotContainer.add([outerBorder, innerBorder, bg]);
-      (slotContainer as any).isPotionSlot = true;
-      
-      this.relicInventory.add(slotContainer);
-    }
-    
-    this.relicInventory.add([outerBorder, innerBorder, mainBg, dividerLine, topGridLine, bottomGridLine, relicsTitle, potionsTitle]);
-    this.scheduleRelicInventoryUpdate();
+    // Add all elements to container
+    this.relicInventory.add([mainBg, innerBorder, outerBorder, relicsTitle]);
+    this.relicInventory.sendToBack(mainBg);
+    this.relicInventory.sendToBack(innerBorder);
+    this.relicInventory.sendToBack(outerBorder);
   }
   
 
@@ -1076,62 +969,53 @@ export class CombatUI {
   }
   
   /**
-   * Update relic inventory with current relics and potions - optimized version
+   * Update relic inventory with current relics (grid layout)
    */
   public updateRelicInventory(): void {
     if (!this.relicInventory) return;
     
     const combatState = this.scene.getCombatState();
     const relics = combatState.player.relics;
-    const potions = combatState.player.potions || [];
     
     // Skip update if counts haven't changed (optimization)
-    if (relics.length === this.lastRelicCount && potions.length === this.lastPotionCount && !this.relicUpdatePending) {
+    if (relics.length === this.lastRelicCount && !this.relicUpdatePending) {
       return;
     }
     
     this.lastRelicCount = relics.length;
-    this.lastPotionCount = potions.length;
     this.relicUpdatePending = false;
     
-    console.log("Updating relic inventory. Relics:", relics.length, "Potions:", potions.length);
+    console.log("Updating relic inventory. Relics:", relics.length);
     console.log("Relic data:", relics);
     
-    // Relic slots configuration
-    const relicSlotSize = 40;
-    const relicSlotsCount = 6;
-    const relicSlotSpacing = 50;
-    const relicStartX = -260 + 60; // Adjust based on inventoryWidth
-    const relicStartY = 15;
+    // Grid configuration (matching createRelicInventory)
+    const relicSlotSize = 50;
+    const relicsPerRow = 6;
+    const padding = 15;
+    const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
+    const gridStartY = 10;
     
-    // Potion slots configuration
-    const potionSlotSize = 40;
-    const potionSlotsCount = 3;
-    const potionSlotSpacing = 50;
-    const potionStartX = 50 + 80; // After divider
-    const potionStartY = 15;
-    
-    // Remove only the item icons and tooltips (keep the permanent slot frames)
+    // Remove only the relic icons (keep the permanent slot frames)
     this.relicInventory.list.forEach(child => {
-      if ((child as any).isRelicIcon || (child as any).isPotionIcon || (child as any).isTooltip) {
+      if ((child as any).isRelicIcon) {
         child.destroy();
       }
     });
     
     // Get references to existing slot containers
     const relicSlots = this.relicInventory.list.filter(child => (child as any).isRelicSlot) as Phaser.GameObjects.Container[];
-    const potionSlots = this.relicInventory.list.filter(child => (child as any).isPotionSlot) as Phaser.GameObjects.Container[];
     
     // Add relic icons to existing slots
     relics.forEach((relic, index) => {
-      if (index < relicSlotsCount && relicSlots[index]) {
+      if (index < relicsPerRow && relicSlots[index]) {
         const slot = relicSlots[index];
         
         console.log(`Adding relic ${index}:`, relic.name, "ID:", relic.id);
         
-        // Calculate absolute position for the icon (not relative to slot)
-        const iconX = relicStartX + index * relicSlotSpacing;
-        const iconY = relicStartY;
+        // Calculate absolute position for the icon (using grid layout)
+        const col = index;
+        const iconX = gridStartX + col * (relicSlotSize + padding);
+        const iconY = gridStartY;
         
         // Get sprite key for this relic
         const spriteKey = getRelicSpriteKey(relic.id);
@@ -1143,13 +1027,13 @@ export class CombatUI {
           // Use sprite if available
           relicIcon = this.scene.add.image(iconX, iconY, spriteKey)
             .setOrigin(0.5)
-            .setDisplaySize(38, 38) // Larger base size - almost fills 40px slot
+            .setDisplaySize(44, 44) // Fit within 50px slot
             .setDepth(100);
           console.log(`Using sprite for relic: ${spriteKey}`);
         } else {
           // Fallback to emoji if sprite not found
           relicIcon = this.scene.add.text(iconX, iconY, relic.emoji || "⚙️", {
-            fontSize: 32,
+            fontSize: 36,
             color: "#ffffff",
             align: "center"
           }).setOrigin(0.5).setDepth(100);
@@ -1157,9 +1041,9 @@ export class CombatUI {
         }
         
         (relicIcon as any).isRelicIcon = true;
-        this.relicInventory.add(relicIcon); // Add to inventory, not slot
+        this.relicInventory.add(relicIcon);
         
-        // Make slot interactive with hover effects
+        // Make slot interactive with hover effects (matching Overworld style)
         slot.setSize(relicSlotSize + 4, relicSlotSize + 4);
         slot.setInteractive(
           new Phaser.Geom.Rectangle(-(relicSlotSize + 4)/2, -(relicSlotSize + 4)/2, relicSlotSize + 4, relicSlotSize + 4),
@@ -1169,14 +1053,17 @@ export class CombatUI {
         // Clear any existing event listeners to prevent memory leaks
         slot.removeAllListeners();
         
-        // Get border references from slot
-        const borders = slot.list as Phaser.GameObjects.Rectangle[];
-        const outerBorder = borders[0];
-        const innerBorder = borders[1];
+        // Get border and bg references from slot (matching createRelicInventory structure)
+        const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
+        const bg = slotChildren[0]; // Background
+        const outerBorder = slotChildren[1]; // Border
         
         slot.on("pointerover", () => {
-          outerBorder.setStrokeStyle(2, 0xe8eced); // Brighten to white
-          innerBorder.setStrokeStyle(1, 0xe8eced);
+          bg.setFillStyle(0x555555); // Brighten background
+          outerBorder.setStrokeStyle(2, 0x777777); // Brighten border
+          
+          // Kill any existing tweens on this icon to prevent conflicts
+          this.scene.tweens.killTweensOf(relicIcon);
           
           this.scene.tweens.add({
             targets: relicIcon,
@@ -1186,14 +1073,15 @@ export class CombatUI {
             ease: 'Back.easeOut'
           });
           
-          const slotX = relicStartX + index * relicSlotSpacing;
-          const slotY = relicStartY;
-          this.showRelicTooltip(relic.name, slotX, slotY - 50);
+          this.showRelicTooltip(relic.name, iconX, iconY - 50);
         });
         
         slot.on("pointerout", () => {
-          outerBorder.setStrokeStyle(2, 0x77888C); // Reset to gray
-          innerBorder.setStrokeStyle(1, 0x77888C);
+          bg.setFillStyle(0x333333); // Reset background
+          outerBorder.setStrokeStyle(2, 0x555555); // Reset border
+          
+          // Kill any existing tweens on this icon to prevent conflicts
+          this.scene.tweens.killTweensOf(relicIcon);
           
           this.scene.tweens.add({
             targets: relicIcon,
@@ -1208,81 +1096,6 @@ export class CombatUI {
         
         slot.on("pointerdown", () => {
           this.showRelicDetailModal(relic);
-        });
-      }
-    });
-    
-    // Add potion icons to existing slots (using gray borders like relics)
-    potions.forEach((potion, index) => {
-      if (index < potionSlotsCount && potionSlots[index]) {
-        const slot = potionSlots[index];
-        
-        console.log(`Adding potion ${index}:`, potion.name, "emoji:", potion.emoji);
-        
-        // Calculate absolute position for the icon (not relative to slot)
-        const iconX = potionStartX + index * potionSlotSpacing;
-        const iconY = potionStartY;
-        
-        // Add potion icon DIRECTLY to relicInventory (not to slot)
-        // This ensures it renders on top of the slot background
-        const potionIcon = this.scene.add.text(iconX, iconY, potion.emoji || "🧪", {
-          fontSize: 32,
-          color: "#ffffff",
-          align: "center"
-        }).setOrigin(0.5).setDepth(100);
-        
-        (potionIcon as any).isPotionIcon = true;
-        this.relicInventory.add(potionIcon); // Add to inventory, not slot
-        
-        // Make slot interactive with hover effects
-        slot.setSize(potionSlotSize + 4, potionSlotSize + 4);
-        slot.setInteractive(
-          new Phaser.Geom.Rectangle(-(potionSlotSize + 4)/2, -(potionSlotSize + 4)/2, potionSlotSize + 4, potionSlotSize + 4),
-          Phaser.Geom.Rectangle.Contains
-        );
-        
-        // Clear any existing event listeners to prevent memory leaks
-        slot.removeAllListeners();
-        
-        // Get border references from slot
-        const borders = slot.list as Phaser.GameObjects.Rectangle[];
-        const outerBorder = borders[0];
-        const innerBorder = borders[1];
-        
-        slot.on("pointerover", () => {
-          outerBorder.setStrokeStyle(2, 0xe8eced); // Brighten to white (same as relics)
-          innerBorder.setStrokeStyle(1, 0xe8eced);
-          
-          this.scene.tweens.add({
-            targets: potionIcon,
-            scaleX: 1.005,
-            scaleY: 1.005,
-            duration: 150,
-            ease: 'Back.easeOut'
-          });
-          
-          const slotX = potionStartX + index * potionSlotSpacing;
-          const slotY = potionStartY;
-          this.showPotionTooltip(potion.name, slotX, slotY - 50);
-        });
-        
-        slot.on("pointerout", () => {
-          outerBorder.setStrokeStyle(2, 0x77888C); // Reset to gray
-          innerBorder.setStrokeStyle(1, 0x77888C);
-          
-          this.scene.tweens.add({
-            targets: potionIcon,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 150,
-            ease: 'Back.easeOut'
-          });
-          
-          this.hidePotionTooltip();
-        });
-        
-        slot.on("pointerdown", () => {
-          this.usePotionInCombat(potion, index);
         });
       }
     });
