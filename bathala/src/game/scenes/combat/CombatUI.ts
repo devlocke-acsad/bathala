@@ -1064,6 +1064,7 @@ export class CombatUI {
     this.relicUpdatePending = false;
     
     console.log("Updating relic inventory. Relics:", relics.length, "Potions:", potions.length);
+    console.log("Relic data:", relics);
     
     // Relic slots configuration
     const relicSlotSize = 40;
@@ -1095,14 +1096,22 @@ export class CombatUI {
       if (index < relicSlotsCount && relicSlots[index]) {
         const slot = relicSlots[index];
         
-        // Add relic icon to the slot
-        const relicIcon = this.scene.add.text(0, 0, relic.emoji || "?", {
-          fontSize: 24,
+        console.log(`Adding relic ${index}:`, relic.name, "emoji:", relic.emoji);
+        
+        // Calculate absolute position for the icon (not relative to slot)
+        const iconX = relicStartX + index * relicSlotSpacing;
+        const iconY = relicStartY;
+        
+        // Add relic icon DIRECTLY to relicInventory (not to slot)
+        // This ensures it renders on top of the slot background
+        const relicIcon = this.scene.add.text(iconX, iconY, relic.emoji || "⚙️", {
+          fontSize: 28,
+          color: "#ffffff",
           align: "center"
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(100);
         
         (relicIcon as any).isRelicIcon = true;
-        slot.add(relicIcon);
+        this.relicInventory.add(relicIcon); // Add to inventory, not slot
         
         // Make slot interactive with hover effects
         slot.setSize(relicSlotSize + 4, relicSlotSize + 4);
@@ -1162,14 +1171,22 @@ export class CombatUI {
       if (index < potionSlotsCount && potionSlots[index]) {
         const slot = potionSlots[index];
         
-        // Add potion icon to the slot
-        const potionIcon = this.scene.add.text(0, 0, potion.emoji || "🧪", {
-          fontSize: 24,
+        console.log(`Adding potion ${index}:`, potion.name, "emoji:", potion.emoji);
+        
+        // Calculate absolute position for the icon (not relative to slot)
+        const iconX = potionStartX + index * potionSlotSpacing;
+        const iconY = potionStartY;
+        
+        // Add potion icon DIRECTLY to relicInventory (not to slot)
+        // This ensures it renders on top of the slot background
+        const potionIcon = this.scene.add.text(iconX, iconY, potion.emoji || "🧪", {
+          fontSize: 28,
+          color: "#ffffff",
           align: "center"
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(100);
         
         (potionIcon as any).isPotionIcon = true;
-        slot.add(potionIcon);
+        this.relicInventory.add(potionIcon); // Add to inventory, not slot
         
         // Make slot interactive with hover effects
         slot.setSize(potionSlotSize + 4, potionSlotSize + 4);

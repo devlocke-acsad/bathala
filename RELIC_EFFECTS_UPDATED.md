@@ -1,15 +1,46 @@
 # Relic Effects Update - Complete Implementation Guide
 
-## ✅ All Act 1 Relics Updated to Buffed Values
+## ✅ All Act 1 Relics Updated to Buffed Values + Combat UI Emoji Icons
 
 ### Date: October 19, 2025
-### Status: **FULLY SYNCHRONIZED**
+### Status: **FULLY SYNCHRONIZED & DISPLAYED IN COMBAT**
+
+---
+
+## 🎉 Latest Update: Combat UI Emoji Icons
+
+**Problem**: Relics in combat UI were not showing their emoji icons.
+
+**Solution**: Updated `Combat.ts` to ensure relics loaded from GameState always have their `emoji` property by looking them up from the registry:
+
+```typescript
+// Ensure relics have all properties (especially emoji) by looking them up from registry
+const relicsWithEmoji = (existingPlayerData.relics || []).map(relic => {
+  // If relic already has emoji, use it
+  if (relic.emoji) return relic;
+  
+  // Otherwise, look it up from the registry to get the full relic data
+  try {
+    const fullRelic = getRelicById(relic.id);
+    return fullRelic;
+  } catch (e) {
+    // If relic not found in registry, use fallback emoji
+    console.warn(`Relic ${relic.id} not found in registry, using fallback`);
+    return { ...relic, emoji: relic.emoji || "⚙️" };
+  }
+});
+```
+
+**Result**: All relics now display their emoji icons in the combat UI relic inventory! 🎉
 
 ---
 
 ## 📋 Summary of Changes
 
-All **26 Act 1 relics** have been updated across both **data files** (Act1Relics.ts) and **effect implementations** (RelicManager.ts) to match the buffed values from the ACT1_RELICS_GUIDE.md.
+All **26 Act 1 relics** have been updated across:
+1. ✅ **Data files** (Act1Relics.ts) - with emoji icons
+2. ✅ **Effect implementations** (RelicManager.ts) - automatic effects
+3. ✅ **Combat UI** (Combat.ts) - emoji display fix
 
 ---
 

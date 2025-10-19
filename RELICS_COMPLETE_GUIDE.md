@@ -1,4 +1,44 @@
-# Bathala - Complete Relics Guide
+# Complete Relic System Fix Guide
+
+## Issue Summary
+Relics were not displaying in the combat UI despite being present in the player's inventory. The slots showed hover tooltips but no visible emoji icons.
+
+## Root Cause - The Layering Problem
+
+### What Was Happening
+The slot containers had this structure:
+```typescript
+slotContainer [Phaser.Container]
+  ├── outerBorder [Rectangle, stroke only, transparent]
+  ├── innerBorder [Rectangle, stroke only, transparent]  
+  └── bg [Rectangle, SOLID FILL 0x1a1520] ← OPAQUE BACKGROUND
+```
+
+When we tried to add icons like this:
+```typescript
+const relicIcon = this.scene.add.text(0, 0, relic.emoji, {...});
+slot.add(relicIcon);  // ❌ WRONG - renders behind background!
+```
+
+**The icon was added to the container but rendered BEHIND the solid background rectangle!**
+
+### The Fix
+Add icons **directly to the parent container** with absolute positioning:
+
+```typescript
+// Calculate absolute position in parent container
+const iconX = relicStartX + index * relicSlotSpacing;
+const iconY = relicStartY;
+
+// Add to PARENT container, not slot
+const relicIcon = this.scene.add.text(iconX, iconY, relic.emoji, {
+  fontSize: 28,
+  color: "#ffffff",
+  align: "center"
+}).setOrigin(0.5).setDepth(100);
+
+this.relicInventory.add(relicIcon);  // ✅ CORRECT - renders on top!
+```
 
 **Game**: Bathala - Filipino Mythology Roguelike Card Game  
 **Document Version**: 1.0  

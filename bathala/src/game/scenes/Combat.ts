@@ -264,6 +264,12 @@ export class Combat extends Scene {
 
     // Draw initial hand
     this.drawInitialHand();
+    
+    // Force update relic inventory to ensure relics are visible
+    // (scheduleRelicInventoryUpdate in createRelicInventory might be too early)
+    this.time.delayedCall(100, () => {
+      this.ui.forceRelicInventoryUpdate();
+    });
 
     // Handle transition overlay for fade-in effect
     if (data.transitionOverlay) {
@@ -305,6 +311,23 @@ export class Combat extends Scene {
     
     if (existingPlayerData && Object.keys(existingPlayerData).length > 0) {
       // Use existing player data and ensure all required fields are present
+      
+      // Ensure relics have all properties (especially emoji) by looking them up from registry
+      const relicsWithEmoji = (existingPlayerData.relics || []).map(relic => {
+        // If relic already has emoji, use it
+        if (relic.emoji) return relic;
+        
+        // Otherwise, look it up from the registry to get the full relic data
+        try {
+          const fullRelic = getRelicById(relic.id);
+          return fullRelic;
+        } catch (e) {
+          // If relic not found in registry, return as-is with fallback emoji
+          console.warn(`Relic ${relic.id} not found in registry, using fallback`);
+          return { ...relic, emoji: relic.emoji || "⚙️" };
+        }
+      });
+      
       player = {
         id: existingPlayerData.id || "player",
         name: existingPlayerData.name || "Hero",
@@ -320,12 +343,12 @@ export class Combat extends Scene {
         landasScore: existingPlayerData.landasScore || 0,
         ginto: existingPlayerData.ginto || 100,
         diamante: existingPlayerData.diamante || 0,
-        relics: existingPlayerData.relics || [
+        relics: relicsWithEmoji.length > 0 ? relicsWithEmoji : [
           {
             id: "placeholder_relic",
             name: "Placeholder Relic",
             description: "This is a placeholder relic.",
-            emoji: "",
+            emoji: "⚙️",
           },
         ],
         potions: existingPlayerData.potions || [],
