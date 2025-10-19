@@ -3,18 +3,21 @@ import { Scene } from 'phaser';
 export function showDialogue(scene: Scene, text: string, onComplete: () => void): Phaser.GameObjects.Container {
     const dialogueContainer = scene.add.container(scene.cameras.main.width / 2, scene.cameras.main.height / 2);
 
+    // Define box size first
+    const boxWidth = Math.min(scene.cameras.main.width * 0.90, 1400);
+    const boxHeight = scene.cameras.main.height * 0.75;
+    
+    // Text should wrap INSIDE the box with padding
+    const textWrapWidth = boxWidth - 100; // 50px padding on each side
+    
     const dialogueText = scene.add.text(0, 0, text, {
         fontFamily: 'dungeon-mode',
-        fontSize: 22,
+        fontSize: 20,
         color: '#77888C',
         align: 'center',
-        wordWrap: { width: scene.cameras.main.width * 0.75 },
-        lineSpacing: 10
+        wordWrap: { width: textWrapWidth },
+        lineSpacing: 8
     }).setOrigin(0.5);
-
-    const textHeight = dialogueText.getBounds().height;
-    const boxWidth = Math.min(scene.cameras.main.width * 0.80, 1100);
-    const boxHeight = Math.min(textHeight + 120, scene.cameras.main.height * 0.75);
 
     // Background - matching intro style
     const bg = scene.add.rectangle(0, 0, boxWidth, boxHeight, 0x150E10, 0.95).setInteractive();

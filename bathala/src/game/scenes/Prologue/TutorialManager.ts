@@ -140,13 +140,20 @@ export class TutorialManager {
             ease: 'Sine.easeInOut'
         });
         
-        this.container.add([skipGlow, this.skipButton, skipPhaseGlow, this.skipPhaseButton]);
+        // Don't add buttons to container - add them directly to scene so they're always visible
+        // this.container.add([skipGlow, this.skipButton, skipPhaseGlow, this.skipPhaseButton]);
         
-        // Ensure buttons are always visible at top depth
-        this.skipButton.setDepth(3000);
-        this.skipPhaseButton.setDepth(3000);
-        skipGlow.setDepth(2999);
-        skipPhaseGlow.setDepth(2999);
+        // Ensure buttons are always visible at top depth - add to scene directly
+        skipGlow.setDepth(4998);
+        skipPhaseGlow.setDepth(4998);
+        this.skipButton.setDepth(5000);
+        this.skipPhaseButton.setDepth(5000);
+        
+        // Make sure buttons are always visible
+        this.skipButton.setAlpha(1);
+        this.skipPhaseButton.setAlpha(1);
+        skipGlow.setAlpha(0.05);
+        skipPhaseGlow.setAlpha(0.05);
 
         const tutorialUI = new TutorialUI(this.scene);
 
@@ -292,6 +299,9 @@ export class TutorialManager {
     private startNextPhase() {
         if (this.currentPhaseIndex < this.phases.length) {
             const phase = this.phases[this.currentPhaseIndex++];
+            
+            // Skip phase button is always visible
+            this.skipPhaseButton.setVisible(true);
             
             // Add phase transition effect
             this.scene.cameras.main.flash(300, 21, 14, 16, false); // #150E10 flash
