@@ -3,6 +3,7 @@ import { GameState } from "../../core/managers/GameState";
 import { Player, PlayingCard } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { RelicManager } from "../../core/managers/RelicManager";
+import { MusicManager } from "../../core/managers/MusicManager";
 
 export class Campfire extends Scene {
   private player!: Player;
@@ -33,6 +34,10 @@ export class Campfire extends Scene {
   create(): void {
     if (!this.cameras.main) return;
     this.cameras.main.setBackgroundColor(0x0a0a0a);
+
+    // Initialize MusicManager and play scene music automatically
+    MusicManager.getInstance().setScene(this);
+    MusicManager.getInstance().playSceneMusic();
 
     // Create responsive layout
     const screenWidth = this.cameras.main.width;

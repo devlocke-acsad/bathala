@@ -2,6 +2,7 @@ import { Scene, GameObjects } from "phaser";
 import { GameState } from "../../core/managers/GameState";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
+import { MusicManager } from "../../core/managers/MusicManager";
 
 export class MainMenu extends Scene {
   background: GameObjects.Image;
@@ -18,6 +19,10 @@ export class MainMenu extends Scene {
   create() {
     // Set camera background color to custom background color ONLY
     this.cameras.main.setBackgroundColor(0x150E10); // Updated background color (#150E10)
+
+    // Initialize MusicManager and play scene music automatically
+    MusicManager.getInstance().setScene(this);
+    MusicManager.getInstance().playSceneMusic();
 
     // Create background effects
     this.createBackgroundEffects();
@@ -181,15 +186,20 @@ export class MainMenu extends Scene {
               GameState.getInstance().reset();
               OverworldGameState.getInstance().reset();
               RuleBasedDDA.getInstance().resetSession();
+              // Stop music before transitioning
+              MusicManager.getInstance().stopMusic();
               this.scene.start("Prologue");
               break;
             case "Discover":
+              MusicManager.getInstance().stopMusic();
               this.scene.start("Discover");
               break;
             case "Credits":
+              MusicManager.getInstance().stopMusic();
               this.scene.start("Credits");
               break;
             case "Settings":
+              MusicManager.getInstance().stopMusic();
               this.scene.start("Settings");
               break;
           }
