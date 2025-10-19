@@ -1143,13 +1143,13 @@ export class CombatUI {
           // Use sprite if available
           relicIcon = this.scene.add.image(iconX, iconY, spriteKey)
             .setOrigin(0.5)
-            .setDisplaySize(32, 32) // Fit within 40px slot with some padding
+            .setDisplaySize(38, 38) // Larger base size - almost fills 40px slot
             .setDepth(100);
           console.log(`Using sprite for relic: ${spriteKey}`);
         } else {
           // Fallback to emoji if sprite not found
           relicIcon = this.scene.add.text(iconX, iconY, relic.emoji || "⚙️", {
-            fontSize: 28,
+            fontSize: 32,
             color: "#ffffff",
             align: "center"
           }).setOrigin(0.5).setDepth(100);
@@ -1180,8 +1180,8 @@ export class CombatUI {
           
           this.scene.tweens.add({
             targets: relicIcon,
-            scaleX: 1.15,
-            scaleY: 1.15,
+            scaleX: 0.2,
+            scaleY: 0.2,
             duration: 150,
             ease: 'Back.easeOut'
           });
@@ -1197,8 +1197,8 @@ export class CombatUI {
           
           this.scene.tweens.add({
             targets: relicIcon,
-            scaleX: 1,
-            scaleY: 1,
+            scaleX: 0.2,
+            scaleY: 0.2,
             duration: 150,
             ease: 'Back.easeOut'
           });
@@ -1226,7 +1226,7 @@ export class CombatUI {
         // Add potion icon DIRECTLY to relicInventory (not to slot)
         // This ensures it renders on top of the slot background
         const potionIcon = this.scene.add.text(iconX, iconY, potion.emoji || "🧪", {
-          fontSize: 28,
+          fontSize: 32,
           color: "#ffffff",
           align: "center"
         }).setOrigin(0.5).setDepth(100);
@@ -1255,8 +1255,8 @@ export class CombatUI {
           
           this.scene.tweens.add({
             targets: potionIcon,
-            scaleX: 1.15,
-            scaleY: 1.15,
+            scaleX: 1.005,
+            scaleY: 1.005,
             duration: 150,
             ease: 'Back.easeOut'
           });
