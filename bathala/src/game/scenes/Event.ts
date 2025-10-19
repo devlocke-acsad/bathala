@@ -43,7 +43,7 @@ export class EventScene extends Scene {
   private createBackground(): void {
     const { width, height } = this.cameras.main;
     this.eventBackground = this.add.graphics();
-    this.eventBackground.fillStyle(0x000000, 0.8);
+    this.eventBackground.fillStyle(0x000000, 0.7);  // Match combat overlay opacity
     this.eventBackground.fillRect(0, 0, width, height);
   }
 
@@ -56,15 +56,15 @@ export class EventScene extends Scene {
     const panelY = height / 2;
 
     const panel = this.add.graphics();
-    panel.fillStyle(0x0a0a0a, 0.9);
-    panel.lineStyle(2, 0xffffff, 0.8);
+    panel.fillStyle(0x150E10, 0.95);  // Match combat/menu background color
+    panel.lineStyle(3, 0x77888C, 1);  // Match combat/menu border color and thickness
     panel.fillRoundedRect(panelX - panelWidth / 2, panelY - panelHeight / 2, panelWidth, panelHeight, 15);
     panel.strokeRoundedRect(panelX - panelWidth / 2, panelY - panelHeight / 2, panelWidth, panelHeight, 15);
 
     this.add.text(panelX, panelY - panelHeight / 2 + 40, this.currentEvent.name, {
       fontFamily: 'dungeon-mode',
       fontSize: '36px',
-      color: '#ffffff',
+      color: '#77888C',  // Match combat/menu primary text color
       align: 'center'
     }).setOrigin(0.5);
   }
@@ -78,24 +78,30 @@ export class EventScene extends Scene {
     const panelY = height / 2;
 
     this.illustration = this.add.graphics();
-    this.illustration.fillStyle(0x1a1a1a, 1);
+    this.illustration.fillStyle(0x1f1410, 1);  // Match combat hover color for consistency
+    this.illustration.lineStyle(2, 0x77888C, 0.8);  // Add border to match UI style
     this.illustration.fillRect(panelX - illustrationWidth / 2, panelY - panelHeight / 2 + 100, illustrationWidth, illustrationHeight);
+    this.illustration.strokeRect(panelX - illustrationWidth / 2, panelY - panelHeight / 2 + 100, illustrationWidth, illustrationHeight);
   }
 
 
   private createDescription(): void {
     const { width, height } = this.cameras.main;
     const panelWidth = width * 0.8;
+    const panelHeight = height * 0.8;
 
-    this.descriptionContainer = this.add.container(width / 2, height / 2 + 150);
+    // Position description text better within the panel - below the illustration
+    const descriptionY = height / 2 - panelHeight / 2 + 350; // Below illustration area
+
+    this.descriptionContainer = this.add.container(width / 2, descriptionY);
 
     this.descriptionText = this.add.text(0, 0, '', {
       fontFamily: 'dungeon-mode',
-      fontSize: '28px',
-      color: '#ffffff',
-      wordWrap: { width: panelWidth - 80 },
+      fontSize: '22px',  // Slightly reduced for better fit
+      color: '#e8eced',  // Match combat description text color
+      wordWrap: { width: panelWidth - 120 },  // More padding for readability
       align: 'center',
-      lineSpacing: 12
+      lineSpacing: 8
     }).setOrigin(0.5);
 
     this.descriptionContainer.add(this.descriptionText);
@@ -106,7 +112,7 @@ export class EventScene extends Scene {
     this.continueIndicator = this.add.text(width / 2, height - 100, '▼', {
         fontFamily: 'dungeon-mode',
         fontSize: '24px',
-        color: '#ffffff'
+        color: '#77888C'  // Match primary text color
     }).setOrigin(0.5).setVisible(false);
 
     this.tweens.add({
@@ -173,10 +179,12 @@ export class EventScene extends Scene {
     }
 
     const { width, height } = this.cameras.main;
-    const startY = height / 2 + this.descriptionText.height + 180;
+    const panelHeight = height * 0.8;
+    // Position buttons in the lower part of the panel
+    const startY = height / 2 - panelHeight / 2 + 520; // Fixed position in panel
 
     this.currentEvent.choices.forEach((choice, index) => {
-      const buttonY = startY + (index * 70);
+      const buttonY = startY + (index * 90);  // Increased from 70 to 90 for better spacing
       const button = this.createChoiceButton(
         width / 2,
         buttonY,
@@ -190,24 +198,37 @@ export class EventScene extends Scene {
   private createChoiceButton(x: number, y: number, text: string, callback: () => void): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
 
-    const buttonText = this.add.text(0, 0, `> ${text}`, {
+    const buttonWidth = 600;
+    const buttonHeight = 70;
+
+    // Create double border like in combat
+    const outerBorder = this.add.rectangle(0, 0, buttonWidth + 8, buttonHeight + 8, undefined, 0)
+      .setStrokeStyle(3, 0x77888C);
+    const innerBorder = this.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0)
+      .setStrokeStyle(2, 0x77888C);
+    const bg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
+
+    const buttonText = this.add.text(0, 0, text, {
       fontFamily: 'dungeon-mode',
-      fontSize: '24px',
-      color: '#ffffff'
+      fontSize: '20px',
+      color: '#77888C',
+      wordWrap: { width: buttonWidth - 40 },
+      align: 'center'
     }).setOrigin(0.5);
 
-    button.add(buttonText);
-    button.setInteractive(new Phaser.Geom.Rectangle(-buttonText.width / 2, -buttonText.height / 2, buttonText.width, buttonText.height), Phaser.Geom.Rectangle.Contains);
-
-    button.on('pointerover', () => {
-      buttonText.setColor('#ffff00');
-    });
-
-    button.on('pointerout', () => {
-      buttonText.setColor('#ffffff');
-    });
-
-    button.on('pointerdown', callback);
+    button.add([outerBorder, innerBorder, bg, buttonText]);
+    
+    // Make the background rectangle interactive instead of the container
+    bg.setInteractive({ useHandCursor: true })
+      .on('pointerover', () => {
+        bg.setFillStyle(0x1f1410);
+        buttonText.setColor('#e8eced');
+      })
+      .on('pointerout', () => {
+        bg.setFillStyle(0x150E10);
+        buttonText.setColor('#77888C');
+      })
+      .on('pointerdown', callback);
 
     return button;
   }
@@ -243,7 +264,7 @@ export class EventScene extends Scene {
     this.resultText = this.add.text(width / 2, height - 60, `Outcome: ${outcome}`, {
       fontFamily: 'dungeon-mode',
       fontSize: '24px',
-      color: '#00ff00'
+      color: '#2ed573'  // Match combat success color (green but more muted)
     }).setOrigin(0.5).setAlpha(0);
 
     this.tweens.add({
