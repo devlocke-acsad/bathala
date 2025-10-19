@@ -1,95 +1,145 @@
-# Corridor-MapTileGenerator: Procedural Level Generator - TypeScript + Phaser.js
+# 🐳 Dockerized Procedural Level Generator
 
-## Features
+**A Production-Ready Containerized Game Server Architecture**
 
-- **Procedural Generation**: Creates random level layouts with interconnected regions
-- **Delaunay Triangulation**: Uses mathematical triangulation to create natural connections
-- **A* Pathfinding**: Implements intelligent pathfinding with waypoints for interesting path shapes
-- **Interactive UI**: Real-time parameter adjustment and level regeneration
-- **Zoom & Pan**: Mouse controls for exploring generated levels
-- **Post-processing**: Removes double-wide paths for cleaner layouts
-- **Outer Path Highlights**: Automatically marks border intersections and corners so you can spot outer loops at a glance
+Transform your TypeScript + Phaser.js procedural level generator into a scalable, containerized application with intelligent auto-scaling capabilities. This project demonstrates enterprise-grade Docker implementation patterns for game server deployment.
 
-## Generation Pipeline
+## 🚀 **Docker-First Architecture**
 
-1. **Seed Placement (`level-generator.ts`)** – `generateRegionPoints()` samples region centers with a minimum-distance rule so rooms are evenly distributed across the `IntGrid`.
-2. **Triangulation & Edge Ordering** – Delaunator builds a Delaunay mesh, `getDelaunayEdges()` extracts unique edges, and they are sorted shortest-first to favor local corridors before spanning ones.
-3. **Corridor Carving (`findPath`)** – Each edge drives a multi-waypoint A* search that sculpts PATH tiles into the grid. Straightness, existing paths, and random waypoints influence the shapes.
-4. **Structural Cleanup (`fixDoubleWidePaths`)** – Iteratively removes any 2×2 PATH blocks so corridors stay one tile wide.
-5. **Dead-End Analysis (`deadend-analyzer.ts`)** – A staged pass extends promising branches, bridges corners, prunes lingering dead-ends, and reconnects isolated pockets. It reuses the generator’s pathfinder and double-wide guard.
-6. **Rendering & Highlighting (`game-scene.ts`)** – After the grid stabilizes, `GameScene.drawGrid()` paints tiles and calls `OuterTileMarker.isOutsideIntersectionOrCorner()` to flag notable border corners/intersections. The UI simultaneously shows the implicit `width × height` region count when the Regions field is left at `0`.
+### **Multi-Container Game Server Cluster**
+- 🏗️ **Intelligent Load Balancer**: Routes traffic with auto-scaling logic
+- 🎮 **Persistent Game Server**: Always-available core instance  
+- ⚡ **Dynamic Auto-Scaling**: Creates/destroys servers based on demand
+- 📊 **Real-time Monitoring**: Live dashboard for cluster management
+- 🔧 **Container Orchestration**: Full lifecycle management
 
-## Installation
+### **Production Features**
+- **Multi-stage Docker builds** with optimized layer caching
+- **Auto-scaling game servers** (10s inactivity → shutdown, 30s → cleanup)
+- **Health checks** and graceful shutdowns
+- **Nginx reverse proxy** with security headers and gzip compression
+- **Development & production environments** with hot reloading
+- **Resource monitoring** and performance metrics
 
-1. **Install Node.js** (if not already installed)
-   - Download from https://nodejs.org/
-   - Use version 16 or higher
+## 🐳 **Container Architecture**
 
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+### **1. Multi-Stage Docker Pipeline**
+```dockerfile
+# Stage 1: Build Environment (Node.js + TypeScript)
+FROM node:18-alpine AS builder
+# - Install dependencies
+# - Compile TypeScript → JavaScript
+# - Bundle with Webpack
 
-## Usage
+# Stage 2: Production Environment (Nginx)
+FROM nginx:alpine AS production  
+# - Copy built assets
+# - Configure reverse proxy
+# - Set security headers
+```
 
-### Development Mode
+### **2. Auto-Scaling Server Cluster**
+```
+┌─────────────────────────────────────────────────┐
+│              🌐 Load Balancer                   │
+│           http://localhost:80                   │
+│    ┌─────────────────────────────────────────┐  │
+│    │  Smart Routing + Auto-Scaling Logic     │  │
+│    └─────────────┬───────────────────────────┘  │
+└──────────────────┼─────────────────────────────┘
+                   │
+    ┌──────────────┼──────────────┐
+    │              │              │
+┌─────────┐ ┌─────────────┐ ┌─────────────┐
+│Server 1 │ │Auto-Server-1│ │Auto-Server-2│
+│(Always) │ │(On Demand)  │ │(On Demand)  │
+│Port:8080│ │Port:8081+   │ │Port:8082+   │
+└─────────┘ └─────────────┘ └─────────────┘
+```
+
+### **3. Intelligent Lifecycle Management**
+- **Demand Detection**: Traffic monitoring triggers server creation
+- **Resource Optimization**: Unused servers shutdown after 10s inactivity  
+- **Clean Termination**: Container cleanup after 30s graceful shutdown
+- **Persistent Core**: Server 1 provides guaranteed availability
+
+## 🚀 **Quick Start - Docker Deployment**
+
+### **Prerequisites**
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+- 8GB RAM recommended for full cluster deployment
+
+### **Option 1: Single Container (Simple)**
+```bash
+# Build and run single game server
+docker build -t procgen-game .
+docker run -d -p 8080:80 --name procgen-simple procgen-game
+
+# Access: http://localhost:8080
+```
+
+### **Option 2: Auto-Scaling Cluster (Recommended)**
+```bash
+# Start intelligent auto-scaling cluster
+docker-compose -f docker-compose.cluster.yml up --build -d
+
+# Access Points:
+# 🎮 Main Game (Load Balanced): http://localhost:80
+# 🏠 Persistent Server: http://localhost:8080  
+# 📊 Admin API: http://localhost:8090/api/servers
+```
+
+### **Option 3: Full Monitoring Stack**
+```bash
+# Start cluster with monitoring dashboard
+docker-compose -f docker-compose.cluster.yml --profile monitoring up --build -d
+
+# Additional Access:
+# 📈 Live Dashboard: http://localhost:3001
+```
+
+## Developer Notes (moved)
+
+If you're working on the generator itself (development or debugging), the original project information is still relevant and is kept below. The primary focus for this repository has now been moved to Docker-first deployment and cluster operation.
+
+### Local Development (non-Docker)
+
+1. Install Node.js (v16+)
+2. Install dependencies:
+```bash
+npm install
+```
+
+Development server (hot reload):
 ```bash
 npm run dev
 ```
-Opens the application at `http://localhost:3000` with hot reloading.
 
-### Production Build
+Production build:
 ```bash
 npm run build
 ```
-Creates optimized build in the `dist/` folder.
 
-### Clean Build
-```bash
-npm run clean
-```
-Removes the `dist/` folder.
+### Key Files (dev-focused)
 
-## Controls
-
-### UI Controls
-- **Width/Height**: Adjust the grid dimensions (10-100)
-- **Regions**: Number of region centers to generate (3-30)
-- **Min Distance**: Minimum distance between regions (1-10)
-- **Viewport Culling**: Toggle performance optimization (recommended: ON)
-- **Generate Level**: Create a new random layout
-
-### Mouse Controls
-- **Mouse Wheel**: Zoom in/out
-- **Left Click + Drag**: Pan around the level
-- **Reset View**: Refresh the page to reset camera position
-
-## Technical Details
-
-### Architecture
-- **TypeScript**: Strongly typed JavaScript for better development experience
-- **Phaser.js**: 2D game framework for rendering and interaction
-- **Webpack**: Module bundler with development server
-- **Delaunator**: Fast Delaunay triangulation library
-
-### Algorithm Overview
-1. **Point Generation**: Places region centers with minimum distance constraints
-2. **Delaunay Triangulation**: Creates natural connections between regions
-3. **Edge Processing**: Sorts edges by length for logical path creation
-4. **Pathfinding**: Uses A* with waypoints for interesting path shapes
-5. **Post-processing**: Removes double-wide paths while preserving intersections
-
-### File Structure
 ```
 src/
 ├── main.ts              # Entry point and game initialization
 ├── game-scene.ts        # Main Phaser scene with rendering logic
 ├── level-generator.ts   # Core level generation algorithm
 ├── data-structures.ts   # Point, Edge, PathNode, and IntGrid classes
-├── index.html          # HTML template with UI controls
-├── phaser.d.ts         # TypeScript declarations for Phaser
-└── delaunator.d.ts     # TypeScript declarations for Delaunator
+├── index.html           # HTML template with UI controls
+├── phaser.d.ts          # TypeScript declarations for Phaser
+└── delaunator.d.ts      # TypeScript declarations for Delaunator
 ```
+
+### Generation Pipeline (high level)
+
+1. Seed Placement: region seeds with min-distance rules
+2. Delaunay triangulation: region connectivity
+3. A* Pathfinding: carve corridors between seeds
+4. Post-processing: remove double-wide paths and fix dead ends
+
 
 ## Performance Optimizations
 
