@@ -1110,6 +1110,22 @@ export class Combat extends Scene {
       return;
     }
 
+    // Check if enemy is stunned - if so, skip their turn
+    const isStunned = enemy.statusEffects.some((e) => e.name === "Stunned");
+    if (isStunned) {
+      console.log("Enemy is stunned, skipping their turn");
+      this.showActionResult("Enemy is Stunned - Turn Skipped!");
+      
+      // Update enemy intent for next turn
+      this.updateEnemyIntent();
+      
+      // Start new player turn
+      this.time.delayedCall(1500, () => {
+        this.startPlayerTurn();
+      });
+      return;
+    }
+
     // Apply enemy action based on intent
     if (enemy.intent.type === "attack") {
       let damage = enemy.intent.value;
@@ -2256,10 +2272,10 @@ export class Combat extends Scene {
 
   public getSpecialActionName(suit: Suit): string {
     const specialActions: Record<Suit, string> = {
-      Apoy: "AoE + Burn",
-      Tubig: "Heal + Cleanse",
-      Lupa: "Apply Vulnerable",
-      Hangin: "Draw + Weak",
+      Apoy: "Burn (10 dmg/turn)",
+      Tubig: "Heal (30 HP)",
+      Lupa: "Stun (1 turn)",
+      Hangin: "Weak (half dmg, 3 turns)",
     };
     return specialActions[suit];
   }
@@ -2433,54 +2449,69 @@ export class Combat extends Scene {
     }
     
     switch (suit) {
-      case "Apoy": // Fire
-        // AoE Damage + Burn
+      case "Apoy": // Fire - Burn (10 damage per turn)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const apoyAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
-        this.damageEnemy(Math.floor(value * 0.5) + apoyAdditionalDamage);
+        if (apoyAdditionalDamage > 0) {
+          this.damageEnemy(apoyAdditionalDamage);
+        }
+        
+        // Apply Burn: 10 damage per turn
         this.addStatusEffect(this.combatState.enemy, {
           id: "burn",
           name: "Burn",
           type: "debuff",
-          duration: 2,
-          value: 2,
-          description: "Takes 2 damage at the start of the turn.",
+          duration: 3,
+          value: 10,
+          description: "Takes 10 damage at the start of each turn.",
           emoji: "🔥",
         });
+        this.showActionResult("Applied Burn (10 damage/turn)!");
         break;
-      case "Tubig": // Water
-        // Heal + Cleanse Debuff
+        
+      case "Tubig": // Water - Heal (30 HP)
+        // Heal player by 30 HP
+        const healAmount = 30;
+        const oldHealth = this.combatState.player.currentHealth;
         this.combatState.player.currentHealth = Math.min(
           this.combatState.player.maxHealth,
-          this.combatState.player.currentHealth + Math.floor(value * 0.5)
+          this.combatState.player.currentHealth + healAmount
         );
-        // TODO: Cleanse Debuff
+        const actualHealed = this.combatState.player.currentHealth - oldHealth;
+        
+        // Cleanse all debuffs from player
+        this.combatState.player.statusEffects = this.combatState.player.statusEffects.filter(
+          effect => effect.type !== "debuff"
+        );
+        
         this.ui.updatePlayerUI();
+        this.showActionResult(`Healed ${actualHealed} HP and cleansed debuffs!`);
         break;
-      case "Lupa": // Earth
-        // Apply Vulnerable debuff
+        
+      case "Lupa": // Earth - Stun (1 turn)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const lupaAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
         if (lupaAdditionalDamage > 0) {
           this.damageEnemy(lupaAdditionalDamage);
         }
         
+        // Apply Stun: Enemy skips next turn
         this.addStatusEffect(this.combatState.enemy, {
-          id: "vulnerable",
-          name: "Vulnerable",
+          id: "stun",
+          name: "Stunned",
           type: "debuff",
-          duration: 2,
-          value: 1.5,
-          description: "Take +50% damage from all incoming attacks.",
-          emoji: "†",
+          duration: 1,
+          value: 1,
+          description: "Cannot act for 1 turn.",
+          emoji: "💫",
         });
+        this.showActionResult("Enemy is Stunned for 1 turn!");
         break;
-      case "Hangin": // Air
-        // Draw cards + Apply Weak
+        
+      case "Hangin": // Air - Weak (enemy deals half damage for 3 turns)
         // Apply "Wind Veil" effect: Additional cards drawn based on Hangin cards played
         let cardsToDraw = 2;
         cardsToDraw += RelicManager.calculateWindVeilCardDraw(this.combatState.player.playedHand, this.combatState.player);
-        
         this.drawCards(cardsToDraw);
         
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
@@ -2489,15 +2520,17 @@ export class Combat extends Scene {
           this.damageEnemy(hanginAdditionalDamage);
         }
         
+        // Apply Weak: Enemy deals half damage for 3 turns
         this.addStatusEffect(this.combatState.enemy, {
           id: "weak",
           name: "Weak",
           type: "debuff",
-          duration: 2,
+          duration: 3,
           value: 0.5,
-          description: "Deal -50% damage with all Attack actions.",
+          description: "Deals only 50% damage for 3 turns.",
           emoji: "⚠️",
         });
+        this.showActionResult(`Drew ${cardsToDraw} cards and applied Weak!`);
         break;
     }
   }
