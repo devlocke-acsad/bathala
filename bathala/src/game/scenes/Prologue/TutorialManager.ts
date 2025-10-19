@@ -43,20 +43,20 @@ export class TutorialManager {
         
         // Layered overlays for depth
         const overlay1 = this.scene.add.rectangle(
-            this.scene.cameras.main.width / 2, 
-            this.scene.cameras.main.height / 2, 
+            0,
+            0,
             this.scene.cameras.main.width, 
             this.scene.cameras.main.height, 
             0x150E10
-        ).setAlpha(0.85);
+        ).setOrigin(0, 0).setAlpha(0.85);
         
         const overlay2 = this.scene.add.rectangle(
-            this.scene.cameras.main.width / 2, 
-            0, 
+            0,
+            0,
             this.scene.cameras.main.width, 
             this.scene.cameras.main.height * 0.3, 
             0x000000
-        ).setAlpha(0.4).setOrigin(0.5, 0);
+        ).setOrigin(0, 0).setAlpha(0.4);
 
         this.bgContainer.add([bg, overlay1, overlay2]);
 
