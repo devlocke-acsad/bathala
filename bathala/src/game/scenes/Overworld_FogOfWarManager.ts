@@ -38,8 +38,8 @@ export class Overworld_FogOfWarManager {
   /** Number of gradient steps from visible to fog (pixel-stepped gradient) */
   public gradientSteps: number = 4;
   
-  /** Base fog color (RGB) */
-  public fogColor: number = 0x000000;
+  /** Base fog color (RGB) - Dark reddish brown #150E10 */
+  public fogColor: number = 0x150E10;
   
   /** Maximum fog opacity (0-1) */
   public maxFogOpacity: number = 0.85;
