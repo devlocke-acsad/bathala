@@ -253,10 +253,21 @@ export class TutorialManager {
     }
 
     private skipCurrentPhase() {
-        // Clean up current phase
+        // Clean up current phase - try all possible cleanup methods
         const currentPhase = this.phases[this.currentPhaseIndex - 1];
-        if (currentPhase && currentPhase.cleanup) {
-            currentPhase.cleanup();
+        if (currentPhase) {
+            // Try cleanup() method first
+            if (currentPhase.cleanup && typeof currentPhase.cleanup === 'function') {
+                currentPhase.cleanup();
+            }
+            // Try shutdown() method
+            else if (currentPhase.shutdown && typeof currentPhase.shutdown === 'function') {
+                currentPhase.shutdown();
+            }
+            // Fall back to destroy() method
+            else if (currentPhase.destroy && typeof currentPhase.destroy === 'function') {
+                currentPhase.destroy();
+            }
         }
         
         // Show brief notification
