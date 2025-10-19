@@ -15,7 +15,7 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
 
     public start(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 5, 11);
+        const progress = createProgressIndicator(this.scene, 5, 9);
         this.container.add(progress);
 
         // Phase header
@@ -56,7 +56,7 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
 
     private giveWeakHand(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 5, 11);
+        const progress = createProgressIndicator(this.scene, 5, 9);
         this.container.add(progress);
 
         const header = createPhaseHeader(

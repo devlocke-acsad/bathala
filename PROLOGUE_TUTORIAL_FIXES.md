@@ -1,4 +1,4 @@
-# Phase 4 Combat Bug Fixes
+# Prologue Tutorial Fixes
 
 ## Issues Fixed
 
@@ -143,6 +143,50 @@ const enemyIntent = this.scene.add.text(enemyX, enemyHealthY + 25,
 "⚔️ ATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus"
 ```
 
+### 7. Phase 6 (Status Effects) and Phase 8 (Enemy Intents) Removed from Tutorial
+**Problem**: The tutorial included phases teaching status effects (buffs/debuffs) and enemy intents before the core mechanics were fully established.
+
+**Root Cause**: Tutorial progression was too aggressive, introducing advanced concepts too early in the learning curve.
+
+**Solution**:
+- **Removed Phase 6 (Status Effects)**: Deferred teaching of buffs, debuffs, Strength, Vulnerable, Weak, Burn, etc.
+- **Removed Phase 8 (Enemy Intents)**: Deferred teaching of enemy intent system and turn prediction
+- Updated phase numbering throughout all remaining phases
+- Updated all progress indicators from "X of 11" to "X of 9"
+- Tutorial now focuses on core mechanics: cards, hands, actions, discard, items, moral choices, and advanced concepts
+
+**New Phase Order** (9 phases total):
+1. Welcome
+2. Understanding Cards
+3. Hand Types and Bonuses
+4. Combat Actions
+5. Discard Mechanic
+6. Items (was Phase 7)
+7. Moral Choice (was Phase 9)
+8. Advanced Concepts (was Phase 10)
+9. Final Trial (was Phase 11)
+
+**Files Modified**:
+- `bathala/src/game/scenes/Prologue/TutorialManager.ts`:
+  - Lines 1-14: Commented out Phase 6 and Phase 8 imports
+  - Lines 155-167: Removed Phase 6 and Phase 8 from phases array with explanatory comments
+- All remaining phase files: Updated progress indicators to reflect 9 total phases
+  - `Phase1_Welcome.ts`: 1 of 9
+  - `Phase2_UnderstandingCards.ts`: 2 of 9
+  - `Phase3_HandTypesAndBonuses.ts`: 3 of 9
+  - `Phase4_CombatActions.ts`: 4 of 9
+  - `Phase5_DiscardMechanic.ts`: 5 of 9
+  - `Phase7_Items.ts`: 6 of 9 (renumbered from 7)
+  - `Phase9_MoralChoice.ts`: 7 of 9 (renumbered from 9)
+  - `Phase10_AdvancedConcepts.ts`: 8 of 9 (renumbered from 10)
+  - `Phase11_FinalTrial.ts`: 9 of 9 (renumbered from 11)
+
+**Impact**:
+- Cleaner tutorial progression focusing on essential mechanics
+- Status effects and enemy intents can be introduced later (in-game or future tutorial expansion)
+- Reduced tutorial length from 11 phases to 9 phases
+- Progress indicator UI now accurately reflects current position in shortened tutorial
+
 ## Technical Details
 
 ### Button State Management
@@ -203,10 +247,11 @@ if ((this.playHandButton as any).isEnabled) {
 ✅ Build successful with no errors or warnings
 
 ## Summary
-All six critical bugs in Phase 4 Combat have been fixed:
+All seven issues in the Prologue Tutorial have been fixed:
 1. ✅ Play Hand button now works correctly
 2. ✅ Cards display reliably 
 3. ✅ Action execution completes properly and transitions to next section
 4. ✅ Special ability works with any hand (no flush requirement)
 5. ✅ Played hand displays with actual card sprites instead of rectangles
 6. ✅ Tutorial focuses on core mechanics without premature intent/buff/debuff displays
+7. ✅ Phase 6 (Status Effects) and Phase 8 (Enemy Intents) removed; tutorial streamlined to 9 phases with updated progress indicators

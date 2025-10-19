@@ -103,7 +103,7 @@ export class Phase4_CombatActions extends TutorialPhase {
 
     private showThreeActions() {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 4, 11);
+        const progress = createProgressIndicator(this.scene, 4, 9);
         this.container.add(progress);
 
         // Phase header
@@ -188,7 +188,7 @@ export class Phase4_CombatActions extends TutorialPhase {
         this.playedCards = [];
         
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 4, 11);
+        const progress = createProgressIndicator(this.scene, 4, 9);
         this.container.add(progress);
 
         const header = createPhaseHeader(

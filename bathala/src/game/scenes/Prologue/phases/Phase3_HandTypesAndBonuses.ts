@@ -15,7 +15,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
     public start(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 3, 11);
+        const progress = createProgressIndicator(this.scene, 3, 9);
         this.container.add(progress);
 
         // Phase header
@@ -56,7 +56,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
     private practicePair(): void {
         // New progress indicator
-        const progress = createProgressIndicator(this.scene, 3, 11);
+        const progress = createProgressIndicator(this.scene, 3, 9);
         this.container.add(progress);
 
         const header = createPhaseHeader(

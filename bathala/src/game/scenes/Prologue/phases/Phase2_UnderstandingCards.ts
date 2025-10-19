@@ -14,7 +14,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
 
     public start(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 2, 11);
+        const progress = createProgressIndicator(this.scene, 2, 9);
         this.container.add(progress);
 
         // Phase header
@@ -61,7 +61,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
                 this.container.removeAll(true);
                 
                 // Progress indicator for second part
-                const progress = createProgressIndicator(this.scene, 2, 11);
+                const progress = createProgressIndicator(this.scene, 2, 9);
                 this.container.add(progress);
 
                 // New header

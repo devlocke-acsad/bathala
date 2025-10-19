@@ -23,7 +23,7 @@ export class Phase11_FinalTrial extends TutorialPhase {
 
     public start(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 11, 11);
+        const progress = createProgressIndicator(this.scene, 9, 9);
         this.container.add(progress);
 
         // Epic header
@@ -66,7 +66,7 @@ export class Phase11_FinalTrial extends TutorialPhase {
         this.turn++;
 
         // Progress indicator - always visible
-        const progress = createProgressIndicator(this.scene, 11, 11);
+        const progress = createProgressIndicator(this.scene, 9, 9);
         this.container.add(progress);
 
         // Turn counter
