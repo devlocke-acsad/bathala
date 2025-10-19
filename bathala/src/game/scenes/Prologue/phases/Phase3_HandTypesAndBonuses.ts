@@ -15,7 +15,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
     public start(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 3, 9);
+        const progress = createProgressIndicator(this.scene, 3, 8);
         this.container.add(progress);
 
         // Phase header
@@ -25,6 +25,20 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
             'Understanding poker hands and their power'
         );
         this.container.add(header);
+
+        // Skip Phase button
+        this.createSkipPhaseButton(() => {
+            this.scene.tweens.add({
+                targets: this.container.getAll(),
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.container.removeAll(true);
+                    this.onComplete();
+                }
+            });
+        });
 
         const dialogue = "Hands determine your action's power. Here's the hierarchy:\n\nHigh Card: +0 (no pattern)\nPair: +2 (two matching ranks)\nTwo Pair: +4 (two pairs)\nThree of a Kind: +7 (three matching)\nStraight: +10 (5 in sequence)\nFlush: +14 (5 same element) - UNLOCKS SPECIAL\nFull House: +18 (three + pair)\nFour of a Kind: +22 (four matching)\nStraight Flush: +35 (straight + flush)\nFive of a Kind: +30 (requires special relic)";
 

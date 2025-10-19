@@ -14,7 +14,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
 
     public start(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 2, 9);
+        const progress = createProgressIndicator(this.scene, 2, 8);
         this.container.add(progress);
 
         // Phase header
@@ -24,6 +24,20 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
             'Master the elemental forces that shape combat'
         );
         this.container.add(header);
+
+        // Skip Phase button
+        this.createSkipPhaseButton(() => {
+            this.scene.tweens.add({
+                targets: this.container.getAll(),
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.container.removeAll(true);
+                    this.onComplete();
+                }
+            });
+        });
 
         const dialogue = "Your deck contains 52 cards across four sacred elements:\n\n🔥 APOY (Fire) - Inflicts BURN damage over time\n💧 TUBIG (Water) - Provides HEALING\n🌍 LUPA (Earth) - Grants STRENGTH\n💨 HANGIN (Wind) - Grants DEXTERITY";
 

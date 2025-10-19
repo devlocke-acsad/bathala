@@ -19,7 +19,7 @@ export class Phase9_MoralChoice extends TutorialPhase {
         this.tutorialUI.cardSprites = [];
         
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 7, 9);
+        const progress = createProgressIndicator(this.scene, 7, 8);
         this.container.add(progress);
 
         // Phase header
@@ -29,6 +29,20 @@ export class Phase9_MoralChoice extends TutorialPhase {
             'Your moral choices shape your journey'
         );
         this.container.add(header);
+
+        // Skip Phase button
+        this.createSkipPhaseButton(() => {
+            this.scene.tweens.add({
+                targets: this.container.getAll(),
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.container.removeAll(true);
+                    this.onComplete();
+                }
+            });
+        });
 
         const dialogue = "Victory! But now, a choice defines you:\n\n⚔️ SLAY: +Gold, +Power → CONQUEST path\n     More gold, aggressive playstyle\n\n❤️ SPARE: +Spirit Fragments, +Lore → MERCY path\n     More fragments for meta-progression\n\n⚖️ BALANCE: Equal mix of both\n     Standard experience\n\nImportant: Your choice shapes REWARDS - NOT difficulty!\nMake your choice:";
 

@@ -41,7 +41,7 @@ export class Phase7_Items extends TutorialPhase {
 
     private showRelics(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 6, 9);
+        const progress = createProgressIndicator(this.scene, 6, 8);
         this.container.add(progress);
 
         // Phase header
@@ -105,7 +105,7 @@ export class Phase7_Items extends TutorialPhase {
 
     private showPotions(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 6, 9);
+        const progress = createProgressIndicator(this.scene, 6, 8);
         this.container.add(progress);
 
         // Phase header
@@ -160,7 +160,7 @@ export class Phase7_Items extends TutorialPhase {
 
     private practicePotions(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 6, 9);
+        const progress = createProgressIndicator(this.scene, 6, 8);
         this.container.add(progress);
 
         const header = createPhaseHeader(

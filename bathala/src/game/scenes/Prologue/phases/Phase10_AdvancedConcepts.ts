@@ -19,6 +19,20 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
         this.tutorialUI.handContainer.removeAll(true);
         this.tutorialUI.cardSprites = [];
         
+        // Skip Phase button (add early so it persists through sections)
+        this.createSkipPhaseButton(() => {
+            this.scene.tweens.add({
+                targets: this.container.getAll(),
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.container.removeAll(true);
+                    this.onComplete();
+                }
+            });
+        });
+        
         this.showNextSection();
     }
 

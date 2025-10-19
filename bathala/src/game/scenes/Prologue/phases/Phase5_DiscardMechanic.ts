@@ -15,7 +15,7 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
 
     public start(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 5, 9);
+        const progress = createProgressIndicator(this.scene, 5, 8);
         this.container.add(progress);
 
         // Phase header
@@ -25,6 +25,20 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
             'Reroll bad hands for better combinations'
         );
         this.container.add(header);
+
+        // Skip Phase button
+        this.createSkipPhaseButton(() => {
+            this.scene.tweens.add({
+                targets: this.container.getAll(),
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.container.removeAll(true);
+                    this.onComplete();
+                }
+            });
+        });
 
         const dialogue = "Sometimes your hand lacks good combinations.\n\nDISCARD lets you redraw up to 5 cards once per combat.\n\nUse it wisely - you start with 1 discard charge.\nRelics can increase this!\n\nLet's practice:";
 

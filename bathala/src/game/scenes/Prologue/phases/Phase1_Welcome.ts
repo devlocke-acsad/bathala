@@ -13,7 +13,7 @@ export class Phase1_Welcome extends TutorialPhase {
 
     public start(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 1, 9);
+        const progress = createProgressIndicator(this.scene, 1, 8);
         this.container.add(progress);
 
         // Phase header with subtitle

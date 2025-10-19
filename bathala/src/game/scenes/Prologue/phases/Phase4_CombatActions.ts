@@ -103,7 +103,7 @@ export class Phase4_CombatActions extends TutorialPhase {
 
     private showThreeActions() {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 4, 9);
+        const progress = createProgressIndicator(this.scene, 4, 8);
         this.container.add(progress);
 
         // Phase header
@@ -113,6 +113,21 @@ export class Phase4_CombatActions extends TutorialPhase {
             'Three ways to engage in battle'
         );
         this.container.add(header);
+
+        // Skip Phase button
+        this.createSkipPhaseButton(() => {
+            this.scene.tweens.add({
+                targets: this.container.getAll(),
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.container.removeAll(true);
+                    this.shutdown();
+                    this.onComplete();
+                }
+            });
+        });
 
         const dialogue = "Three actions determine combat:\n\n⚔️ ATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus\n\n🛡️ DEFEND: Gain Block to absorb damage\n   Base block = 5 + Hand Bonus\n\n✨ SPECIAL: Elemental ability\n   Effect varies by dominant element";
 
