@@ -3,6 +3,16 @@ import { MazeOverworldGenerator } from '../../utils/MazeOverworldGenerator';
 import { MapNode } from '../../core/types/MapTypes';
 
 /**
+ * === DEPTH LAYER CONFIGURATION ===
+ * Centralized depth values for easy editing
+ */
+const DEPTH = {
+  MAP_TILES: 0,
+  MAP_NPCS: 49,          // Above fog of war (50)
+  FALLBACK_CIRCLE: 51
+};
+
+/**
  * Overworld_MazeGenManager
  * 
  * Centralizes all maze generation, chunk management, and node placement logic for the Overworld scene.
@@ -685,7 +695,7 @@ export class Overworld_MazeGenManager {
           1
         );
         fallbackCircle.setOrigin(0.5);
-        fallbackCircle.setDepth(501);
+        fallbackCircle.setDepth(DEPTH.FALLBACK_CIRCLE);
         return null;
     }
     
@@ -696,7 +706,7 @@ export class Overworld_MazeGenManager {
       spriteKey
     );
     nodeSprite.setOrigin(0.5);
-    nodeSprite.setDepth(501); // Above the maze
+    nodeSprite.setDepth(DEPTH.MAP_NPCS); // Above the maze
 
     // Scale the sprite to fit within the grid while maintaining aspect ratio
     const biggerSprites = ["amomongo_overworld", "balete_overworld", "tawonglipod_overworld", "kapre_overworld", "mangangaway_overworld", "tikbalang_overworld"];

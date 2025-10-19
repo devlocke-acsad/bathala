@@ -26,6 +26,14 @@ import {
 } from '../../data/lore/EnemyLore';
 
 /**
+ * === DEPTH LAYER CONFIGURATION ===
+ * Centralized depth values for easy editing
+ */
+const DEPTH = {
+  TOOLTIP: 49 // Above fog of war, NPCs, and all UI elements
+};
+
+/**
  * Overworld_TooltipManager
  * 
  * Manages all tooltip display and content for overworld nodes.
@@ -71,7 +79,7 @@ export class Overworld_TooltipManager {
     console.log("🖱️ TooltipManager: Initializing tooltip system...");
     
     // Create tooltip container (initially hidden) - FIXED TO CAMERA
-    this.tooltipContainer = this.scene.add.container(0, 0).setVisible(false).setDepth(2000).setScrollFactor(0).setAlpha(0);
+    this.tooltipContainer = this.scene.add.container(0, 0).setVisible(false).setDepth(DEPTH.TOOLTIP).setScrollFactor(0).setAlpha(0);
     
     // Prologue/Combat-style double border design
     const outerBorder = this.scene.add.rectangle(4, 4, 400 + 8, 240 + 8, undefined, 0)
