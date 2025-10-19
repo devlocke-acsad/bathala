@@ -44,7 +44,7 @@ export class Phase9_MoralChoice extends TutorialPhase {
             });
         });
 
-        const dialogue = "Victory! But now, a choice defines you:\n\n⚔️ SLAY: +Gold, +Power → CONQUEST path\n     More gold, aggressive playstyle\n\n❤️ SPARE: +Spirit Fragments, +Lore → MERCY path\n     More fragments for meta-progression\n\n⚖️ BALANCE: Equal mix of both\n     Standard experience\n\nImportant: Your choice shapes REWARDS - NOT difficulty!\nMake your choice:";
+        const dialogue = "Victory! But now, a choice defines you:\n\nSLAY: +Gold, +Power → CONQUEST path\n     More gold, aggressive playstyle\n\nSPARE: +Spirit Fragments, +Lore → MERCY path\n     More fragments for meta-progression\n\nBALANCE: Equal mix of both\n     Standard experience\n\nImportant: Your choice shapes REWARDS - NOT difficulty!\nMake your choice:";
 
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
@@ -147,7 +147,7 @@ export class Phase9_MoralChoice extends TutorialPhase {
                 this.scene, 
                 this.scene.cameras.main.width / 2 - 180, 
                 this.scene.cameras.main.height - 120, 
-                '⚔️ Slay', 
+                'Slay', 
                 () => this.handleChoice('slay')
             );
 
@@ -155,7 +155,7 @@ export class Phase9_MoralChoice extends TutorialPhase {
                 this.scene, 
                 this.scene.cameras.main.width / 2 + 180, 
                 this.scene.cameras.main.height - 120, 
-                '❤️ Spare', 
+                'Spare', 
                 () => this.handleChoice('spare')
             );
 

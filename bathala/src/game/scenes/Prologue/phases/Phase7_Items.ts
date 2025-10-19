@@ -74,14 +74,14 @@ export class Phase7_Items extends TutorialPhase {
                     id: 'tutorial-amulet', 
                     name: 'Tutorial Amulet', 
                     description: 'Gain 3 Block at combat start.', 
-                    emoji: '🛡️' 
+                    emoji: '' 
                 };
                 this.player.relics.push(tutorialAmulet);
                 this.tutorialUI.updateRelicsDisplay(this.player.relics);
 
                 const success = createInfoBox(
                     this.scene,
-                    '🛡️ Tutorial Amulet acquired! You\'ll gain 3 block at combat start.',
+                    'Tutorial Amulet acquired! You\'ll gain 3 block at combat start.',
                     'success'
                 );
                 this.container.add(success);
@@ -252,7 +252,7 @@ export class Phase7_Items extends TutorialPhase {
                 id: 'elixir-of-fortitude', 
                 name: 'Elixir of Fortitude', 
                 description: 'Gain 15 Block', 
-                emoji: '🧪' 
+                emoji: '' 
             } as any; // Type assertion for tutorial
             this.player.potions.push(elixirOfFortitude);
             this.tutorialUI.updatePotionsDisplay(this.player.potions);
@@ -274,7 +274,7 @@ export class Phase7_Items extends TutorialPhase {
                 this.scene, 
                 this.scene.cameras.main.width / 2, 
                 this.scene.cameras.main.height - 120, 
-                '🧪 Use Elixir of Fortitude', 
+                'Use Elixir of Fortitude', 
                 () => {
                     this.player.block += 15;
                     playerBlock.setText(`Your Block: ${this.player.block} (+15!)`);

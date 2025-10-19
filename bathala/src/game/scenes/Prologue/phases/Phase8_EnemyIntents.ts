@@ -30,7 +30,7 @@ export class Phase8_EnemyIntents extends TutorialPhase {
         );
         this.container.add(header);
 
-        const dialogue = "Enemies telegraph their next move - their INTENT:\n\n⚔️ Attack [X]: Will deal X damage\n🛡️ Defend: Will gain Block\n💪 Buff: Will gain beneficial status\n🔮 Special: Will use unique ability\n❓ Unknown: Unpredictable\n\nThis Bungisngis shows its intent each turn. Adapt your strategy!";
+        const dialogue = "Enemies telegraph their next move - their INTENT:\n\nATTACK [X]: Will deal X damage\nDEFEND: Will gain Block\nBUFF: Will gain beneficial status\nSPECIAL: Will use unique ability\nUNKNOWN: Unpredictable\n\nThis Bungisngis shows its intent each turn. Adapt your strategy!";
 
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
@@ -121,7 +121,7 @@ export class Phase8_EnemyIntents extends TutorialPhase {
                 this.scene,
                 this.scene.cameras.main.width / 2 - 120,
                 this.scene.cameras.main.height - 120,
-                '⚔️ Attack',
+                'Attack',
                 () => this.handlePlayerAction()
             );
 
@@ -129,7 +129,7 @@ export class Phase8_EnemyIntents extends TutorialPhase {
                 this.scene,
                 this.scene.cameras.main.width / 2 + 120,
                 this.scene.cameras.main.height - 120,
-                '🛡️ Defend',
+                'Defend',
                 () => this.handlePlayerAction()
             );
 

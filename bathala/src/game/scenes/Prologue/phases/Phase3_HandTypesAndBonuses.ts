@@ -60,6 +60,38 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                 );
                 this.container.add(tip);
 
+                // Card showcase - only show when tooltip appears
+                const { width, height } = this.scene.cameras.main;
+                const cardContainer = this.scene.add.container(width / 2, height * 0.55);
+                this.container.add(cardContainer);
+
+                const cardSpacing = 100;
+                const totalWidth = (exampleCards.length - 1) * cardSpacing;
+                const startX = -totalWidth / 2;
+
+                exampleCards.forEach((cardData, index) => {
+                    const x = startX + index * cardSpacing;
+                    const card = this.tutorialUI.createCardSprite(
+                        { ...cardData, element: 'fire', selected: false, playable: true } as PlayingCard,
+                        x,
+                        0,
+                        false
+                    );
+
+                    card.setAlpha(0).setY(-30).setScale(0.9);
+                    cardContainer.add(card);
+
+                    this.scene.tweens.add({
+                        targets: card,
+                        alpha: 1,
+                        y: 0,
+                        scale: 1,
+                        duration: 600,
+                        delay: index * 100,
+                        ease: 'Back.easeOut'
+                    });
+                });
+
                 this.scene.time.delayedCall(1500, () => {
                     this.scene.tweens.add({
                         targets: [progress, header, dialogueBox, tip, ...cardContainer.getAll()],
@@ -74,38 +106,6 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                 });
             });
             this.container.add(dialogueBox);
-
-            // Card showcase
-            const { width, height } = this.scene.cameras.main;
-            const cardContainer = this.scene.add.container(width / 2, height / 2 + 220);
-            this.container.add(cardContainer);
-
-            const cardSpacing = 100;
-            const totalWidth = (exampleCards.length - 1) * cardSpacing;
-            const startX = -totalWidth / 2;
-
-            exampleCards.forEach((cardData, index) => {
-                const x = startX + index * cardSpacing;
-                const card = this.tutorialUI.createCardSprite(
-                    { ...cardData, element: 'fire', selected: false, playable: true } as PlayingCard,
-                    x,
-                    0,
-                    false
-                );
-
-                card.setAlpha(0).setY(-30).setScale(0.9);
-                cardContainer.add(card);
-
-                this.scene.tweens.add({
-                    targets: card,
-                    alpha: 1,
-                    y: 0,
-                    scale: 1,
-                    duration: 600,
-                    delay: index * 100,
-                    ease: 'Back.easeOut'
-                });
-            });
         });
     }
 

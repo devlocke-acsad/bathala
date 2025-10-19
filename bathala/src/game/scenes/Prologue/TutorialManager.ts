@@ -246,7 +246,7 @@ export class TutorialManager {
         const notification = this.scene.add.text(
             this.scene.cameras.main.width / 2,
             this.scene.cameras.main.height * 0.3,
-            '⏩ Phase Skipped',
+            'Phase Skipped',
             {
                 fontFamily: 'dungeon-mode',
                 fontSize: 28,

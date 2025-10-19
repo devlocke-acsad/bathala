@@ -67,7 +67,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         );
         this.container.add(header);
 
-        const dialogue = "Status effects shape battles. First, BUFFS:\n\n💪 STRENGTH: +[X] damage per stack\n✨ DEXTERITY: +[X] block per stack\n🛡️ BLOCK: Absorbs damage this turn (resets next turn)\n\nBuffs make you stronger! Use Lupa (Earth) Special to gain Strength.";
+        const dialogue = "Status effects shape battles. First, BUFFS:\n\nSTRENGTH: +[X] damage per stack\nDEXTERITY: +[X] block per stack\nBLOCK: Absorbs damage this turn (resets next turn)\n\nBuffs make you stronger! Use Lupa (Earth) Special to gain Strength.";
 
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
