@@ -22,6 +22,7 @@ import {
 } from "../../data/enemies/Act1Enemies";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 import { RelicManager } from "../../core/managers/RelicManager";
+import { RELIC_EFFECTS, hasRelicEffect, getRelicById } from "../../data/relics/Act1Relics";
 import { commonRelics, eliteRelics, bossRelics } from "../../data/relics/Act1Relics";
 import { EnemyDialogueManager } from "../managers/EnemyDialogueManager";
 import { EnemyLoreUI } from "../managers/EnemyLoreUI";

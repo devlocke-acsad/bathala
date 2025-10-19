@@ -1,7 +1,9 @@
 import { Scene } from "phaser";
 import { GameState } from "../../core/managers/GameState";
+import { RelicManager } from "../../core/managers/RelicManager";
 import { Player, Relic } from "../../core/types/CombatTypes";
 import { allShopItems, ShopItem } from "../../data/relics/ShopItems";
+import { getRelicById } from "../../data/relics/Act1Relics";
 
 export class Shop extends Scene {
   private player!: Player;
@@ -15,66 +17,71 @@ export class Shop extends Scene {
   private currentTooltip: Phaser.GameObjects.Container | null = null;
   private merchantCharacter!: Phaser.GameObjects.Container;
 
-  // Merchant dialogue for different relics
-  private relicDialogues: { [key: string]: string[] } = {
-    "earthwardens_plate": [
-      "Ah, the Earthwarden's Plate! Forged from sacred linga stones in the deepest caves where the earth spirits dwell.",
-      "This armor was blessed by the mountain anitos themselves. It will shield you from harm.",
-      "I found this piece in the ruins of an ancient temple. The earth still whispers its secrets."
-    ],
-    "swift_wind_agimat": [
-      "The Agimat of Swift Wind carries the essence of the Tikbalang's legendary speed!",
-      "This talisman was crafted during the new moon. It grants swiftness to those pure of heart.",
-      "A wind spirit blessed this amulet. It will make your hands faster than the eye can see."
-    ],
-    "babaylans_talisman": [
-      "The Babaylan's Talisman... a powerful artifact from the ancient healers and mystics.",
-      "This belonged to a great babaylan who could speak with the anitos. It enhances one's spiritual power.",
-      "I traded three years of my life to an engkanto for this. It makes your hands blessed by the spirits."
-    ],
-    "echo_of_ancestors": [
-      "The Echo of Ancestors resonates with the voices of those who came before us.",
-      "This relic holds the wisdom of generations. It can unlock possibilities beyond imagination.",
-      "The ancestral spirits whisper through this stone. It grants power over the mystical numbers."
-    ],
-    "ember_fetish": [
-      "This Ember Fetish was carved from the heart of a banana tree at midnight, during Apolaki's sacred hour.",
-      "Feel the warmth of the sun god's blessing! It ignites your inner fire when you're most vulnerable.",
-      "The flames of courage burn within this fetish. Use it wisely, young warrior."
-    ],
-    "umalagad_spirit": [
-      "Umalagad's Spirit... the essence of the great sea serpent that guides lost sailors home.",
-      "This spirit will protect you as it protected the ancient fishermen of Panay.",
-      "The serpent's wisdom flows through this relic. It will sharpen your reflexes in battle."
-    ],
-    "merchants_scale": [
-      "Ah, you have an eye for irony! The Merchant's Scale... it will make all my prices fairer.",
-      "Blessed by Lakambini herself, this scale ensures honest trade. Even I must honor its power.",
-      "This scale has weighed the souls of merchants for centuries. It demands fairness from all."
-    ],
-    "ancestral_blade": [
-      "The Ancestral Blade... a kampilan that has tasted victory in a thousand battles.",
-      "Your ancestors' spirits dwell within this steel. They will guide your strikes true.",
-      "This blade grows stronger when your heart beats in harmony with your heritage."
-    ],
-    "tidal_amulet": [
-      "The Tidal Amulet pulses with the eternal rhythm of the sea. Can you feel its healing power?",
-      "This coral fragment came from the deepest trenches where the diwata dwell.",
-      "The ocean's mercy flows through this charm. It will mend what battle has broken."
-    ],
-    "sarimanok_feather": [
-      "Behold! A feather from the legendary Sarimanok! It brings prosperity to those worthy of its gifts.",
-      "This radiant plume fell from the sky during a solar eclipse. It's worth more than gold itself.",
-      "The Sarimanok's blessing is upon this feather. Success will follow in your wake."
-    ],
-    "default": [
-      "This item holds ancient power from the mystical realms...",
-      "Ah, a fine choice! This artifact has served many heroes before you.",
-      "I acquired this through... unconventional means. But it will serve you well!",
-      "The spirits themselves guided this item to my shop. Perhaps they meant it for you.",
-      "Every relic has a story. This one's tale is written in power and mystery."
-    ]
-  };
+  // Merchant dialogue for different relics - now using centralized relic system
+  private getRelicDialogue(relicId: string): string[] {
+    const relic = getRelicById(relicId);
+    
+    // Return specific dialogues for known relics, or use the relic's description as base
+    const specificDialogues: { [key: string]: string[] } = {
+      "earthwardens_plate": [
+        "Ah, the Earthwarden's Plate! Forged from sacred linga stones in the deepest caves where the earth spirits dwell.",
+        "This armor was blessed by the mountain anitos themselves. It will shield you from harm.",
+        "I found this piece in the ruins of an ancient temple. The earth still whispers its secrets."
+      ],
+      "swift_wind_agimat": [
+        "The Agimat of Swift Wind carries the essence of the Tikbalang's legendary speed!",
+        "This talisman was crafted during the new moon. It grants swiftness to those pure of heart.",
+        "A wind spirit blessed this amulet. It will make your hands faster than the eye can see."
+      ],
+      "babaylans_talisman": [
+        "The Babaylan's Talisman... a powerful artifact from the ancient healers and mystics.",
+        "This belonged to a great babaylan who could speak with the anitos. It enhances one's spiritual power.",
+        "I traded three years of my life to an engkanto for this. It makes your hands blessed by the spirits."
+      ],
+      "echo_ancestors": [
+        "The Echo of Ancestors resonates with the voices of those who came before us.",
+        "This relic holds the wisdom of generations. It can unlock possibilities beyond imagination.",
+        "The ancestral spirits whisper through this stone. It grants power over the mystical numbers."
+      ],
+      "ember_fetish": [
+        "This Ember Fetish was carved from the heart of a banana tree at midnight, during Apolaki's sacred hour.",
+        "Feel the warmth of the sun god's blessing! It ignites your inner fire when you're most vulnerable.",
+        "The flames of courage burn within this fetish. Use it wisely, young warrior."
+      ],
+      "umalagad_spirit": [
+        "Umalagad's Spirit... the essence of the great sea serpent that guides lost sailors home.",
+        "This spirit will protect you as it protected the ancient fishermen of Panay.",
+        "The serpent's wisdom flows through this relic. It will sharpen your reflexes in battle."
+      ],
+      "ancestral_blade": [
+        "The Ancestral Blade... a kampilan that has tasted victory in a thousand battles.",
+        "Your ancestors' spirits dwell within this steel. They will guide your strikes true.",
+        "This blade grows stronger when your heart beats in harmony with your heritage."
+      ],
+      "tidal_amulet": [
+        "The Tidal Amulet pulses with the eternal rhythm of the sea. Can you feel its healing power?",
+        "This coral fragment came from the deepest trenches where the diwata dwell.",
+        "The ocean's mercy flows through this charm. It will mend what battle has broken."
+      ],
+      "sarimanok_feather": [
+        "Behold! A feather from the legendary Sarimanok! It brings prosperity to those worthy of its gifts.",
+        "This radiant plume fell from the sky during a solar eclipse. It's worth more than gold itself.",
+        "The Sarimanok's blessing is upon this feather. Success will follow in your wake."
+      ]
+    };
+
+    // Return specific dialogue if available, otherwise generate from relic description
+    if (specificDialogues[relicId]) {
+      return specificDialogues[relicId];
+    }
+
+    // Generate dialogue from relic description
+    return [
+      `${relic.name}... ${relic.description}`,
+      "This artifact holds ancient power from the mystical realms...",
+      "The spirits themselves guided this item to my shop. Perhaps they meant it for you."
+    ];
+  }
 
   constructor() {
     super({ key: "Shop" });
@@ -82,10 +89,17 @@ export class Shop extends Scene {
 
   init(data: { player: Player }) {
     this.player = data.player;
-    // Filter out relics the player already has
+    // Filter out relics the player already has and exclude merchants_scale (moved to treasure)
     this.shopItems = allShopItems.filter(
-      item => !this.player.relics.some(relic => relic.id === item.item.id)
+      item => item.item.id !== 'merchants_scale' && !this.player.relics.some(relic => relic.id === item.item.id)
     );
+  }
+
+  /**
+   * Calculate the actual price for an item after applying relic discounts
+   */
+  private getActualPrice(item: ShopItem): number {
+    return RelicManager.calculateShopPriceReduction(item.price, this.player);
   }
 
   create(): void {
@@ -945,16 +959,30 @@ export class Shop extends Scene {
       }).setOrigin(0.5, 0.5);
       
       // Price section
+      const actualPrice = this.getActualPrice(item);
+      const hasDiscount = actualPrice < item.price;
+      
       const priceArea = this.add.graphics();
       priceArea.fillStyle(0x1f2937, isOwned ? 0.5 : 0.8);
       priceArea.fillRoundedRect(-cardWidth/2 + 8, cardHeight/2 - 35, cardWidth - 16, 27, 6);
       
-      const priceText = this.add.text(0, cardHeight/2 - 21, `${item.price}`, {
+      const priceText = this.add.text(0, cardHeight/2 - 21, `${actualPrice}`, {
         fontFamily: "dungeon-mode",
         fontSize: 16,
-        color: isOwned ? "#9ca3af" : "#77888C",
+        color: isOwned ? "#9ca3af" : (hasDiscount ? "#2ed573" : "#77888C"),
         fontStyle: "bold"
       }).setOrigin(0.5, 0.5);
+      
+      // Add original price with strikethrough if discounted
+      let originalPriceText = null;
+      if (hasDiscount && !isOwned) {
+        originalPriceText = this.add.text(-30, cardHeight/2 - 21, `${item.price}`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 12,
+          color: "#9ca3af",
+        }).setOrigin(0.5, 0.5);
+        originalPriceText.setStroke("#666666", 1);
+      }
       
       // Owned overlay
       let ownedOverlay = null;
@@ -980,6 +1008,7 @@ export class Shop extends Scene {
       
       // Assemble the button
       const components = [shadow, cardBg, innerHighlight, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
+      if (originalPriceText) components.push(originalPriceText);
       if (ownedOverlay) {
         components.push(ownedOverlay);
         if (ownedText) components.push(ownedText);
@@ -1345,11 +1374,14 @@ export class Shop extends Scene {
     name.setShadow(2, 2, '#000000', 4, false, true);
     
     // Price display with shop theme
+    const actualPrice = this.getActualPrice(item);
+    const hasDiscount = actualPrice < item.price;
+    
     const priceBg = this.add.graphics();
     priceBg.fillStyle(0x150E10, 0.9); // Match shop background
     priceBg.lineStyle(2, 0x77888C, 0.8); // Match shop border
-    priceBg.fillRoundedRect(-80, -panelHeight/2 + 110, 160, 45, 12);
-    priceBg.strokeRoundedRect(-80, -panelHeight/2 + 110, 160, 45, 12);
+    priceBg.fillRoundedRect(-80, -panelHeight/2 + 110, 160, hasDiscount ? 70 : 45, 12);
+    priceBg.strokeRoundedRect(-80, -panelHeight/2 + 110, 160, hasDiscount ? 70 : 45, 12);
     
     let priceEmoji;
     if (item.currency === "ginto") {
@@ -1358,19 +1390,47 @@ export class Shop extends Scene {
       priceEmoji = "💎";
     }
     
-    const priceLabel = this.add.text(0, -panelHeight/2 + 125, "PRICE", {
+    const priceLabel = this.add.text(0, -panelHeight/2 + 125, hasDiscount ? "DISCOUNTED" : "PRICE", {
       fontFamily: "dungeon-mode",
       fontSize: 12,
-      color: "#77888C", // Match shop accent color
+      color: hasDiscount ? "#2ed573" : "#77888C", // Green if discounted
     }).setOrigin(0.5, 0.5);
     
-    const price = this.add.text(0, -panelHeight/2 + 140, `${item.price} ${priceEmoji}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#ffffff", // White for better contrast
-      fontStyle: "bold"
-    }).setOrigin(0.5, 0.5);
-    price.setShadow(1, 1, '#000000', 2, false, true);
+    let tooltipPriceElements: Phaser.GameObjects.GameObject[] = [priceLabel];
+    
+    if (hasDiscount) {
+      const originalPrice = this.add.text(0, -panelHeight/2 + 145, `${item.price} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#888888",
+      }).setOrigin(0.5, 0.5);
+      originalPrice.setStroke("#666666", 2);
+      
+      const price = this.add.text(0, -panelHeight/2 + 165, `${actualPrice} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 24,
+        color: "#2ed573",
+        fontStyle: "bold"
+      }).setOrigin(0.5, 0.5);
+      
+      tooltipPriceElements.push(originalPrice, price);
+    } else {
+      const price = this.add.text(0, -panelHeight/2 + 140, `${actualPrice} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#ffffff",
+        fontStyle: "bold"
+      }).setOrigin(0.5, 0.5);
+      
+      tooltipPriceElements.push(price);
+    }
+    
+    // Add shadow to all price elements
+    tooltipPriceElements.forEach(el => {
+      if (el instanceof Phaser.GameObjects.Text) {
+        el.setShadow(1, 1, '#000000', 2, false, true);
+      }
+    });
     
     // Content sections with shop theme
     const contentStartY = -panelHeight/2 + 200;
@@ -1547,7 +1607,7 @@ export class Shop extends Scene {
     
     // Assemble the modern panel
     panel.add([panelShadow, panelBg, innerHighlight, headerBg, emojiContainer, emoji, name, 
-              priceBg, priceLabel, price, descSection, descTitle, description, 
+              priceBg, ...tooltipPriceElements, descSection, descTitle, description, 
               loreSection, loreTitle, loreText, closeBtn, buyBtn]);
               
     // Entrance animation
@@ -1570,8 +1630,6 @@ export class Shop extends Scene {
         return "An enchanted talisman blessed by the spirits of the wind. It enhances the agility of its bearer, allowing them to move with the swiftness of the breeze and react faster than the eye can see.";
       case "ember_fetish":
         return "A relic imbued with the essence of volcanic fire. When the bearer's defenses are low, the fetish awakens and grants the fury of the forge, empowering them with the strength of molten rock.";
-      case "merchants_scale":
-        return "A mystical scale once used by the legendary Merchant Kings of the ancient trade routes. It bends the laws of commerce in favor of its owner, making all transactions more favorable.";
       case "babaylans_talisman":
         return "A sacred artifact of the Babaylan, the mystical shamans of old. This talisman connects the wearer to ancestral wisdom, allowing them to see the hidden patterns in all things.";
       case "ancestral_blade":
@@ -1600,13 +1658,16 @@ export class Shop extends Scene {
       return;
     }
     
+    // Calculate actual price with relic discounts
+    const actualPrice = this.getActualPrice(item);
+    
     // Check if player can afford the item
-    if (item.currency === "ginto" && this.player.ginto < item.price) {
+    if (item.currency === "ginto" && this.player.ginto < actualPrice) {
       this.showMessage("Not enough Ginto!", "#ff4757");
       return;
     }
     
-    if (item.currency === "diamante" && this.player.diamante < item.price) {
+    if (item.currency === "diamante" && this.player.diamante < actualPrice) {
       this.showMessage("Not enough Diamante!", "#ff4757");
       return;
     }
@@ -1655,6 +1716,10 @@ export class Shop extends Scene {
       color: "#ffd93d",
     }).setOrigin(0.5);
     
+    // Calculate actual price with discounts
+    const actualPrice = this.getActualPrice(item);
+    const hasDiscount = actualPrice < item.price;
+    
     // Price
     let priceColor;
     let priceEmoji;
@@ -1668,11 +1733,41 @@ export class Shop extends Scene {
       priceColor = "#4ecdc4";
       priceEmoji = "💎";
     }
-    const price = this.add.text(0, 10, `Price: ${item.price} ${priceEmoji}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: priceColor,
-    }).setOrigin(0.5);
+    
+    // Show original price with strikethrough if discounted
+    const priceY = hasDiscount ? 0 : 10;
+    let priceElements: Phaser.GameObjects.GameObject[] = [];
+    
+    if (hasDiscount) {
+      const originalPrice = this.add.text(0, priceY, `${item.price} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#888888",
+      }).setOrigin(0.5);
+      originalPrice.setStroke("#666666", 2);
+      
+      const discountedPrice = this.add.text(0, priceY + 25, `${actualPrice} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#2ed573",
+      }).setOrigin(0.5);
+      
+      const discountLabel = this.add.text(0, priceY + 45, `(Merchant's Scale!)`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 12,
+        color: "#2ed573",
+      }).setOrigin(0.5);
+      
+      priceElements.push(originalPrice, discountedPrice, discountLabel);
+    } else {
+      const price = this.add.text(0, priceY, `Price: ${actualPrice} ${priceEmoji}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
+        color: priceColor,
+      }).setOrigin(0.5);
+      
+      priceElements.push(price);
+    }
     
     // Confirm button
     const confirmBtn = this.add.container(-100, dialogHeight/2 - 40);
@@ -1733,20 +1828,26 @@ export class Shop extends Scene {
       cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
     });
     
-    dialog.add([dialogBg, title, itemName, price, confirmBtn, cancelBtn]);
+    dialog.add([dialogBg, title, itemName, ...priceElements, confirmBtn, cancelBtn]);
   }
   
   private proceedWithPurchase(item: ShopItem): void {
+    // Calculate actual price with discounts
+    const actualPrice = this.getActualPrice(item);
+    
     // Deduct currency
     if (item.currency === "ginto") {
-      this.player.ginto -= item.price;
+      this.player.ginto -= actualPrice;
     } else if (item.currency === "diamante") {
-      this.player.diamante -= item.price;
+      this.player.diamante -= actualPrice;
     }
     
     // Add relic to player
     if (item.type === "relic") {
       this.player.relics.push(item.item as Relic);
+      
+      // Apply any immediate relic acquisition effects
+      RelicManager.applyRelicAcquisitionEffect(item.item.id, this.player);
     }
     
     // Update UI with new currency format
@@ -1848,9 +1949,9 @@ export class Shop extends Scene {
   }
 
   private showRandomRelicDialogue(item: ShopItem): void {
-    // Get the appropriate dialogue array for this relic
+    // Get the appropriate dialogue array for this relic using centralized system
     const relicId = item.item.id;
-    const dialogues = this.relicDialogues[relicId] || this.relicDialogues["default"];
+    const dialogues = this.getRelicDialogue(relicId);
     
     // Pick a random dialogue
     const randomDialogue = dialogues[Math.floor(Math.random() * dialogues.length)];

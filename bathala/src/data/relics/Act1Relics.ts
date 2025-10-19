@@ -1,8 +1,9 @@
 import { Relic } from "../../core/types/CombatTypes";
 
 /**
- * Act 1 Relics for Bathala
+ * Act 1 Relics for Bathala - MAIN SOURCE OF TRUTH
  * Based on Filipino mythology - Chapter 1: The Corrupted Ancestral Forests (Lupa/Hangin Focus)
+ * This file contains ALL relic definitions and is the single source of truth
  */
 
 // Common relics (tied to regular enemies)
@@ -102,17 +103,18 @@ export const treasureRelics: Relic[] = [
     name: "Tigmamanukan's Eye",
     description: "The all-seeing eye of the prophetic bird. Draw 1 additional card at the start of each combat.",
     emoji: "👁️"
-  }
-];
-
-// Shop relics (available for purchase)
-export const shopRelics: Relic[] = [
+  },
   {
     id: "merchants_scale",
     name: "Merchant's Scale",
     description: "A balance blessed by Lakambini to ensure fair trade. All shop items are 20% cheaper.",
     emoji: "⚖️"
-  },
+  }
+];
+
+// Shop relics (available for purchase)
+// Note: merchants_scale has been moved to treasureRelics for random encounters
+export const shopRelics: Relic[] = [
   {
     id: "bargain_talisman",
     name: "Bargain Talisman",
@@ -194,3 +196,145 @@ export const allAct1Relics: Relic[] = [
   ...shopRelics,
   ...mythologicalRelics
 ];
+
+/**
+ * RELIC REGISTRY - Single source of truth for all relic data
+ * Use this for any relic lookups, effects, or management
+ */
+export const RELIC_REGISTRY = {
+  // Relic categories
+  COMMON: commonRelics,
+  ELITE: eliteRelics,
+  BOSS: bossRelics,
+  TREASURE: treasureRelics,
+  SHOP: shopRelics,
+  MYTHOLOGICAL: mythologicalRelics,
+  ALL: allAct1Relics,
+  
+  // Relic lookup by ID
+  getById: (id: string): Relic | undefined => {
+    return allAct1Relics.find(relic => relic.id === id);
+  },
+  
+  // Get relics by category
+  getByCategory: (category: 'common' | 'elite' | 'boss' | 'treasure' | 'shop' | 'mythological'): Relic[] => {
+    switch (category) {
+      case 'common': return commonRelics;
+      case 'elite': return eliteRelics;
+      case 'boss': return bossRelics;
+      case 'treasure': return treasureRelics;
+      case 'shop': return shopRelics;
+      case 'mythological': return mythologicalRelics;
+      default: return [];
+    }
+  },
+  
+  // Get shop-available relics (common + elite + some treasure)
+  getShopRelics: (): Relic[] => {
+    return [...commonRelics, ...eliteRelics, ...treasureRelics];
+  },
+  
+  // Get boss-only relics
+  getBossRelics: (): Relic[] => {
+    return bossRelics;
+  },
+  
+  // Get mythological relics
+  getMythologicalRelics: (): Relic[] => {
+    return mythologicalRelics;
+  }
+};
+
+/**
+ * RELIC EFFECTS REGISTRY - Maps relic IDs to their effect types
+ * This makes it easy to find which relics have which effects
+ */
+export const RELIC_EFFECTS = {
+  // Start of combat effects
+  START_OF_COMBAT: [
+    'earthwardens_plate',      // +5 block
+    'swift_wind_agimat',       // +1 discard charge
+    'umalagad_spirit',         // +1 dexterity
+    'diwatas_crown',           // +10 block, +1 dexterity
+    'stone_golem_heart',        // +10 max HP, +2 block
+    'bakunawa_scale',          // +5 max HP, damage reduction
+    'tigmamanukan_eye'         // +1 card draw
+  ],
+  
+  // Start of turn effects
+  START_OF_TURN: [
+    'ember_fetish'             // +3 strength if no block
+  ],
+  
+  // End of turn effects
+  END_OF_TURN: [
+    'tidal_amulet'             // heal 2 HP per card in hand
+  ],
+  
+  // Hand evaluation effects
+  HAND_EVALUATION: [
+    'babaylans_talisman',      // hand tier +1
+    'echo_ancestors'           // enables five of a kind
+  ],
+  
+  // After hand played effects
+  AFTER_HAND_PLAYED: [
+    'ancestral_blade',         // +2 strength on flush
+    'sarimanok_feather',       // +1 ginto on straight+
+    'lucky_charm',             // +1 ginto on straight+
+    'wind_veil'                // +1 draw per hangin card
+  ],
+  
+  // Passive combat effects
+  PASSIVE_COMBAT: [
+    'tikbalangs_hoof',         // +10% dodge
+    'balete_root',             // +2 block per lupa card
+    'sigbin_heart',            // +5 damage when low health
+    'duwende_charm',           // +10% avoid weak
+    'tiyanak_tear',            // ignore 1 fear
+    'amomongo_claw',           // +3 bleed damage
+    'bungisngis_grin',         // +5 damage on debuff
+    'mangangaway_wand',        // ignore 1 curse
+    'kapres_cigar'             // summon minion once per combat
+  ],
+  
+  // Shop effects
+  SHOP_EFFECTS: [
+    'merchants_scale',         // 20% cheaper items
+    'bargain_talisman'         // first item free per act
+  ],
+  
+  // Permanent effects (applied when acquired)
+  PERMANENT_EFFECTS: [
+    'stone_golem_heart',       // +10 max HP
+    'bakunawa_scale',          // +5 max HP
+    'tigmamanukan_eye'         // passive card draw
+  ]
+};
+
+/**
+ * Helper function to check if a relic has a specific effect type
+ */
+export function hasRelicEffect(relicId: string, effectType: keyof typeof RELIC_EFFECTS): boolean {
+  return RELIC_EFFECTS[effectType].includes(relicId);
+}
+
+/**
+ * Helper function to get all relics with a specific effect type
+ */
+export function getRelicsWithEffect(effectType: keyof typeof RELIC_EFFECTS): Relic[] {
+  return RELIC_EFFECTS[effectType]
+    .map(id => RELIC_REGISTRY.getById(id))
+    .filter((relic): relic is Relic => relic !== undefined);
+}
+
+/**
+ * Helper function to get relic by ID with type safety
+ */
+export function getRelicById(id: string): Relic {
+  const relic = RELIC_REGISTRY.getById(id);
+  if (!relic) {
+    throw new Error(`Relic with ID "${id}" not found in registry`);
+  }
+  return relic;
+}
