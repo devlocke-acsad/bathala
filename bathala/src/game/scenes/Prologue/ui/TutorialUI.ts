@@ -14,7 +14,7 @@ export class TutorialUI {
 
     constructor(scene: Scene) {
         this.scene = scene;
-        this.handContainer = this.scene.add.container(this.scene.cameras.main.width / 2, this.scene.cameras.main.height - 280);
+        this.handContainer = this.scene.add.container(this.scene.cameras.main.width / 2, this.scene.cameras.main.height - 350);
         this.handContainer.setDepth(1500); // Ensure hand is visible but below played cards
         this.relicsContainer = this.scene.add.container(100, 100);
         this.potionsContainer = this.scene.add.container(100, 200);

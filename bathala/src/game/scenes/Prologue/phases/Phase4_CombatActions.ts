@@ -230,17 +230,6 @@ export class Phase4_CombatActions extends TutorialPhase {
             }
             this.container.add(this.playerSprite);
 
-            // Player shadow
-            const playerShadow = this.scene.add.ellipse(
-                playerX,
-                playerY + 60,
-                80,
-                20,
-                0x000000,
-                0.3
-            );
-            this.container.add(playerShadow);
-
             // Calculate proper Y offsets
             const playerScale = 2;
             const playerSpriteScaledHeight = this.playerSprite.height * playerScale;
@@ -298,17 +287,6 @@ export class Phase4_CombatActions extends TutorialPhase {
                 this.enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
             }
             this.container.add(this.enemySprite);
-
-            // Enemy shadow
-            const enemyShadow = this.scene.add.ellipse(
-                enemyX,
-                enemyY + 100,
-                120,
-                30,
-                0x000000,
-                0.3
-            );
-            this.container.add(enemyShadow);
 
             // Calculate enemy offsets
             const enemySpriteScaledHeight = this.enemySprite.height * finalScale;
