@@ -8,6 +8,7 @@ import { DeckManager } from "../../utils/DeckManager";
 import { Overworld_KeyInputManager } from "./Overworld_KeyInputManager";
 import { Overworld_MazeGenManager } from "./Overworld_MazeGenManager";
 import { Overworld_TooltipManager } from "./Overworld_TooltipManager";
+import { Overworld_FogOfWarManager } from "./Overworld_FogOfWarManager";
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   private keyInputManager!: Overworld_KeyInputManager;
@@ -42,6 +43,9 @@ export class Overworld extends Scene {
   
   // Tooltip Manager
   private tooltipManager!: Overworld_TooltipManager;
+  
+  // Fog of War Manager
+  private fogOfWarManager!: Overworld_FogOfWarManager;
 
   constructor() {
     super({ key: "Overworld" });
@@ -233,6 +237,9 @@ export class Overworld extends Scene {
     
     // Create enemy info tooltip
     this.createEnemyTooltip();
+    
+    // Create fog of war system
+    this.createFogOfWar();
     
     // Create UI elements with a slight delay to ensure camera is ready
     this.time.delayedCall(10, this.createUI, [], this);
@@ -1033,6 +1040,11 @@ export class Overworld extends Scene {
           
           // Update visible chunks as player moves
           this.updateVisibleChunks();
+          
+          // Update fog of war
+          if (this.fogOfWarManager) {
+            this.fogOfWarManager.update(this.player.x, this.player.y);
+          }
           
           // Move nearby enemy nodes toward player during nighttime
           this.moveEnemiesNighttime();
@@ -4059,7 +4071,29 @@ ${potion.description}`, {
     console.log("Creating enemy tooltip system...");
     this.tooltipManager = new Overworld_TooltipManager(this);
     this.tooltipManager.initialize();
-    console.log("Enemy tooltip system created successfully via TooltipManager");
   }
-  
+
+  /**
+   * Create fog of war system
+   */
+  private createFogOfWar(): void {
+    console.log("Creating fog of war system...");
+    this.fogOfWarManager = new Overworld_FogOfWarManager(this);
+    this.fogOfWarManager.initialize(this.player.x, this.player.y);
+    
+    // Configure fog parameters (easily editable)
+    this.fogOfWarManager.setFogParameters({
+      tileSize: 32,              // Size of each fog tile
+      visibilityRadius: 8,       // How far player can see (in tiles)
+      gradientSteps: 4,          // Number of pixel-stepped gradient levels
+      fogColor: 0x000000,        // Black fog
+      maxFogOpacity: 0.85,       // Maximum darkness
+      minFogOpacity: 0.0,        // Fully visible at center
+      persistentFog: true,       // Fog stays revealed
+      fogDepth: 500,             // Below HUDs (1000+), above map (0-499)
+      updateInterval: 100        // Update every 100ms
+    });
+    
+    console.log("✅ Fog of war system initialized");
+  }
 }
