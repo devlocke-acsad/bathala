@@ -369,7 +369,7 @@ export class Shop extends Scene {
   private createMerchantCharacter(): void {
     const screenHeight = this.cameras.main.height;
     
-    // Position merchant on the left side - matching UI layout style
+    // Position merchant on the left side - matching card layout
     const merchantX = 180;
     const merchantY = screenHeight * 0.5;
     
@@ -377,56 +377,45 @@ export class Shop extends Scene {
     this.merchantCharacter = this.add.container(merchantX, merchantY);
     this.merchantCharacter.setDepth(500);
     
-    // Create main merchant background panel - matching the shop UI style
+    // Match the premium card design with layered approach
     const panelWidth = 280;
     const panelHeight = 400;
     
-    // Main dark background panel
-    const merchantPanel = this.add.graphics();
-    merchantPanel.fillStyle(0x0a0a0a, 0.95);
-    merchantPanel.fillRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 12);
+    // LAYER 1: Outer glow (matching card outerGlow)
+    const outerGlow = this.add.rectangle(0, 0, panelWidth, panelHeight, 0xfbbf24, 0.12)
+      .setStrokeStyle(2, 0xfbbf24, 0.5);
     
-    // Outer glowing border - matching the shop item style
-    merchantPanel.lineStyle(3, 0x77888C, 1.0);
-    merchantPanel.strokeRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 12);
+    // LAYER 2: Main background (matching card background)
+    const background = this.add.rectangle(0, 0, panelWidth - 8, panelHeight - 8, 0x1d151a)
+      .setStrokeStyle(1, 0x4a3a40);
     
-    // Inner accent border
-    merchantPanel.lineStyle(1.5, 0x9BA3A7, 0.8);
-    merchantPanel.strokeRoundedRect(-panelWidth/2 + 8, -panelHeight/2 + 8, panelWidth - 16, panelHeight - 16, 8);
+    // LAYER 3: Top decorative accent bar (matching card topBar)
+    const topBar = this.add.rectangle(0, -panelHeight/2 + 9, panelWidth - 16, 6, 0xfbbf24, 0.7);
     
-    // Create title banner at top
-    const titleBanner = this.add.graphics();
-    titleBanner.fillStyle(0x77888C, 0.3);
-    titleBanner.fillRoundedRect(-panelWidth/2 + 10, -panelHeight/2 + 10, panelWidth - 20, 50, 8);
-    titleBanner.lineStyle(1, 0x9BA3A7, 0.6);
-    titleBanner.strokeRoundedRect(-panelWidth/2 + 10, -panelHeight/2 + 10, panelWidth - 20, 50, 8);
-    
-    // Merchant title text
+    // Title text with gold theme (matching shop gold color)
     const merchantTitle = this.add.text(0, -panelHeight/2 + 35, 'MYSTERIOUS', {
       fontFamily: 'dungeon-mode',
       fontSize: 16,
-      color: '#E8E8E8',
+      color: '#fbbf24',
       align: 'center'
     }).setOrigin(0.5);
     
     const merchantSubtitle = this.add.text(0, -panelHeight/2 + 52, 'MERCHANT', {
       fontFamily: 'dungeon-mode',
       fontSize: 20,
-      color: '#77888C',
-      align: 'center'
+      color: '#fbbf24',
+      align: 'center',
+      fontStyle: 'bold'
     }).setOrigin(0.5);
     
-    // Create centered sprite area with border
-    const spriteAreaX = 30; // Slightly to the right
-    const spriteAreaY = 10; // Center vertically in panel
-    const spriteArea = this.add.graphics();
-    spriteArea.fillStyle(0x1a1a1a, 0.8);
-    spriteArea.fillRoundedRect(spriteAreaX - 80, spriteAreaY - 120, 160, 240, 8);
-    spriteArea.lineStyle(2, 0x77888C, 0.6);
-    spriteArea.strokeRoundedRect(spriteAreaX - 80, spriteAreaY - 120, 200, 240, 8);
+    // Sprite frame area (matching card spriteFrame style)
+    const spriteFrameWidth = 220;
+    const spriteFrameHeight = 260;
+    const spriteFrame = this.add.rectangle(0, 20, spriteFrameWidth, spriteFrameHeight, 0x000000, 0)
+      .setStrokeStyle(2, 0xffffff, 0.3);
     
     // Create the static merchant sprite - no animation
-    const merchantSprite = this.add.sprite(spriteAreaX, spriteAreaY, 'merchant_main');
+    const merchantSprite = this.add.sprite(0, 20, 'merchant_main');
     merchantSprite.setScale(0.8); // Keep the same size
     
     // Make merchant sprite interactive for dialogue
@@ -441,37 +430,35 @@ export class Shop extends Scene {
       this.input.setDefaultCursor('default');
     });
 
-    // Add subtle mystical effects around the sprite
+    // Add subtle mystical glow effect (gold theme)
     const magicGlow = this.add.graphics();
-    magicGlow.fillStyle(0x77888C, 0.15);
-    magicGlow.fillCircle(spriteAreaX, spriteAreaY, 100);
+    magicGlow.fillStyle(0xfbbf24, 0.15);
+    magicGlow.fillCircle(0, 20, 100);
     
     // Create dialogue system
     this.createMerchantDialogueSystem();
     
-    // Add description area at bottom
-    const descArea = this.add.graphics();
-    descArea.fillStyle(0x77888C, 0.15);
-    descArea.fillRoundedRect(-panelWidth/2 + 15, panelHeight/2 - 80, panelWidth - 30, 60, 6);
-    descArea.lineStyle(1, 0x9BA3A7, 0.4);
-    descArea.strokeRoundedRect(-panelWidth/2 + 15, panelHeight/2 - 80, panelWidth - 30, 60, 6);
+    // Bottom description area (matching card style)
+    const descArea = this.add.rectangle(0, panelHeight/2 - 50, panelWidth - 30, 60, 0xfbbf24, 0.1)
+      .setStrokeStyle(1, 0xfbbf24, 0.3);
     
-    // Description text
+    // Description text with gold theme
     const descText = this.add.text(0, panelHeight/2 - 50, 'Dealer of rare relics\nand mystical artifacts', {
       fontFamily: 'dungeon-mode',
       fontSize: 12,
-      color: '#9BA3A7',
+      color: '#fbbf24',
       align: 'center'
     }).setOrigin(0.5);
     
-    // Add all elements to container
+    // Add all elements to container (layered approach matching cards)
     this.merchantCharacter.add([
-      magicGlow,
-      merchantPanel,
-      titleBanner,
+      outerGlow,
+      background,
+      topBar,
       merchantTitle,
       merchantSubtitle,
-      spriteArea,
+      spriteFrame,
+      magicGlow,
       merchantSprite,
       descArea,
       descText
@@ -772,22 +759,19 @@ export class Shop extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Create scrollable container
-    const scrollContainer = this.add.container(0, 0);
-    scrollContainer.setDepth(1000);
+    // Create non-scrollable container positioned to the right of merchant
+    const shopContainer = this.add.container(0, 0);
+    shopContainer.setDepth(1000);
     
     // All items now use gold currency
     const allItems = this.shopItems;
     
-    // Create single clean section
-    const sectionY = 320;
-    this.createCategorySection("Shop Items 💰", allItems, screenWidth, sectionY, scrollContainer);
+    // Position cards with more top margin - NO TITLE
+    const sectionY = 300; // Reduced since no title (was 280)
+    this.createDiscoverStyleSection(allItems, screenWidth, sectionY, shopContainer);
     
-    // Add scroll functionality
-    this.setupScrolling(scrollContainer, screenHeight);
-    
-    // Store container reference for resizing
-    this.scrollContainer = scrollContainer;
+    // Store container reference for resizing (no scrolling)
+    this.scrollContainer = shopContainer;
   }
 
   private setupScrolling(container: Phaser.GameObjects.Container, screenHeight: number): void {
@@ -860,278 +844,242 @@ export class Shop extends Scene {
     });
   }
 
-  private createCategorySection(title: string, items: ShopItem[], screenWidth: number, startY: number, scrollContainer: Phaser.GameObjects.Container): void {
-    // Create category title with Prologue styling
-    const titleY = startY - 100;
+  /**
+   * Create Discover-style premium card section for shop items - 6x6 grid with proper margins
+   */
+  private createDiscoverStyleSection(items: ShopItem[], screenWidth: number, startY: number, scrollContainer: Phaser.GameObjects.Container): void {
+    // 6-column grid configuration with proper left and right margins
+    const leftMargin = 380; // Left margin to clear merchant
+    const rightMargin = 100; // Right margin for balance
+    const cardWidth = 180;  // Adjusted for 6 columns
+    const cardHeight = 240; // Proportionally adjusted height
+    const cardSpacing = 30; // Spacing between cards
+    const cardsPerRow = 6; // Fixed 6-column grid
     
-    const categoryTitle = this.add.text(screenWidth / 2, titleY, title, {
-      fontFamily: "dungeon-mode",
-      fontSize: 28,
-      color: "#77888C",
-      align: "center",
-      fontStyle: "bold"
-    }).setOrigin(0.5);
-    
-    // Simple title background
-    const titleBg = this.add.graphics();
-    const titleWidth = 350;
-    const titleHeight = 50;
-    
-    // Single border with Prologue colors
-    titleBg.lineStyle(2, 0x77888C);
-    titleBg.strokeRoundedRect(screenWidth / 2 - titleWidth / 2, titleY - titleHeight / 2, titleWidth, titleHeight, 10);
-    
-    // Background
-    titleBg.fillStyle(0x150E10, 0.9);
-    titleBg.fillRoundedRect(screenWidth / 2 - titleWidth / 2, titleY - titleHeight / 2, titleWidth, titleHeight, 10);
-    
-    // Set depth
-    titleBg.setDepth(1100);
-    categoryTitle.setDepth(1101);
-    
-    // Add to scroll container
-    scrollContainer.add([titleBg, categoryTitle]);
-    
-    // Clean grid layout - 3 items per row like Prologue
-    const cardWidth = 140;
-    const cardHeight = 160;
-    const itemsPerRow = 3;
-    const spacingX = 60; // More generous horizontal spacing
-    const spacingY = 80; // More generous vertical spacing
-    const gridStartX = (screenWidth - (itemsPerRow * (cardWidth + spacingX) - spacingX)) / 2;
+    // Calculate grid starting position with left margin
+    const gridStartX = leftMargin + cardWidth / 2;
     const gridStartY = startY;
 
     items.forEach((item, index) => {
-      const row = Math.floor(index / itemsPerRow);
-      const col = index % itemsPerRow;
-      const x = gridStartX + col * (cardWidth + spacingX);
-      const y = gridStartY + row * (cardHeight + spacingY);
+      const row = Math.floor(index / cardsPerRow);
+      const col = index % cardsPerRow;
+      const x = gridStartX + col * (cardWidth + cardSpacing);
+      const y = gridStartY + row * (cardHeight + cardSpacing);
 
-      const button = this.add.container(x, y);
+      const card = this.createDiscoverStyleCard(item, x, y, cardWidth, cardHeight);
+      scrollContainer.add(card);
+      this.relicButtons.push(card);
+    });
+  }
+
+  /**
+   * Create a single Discover-style premium card for shop item
+   */
+  private createDiscoverStyleCard(item: ShopItem, x: number, y: number, width: number, height: number): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+    
+    // Check if player already owns this relic
+    const isOwned = this.player.relics.some(relic => relic.id === item.item.id);
+    
+    // Determine rarity/type color (gold for shop items)
+    const typeColorHex = "#fbbf24"; // Gold color for shop items
+    const typeColor = 0xfbbf24;
+    
+    // Layered card background for depth (matching Discover)
+    const outerGlow = this.add.rectangle(0, 0, width, height, typeColor, isOwned ? 0.06 : 0.12)
+      .setStrokeStyle(2, typeColor, isOwned ? 0.25 : 0.5)
+      .setOrigin(0.5);
       
-      // Check if player already owns this relic
-      const isOwned = this.player.relics.some(relic => relic.id === item.item.id);
+    const background = this.add.rectangle(0, 0, width - 8, height - 8, 0x1d151a)
+      .setStrokeStyle(1, 0x4a3a40)
+      .setOrigin(0.5);
+    
+    // Top decorative accent bar
+    const topBar = this.add.rectangle(0, -height/2 + 12, width - 16, 6, typeColor, isOwned ? 0.35 : 0.7)
+      .setOrigin(0.5);
+    
+    // Price badge at top (replacing type badge)
+    const actualPrice = this.getActualPrice(item);
+    const hasDiscount = actualPrice < item.price;
+    const priceBadge = this.add.rectangle(0, -height/2 + 39, 110, 28, 0x2a1f24)
+      .setStrokeStyle(2, typeColor)
+      .setOrigin(0.5);
       
-      // Clean card background with Prologue theme
-      const cardBg = this.add.graphics();
-      if (isOwned) {
-        // Owned state - muted
-        cardBg.fillStyle(0x2a2a2a, 0.7);
-        cardBg.lineStyle(2, 0x444444, 0.5);
+    const priceText = this.add.text(0, -height/2 + 39, `💰 ${actualPrice}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: isOwned ? "#9ca3af" : (hasDiscount ? "#2ed573" : typeColorHex),
+      fontStyle: "bold"
+    }).setOrigin(0.5);
+    
+    // Sprite container frame with subtle shadow
+    const spriteFrame = this.add.rectangle(0, -height/2 + 160, 200, 200, 0x0f0a0d)
+      .setStrokeStyle(1, typeColor, isOwned ? 0.2 : 0.4)
+      .setOrigin(0.5);
+    
+    // Get sprite key for this relic
+    const spriteKey = getRelicSpriteKey(item.item.id);
+    
+    // Character sprite - NATURAL ASPECT RATIO with max width constraint
+    let itemVisual: Phaser.GameObjects.GameObject;
+    if (this.textures.exists(spriteKey)) {
+      const sprite = this.add.image(0, -height/2 + 160, spriteKey).setOrigin(0.5);
+      const texture = this.textures.get(spriteKey);
+      const frame = texture.get();
+      const aspectRatio = frame.width / frame.height;
+      const maxWidth = 190;
+      const maxHeight = 190;
+      
+      let displayWidth, displayHeight;
+      if (aspectRatio > 1) {
+        displayWidth = Math.min(maxWidth, frame.width);
+        displayHeight = displayWidth / aspectRatio;
       } else {
-        // Available items with clean Prologue styling
-        cardBg.fillStyle(0x150E10, 0.95);
-        cardBg.lineStyle(2, 0x77888C, 0.9);
-      }
-      cardBg.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
-      cardBg.strokeRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
-      
-      // Icon area background
-      const iconArea = this.add.graphics();
-      if (isOwned) {
-        iconArea.fillStyle(0x374151, 0.5);
-      } else {
-        iconArea.fillStyle(0x77888C, 0.15);
-      }
-      iconArea.fillRoundedRect(-cardWidth/2 + 10, -cardHeight/2 + 10, cardWidth - 20, 80, 8);
-      
-      // Get sprite key for this relic
-      const spriteKey = getRelicSpriteKey(item.item.id);
-      
-      // Item icon - use sprite if available, fallback to emoji
-      let itemIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
-      
-      if (spriteKey && this.textures.exists(spriteKey)) {
-        // Use sprite if available
-        itemIcon = this.add.image(0, -cardHeight/2 + 50, spriteKey)
-          .setOrigin(0.5)
-          .setDisplaySize(64, 64); // Larger sprite for better visibility
-        if (isOwned) {
-          itemIcon.setAlpha(0.6);
-        }
-      } else {
-        // Fallback to emoji if sprite not found
-        itemIcon = this.add.text(0, -cardHeight/2 + 43, item.emoji, {
-          fontSize: 48,
-        }).setOrigin(0.5, 0.5);
-        if (isOwned) {
-          itemIcon.setAlpha(0.6);
-        }
+        displayHeight = Math.min(maxHeight, frame.height);
+        displayWidth = displayHeight * aspectRatio;
       }
       
-      // Currency badge - gold only now
-      const currencyColor = 0xfbbf24;
-      const currencyEmoji = "�";
-      
-      const currencyBadge = this.add.graphics();
-      currencyBadge.fillStyle(currencyColor, isOwned ? 0.4 : 0.9);
-      currencyBadge.fillRoundedRect(cardWidth/2 - 28, -cardHeight/2 + 8, 22, 22, 11);
-      
-      const currencyIcon = this.add.text(cardWidth/2 - 17, -cardHeight/2 + 19, currencyEmoji, {
-        fontSize: 14,
-      }).setOrigin(0.5, 0.5);
-      
-      // Price section with Prologue styling
-      const actualPrice = this.getActualPrice(item);
-      const hasDiscount = actualPrice < item.price;
-      
-      const priceArea = this.add.graphics();
-      priceArea.fillStyle(0x1f2937, isOwned ? 0.5 : 0.8);
-      priceArea.fillRoundedRect(-cardWidth/2 + 10, cardHeight/2 - 40, cardWidth - 20, 30, 6);
-      
-      const priceText = this.add.text(0, cardHeight/2 - 25, `${actualPrice}`, {
+      sprite.setDisplaySize(displayWidth, displayHeight);
+      if (isOwned) sprite.setAlpha(0.6);
+      itemVisual = sprite;
+    } else {
+      const symbolText = this.add.text(0, -height/2 + 160, item.emoji, {
+        fontSize: 80,
+        color: "#e8eced"
+      }).setOrigin(0.5);
+      if (isOwned) symbolText.setAlpha(0.6);
+      itemVisual = symbolText;
+    }
+    
+    // Item name with better visibility
+    const nameText = this.add.text(0, height/2 - 66, item.name, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 18,
+      color: isOwned ? "#9ca3af" : "#e8eced",
+      wordWrap: { width: width - 30 },
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Price display panel at bottom
+    const pricePanel = this.add.rectangle(0, height/2 - 22, width - 16, 35, 0x0f0a0d)
+      .setStrokeStyle(1, 0x4a3a40)
+      .setOrigin(0.5);
+    
+    // Original price with strikethrough if discounted
+    let discountText = null;
+    if (hasDiscount && !isOwned) {
+      discountText = this.add.text(-30, height/2 - 22, `${item.price}`, {
         fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: isOwned ? "#9ca3af" : (hasDiscount ? "#2ed573" : "#77888C"),
+        fontSize: 14,
+        color: "#9ca3af"
+      }).setOrigin(0.5);
+      discountText.setStroke("#666666", 1);
+    }
+    
+    const finalPriceLabel = this.add.text(hasDiscount && !isOwned ? 20 : 0, height/2 - 32, hasDiscount && !isOwned ? "SALE" : "PRICE", {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: hasDiscount && !isOwned ? "#2ed573" : "#77888C"
+    }).setOrigin(0.5);
+    
+    const finalPriceValue = this.add.text(hasDiscount && !isOwned ? 20 : 0, height/2 - 14, `${actualPrice} 💰`, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: isOwned ? "#666666" : (hasDiscount ? "#2ed573" : "#fbbf24")
+    }).setOrigin(0.5);
+    
+    // Add all elements to container in proper z-order
+    const components = [outerGlow, background, topBar, priceBadge, priceText, spriteFrame, 
+                       itemVisual, nameText, pricePanel, finalPriceLabel, finalPriceValue];
+    if (discountText) components.push(discountText);
+    
+    // Owned overlay (matching Discover style)
+    if (isOwned) {
+      const ownedOverlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.65)
+        .setOrigin(0.5);
+      
+      const ownedText = this.add.text(0, 0, "OWNED", {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 20,
+        color: "#10b981",
         fontStyle: "bold"
-      }).setOrigin(0.5, 0.5);
+      }).setOrigin(0.5);
       
-      // Add original price with strikethrough if discounted
-      let originalPriceText = null;
-      if (hasDiscount && !isOwned) {
-        originalPriceText = this.add.text(-35, cardHeight/2 - 25, `${item.price}`, {
-          fontFamily: "dungeon-mode",
-          fontSize: 14,
-          color: "#9ca3af",
-        }).setOrigin(0.5, 0.5);
-        originalPriceText.setStroke("#666666", 1);
-      }
+      const checkMark = this.add.text(0, -30, "✓", {
+        fontSize: 36,
+        color: "#10b981",
+      }).setOrigin(0.5);
       
-      // Owned overlay
-      let ownedOverlay = null;
-      let ownedText = null;
-      let checkMark = null;
-      if (isOwned) {
-        ownedOverlay = this.add.graphics();
-        ownedOverlay.fillStyle(0x000000, 0.65);
-        ownedOverlay.fillRoundedRect(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight, 12);
-        
-        ownedText = this.add.text(0, 0, "OWNED", {
-          fontFamily: "dungeon-mode",
-          fontSize: 20,
-          color: "#10b981",
-          fontStyle: "bold"
-        }).setOrigin(0.5);
-        
-        checkMark = this.add.text(0, -30, "✓", {
-          fontSize: 36,
-          color: "#10b981",
-        }).setOrigin(0.5);
-      }
-      
-      // Assemble the button with clean components
-      const components = [cardBg, iconArea, itemIcon, currencyBadge, currencyIcon, priceArea, priceText];
-      if (originalPriceText) components.push(originalPriceText);
-      if (ownedOverlay) {
-        components.push(ownedOverlay);
-        if (ownedText) components.push(ownedText);
-        if (checkMark) components.push(checkMark);
-      }
-      button.add(components);
-      
-      // Enhanced interactivity for available items
-      if (!isOwned) {
-        button.setInteractive(
-          new Phaser.Geom.Rectangle(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight),
-          Phaser.Geom.Rectangle.Contains
-        );
-        
-        // Store references for hover effects - create once, reuse
-        let hoverGlow: Phaser.GameObjects.Graphics | null = null;
-        let isHovering = false;
-        let hoverTween: Phaser.Tweens.Tween | null = null;
-        let scaleTween: Phaser.Tweens.Tween | null = null;
-        
-        button.on("pointerdown", () => {
-          // 40% chance to trigger merchant dialogue when clicking on a relic
+      components.push(ownedOverlay, checkMark, ownedText);
+    }
+    
+    container.add(components);
+    
+    // Enhanced hover effects (matching Discover)
+    if (!isOwned) {
+      background.setInteractive(new Phaser.Geom.Rectangle(-width/2, -height/2, width, height), Phaser.Geom.Rectangle.Contains)
+        .on('pointerdown', () => {
+          // 40% chance to trigger merchant dialogue
           if (Math.random() < 0.4) {
             this.showRandomRelicDialogue(item);
           }
           this.showItemDetails(item);
-        });
-        
-        button.on("pointerover", () => {
-          if (isHovering) return; // Prevent multiple hover events
-          isHovering = true;
-          
-          // Stop any existing tweens
-          if (hoverTween) hoverTween.stop();
-          if (scaleTween) scaleTween.stop();
-          
-          // Optimized hover effect - single tween for all components
-          const componentsToTween = [cardBg, iconArea, itemIcon, currencyBadge, currencyIcon, priceArea, priceText];
-          hoverTween = this.tweens.add({
-            targets: componentsToTween,
-            alpha: 0.7, // Less dramatic change for better performance
-            duration: 100, // Faster transition
-            ease: 'Power1.easeOut'
+        })
+        .on('pointerover', () => {
+          // Glow effect
+          this.tweens.add({
+            targets: outerGlow,
+            alpha: 0.25,
+            scaleX: 1.02,
+            scaleY: 1.02,
+            duration: 200,
+            ease: 'Power2'
           });
           
-          // Subtle scale effect
-          scaleTween = this.tweens.add({
-            targets: button,
-            scale: 1.02,
-            duration: 100,
-            ease: 'Power1.easeOut'
-          });
-          
-          // Create glow effect only once
-          if (!hoverGlow) {
-            hoverGlow = this.add.graphics();
-            hoverGlow.lineStyle(2, 0x77888C, 0.5); // Thinner line for better performance
-            hoverGlow.strokeRoundedRect(-cardWidth/2 - 1, -cardHeight/2 - 1, cardWidth + 2, cardHeight + 2, 12);
-            button.addAt(hoverGlow, 1); // Add after shadow but before card
-          }
-          hoverGlow.setAlpha(1);
-          
-          // Show tooltip with throttling
-          this.time.delayedCall(50, () => {
-            if (isHovering) {
-              this.showItemTooltip(item.item.name, button.x, button.y - cardHeight/2 - 40);
-            }
-          });
-        });
-        
-        button.on("pointerout", () => {
-          if (!isHovering) return; // Prevent multiple out events
-          isHovering = false;
-          
-          // Stop any existing tweens
-          if (hoverTween) hoverTween.stop();
-          if (scaleTween) scaleTween.stop();
-          
-          // Restore opacity
-          const componentsToTween = [cardBg, iconArea, itemIcon, currencyBadge, currencyIcon, priceArea, priceText];
-          hoverTween = this.tweens.add({
-            targets: componentsToTween,
+          // Accent brightness
+          this.tweens.add({
+            targets: topBar,
             alpha: 1,
-            duration: 100,
-            ease: 'Power1.easeOut'
+            duration: 200
           });
           
-          // Return to normal scale
-          scaleTween = this.tweens.add({
-            targets: button,
-            scale: 1,
-            duration: 100,
-            ease: 'Power1.easeOut'
+          // Subtle lift
+          this.tweens.add({
+            targets: container,
+            y: y - 5,
+            duration: 200,
+            ease: 'Power2'
+          });
+        })
+        .on('pointerout', () => {
+          // Reset glow
+          this.tweens.add({
+            targets: outerGlow,
+            alpha: 0.12,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 200,
+            ease: 'Power2'
           });
           
-          // Hide glow effect instead of destroying
-          if (hoverGlow) {
-            hoverGlow.setAlpha(0);
-          }
+          // Reset accent
+          this.tweens.add({
+            targets: topBar,
+            alpha: 0.7,
+            duration: 200
+          });
           
-          // Hide tooltip immediately
-          this.hideItemTooltip();
+          // Reset position
+          this.tweens.add({
+            targets: container,
+            y: y,
+            duration: 200,
+            ease: 'Power2'
+          });
         });
-      }
-      
-      // Add button to scroll container with proper depth order
-      button.setDepth(1050); // Items should be below titles (titles are at 1100+)
-      scrollContainer.add(button);
-      this.relicButtons.push(button);
-    });
+    }
+    
+    return container;
   }
 
   private createTooltipBox(): void {
@@ -1650,28 +1598,50 @@ export class Shop extends Scene {
   }
   
   private getItemLore(item: ShopItem): string {
-    // Return lore based on item name
+    // Return comprehensive lore based on item name - matching Discover scene style
     switch(item.item.id) {
       case "earthwardens_plate":
-        return "Forged by the ancient Earthwardens who protected the first settlements from natural disasters. This mystical armor channels the strength of the mountains themselves, providing unwavering protection to those who wear it.";
+        return "Forged in mountain sanctuaries by anito guardians, this armor channels Lupa's strength through sacred stones. Once worn by protectors of first settlements, its mystical plates absorb earth's resilience—each impact strengthens the bond between wearer and ancestral soil, providing unwavering defense rooted in kapwa's protective spirit.";
       case "swift_wind_agimat":
-        return "An enchanted talisman blessed by the spirits of the wind. It enhances the agility of its bearer, allowing them to move with the swiftness of the breeze and react faster than the eye can see.";
+        return "Blessed talisman carrying Hangin's swiftness, crafted during typhoon seasons when wind spirits dance. Tikbalang scouts once wore these to confuse pursuers—the amulet enhances reflexes beyond mortal limits, letting bearers move like breeze through bamboo groves, their hands faster than sight itself.";
       case "ember_fetish":
-        return "A relic imbued with the essence of volcanic fire. When the bearer's defenses are low, the fetish awakens and grants the fury of the forge, empowering them with the strength of molten rock.";
+        return "Carved from banana tree heart at midnight during Apolaki's sacred hour, this fetish holds sun god's blessing. When defenses crumble and danger looms, dormant flames awaken—channeling volcanic fury to ignite courage within the desperate, transforming weakness into blazing determination.";
       case "babaylans_talisman":
-        return "A sacred artifact of the Babaylan, the mystical shamans of old. This talisman connects the wearer to ancestral wisdom, allowing them to see the hidden patterns in all things.";
+        return "Sacred artifact of ancient mystical healers who bridged mortal and spirit realms. This talisman connects wearers to ancestral babaylan wisdom, revealing hidden patterns in fate's weave—hand formations align with cosmic rhythms, elevating ordinary skills to blessed supernatural precision.";
       case "ancestral_blade":
-        return "A weapon passed down through generations of warrior families. When wielded with skill, it channels the spirits of ancestors who guide each strike with supernatural precision.";
+        return "Kampilan passed through generations of warrior lineages, each wielder's spirit dwelling within the steel. Ancestors guide every strike when blade and heart beat in harmony—the weapon hungers for skillful combat, rewarding mastery with devastating critical precision that echoes ancestral victories.";
       case "tidal_amulet":
-        return "Born from the heart of the ocean, this amulet pulses with the rhythm of the tides. It grants the wearer the restorative power of the sea, healing their wounds with each passing moment.";
+        return "Coral fragment from deepest trenches where diwata dwell, pulsing with ocean's eternal rhythm. The sea's mercy flows through this charm—waters of life mend wounds battle has broken, channeling Tubig's healing essence with each tide's gentle embrace, restoring what violence tears asunder.";
       case "lucky_charm":
-        return "A small token blessed by fate itself. Those who carry it seem to attract good fortune, finding coins and opportunities where others see only obstacles.";
+        return "Small token blessed by fortune spirits dwelling in anthills and sacred mounds. Duwende magic clings to its surface—those carrying it attract good fortune's gaze, discovering ginto and opportunities hidden from common eyes, as if kapwa's reciprocal blessings manifest as golden rewards.";
       case "diwatas_crown":
-        return "A magnificent crown worn by the Diwata, the celestial beings who watch over the mortal realm. It grants divine protection and enhances the natural abilities of its wearer.";
+        return "Magnificent circlet worn by celestial beings who watch over mortal realm from sky citadels. Divine protectors' essence radiates from golden bands—granting sacred defense and enhancing natural abilities, the crown channels diwata guardianship to shield worthy bearers from malevolent forces.";
       case "stone_golem_heart":
-        return "The crystallized heart of an ancient stone golem. It grants the endurance of the mountains themselves, increasing the life force of those who possess it.";
+        return "Crystallized heart from ancient stone sentinel that guarded mountain passes for millennia. Mountains' endurance crystallized into pulsing core—this artifact grants bearer increased vitality, as if earth's immortal strength flows through mortal veins, expanding life force beyond natural limits.";
+      case "sarimanok_feather":
+        return "Radiant plume from legendary Sarimanok that brings prosperity to worthy souls. This feather fell from sky during solar eclipse—fortune bird's blessing manifests as increased rewards, success following in bearer's wake as if celestial approval multiplies their achievements.";
+      case "umalagad_spirit":
+        return "Essence of great sea serpent guiding lost sailors home through treacherous waters. Ancient fishermen of Panay revered this protective spirit—it sharpens reflexes in battle, granting serpent's wisdom and lightning-quick responses as if ocean's guardian watches over each combat decision.";
+      case "tikbalangs_hoof":
+        return "Backward hoof from horse-headed trickster spirit dwelling in mountain passes. Once guardians serving Bathala, their chaotic nature confuses enemies—this relic grants evasive agility, making bearers as elusive as Tikbalang leading travelers in maddening circles through mist-shrouded trails.";
+      case "kapres_cigar":
+        return "Enormous cigar perpetually smoked by towering tree giants dwelling in sacred groves. Dark-skinned Kapre (7-9 feet tall) were Bathala's appointed guardians—their tobacco smoke summons lesser fire spirits once per battle, dealing devastating damage as ghostly aid materializes from aromatic haze.";
+      case "mangangaway_wand":
+        return "Cursed implement wielded by dark sorcerers practicing kulam and barang hex magic. Wearing skull necklaces, Mangangaway broke kapwa's sacred laws—this wand channels their forbidden power, allowing bearers to ignore debilitating curses as if protected by counter-hex wards woven from malevolent spirits.";
+      case "sigbin_heart":
+        return "Preserved heart from nocturnal goat-like cryptid walking backward between hind legs. Visayan legends claim captured hearts grant invisibility—this relic channels that power into devastating burst attacks, as if Sigbin's essence erupts with heart-stealing ferocity every third strike.";
+      case "balete_root":
+        return "Aerial root from ancient strangler fig serving as portal between mortal and spirit realms. Balete trees house benevolent anito—cutting without permission invites misfortune, but this blessed root strengthens earth-based defenses, each Lupa card reinforcing protective barriers as sacred roots guard physical form.";
+      case "duwende_charm":
+        return "Enchanted token from goblin-folk dwelling in anthills and ancient mounds. 'Nuno sa Punso' demand respect—offending brings illness and bad luck. This charm carries their neutral judgment turned benevolent, weakening debilitating effects as if duwende magic shields bearer from fortune's cruel reversals.";
+      case "tiyanak_tear":
+        return "Crystallized tear from vampiric spirit of unbaptized children mimicking infant cries. Once innocent souls awaiting Bathala's judgment, corruption transformed them—yet this tear holds their original purity, granting resistance to terror's grip as if remembering life before darkness twisted innocent spirits into instruments of malice.";
+      case "amomongo_claw":
+        return "Razor-sharp talon from ape-like cryptid reported in Negros Occidental mountains. Guardian spirits of mineral veins and sanctuaries turned blood-frenzied predators—their rending claws intensify bleeding wounds, each strike deepening lacerations as if primal fury itself tears through enemy defenses with savage persistence.";
+      case "bungisngis_grin":
+        return "Tusks from enormous one-eyed Cyclops giants known for constant booming laughter. Tagalog and Cebuano forests once echoed with jovial mirth—engkanto corruption twisted laughter into debilitating weapon. This relic channels that power offensively, amplifying damage when enemies suffer weakened states as maddening glee crushes will.";
       default:
-        return "This mystical artifact holds ancient power. Its origins are shrouded in mystery, but its effects are undeniable.";
+        return "This mystical artifact holds ancient power from the spirit realms. Its origins are shrouded in mystery and forgotten legends, but its effects on those who wield it are undeniable. The anito themselves may have guided this item's creation for purposes beyond mortal understanding.";
     }
   }
   
