@@ -41,6 +41,7 @@ export class Discover extends Scene {
   private detailNameText: GameObjects.Text;
   private detailTypeText: GameObjects.Text;
   private detailSymbolText: GameObjects.Text;
+  private detailSpriteImage: GameObjects.Image | null = null; // Add sprite support
   private detailStatsText: GameObjects.Text;
   private detailAbilitiesText: GameObjects.Text;
   private detailDescriptionText: GameObjects.Text;
@@ -338,29 +339,42 @@ export class Discover extends Scene {
       .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0);
       
-    // Character symbol (larger and more prominent)
-    const symbol = this.getCharacterSymbol(entry.id);
-    const symbolText = this.add.text(width/2, 40, symbol, {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 48,
-      color: entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#77888C"
-    }).setOrigin(0.5);
+    // Get sprite key for this character
+    const spriteKey = this.getCharacterSpriteKey(entry.id);
+    
+    // Character sprite (instead of emoji)
+    let characterSprite: Phaser.GameObjects.Image;
+    if (this.textures.exists(spriteKey)) {
+      characterSprite = this.add.image(width/2, 45, spriteKey)
+        .setOrigin(0.5)
+        .setDisplaySize(70, 70); // Fit sprite in card
+    } else {
+      // Fallback to emoji if sprite not found
+      const symbol = this.getCharacterSymbol(entry.id);
+      characterSprite = this.add.text(width/2, 45, symbol, {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 48,
+        color: entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#77888C"
+      }).setOrigin(0.5) as any;
+    }
     
     // Character name (cleaner styling)
-    const nameText = this.add.text(width/2, 90, entry.name, {
+    const nameText = this.add.text(width/2, 95, entry.name, {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 16,
-      color: "#e8eced"
+      fontSize: 14,
+      color: "#e8eced",
+      wordWrap: { width: width - 20 },
+      align: "center"
     }).setOrigin(0.5);
     
     // Character type badge
     const typeColorHex = entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#06d6a0";
     const typeColor = entry.type === "Boss" ? 0xff6b6b : entry.type === "Elite" ? 0xffd93d : 0x06d6a0;
-    const typeBadge = this.add.rectangle(width/2, 120, 80, 20, 0x2a1f24)
+    const typeBadge = this.add.rectangle(width/2, 125, 80, 20, 0x2a1f24)
       .setStrokeStyle(1, typeColor)
       .setOrigin(0.5);
       
-    const typeText = this.add.text(width/2, 120, entry.type, {
+    const typeText = this.add.text(width/2, 125, entry.type, {
       fontFamily: "dungeon-mode",
       fontSize: 12,
       color: typeColorHex
@@ -401,8 +415,27 @@ export class Discover extends Scene {
         });
       });
     
-    container.add([background, symbolText, nameText, typeBadge, typeText]);
+    container.add([background, characterSprite, nameText, typeBadge, typeText]);
     return container;
+  }
+  
+  /**
+   * Get sprite key for a character
+   */
+  private getCharacterSpriteKey(id: string): string {
+    const spriteMap: Record<string, string> = {
+      "tikbalang_scout": "tikbalang_combat",
+      "balete_wraith": "balete_combat",
+      "sigbin_charger": "sigbin_combat",
+      "duwende_trickster": "duwende_combat",
+      "tiyanak_ambusher": "tiyanak_combat",
+      "amomongo": "amomongo_combat",
+      "bungisngis": "bungisngis_combat",
+      "kapre_shade": "kapre_combat",
+      "tawong_lipod": "tawonglipod_combat",
+      "mangangaway": "mangangaway_combat"
+    };
+    return spriteMap[id] || "tikbalang_combat";
   }
   
   /**
@@ -581,8 +614,39 @@ export class Discover extends Scene {
     const typeColor = entry.type === "Boss" ? 0xff6b6b : entry.type === "Elite" ? 0xffd93d : 0x06d6a0;
     this.detailTypeText.setColor(typeColorHex);
     
-    this.detailSymbolText.setText(this.getCharacterSymbol(entry.id));
-    this.detailSymbolText.setColor(typeColorHex);
+    // Try to use sprite first, fallback to emoji
+    const spriteKey = this.getCharacterSpriteKey(entry.id);
+    const screenWidth = this.cameras.main.width;
+    
+    if (this.textures.exists(spriteKey)) {
+      // Remove old sprite if exists
+      if (this.detailSpriteImage) {
+        this.detailSpriteImage.destroy();
+      }
+      
+      // Hide emoji text
+      this.detailSymbolText.setVisible(false);
+      
+      // Create new sprite
+      this.detailSpriteImage = this.add.image(screenWidth/2, 230, spriteKey)
+        .setOrigin(0.5)
+        .setDisplaySize(120, 120);
+      
+      // Add to detail view container (move to front)
+      this.detailViewContainer.add(this.detailSpriteImage);
+      this.detailViewContainer.bringToTop(this.detailSpriteImage);
+    } else {
+      // Remove sprite if exists
+      if (this.detailSpriteImage) {
+        this.detailSpriteImage.destroy();
+        this.detailSpriteImage = null;
+      }
+      
+      // Show and update emoji text as fallback
+      this.detailSymbolText.setVisible(true);
+      this.detailSymbolText.setText(this.getCharacterSymbol(entry.id));
+      this.detailSymbolText.setColor(typeColorHex);
+    }
     
     this.detailStatsText.setText("Health: " + entry.health + "\nAttack: " + entry.attack);
     this.detailAbilitiesText.setText(entry.abilities ? entry.abilities.join("\n") : "None");
@@ -618,6 +682,12 @@ export class Discover extends Scene {
       duration: 200,
       ease: 'Power2',
       onComplete: () => {
+        // Clean up sprite if exists
+        if (this.detailSpriteImage) {
+          this.detailSpriteImage.destroy();
+          this.detailSpriteImage = null;
+        }
+        
         // Hide detail view
         this.detailViewContainer.setVisible(false);
         
