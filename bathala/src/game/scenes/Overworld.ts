@@ -4090,7 +4090,7 @@ ${potion.description}`, {
       maxFogOpacity: 0.85,       // Maximum darkness
       minFogOpacity: 0.0,        // Fully visible at center
       persistentFog: true,       // Fog stays revealed
-      fogDepth: 500,             // Below HUDs (1000+), above map (0-499)
+      fogDepth: 502,             // Above NPCs (501), below HUDs (1000+)
       updateInterval: 100        // Update every 100ms
     });
     

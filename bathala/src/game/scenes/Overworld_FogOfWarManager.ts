@@ -38,11 +38,17 @@ export class Overworld_FogOfWarManager {
   /** Minimum fog opacity at visible edge (0-1) */
   public minFogOpacity: number = 0.0;
   
+  /** Red highlight color for fog edges */
+  public edgeHighlightColor: number = 0xff0000;
+  
+  /** Red highlight opacity at fog edges */
+  public edgeHighlightOpacity: number =1;
+  
   /** Whether fog persists (false = fog returns when player leaves) */
   public persistentFog: boolean = true;
   
-  /** Depth layer (below HUDs, above map) */
-  public fogDepth: number = 500;
+  /** Depth layer (below HUDs, above map and NPCs) */
+  public fogDepth: number = 502;
   
   /** Update frequency in milliseconds */
   public updateInterval: number = 100;
@@ -74,7 +80,7 @@ export class Overworld_FogOfWarManager {
     // Create container for fog
     this.fogContainer = this.scene.add.container(0, 0);
     this.fogContainer.setDepth(this.fogDepth);
-    this.fogContainer.setScrollFactor(0, 0); // Fixed to camera
+    this.fogContainer.setScrollFactor(1, 1); // Follow world coordinates, not camera
     
     // Create graphics for fog rendering
     this.fogGraphics = this.scene.add.graphics();
@@ -187,11 +193,17 @@ export class Overworld_FogOfWarManager {
           opacity = this.calculatePixelGradientOpacity(distance);
         }
         
-        // Only render if there's fog to show
-        if (opacity > 0.01) {
-          const worldX = tileX * this.tileSize - cameraX;
-          const worldY = tileY * this.tileSize - cameraY;
-          
+        // Render fog or edge highlight using world coordinates
+        const worldX = tileX * this.tileSize;
+        const worldY = tileY * this.tileSize;
+        
+        // Check if tile is beyond visibility radius
+        if (distance > this.visibilityRadius) {
+          // Completely black fog - hide everything beyond vision
+          this.fogGraphics.fillStyle(this.fogColor, 1.0);
+          this.fogGraphics.fillRect(worldX, worldY, this.tileSize, this.tileSize);
+        } else if (opacity > 0.01) {
+          // Gradient fog within visibility
           this.fogGraphics.fillStyle(this.fogColor, opacity);
           this.fogGraphics.fillRect(worldX, worldY, this.tileSize, this.tileSize);
         }
@@ -242,6 +254,8 @@ export class Overworld_FogOfWarManager {
     fogColor?: number;
     maxFogOpacity?: number;
     minFogOpacity?: number;
+    edgeHighlightColor?: number;
+    edgeHighlightOpacity?: number;
     persistentFog?: boolean;
     fogDepth?: number;
     updateInterval?: number;
@@ -252,6 +266,8 @@ export class Overworld_FogOfWarManager {
     if (params.fogColor !== undefined) this.fogColor = params.fogColor;
     if (params.maxFogOpacity !== undefined) this.maxFogOpacity = params.maxFogOpacity;
     if (params.minFogOpacity !== undefined) this.minFogOpacity = params.minFogOpacity;
+    if (params.edgeHighlightColor !== undefined) this.edgeHighlightColor = params.edgeHighlightColor;
+    if (params.edgeHighlightOpacity !== undefined) this.edgeHighlightOpacity = params.edgeHighlightOpacity;
     if (params.persistentFog !== undefined) this.persistentFog = params.persistentFog;
     if (params.fogDepth !== undefined) {
       this.fogDepth = params.fogDepth;
@@ -278,6 +294,8 @@ export class Overworld_FogOfWarManager {
     fogColor: number;
     maxFogOpacity: number;
     minFogOpacity: number;
+    edgeHighlightColor: number;
+    edgeHighlightOpacity: number;
     persistentFog: boolean;
     fogDepth: number;
     updateInterval: number;
@@ -289,6 +307,8 @@ export class Overworld_FogOfWarManager {
       fogColor: this.fogColor,
       maxFogOpacity: this.maxFogOpacity,
       minFogOpacity: this.minFogOpacity,
+      edgeHighlightColor: this.edgeHighlightColor,
+      edgeHighlightOpacity: this.edgeHighlightOpacity,
       persistentFog: this.persistentFog,
       fogDepth: this.fogDepth,
       updateInterval: this.updateInterval
