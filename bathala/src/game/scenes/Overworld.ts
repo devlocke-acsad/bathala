@@ -286,6 +286,10 @@ export class Overworld extends Scene {
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
     
+    // Set initial camera zoom (will be managed by fog of war system)
+    // Start with day zoom since game starts during day
+    this.cameras.main.setZoom(1.0);
+    
     // Create enemy info tooltip
     this.createEnemyTooltip();
     
@@ -293,7 +297,11 @@ export class Overworld extends Scene {
     this.createFogOfWar();
     
     // Create UI elements with a slight delay to ensure camera is ready
-    this.time.delayedCall(10, this.createUI, [], this);
+    this.time.delayedCall(10, () => {
+      this.createUI();
+      // Set initial UI scale to compensate for camera zoom
+      this.setInitialUIScale();
+    }, [], this);
     
     // Render initial chunks around player with a slight delay to ensure camera is ready
     this.time.delayedCall(20, this.updateVisibleChunks, [], this);
@@ -4151,5 +4159,65 @@ ${potion.description}`, {
     this.fogOfWarManager.updateDayNight(this.gameState.isDay);
     
     console.log("✅ Fog of war system initialized");
+  }
+
+  /**
+   * Set initial UI scale to compensate for camera zoom
+   * Keeps UI elements at their original size and position
+   */
+  private setInitialUIScale(): void {
+    const cameraZoom = this.cameras.main.zoom;
+    const uiScale = 1 / cameraZoom;
+    
+    // Get camera dimensions
+    const cameraWidth = this.cameras.main.width;
+    const cameraHeight = this.cameras.main.height;
+    
+    // Calculate position offset to keep UI in place
+    const offsetX = (cameraWidth * (cameraZoom - 1)) / (2 * cameraZoom);
+    const offsetY = (cameraHeight * (cameraZoom - 1)) / (2 * cameraZoom);
+    
+    // Scale and reposition UI container (left panel)
+    if (this.uiContainer) {
+      this.uiContainer.setScale(uiScale);
+      this.uiContainer.setPosition(offsetX, offsetY);
+    }
+    
+    // Day/night progress bar elements
+    if (this.dayNightProgressFill) {
+      this.dayNightProgressFill.setScale(uiScale);
+    }
+    
+    if (this.dayNightIndicator) {
+      this.dayNightIndicator.setScale(uiScale);
+    }
+    
+    // Boss text (top left)
+    if (this.bossText) {
+      this.bossText.setScale(uiScale);
+      this.bossText.setPosition(10 + offsetX, 40 + offsetY);
+    }
+    
+    // Toggle button (top right)
+    if (this.toggleButton) {
+      this.toggleButton.setScale(uiScale);
+      const toggleX = cameraWidth - 60 - offsetX;
+      const toggleY = 50 + offsetY;
+      this.toggleButton.setPosition(toggleX, toggleY);
+    }
+    
+    // Test buttons container
+    if (this.testButtonsContainer) {
+      this.testButtonsContainer.setScale(uiScale);
+    }
+    
+    // Scale action buttons
+    if (this.actionButtons) {
+      this.actionButtons.forEach(button => {
+        button.setScale(uiScale);
+      });
+    }
+    
+    console.log(`🎮 Initial UI scale set to ${uiScale} (camera zoom: ${cameraZoom})`);
   }
 }

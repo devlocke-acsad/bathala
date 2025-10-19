@@ -35,6 +35,12 @@ export class Overworld_FogOfWarManager {
   /** Transition duration for day/night fog changes (in milliseconds) */
   public transitionDuration: number = 2000;
   
+  /** Camera zoom during day (less zoomed in - larger fog area) */
+  public dayCameraZoom: number = 1.0;
+  
+  /** Camera zoom at night (more zoomed in - smaller fog area) */
+  public nightCameraZoom: number = 1.3;
+  
   /** Number of gradient steps from visible to fog (pixel-stepped gradient) */
   public gradientSteps: number = 4;
   
@@ -348,6 +354,7 @@ export class Overworld_FogOfWarManager {
     if (this.isDay !== isDay) {
       this.isDay = isDay;
       const targetRadius = isDay ? this.dayVisibilityRadius : this.nightVisibilityRadius;
+      const targetZoom = isDay ? this.dayCameraZoom : this.nightCameraZoom;
       
       // Cancel any existing transition
       if (this.transitionTween) {
@@ -358,6 +365,10 @@ export class Overworld_FogOfWarManager {
       // Store transition values
       this.transitionStartRadius = this.currentVisibilityRadius;
       this.transitionTargetRadius = targetRadius;
+      
+      // Get current camera zoom
+      const camera = this.scene.cameras.main;
+      const startZoom = camera.zoom;
       
       // Create smooth transition tween
       const transitionObject = { progress: 0 };
@@ -371,20 +382,92 @@ export class Overworld_FogOfWarManager {
           this.currentVisibilityRadius = this.transitionStartRadius + 
             (this.transitionTargetRadius - this.transitionStartRadius) * transitionObject.progress;
           
+          // Interpolate camera zoom
+          const currentZoom = startZoom + (targetZoom - startZoom) * transitionObject.progress;
+          camera.setZoom(currentZoom);
+          
+          // Update UI scale to compensate for zoom (keep UI at original size)
+          this.updateUIScale(currentZoom);
+          
           // Re-render fog with interpolated visibility radius
           this.renderFog();
         },
         onComplete: () => {
-          // Ensure we end at exact target radius
+          // Ensure we end at exact target radius and zoom
           this.currentVisibilityRadius = targetRadius;
+          camera.setZoom(targetZoom);
+          this.updateUIScale(targetZoom);
           this.renderFog();
           this.transitionTween = null;
           
-          console.log(`🌫️ FogOfWarManager: ${isDay ? 'Day' : 'Night'} fog transition complete (radius: ${this.currentVisibilityRadius})`);
+          console.log(`🌫️ FogOfWarManager: ${isDay ? 'Day' : 'Night'} fog transition complete (radius: ${this.currentVisibilityRadius}, zoom: ${targetZoom})`);
         }
       });
       
-      console.log(`🌫️ FogOfWarManager: Starting ${isDay ? 'Day' : 'Night'} fog transition (${this.transitionStartRadius} → ${targetRadius})`);
+      console.log(`🌫️ FogOfWarManager: Starting ${isDay ? 'Day' : 'Night'} fog transition (${this.transitionStartRadius} → ${targetRadius}, zoom: ${startZoom} → ${targetZoom})`);
+    }
+  }
+
+  /**
+   * Update UI scale to compensate for camera zoom
+   * This keeps UI elements at their original size and position regardless of zoom
+   */
+  private updateUIScale(cameraZoom: number): void {
+    // Get the Overworld scene
+    const overworldScene = this.scene as any;
+    
+    // Inverse scale factor to compensate for zoom
+    const uiScale = 1 / cameraZoom;
+    
+    // Get camera dimensions
+    const camera = this.scene.cameras.main;
+    const cameraWidth = camera.width;
+    const cameraHeight = camera.height;
+    
+    // Calculate position offset to keep UI in place
+    // When zoomed in, UI needs to be repositioned to stay at screen edges
+    const offsetX = (cameraWidth * (cameraZoom - 1)) / (2 * cameraZoom);
+    const offsetY = (cameraHeight * (cameraZoom - 1)) / (2 * cameraZoom);
+    
+    // Scale and reposition UI container (left panel)
+    if (overworldScene.uiContainer) {
+      overworldScene.uiContainer.setScale(uiScale);
+      overworldScene.uiContainer.setPosition(offsetX, offsetY);
+    }
+    
+    // Day/night progress bar elements don't need repositioning as they're centered
+    if (overworldScene.dayNightProgressFill) {
+      overworldScene.dayNightProgressFill.setScale(uiScale);
+    }
+    
+    if (overworldScene.dayNightIndicator) {
+      overworldScene.dayNightIndicator.setScale(uiScale);
+    }
+    
+    // Boss text (top left)
+    if (overworldScene.bossText) {
+      overworldScene.bossText.setScale(uiScale);
+      overworldScene.bossText.setPosition(10 + offsetX, 40 + offsetY);
+    }
+    
+    // Toggle button (top right)
+    if (overworldScene.toggleButton) {
+      overworldScene.toggleButton.setScale(uiScale);
+      const toggleX = cameraWidth - 60 - offsetX;
+      const toggleY = 50 + offsetY;
+      overworldScene.toggleButton.setPosition(toggleX, toggleY);
+    }
+    
+    // Test buttons container
+    if (overworldScene.testButtonsContainer) {
+      overworldScene.testButtonsContainer.setScale(uiScale);
+    }
+    
+    // Action buttons are in the test container, so they inherit positioning
+    if (overworldScene.actionButtons) {
+      overworldScene.actionButtons.forEach((button: any) => {
+        button.setScale(uiScale);
+      });
     }
   }
 
