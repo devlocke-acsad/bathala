@@ -435,13 +435,20 @@ export class Overworld_FogOfWarManager {
       overworldScene.uiContainer.setPosition(offsetX, offsetY);
     }
     
-    // Day/night progress bar elements don't need repositioning as they're centered
-    if (overworldScene.dayNightProgressFill) {
-      overworldScene.dayNightProgressFill.setScale(uiScale);
-    }
-    
-    if (overworldScene.dayNightIndicator) {
-      overworldScene.dayNightIndicator.setScale(uiScale);
+    // Day/night progress bar container - scale and reposition like other HUDs
+    if (overworldScene.dayNightProgressContainer) {
+      overworldScene.dayNightProgressContainer.setScale(uiScale);
+      overworldScene.dayNightProgressContainer.setPosition(0, offsetY);
+      
+      // Update indicator position within the container
+      if (overworldScene.dayNightIndicator) {
+        const progressBarWidth = cameraWidth * 0.6;
+        const progressBarX = (cameraWidth - progressBarWidth) / 2;
+        const progressBarY = 80;
+        const totalProgress = Math.min(overworldScene.gameState.actionsTaken / overworldScene.gameState.totalActionsUntilBoss, 1);
+        overworldScene.dayNightIndicator.x = progressBarX + (progressBarWidth * totalProgress);
+        overworldScene.dayNightIndicator.y = progressBarY + 25;
+      }
     }
     
     // Boss text (top left)

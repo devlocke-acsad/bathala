@@ -69,6 +69,7 @@ export class Overworld extends Scene {
   private gameState: OverworldGameState;
   private dayNightProgressFill!: Phaser.GameObjects.Rectangle;
   private dayNightIndicator!: Phaser.GameObjects.Text;
+  private dayNightProgressContainer!: Phaser.GameObjects.Container;
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
   private bossText!: Phaser.GameObjects.Text;
   private actionButtons: Phaser.GameObjects.Container[] = [];
@@ -631,6 +632,10 @@ export class Overworld extends Scene {
       return;
     }
     
+    // Create container for all progress bar elements
+    this.dayNightProgressContainer = this.add.container(0, 0);
+    this.dayNightProgressContainer.setScrollFactor(0).setDepth(100);
+    
     const screenWidth = this.cameras.main.width;
     const progressBarWidth = screenWidth * 0.6;
     const progressBarX = (screenWidth - progressBarWidth) / 2;
@@ -643,13 +648,14 @@ export class Overworld extends Scene {
       const segmentX = progressBarX + (i * segmentWidth) + (segmentWidth / 2);
       const isDay = i % 2 === 0;
       
-      this.add.rectangle(
+      const segment = this.add.rectangle(
         segmentX,
         progressBarY,
         segmentWidth,
         4,
         isDay ? 0xFFD368 : 0x7144FF // Day or night color
-      ).setAlpha(1).setScrollFactor(0).setDepth(100); // Fixed to camera with depth
+      ).setAlpha(1);
+      this.dayNightProgressContainer.add(segment);
     }
     
     // Create major ticks (taller bars) at icon positions with thicker lines and matching colors
@@ -667,13 +673,14 @@ export class Overworld extends Scene {
       }
       
       // Major tick (taller bar) with thicker line
-      this.add.rectangle(
+      const majorTick = this.add.rectangle(
         tickX,
         progressBarY,
         4,
         16,
         color
-      ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(101);
+      ).setOrigin(0.5, 0.5);
+      this.dayNightProgressContainer.add(majorTick);
     }
     
     // Create minor ticks (shorter bars) between icons with thicker lines and matching colors
@@ -698,13 +705,14 @@ export class Overworld extends Scene {
         const tickX = segmentStartX + (step * stepWidth);
         
         // Minor tick (shorter bar) with thicker line
-        this.add.rectangle(
+        const minorTick = this.add.rectangle(
           tickX,
           progressBarY,
           3,
           10,
           color
-        ).setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(102);
+        ).setOrigin(0.5, 0.5);
+        this.dayNightProgressContainer.add(minorTick);
       }
     }
     
@@ -719,12 +727,12 @@ export class Overworld extends Scene {
         // Day icon (sun) - even positions
         const sunIcon = this.add.image(iconX, iconY, "bathala_sun_icon");
         sunIcon.setScale(1.8);
-        sunIcon.setScrollFactor(0).setDepth(103);
+        this.dayNightProgressContainer.add(sunIcon);
       } else {
         // Night icon (moon) - odd positions
         const moonIcon = this.add.image(iconX, iconY, "bathala_moon_icon");
         moonIcon.setScale(1.8);
-        moonIcon.setScrollFactor(0).setDepth(103);
+        this.dayNightProgressContainer.add(moonIcon);
       }
     }
     
@@ -734,7 +742,7 @@ export class Overworld extends Scene {
     const bossIconY = progressBarY - 50; // Position above the axis line (moved down to match new position)
     const bossIcon = this.add.image(bossIconX, bossIconY, "bathala_boss_icon");
     bossIcon.setScale(2.0);
-    bossIcon.setScrollFactor(0).setDepth(103);
+    this.dayNightProgressContainer.add(bossIcon);
     
     // Create progress fill (initially empty)
     this.dayNightProgressFill = this.add.rectangle(
@@ -743,7 +751,8 @@ export class Overworld extends Scene {
       0, // Width will be updated in updateDayNightProgressBar
       8, // Height of the progress fill
       0xFFFFFF // White color, can be changed
-    ).setOrigin(0, 0.5).setScrollFactor(0).setDepth(99);
+    ).setOrigin(0, 0.5);
+    this.dayNightProgressContainer.add(this.dayNightProgressFill);
     
     // Create player indicator (▲ symbol pointing up from below the axis line)
     this.dayNightIndicator = this.add.text(0, 0, "▲", {
@@ -751,7 +760,8 @@ export class Overworld extends Scene {
       fontSize: '36px',
       color: '#E54646',
       align: 'center'
-    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(DEPTH.DAY_NIGHT_INDICATOR); // Fixed to camera with depth, positioned below axis line
+    }).setOrigin(0.5, 0);
+    this.dayNightProgressContainer.add(this.dayNightIndicator);
     
     // Update the progress bar
     this.updateDayNightProgressBar();
@@ -4183,13 +4193,20 @@ ${potion.description}`, {
       this.uiContainer.setPosition(offsetX, offsetY);
     }
     
-    // Day/night progress bar elements
-    if (this.dayNightProgressFill) {
-      this.dayNightProgressFill.setScale(uiScale);
-    }
-    
-    if (this.dayNightIndicator) {
-      this.dayNightIndicator.setScale(uiScale);
+    // Day/night progress bar container - scale and reposition like other HUDs
+    if (this.dayNightProgressContainer) {
+      this.dayNightProgressContainer.setScale(uiScale);
+      this.dayNightProgressContainer.setPosition(0, offsetY);
+      
+      // Update indicator position within the container
+      if (this.dayNightIndicator) {
+        const progressBarWidth = cameraWidth * 0.6;
+        const progressBarX = (cameraWidth - progressBarWidth) / 2;
+        const progressBarY = 80;
+        const totalProgress = Math.min(this.gameState.actionsTaken / this.gameState.totalActionsUntilBoss, 1);
+        this.dayNightIndicator.x = progressBarX + (progressBarWidth * totalProgress);
+        this.dayNightIndicator.y = progressBarY + 25;
+      }
     }
     
     // Boss text (top left)
