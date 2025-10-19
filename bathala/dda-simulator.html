@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bathala DDA Algorithm Simulator - Presentation Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+        }
+
+        .panel h2 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #495057;
+            font-weight: 600;
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 5px;
+            background: #dee2e6;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #5568d3;
+        }
+
+        .value-display {
+            min-width: 80px;
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-simulate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-simulate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-reset {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-auto {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-auto:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .calculation-steps {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #667eea;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .step {
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .step-title {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .step-value {
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .step-positive {
+            color: #28a745;
+        }
+
+        .step-negative {
+            color: #dc3545;
+        }
+
+        .pps-display {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .pps-value {
+            font-size: 4em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .tier-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-top: 10px;
+        }
+
+        .tier-struggling { background: #dc3545; }
+        .tier-learning { background: #ffc107; color: #333; }
+        .tier-thriving { background: #28a745; }
+        .tier-mastering { background: #6f42c1; }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+        }
+
+        canvas {
+            max-height: 100%;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .combat-history {
+            margin-top: 20px;
+        }
+
+        .combat-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .combat-entry.victory {
+            border-left-color: #28a745;
+        }
+
+        .combat-entry.defeat {
+            border-left-color: #dc3545;
+        }
+
+        .info-tooltip {
+            position: relative;
+            display: inline-block;
+            margin-left: 8px;
+            cursor: help;
+        }
+
+        .info-tooltip::after {
+            content: "ℹ️";
+            font-size: 0.9em;
+        }
+
+        .comparison-mode {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff3cd;
+            border-radius: 12px;
+            border: 2px solid #ffc107;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Bathala DDA Algorithm Simulator</h1>
+        <p class="subtitle">Interactive Demonstration of Rule-Based Dynamic Difficulty Adjustment</p>
+
+        <div class="grid-layout">
+            <!-- LEFT PANEL: Input Controls -->
+            <div class="panel">
+                <h2>📊 Combat Metrics Input</h2>
+                
+                <div class="input-group">
+                    <label>Health Retention (% of max HP remaining)</label>
+                    <div class="input-row">
+                        <input type="range" id="healthRetention" min="0" max="100" value="70" step="1">
+                        <span class="value-display" id="healthValue">70%</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Turn Count (combat efficiency)</label>
+                    <div class="input-row">
+                        <input type="range" id="turnCount" min="1" max="20" value="8" step="1">
+                        <span class="value-display" id="turnValue">8 turns</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Best Hand Achieved</label>
+                    <select id="handQuality">
+                        <option value="high-card">High Card</option>
+                        <option value="pair">Pair</option>
+                        <option value="two-pair">Two Pair</option>
+                        <option value="three-of-a-kind" selected>Three of a Kind</option>
+                        <option value="straight">Straight</option>
+                        <option value="flush">Flush</option>
+                        <option value="full-house">Full House</option>
+                        <option value="four-of-a-kind">Four of a Kind</option>
+                        <option value="straight-flush">Straight Flush</option>
+                        <option value="five-of-a-kind">Five of a Kind</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Damage Dealt (total combat damage)</label>
+                    <div class="input-row">
+                        <input type="range" id="damageDealt" min="10" max="200" value="80" step="5">
+                        <span class="value-display" id="damageValue">80</span>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Discard Charges Used</label>
+                    <div class="input-row">
+                        <input type="range" id="discardsUsed" min="0" max="3" value="1" step="1">
+                        <span class="value-display" id="discardsValue">1 / 3</span>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-simulate" onclick="simulateCombat()">▶️ Simulate Combat</button>
+                    <button class="btn-reset" onclick="resetSimulation()">🔄 Reset</button>
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn-auto" onclick="autoSimulate()">🤖 Auto-Simulate 10 Combats</button>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: Current State -->
+            <div class="panel">
+                <h2>🎯 Current DDA State</h2>
+                
+                <div class="pps-display">
+                    <div style="font-size: 1.2em;">Player Performance Score</div>
+                    <div class="pps-value" id="ppsValue">2.50</div>
+                    <div class="tier-badge tier-learning" id="tierBadge">LEARNING</div>
+                    <div style="margin-top: 15px; font-size: 0.9em;" id="calibrationStatus">
+                        ⏳ Calibration Phase: 0/3 combats
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Combats Completed</div>
+                        <div class="stat-value" id="combatCount">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Enemy Difficulty</div>
+                        <div class="stat-value" id="enemyDifficulty">100%</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">PPS Trend</div>
+                        <div class="stat-value" id="ppsTrend">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Last Adjustment</div>
+                        <div class="stat-value" id="lastAdjustment">—</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="ppsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTTOM PANEL: Calculation Breakdown -->
+        <div class="panel">
+            <h2>🔍 Algorithm Calculation Breakdown</h2>
+            <div class="calculation-steps" id="calculationSteps">
+                <p style="text-align: center; color: #6c757d;">
+                    Click "Simulate Combat" to see step-by-step calculation...
+                </p>
+            </div>
+        </div>
+
+        <!-- Combat History -->
+        <div class="panel">
+            <h2>📜 Combat History</h2>
+            <div class="combat-history" id="combatHistory">
+                <p style="text-align: center; color: #6c757d;">No combats yet...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // DDA Simulation State
+        let currentPPS = 2.5;
+        let previousPPS = 2.5;
+        let currentTier = 'learning';
+        let combatsCompleted = 0;
+        let isCalibrating = true;
+        let ppsHistory = [2.5];
+        let combatHistoryData = [];
+        let chart = null;
+
+        // Constants matching your RuleBasedDDA.ts
+        const TIER_THRESHOLDS = {
+            struggling: [0, 1.5],
+            learning: [1.5, 2.5],
+            thriving: [2.5, 4.0],
+            mastering: [4.0, 5.0]
+        };
+
+        const HAND_QUALITY_SCORES = {
+            'high-card': 0,
+            'pair': 0.1,
+            'two-pair': 0.1,
+            'three-of-a-kind': 0.1,
+            'straight': 0.25,
+            'flush': 0.25,
+            'full-house': 0.25,
+            'four-of-a-kind': 0.25,
+            'straight-flush': 0.25,
+            'five-of-a-kind': 0.25
+        };
+
+        // Initialize UI
+        document.getElementById('healthRetention').addEventListener('input', (e) => {
+            document.getElementById('healthValue').textContent = e.target.value + '%';
+        });
+
+        document.getElementById('turnCount').addEventListener('input', (e) => {
+            document.getElementById('turnValue').textContent = e.target.value + ' turns';
+        });
+
+        document.getElementById('damageDealt').addEventListener('input', (e) => {
+            document.getElementById('damageValue').textContent = e.target.value;
+        });
+
+        document.getElementById('discardsUsed').addEventListener('input', (e) => {
+            document.getElementById('discardsValue').textContent = e.target.value + ' / 3';
+        });
+
+        // Initialize Chart
+        function initChart() {
+            const ctx = document.getElementById('ppsChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Start'],
+                    datasets: [{
+                        label: 'PPS Over Time',
+                        data: [2.5],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5,
+                            title: {
+                                display: true,
+                                text: 'PPS Value'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Combat Number'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Calculate DDA adjustment (matching your algorithm)
+        function calculatePPSAdjustment(metrics) {
+            const steps = [];
+            let adjustment = 0;
+
+            // Get tier multipliers
+            const tierMultipliers = getTierMultipliers(currentTier);
+            steps.push({
+                title: `Current Tier: ${currentTier.toUpperCase()}`,
+                description: `Bonus Multiplier: ${tierMultipliers.bonusMultiplier}x, Penalty Multiplier: ${tierMultipliers.penaltyMultiplier}x`,
+                value: ''
+            });
+
+            // F1: Health Retention
+            let healthBonus = 0;
+            if (metrics.healthPercentage >= 90) healthBonus = 0.35;
+            else if (metrics.healthPercentage >= 70) healthBonus = 0.15;
+            else if (metrics.healthPercentage >= 50) healthBonus = 0;
+            else if (metrics.healthPercentage >= 30) healthBonus = -0.2;
+            else healthBonus = -0.4;
+
+            const healthAdjustment = healthBonus >= 0 
+                ? healthBonus * tierMultipliers.bonusMultiplier
+                : healthBonus * tierMultipliers.penaltyMultiplier;
+            
+            adjustment += healthAdjustment;
+            steps.push({
+                title: '💚 F₁: Health Retention',
+                description: `${metrics.healthPercentage}% HP remaining`,
+                value: (healthAdjustment >= 0 ? '+' : '') + healthAdjustment.toFixed(3),
+                isPositive: healthAdjustment >= 0
+            });
+
+            // F2: Perfect Combat Bonus
+            if (metrics.healthPercentage === 100) {
+                const perfectBonus = 0.25 * tierMultipliers.bonusMultiplier;
+                adjustment += perfectBonus;
+                steps.push({
+                    title: '⭐ F₂: Perfect Combat Bonus',
+                    description: 'No damage taken!',
+                    value: '+' + perfectBonus.toFixed(3),
+                    isPositive: true
+                });
+            }
+
+            // F3: Hand Quality
+            const handScore = HAND_QUALITY_SCORES[metrics.bestHandAchieved] || 0;
+            if (handScore > 0) {
+                const handAdjustment = handScore * tierMultipliers.bonusMultiplier;
+                adjustment += handAdjustment;
+                steps.push({
+                    title: '🎴 F₃: Hand Quality',
+                    description: `Best Hand: ${metrics.bestHandAchieved.replace('-', ' ')}`,
+                    value: '+' + handAdjustment.toFixed(3),
+                    isPositive: true
+                });
+            }
+
+            // F4: Combat Efficiency (turn count)
+            const expectedTurns = getExpectedTurns(currentTier);
+            let efficiencyAdjustment = 0;
+            if (metrics.turnCount <= expectedTurns * 0.8) {
+                efficiencyAdjustment = 0.2 * tierMultipliers.bonusMultiplier;
+            } else if (metrics.turnCount >= expectedTurns * 1.2) {
+                efficiencyAdjustment = -0.2 * tierMultipliers.penaltyMultiplier;
+            }
+            
+            if (efficiencyAdjustment !== 0) {
+                adjustment += efficiencyAdjustment;
+                steps.push({
+                    title: '⚡ F₄: Combat Efficiency',
+                    description: `${metrics.turnCount} turns (expected: ${expectedTurns})`,
+                    value: (efficiencyAdjustment >= 0 ? '+' : '') + efficiencyAdjustment.toFixed(3),
+                    isPositive: efficiencyAdjustment >= 0
+                });
+            }
+
+            // F5: Damage Efficiency
+            const expectedDamage = getExpectedDamage(currentTier);
+            const damagePerTurn = metrics.damageDealt / metrics.turnCount;
+            const expectedDPT = expectedDamage / expectedTurns;
+            let damageAdjustment = 0;
+            
+            if (damagePerTurn >= expectedDPT * 1.3) {
+                damageAdjustment = 0.2 * tierMultipliers.bonusMultiplier;
+            } else if (damagePerTurn <= expectedDPT * 0.7) {
+                damageAdjustment = -0.15 * tierMultipliers.penaltyMultiplier;
+            }
+            
+            if (damageAdjustment !== 0) {
+                adjustment += damageAdjustment;
+                steps.push({
+                    title: '💥 F₅: Damage Efficiency',
+                    description: `${damagePerTurn.toFixed(1)} DPT (expected: ${expectedDPT.toFixed(1)})`,
+                    value: (damageAdjustment >= 0 ? '+' : '') + damageAdjustment.toFixed(3),
+                    isPositive: damageAdjustment >= 0
+                });
+            }
+
+            // F6: Resource Management (discards)
+            const maxDiscards = 3;
+            const discardUsagePercent = (metrics.discardsUsed / maxDiscards) * 100;
+            if (discardUsagePercent <= 30) {
+                const resourceBonus = 0.15 * tierMultipliers.bonusMultiplier;
+                adjustment += resourceBonus;
+                steps.push({
+                    title: '💎 F₆: Resource Management',
+                    description: `Used only ${metrics.discardsUsed}/${maxDiscards} discards`,
+                    value: '+' + resourceBonus.toFixed(3),
+                    isPositive: true
+                });
+            }
+
+            // Total Adjustment
+            steps.push({
+                title: '📊 Total PPS Adjustment',
+                description: `${previousPPS.toFixed(2)} → ${Math.max(0, Math.min(5, currentPPS + adjustment)).toFixed(2)}`,
+                value: (adjustment >= 0 ? '+' : '') + adjustment.toFixed(3),
+                isPositive: adjustment >= 0,
+                isTotal: true
+            });
+
+            return { adjustment, steps };
+        }
+
+        function getTierMultipliers(tier) {
+            const multipliers = {
+                struggling: { bonusMultiplier: 1.5, penaltyMultiplier: 0.5 },
+                learning: { bonusMultiplier: 1.0, penaltyMultiplier: 1.0 },
+                thriving: { bonusMultiplier: 0.8, penaltyMultiplier: 1.2 },
+                mastering: { bonusMultiplier: 0.5, penaltyMultiplier: 1.5 }
+            };
+            return multipliers[tier];
+        }
+
+        function getExpectedTurns(tier) {
+            const expected = {
+                struggling: 12,
+                learning: 10,
+                thriving: 8,
+                mastering: 6
+            };
+            return expected[tier];
+        }
+
+        function getExpectedDamage(tier) {
+            const expected = {
+                struggling: 60,
+                learning: 80,
+                thriving: 100,
+                mastering: 120
+            };
+            return expected[tier];
+        }
+
+        function calculateDifficultyTier(pps) {
+            if (pps < 1.5) return 'struggling';
+            if (pps < 2.5) return 'learning';
+            if (pps < 4.0) return 'thriving';
+            return 'mastering';
+        }
+
+        function simulateCombat() {
+            // Get input values
+            const metrics = {
+                healthPercentage: parseInt(document.getElementById('healthRetention').value),
+                turnCount: parseInt(document.getElementById('turnCount').value),
+                bestHandAchieved: document.getElementById('handQuality').value,
+                damageDealt: parseInt(document.getElementById('damageDealt').value),
+                discardsUsed: parseInt(document.getElementById('discardsUsed').value)
+            };
+
+            // Calculate adjustment
+            previousPPS = currentPPS;
+            const result = calculatePPSAdjustment(metrics);
+            
+            // Update PPS (unless calibrating and tracking is disabled)
+            if (!isCalibrating) {
+                currentPPS = Math.max(0, Math.min(5, currentPPS + result.adjustment));
+            } else {
+                // During calibration, still show the calculation but note it
+                result.steps.unshift({
+                    title: '⏳ CALIBRATION PHASE',
+                    description: 'PPS is being tracked but tier remains at LEARNING',
+                    value: '',
+                    isCalibrating: true
+                });
+            }
+
+            combatsCompleted++;
+
+            // Check if calibration ends
+            if (isCalibrating && combatsCompleted >= 3) {
+                isCalibrating = false;
+                currentPPS = Math.max(0, Math.min(5, currentPPS + result.adjustment));
+                result.steps.push({
+                    title: '✅ CALIBRATION COMPLETE',
+                    description: 'DDA is now fully active!',
+                    value: '',
+                    isCalibrating: true
+                });
+            }
+
+            // Update tier
+            if (!isCalibrating) {
+                currentTier = calculateDifficultyTier(currentPPS);
+            }
+
+            // Update UI
+            updateUI(result.steps, metrics);
+            
+            // Add to history
+            ppsHistory.push(currentPPS);
+            combatHistoryData.unshift({
+                combat: combatsCompleted,
+                pps: currentPPS.toFixed(2),
+                adjustment: result.adjustment.toFixed(3),
+                tier: currentTier,
+                metrics: metrics
+            });
+
+            // Update chart
+            updateChart();
+        }
+
+        function updateUI(steps, metrics) {
+            // Update PPS display
+            document.getElementById('ppsValue').textContent = currentPPS.toFixed(2);
+            
+            // Update tier badge
+            const tierBadge = document.getElementById('tierBadge');
+            tierBadge.textContent = currentTier.toUpperCase();
+            tierBadge.className = 'tier-badge tier-' + currentTier;
+
+            // Update calibration status
+            if (isCalibrating) {
+                document.getElementById('calibrationStatus').innerHTML = 
+                    `⏳ Calibration Phase: ${combatsCompleted}/3 combats`;
+            } else {
+                document.getElementById('calibrationStatus').innerHTML = 
+                    `✅ DDA Active`;
+            }
+
+            // Update stats
+            document.getElementById('combatCount').textContent = combatsCompleted;
+            
+            const difficultyPercent = getDifficultyModifier(currentTier);
+            document.getElementById('enemyDifficulty').textContent = difficultyPercent + '%';
+
+            const trend = currentPPS > previousPPS ? '📈' : currentPPS < previousPPS ? '📉' : '➡️';
+            document.getElementById('ppsTrend').textContent = trend;
+
+            const lastAdj = currentPPS - previousPPS;
+            document.getElementById('lastAdjustment').textContent = 
+                (lastAdj >= 0 ? '+' : '') + lastAdj.toFixed(2);
+            document.getElementById('lastAdjustment').style.color = 
+                lastAdj >= 0 ? '#28a745' : '#dc3545';
+
+            // Update calculation steps
+            const stepsContainer = document.getElementById('calculationSteps');
+            stepsContainer.innerHTML = '';
+            
+            steps.forEach(step => {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step';
+                
+                if (step.isCalibrating) {
+                    stepDiv.style.background = '#fff3cd';
+                    stepDiv.style.border = '2px solid #ffc107';
+                } else if (step.isTotal) {
+                    stepDiv.style.background = '#667eea';
+                    stepDiv.style.color = 'white';
+                }
+                
+                stepDiv.innerHTML = `
+                    <div class="step-title">${step.title}</div>
+                    <div>${step.description}</div>
+                    ${step.value ? `<div class="step-value ${step.isPositive ? 'step-positive' : 'step-negative'}">${step.value}</div>` : ''}
+                `;
+                stepsContainer.appendChild(stepDiv);
+            });
+
+            // Update combat history
+            updateCombatHistory();
+        }
+
+        function getDifficultyModifier(tier) {
+            const modifiers = {
+                struggling: 80,
+                learning: 100,
+                thriving: 115,
+                mastering: 130
+            };
+            return modifiers[tier];
+        }
+
+        function updateChart() {
+            chart.data.labels = ppsHistory.map((_, i) => i === 0 ? 'Start' : `C${i}`);
+            chart.data.datasets[0].data = ppsHistory;
+            chart.update();
+        }
+
+        function updateCombatHistory() {
+            const historyContainer = document.getElementById('combatHistory');
+            
+            if (combatHistoryData.length === 0) {
+                historyContainer.innerHTML = '<p style="text-align: center; color: #6c757d;">No combats yet...</p>';
+                return;
+            }
+
+            historyContainer.innerHTML = '';
+            combatHistoryData.slice(0, 10).forEach(entry => {
+                const entryDiv = document.createElement('div');
+                entryDiv.className = 'combat-entry victory';
+                entryDiv.innerHTML = `
+                    <div>
+                        <strong>Combat #${entry.combat}</strong><br>
+                        <small>${entry.metrics.healthPercentage}% HP | ${entry.metrics.turnCount} turns | ${entry.metrics.bestHandAchieved}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <strong style="color: #667eea;">PPS: ${entry.pps}</strong><br>
+                        <small>${entry.adjustment >= 0 ? '+' : ''}${entry.adjustment} | ${entry.tier.toUpperCase()}</small>
+                    </div>
+                `;
+                historyContainer.appendChild(entryDiv);
+            });
+        }
+
+        function resetSimulation() {
+            if (!confirm('Reset all simulation data?')) return;
+            
+            currentPPS = 2.5;
+            previousPPS = 2.5;
+            currentTier = 'learning';
+            combatsCompleted = 0;
+            isCalibrating = true;
+            ppsHistory = [2.5];
+            combatHistoryData = [];
+            
+            chart.data.labels = ['Start'];
+            chart.data.datasets[0].data = [2.5];
+            chart.update();
+            
+            document.getElementById('ppsValue').textContent = '2.50';
+            document.getElementById('tierBadge').textContent = 'LEARNING';
+            document.getElementById('tierBadge').className = 'tier-badge tier-learning';
+            document.getElementById('calibrationStatus').innerHTML = '⏳ Calibration Phase: 0/3 combats';
+            document.getElementById('combatCount').textContent = '0';
+            document.getElementById('enemyDifficulty').textContent = '100%';
+            document.getElementById('ppsTrend').textContent = '—';
+            document.getElementById('lastAdjustment').textContent = '—';
+            
+            document.getElementById('calculationSteps').innerHTML = 
+                '<p style="text-align: center; color: #6c757d;">Click "Simulate Combat" to see step-by-step calculation...</p>';
+            document.getElementById('combatHistory').innerHTML = 
+                '<p style="text-align: center; color: #6c757d;">No combats yet...</p>';
+        }
+
+        function autoSimulate() {
+            let count = 0;
+            const interval = setInterval(() => {
+                if (count >= 10) {
+                    clearInterval(interval);
+                    return;
+                }
+                
+                // Randomize inputs
+                document.getElementById('healthRetention').value = Math.floor(Math.random() * 100);
+                document.getElementById('turnCount').value = Math.floor(Math.random() * 15) + 3;
+                document.getElementById('damageDealt').value = Math.floor(Math.random() * 150) + 50;
+                document.getElementById('discardsUsed').value = Math.floor(Math.random() * 4);
+                
+                const hands = Object.keys(HAND_QUALITY_SCORES);
+                document.getElementById('handQuality').value = hands[Math.floor(Math.random() * hands.length)];
+                
+                // Trigger updates
+                document.getElementById('healthRetention').dispatchEvent(new Event('input'));
+                document.getElementById('turnCount').dispatchEvent(new Event('input'));
+                document.getElementById('damageDealt').dispatchEvent(new Event('input'));
+                document.getElementById('discardsUsed').dispatchEvent(new Event('input'));
+                
+                simulateCombat();
+                count++;
+            }, 800);
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initChart();
+        });
+    </script>
+</body>
+</html>
