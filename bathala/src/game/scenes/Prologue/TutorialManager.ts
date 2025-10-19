@@ -105,19 +105,6 @@ export class TutorialManager {
             buttonWidth
         );
         
-        // Add glow to skip button
-        const skipGlow = this.scene.add.circle(skipButtonX, skipButtonY, 80, 0xFFFFFF, 0.05)
-            .setBlendMode(Phaser.BlendModes.ADD);
-        this.scene.tweens.add({
-            targets: skipGlow,
-            alpha: 0.15,
-            scale: 1.2,
-            duration: 2000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-        
         // Add Skip Phase button (bottom right, above Skip Tutorial)
         const skipPhaseButtonX = this.scene.cameras.main.width * 0.88;
         const skipPhaseButtonY = this.scene.cameras.main.height * 0.85; // Above Skip Tutorial
@@ -130,33 +117,15 @@ export class TutorialManager {
             buttonWidth // Same fixed width for uniformity
         );
         
-        // Add glow to skip phase button
-        const skipPhaseGlow = this.scene.add.circle(skipPhaseButtonX, skipPhaseButtonY, 70, 0xFFAA00, 0.05)
-            .setBlendMode(Phaser.BlendModes.ADD);
-        this.scene.tweens.add({
-            targets: skipPhaseGlow,
-            alpha: 0.12,
-            scale: 1.15,
-            duration: 1800,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-        
         // Don't add buttons to container - add them directly to scene so they're always visible
-        // this.container.add([skipGlow, this.skipButton, skipPhaseGlow, this.skipPhaseButton]);
         
         // Ensure buttons are always visible at top depth - add to scene directly
-        skipGlow.setDepth(4998);
-        skipPhaseGlow.setDepth(4998);
         this.skipButton.setDepth(5000);
         this.skipPhaseButton.setDepth(5000);
         
         // Make sure buttons are always visible
         this.skipButton.setAlpha(1);
         this.skipPhaseButton.setAlpha(1);
-        skipGlow.setAlpha(0.05);
-        skipPhaseGlow.setAlpha(0.05);
 
         const tutorialUI = new TutorialUI(this.scene);
 
