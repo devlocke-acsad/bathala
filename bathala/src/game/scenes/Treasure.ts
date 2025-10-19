@@ -17,7 +17,16 @@ export class Treasure extends Scene {
   }
 
   init(data: { player: Player }) {
-    this.player = data.player;
+    // Get the most up-to-date player data from GameState
+    const gameState = GameState.getInstance();
+    const savedPlayerData = gameState.getPlayerData();
+    
+    // If we have saved player data with relics, merge it with the passed player data
+    if (savedPlayerData && savedPlayerData.relics) {
+      this.player = { ...data.player, relics: [...savedPlayerData.relics] };
+    } else {
+      this.player = data.player;
+    }
     
     // For now, use Act 1 treasure relics
     // TODO: Implement act-based relic selection when act tracking is added to GameState
@@ -361,15 +370,20 @@ export class Treasure extends Scene {
   }
 
   private selectRelic(relic: Relic, selectedButton: Phaser.GameObjects.Container): void {
+    // Get GameState instance first to ensure we're working with the persistent player data
+    const gameState = GameState.getInstance();
+    
     // Add relic to player
     this.player.relics.push(relic);
     
     // Apply immediate relic acquisition effects (healing, stat boosts, etc.)
     RelicManager.applyRelicAcquisitionEffect(relic.id, this.player);
     
-    // Persist updated player data so relic is kept after leaving the scene
-    const gameState = GameState.getInstance();
-    gameState.updatePlayerData(this.player);
+    // Persist updated player data immediately - pass the entire player object to preserve all data
+    gameState.updatePlayerData({ 
+      ...this.player,
+      relics: [...this.player.relics] // Create a new array to ensure it's saved
+    });
     
     // Update UI
     this.descriptionText.setText(`You take the ${relic.name}!`);
@@ -398,8 +412,7 @@ export class Treasure extends Scene {
     // Hide tooltip
     this.hideTooltip();
     
-    // Immediately return to Overworld
-    gameState.updatePlayerData(this.player);
+    // Immediately return to Overworld (player data already updated above)
     gameState.completeCurrentNode(true);
     const overworldScene = this.scene.get("Overworld");
     if (overworldScene) {
