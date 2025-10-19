@@ -90,16 +90,6 @@ export class RelicManager {
           player.currentHealth += 15;
           player.block += 3;
           break;
-          
-        case "bakunawa_scale":
-          // Buffed: 5 → 10 Max HP
-          player.maxHealth += 10;
-          player.currentHealth += 10;
-          break;
-          
-        case "tigmamanukan_eye":
-          // Buffed: +1 → +2 additional cards (handled in initial draw logic in Combat.ts)
-          break;
       }
     });
   }
@@ -276,38 +266,26 @@ export class RelicManager {
   }
 
   /**
-   * Calculate damage reduction from "Bakunawa Scale" effect
+   * Calculate damage reduction - REMOVED (no bakunawa_scale sprite)
    */
-  static calculateDamageReduction(incomingDamage: number, player: Player): number {
-    const bakunawaScale = player.relics.find(r => r.id === "bakunawa_scale");
-    if (bakunawaScale) {
-      return Math.max(0, incomingDamage - 2); // Buffed: 1 → 2 damage reduction
-    }
+  static calculateDamageReduction(incomingDamage: number, _player: Player): number {
+    // Bakunawa Scale removed (no sprite)
     return incomingDamage;
   }
 
   /**
-   * Calculate shop price reduction from "Merchant's Scale" effect
+   * Calculate shop price reduction - REMOVED (no merchants_scale sprite)
    */
-  static calculateShopPriceReduction(originalPrice: number, player: Player): number {
-    const merchantsScale = player.relics.find(r => r.id === "merchants_scale");
-    if (merchantsScale) {
-      return Math.floor(originalPrice * 0.75); // Buffed: 20% → 25% cheaper (75% of original price)
-    }
+  static calculateShopPriceReduction(originalPrice: number, _player: Player): number {
+    // Merchant's Scale removed (no sprite)
     return originalPrice;
   }
 
   /**
-   * Calculate initial hand size with "Tigmamanukan's Eye" effect
+   * Calculate initial hand size - REMOVED tigmamanukan_eye (no sprite)
    */
   static calculateInitialHandSize(baseHandSize: number, player: Player): number {
     let handSize = baseHandSize;
-    
-    // Tigmamanukan's Eye: +2 additional cards
-    const tigmamanukanEye = player.relics.find(r => r.id === "tigmamanukan_eye");
-    if (tigmamanukanEye) {
-      handSize += 2; // Buffed: +1 → +2 additional cards (10 cards total)
-    }
     
     // Swift Wind Agimat: +1 additional card at start
     const swiftWindAgimat = player.relics.find(r => r.id === "swift_wind_agimat");
@@ -330,20 +308,11 @@ export class RelicManager {
         player.currentHealth += 15; // Also heal when first obtained
         break;
         
-      case "bakunawa_scale":
-        // Buffed: Gain 10 Max HP permanently (was 5)
-        player.maxHealth += 10;
-        player.currentHealth += 10; // Also heal when first obtained
-        break;
-        
-      case "tigmamanukan_eye":
-        // This relic's effect is passive, no immediate bonus
-        break;
-        
-      case "merchants_scale":
-      case "bargain_talisman":
-        // These are passive shop effects, no immediate bonus
-        break;
+      // Removed relics (no sprites):
+      // - bakunawa_scale
+      // - tigmamanukan_eye
+      // - merchants_scale
+      // - bargain_talisman
         
       case "earthwardens_plate":
       case "swift_wind_agimat":
@@ -353,7 +322,6 @@ export class RelicManager {
       case "ancestral_blade":
       case "tidal_amulet":
       case "sarimanok_feather":
-      case "echo_ancestors":
       case "diwatas_crown":
       case "lucky_charm":
         // These are combat-only effects, no permanent bonuses
@@ -369,7 +337,7 @@ export class RelicManager {
   /**
    * Apply mythological relic acquisition effects
    */
-  private static applyMythologicalRelicAcquisition(relicId: string, player: Player): void {
+  private static applyMythologicalRelicAcquisition(relicId: string, _player: Player): void {
     // Most mythological relics are passive combat effects
     // Only permanent effects would go here
     switch (relicId) {
@@ -381,8 +349,8 @@ export class RelicManager {
       case "amomongo_claw":
       case "bungisngis_grin":
       case "kapres_cigar":
-      case "wind_veil":
       case "mangangaway_wand":
+        // Removed: wind_veil (no sprite)
         // These are all passive combat effects, no permanent bonuses
         break;
     }
@@ -447,14 +415,10 @@ export class RelicManager {
   }
 
   /**
-   * Calculate additional cards drawn with "Wind Veil" effect
+   * Calculate additional cards drawn with "Wind Veil" effect - REMOVED (no sprite)
    */
-  static calculateWindVeilCardDraw(playedHand: PlayingCard[], player: Player): number {
-    const windVeil = player.relics.find(r => r.id === "wind_veil");
-    if (windVeil) {
-      const hanginCards = playedHand.filter(card => card.suit === "Hangin").length;
-      return hanginCards; // +1 draw per Hangin card
-    }
+  static calculateWindVeilCardDraw(_playedHand: PlayingCard[], _player: Player): number {
+    // Wind Veil removed (no sprite)
     return 0;
   }
 
@@ -545,10 +509,11 @@ export class RelicManager {
   }
 
   /**
-   * Check if the "Echo of the Ancestors" relic is active to enable Five of a Kind
+   * Check if the "Echo of the Ancestors" relic is active to enable Five of a Kind - REMOVED (no sprite)
    */
-  static hasFiveOfAKindEnabled(player: Player): boolean {
-    return player.relics.some(r => r.id === "echo_ancestors");
+  static hasFiveOfAKindEnabled(_player: Player): boolean {
+    // Echo of the Ancestors removed (no sprite)
+    return false;
   }
 
   /**
@@ -598,9 +563,10 @@ export class RelicManager {
   }
   
   /**
-   * Check if player has Echo of Ancestors for Five of a Kind
+   * Check if player has Echo of Ancestors for Five of a Kind - REMOVED (no sprite)
    */
-  static hasEchoOfAncestors(player: Player): boolean {
-    return player.relics.some(r => r.id === "echo_ancestors");
+  static hasEchoOfAncestors(_player: Player): boolean {
+    // Echo of the Ancestors removed (no sprite)
+    return false;
   }
 }

@@ -37,23 +37,8 @@ export class Treasure extends Scene {
       relic => !this.player.relics.some(r => r.id === relic.id)
     );
     
-    // Separate merchants_scale from other relics for weighted random selection
-    const merchantsScale = availableRelics.find(r => r.id === 'merchants_scale');
-    const otherRelics = availableRelics.filter(r => r.id !== 'merchants_scale');
-    
-    // Create weighted pool: merchants_scale has 30% chance to appear (if available)
-    let weightedPool: Relic[] = [];
-    
-    // Add all other relics normally (70% of the pool)
-    weightedPool = weightedPool.concat(otherRelics, otherRelics);
-    
-    // Add merchants_scale with lower weight (30% chance) if available and not owned
-    if (merchantsScale && Math.random() < 0.3) {
-      weightedPool.push(merchantsScale);
-    }
-    
-    // Shuffle weighted pool and take first 3 unique relics
-    const shuffled = this.shuffleArray(weightedPool);
+    // Shuffle available relics and take first 3 unique
+    const shuffled = this.shuffleArray(availableRelics);
     const uniqueRelics: Relic[] = [];
     const seenIds = new Set<string>();
     

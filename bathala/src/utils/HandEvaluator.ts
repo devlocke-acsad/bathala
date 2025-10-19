@@ -46,11 +46,8 @@ export class HandEvaluator {
       };
     }
 
-    // Check if player has Echo of the Ancestors relic to enable Five of a Kind
-    let enableFiveOfAKind = false;
-    if (player) {
-      enableFiveOfAKind = player.relics.some((r: any) => r.id === "echo_ancestors");
-    }
+    // Five of a Kind is disabled (echo_ancestors removed - no sprite)
+    const enableFiveOfAKind = false;
     
     let handType = this.determineHandType(cards, enableFiveOfAKind);
     

@@ -36,7 +36,6 @@ function createShopItemFromRelic(relicId: string, price: number, currency: "gint
 }
 
 // Common shop relics (now using centralized relic data)
-// Note: merchants_scale has been moved to treasure nodes (random chance)
 export const shopRelics: ShopItem[] = [
   createShopItemFromRelic("earthwardens_plate", 150, "ginto"),
   createShopItemFromRelic("swift_wind_agimat", 120, "ginto"),
@@ -49,14 +48,11 @@ export const shopRelics: ShopItem[] = [
 ];
 
 // Premium shop items (now using centralized relic data)
+// Removed: bargain_talisman, echo_ancestors, bakunawa_scale, tigmamanukan_eye (no sprites)
 export const premiumShopItems: ShopItem[] = [
-  createShopItemFromRelic("bargain_talisman", 3, "diamante"),
   createShopItemFromRelic("lucky_charm", 4, "diamante"),
-  createShopItemFromRelic("echo_ancestors", 5, "diamante"),
   createShopItemFromRelic("diwatas_crown", 6, "diamante"),
-  createShopItemFromRelic("stone_golem_heart", 3, "diamante"),
-  createShopItemFromRelic("bakunawa_scale", 5, "diamante"),
-  createShopItemFromRelic("tigmamanukan_eye", 3, "diamante")
+  createShopItemFromRelic("stone_golem_heart", 3, "diamante")
 ];
 
 // All shop items combined

@@ -6,6 +6,36 @@ import { Player, Relic } from "../../core/types/CombatTypes";
 import { allShopItems, ShopItem } from "../../data/relics/ShopItems";
 import { getRelicById } from "../../data/relics/Act1Relics";
 
+/**
+ * Helper function to get the sprite key for a relic based on its ID
+ */
+function getRelicSpriteKey(relicId: string): string {
+  const spriteMap: Record<string, string> = {
+    'swift_wind_agimat': 'relic_swift_wind_agimat',
+    'amomongo_claw': 'relic_amomongo_claw',
+    'ancestral_blade': 'relic_ancestral_blade',
+    'balete_root': 'relic_balete_root',
+    'babaylans_talisman': 'relic_babaylans_talisman',
+    'bungisngis_grin': 'relic_bungisngis_grin',
+    'diwatas_crown': 'relic_diwatas_crown',
+    'duwende_charm': 'relic_duwende_charm',
+    'earthwardens_plate': 'relic_earthwardens_plate',
+    'ember_fetish': 'relic_ember_fetish',
+    'kapres_cigar': 'relic_kapres_cigar',
+    'lucky_charm': 'relic_lucky_charm',
+    'mangangaway_wand': 'relic_mangangaway_wand',
+    'sarimanok_feather': 'relic_sarimanok_feather',
+    'sigbin_heart': 'relic_sigbin_heart',
+    'stone_golem_heart': 'relic_stone_golem_heart',
+    'tidal_amulet': 'relic_tidal_amulet',
+    'tikbalangs_hoof': 'relic_tikbalangs_hoof',
+    'tiyanak_tear': 'relic_tiyanak_tear',
+    'umalagad_spirit': 'relic_umalagad_spirit'
+  };
+  
+  return spriteMap[relicId] || '';
+}
+
 export class Shop extends Scene {
   private player!: Player;
   private shopItems: ShopItem[] = [];
@@ -387,44 +417,24 @@ export class Shop extends Scene {
       align: 'center'
     }).setOrigin(0.5);
     
-    // Create sprite area with border - positioned on the left side of panel
-    const spriteAreaX = -panelWidth/4; // Position sprite on left side of panel
-    const spriteAreaY = -20; // Slightly above center
+    // Create centered sprite area with border
+    const spriteAreaX = 30; // Slightly to the right
+    const spriteAreaY = 10; // Center vertically in panel
     const spriteArea = this.add.graphics();
     spriteArea.fillStyle(0x1a1a1a, 0.8);
-    spriteArea.fillRoundedRect(spriteAreaX - 60, spriteAreaY - 80, 120, 160, 8);
+    spriteArea.fillRoundedRect(spriteAreaX - 80, spriteAreaY - 120, 160, 240, 8);
     spriteArea.lineStyle(2, 0x77888C, 0.6);
-    spriteArea.strokeRoundedRect(spriteAreaX - 60, spriteAreaY - 80, 120, 160, 8);
+    spriteArea.strokeRoundedRect(spriteAreaX - 80, spriteAreaY - 120, 200, 240, 8);
     
-    // Create the animation from individual frames - slower animation every 3 seconds
-    if (!this.anims.exists('merchant-idle')) {
-      this.anims.create({
-        key: 'merchant-idle',
-        frames: [
-          { key: 'merchant_f01' },
-          { key: 'merchant_f02' },
-          { key: 'merchant_f03' },
-          { key: 'merchant_f04' },
-          { key: 'merchant_f05' },
-          { key: 'merchant_f06' },
-          { key: 'merchant_f07' }
-        ],
-        frameRate: 2, // Much slower - 2 frames per second
-        repeat: -1,
-        repeatDelay: 3000 // 3 second delay between animation cycles
-      });
-    }
-    
-    // Create the animated sprite - positioned on the left side
-    const merchantSprite = this.add.sprite(spriteAreaX, spriteAreaY, 'merchant_f01');
-    merchantSprite.setScale(6.0); // Appropriate size for the panel
-    merchantSprite.play('merchant-idle');
+    // Create the static merchant sprite - no animation
+    const merchantSprite = this.add.sprite(spriteAreaX, spriteAreaY, 'merchant_main');
+    merchantSprite.setScale(0.8); // Keep the same size
     
     // Make merchant sprite interactive for dialogue
     merchantSprite.setInteractive();
     merchantSprite.on('pointerdown', () => this.showMerchantDialogue());
     merchantSprite.on('pointerover', () => {
-      merchantSprite.setTint(0xcccccc); // Slight tint on hover
+      merchantSprite.setTint(0xdddddd); // Slight tint on hover
       this.input.setDefaultCursor('pointer');
     });
     merchantSprite.on('pointerout', () => {
@@ -434,65 +444,11 @@ export class Shop extends Scene {
 
     // Add subtle mystical effects around the sprite
     const magicGlow = this.add.graphics();
-    magicGlow.fillStyle(0x77888C, 0.1);
-    magicGlow.fillCircle(spriteAreaX, spriteAreaY, 80);
+    magicGlow.fillStyle(0x77888C, 0.15);
+    magicGlow.fillCircle(spriteAreaX, spriteAreaY, 100);
     
     // Create dialogue system
     this.createMerchantDialogueSystem();
-    
-    // Add merchant info panel on the right side
-    const infoAreaX = panelWidth/4;
-    const infoAreaY = -20;
-    
-    // Info background
-    const infoArea = this.add.graphics();
-    infoArea.fillStyle(0x77888C, 0.1);
-    infoArea.fillRoundedRect(infoAreaX - 50, infoAreaY - 80, 100, 160, 8);
-    infoArea.lineStyle(1, 0x9BA3A7, 0.5);
-    infoArea.strokeRoundedRect(infoAreaX - 50, infoAreaY - 80, 100, 160, 8);
-    
-    // Merchant stats/info text
-    const merchantLevel = this.add.text(infoAreaX, infoAreaY - 50, 'LEVEL 99', {
-      fontFamily: 'dungeon-mode',
-      fontSize: 10,
-      color: '#9BA3A7',
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    const merchantRep = this.add.text(infoAreaX, infoAreaY - 30, 'REPUTATION', {
-      fontFamily: 'dungeon-mode',
-      fontSize: 8,
-      color: '#77888C',
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    const merchantStars = this.add.text(infoAreaX, infoAreaY - 15, '★★★★★', {
-      fontFamily: 'dungeon-mode',
-      fontSize: 12,
-      color: '#FFD700',
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    const merchantSpecialty = this.add.text(infoAreaX, infoAreaY + 10, 'SPECIALTY:', {
-      fontFamily: 'dungeon-mode',
-      fontSize: 8,
-      color: '#77888C',
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    const merchantType = this.add.text(infoAreaX, infoAreaY + 25, 'RARE RELICS', {
-      fontFamily: 'dungeon-mode',
-      fontSize: 9,
-      color: '#9BA3A7',
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    const merchantStatus = this.add.text(infoAreaX, infoAreaY + 50, 'OPEN', {
-      fontFamily: 'dungeon-mode',
-      fontSize: 10,
-      color: '#00FF88',
-      align: 'center'
-    }).setOrigin(0.5);
     
     // Add description area at bottom
     const descArea = this.add.graphics();
@@ -518,13 +474,6 @@ export class Shop extends Scene {
       merchantSubtitle,
       spriteArea,
       merchantSprite,
-      infoArea,
-      merchantLevel,
-      merchantRep,
-      merchantStars,
-      merchantSpecialty,
-      merchantType,
-      merchantStatus,
       descArea,
       descText
     ]);
@@ -1009,12 +958,28 @@ export class Shop extends Scene {
       }
       iconArea.fillRoundedRect(-cardWidth/2 + 8, -cardHeight/2 + 8, cardWidth - 16, 70, 8);
       
-      // Item emoji with enhanced styling
-      const emoji = this.add.text(0, -cardHeight/2 + 43, item.emoji, {
-        fontSize: 42,
-      }).setOrigin(0.5, 0.5);
-      if (isOwned) {
-        emoji.setAlpha(0.6);
+      // Get sprite key for this relic
+      const spriteKey = getRelicSpriteKey(item.item.id);
+      
+      // Item icon - use sprite if available, fallback to emoji
+      let itemIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+      
+      if (spriteKey && this.textures.exists(spriteKey)) {
+        // Use sprite if available
+        itemIcon = this.add.image(0, -cardHeight/2 + 43, spriteKey)
+          .setOrigin(0.5)
+          .setDisplaySize(64, 64); // Larger sprite for better visibility
+        if (isOwned) {
+          itemIcon.setAlpha(0.6);
+        }
+      } else {
+        // Fallback to emoji if sprite not found
+        itemIcon = this.add.text(0, -cardHeight/2 + 43, item.emoji, {
+          fontSize: 48,
+        }).setOrigin(0.5, 0.5);
+        if (isOwned) {
+          itemIcon.setAlpha(0.6);
+        }
       }
       
       // Currency badge
@@ -1085,7 +1050,7 @@ export class Shop extends Scene {
       }
       
       // Assemble the button
-      const components = [shadow, cardBg, innerHighlight, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
+      const components = [shadow, cardBg, innerHighlight, iconArea, itemIcon, currencyBadge, currencyIcon, priceArea, priceText];
       if (originalPriceText) components.push(originalPriceText);
       if (ownedOverlay) {
         components.push(ownedOverlay);
@@ -1124,7 +1089,7 @@ export class Shop extends Scene {
           if (scaleTween) scaleTween.stop();
           
           // Optimized hover effect - single tween for all components
-          const componentsToTween = [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
+          const componentsToTween = [cardBg, iconArea, itemIcon, currencyBadge, currencyIcon, priceArea, priceText];
           hoverTween = this.tweens.add({
             targets: componentsToTween,
             alpha: 0.7, // Less dramatic change for better performance
@@ -1166,7 +1131,7 @@ export class Shop extends Scene {
           if (scaleTween) scaleTween.stop();
           
           // Restore opacity
-          const componentsToTween = [cardBg, iconArea, emoji, currencyBadge, currencyIcon, priceArea, priceText];
+          const componentsToTween = [cardBg, iconArea, itemIcon, currencyBadge, currencyIcon, priceArea, priceText];
           hoverTween = this.tweens.add({
             targets: componentsToTween,
             alpha: 1,
@@ -1430,24 +1395,39 @@ export class Shop extends Scene {
     headerBg.fillRoundedRect(-panelWidth/2 + 12, -panelHeight/2 + 12, panelWidth - 24, 80, 12);
     headerBg.strokeRoundedRect(-panelWidth/2 + 12, -panelHeight/2 + 12, panelWidth - 24, 80, 12);
     
-    // Item emoji with enhanced styling and proper container
-    const emojiContainer = this.add.graphics();
-    emojiContainer.fillStyle(0x150E10, 0.8); // Match shop background
-    emojiContainer.fillRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
-    emojiContainer.lineStyle(2, 0x77888C, 0.8); // Shop border color
-    emojiContainer.strokeRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
+    // Item icon with enhanced styling and proper container
+    const iconContainer = this.add.graphics();
+    iconContainer.fillStyle(0x150E10, 0.8); // Match shop background
+    iconContainer.fillRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
+    iconContainer.lineStyle(2, 0x77888C, 0.8); // Shop border color
+    iconContainer.strokeRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
     
-    const emoji = this.add.text(-panelWidth/2 + 60, -panelHeight/2 + 60, item.emoji, {
-      fontSize: 40,
-    }).setOrigin(0.5, 0.5);
-    emoji.setShadow(2, 2, '#1a1625', 4, false, true);
+    // Get sprite key for this relic
+    const spriteKey = getRelicSpriteKey(item.item.id);
     
-    // Item name with proper alignment and shop theme colors
-    const name = this.add.text(-panelWidth/2 + 110, -panelHeight/2 + 45, item.name.toUpperCase(), {
+    // Create item icon - use sprite if available, fallback to emoji
+    let itemIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+    
+    if (spriteKey && this.textures.exists(spriteKey)) {
+      // Use sprite if available
+      itemIcon = this.add.image(-panelWidth/2 + 60, -panelHeight/2 + 60, spriteKey)
+        .setOrigin(0.5)
+        .setDisplaySize(56, 56); // Larger sprite for better visibility in detail modal
+    } else {
+      // Fallback to emoji if sprite not found
+      itemIcon = this.add.text(-panelWidth/2 + 60, -panelHeight/2 + 60, item.emoji, {
+        fontSize: 48,
+      }).setOrigin(0.5, 0.5);
+      (itemIcon as Phaser.GameObjects.Text).setShadow(2, 2, '#1a1625', 4, false, true);
+    }
+    
+    // Item name with proper alignment, shop theme colors, and word wrap
+    const name = this.add.text(-panelWidth/2 + 110, -panelHeight/2 + 40, item.name.toUpperCase(), {
       fontFamily: "dungeon-mode",
-      fontSize: 24,
-      color: "#77888C", // Match shop accent color
-      fontStyle: "bold"
+      fontSize: 22,
+      color: "#77888C",
+      fontStyle: "bold",
+      wordWrap: { width: panelWidth - 180 }
     }).setOrigin(0, 0);
     name.setShadow(2, 2, '#000000', 4, false, true);
     
@@ -1684,7 +1664,7 @@ export class Shop extends Scene {
     });
     
     // Assemble the modern panel
-    panel.add([panelShadow, panelBg, innerHighlight, headerBg, emojiContainer, emoji, name, 
+    panel.add([panelShadow, panelBg, innerHighlight, headerBg, iconContainer, itemIcon, name, 
               priceBg, ...tooltipPriceElements, descSection, descTitle, description, 
               loreSection, loreTitle, loreText, closeBtn, buyBtn]);
               
@@ -1714,12 +1694,8 @@ export class Shop extends Scene {
         return "A weapon passed down through generations of warrior families. When wielded with skill, it channels the spirits of ancestors who guide each strike with supernatural precision.";
       case "tidal_amulet":
         return "Born from the heart of the ocean, this amulet pulses with the rhythm of the tides. It grants the wearer the restorative power of the sea, healing their wounds with each passing moment.";
-      case "bargain_talisman":
-        return "A mysterious artifact that embodies the concept of fortune. Once per act, it can manifest incredible luck, allowing its bearer to acquire powerful items without cost.";
       case "lucky_charm":
         return "A small token blessed by fate itself. Those who carry it seem to attract good fortune, finding coins and opportunities where others see only obstacles.";
-      case "echo_ancestors":
-        return "A divine relic that channels the power of the ancestral spirits. It allows the bearer to achieve the impossible - forming a Five of a Kind, the rarest of all poker hands.";
       case "diwatas_crown":
         return "A magnificent crown worn by the Diwata, the celestial beings who watch over the mortal realm. It grants divine protection and enhances the natural abilities of its wearer.";
       case "stone_golem_heart":

@@ -62,29 +62,18 @@ export const eliteRelics: Relic[] = [
   }
 ];
 
-// Boss relics (tied to boss encounters)
+// Boss relics (tied to boss encounters) - ONLY WITH SPRITES
 export const bossRelics: Relic[] = [
-  {
-    id: "echo_ancestors",
-    name: "Echo of the Ancestors",
-    description: "The whispered wisdom of your forebears that unlocks hidden potential. Enables Five of a Kind poker hands (+38 bonus, ×2.6 multiplier compared to Four of a Kind).",
-    emoji: "🌟"
-  },
   {
     id: "diwatas_crown",
     name: "Diwata's Crown",
     description: "A crown blessed by the benevolent nature spirits. Start each combat with 15 Block. All Defend actions gain +6 Block this turn.",
     emoji: "👑"
-  },
-  {
-    id: "bakunawa_scale",
-    name: "Bakunawa Scale",
-    description: "A scale from the great serpent that devours the moon. Reduces all incoming damage by 2 and gain 10 Max HP.",
-    emoji: "🌙"
   }
+  // Removed: echo_ancestors, bakunawa_scale (no sprites)
 ];
 
-// Treasure/event relics
+// Treasure/event relics - ONLY WITH SPRITES
 export const treasureRelics: Relic[] = [
   {
     id: "lucky_charm",
@@ -97,33 +86,16 @@ export const treasureRelics: Relic[] = [
     name: "Stone Golem's Heart",
     description: "The eternal heart of an earth guardian. Gain 15 Max HP. At the start of combat, gain 3 Block.",
     emoji: "❤️"
-  },
-  {
-    id: "tigmamanukan_eye",
-    name: "Tigmamanukan's Eye",
-    description: "The all-seeing eye of the prophetic bird. Draw 2 additional cards at the start of each combat (10 cards total).",
-    emoji: "👁️"
-  },
-  {
-    id: "merchants_scale",
-    name: "Merchant's Scale",
-    description: "A balance blessed by Lakambini to ensure fair trade. All shop items are 25% cheaper.",
-    emoji: "⚖️"
   }
+  // Removed: tigmamanukan_eye, merchants_scale (no sprites)
 ];
 
-// Shop relics (available for purchase)
-// Note: merchants_scale has been moved to treasureRelics for random encounters
+// Shop relics (available for purchase) - REMOVED (no sprites)
 export const shopRelics: Relic[] = [
-  {
-    id: "bargain_talisman",
-    name: "Bargain Talisman",
-    description: "A gemstone that negotiates with shopkeepers on your behalf. The first shop item you buy each act is free.",
-    emoji: "💎"
-  }
+  // Removed: bargain_talisman (no sprite)
 ];
 
-// Additional relics based on Filipino mythology from GDD
+// Additional relics based on Filipino mythology from GDD - ONLY WITH SPRITES
 export const mythologicalRelics: Relic[] = [
   {
     id: "tikbalangs_hoof",
@@ -174,17 +146,12 @@ export const mythologicalRelics: Relic[] = [
     emoji: "🚬"
   },
   {
-    id: "wind_veil",
-    name: "Wind Veil",
-    description: "Draw +1 card for each Hangin (Air) card in your played hand. The invisible Tawong Lipod's wind magic aids your card draw.",
-    emoji: "💨"
-  },
-  {
     id: "mangangaway_wand",
     name: "Mangangaway Wand",
     description: "Immune to the first Curse effect each combat. The sorcerer's wand shields you from dark hexes.",
     emoji: "🪄"
   }
+  // Removed: wind_veil (no sprite)
 ];
 
 // All relics combined for easy access
@@ -256,9 +223,8 @@ export const RELIC_EFFECTS = {
     'swift_wind_agimat',       // +2 discard charges, +1 card draw
     'umalagad_spirit',         // +8 Block on all Defend actions
     'diwatas_crown',           // +15 Block, +6 Block on all Defend actions
-    'stone_golem_heart',       // +15 max HP, +3 Block
-    'bakunawa_scale',          // +10 max HP, -2 damage reduction
-    'tigmamanukan_eye'         // +2 card draw
+    'stone_golem_heart'        // +15 max HP, +3 Block
+    // Removed: bakunawa_scale, tigmamanukan_eye (no sprites)
   ],
   
   // Start of turn effects
@@ -274,8 +240,8 @@ export const RELIC_EFFECTS = {
   
   // Hand evaluation effects
   HAND_EVALUATION: [
-    'babaylans_talisman',      // hand tier +1
-    'echo_ancestors'           // enables five of a kind
+    'babaylans_talisman'      // hand tier +1
+    // Removed: echo_ancestors (no sprite)
   ],
   
   // After hand played effects
@@ -283,34 +249,32 @@ export const RELIC_EFFECTS = {
     'ancestral_blade',         // +3 Attack on flush
     'sarimanok_feather',       // +2 ginto on straight+
     'lucky_charm',             // +2 ginto on straight+
-    'umalagad_spirit',         // +3 Block per card played
-    'wind_veil'                // +1 draw per hangin card
+    'umalagad_spirit'          // +3 Block per card played
+    // Removed: wind_veil (no sprite)
   ],
   
   // Passive combat effects
   PASSIVE_COMBAT: [
-    'tikbalangs_hoof',         // +10% dodge
-    'balete_root',             // +2 block per lupa card
-    'sigbin_heart',            // +5 damage when low health
-    'duwende_charm',           // +10% avoid weak
+    'tikbalangs_hoof',         // +15% dodge
+    'balete_root',             // +3 block per lupa card
+    'sigbin_heart',            // +8 damage when 40+ damage
+    'duwende_charm',           // +20% avoid weak
     'tiyanak_tear',            // ignore 1 fear
-    'amomongo_claw',           // +3 bleed damage
-    'bungisngis_grin',         // +5 damage on debuff
+    'amomongo_claw',           // +4 bleed damage
+    'bungisngis_grin',         // +8 damage on debuff
     'mangangaway_wand',        // ignore 1 curse
     'kapres_cigar'             // summon minion once per combat
   ],
   
-  // Shop effects
+  // Shop effects - REMOVED (no sprites for these relics)
   SHOP_EFFECTS: [
-    'merchants_scale',         // 20% cheaper items
-    'bargain_talisman'         // first item free per act
+    // Removed: merchants_scale, bargain_talisman (no sprites)
   ],
   
   // Permanent effects (applied when acquired)
   PERMANENT_EFFECTS: [
-    'stone_golem_heart',       // +10 max HP
-    'bakunawa_scale',          // +5 max HP
-    'tigmamanukan_eye'         // passive card draw
+    'stone_golem_heart'       // +15 max HP
+    // Removed: bakunawa_scale, tigmamanukan_eye (no sprites)
   ]
 };
 
