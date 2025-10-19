@@ -24,9 +24,10 @@ export function createButton(
     const textHeight = tempText.height;
     tempText.destroy();
     
-    const padding = 30;
-    const buttonWidth = Math.max(baseButtonWidth, textWidth + padding);
-    const buttonHeight = Math.max(baseButtonHeight, textHeight + 16);
+    const paddingX = 40;
+    const paddingY = 20;
+    const buttonWidth = Math.max(baseButtonWidth, textWidth + paddingX);
+    const buttonHeight = Math.max(baseButtonHeight, textHeight + paddingY);
 
     const button = scene.add.container(x, y);
 
@@ -41,6 +42,7 @@ export function createButton(
         fontSize: Math.floor(18 * scaleFactor),
         color: "#77888C",
         align: "center",
+        wordWrap: { width: buttonWidth - 20, useAdvancedWrap: true }
       })
       .setOrigin(0.5);
 
