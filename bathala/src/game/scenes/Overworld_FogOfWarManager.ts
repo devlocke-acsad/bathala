@@ -47,8 +47,8 @@ export class Overworld_FogOfWarManager {
   /** Whether fog persists (false = fog returns when player leaves) */
   public persistentFog: boolean = true;
   
-  /** Depth layer (below HUDs, above map and NPCs) */
-  public fogDepth: number = 502;
+  /** Depth layer (above map tiles, below NPCs and all UI) */
+  public fogDepth: number = 50;
   
   /** Update frequency in milliseconds */
   public updateInterval: number = 100;

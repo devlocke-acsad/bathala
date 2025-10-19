@@ -9,6 +9,57 @@ import { Overworld_KeyInputManager } from "./Overworld_KeyInputManager";
 import { Overworld_MazeGenManager } from "./Overworld_MazeGenManager";
 import { Overworld_TooltipManager } from "./Overworld_TooltipManager";
 import { Overworld_FogOfWarManager } from "./Overworld_FogOfWarManager";
+
+/**
+ * === DEPTH LAYER CONFIGURATION ===
+ * Centralized depth values for easy editing
+ * 
+ * Layer Order (bottom to top):
+ * 0-99: Map and world elements
+ * 100-998: UI elements (progress bars, indicators, etc.)
+ * 999: Night overlay
+ * 1000-1999: Player and interactive UI
+ * 2000-2999: Tooltips and overlays
+ * 3000+: Transitions and boss effects
+ */
+const DEPTH = {
+  // World Layer (0-99)
+  MAP_TILES: 0,
+  FOG_OF_WAR: 50,        // Covers map tiles only
+  MAP_NPCS: 51,          // NPCs above fog
+  
+  // UI Layer (100-998)
+  DAY_NIGHT_PROGRESS: 100,
+  DAY_NIGHT_FILL: 100,
+  DAY_NIGHT_TICKS: 101,
+  DAY_NIGHT_MAJOR_TICKS: 102,
+  DAY_NIGHT_MINOR_TICKS: 103,
+  DAY_NIGHT_ICONS: 104,
+  DAY_NIGHT_INDICATOR: 105,
+  BOSS_TEXT: 110,
+  
+  // Night Overlay
+  NIGHT_OVERLAY: 999,
+  
+  // Player and Interactive UI (1000-1999)
+  PLAYER: 1000,
+  UI_BASE: 1000,
+  ACTION_BUTTONS: 1000,
+  
+  // Tooltips and Overlays (2000-2999)
+  TOGGLE_BUTTON: 2000,
+  TRANSITION_OVERLAY: 2000,
+  TRANSITION_EFFECTS: 2001,
+  DIALOG_OVERLAY: 2000,
+  DIALOG_BOX: 2001,
+  DIALOG_CONTENT: 2002,
+  TOOLTIP: 2500,         // Tooltips above everything except boss effects
+  
+  // Boss Effects (3000+)
+  BOSS_OVERLAY: 3000,
+  BOSS_EFFECTS: 3001
+};
+
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
   private keyInputManager!: Overworld_KeyInputManager;
@@ -692,7 +743,7 @@ export class Overworld extends Scene {
       fontSize: '36px',
       color: '#E54646',
       align: 'center'
-    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(104); // Fixed to camera with depth, positioned below axis line
+    }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(DEPTH.DAY_NIGHT_INDICATOR); // Fixed to camera with depth, positioned below axis line
     
     // Update the progress bar
     this.updateDayNightProgressBar();
@@ -4090,7 +4141,7 @@ ${potion.description}`, {
       maxFogOpacity: 0.85,       // Maximum darkness
       minFogOpacity: 0.0,        // Fully visible at center
       persistentFog: true,       // Fog stays revealed
-      fogDepth: 502,             // Above NPCs (501), below HUDs (1000+)
+      fogDepth: DEPTH.FOG_OF_WAR, // Above NPCs (501), below HUDs (1000+)
       updateInterval: 100        // Update every 100ms
     });
     
