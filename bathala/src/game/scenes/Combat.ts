@@ -362,18 +362,11 @@ export class Combat extends Scene {
         player.currentHealth = Math.min(player.maxHealth, player.currentHealth + nextCombatBuffs.health);
       }
       
-      // If the deck is in discard pile, shuffle it back to draw pile
-      if (player.drawPile.length === 0 && player.discardPile.length > 0) {
-        player.drawPile = DeckManager.shuffleDeck([...player.discardPile]);
-        player.discardPile = [];
-      }
-      
-      // If we still don't have enough cards, create a new deck
-      if (player.drawPile.length === 0) {
-        const newDeck = DeckManager.createFullDeck();
-        player.drawPile = DeckManager.shuffleDeck(newDeck);
-        player.discardPile = [];
-      }
+      // Always start each combat with a fresh shuffled deck from player.deck
+      // This ensures randomization every combat and respects purify/attune changes
+      player.drawPile = DeckManager.shuffleDeck([...player.deck]);
+      player.discardPile = [];
+      player.hand = [];
     } else {
       // Create new player for first combat
       const deck = DeckManager.createFullDeck();
