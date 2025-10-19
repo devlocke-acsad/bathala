@@ -1227,27 +1227,39 @@ export class CombatUI {
       
       // Hover effects
       rankButtonContainer.on("pointerover", () => {
-        rankButtonBg.setFillStyle(0x1f1410);
-        rankButtonText.setColor("#e8eced");
+        // Only show hover if not currently sorting
+        if (!this.scene.getIsSorting()) {
+          rankButtonBg.setFillStyle(0x1f1410);
+          rankButtonText.setColor("#e8eced");
+        }
       });
       rankButtonContainer.on("pointerout", () => {
         rankButtonBg.setFillStyle(0x150E10);
         rankButtonText.setColor("#77888C");
       });
       rankButtonContainer.on("pointerdown", () => {
-        this.scene.sortHand("rank");
+        // BUGFIX: Only sort if not already sorting
+        if (!this.scene.getIsSorting()) {
+          this.scene.sortHand("rank");
+        }
       });
       
       suitButtonContainer.on("pointerover", () => {
-        suitButtonBg.setFillStyle(0x1f1410);
-        suitButtonText.setColor("#e8eced");
+        // Only show hover if not currently sorting
+        if (!this.scene.getIsSorting()) {
+          suitButtonBg.setFillStyle(0x1f1410);
+          suitButtonText.setColor("#e8eced");
+        }
       });
       suitButtonContainer.on("pointerout", () => {
         suitButtonBg.setFillStyle(0x150E10);
         suitButtonText.setColor("#77888C");
       });
       suitButtonContainer.on("pointerdown", () => {
-        this.scene.sortHand("suit");
+        // BUGFIX: Only sort if not already sorting
+        if (!this.scene.getIsSorting()) {
+          this.scene.sortHand("suit");
+        }
       });
       
       sortContainer.add([
@@ -1473,9 +1485,14 @@ export class CombatUI {
       this.handContainer.setVisible(true);
     }
     
-    // Clear existing card sprites and kill any active tweens
+    // BUGFIX: Kill ALL tweens on ALL card sprites before destroying
     this.cardSprites.forEach((sprite) => {
       this.scene.tweens.killTweensOf(sprite);
+      // Also clear tints before destroying
+      const cardImage = sprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+      if (cardImage && 'clearTint' in cardImage) {
+        cardImage.clearTint();
+      }
       sprite.destroy();
     });
     this.cardSprites = [];
@@ -1490,6 +1507,10 @@ export class CombatUI {
     });
 
     const hand = combatState.player.hand;
+    
+    // BUGFIX: DON'T force clear selected state - it may have been set by sortHand()
+    // Only clear selected state if we're in a context where cards shouldn't be selected
+    // (This happens naturally in startPlayerTurn which explicitly clears selections)
     
     // FIXED SPACING - Cards always use the same spacing regardless of hand size
     // This ensures 8 cards on turn 1 have the same spacing as 8 cards on turn 2+
@@ -1515,14 +1536,23 @@ export class CombatUI {
       (card as any).baseY = baseY;
       (card as any).baseRotation = rotation;
       
-      // Cards should NEVER be selected when hand is redrawn
-      // (selected state is cleared in startPlayerTurn)
-      const y = baseY;
+      // BUGFIX: Apply raised position if card is selected
+      const y = card.selected ? baseY - 40 : baseY;
       
       // BUGFIX: createCardSprite now creates container at correct position
       const cardSprite = this.createCardSprite(card, x, y);
       cardSprite.setAngle(rotation);
-      cardSprite.setDepth(100 + index);
+      
+      // BUGFIX: Apply yellow tint and depth if card is selected
+      if (card.selected) {
+        const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+        if (cardImage && 'setTint' in cardImage) {
+          cardImage.setTint(0xffdd44);
+        }
+        cardSprite.setDepth(500 + index);
+      } else {
+        cardSprite.setDepth(100 + index);
+      }
       
       this.handContainer.add(cardSprite);
       this.cardSprites.push(cardSprite);
@@ -1540,9 +1570,14 @@ export class CombatUI {
   public updateHandDisplayQuiet(): void {
     const combatState = this.scene.getCombatState();
     
-    // Clear existing card sprites and kill any active tweens
+    // BUGFIX: Kill ALL tweens on ALL card sprites before destroying
     this.cardSprites.forEach((sprite) => {
       this.scene.tweens.killTweensOf(sprite);
+      // Also clear tints before destroying
+      const cardImage = sprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+      if (cardImage && 'clearTint' in cardImage) {
+        cardImage.clearTint();
+      }
       sprite.destroy();
     });
     this.cardSprites = [];
@@ -1557,6 +1592,9 @@ export class CombatUI {
     });
 
     const hand = combatState.player.hand;
+    
+    // BUGFIX: DON'T force clear selected state during quiet update
+    // This is used during drawing animations, selection state should be preserved
     
     // FIXED SPACING - Cards always use the same spacing regardless of hand size
     const CARD_SPACING = 96;
@@ -1578,10 +1616,23 @@ export class CombatUI {
       (card as any).baseY = baseY;
       (card as any).baseRotation = rotation;
       
+      // BUGFIX: Apply raised position if card is selected
+      const y = card.selected ? baseY - 40 : baseY;
+      
       // BUGFIX: createCardSprite now creates container at correct position
-      const cardSprite = this.createCardSprite(card, x, baseY);
+      const cardSprite = this.createCardSprite(card, x, y);
       cardSprite.setAngle(rotation);
-      cardSprite.setDepth(100 + index);
+      
+      // BUGFIX: Apply yellow tint and depth if card is selected
+      if (card.selected) {
+        const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+        if (cardImage && 'setTint' in cardImage) {
+          cardImage.setTint(0xffdd44);
+        }
+        cardSprite.setDepth(500 + index);
+      } else {
+        cardSprite.setDepth(100 + index);
+      }
       
       this.handContainer.add(cardSprite);
       this.cardSprites.push(cardSprite);
@@ -1645,10 +1696,11 @@ export class CombatUI {
     
     cardSprite.setDisplaySize(cardWidth, cardHeight);
     
+    // BUGFIX: Border visibility should match card.selected state
     const border = this.scene.add.rectangle(0, 0, cardWidth + 4, cardHeight + 4, 0x000000, 0);
     border.setStrokeStyle(2, 0x77888C);
     border.setName('cardBorder');
-    border.setVisible(card.selected);
+    border.setVisible(card.selected === true); // Explicit boolean check
 
     cardContainer.add([cardSprite, border]);
     cardContainer.setPosition(x, y);
@@ -1659,7 +1711,16 @@ export class CombatUI {
         Phaser.Geom.Rectangle.Contains
       );
       
-      cardContainer.on("pointerdown", () => this.scene.selectCard(card));
+      // BUGFIX: Remove any previous listeners before adding new one
+      cardContainer.removeAllListeners();
+      cardContainer.on("pointerdown", () => {
+        // Only allow selection if card is still in hand
+        const combatState = this.scene.getCombatState();
+        const stillInHand = combatState.player.hand.some(c => c.id === card.id);
+        if (stillInHand) {
+          this.scene.selectCard(card);
+        }
+      });
     }
 
     (cardContainer as any).cardRef = card;
