@@ -9,6 +9,10 @@ export class OverworldGameState {
   public totalActionsUntilBoss: number = 500; // 5 cycles * 100 actions per cycle
   public bossAppeared: boolean = false;
 
+  // Next combat buffs (applied at the start of next combat)
+  public nextCombatBlock: number = 0;
+  public nextCombatHealth: number = 0;
+
   private constructor() {}
 
   static getInstance(): OverworldGameState {
@@ -67,6 +71,8 @@ export class OverworldGameState {
     this.isDay = true;
     this.actionsUntilCycleChange = 50;
     this.bossAppeared = false;
+    this.nextCombatBlock = 0;
+    this.nextCombatHealth = 0;
   }
 
   /**
@@ -88,5 +94,33 @@ export class OverworldGameState {
    */
   getBossProgress(): number {
     return Math.min(this.actionsTaken / this.totalActionsUntilBoss, 1);
+  }
+
+  /**
+   * Add block to be applied at the start of the next combat
+   */
+  addNextCombatBlock(amount: number): void {
+    this.nextCombatBlock += amount;
+  }
+
+  /**
+   * Add health to be applied at the start of the next combat
+   */
+  addNextCombatHealth(amount: number): void {
+    this.nextCombatHealth += amount;
+  }
+
+  /**
+   * Consume and return next combat buffs (called when combat starts)
+   * Returns {block, health} and resets the values
+   */
+  consumeNextCombatBuffs(): { block: number; health: number } {
+    const buffs = {
+      block: this.nextCombatBlock,
+      health: this.nextCombatHealth
+    };
+    this.nextCombatBlock = 0;
+    this.nextCombatHealth = 0;
+    return buffs;
   }
 }
