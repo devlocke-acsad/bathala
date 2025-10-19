@@ -95,12 +95,14 @@ export class TutorialManager {
         // Enhanced skip button with hover effects (bottom right)
         const skipButtonX = this.scene.cameras.main.width * 0.88;
         const skipButtonY = this.scene.cameras.main.height * 0.92;
+        const buttonWidth = 300; // Larger width to prevent text wrapping
         this.skipButton = createButton(
             this.scene, 
             skipButtonX, 
             skipButtonY, 
             'Skip Tutorial', 
-            () => this.confirmSkip()
+            () => this.confirmSkip(),
+            buttonWidth
         );
         
         // Add glow to skip button
@@ -123,8 +125,9 @@ export class TutorialManager {
             this.scene, 
             skipPhaseButtonX, 
             skipPhaseButtonY, 
-            'Skip Phase ➜', 
-            () => this.skipCurrentPhase()
+            'Skip Phase', 
+            () => this.skipCurrentPhase(),
+            buttonWidth // Same fixed width for uniformity
         );
         
         // Add glow to skip phase button
