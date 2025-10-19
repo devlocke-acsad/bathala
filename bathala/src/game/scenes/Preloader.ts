@@ -114,6 +114,9 @@ export class Preloader extends Scene {
     this.load.image("merchant_f05", "sprites/merchant/merchant_f05.png");
     this.load.image("merchant_f06", "sprites/merchant/merchant_f06.png");
     this.load.image("merchant_f07", "sprites/merchant/merchant_f07.png");
+    
+    // Main merchant sprite (hooded figure with backpack)
+    this.load.image("merchant_main", "sprites/merchant/merchant1.png");
 
     // Enemy sprites for Combat
     this.load.image("amomongo_combat", "sprites/combat/enemy/chap1/amomongo_combat.png");

@@ -2010,14 +2010,28 @@ export class CombatUI {
   }
   
   /**
-   * Show relic tooltip (Prologue style)
+   * Show relic tooltip (Prologue style) with proper text wrapping
    */
   private showRelicTooltip(name: string, x: number, y: number): void {
     this.hideRelicTooltip();
     
     const tooltipContainer = this.scene.add.container(x, y);
-    const tooltipWidth = Math.min(name.length * 8 + 20, 200);
-    const tooltipHeight = 30;
+    const maxTooltipWidth = 220; // Maximum width for tooltip
+    const tooltipPadding = 12;
+    
+    // Create text first to measure it
+    const text = this.scene.add.text(0, 0, name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 13,
+      color: "#77888C",
+      align: "center",
+      wordWrap: { width: maxTooltipWidth - tooltipPadding * 2 }
+    }).setOrigin(0.5);
+    
+    // Calculate tooltip dimensions based on text size
+    const textBounds = text.getBounds();
+    const tooltipWidth = Math.min(textBounds.width + tooltipPadding * 2, maxTooltipWidth);
+    const tooltipHeight = textBounds.height + tooltipPadding;
     
     // Prologue-style double border
     const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0);
@@ -2027,13 +2041,6 @@ export class CombatUI {
     innerBorder.setStrokeStyle(2, 0x77888C);
     
     const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
-    
-    const text = this.scene.add.text(0, 0, name, {
-      fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#77888C", // Prologue text color
-      align: "center"
-    }).setOrigin(0.5);
     
     tooltipContainer.add([outerBorder, innerBorder, bg, text]);
     tooltipContainer.setDepth(6000);
@@ -2054,14 +2061,28 @@ export class CombatUI {
   }
   
   /**
-   * Show potion tooltip (Prologue style with cyan accent)
+   * Show potion tooltip (Prologue style with cyan accent) with proper text wrapping
    */
   private showPotionTooltip(name: string, x: number, y: number): void {
     this.hideRelicTooltip(); // Reuse the same tooltip system
     
     const tooltipContainer = this.scene.add.container(x, y);
-    const tooltipWidth = Math.min(name.length * 8 + 20, 200);
-    const tooltipHeight = 30;
+    const maxTooltipWidth = 220; // Maximum width for tooltip
+    const tooltipPadding = 12;
+    
+    // Create text first to measure it
+    const text = this.scene.add.text(0, 0, name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 13,
+      color: "#4ecdc4",
+      align: "center",
+      wordWrap: { width: maxTooltipWidth - tooltipPadding * 2 }
+    }).setOrigin(0.5);
+    
+    // Calculate tooltip dimensions based on text size
+    const textBounds = text.getBounds();
+    const tooltipWidth = Math.min(textBounds.width + tooltipPadding * 2, maxTooltipWidth);
+    const tooltipHeight = textBounds.height + tooltipPadding;
     
     // Prologue-style double border with cyan accent for potions
     const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0);
@@ -2071,13 +2092,6 @@ export class CombatUI {
     innerBorder.setStrokeStyle(2, 0x4ecdc4); // Cyan for potions
     
     const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
-    
-    const text = this.scene.add.text(0, 0, name, {
-      fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#4ecdc4", // Cyan text for potions
-      align: "center"
-    }).setOrigin(0.5);
     
     tooltipContainer.add([outerBorder, innerBorder, bg, text]);
     tooltipContainer.setDepth(6000);
@@ -2144,17 +2158,17 @@ export class CombatUI {
     
     // Title section with relic icon
     const titleY = -modalHeight/2 + 40;
-    const relicIcon = this.scene.add.text(-150, titleY, relic.emoji || "⚙️", {
+    const relicIcon = this.scene.add.text(-modalWidth/2 + 40, titleY, relic.emoji || "⚙️", {
       fontSize: 32,
       align: "center"
     }).setOrigin(0.5);
     
-    const relicName = this.scene.add.text(-100, titleY, relic.name, {
+    const relicName = this.scene.add.text(-modalWidth/2 + 80, titleY, relic.name, {
       fontFamily: "dungeon-mode",
-      fontSize: 20,
+      fontSize: 18,
       color: "#ffd93d",
       align: "left",
-      wordWrap: { width: 250 }
+      wordWrap: { width: modalWidth - 180 }
     }).setOrigin(0, 0.5);
     
     // Rarity indicator (if available)
@@ -2168,9 +2182,9 @@ export class CombatUI {
       }
     }
     
-    const rarityLabel = this.scene.add.text(150, titleY, rarityText, {
+    const rarityLabel = this.scene.add.text(modalWidth/2 - 20, titleY, rarityText, {
       fontFamily: "dungeon-mode",
-      fontSize: 12,
+      fontSize: 11,
       color: rarityColor,
       align: "right"
     }).setOrigin(1, 0.5);

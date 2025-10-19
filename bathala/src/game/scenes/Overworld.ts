@@ -3121,16 +3121,17 @@ export class Overworld extends Scene {
       
       const tooltipText = this.add.text(0, 0, relic.name, {
         fontFamily: "dungeon-mode",
-        fontSize: "12px", // Better readable size
+        fontSize: "12px",
         color: "#00d4ff",
         fontStyle: "bold",
-        align: "center"
+        align: "center",
+        wordWrap: { width: 180 }
       }).setOrigin(0.5);
       tooltipText.setShadow(1, 1, '#000000', 2, false, true);
       
-      // Dynamically size tooltip based on text
+      // Dynamically size tooltip based on text with max width constraint
       const textBounds = tooltipText.getBounds();
-      const tooltipWidth = Math.max(textBounds.width + 16, 80);
+      const tooltipWidth = Math.min(Math.max(textBounds.width + 16, 80), 200);
       const tooltipHeight = textBounds.height + 12;
       
       tooltipBg.fillRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 6);
