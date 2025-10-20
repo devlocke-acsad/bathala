@@ -1031,6 +1031,9 @@ export class Shop extends Scene {
           this.showItemDetails(item);
         })
         .on('pointerover', () => {
+          // Kill any existing tweens on these targets to prevent conflicts
+          this.tweens.killTweensOf([outerGlow, topBar, container]);
+          
           // Glow effect
           this.tweens.add({
             targets: outerGlow,
@@ -1057,6 +1060,9 @@ export class Shop extends Scene {
           });
         })
         .on('pointerout', () => {
+          // Kill any existing tweens on these targets to prevent conflicts
+          this.tweens.killTweensOf([outerGlow, topBar, container]);
+          
           // Reset glow
           this.tweens.add({
             targets: outerGlow,
@@ -1851,32 +1857,58 @@ export class Shop extends Scene {
         // Animate the button
         this.tweens.add({
           targets: button,
-          scale: 1.2,
+          scale: 1.1,
           duration: 200,
           yoyo: true,
           repeat: 1,
           onComplete: () => {
-            // Dim the button and remove interactivity
-            const slotBg = button.getAt(0) as Phaser.GameObjects.Graphics;
-            if (slotBg) {
-              slotBg.clear();
-              slotBg.fillGradientStyle(0x1a1d26, 0x1a1d26, 0x0a0d16, 0x0a0d16, 0.7);
-              slotBg.lineStyle(2, 0x3a3d3f, 1);
-              slotBg.fillRoundedRect(-45, -45, 90, 90, 8);
-              slotBg.strokeRoundedRect(-45, -45, 90, 90, 8);
-            }
-            button.disableInteractive();
-            button.setActive(false);
+            // Dim all card components and add owned overlay
+            // Find all relevant card components
+            const outerGlow = button.list[0] as Phaser.GameObjects.Rectangle;
+            const background = button.list[1] as Phaser.GameObjects.Rectangle;
+            const topBar = button.list[2] as Phaser.GameObjects.Rectangle;
             
-            // Add a visual indicator that the item is owned with better styling
-            const ownedIndicator = this.add.text(0, 0, "✓ OWNED", {
+            // Disable interactivity on background
+            if (background && background.input) {
+              background.disableInteractive();
+            }
+            
+            // Dim the entire card
+            this.tweens.add({
+              targets: [outerGlow, background, topBar],
+              alpha: 0.4,
+              duration: 300
+            });
+            
+            // Dim all other elements
+            button.list.forEach((child, index) => {
+              if (index > 2 && child instanceof Phaser.GameObjects.GameObject) {
+                this.tweens.add({
+                  targets: child,
+                  alpha: 0.5,
+                  duration: 300
+                });
+              }
+            });
+            
+            // Add owned overlay (matching Discover style)
+            const ownedOverlay = this.add.rectangle(0, 0, 200, 260, 0x000000, 0.65)
+              .setOrigin(0.5);
+            
+            const checkMark = this.add.text(0, -30, "✓", {
+              fontSize: 42,
+              color: "#10b981",
+            }).setOrigin(0.5);
+            
+            const ownedText = this.add.text(0, 10, "OWNED", {
               fontFamily: "dungeon-mode-inverted",
-              fontSize: 14,
-              color: "#2ed573",
+              fontSize: 20,
+              color: "#10b981",
               fontStyle: "bold"
             }).setOrigin(0.5);
-            ownedIndicator.setShadow(1, 1, '#000000', 2, false, true);
-            button.add(ownedIndicator);
+            
+            button.add([ownedOverlay, checkMark, ownedText]);
+            button.setActive(false);
           }
         });
       }
