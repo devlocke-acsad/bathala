@@ -625,23 +625,22 @@ export class CombatUI {
   }
   
   /**
-   * Create potion inventory on the right side (3-slot grid beside relics)
+   * Create potion inventory on the left side (3-slot vertical grid, matching relic design)
    */
   public createPotionInventory(): void {
-    const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
-    // Position on the right side of screen
-    this.potionInventory = this.scene.add.container(screenWidth - 120, screenHeight / 2);
+    // Position on the left side, lower position for better visibility
+    this.potionInventory = this.scene.add.container(80, screenHeight * 0.6);
     this.potionInventory.setVisible(true);
     this.currentPotionTooltip = null;
     
-    console.log("Creating potion inventory container at:", screenWidth - 120, screenHeight / 2);
+    console.log("Creating potion inventory container at:", 80, this.scene.cameras.main.height * 0.6);
     
-    const inventoryWidth = 90;
-    const inventoryHeight = 200;
+    const inventoryWidth = 120;
+    const inventoryHeight = 310;
     
-    // Enhanced Prologue-style double border design
+    // Enhanced Prologue-style double border design (matching relic inventory)
     const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
     outerBorder.setStrokeStyle(3, 0x77888C, 0.9);
     
@@ -653,16 +652,16 @@ export class CombatUI {
     // Title text
     const potionsTitle = this.scene.add.text(0, -inventoryHeight/2 + 15, "POTIONS", {
       fontFamily: "dungeon-mode",
-      fontSize: 12,
+      fontSize: 14,
       color: "#77888C",
       align: "center"
     }).setOrigin(0.5, 0.5);
     
-    // Grid layout parameters (3 vertical slots)
-    const potionSlotSize = 50;
+    // Grid layout parameters - 3 slots vertically (matching relic slot style)
+    const potionSlotSize = 70;
     const maxPotions = 3;
-    const padding = 10;
-    const gridStartY = -30;
+    const padding = 12;
+    const gridStartY = -60;
     
     // Create 3 potion slots vertically
     for (let i = 0; i < maxPotions; i++) {
@@ -671,12 +670,12 @@ export class CombatUI {
       // Create slot container
       const slotContainer = this.scene.add.container(0, slotY);
       
-      // Outer border (matching relic style)
+      // Outer border (subtle glow effect - matching relic style)
       const outerBorder = this.scene.add.rectangle(0, 0, potionSlotSize + 4, potionSlotSize + 4, undefined, 0);
-      outerBorder.setStrokeStyle(2, 0x555555, 1.0);
+      outerBorder.setStrokeStyle(2, 0x444444, 0.8);
       
-      // Inner background
-      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x333333);
+      // Inner background (darker for contrast - matching relic style)
+      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x1a1a1a);
       
       slotContainer.add([bg, outerBorder]);
       (slotContainer as any).isPotionSlot = true;
@@ -1223,11 +1222,11 @@ export class CombatUI {
     
     console.log("Updating potion inventory. Potions:", potions.length);
     
-    // Grid configuration
-    const potionSlotSize = 50;
+    // Grid configuration - matching createPotionInventory
+    const potionSlotSize = 70;
     const maxPotions = 3;
-    const padding = 10;
-    const gridStartY = -30;
+    const padding = 12;
+    const gridStartY = -60;
     
     // Remove only the potion icons (keep the permanent slot frames)
     this.potionInventory.list.forEach(child => {
@@ -1251,7 +1250,7 @@ export class CombatUI {
         
         // Add potion icon (emoji for now, can add sprites later)
         const potionIcon = this.scene.add.text(0, iconY, potion.emoji || "🧪", {
-          fontSize: 36,
+          fontSize: 40,
           color: "#ffffff",
           align: "center"
         }).setOrigin(0.5).setDepth(100);
@@ -1275,8 +1274,8 @@ export class CombatUI {
         const outerBorder = slotChildren[1]; // Border
         
         slot.on("pointerover", () => {
-          bg.setFillStyle(0x555555); // Brighten background
-          outerBorder.setStrokeStyle(2, 0x777777); // Brighten border
+          bg.setFillStyle(0x2a2a2a); // Brighten background (matching relic style)
+          outerBorder.setStrokeStyle(2, 0x666666, 0.8); // Brighten border
           
           // Kill any existing tweens on this icon to prevent conflicts
           this.scene.tweens.killTweensOf(potionIcon);
@@ -1289,12 +1288,12 @@ export class CombatUI {
             ease: 'Back.easeOut'
           });
           
-          this.showPotionTooltip(potion.name, this.potionInventory.x - 100, this.potionInventory.y + iconY);
+          this.showPotionTooltip(potion.name, this.potionInventory.x + 120, this.potionInventory.y + iconY);
         });
         
         slot.on("pointerout", () => {
-          bg.setFillStyle(0x333333); // Reset background
-          outerBorder.setStrokeStyle(2, 0x555555); // Reset border
+          bg.setFillStyle(0x1a1a1a); // Reset background (matching relic style)
+          outerBorder.setStrokeStyle(2, 0x444444, 0.8); // Reset border
           
           // Kill any existing tweens on this icon to prevent conflicts
           this.scene.tweens.killTweensOf(potionIcon);

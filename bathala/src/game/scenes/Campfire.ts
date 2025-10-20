@@ -38,6 +38,22 @@ export class Campfire extends Scene {
     // Initialize MusicManager and play scene music automatically
     MusicManager.getInstance().setScene(this);
     MusicManager.getInstance().playSceneMusic();
+    
+    // Add forest background image
+    const forestBg = this.add.image(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      "forest_bg"
+    );
+    // Scale to cover the entire screen
+    const scaleX = this.cameras.main.width / forestBg.width;
+    const scaleY = this.cameras.main.height / forestBg.height;
+    const scale = Math.max(scaleX, scaleY);
+    forestBg.setScale(scale);
+    forestBg.setDepth(0); // Behind everything
+    
+    // Dim only the background image (not the whole screen) - lighter for cozy campfire atmosphere
+    forestBg.setAlpha(0.5); // 50% visible = softer dimming for campfire
 
     // Create responsive layout
     const screenWidth = this.cameras.main.width;

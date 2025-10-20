@@ -147,6 +147,22 @@ export class Treasure extends Scene {
     }
     
     this.cameras.main.setBackgroundColor(0x0e1112);
+    
+    // Add forest background image
+    const forestBg = this.add.image(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      "forest_bg"
+    );
+    // Scale to cover the entire screen
+    const scaleX = this.cameras.main.width / forestBg.width;
+    const scaleY = this.cameras.main.height / forestBg.height;
+    const scale = Math.max(scaleX, scaleY);
+    forestBg.setScale(scale);
+    forestBg.setDepth(0); // Behind everything
+    
+    // Dim only the background image (not the whole screen)
+    forestBg.setAlpha(0.45); // 45% visible = balanced dimming for treasure
 
     // Create title
     const screenWidth = this.cameras.main.width;
