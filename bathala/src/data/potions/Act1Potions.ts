@@ -14,6 +14,14 @@ export interface Potion {
 
 export const commonPotions: Potion[] = [
   {
+    id: "healing_potion",
+    name: "Healing Potion",
+    description: "Heal 20 HP.",
+    effect: "heal_20_hp",
+    emoji: "❤️",
+    rarity: "common"
+  },
+  {
     id: "clarity_potion",
     name: "Potion of Clarity",
     description: "Draw 3 cards.",

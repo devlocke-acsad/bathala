@@ -100,6 +100,10 @@ export class CombatUI {
   private relicUpdatePending: boolean = false;
   private lastRelicCount: number = 0;
   
+  // Potion UI Elements
+  public potionInventory!: Phaser.GameObjects.Container;
+  public currentPotionTooltip!: Phaser.GameObjects.Container | null;
+  
   // Modal/Overlay Elements
   public landasChoiceContainer!: Phaser.GameObjects.Container;
   public rewardsContainer!: Phaser.GameObjects.Container;
@@ -130,6 +134,7 @@ export class CombatUI {
   public initialize(): void {
     this.createCombatUI();
     this.createRelicInventory();
+    this.createPotionInventory();
     // Deck sprite is created in Combat.ts, not here
     // this.createDeckSprite();
     // Discard pile created here with proper stacking effect
@@ -562,8 +567,8 @@ export class CombatUI {
     
     console.log("Creating relic inventory container at:", screenWidth / 2, 80);
     
-    const inventoryWidth = 600;
-    const inventoryHeight = 140;
+    const inventoryWidth = 640;
+    const inventoryHeight = 120;
     
     // Enhanced Prologue-style double border design
     const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
@@ -582,12 +587,12 @@ export class CombatUI {
       align: "left"
     }).setOrigin(0, 0.5);
     
-    // Grid layout parameters (like Overworld)
-    const relicSlotSize = 50;
+    // Grid layout parameters - improved spacing
+    const relicSlotSize = 70;
     const relicsPerRow = 6;
-    const padding = 15;
+    const padding = 12;
     const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
-    const gridStartY = 10;
+    const gridStartY = 8;
     
     // Create 6 relic slots in a single row
     for (let i = 0; i < relicsPerRow; i++) {
@@ -598,12 +603,12 @@ export class CombatUI {
       // Create slot container
       const slotContainer = this.scene.add.container(slotX, slotY);
       
-      // Outer border (matching Overworld style)
+      // Outer border (subtle glow effect)
       const outerBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 4, relicSlotSize + 4, undefined, 0);
-      outerBorder.setStrokeStyle(2, 0x555555, 1.0);
+      outerBorder.setStrokeStyle(2, 0x444444, 0.8);
       
-      // Inner background
-      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x333333);
+      // Inner background (darker for contrast)
+      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x1a1a1a);
       
       slotContainer.add([bg, outerBorder]);
       (slotContainer as any).isRelicSlot = true;
@@ -617,6 +622,77 @@ export class CombatUI {
     this.relicInventory.sendToBack(mainBg);
     this.relicInventory.sendToBack(innerBorder);
     this.relicInventory.sendToBack(outerBorder);
+  }
+  
+  /**
+   * Create potion inventory on the right side (3-slot grid beside relics)
+   */
+  public createPotionInventory(): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Position on the right side of screen
+    this.potionInventory = this.scene.add.container(screenWidth - 120, screenHeight / 2);
+    this.potionInventory.setVisible(true);
+    this.currentPotionTooltip = null;
+    
+    console.log("Creating potion inventory container at:", screenWidth - 120, screenHeight / 2);
+    
+    const inventoryWidth = 90;
+    const inventoryHeight = 200;
+    
+    // Enhanced Prologue-style double border design
+    const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
+    outerBorder.setStrokeStyle(3, 0x77888C, 0.9);
+    
+    const innerBorder = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C, 0.8);
+    
+    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x120C0E);
+    
+    // Title text
+    const potionsTitle = this.scene.add.text(0, -inventoryHeight/2 + 15, "POTIONS", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    
+    // Grid layout parameters (3 vertical slots)
+    const potionSlotSize = 50;
+    const maxPotions = 3;
+    const padding = 10;
+    const gridStartY = -30;
+    
+    // Create 3 potion slots vertically
+    for (let i = 0; i < maxPotions; i++) {
+      const slotY = gridStartY + i * (potionSlotSize + padding);
+      
+      // Create slot container
+      const slotContainer = this.scene.add.container(0, slotY);
+      
+      // Outer border (matching relic style)
+      const outerBorder = this.scene.add.rectangle(0, 0, potionSlotSize + 4, potionSlotSize + 4, undefined, 0);
+      outerBorder.setStrokeStyle(2, 0x555555, 1.0);
+      
+      // Inner background
+      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x333333);
+      
+      slotContainer.add([bg, outerBorder]);
+      (slotContainer as any).isPotionSlot = true;
+      (slotContainer as any).slotIndex = i;
+      
+      this.potionInventory.add(slotContainer);
+    }
+    
+    // Add all elements to container
+    this.potionInventory.add([mainBg, innerBorder, outerBorder, potionsTitle]);
+    this.potionInventory.sendToBack(mainBg);
+    this.potionInventory.sendToBack(innerBorder);
+    this.potionInventory.sendToBack(outerBorder);
+    
+    // Update potion display immediately
+    this.updatePotionInventory();
   }
   
 
@@ -990,11 +1066,11 @@ export class CombatUI {
     console.log("Relic data:", relics);
     
     // Grid configuration (matching createRelicInventory)
-    const relicSlotSize = 50;
+    const relicSlotSize = 70;
     const relicsPerRow = 6;
-    const padding = 15;
+    const padding = 12;
     const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
-    const gridStartY = 10;
+    const gridStartY = 8;
     
     // Remove only the relic icons (keep the permanent slot frames)
     this.relicInventory.list.forEach(child => {
@@ -1025,16 +1101,23 @@ export class CombatUI {
         let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
         
         if (spriteKey && this.scene.textures.exists(spriteKey)) {
-          // Use sprite if available
-          relicIcon = this.scene.add.image(iconX, iconY, spriteKey)
+          // Use sprite if available - properly scaled to fit slot
+          const sprite = this.scene.add.image(iconX, iconY, spriteKey);
+          
+          // Calculate scale to fit nicely within slot (leave small padding)
+          const maxSize = relicSlotSize - 10; // 10px padding
+          const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+          
+          sprite.setScale(scale)
             .setOrigin(0.5)
-            .setDisplaySize(44, 44) // Fit within 50px slot
             .setDepth(100);
-          console.log(`Using sprite for relic: ${spriteKey}`);
+          
+          relicIcon = sprite;
+          console.log(`Using sprite for relic: ${spriteKey}, scale: ${scale}`);
         } else {
           // Fallback to emoji if sprite not found
           relicIcon = this.scene.add.text(iconX, iconY, relic.emoji || "⚙️", {
-            fontSize: 36,
+            fontSize: 42,
             color: "#ffffff",
             align: "center"
           }).setOrigin(0.5).setDepth(100);
@@ -1042,9 +1125,10 @@ export class CombatUI {
         }
         
         (relicIcon as any).isRelicIcon = true;
+        (relicIcon as any).originalScale = relicIcon.scale; // Store original scale
         this.relicInventory.add(relicIcon);
         
-        // Make slot interactive with hover effects (matching Overworld style)
+        // Make slot interactive with hover effects
         slot.setSize(relicSlotSize + 4, relicSlotSize + 4);
         slot.setInteractive(
           new Phaser.Geom.Rectangle(-(relicSlotSize + 4)/2, -(relicSlotSize + 4)/2, relicSlotSize + 4, relicSlotSize + 4),
@@ -1054,22 +1138,24 @@ export class CombatUI {
         // Clear any existing event listeners to prevent memory leaks
         slot.removeAllListeners();
         
-        // Get border and bg references from slot (matching createRelicInventory structure)
+        // Get border and bg references from slot
         const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
         const bg = slotChildren[0]; // Background
         const outerBorder = slotChildren[1]; // Border
         
         slot.on("pointerover", () => {
-          bg.setFillStyle(0x555555); // Brighten background
-          outerBorder.setStrokeStyle(2, 0x777777); // Brighten border
+          bg.setFillStyle(0x2a2a2a); // Subtle brighten
+          outerBorder.setStrokeStyle(2, 0xfbbf24, 1.0); // Gold highlight
           
           // Kill any existing tweens on this icon to prevent conflicts
           this.scene.tweens.killTweensOf(relicIcon);
           
+          // Scale up slightly on hover
+          const originalScale = (relicIcon as any).originalScale;
           this.scene.tweens.add({
             targets: relicIcon,
-            scaleX: 0.2,
-            scaleY: 0.2,
+            scaleX: originalScale * 1.15,
+            scaleY: originalScale * 1.15,
             duration: 150,
             ease: 'Back.easeOut'
           });
@@ -1078,18 +1164,20 @@ export class CombatUI {
         });
         
         slot.on("pointerout", () => {
-          bg.setFillStyle(0x333333); // Reset background
-          outerBorder.setStrokeStyle(2, 0x555555); // Reset border
+          bg.setFillStyle(0x1a1a1a); // Reset background
+          outerBorder.setStrokeStyle(2, 0x444444, 0.8); // Reset border
           
           // Kill any existing tweens on this icon to prevent conflicts
           this.scene.tweens.killTweensOf(relicIcon);
           
+          // Scale back to original
+          const originalScale = (relicIcon as any).originalScale;
           this.scene.tweens.add({
             targets: relicIcon,
-            scaleX: 0.1,
-            scaleY: 0.1,
+            scaleX: originalScale,
+            scaleY: originalScale,
             duration: 150,
-            ease: 'Back.easeOut'
+            ease: 'Back.easeIn'
           });
           
           this.hideRelicTooltip();
@@ -1122,6 +1210,111 @@ export class CombatUI {
   public forceRelicInventoryUpdate(): void {
     this.relicUpdatePending = true;
     this.updateRelicInventory();
+  }
+  
+  /**
+   * Update potion inventory with current potions (3-slot vertical grid)
+   */
+  public updatePotionInventory(): void {
+    if (!this.potionInventory) return;
+    
+    const combatState = this.scene.getCombatState();
+    const potions = combatState.player.potions || [];
+    
+    console.log("Updating potion inventory. Potions:", potions.length);
+    
+    // Grid configuration
+    const potionSlotSize = 50;
+    const maxPotions = 3;
+    const padding = 10;
+    const gridStartY = -30;
+    
+    // Remove only the potion icons (keep the permanent slot frames)
+    this.potionInventory.list.forEach(child => {
+      if ((child as any).isPotionIcon) {
+        child.destroy();
+      }
+    });
+    
+    // Get references to existing slot containers
+    const potionSlots = this.potionInventory.list.filter(child => (child as any).isPotionSlot) as Phaser.GameObjects.Container[];
+    
+    // Add potion icons to existing slots
+    potions.forEach((potion: any, index: number) => {
+      if (index < maxPotions && potionSlots[index]) {
+        const slot = potionSlots[index];
+        
+        console.log(`Adding potion ${index}:`, potion.name, "ID:", potion.id);
+        
+        // Calculate absolute position for the icon
+        const iconY = gridStartY + index * (potionSlotSize + padding);
+        
+        // Add potion icon (emoji for now, can add sprites later)
+        const potionIcon = this.scene.add.text(0, iconY, potion.emoji || "🧪", {
+          fontSize: 36,
+          color: "#ffffff",
+          align: "center"
+        }).setOrigin(0.5).setDepth(100);
+        
+        (potionIcon as any).isPotionIcon = true;
+        this.potionInventory.add(potionIcon);
+        
+        // Make slot interactive with hover effects
+        slot.setSize(potionSlotSize + 4, potionSlotSize + 4);
+        slot.setInteractive(
+          new Phaser.Geom.Rectangle(-(potionSlotSize + 4)/2, -(potionSlotSize + 4)/2, potionSlotSize + 4, potionSlotSize + 4),
+          Phaser.Geom.Rectangle.Contains
+        );
+        
+        // Clear any existing event listeners to prevent memory leaks
+        slot.removeAllListeners();
+        
+        // Get border and bg references from slot
+        const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
+        const bg = slotChildren[0]; // Background
+        const outerBorder = slotChildren[1]; // Border
+        
+        slot.on("pointerover", () => {
+          bg.setFillStyle(0x555555); // Brighten background
+          outerBorder.setStrokeStyle(2, 0x777777); // Brighten border
+          
+          // Kill any existing tweens on this icon to prevent conflicts
+          this.scene.tweens.killTweensOf(potionIcon);
+          
+          this.scene.tweens.add({
+            targets: potionIcon,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 150,
+            ease: 'Back.easeOut'
+          });
+          
+          this.showPotionTooltip(potion.name, this.potionInventory.x - 100, this.potionInventory.y + iconY);
+        });
+        
+        slot.on("pointerout", () => {
+          bg.setFillStyle(0x333333); // Reset background
+          outerBorder.setStrokeStyle(2, 0x555555); // Reset border
+          
+          // Kill any existing tweens on this icon to prevent conflicts
+          this.scene.tweens.killTweensOf(potionIcon);
+          
+          this.scene.tweens.add({
+            targets: potionIcon,
+            scaleX: 1.0,
+            scaleY: 1.0,
+            duration: 150,
+            ease: 'Back.easeOut'
+          });
+          
+          this.hidePotionTooltip();
+        });
+        
+        slot.on("pointerdown", () => {
+          this.showPotionConfirmationModal(potion, index);
+        });
+      }
+    });
   }
   
   /**
@@ -1837,6 +2030,218 @@ export class CombatUI {
   }
   
   /**
+   * Show healing indicator on player (appears like status badges but for healing)
+   * @param healAmount - Amount of HP healed
+   * @param cleansedDebuffs - Whether debuffs were cleansed
+   */
+  public showPlayerHealingIndicator(healAmount: number, cleansedDebuffs: boolean): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    const playerX = screenWidth * 0.25;
+    const playerY = screenHeight * 0.4;
+    
+    // Create healing indicator badge
+    const healingBadge = this.scene.add.container(playerX, playerY - 150);
+    healingBadge.setDepth(4000);
+    
+    // Healing badge styling (cyan/water theme)
+    const borderColor = 0x4ecdc4;
+    const bgColor = 0x0a1a2a;
+    const textColor = "#4ecdc4";
+    
+    const badgeWidth = 90;
+    const badgeHeight = 70;
+    
+    // Outer glow
+    const outerBorder = this.scene.add.rectangle(0, 0, badgeWidth + 6, badgeHeight + 6, undefined, 0)
+      .setStrokeStyle(3, borderColor, 1.0);
+    
+    // Inner border
+    const innerBorder = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, undefined, 0)
+      .setStrokeStyle(2, borderColor, 0.6);
+    
+    // Background
+    const bg = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.95);
+    
+    // Water drop emoji
+    const emojiText = this.scene.add.text(0, -12, "💧", {
+      fontSize: 32,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Healing amount
+    const healText = this.scene.add.text(0, 15, `+${healAmount} HP`, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 14,
+      color: textColor,
+      align: "center",
+      fontStyle: "bold"
+    }).setOrigin(0.5);
+    
+    // Cleansed indicator (if debuffs were removed)
+    let cleansedText = null;
+    if (cleansedDebuffs) {
+      cleansedText = this.scene.add.text(0, 30, "Cleansed", {
+        fontFamily: "dungeon-mode",
+        fontSize: 10,
+        color: textColor,
+        align: "center"
+      }).setOrigin(0.5);
+    }
+    
+    // Add elements to badge
+    if (cleansedText) {
+      healingBadge.add([outerBorder, innerBorder, bg, emojiText, healText, cleansedText]);
+    } else {
+      healingBadge.add([outerBorder, innerBorder, bg, emojiText, healText]);
+    }
+    
+    // Entrance animation - float up from player
+    healingBadge.setScale(0.8);
+    healingBadge.setAlpha(0);
+    
+    this.scene.tweens.add({
+      targets: healingBadge,
+      scale: 1,
+      alpha: 1,
+      y: healingBadge.y - 30,
+      duration: 400,
+      ease: 'Back.Out',
+      onComplete: () => {
+        // Hold for a moment
+        this.scene.time.delayedCall(1500, () => {
+          // Fade out
+          this.scene.tweens.add({
+            targets: healingBadge,
+            alpha: 0,
+            y: healingBadge.y - 20,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+              healingBadge.destroy();
+            }
+          });
+        });
+      }
+    });
+  }
+  
+  /**
+   * Show enhanced special effect notification with element-specific styling
+   * @param elementType - The element type (Apoy, Tubig, Lupa, Hangin)
+   * @param effectName - Name of the effect (Burn, Heal, Stun, Weak)
+   * @param description - Description of the effect
+   */
+  public showSpecialEffectNotification(elementType: string, effectName: string, description: string): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Create container for the notification
+    const notificationContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2 - 150);
+    notificationContainer.setDepth(5000);
+    
+    // Element-specific styling
+    const elementStyles: Record<string, { color: number, emoji: string, textColor: string, glowColor: number }> = {
+      'Apoy': { color: 0xff6b35, emoji: '🔥', textColor: '#ff6b35', glowColor: 0xff4500 },
+      'Tubig': { color: 0x4ecdc4, emoji: '💧', textColor: '#4ecdc4', glowColor: 0x00bcd4 },
+      'Lupa': { color: 0x8b7355, emoji: '💫', textColor: '#d4a574', glowColor: 0xa0826d },
+      'Hangin': { color: 0xe8eced, emoji: '⚠️', textColor: '#e8eced', glowColor: 0xc0c5ce }
+    };
+    
+    const style = elementStyles[elementType] || elementStyles['Apoy'];
+    
+    // Animated glow background
+    const glowCircle = this.scene.add.circle(0, 0, 80, style.glowColor, 0.3);
+    
+    // Main background panel
+    const panelWidth = 320;
+    const panelHeight = 100;
+    const panel = this.scene.add.rectangle(0, 0, panelWidth, panelHeight, 0x0a0a0a, 0.95);
+    panel.setStrokeStyle(3, style.color, 1.0);
+    
+    // Inner accent border
+    const innerBorder = this.scene.add.rectangle(0, 0, panelWidth - 10, panelHeight - 10, undefined, 0);
+    innerBorder.setStrokeStyle(2, style.color, 0.6);
+    
+    // Element icon (large)
+    const iconSize = 48;
+    const icon = this.scene.add.text(-panelWidth/2 + 50, 0, style.emoji, {
+      fontSize: iconSize,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Effect name
+    const effectTitle = this.scene.add.text(-panelWidth/2 + 100, -20, effectName.toUpperCase(), {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 20,
+      color: style.textColor,
+      align: "left",
+      fontStyle: "bold"
+    }).setOrigin(0, 0.5);
+    
+    // Effect description
+    const effectDesc = this.scene.add.text(-panelWidth/2 + 100, 10, description, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e8eced",
+      align: "left",
+      wordWrap: { width: panelWidth - 120 }
+    }).setOrigin(0, 0.5);
+    
+    // Element indicator badge
+    const elementBadge = this.scene.add.text(panelWidth/2 - 15, -panelHeight/2 + 15, elementType.toUpperCase(), {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: style.textColor,
+      align: "right"
+    }).setOrigin(1, 0.5);
+    
+    // Add all elements to container
+    notificationContainer.add([glowCircle, panel, innerBorder, icon, effectTitle, effectDesc, elementBadge]);
+    
+    // Entrance animation - pop in from center
+    notificationContainer.setScale(0.5);
+    notificationContainer.setAlpha(0);
+    
+    // Glow pulse animation
+    this.scene.tweens.add({
+      targets: glowCircle,
+      scale: 1.3,
+      alpha: 0,
+      duration: 800,
+      ease: 'Power2',
+      repeat: 2
+    });
+    
+    // Main entrance animation
+    this.scene.tweens.add({
+      targets: notificationContainer,
+      scale: 1,
+      alpha: 1,
+      duration: 300,
+      ease: 'Back.Out',
+      onComplete: () => {
+        // Hold for a moment
+        this.scene.time.delayedCall(1500, () => {
+          // Exit animation
+          this.scene.tweens.add({
+            targets: notificationContainer,
+            scale: 0.8,
+            alpha: 0,
+            y: notificationContainer.y - 50,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => {
+              notificationContainer.destroy();
+            }
+          });
+        });
+      }
+    });
+  }
+  
+  /**
    * Show relic tooltip (Prologue style) with proper text wrapping
    */
   private showRelicTooltip(name: string, x: number, y: number): void {
@@ -1936,19 +2341,198 @@ export class CombatUI {
   }
   
   /**
+   * Show potion confirmation modal (Yes/Cancel)
+   */
+  private showPotionConfirmationModal(potion: any, potionIndex: number): void {
+    console.log("Showing potion confirmation for:", potion.name);
+    
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Create modal container
+    const modalContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2);
+    modalContainer.setDepth(3000);
+    
+    // Semi-transparent overlay background
+    const overlay = this.scene.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7);
+    overlay.setInteractive();
+    
+    // Modal window dimensions
+    const modalWidth = 400;
+    const modalHeight = 250;
+    
+    // Main modal background with Prologue styling (cyan accent for potions)
+    const modalBg = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, 0x0f0a0b);
+    const outerBorder = this.scene.add.rectangle(0, 0, modalWidth + 6, modalHeight + 6, undefined, 0);
+    outerBorder.setStrokeStyle(3, 0x4ecdc4, 1.0); // Cyan for potions
+    const innerBorder = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x4ecdc4, 0.8); // Cyan for potions
+    
+    // Title section with potion icon
+    const titleY = -modalHeight/2 + 40;
+    const potionIcon = this.scene.add.text(0, titleY, potion.emoji || "🧪", {
+      fontSize: 40,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    const potionName = this.scene.add.text(0, titleY + 50, potion.name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#4ecdc4",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Description
+    const description = this.scene.add.text(0, titleY + 85, potion.description || "Use this potion?", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: modalWidth - 40 }
+    }).setOrigin(0.5);
+    
+    // Button container
+    const buttonY = modalHeight/2 - 50;
+    const buttonSpacing = 120;
+    
+    // Yes button (green)
+    const yesButton = this.createConfirmButton(-buttonSpacing/2, buttonY, "YES", 0x2ed573);
+    yesButton.on('pointerdown', () => {
+      modalContainer.destroy();
+      this.usePotionInCombat(potion, potionIndex);
+    });
+    
+    // Cancel button (red)
+    const cancelButton = this.createConfirmButton(buttonSpacing/2, buttonY, "CANCEL", 0xff6b6b);
+    cancelButton.on('pointerdown', () => {
+      modalContainer.destroy();
+    });
+    
+    // Add all elements to modal
+    modalContainer.add([
+      overlay,
+      outerBorder,
+      innerBorder,
+      modalBg,
+      potionIcon,
+      potionName,
+      description,
+      yesButton,
+      cancelButton
+    ]);
+    
+    // Add entrance animation
+    modalContainer.setScale(0.8);
+    modalContainer.setAlpha(0);
+    this.scene.tweens.add({
+      targets: modalContainer,
+      scale: 1,
+      alpha: 1,
+      duration: 200,
+      ease: 'Back.easeOut'
+    });
+  }
+  
+  /**
+   * Create confirmation button (for potion modal)
+   */
+  private createConfirmButton(x: number, y: number, label: string, color: number): Phaser.GameObjects.Container {
+    const button = this.scene.add.container(x, y);
+    
+    const buttonWidth = 100;
+    const buttonHeight = 40;
+    
+    const bg = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, color, 0.3);
+    const border = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0);
+    border.setStrokeStyle(2, color, 1.0);
+    
+    const text = this.scene.add.text(0, 0, label, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    button.add([bg, border, text]);
+    button.setSize(buttonWidth, buttonHeight);
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    // Hover effects
+    button.on('pointerover', () => {
+      bg.setFillStyle(color, 0.6);
+      this.scene.tweens.add({
+        targets: button,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 100,
+        ease: 'Sine.easeOut'
+      });
+    });
+    
+    button.on('pointerout', () => {
+      bg.setFillStyle(color, 0.3);
+      this.scene.tweens.add({
+        targets: button,
+        scaleX: 1.0,
+        scaleY: 1.0,
+        duration: 100,
+        ease: 'Sine.easeOut'
+      });
+    });
+    
+    return button;
+  }
+  
+  /**
    * Use potion in combat
    */
   private usePotionInCombat(potion: any, index: number): void {
-    console.log(`Using potion: ${potion.name}`);
-    // TODO: Implement potion effects based on potion.effect
-    // For now, just show a message and remove the potion
-    this.showActionResult(`Used ${potion.name}!`);
+    console.log(`Using potion: ${potion.name}, Effect: ${potion.effect}`);
+    
+    const combatState = this.scene.getCombatState();
+    const player = combatState.player;
+    
+    // Apply potion effect based on effect type
+    switch (potion.effect) {
+      case "heal_20_hp":
+        const healAmount = 20;
+        const oldHP = player.currentHealth;
+        player.currentHealth = Math.min(player.currentHealth + healAmount, player.maxHealth);
+        const actualHeal = player.currentHealth - oldHP;
+        
+        this.showActionResult(`Healed ${actualHeal} HP!`, "#2ed573");
+        this.showPlayerHealingIndicator(actualHeal, false);
+        this.updatePlayerUI(); // Update player UI to reflect new health
+        break;
+        
+      case "draw_3":
+        this.showActionResult(`Drew 3 cards!`, "#4ecdc4");
+        // Note: Drawing cards requires Combat scene methods
+        break;
+        
+      case "gain_15_block":
+        player.block = (player.block || 0) + 15;
+        this.showActionResult(`Gained 15 Block!`, "#ffd93d");
+        this.updatePlayerUI();
+        break;
+        
+      case "gain_dexterity":
+        this.showActionResult(`Gained 1 Dexterity!`, "#ff6b6b");
+        // Note: Status effects require Combat scene methods
+        break;
+        
+      default:
+        this.showActionResult(`Used ${potion.name}!`, "#4ecdc4");
+        console.warn(`Unknown potion effect: ${potion.effect}`);
+    }
     
     // Remove potion from player inventory
-    const combatState = this.scene.getCombatState();
-    if (combatState.player.potions) {
-      combatState.player.potions.splice(index, 1);
-      this.forceRelicInventoryUpdate(); // Force update after potion use
+    if (player.potions) {
+      player.potions.splice(index, 1);
+      this.updatePotionInventory(); // Update potion inventory after use
     }
   }
   

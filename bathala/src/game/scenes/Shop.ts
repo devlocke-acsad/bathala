@@ -37,6 +37,10 @@ function getRelicSpriteKey(relicId: string): string {
   return spriteMap[relicId] || '';
 }
 
+/**
+ * Shop scene for purchasing relics and items
+ */
+
 export class Shop extends Scene {
   private player!: Player;
   private shopItems: ShopItem[] = [];
@@ -592,10 +596,10 @@ export class Shop extends Scene {
       this.typewriterTimer = null;
     }
 
-    // Typewriter effect with safety checks
+    // Fast typewriter effect with safety checks
     let currentChar = 0;
     this.typewriterTimer = this.time.addEvent({
-      delay: 50, // Speed of typing
+      delay: 15, // Faster typing (was 50ms, now 15ms)
       callback: () => {
         // Safety check: ensure dialogue container and text still exist
         if (!this.dialogueContainer || !dialogueText || !dialogueText.active) {
@@ -639,6 +643,13 @@ export class Shop extends Scene {
               ease: 'Sine.easeInOut'
             });
           }
+          
+          // Auto-close dialogue after 2 seconds
+          this.time.delayedCall(2000, () => {
+            if (this.dialogueContainer && this.dialogueContainer.active) {
+              this.closeDialogueSmooth();
+            }
+          });
         }
       },
       repeat: dialogue.length - 1
@@ -1020,6 +1031,9 @@ export class Shop extends Scene {
     
     container.add(components);
     
+    // Store original Y position on the container for reliable hover reset
+    (container as any).originalY = y;
+    
     // Enhanced hover effects (matching Discover)
     if (!isOwned) {
       background.setInteractive(new Phaser.Geom.Rectangle(-width/2, -height/2, width, height), Phaser.Geom.Rectangle.Contains)
@@ -1031,6 +1045,12 @@ export class Shop extends Scene {
           this.showItemDetails(item);
         })
         .on('pointerover', () => {
+          // Kill any existing tweens on these targets to prevent conflicts
+          this.tweens.killTweensOf([outerGlow, topBar, container]);
+          
+          // Store current Y if not already stored (in case container moved)
+          const originalY = (container as any).originalY;
+          
           // Glow effect
           this.tweens.add({
             targets: outerGlow,
@@ -1048,15 +1068,21 @@ export class Shop extends Scene {
             duration: 200
           });
           
-          // Subtle lift
+          // Subtle lift - use stored original Y
           this.tweens.add({
             targets: container,
-            y: y - 5,
+            y: originalY - 5,
             duration: 200,
             ease: 'Power2'
           });
         })
         .on('pointerout', () => {
+          // Kill any existing tweens on these targets to prevent conflicts
+          this.tweens.killTweensOf([outerGlow, topBar, container]);
+          
+          // Get stored original Y position
+          const originalY = (container as any).originalY;
+          
           // Reset glow
           this.tweens.add({
             targets: outerGlow,
@@ -1074,10 +1100,10 @@ export class Shop extends Scene {
             duration: 200
           });
           
-          // Reset position
+          // Reset position to original Y
           this.tweens.add({
             targets: container,
-            y: y,
+            y: originalY,
             duration: 200,
             ease: 'Power2'
           });
@@ -1672,6 +1698,12 @@ export class Shop extends Scene {
       return;
     }
     
+    // Check if player has 6 relics - need to discard one first
+    if (this.player.relics.length >= 6) {
+      this.showRelicDiscardDialog(item);
+      return;
+    }
+    
     // Show confirmation dialog before purchase
     this.showPurchaseConfirmation(item);
   }
@@ -1821,6 +1853,181 @@ export class Shop extends Scene {
     dialog.add([dialogBg, title, itemName, ...priceElements, confirmBtn, cancelBtn]);
   }
   
+  /**
+   * Show relic discard dialog when player has 6 relics
+   */
+  private showRelicDiscardDialog(item: ShopItem): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Create overlay
+    const overlay = this.add.rectangle(
+      screenWidth / 2,
+      screenHeight / 2,
+      screenWidth,
+      screenHeight,
+      0x000000
+    ).setAlpha(0.8).setScrollFactor(0).setDepth(10000);
+    
+    // Create dialog container
+    const dialogWidth = 700;
+    const dialogHeight = 500;
+    const dialog = this.add.container(
+      screenWidth / 2,
+      screenHeight / 2
+    ).setScrollFactor(0).setDepth(10001);
+    
+    // Dialog background
+    const dialogBg = this.add.graphics();
+    dialogBg.fillGradientStyle(0x1a1a1a, 0x1a1a1a, 0x0a0a0a, 0x0a0a0a, 0.98);
+    dialogBg.lineStyle(3, 0xff9f43, 1);
+    dialogBg.fillRoundedRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 10);
+    dialogBg.strokeRoundedRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 10);
+    
+    // Title
+    const title = this.add.text(0, -dialogHeight/2 + 30, "RELIC INVENTORY FULL!", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 24,
+      color: "#ff9f43",
+    }).setOrigin(0.5);
+    title.setShadow(2, 2, '#000000', 3, false, true);
+    
+    // Instructions
+    const instructions = this.add.text(0, -dialogHeight/2 + 65, "Choose a relic to discard:", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: "#e8eced",
+    }).setOrigin(0.5);
+    
+    dialog.add([dialogBg, title, instructions]);
+    
+    // Create relic selection grid (2 rows of 3) - with properly scaled sprites
+    const relicCardWidth = 200;
+    const relicCardHeight = 100;
+    const spacing = 15;
+    const startX = -((relicCardWidth + spacing) * 3 - spacing) / 2 + relicCardWidth / 2;
+    const startY = -100;
+    
+    this.player.relics.forEach((relic, index) => {
+      const row = Math.floor(index / 3);
+      const col = index % 3;
+      const x = startX + col * (relicCardWidth + spacing);
+      const y = startY + row * (relicCardHeight + spacing);
+      
+      // Create relic card container
+      const relicCard = this.add.container(x, y);
+      
+      // Card background with gradient
+      const cardBg = this.add.rectangle(0, 0, relicCardWidth, relicCardHeight, 0x2a1f2a)
+        .setStrokeStyle(2, 0x77888C);
+      
+      relicCard.add([cardBg]);
+      
+      // Relic sprite - scaled to fit card properly
+      const spriteKey = getRelicSpriteKey(relic.id);
+      if (spriteKey && this.textures.exists(spriteKey)) {
+        const sprite = this.add.sprite(0, -10, spriteKey);
+        
+        // Calculate scale to fit within card bounds (leave room for text)
+        const maxSpriteWidth = relicCardWidth - 40;
+        const maxSpriteHeight = relicCardHeight - 45; // Leave space for name
+        const spriteScale = Math.min(
+          maxSpriteWidth / sprite.width,
+          maxSpriteHeight / sprite.height,
+          0.25 // Maximum scale cap to prevent too large sprites
+        );
+        
+        sprite.setScale(spriteScale);
+        relicCard.add(sprite);
+      } else {
+        // Fallback to emoji if sprite doesn't exist
+        const emoji = this.add.text(0, -10, relic.emoji || "✦", {
+          fontSize: 28,
+          color: "#fbbf24",
+          align: "center"
+        }).setOrigin(0.5);
+        relicCard.add(emoji);
+      }
+      
+      // Relic name (wrapped text, positioned at bottom)
+      const nameText = this.add.text(0, 35, relic.name, {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 11,
+        color: "#e8eced",
+        align: "center",
+        wordWrap: { width: relicCardWidth - 20 }
+      }).setOrigin(0.5);
+      
+      relicCard.add(nameText);
+      
+      // Make interactive
+      cardBg.setInteractive({ useHandCursor: true });
+      cardBg.on("pointerover", () => {
+        cardBg.setStrokeStyle(3, 0xff9f43);
+        this.tweens.add({
+          targets: relicCard,
+          scale: 1.05,
+          duration: 150
+        });
+      });
+      cardBg.on("pointerout", () => {
+        cardBg.setStrokeStyle(2, 0x77888C);
+        this.tweens.add({
+          targets: relicCard,
+          scale: 1,
+          duration: 150
+        });
+      });
+      cardBg.on("pointerdown", () => {
+        // Discard this relic and proceed with purchase
+        this.player.relics.splice(index, 1);
+        
+        // Clean up dialog
+        overlay.destroy();
+        dialog.destroy();
+        
+        // Show purchase confirmation
+        this.showPurchaseConfirmation(item);
+        
+        // Show discard message
+        this.showMessage(`Discarded ${relic.name}`, "#ff9f43");
+      });
+      
+      dialog.add(relicCard);
+    });
+    
+    // Cancel button
+    const cancelBtn = this.add.container(0, dialogHeight/2 - 40);
+    const cancelBg = this.add.graphics();
+    cancelBg.fillStyle(0xff4757, 0.9);
+    cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
+    const cancelText = this.add.text(0, 0, "CANCEL", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 18,
+      color: "#ffffff",
+    }).setOrigin(0.5);
+    
+    cancelBtn.add([cancelBg, cancelText]);
+    cancelBtn.setSize(120, 40);
+    cancelBtn.setInteractive({ useHandCursor: true });
+    cancelBtn.on("pointerdown", () => {
+      overlay.destroy();
+      dialog.destroy();
+    });
+    cancelBtn.on("pointerover", () => {
+      cancelBg.clear();
+      cancelBg.fillStyle(0xff6b81, 0.9);
+      cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
+    });
+    cancelBtn.on("pointerout", () => {
+      cancelBg.clear();
+      cancelBg.fillStyle(0xff4757, 0.9);
+      cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
+    });
+    
+    dialog.add(cancelBtn);
+  }
+  
   private proceedWithPurchase(item: ShopItem): void {
     // Calculate actual price with discounts
     const actualPrice = this.getActualPrice(item);
@@ -1851,32 +2058,58 @@ export class Shop extends Scene {
         // Animate the button
         this.tweens.add({
           targets: button,
-          scale: 1.2,
+          scale: 1.1,
           duration: 200,
           yoyo: true,
           repeat: 1,
           onComplete: () => {
-            // Dim the button and remove interactivity
-            const slotBg = button.getAt(0) as Phaser.GameObjects.Graphics;
-            if (slotBg) {
-              slotBg.clear();
-              slotBg.fillGradientStyle(0x1a1d26, 0x1a1d26, 0x0a0d16, 0x0a0d16, 0.7);
-              slotBg.lineStyle(2, 0x3a3d3f, 1);
-              slotBg.fillRoundedRect(-45, -45, 90, 90, 8);
-              slotBg.strokeRoundedRect(-45, -45, 90, 90, 8);
-            }
-            button.disableInteractive();
-            button.setActive(false);
+            // Dim all card components and add owned overlay
+            // Find all relevant card components
+            const outerGlow = button.list[0] as Phaser.GameObjects.Rectangle;
+            const background = button.list[1] as Phaser.GameObjects.Rectangle;
+            const topBar = button.list[2] as Phaser.GameObjects.Rectangle;
             
-            // Add a visual indicator that the item is owned with better styling
-            const ownedIndicator = this.add.text(0, 0, "✓ OWNED", {
+            // Disable interactivity on background
+            if (background && background.input) {
+              background.disableInteractive();
+            }
+            
+            // Dim the entire card
+            this.tweens.add({
+              targets: [outerGlow, background, topBar],
+              alpha: 0.4,
+              duration: 300
+            });
+            
+            // Dim all other elements
+            button.list.forEach((child, index) => {
+              if (index > 2 && child instanceof Phaser.GameObjects.GameObject) {
+                this.tweens.add({
+                  targets: child,
+                  alpha: 0.5,
+                  duration: 300
+                });
+              }
+            });
+            
+            // Add owned overlay (matching Discover style)
+            const ownedOverlay = this.add.rectangle(0, 0, 200, 260, 0x000000, 0.65)
+              .setOrigin(0.5);
+            
+            const checkMark = this.add.text(0, -30, "✓", {
+              fontSize: 42,
+              color: "#10b981",
+            }).setOrigin(0.5);
+            
+            const ownedText = this.add.text(0, 10, "OWNED", {
               fontFamily: "dungeon-mode-inverted",
-              fontSize: 14,
-              color: "#2ed573",
+              fontSize: 20,
+              color: "#10b981",
               fontStyle: "bold"
             }).setOrigin(0.5);
-            ownedIndicator.setShadow(1, 1, '#000000', 2, false, true);
-            button.add(ownedIndicator);
+            
+            button.add([ownedOverlay, checkMark, ownedText]);
+            button.setActive(false);
           }
         });
       }
@@ -2006,9 +2239,11 @@ export class Shop extends Scene {
       ease: 'Back.easeOut'
     });
 
-    // Auto-hide after 4 seconds
-    this.time.delayedCall(4000, () => {
-      this.closeDialogueSmooth();
+    // Auto-hide after 2 seconds
+    this.time.delayedCall(2000, () => {
+      if (this.dialogueContainer && this.dialogueContainer.active) {
+        this.closeDialogueSmooth();
+      }
     });
 
     // Click to close

@@ -404,12 +404,7 @@ export class Combat extends Scene {
           eliteRelics[0],  // Babaylan's Talisman
           bossRelics[0],   // Echo of the Ancestors
         ],
-        potions: [
-          // Add some test potions to showcase the new inventory UI
-          commonPotions[0], // Potion of Clarity
-          commonPotions[1], // Elixir of Fortitude
-          commonPotions[2], // Draught of Swiftness
-        ],
+        potions: [], // Start with no potions - gain from treasure chests
         discardCharges: 3,  // Changed from 1 to 3
         maxDiscardCharges: 3,  // Changed from 1 to 3
       };
@@ -461,8 +456,8 @@ export class Combat extends Scene {
     // Apply start-of-combat relic effects
     RelicManager.applyStartOfCombatEffects(this.combatState.player);
     
-    // Try to summon minion with Kapre's Cigar
-    RelicManager.tryKapresCigarSummon(this, this.combatState.player);
+    // Initialize Kapre's Cigar flag
+    this.kapresCigarUsed = false;
   }
 
   /**
@@ -1231,6 +1226,12 @@ export class Combat extends Scene {
       }
       this.animations.animateEnemyAttack(); // Add animation when enemy attacks
       this.damagePlayer(damage);
+    } else if (enemy.intent.type === "defend") {
+      // Enemy gains block (show visual feedback)
+      const blockGain = enemy.intent.value;
+      enemy.block = (enemy.block || 0) + blockGain;
+      this.showActionResult(`Enemy gains ${blockGain} Block!`);
+      this.ui.updateEnemyUI();
     }
 
     // Update enemy intent for next turn
@@ -1496,7 +1497,7 @@ export class Combat extends Scene {
         description: "Gains 5 block",
         icon: "⛨",
       };
-      enemy.block += 5;
+      // Block is gained in executeEnemyTurn(), not here (intent only shows what will happen)
     }
 
     this.ui.updateEnemyUI();
@@ -2490,13 +2491,33 @@ export class Combat extends Scene {
       case "attack":
         damage = evaluation.totalValue;
         
-        // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
-        // This is added as a flat bonus AFTER the main calculation
+        // Apply "Sigbin Heart" effect: +5 damage on all Attacks
         const sigbinHeartDamage = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
         if (sigbinHeartDamage > 0) {
           damage += sigbinHeartDamage;
           relicBonuses.push({name: "Sigbin Heart", amount: sigbinHeartDamage});
         }
+        
+        // Apply "Bungisngis Grin" effect: +8 damage when enemy has debuffs
+        const bungisngisGrinDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
+        if (bungisngisGrinDamage > 0) {
+          damage += bungisngisGrinDamage;
+          relicBonuses.push({name: "Bungisngis Grin", amount: bungisngisGrinDamage});
+        }
+        
+        // Apply "Kapre's Cigar" effect: First Attack deals double damage (once per combat)
+        if (RelicManager.shouldApplyKapresCigarDouble(this.combatState.player, this)) {
+          damage = damage * 2;
+          relicBonuses.push({name: "Kapre's Cigar", amount: damage / 2}); // Show the doubled amount
+          this.showActionResult("Kapre's Cigar empowered your strike!");
+        }
+        
+        // Apply "Amomongo Claw" effect: Apply 2 Vulnerable to enemy after damage
+        if (RelicManager.shouldApplyAmomongoVulnerable(this.combatState.player)) {
+          const vulnerableStacks = RelicManager.getAmomongoVulnerableStacks(this.combatState.player);
+          // Will be applied after damage is dealt
+        }
+        
         console.log(`Total attack damage: ${damage}`);
         
         // Show detailed damage calculation with breakdown
@@ -2556,6 +2577,23 @@ export class Combat extends Scene {
       this.animations.animatePlayerAttack(); // Add animation when attacking
       this.showFloatingDamage(damage); // Show floating damage counter like Prologue
       this.damageEnemy(damage);
+      
+      // Apply "Amomongo Claw" effect: Apply 2 Vulnerable after Attack
+      if (actionType === "attack" && RelicManager.shouldApplyAmomongoVulnerable(this.combatState.player)) {
+        const vulnerableStacks = RelicManager.getAmomongoVulnerableStacks(this.combatState.player);
+        const vulnerableEffect = {
+          id: `vulnerable_amomongo_${Date.now()}`,
+          name: "Vulnerable",
+          type: "debuff" as const,
+          duration: 2, // Lasts 2 turns
+          value: vulnerableStacks,
+          description: "Takes +50% more damage from attacks.",
+          emoji: "🛡️"
+        };
+        this.addStatusEffect(this.combatState.enemy, vulnerableEffect);
+        this.showActionResult(`Amomongo Claw applied ${vulnerableStacks} Vulnerable!`);
+      }
+      
       // Result already shown above with detailed calculation
     }
 
@@ -2600,10 +2638,17 @@ export class Combat extends Scene {
       return;
     }
     
+    // Apply "Mangangaway Wand" effect: +10 damage on all Special actions
+    const mangangawayWandDamage = RelicManager.calculateMangangawayWandDamage(this.combatState.player);
+    if (mangangawayWandDamage > 0) {
+      this.damageEnemy(mangangawayWandDamage);
+      // Damage is applied silently - shown in enhanced special effect notification
+    }
+    
     switch (suit) {
       case "Apoy": // Fire - Burn (10 damage per turn)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
-        const apoyAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+        const apoyAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (apoyAdditionalDamage > 0) {
           this.damageEnemy(apoyAdditionalDamage);
         }
@@ -2618,7 +2663,7 @@ export class Combat extends Scene {
           description: "Takes 10 damage at the start of each turn.",
           emoji: "🔥",
         });
-        this.showActionResult("Applied Burn (10 damage/turn)!");
+        this.ui.showSpecialEffectNotification("Apoy", "Burn", "Deals 10 damage per turn for 3 turns");
         break;
         
       case "Tubig": // Water - Heal (30 HP)
@@ -2631,18 +2676,24 @@ export class Combat extends Scene {
         );
         const actualHealed = this.combatState.player.currentHealth - oldHealth;
         
+        // Check if player had any debuffs to cleanse
+        const hadDebuffs = this.combatState.player.statusEffects.some(effect => effect.type === "debuff");
+        
         // Cleanse all debuffs from player
         this.combatState.player.statusEffects = this.combatState.player.statusEffects.filter(
           effect => effect.type !== "debuff"
         );
         
         this.ui.updatePlayerUI();
-        this.showActionResult(`Healed ${actualHealed} HP and cleansed debuffs!`);
+        this.ui.showSpecialEffectNotification("Tubig", "Heal", `Restored ${actualHealed} HP and cleansed debuffs`);
+        
+        // Show healing indicator on player side
+        this.ui.showPlayerHealingIndicator(actualHealed, hadDebuffs);
         break;
         
       case "Lupa": // Earth - Stun (1 turn)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
-        const lupaAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+        const lupaAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (lupaAdditionalDamage > 0) {
           this.damageEnemy(lupaAdditionalDamage);
         }
@@ -2657,7 +2708,7 @@ export class Combat extends Scene {
           description: "Cannot act for 1 turn.",
           emoji: "💫",
         });
-        this.showActionResult("Enemy is Stunned for 1 turn!");
+        this.ui.showSpecialEffectNotification("Lupa", "Stun", "Enemy cannot act for 1 turn");
         break;
         
       case "Hangin": // Air - Weak (enemy deals half damage for 3 turns)
@@ -2667,7 +2718,7 @@ export class Combat extends Scene {
         this.drawCards(cardsToDraw);
         
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
-        const hanginAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+        const hanginAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (hanginAdditionalDamage > 0) {
           this.damageEnemy(hanginAdditionalDamage);
         }
@@ -2682,7 +2733,7 @@ export class Combat extends Scene {
           description: "Deals only 50% damage for 3 turns.",
           emoji: "⚠️",
         });
-        this.showActionResult(`Drew ${cardsToDraw} cards and applied Weak!`);
+        this.ui.showSpecialEffectNotification("Hangin", "Weak", `Drew ${cardsToDraw} cards • Enemy deals 50% damage for 3 turns`);
         break;
     }
   }
@@ -3128,26 +3179,8 @@ export class Combat extends Scene {
   private addStatusEffect(entity: Player | Enemy, effect: StatusEffect): void {
     // Check for relic effects that might prevent or modify status effects
     
-    // For player entity, check relic effects
-    if (entity.id === "player") {
-      // "Duwende Charm" effect: +10% avoid Weak
-      if (effect.name === "Weak" && !RelicManager.shouldApplyWeakStatus(entity as Player)) {
-        this.showActionResult("Duwende Charm prevented Weak status!");
-        return; // Don't apply the status effect
-      }
-      
-      // "Tiyanak Tear" effect: Ignore 1 Fear
-      if (effect.name === "Fear" && !RelicManager.shouldApplyFearStatus(entity as Player)) {
-        this.showActionResult("Tiyanak Tear prevented Fear status!");
-        return; // Don't apply the status effect
-      }
-      
-      // "Mangangaway Wand" effect: Ignore curses
-      if (effect.name === "Curse" && RelicManager.shouldIgnoreCurse(entity as Player)) {
-        this.showActionResult("Mangangaway Wand prevented curse!");
-        return; // Don't apply the status effect
-      }
-    }
+    // Status effects are no longer blocked by relics in the simplified system
+    // Relics now provide direct combat bonuses instead of status prevention
     
     entity.statusEffects.push(effect);
     this.updateStatusEffectUI(entity);
@@ -3169,6 +3202,32 @@ export class Combat extends Scene {
           break;
         case "Regeneration":
           this.heal(entity, effect.value);
+          effect.duration--;
+          break;
+        case "Stunned":
+          // Stun: No action needed here, just decrement duration
+          // The stun check happens in executeEnemyTurn()
+          effect.duration--;
+          console.log(`[Stunned] Duration decremented to ${effect.duration}`);
+          break;
+        case "Weak":
+          // Weak: Reduces damage dealt (applied in damagePlayer/damageEnemy)
+          // Just decrement duration each turn
+          effect.duration--;
+          console.log(`[Weak] Duration decremented to ${effect.duration}`);
+          break;
+        case "Vulnerable":
+          // Vulnerable: Increases damage taken (applied in damagePlayer/damageEnemy)
+          // Just decrement duration each turn
+          effect.duration--;
+          break;
+        case "Strength":
+        case "Dexterity":
+          // Strength/Dexterity: Permanent buffs (duration 999)
+          // No decrement needed
+          break;
+        default:
+          // For any other status effects, decrement duration by default
           effect.duration--;
           break;
       }
@@ -3205,58 +3264,141 @@ export class Combat extends Scene {
 
     const screenWidth = this.cameras.main.width;
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    const baseSpacing = 30;
+    const baseSpacing = 80; // Increased spacing for wider status badges
     const spacing = baseSpacing * scaleFactor;
-    let x = 0;
+    let x = -(entity.statusEffects.length - 1) * spacing / 2; // Center the status effects
     
     entity.statusEffects.forEach((effect) => {
-      const effectText = this.add.text(x, 0, `${effect.emoji}${effect.duration}`, {
-        fontSize: Math.floor(16 * scaleFactor),
-      }).setInteractive();
-
-      // Create Prologue-style tooltip container
-      const tooltipContainer = this.add.container(x, spacing + 20);
+      // Enhanced status effect badge with color-coding
+      const statusBadge = this.add.container(x, 0);
       
-      // Calculate tooltip dimensions
-      const textWidth = effect.description.length * 8;
-      const tooltipWidth = Math.min(textWidth + 20, 200);
-      const tooltipHeight = 40;
+      // Determine color based on effect type
+      let borderColor = 0xff6b35; // Default: debuff red
+      let bgColor = 0x2a0a0a; // Dark red background
+      let textColor = "#ff6b35";
       
-      // Prologue-style double border design
-      const outerBorder = this.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-      const innerBorder = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-      const bg = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+      if (effect.type === "buff") {
+        borderColor = 0x4ecdc4; // Buff cyan
+        bgColor = 0x0a1a2a; // Dark cyan background
+        textColor = "#4ecdc4";
+      }
       
-      const tooltipText = this.add.text(0, 0, effect.description, {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(12 * scaleFactor),
-        color: "#77888C",
-        align: "center",
-        wordWrap: { width: tooltipWidth - 10 }
+      // Element-specific colors for debuffs
+      if (effect.id === "burn") {
+        borderColor = 0xff6b35;
+        bgColor = 0x2a0a0a;
+        textColor = "#ff6b35";
+      } else if (effect.id === "stun") {
+        borderColor = 0xfbbf24;
+        bgColor = 0x2a2010;
+        textColor = "#fbbf24";
+      } else if (effect.id === "weak") {
+        borderColor = 0xe8eced;
+        bgColor = 0x1a1a1a;
+        textColor = "#e8eced";
+      }
+      
+      // Badge dimensions
+      const badgeWidth = 70;
+      const badgeHeight = 56;
+      
+      // Outer glow/border
+      const outerBorder = this.add.rectangle(0, 0, badgeWidth + 6, badgeHeight + 6, undefined, 0)
+        .setStrokeStyle(3, borderColor, 1.0);
+      
+      // Inner border
+      const innerBorder = this.add.rectangle(0, 0, badgeWidth, badgeHeight, undefined, 0)
+        .setStrokeStyle(2, borderColor, 0.6);
+      
+      // Background
+      const bg = this.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.95);
+      
+      // Effect emoji (large and centered)
+      const emojiText = this.add.text(0, -8, effect.emoji, {
+        fontSize: 28,
+        align: "center"
       }).setOrigin(0.5);
       
-      tooltipContainer.add([outerBorder, innerBorder, bg, tooltipText]);
-      tooltipContainer.setVisible(false).setAlpha(0);
+      // Duration counter (bottom of badge)
+      const durationText = this.add.text(0, 16, `${effect.duration} turn${effect.duration !== 1 ? 's' : ''}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 11,
+        color: textColor,
+        align: "center"
+      }).setOrigin(0.5);
+      
+      // Effect name label (top, very small)
+      const nameText = this.add.text(0, -24, effect.name.toUpperCase(), {
+        fontFamily: "dungeon-mode",
+        fontSize: 9,
+        color: textColor,
+        align: "center"
+      }).setOrigin(0.5).setAlpha(0.8);
+      
+      statusBadge.add([outerBorder, innerBorder, bg, nameText, emojiText, durationText]);
+      statusBadge.setInteractive(
+        new Phaser.Geom.Rectangle(-badgeWidth/2, -badgeHeight/2, badgeWidth, badgeHeight),
+        Phaser.Geom.Rectangle.Contains
+      );
+      
+      // Enhanced tooltip with more info
+      const tooltipContainer = this.add.container(x, 45);
+      
+      const tooltipWidth = 180;
+      const tooltipHeight = 60;
+      
+      // Prologue-style double border design
+      const tooltipOuterBorder = this.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
+        .setStrokeStyle(2, borderColor);
+      const tooltipInnerBorder = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
+        .setStrokeStyle(2, borderColor, 0.6);
+      const tooltipBg = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x0a0a0a, 0.95);
+      
+      // Tooltip title
+      const tooltipTitle = this.add.text(0, -16, effect.name.toUpperCase(), {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 14,
+        color: textColor,
+        align: "center",
+        fontStyle: "bold"
+      }).setOrigin(0.5);
+      
+      // Tooltip description
+      const tooltipDesc = this.add.text(0, 8, effect.description, {
+        fontFamily: "dungeon-mode",
+        fontSize: 11,
+        color: "#e8eced",
+        align: "center",
+        wordWrap: { width: tooltipWidth - 20 }
+      }).setOrigin(0.5);
+      
+      tooltipContainer.add([tooltipOuterBorder, tooltipInnerBorder, tooltipBg, tooltipTitle, tooltipDesc]);
+      tooltipContainer.setVisible(false).setAlpha(0).setDepth(1000);
 
-      effectText.on("pointerover", () => {
-        // Prologue-style fade in
+      // Hover effects - brighten badge
+      statusBadge.on("pointerover", () => {
+        outerBorder.setStrokeStyle(3, borderColor, 1.0);
+        bg.setAlpha(1.0);
+        
+        // Show tooltip with fade in
         tooltipContainer.setVisible(true);
         this.tweens.add({
           targets: tooltipContainer,
           alpha: 1,
-          duration: 200,
+          duration: 150,
           ease: 'Power2.easeOut'
         });
       });
 
-      effectText.on("pointerout", () => {
-        // Prologue-style fade out
+      statusBadge.on("pointerout", () => {
+        outerBorder.setStrokeStyle(3, borderColor, 1.0);
+        bg.setAlpha(0.95);
+        
+        // Hide tooltip with fade out
         this.tweens.add({
           targets: tooltipContainer,
           alpha: 0,
-          duration: 200,
+          duration: 150,
           ease: 'Power2.easeOut',
           onComplete: () => {
             tooltipContainer.setVisible(false);
@@ -3264,7 +3406,7 @@ export class Combat extends Scene {
         });
       });
 
-      statusContainer.add([effectText, tooltipContainer]);
+      statusContainer.add([statusBadge, tooltipContainer]);
       x += spacing;
     });
   }
@@ -3668,9 +3810,10 @@ export class Combat extends Scene {
     if (this.turnText) this.turnText.setVisible(true);
     if (this.actionsText) this.actionsText.setVisible(true);
     if (this.handEvaluationText) this.handEvaluationText.setVisible(true);
-    if (this.enemyIntentText) this.enemyIntentText.setVisible(true);
+    // Keep enemy intent and attack preview hidden
+    // if (this.enemyIntentText) this.enemyIntentText.setVisible(true);
     if (this.actionResultText) this.actionResultText.setVisible(true);
-    if (this.enemyAttackPreviewText) this.enemyAttackPreviewText.setVisible(true);
+    // if (this.enemyAttackPreviewText) this.enemyAttackPreviewText.setVisible(true);
   }
 
   /**
