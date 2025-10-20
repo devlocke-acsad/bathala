@@ -582,6 +582,201 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
                     this.scene.time.delayedCall(2000, () => {
                         this.scene.tweens.add({
+                            targets: this.container.getAll(),
+                            alpha: 0,
+                            duration: 500,
+                            ease: 'Power2',
+                            onComplete: () => this.practiceStraight()
+                        });
+                    });
+                });
+                this.container.add(cardInteraction);
+            });
+            this.container.add(dialogueBox);
+        });
+    }
+
+    private practiceStraight(): void {
+        const progress = createProgressIndicator(this.scene, 3, 9);
+        this.container.add(progress);
+
+        const header = createPhaseHeader(
+            this.scene,
+            'Practice: Form a Straight',
+            'Five cards in consecutive sequence'
+        );
+        this.container.add(header);
+
+        const refContainer = this.createHandReferenceImage(
+            'straight',
+            [{rank: '4', suit: 'Lupa'}, {rank: '5', suit: 'Tubig'}, {rank: '6', suit: 'Apoy'}, {rank: '7', suit: 'Hangin'}, {rank: '8', suit: 'Lupa'}]
+        );
+        refContainer.setAlpha(0);
+        this.container.add(refContainer);
+
+        const dialogue = "Form a Straight (five cards in sequence)\n\nSelect 5 cards total to form your hand.";
+
+        this.scene.time.delayedCall(700, () => {
+            const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
+                dialogueBox.destroy();
+                refContainer.setAlpha(1);
+                
+                const cardInteraction = drawCards(this.scene, 'straight', (selected) => {
+                    if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'straight') {
+                        const warning = createInfoBox(
+                            this.scene,
+                            'Not quite! A Straight requires five consecutive ranks. Try again!',
+                            'warning'
+                        );
+                        this.container.add(warning);
+                        
+                        this.scene.time.delayedCall(2000, () => {
+                            warning.destroy();
+                            cardInteraction.destroy();
+                            this.practiceStraight();
+                        });
+                        return;
+                    }
+                    
+                    const success = createInfoBox(
+                        this.scene,
+                        'Excellent! This grants +12 bonus and ×1.6 multiplier!',
+                        'success'
+                    );
+                    this.container.add(success);
+
+                    this.scene.time.delayedCall(2000, () => {
+                        this.scene.tweens.add({
+                            targets: this.container.getAll(),
+                            alpha: 0,
+                            duration: 500,
+                            ease: 'Power2',
+                            onComplete: () => this.practiceFlush()
+                        });
+                    });
+                });
+                this.container.add(cardInteraction);
+            });
+            this.container.add(dialogueBox);
+        });
+    }
+
+    private practiceFlush(): void {
+        const progress = createProgressIndicator(this.scene, 3, 9);
+        this.container.add(progress);
+
+        const header = createPhaseHeader(
+            this.scene,
+            'Practice: Form a Flush',
+            'Five cards of the same element/suit'
+        );
+        this.container.add(header);
+
+        const refContainer = this.createHandReferenceImage(
+            'flush',
+            [{rank: '2', suit: 'Tubig'}, {rank: '5', suit: 'Tubig'}, {rank: '9', suit: 'Tubig'}, {rank: 'Mandirigma', suit: 'Tubig'}, {rank: 'Datu', suit: 'Tubig'}]
+        );
+        refContainer.setAlpha(0);
+        this.container.add(refContainer);
+
+        const dialogue = "Form a Flush (five cards of the same element)\n\nA powerful hand that shines with elemental synergy! Select 5 cards total.";
+
+        this.scene.time.delayedCall(700, () => {
+            const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
+                dialogueBox.destroy();
+                refContainer.setAlpha(1);
+                
+                const cardInteraction = drawCards(this.scene, 'flush', (selected) => {
+                    if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'flush') {
+                        const warning = createInfoBox(
+                            this.scene,
+                            'Not quite! A Flush requires five cards of the same element. Try again!',
+                            'warning'
+                        );
+                        this.container.add(warning);
+                        
+                        this.scene.time.delayedCall(2000, () => {
+                            warning.destroy();
+                            cardInteraction.destroy();
+                            this.practiceFlush();
+                        });
+                        return;
+                    }
+                    
+                    const success = createInfoBox(
+                        this.scene,
+                        'Perfect! This grants +15 bonus and ×1.7 multiplier!',
+                        'success'
+                    );
+                    this.container.add(success);
+
+                    this.scene.time.delayedCall(2000, () => {
+                        this.scene.tweens.add({
+                            targets: this.container.getAll(),
+                            alpha: 0,
+                            duration: 500,
+                            ease: 'Power2',
+                            onComplete: () => this.practiceFullHouse()
+                        });
+                    });
+                });
+                this.container.add(cardInteraction);
+            });
+            this.container.add(dialogueBox);
+        });
+    }
+
+    private practiceFullHouse(): void {
+        const progress = createProgressIndicator(this.scene, 3, 9);
+        this.container.add(progress);
+
+        const header = createPhaseHeader(
+            this.scene,
+            'Practice: Form a Full House',
+            'Three of a kind plus a pair'
+        );
+        this.container.add(header);
+
+        const refContainer = this.createHandReferenceImage(
+            'full_house',
+            [{rank: '3', suit: 'Apoy'}, {rank: '3', suit: 'Tubig'}, {rank: '3', suit: 'Lupa'}, {rank: 'Babaylan', suit: 'Hangin'}, {rank: 'Babaylan', suit: 'Apoy'}]
+        );
+        refContainer.setAlpha(0);
+        this.container.add(refContainer);
+
+        const dialogue = "Form a Full House (three of a kind + a pair)\n\nSelect 5 cards total to form your hand.";
+
+        this.scene.time.delayedCall(700, () => {
+            const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
+                dialogueBox.destroy();
+                refContainer.setAlpha(1);
+                
+                const cardInteraction = drawCards(this.scene, 'full_house', (selected) => {
+                    if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'full_house') {
+                        const warning = createInfoBox(
+                            this.scene,
+                            'Not quite! A Full House requires three of a kind plus a pair. Try again!',
+                            'warning'
+                        );
+                        this.container.add(warning);
+                        
+                        this.scene.time.delayedCall(2000, () => {
+                            warning.destroy();
+                            cardInteraction.destroy();
+                            this.practiceFullHouse();
+                        });
+                        return;
+                    }
+                    
+                    const success = createInfoBox(
+                        this.scene,
+                        'Outstanding! This grants +20 bonus and ×2.0 multiplier!',
+                        'success'
+                    );
+                    this.container.add(success);
+
+                    this.scene.time.delayedCall(2000, () => {
+                        this.scene.tweens.add({
                             targets: this.container,
                             alpha: 0,
                             duration: 500,
