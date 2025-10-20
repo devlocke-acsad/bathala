@@ -262,7 +262,9 @@ export class Preloader extends Scene {
     // Load background music
     // Note: Using placeholder music for all scenes
     // Supported formats: .mp3, .ogg, .wav
-    this.load.audio("placeholder_music", "music/bathalaMusicPLHDR.mp3");
+    //this.load.audio("placeholder_music", "music/bathalaMusicPLHDR.mp3");
+    //this.load.audio("main_menu_music", "music/Bathala_Soundtrack/Bathala_MainMenu.mp3");
+    this.load.audio("placeholder_music", "music/Bathala_Soundtrack/Bathala_MainMenu.mp3");
     
     // Load disclaimer music (plays from Boot through Disclaimer)
     this.load.audio("disclaimer_music", "music/bathala_disclaimer.mp3");
