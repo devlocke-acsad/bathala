@@ -1963,7 +1963,7 @@ export class Combat extends Scene {
       
       // Safety check for camera
       if (this.cameras.main) {
-        this.cameras.main.setBackgroundColor(0x0e1112);
+        this.cameras.main.setBackgroundColor(0x150E10);
       }
 
       // Add small delay before showing rewards screen
@@ -1998,10 +1998,58 @@ export class Combat extends Scene {
     const landasChangeText =
       landasChange > 0 ? `+${landasChange}` : `${landasChange}`;
 
-      // Get screen dimensions
-      const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
-      const screenHeight = this.cameras.main?.height || this.scale.height || 768;
-      const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));    // Title
+    // Get screen dimensions
+    const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
+    const screenHeight = this.cameras.main?.height || this.scale.height || 768;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+
+    // Add background image (same as MainMenu)
+    const bgImage = this.add.image(screenWidth / 2, screenHeight / 2, 'chap1_no_leaves_boss');
+    const bgScaleX = screenWidth / bgImage.width;
+    const bgScaleY = screenHeight / bgImage.height;
+    const bgScale = Math.max(bgScaleX, bgScaleY);
+    bgImage.setScale(bgScale);
+    bgImage.setDepth(-100);
+    
+    // Add overlay - 70% opacity (same as MainMenu)
+    const overlay = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x150E10, 0.70);
+    overlay.setDepth(-90);
+
+    // Create floating embers/spirits particles (same as MainMenu)
+    const particles = this.add.particles(0, 0, '__WHITE', {
+      x: { min: 0, max: screenWidth },
+      y: { min: -20, max: screenHeight + 20 },
+      lifespan: 5000,
+      speed: { min: 20, max: 60 },
+      angle: { min: 75, max: 105 }, // Slight drift
+      scale: { start: 1.2, end: 0.3 }, // Much larger
+      alpha: { start: 0.7, end: 0 }, // Very visible
+      blendMode: 'ADD',
+      frequency: 80, // Spawn faster
+      tint: 0x77888C,
+      maxParticles: 100, // Many more particles
+      gravityY: 15 // Gentle downward pull
+    });
+    particles.setDepth(-70);
+    
+    // Add second layer of smaller, faster particles for depth (same as MainMenu)
+    const dustParticles = this.add.particles(0, 0, '__WHITE', {
+      x: { min: 0, max: screenWidth },
+      y: { min: -10, max: screenHeight + 10 },
+      lifespan: 3000,
+      speed: { min: 30, max: 80 },
+      angle: { min: 70, max: 110 },
+      scale: { start: 0.5, end: 0.1 },
+      alpha: { start: 0.5, end: 0 },
+      blendMode: 'ADD',
+      frequency: 60,
+      tint: 0x99aabb,
+      maxParticles: 80,
+      gravityY: 20
+    });
+    dustParticles.setDepth(-75);
+
+    // Title
     this.add
       .text(
         screenWidth/2,
@@ -2027,14 +2075,28 @@ export class Combat extends Scene {
       })
       .setOrigin(0.5);
 
-    // Rewards box
-    const rewardsBoxWidth = Math.min(600, screenWidth * 0.6);
-    const rewardsBoxHeight = Math.min(250, screenHeight * 0.4);
-    const rewardsBox = this.add.rectangle(screenWidth/2, 400, rewardsBoxWidth, rewardsBoxHeight, 0x2f3542);
+    // Calculate dynamic box height based on rewards
+    let estimatedHeight = 80; // Base height with padding
+    if (scaledGold > 0) estimatedHeight += 30;
+    // Diamante not shown in rewards
+    if (reward.healthHealing > 0) estimatedHeight += 30;
+    estimatedHeight += 30; // Landas change (always shown)
+    if (reward.bonusEffect) estimatedHeight += 35;
+    if (reward.relics && reward.relics.length > 0) {
+      estimatedHeight += 90; // Relic name + description with extra space
+    }
+
+    // Rewards box with dynamic sizing
+    const rewardsBoxWidth = Math.min(700, screenWidth * 0.75);
+    const rewardsBoxHeight = Math.max(250, Math.min(estimatedHeight, screenHeight * 0.5));
+    const rewardsBoxY = 320 + (rewardsBoxHeight / 2);
+    const rewardsBox = this.add.rectangle(screenWidth/2, rewardsBoxY, rewardsBoxWidth, rewardsBoxHeight, 0x2f3542);
     rewardsBox.setStrokeStyle(2, 0x57606f);
 
+    // Rewards title
+    const rewardsTitleY = rewardsBoxY - (rewardsBoxHeight / 2) + 30;
     this.add
-      .text(screenWidth/2, 320, "Rewards", {
+      .text(screenWidth/2, rewardsTitleY, "Rewards", {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(24 * scaleFactor),
         color: "#ffd93d",
@@ -2042,7 +2104,7 @@ export class Combat extends Scene {
       })
       .setOrigin(0.5);
 
-    let rewardY = 360;
+    let rewardY = rewardsTitleY + 40;
 
     // Ginto reward - display the DDA-scaled amount
     if (scaledGold > 0) {
@@ -2051,19 +2113,6 @@ export class Combat extends Scene {
           fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#e8eced",
-          align: "center",
-        })
-        .setOrigin(0.5);
-      rewardY += 25 * scaleFactor;
-    }
-
-    // Diamante reward (check if property exists)
-    if (reward && typeof reward === 'object' && 'diamante' in reward && (reward as any).diamante > 0) {
-      this.add
-        .text(screenWidth/2, rewardY, `💎 ${(reward as any).diamante} Diamante`, {
-          fontFamily: "dungeon-mode",
-          fontSize: Math.floor(16 * scaleFactor),
-          color: "#4ecdc4",
           align: "center",
         })
         .setOrigin(0.5);
@@ -2102,9 +2151,10 @@ export class Combat extends Scene {
           fontSize: Math.floor(14 * scaleFactor),
           color: "#ffd93d",
           align: "center",
+          wordWrap: { width: rewardsBoxWidth - 40 }
         })
         .setOrigin(0.5);
-      rewardY += 25 * scaleFactor;
+      rewardY += 30 * scaleFactor;
     }
 
     // Relic drop display
@@ -2121,9 +2171,10 @@ export class Combat extends Scene {
             fontSize: Math.floor(16 * scaleFactor),
             color: "#a29bfe",
             align: "center",
+            wordWrap: { width: rewardsBoxWidth - 40 }
           })
           .setOrigin(0.5);
-        rewardY += 25 * scaleFactor;
+        rewardY += 30 * scaleFactor;
         
         // Show relic description
         this.add
@@ -2132,10 +2183,10 @@ export class Combat extends Scene {
             fontSize: Math.floor(12 * scaleFactor),
             color: "#95a5a6",
             align: "center",
-            wordWrap: { width: screenWidth * 0.7 }
+            wordWrap: { width: rewardsBoxWidth - 60 }
           })
           .setOrigin(0.5);
-        rewardY += 40 * scaleFactor;
+        rewardY += 45 * scaleFactor;
       } else {
         // Relic drop failed
         this.add
@@ -2150,6 +2201,10 @@ export class Combat extends Scene {
       }
     }
 
+    // Calculate positions for elements below the rewards box
+    const landasY = rewardsBoxY + (rewardsBoxHeight / 2) + 50;
+    const continueButtonY = landasY + 60;
+
     // Current landas status
     const landasTier = this.getLandasTier(this.combatState.player.landasScore);
     const landasColor = this.getLandasColor(landasTier);
@@ -2157,7 +2212,7 @@ export class Combat extends Scene {
     this.add
       .text(
         screenWidth/2,
-        520,
+        landasY,
         `Landas: ${
           this.combatState.player.landasScore
         } (${landasTier.toUpperCase()})`,
@@ -2171,7 +2226,7 @@ export class Combat extends Scene {
       .setOrigin(0.5);
 
     // Continue button
-    this.createDialogueButton(screenWidth/2, 600, "Continue", "#4ecdc4", () => {
+    this.createDialogueButton(screenWidth/2, continueButtonY, "Continue", "#4ecdc4", () => {
       // Save player state and return to overworld
       this.returnToOverworld();
     });
