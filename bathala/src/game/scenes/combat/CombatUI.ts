@@ -1837,6 +1837,104 @@ export class CombatUI {
   }
   
   /**
+   * Show healing indicator on player (appears like status badges but for healing)
+   * @param healAmount - Amount of HP healed
+   * @param cleansedDebuffs - Whether debuffs were cleansed
+   */
+  public showPlayerHealingIndicator(healAmount: number, cleansedDebuffs: boolean): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    const playerX = screenWidth * 0.25;
+    const playerY = screenHeight * 0.4;
+    
+    // Create healing indicator badge
+    const healingBadge = this.scene.add.container(playerX, playerY - 150);
+    healingBadge.setDepth(4000);
+    
+    // Healing badge styling (cyan/water theme)
+    const borderColor = 0x4ecdc4;
+    const bgColor = 0x0a1a2a;
+    const textColor = "#4ecdc4";
+    
+    const badgeWidth = 90;
+    const badgeHeight = 70;
+    
+    // Outer glow
+    const outerBorder = this.scene.add.rectangle(0, 0, badgeWidth + 6, badgeHeight + 6, undefined, 0)
+      .setStrokeStyle(3, borderColor, 1.0);
+    
+    // Inner border
+    const innerBorder = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, undefined, 0)
+      .setStrokeStyle(2, borderColor, 0.6);
+    
+    // Background
+    const bg = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.95);
+    
+    // Water drop emoji
+    const emojiText = this.scene.add.text(0, -12, "💧", {
+      fontSize: 32,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Healing amount
+    const healText = this.scene.add.text(0, 15, `+${healAmount} HP`, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 14,
+      color: textColor,
+      align: "center",
+      fontStyle: "bold"
+    }).setOrigin(0.5);
+    
+    // Cleansed indicator (if debuffs were removed)
+    let cleansedText = null;
+    if (cleansedDebuffs) {
+      cleansedText = this.scene.add.text(0, 30, "Cleansed", {
+        fontFamily: "dungeon-mode",
+        fontSize: 10,
+        color: textColor,
+        align: "center"
+      }).setOrigin(0.5);
+    }
+    
+    // Add elements to badge
+    if (cleansedText) {
+      healingBadge.add([outerBorder, innerBorder, bg, emojiText, healText, cleansedText]);
+    } else {
+      healingBadge.add([outerBorder, innerBorder, bg, emojiText, healText]);
+    }
+    
+    // Entrance animation - float up from player
+    healingBadge.setScale(0.8);
+    healingBadge.setAlpha(0);
+    
+    this.scene.tweens.add({
+      targets: healingBadge,
+      scale: 1,
+      alpha: 1,
+      y: healingBadge.y - 30,
+      duration: 400,
+      ease: 'Back.Out',
+      onComplete: () => {
+        // Hold for a moment
+        this.scene.time.delayedCall(1500, () => {
+          // Fade out
+          this.scene.tweens.add({
+            targets: healingBadge,
+            alpha: 0,
+            y: healingBadge.y - 20,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+              healingBadge.destroy();
+            }
+          });
+        });
+      }
+    });
+  }
+  
+  /**
    * Show enhanced special effect notification with element-specific styling
    * @param elementType - The element type (Apoy, Tubig, Lupa, Hangin)
    * @param effectName - Name of the effect (Burn, Heal, Stun, Weak)

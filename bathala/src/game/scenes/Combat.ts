@@ -2586,7 +2586,7 @@ export class Combat extends Scene {
     const mangangawayWandDamage = RelicManager.calculateMangangawayWandDamage(this.combatState.player);
     if (mangangawayWandDamage > 0) {
       this.damageEnemy(mangangawayWandDamage);
-      this.showActionResult(`Mangangaway Wand dealt ${mangangawayWandDamage} damage!`);
+      // Damage is applied silently - shown in enhanced special effect notification
     }
     
     switch (suit) {
@@ -2620,6 +2620,9 @@ export class Combat extends Scene {
         );
         const actualHealed = this.combatState.player.currentHealth - oldHealth;
         
+        // Check if player had any debuffs to cleanse
+        const hadDebuffs = this.combatState.player.statusEffects.some(effect => effect.type === "debuff");
+        
         // Cleanse all debuffs from player
         this.combatState.player.statusEffects = this.combatState.player.statusEffects.filter(
           effect => effect.type !== "debuff"
@@ -2627,6 +2630,9 @@ export class Combat extends Scene {
         
         this.ui.updatePlayerUI();
         this.ui.showSpecialEffectNotification("Tubig", "Heal", `Restored ${actualHealed} HP and cleansed debuffs`);
+        
+        // Show healing indicator on player side
+        this.ui.showPlayerHealingIndicator(actualHealed, hadDebuffs);
         break;
         
       case "Lupa": // Earth - Stun (1 turn)
@@ -3176,58 +3182,141 @@ export class Combat extends Scene {
 
     const screenWidth = this.cameras.main.width;
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    const baseSpacing = 30;
+    const baseSpacing = 80; // Increased spacing for wider status badges
     const spacing = baseSpacing * scaleFactor;
-    let x = 0;
+    let x = -(entity.statusEffects.length - 1) * spacing / 2; // Center the status effects
     
     entity.statusEffects.forEach((effect) => {
-      const effectText = this.add.text(x, 0, `${effect.emoji}${effect.duration}`, {
-        fontSize: Math.floor(16 * scaleFactor),
-      }).setInteractive();
-
-      // Create Prologue-style tooltip container
-      const tooltipContainer = this.add.container(x, spacing + 20);
+      // Enhanced status effect badge with color-coding
+      const statusBadge = this.add.container(x, 0);
       
-      // Calculate tooltip dimensions
-      const textWidth = effect.description.length * 8;
-      const tooltipWidth = Math.min(textWidth + 20, 200);
-      const tooltipHeight = 40;
+      // Determine color based on effect type
+      let borderColor = 0xff6b35; // Default: debuff red
+      let bgColor = 0x2a0a0a; // Dark red background
+      let textColor = "#ff6b35";
       
-      // Prologue-style double border design
-      const outerBorder = this.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-      const innerBorder = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-      const bg = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+      if (effect.type === "buff") {
+        borderColor = 0x4ecdc4; // Buff cyan
+        bgColor = 0x0a1a2a; // Dark cyan background
+        textColor = "#4ecdc4";
+      }
       
-      const tooltipText = this.add.text(0, 0, effect.description, {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(12 * scaleFactor),
-        color: "#77888C",
-        align: "center",
-        wordWrap: { width: tooltipWidth - 10 }
+      // Element-specific colors for debuffs
+      if (effect.id === "burn") {
+        borderColor = 0xff6b35;
+        bgColor = 0x2a0a0a;
+        textColor = "#ff6b35";
+      } else if (effect.id === "stun") {
+        borderColor = 0xfbbf24;
+        bgColor = 0x2a2010;
+        textColor = "#fbbf24";
+      } else if (effect.id === "weak") {
+        borderColor = 0xe8eced;
+        bgColor = 0x1a1a1a;
+        textColor = "#e8eced";
+      }
+      
+      // Badge dimensions
+      const badgeWidth = 70;
+      const badgeHeight = 56;
+      
+      // Outer glow/border
+      const outerBorder = this.add.rectangle(0, 0, badgeWidth + 6, badgeHeight + 6, undefined, 0)
+        .setStrokeStyle(3, borderColor, 1.0);
+      
+      // Inner border
+      const innerBorder = this.add.rectangle(0, 0, badgeWidth, badgeHeight, undefined, 0)
+        .setStrokeStyle(2, borderColor, 0.6);
+      
+      // Background
+      const bg = this.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.95);
+      
+      // Effect emoji (large and centered)
+      const emojiText = this.add.text(0, -8, effect.emoji, {
+        fontSize: 28,
+        align: "center"
       }).setOrigin(0.5);
       
-      tooltipContainer.add([outerBorder, innerBorder, bg, tooltipText]);
-      tooltipContainer.setVisible(false).setAlpha(0);
+      // Duration counter (bottom of badge)
+      const durationText = this.add.text(0, 16, `${effect.duration} turn${effect.duration !== 1 ? 's' : ''}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 11,
+        color: textColor,
+        align: "center"
+      }).setOrigin(0.5);
+      
+      // Effect name label (top, very small)
+      const nameText = this.add.text(0, -24, effect.name.toUpperCase(), {
+        fontFamily: "dungeon-mode",
+        fontSize: 9,
+        color: textColor,
+        align: "center"
+      }).setOrigin(0.5).setAlpha(0.8);
+      
+      statusBadge.add([outerBorder, innerBorder, bg, nameText, emojiText, durationText]);
+      statusBadge.setInteractive(
+        new Phaser.Geom.Rectangle(-badgeWidth/2, -badgeHeight/2, badgeWidth, badgeHeight),
+        Phaser.Geom.Rectangle.Contains
+      );
+      
+      // Enhanced tooltip with more info
+      const tooltipContainer = this.add.container(x, 45);
+      
+      const tooltipWidth = 180;
+      const tooltipHeight = 60;
+      
+      // Prologue-style double border design
+      const tooltipOuterBorder = this.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
+        .setStrokeStyle(2, borderColor);
+      const tooltipInnerBorder = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
+        .setStrokeStyle(2, borderColor, 0.6);
+      const tooltipBg = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x0a0a0a, 0.95);
+      
+      // Tooltip title
+      const tooltipTitle = this.add.text(0, -16, effect.name.toUpperCase(), {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 14,
+        color: textColor,
+        align: "center",
+        fontStyle: "bold"
+      }).setOrigin(0.5);
+      
+      // Tooltip description
+      const tooltipDesc = this.add.text(0, 8, effect.description, {
+        fontFamily: "dungeon-mode",
+        fontSize: 11,
+        color: "#e8eced",
+        align: "center",
+        wordWrap: { width: tooltipWidth - 20 }
+      }).setOrigin(0.5);
+      
+      tooltipContainer.add([tooltipOuterBorder, tooltipInnerBorder, tooltipBg, tooltipTitle, tooltipDesc]);
+      tooltipContainer.setVisible(false).setAlpha(0).setDepth(1000);
 
-      effectText.on("pointerover", () => {
-        // Prologue-style fade in
+      // Hover effects - brighten badge
+      statusBadge.on("pointerover", () => {
+        outerBorder.setStrokeStyle(3, borderColor, 1.0);
+        bg.setAlpha(1.0);
+        
+        // Show tooltip with fade in
         tooltipContainer.setVisible(true);
         this.tweens.add({
           targets: tooltipContainer,
           alpha: 1,
-          duration: 200,
+          duration: 150,
           ease: 'Power2.easeOut'
         });
       });
 
-      effectText.on("pointerout", () => {
-        // Prologue-style fade out
+      statusBadge.on("pointerout", () => {
+        outerBorder.setStrokeStyle(3, borderColor, 1.0);
+        bg.setAlpha(0.95);
+        
+        // Hide tooltip with fade out
         this.tweens.add({
           targets: tooltipContainer,
           alpha: 0,
-          duration: 200,
+          duration: 150,
           ease: 'Power2.easeOut',
           onComplete: () => {
             tooltipContainer.setVisible(false);
@@ -3235,7 +3324,7 @@ export class Combat extends Scene {
         });
       });
 
-      statusContainer.add([effectText, tooltipContainer]);
+      statusContainer.add([statusBadge, tooltipContainer]);
       x += spacing;
     });
   }
