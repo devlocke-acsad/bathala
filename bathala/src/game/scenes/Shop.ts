@@ -1502,12 +1502,12 @@ export class Shop extends Scene {
     // Content sections with shop theme
     const contentStartY = -panelHeight/2 + 200;
     
-    // Description section with shop styling
+    // Description section with shop styling - increased height for better readability
     const descSection = this.add.graphics();
     descSection.fillStyle(0x77888C, 0.15); // Subtle shop color background
     descSection.lineStyle(1, 0x77888C, 0.3);
-    descSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 100, 8);
-    descSection.strokeRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 100, 8);
+    descSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 130, 8);
+    descSection.strokeRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 130, 8);
     
     const descTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 15, "DESCRIPTION", {
       fontFamily: "dungeon-mode",
@@ -1516,22 +1516,22 @@ export class Shop extends Scene {
       fontStyle: "bold"
     }).setOrigin(0, 0);
     
-    const description = this.add.text(0, contentStartY + 45, item.description, {
+    const description = this.add.text(-panelWidth/2 + 45, contentStartY + 40, item.description, {
       fontFamily: "dungeon-mode",
       fontSize: 14,
       color: "#cccccc", // Light gray for readability
-      align: "center",
-      wordWrap: { width: panelWidth - 100 }
-    }).setOrigin(0.5, 0);
+      align: "left",
+      wordWrap: { width: panelWidth - 90 }
+    }).setOrigin(0, 0);
     
-    // Lore section with shop styling
+    // Lore section with shop styling - increased height and adjusted position
     const loreSection = this.add.graphics();
     loreSection.fillStyle(0x77888C, 0.1); // Even more subtle
     loreSection.lineStyle(1, 0x77888C, 0.2);
-    loreSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY + 120, panelWidth - 60, 110, 8);
-    loreSection.strokeRoundedRect(-panelWidth/2 + 30, contentStartY + 120, panelWidth - 60, 110, 8);
+    loreSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY + 150, panelWidth - 60, 140, 8);
+    loreSection.strokeRoundedRect(-panelWidth/2 + 30, contentStartY + 150, panelWidth - 60, 140, 8);
     
-    const loreTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 135, "LORE", {
+    const loreTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 165, "LORE", {
       fontFamily: "dungeon-mode",
       fontSize: 14,
       color: "#77888C", // Shop accent color
@@ -1539,13 +1539,13 @@ export class Shop extends Scene {
     }).setOrigin(0, 0);
     
     const lore = this.getItemLore(item);
-    const loreText = this.add.text(0, contentStartY + 165, lore, {
+    const loreText = this.add.text(-panelWidth/2 + 45, contentStartY + 190, lore, {
       fontFamily: "dungeon-mode",
-      fontSize: 12,
+      fontSize: 13,
       color: "#aaaaaa", // Light gray for lore text
-      align: "center",
-      wordWrap: { width: panelWidth - 100 }
-    }).setOrigin(0.5, 0);
+      align: "left",
+      wordWrap: { width: panelWidth - 90 }
+    }).setOrigin(0, 0);
     
     // Persona 5 style close button - inside panel, top-right corner
     const closeBtn = this.add.container(panelWidth/2 - 40, -panelHeight/2 + 40);
