@@ -1363,7 +1363,7 @@ export class Shop extends Scene {
     // Clean up any tooltips first
     this.hideItemTooltip();
     
-    // Create overlay
+    // Create overlay that blocks all interactions beneath it
     const overlay = this.add.rectangle(
       this.cameras.main.width / 2,
       this.cameras.main.height / 2,
@@ -1371,6 +1371,40 @@ export class Shop extends Scene {
       this.cameras.main.height,
       0x000000
     ).setAlpha(0.8).setScrollFactor(0).setDepth(2000);
+    
+    // Make overlay interactive to block clicks on cards beneath
+    overlay.setInteractive();
+    
+    // Function to close the panel
+    const closePanel = () => {
+      this.tweens.add({
+        targets: panel,
+        scale: 0.8,
+        alpha: 0,
+        duration: 200,
+        ease: 'Back.easeIn',
+        onComplete: () => {
+          overlay.destroy();
+          panel.destroy();
+        }
+      });
+    };
+    
+    // Click overlay (outside panel) to close
+    overlay.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      // Check if click is outside the panel bounds
+      const panelBounds = {
+        left: panelX - panelWidth / 2,
+        right: panelX + panelWidth / 2,
+        top: panelY - panelHeight / 2,
+        bottom: panelY + panelHeight / 2
+      };
+      
+      if (pointer.x < panelBounds.left || pointer.x > panelBounds.right ||
+          pointer.y < panelBounds.top || pointer.y > panelBounds.bottom) {
+        closePanel();
+      }
+    });
     
     // Create item details panel with modern Persona styling
     const panelWidth = 520;
@@ -1566,18 +1600,7 @@ export class Shop extends Scene {
     closeBtn.setSize(40, 40); // Set proper size for interaction
     closeBtn.setInteractive();
     closeBtn.on("pointerdown", () => {
-      // Smooth exit animation
-      this.tweens.add({
-        targets: panel,
-        scale: 0.8,
-        alpha: 0,
-        duration: 200,
-        ease: 'Back.easeIn',
-        onComplete: () => {
-          overlay.destroy();
-          panel.destroy();
-        }
-      });
+      closePanel();
     });
     closeBtn.on("pointerover", () => {
       this.input.setDefaultCursor('pointer');
