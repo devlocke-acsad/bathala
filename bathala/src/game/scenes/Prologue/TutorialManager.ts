@@ -118,16 +118,16 @@ export class TutorialManager {
             buttonWidth // Same fixed width for uniformity
         );
         
-        // Add Help/Navigation button (top right)
-        const helpButtonX = this.scene.cameras.main.width * 0.88;
+        // Add Help/Navigation button (top right) - aligned with skip buttons
+        const helpButtonX = this.scene.cameras.main.width * 0.94; // Further right, aligned with skip buttons
         const helpButtonY = this.scene.cameras.main.height * 0.08;
         this.helpButton = createButton(
             this.scene,
             helpButtonX,
             helpButtonY,
-            'ℹ Navigation',
+            'ℹ',
             () => this.showPhaseNavigation(),
-            buttonWidth
+            80 // Smaller width for just the icon
         );
         
         // Don't add buttons to container - add them directly to scene so they're always visible
@@ -309,8 +309,8 @@ export class TutorialManager {
             this.scene.cameras.main.height / 2
         );
 
-        const menuWidth = 600;
-        const menuHeight = 550;
+        const menuWidth = 550;
+        const menuHeight = 740; // Increased to accommodate larger gaps
 
         const bg = this.scene.add.rectangle(0, 0, menuWidth, menuHeight, 0x150E10, 0.98);
         
@@ -320,14 +320,14 @@ export class TutorialManager {
         const innerBorder = this.scene.add.rectangle(0, 0, menuWidth + 2, menuHeight + 2, undefined, 0)
             .setStrokeStyle(2, 0x556065, 0.6);
 
-        const titleText = this.scene.add.text(0, -menuHeight/2 + 40, 'Phase Navigation', {
+        const titleText = this.scene.add.text(0, -menuHeight/2 + 50, 'Phase Navigation', {
             fontFamily: 'dungeon-mode',
             fontSize: 32,
             color: '#77888C',
             align: 'center'
         }).setOrigin(0.5);
 
-        const currentPhaseText = this.scene.add.text(0, -menuHeight/2 + 80, `Current: Phase ${this.currentPhaseIndex}`, {
+        const currentPhaseText = this.scene.add.text(0, -menuHeight/2 + 95, `Current: Phase ${this.currentPhaseIndex}`, {
             fontFamily: 'dungeon-mode',
             fontSize: 18,
             color: '#FFAA00',
@@ -348,32 +348,29 @@ export class TutorialManager {
             'Advanced Concepts'
         ];
 
-        // Create phase buttons
-        const buttonsPerRow = 2;
-        const buttonSpacing = 150;
-        const buttonWidth = 250;
-        const startY = -menuHeight/2 + 140;
+        // Create phase buttons - single column, more compact
+        const buttonWidth = 450;
+        const buttonHeight = 45;
+        const buttonSpacing = 64; // Further increased gap between buttons
+        const startY = -menuHeight/2 + 150; // More space from top
 
         phaseNames.forEach((phaseName, index) => {
-            const row = Math.floor(index / buttonsPerRow);
-            const col = index % buttonsPerRow;
-            const x = (col - 0.5) * buttonSpacing;
-            const y = startY + (row * 55);
+            const y = startY + (index * buttonSpacing);
+
+            // Highlight current phase
+            if (index === this.currentPhaseIndex - 1) {
+                const highlight = this.scene.add.rectangle(0, y, buttonWidth + 10, buttonHeight, 0xFFAA00, 0.2);
+                navContainer.add(highlight);
+            }
 
             const phaseButton = createButton(
                 this.scene,
-                x,
+                0,
                 y,
                 `${index + 1}. ${phaseName}`,
                 () => this.jumpToPhase(index, navContainer),
                 buttonWidth
             );
-
-            // Highlight current phase
-            if (index === this.currentPhaseIndex - 1) {
-                const highlight = this.scene.add.rectangle(x, y, buttonWidth + 10, 50, 0xFFAA00, 0.2);
-                navContainer.add(highlight);
-            }
 
             navContainer.add(phaseButton);
         });
@@ -382,7 +379,7 @@ export class TutorialManager {
         const closeButton = createButton(
             this.scene,
             0,
-            menuHeight/2 - 50,
+            menuHeight/2 - 48, // More space from bottom
             'Close',
             () => {
                 this.scene.tweens.add({
