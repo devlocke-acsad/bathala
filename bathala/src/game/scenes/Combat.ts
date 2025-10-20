@@ -461,8 +461,8 @@ export class Combat extends Scene {
     // Apply start-of-combat relic effects
     RelicManager.applyStartOfCombatEffects(this.combatState.player);
     
-    // Try to summon minion with Kapre's Cigar
-    RelicManager.tryKapresCigarSummon(this, this.combatState.player);
+    // Initialize Kapre's Cigar flag
+    this.kapresCigarUsed = false;
   }
 
   /**
@@ -2435,13 +2435,33 @@ export class Combat extends Scene {
       case "attack":
         damage = evaluation.totalValue;
         
-        // Apply "Sigbin Heart" effect: +5 damage on burst (when low health)
-        // This is added as a flat bonus AFTER the main calculation
+        // Apply "Sigbin Heart" effect: +5 damage on all Attacks
         const sigbinHeartDamage = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
         if (sigbinHeartDamage > 0) {
           damage += sigbinHeartDamage;
           relicBonuses.push({name: "Sigbin Heart", amount: sigbinHeartDamage});
         }
+        
+        // Apply "Bungisngis Grin" effect: +8 damage when enemy has debuffs
+        const bungisngisGrinDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
+        if (bungisngisGrinDamage > 0) {
+          damage += bungisngisGrinDamage;
+          relicBonuses.push({name: "Bungisngis Grin", amount: bungisngisGrinDamage});
+        }
+        
+        // Apply "Kapre's Cigar" effect: First Attack deals double damage (once per combat)
+        if (RelicManager.shouldApplyKapresCigarDouble(this.combatState.player, this)) {
+          damage = damage * 2;
+          relicBonuses.push({name: "Kapre's Cigar", amount: damage / 2}); // Show the doubled amount
+          this.showActionResult("Kapre's Cigar empowered your strike!");
+        }
+        
+        // Apply "Amomongo Claw" effect: Apply 2 Vulnerable to enemy after damage
+        if (RelicManager.shouldApplyAmomongoVulnerable(this.combatState.player)) {
+          const vulnerableStacks = RelicManager.getAmomongoVulnerableStacks(this.combatState.player);
+          // Will be applied after damage is dealt
+        }
+        
         console.log(`Total attack damage: ${damage}`);
         
         // Show detailed damage calculation with breakdown
@@ -2501,6 +2521,23 @@ export class Combat extends Scene {
       this.animations.animatePlayerAttack(); // Add animation when attacking
       this.showFloatingDamage(damage); // Show floating damage counter like Prologue
       this.damageEnemy(damage);
+      
+      // Apply "Amomongo Claw" effect: Apply 2 Vulnerable after Attack
+      if (actionType === "attack" && RelicManager.shouldApplyAmomongoVulnerable(this.combatState.player)) {
+        const vulnerableStacks = RelicManager.getAmomongoVulnerableStacks(this.combatState.player);
+        const vulnerableEffect = {
+          id: `vulnerable_amomongo_${Date.now()}`,
+          name: "Vulnerable",
+          type: "debuff" as const,
+          duration: 2, // Lasts 2 turns
+          value: vulnerableStacks,
+          description: "Takes +50% more damage from attacks.",
+          emoji: "🛡️"
+        };
+        this.addStatusEffect(this.combatState.enemy, vulnerableEffect);
+        this.showActionResult(`Amomongo Claw applied ${vulnerableStacks} Vulnerable!`);
+      }
+      
       // Result already shown above with detailed calculation
     }
 
@@ -2545,10 +2582,17 @@ export class Combat extends Scene {
       return;
     }
     
+    // Apply "Mangangaway Wand" effect: +10 damage on all Special actions
+    const mangangawayWandDamage = RelicManager.calculateMangangawayWandDamage(this.combatState.player);
+    if (mangangawayWandDamage > 0) {
+      this.damageEnemy(mangangawayWandDamage);
+      this.showActionResult(`Mangangaway Wand dealt ${mangangawayWandDamage} damage!`);
+    }
+    
     switch (suit) {
       case "Apoy": // Fire - Burn (10 damage per turn)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
-        const apoyAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+        const apoyAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (apoyAdditionalDamage > 0) {
           this.damageEnemy(apoyAdditionalDamage);
         }
@@ -2587,7 +2631,7 @@ export class Combat extends Scene {
         
       case "Lupa": // Earth - Stun (1 turn)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
-        const lupaAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+        const lupaAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (lupaAdditionalDamage > 0) {
           this.damageEnemy(lupaAdditionalDamage);
         }
@@ -2612,7 +2656,7 @@ export class Combat extends Scene {
         this.drawCards(cardsToDraw);
         
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
-        const hanginAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player);
+        const hanginAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (hanginAdditionalDamage > 0) {
           this.damageEnemy(hanginAdditionalDamage);
         }
@@ -3073,26 +3117,8 @@ export class Combat extends Scene {
   private addStatusEffect(entity: Player | Enemy, effect: StatusEffect): void {
     // Check for relic effects that might prevent or modify status effects
     
-    // For player entity, check relic effects
-    if (entity.id === "player") {
-      // "Duwende Charm" effect: +10% avoid Weak
-      if (effect.name === "Weak" && !RelicManager.shouldApplyWeakStatus(entity as Player)) {
-        this.showActionResult("Duwende Charm prevented Weak status!");
-        return; // Don't apply the status effect
-      }
-      
-      // "Tiyanak Tear" effect: Ignore 1 Fear
-      if (effect.name === "Fear" && !RelicManager.shouldApplyFearStatus(entity as Player)) {
-        this.showActionResult("Tiyanak Tear prevented Fear status!");
-        return; // Don't apply the status effect
-      }
-      
-      // "Mangangaway Wand" effect: Ignore curses
-      if (effect.name === "Curse" && RelicManager.shouldIgnoreCurse(entity as Player)) {
-        this.showActionResult("Mangangaway Wand prevented curse!");
-        return; // Don't apply the status effect
-      }
-    }
+    // Status effects are no longer blocked by relics in the simplified system
+    // Relics now provide direct combat bonuses instead of status prevention
     
     entity.statusEffects.push(effect);
     this.updateStatusEffectUI(entity);

@@ -119,6 +119,12 @@ export class RelicManager {
           player.block += 2;
           console.log(`[Earthwarden's Plate] +2 Block at start of turn`);
           break;
+          
+        case "tiyanak_tear":
+          // NEW: +2 Strength at start of each turn
+          RelicManager.addStrengthEffect(player, "strength_tiyanak", 2);
+          console.log(`[Tiyanak Tear] +2 Strength at start of turn`);
+          break;
       }
     });
   }
@@ -167,7 +173,7 @@ export class RelicManager {
   }
 
   /**
-   * Calculate additional Block from "Umalagad's Spirit" and "Diwata's Crown" on Defend actions
+   * Calculate additional Block from "Umalagad's Spirit", "Diwata's Crown", and "Duwende Charm" on Defend actions
    */
   static calculateDefendBlockBonus(player: Player): number {
     let bonusBlock = 0;
@@ -178,12 +184,16 @@ export class RelicManager {
       bonusBlock += 8;
     }
     
-    // Diwata's Crown: All Defend actions gain +6 Block (when Full House+ is played)
-    // Note: This bonus should be applied only on the turn when Full House+ was played
-    // For simplicity, we'll check if the player has the relic and a flag is set
+    // Diwata's Crown: All Defend actions gain +6 Block
     const diwatasCrown = player.relics.find(r => r.id === "diwatas_crown");
-    if (diwatasCrown && (player as any).diwatasCrownActive) {
+    if (diwatasCrown) {
       bonusBlock += 6;
+    }
+    
+    // NEW: Duwende Charm: All Defend actions gain +5 Block
+    const duwendeCharm = player.relics.find(r => r.id === "duwende_charm");
+    if (duwendeCharm) {
+      bonusBlock += 5;
     }
     
     return bonusBlock;
@@ -252,15 +262,12 @@ export class RelicManager {
 
   /**
    * Calculate additional damage from "Sigbin Heart" effect
-   * Buffed: +5 damage on burst → +8 damage when dealing 40+ damage in a single attack
+   * NEW: +5 damage on all Attack actions
    */
-  static calculateSigbinHeartDamage(player: Player, baseDamage: number): number {
+  static calculateSigbinHeartDamage(player: Player): number {
     const sigbinHeart = player.relics.find(r => r.id === "sigbin_heart");
     if (sigbinHeart) {
-      // New effect: +8 damage when dealing 40+ damage in a single attack
-      if (baseDamage >= 40) {
-        return 8;
-      }
+      return 5; // +5 damage on Attack actions
     }
     return 0;
   }
@@ -357,61 +364,56 @@ export class RelicManager {
   }
 
   /**
-   * Check if "Duwende Charm" helps avoid Weak status
+   * Calculate additional damage from "Mangangaway Wand" on Special actions
+   * NEW: +10 damage on Special actions
    */
-  static shouldApplyWeakStatus(player: Player): boolean {
-    const duwendeCharm = player.relics.find(r => r.id === "duwende_charm");
-    if (duwendeCharm) {
-      // Buffed: 10% → 20% chance to resist Weak status
-      return Math.random() > 0.20;
-    }
-    return true; // Apply status normally
-  }
-
-  /**
-   * Check if "Tiyanak Tear" helps ignore Fear status
-   */
-  static shouldApplyFearStatus(player: Player): boolean {
-    const tiyanakTear = player.relics.find(r => r.id === "tiyanak_tear");
-    if (tiyanakTear) {
-      // Ignore 1 Fear status
-      return Math.random() > 0.10; // Simple implementation: 10% ignore chance
-    }
-    return true; // Apply status normally
-  }
-
-  /**
-   * Calculate additional bleed damage from "Amomongo Claw" effect
-   */
-  static calculateAmomongoClawBleedDamage(baseBleedDamage: number, player: Player): number {
-    const amomongoClaw = player.relics.find(r => r.id === "amomongo_claw");
-    if (amomongoClaw) {
-      return baseBleedDamage + 4; // Buffed: +3 → +4 bleed damage
-    }
-    return baseBleedDamage;
-  }
-
-  /**
-   * Calculate additional damage from "Bungisngis Grin" effect when applying debuffs
-   */
-  static calculateBungisngisGrinDamage(player: Player): number {
-    const bungisngisGrin = player.relics.find(r => r.id === "bungisngis_grin");
-    if (bungisngisGrin) {
-      return 8; // Buffed: +5 → +8 damage when applying debuffs
+  static calculateMangangawayWandDamage(player: Player): number {
+    const mangangawayWand = player.relics.find(r => r.id === "mangangaway_wand");
+    if (mangangawayWand) {
+      return 10; // +10 damage on Special actions
     }
     return 0;
   }
 
   /**
-   * Check if "Mangangaway Wand" ignores curses
+   * Check if "Amomongo Claw" should apply Vulnerable on Attack
+   * NEW: Apply 2 Vulnerable on Attack actions
    */
-  static shouldIgnoreCurse(player: Player): boolean {
-    const mangangawayWand = player.relics.find(r => r.id === "mangangaway_wand");
-    if (mangangawayWand) {
-      // For now, simple implementation: ignore 1 curse
-      return true;
+  static shouldApplyAmomongoVulnerable(player: Player): boolean {
+    const amomongoClaw = player.relics.find(r => r.id === "amomongo_claw");
+    return !!amomongoClaw;
+  }
+
+  /**
+   * Get Vulnerable stacks from "Amomongo Claw"
+   */
+  static getAmomongoVulnerableStacks(player: Player): number {
+    const amomongoClaw = player.relics.find(r => r.id === "amomongo_claw");
+    if (amomongoClaw) {
+      return 2; // Apply 2 stacks of Vulnerable
     }
-    return false;
+    return 0;
+  }
+
+  /**
+   * Calculate additional damage from "Bungisngis Grin" effect when enemy has debuffs
+   * NEW: +8 damage on Attack when enemy has any debuff
+   */
+  static calculateBungisngisGrinDamage(player: Player, enemy: any): number {
+    const bungisngisGrin = player.relics.find(r => r.id === "bungisngis_grin");
+    if (bungisngisGrin) {
+      // Check if enemy has any debuffs (Weak, Vulnerable, Burn, etc.)
+      const hasDebuff = enemy.statusEffects?.some((effect: any) => 
+        effect.type === "debuff" || 
+        effect.name === "Weak" || 
+        effect.name === "Vulnerable" || 
+        effect.name === "Burn"
+      );
+      if (hasDebuff) {
+        return 8; // +8 damage when enemy has debuff
+      }
+    }
+    return 0;
   }
 
   /**
@@ -509,11 +511,12 @@ export class RelicManager {
   }
 
   /**
-   * Check if the "Echo of the Ancestors" relic is active to enable Five of a Kind - REMOVED (no sprite)
+   * Check if Five of a Kind is enabled by "Diwata's Crown"
+   * NEW: Diwata's Crown enables Five of a Kind
    */
-  static hasFiveOfAKindEnabled(_player: Player): boolean {
-    // Echo of the Ancestors removed (no sprite)
-    return false;
+  static hasFiveOfAKindEnabled(player: Player): boolean {
+    const diwatasCrown = player.relics.find(r => r.id === "diwatas_crown");
+    return !!diwatasCrown;
   }
 
   /**
@@ -538,21 +541,17 @@ export class RelicManager {
   }
   
   /**
-   * Handle "Kapre's Cigar" effect: Summons minion once per combat that deals 12 damage
+   * Handle "Kapre's Cigar" effect: First Attack deals double damage (once per combat)
+   * NEW: Simplified from minion summon to direct damage doubling
    */
-  static tryKapresCigarSummon(combatScene: any, player: Player): { used: boolean; damage: number } {
+  static shouldApplyKapresCigarDouble(player: Player, combatScene: any): boolean {
     const kapresCigar = player.relics.find(r => r.id === "kapres_cigar");
     if (kapresCigar && !combatScene.kapresCigarUsed) {
       // Mark as used for this combat
       combatScene.kapresCigarUsed = true;
-      
-      // Show result message
-      combatScene.showActionResult("Kapre's Cigar summoned aid! Dealing 12 damage!");
-      
-      // Return 12 damage as specified in the buffed effect
-      return { used: true, damage: 12 };
+      return true;
     }
-    return { used: false, damage: 0 };
+    return false;
   }
   
   /**
@@ -563,10 +562,9 @@ export class RelicManager {
   }
   
   /**
-   * Check if player has Echo of Ancestors for Five of a Kind - REMOVED (no sprite)
+   * Check if player has Diwata's Crown for Five of a Kind
    */
-  static hasEchoOfAncestors(_player: Player): boolean {
-    // Echo of the Ancestors removed (no sprite)
-    return false;
+  static hasDiwatasCrown(player: Player): boolean {
+    return player.relics.some(r => r.id === "diwatas_crown");
   }
 }

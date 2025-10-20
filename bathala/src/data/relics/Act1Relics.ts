@@ -11,25 +11,25 @@ export const commonRelics: Relic[] = [
   {
     id: "earthwardens_plate",
     name: "Earthwarden's Plate",
-    description: "Sacred linga stone armor forged by mountain anito. Channels Lupa's enduring strength. Start combat with 12 Block, gain +2 each turn.",
+    description: "Forged from the sacred linga stones of the mountain spirits. Start each combat with 12 Block and gain +2 Block at the start of each turn.",
     emoji: "🛡️"
   },
   {
     id: "swift_wind_agimat",
     name: "Agimat of the Swift Wind",
-    description: "Blessed talisman woven with Tikbalang mane hairs. Captures Hangin's swiftness. +2 discard charges, draw 1 extra card at start.",
+    description: "A blessed talisman that captures the essence of Tikbalang's speed. Start each combat with 2 additional discard charges (5 total per turn) and draw 1 additional card at start of combat.",
     emoji: "💨"
   },
   {
     id: "ember_fetish",
     name: "Ember Fetish",
-    description: "Banana tree heart carved at midnight, blessed by Apolaki's flame. Adapts to danger: +4 Attack when vulnerable, +2 when protected.",
+    description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 4 Attack. If you have Block, gain 2 Attack.",
     emoji: "🔥"
   },
   {
     id: "umalagad_spirit",
     name: "Umalagad's Spirit",
-    description: "Ancient sea serpent's essence that guided lost sailors. Embodies Tubig's resilience. Defend actions +8 Block, +3 per card played.",
+    description: "The protective essence of a sea serpent that guides travelers. All Defend actions gain +8 Block. Gain +3 Block whenever you play a card.",
     emoji: "🐍"
   }
 ];
@@ -39,25 +39,25 @@ export const eliteRelics: Relic[] = [
   {
     id: "babaylans_talisman",
     name: "Babaylan's Talisman",
-    description: "Sacred amulet of ancient shamans who bridged spirit realms. Channels ancestral wisdom. Hand always one tier higher (Pair → Two Pair).",
+    description: "A sacred amulet blessed by the ancient shamans. Your hand is always considered one tier higher when evaluating poker hands (Pair → Two Pair, Flush → Full House).",
     emoji: "📿"
   },
   {
     id: "ancestral_blade",
     name: "Ancestral Blade",
-    description: "Legendary kampilan blessed by warrior ancestors. Perfect elemental strikes awaken fury. Each Flush grants +3 Attack permanently.",
+    description: "A kampilan blessed by the spirits of your ancestors. Each time you play a Flush, gain 3 Attack for rest of combat.",
     emoji: "⚔️"
   },
   {
     id: "tidal_amulet",
     name: "Tidal Amulet",
-    description: "Enchanted coral from sacred underwater grottos where Bathala wove seas. Channels Tubig's rhythm. Heal 3 HP per unplayed card.",
+    description: "An enchanted piece of coral that pulses with the rhythm of the sea. At the end of your turn, heal 3 HP for each card remaining in your hand.",
     emoji: "🌊"
   },
   {
     id: "sarimanok_feather",
     name: "Sarimanok Feather",
-    description: "Radiant plumage from mythical Maranao bird of paradise. Rewards mastery with fortune. Straight or better grants 2 Ginto.",
+    description: "A radiant feather from the mythical bird that brings prosperity. Whenever you play a Straight or better, gain 2 Ginto.",
     emoji: "🦚"
   }
 ];
@@ -67,7 +67,7 @@ export const bossRelics: Relic[] = [
   {
     id: "diwatas_crown",
     name: "Diwata's Crown",
-    description: "A crown blessed by the benevolent nature spirits. Start each combat with 15 Block. All Defend actions gain +6 Block this turn.",
+    description: "A crown blessed by the benevolent nature spirits. Start each combat with 15 Block. All Defend actions gain +6 Block. Enables Five of a Kind hand (5 cards of same value for +30 bonus).",
     emoji: "👑"
   }
   // Removed: echo_ancestors, bakunawa_scale (no sprites)
@@ -112,43 +112,43 @@ export const mythologicalRelics: Relic[] = [
   {
     id: "sigbin_heart",
     name: "Sigbin Heart",
-    description: "When you deal 40+ damage in a single attack, deal +8 additional damage. The Sigbin's heart holds immense dark power.",
+    description: "Attack actions deal +5 additional damage. The Sigbin's heart holds immense dark power.",
     emoji: "🐐"
   },
   {
     id: "duwende_charm",
     name: "Duwende Charm",
-    description: "+20% chance to resist Weak status (which reduces Attack damage by 50%). Blessed by the fortune-bringing duwende spirits.",
+    description: "Defend actions gain +5 additional Block. Blessed by the fortune-bringing duwende spirits.",
     emoji: "🧚"
   },
   {
     id: "tiyanak_tear",
     name: "Tiyanak Tear",
-    description: "Immune to the first Fear status effect each combat. The crystallized tear of a corrupted infant spirit.",
+    description: "At the start of your turn, gain +2 Strength (Attack damage). The crystallized tear of a corrupted infant spirit.",
     emoji: "💧"
   },
   {
     id: "amomongo_claw",
     name: "Amomongo Claw",
-    description: "All Bleed effects deal +4 additional damage per turn. The razor-sharp claw of the ape-like creature.",
+    description: "Attack actions apply 2 Vulnerable to enemies. The razor-sharp claw of the ape-like creature.",
     emoji: "🪲"
   },
   {
     id: "bungisngis_grin",
     name: "Bungisngis Grin",
-    description: "Deal +8 damage when attacking enemies with any debuff (Weak, Vulnerable, Burn, etc.). The giant's mocking laughter empowers your strikes.",
+    description: "Attack actions deal +8 damage when enemy has any debuff (Weak, Vulnerable, Burn, etc.). The giant's mocking laughter empowers your strikes.",
     emoji: "👹"
   },
   {
     id: "kapres_cigar",
     name: "Kapre's Cigar",
-    description: "Once per combat, summon a smoke minion that deals 12 damage. The tree giant's cigar smoke takes physical form.",
+    description: "Once per combat, your first Attack action deals double damage. The tree giant's cigar smoke empowers your strike.",
     emoji: "🚬"
   },
   {
     id: "mangangaway_wand",
     name: "Mangangaway Wand",
-    description: "Immune to the first Curse effect each combat. The sorcerer's wand shields you from dark hexes.",
+    description: "Special actions deal +10 damage. The sorcerer's wand amplifies your elemental power.",
     emoji: "🪄"
   }
   // Removed: wind_veil (no sprite)
@@ -230,7 +230,8 @@ export const RELIC_EFFECTS = {
   // Start of turn effects
   START_OF_TURN: [
     'ember_fetish',            // +4 Attack if no block, +2 Attack if block
-    'earthwardens_plate'       // +2 Block per turn
+    'earthwardens_plate',      // +2 Block per turn
+    'tiyanak_tear'             // +2 Strength (Attack damage) per turn
   ],
   
   // End of turn effects
@@ -240,8 +241,8 @@ export const RELIC_EFFECTS = {
   
   // Hand evaluation effects
   HAND_EVALUATION: [
-    'babaylans_talisman'      // hand tier +1
-    // Removed: echo_ancestors (no sprite)
+    'babaylans_talisman',     // hand tier +1
+    'diwatas_crown'           // enables Five of a Kind
   ],
   
   // After hand played effects
@@ -257,13 +258,12 @@ export const RELIC_EFFECTS = {
   PASSIVE_COMBAT: [
     'tikbalangs_hoof',         // +15% dodge
     'balete_root',             // +3 block per lupa card
-    'sigbin_heart',            // +8 damage when 40+ damage
-    'duwende_charm',           // +20% avoid weak
-    'tiyanak_tear',            // ignore 1 fear
-    'amomongo_claw',           // +4 bleed damage
-    'bungisngis_grin',         // +8 damage on debuff
-    'mangangaway_wand',        // ignore 1 curse
-    'kapres_cigar'             // summon minion once per combat
+    'sigbin_heart',            // +5 damage on Attack
+    'duwende_charm',           // +5 block on Defend
+    'amomongo_claw',           // Apply 2 Vulnerable on Attack
+    'bungisngis_grin',         // +8 damage on Attack when enemy has debuff
+    'mangangaway_wand',        // +10 damage on Special
+    'kapres_cigar'             // First Attack deals double damage (once per combat)
   ],
   
   // Shop effects - REMOVED (no sprites for these relics)
