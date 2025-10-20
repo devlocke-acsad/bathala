@@ -9,14 +9,14 @@ import { createInfoBox } from '../ui/InfoBox';
 import { PlayingCard } from '../../../../core/types/CombatTypes';
 
 /**
- * Custom dialogue box for Phase 3 with larger dimensions to accommodate hand types list
+ * Custom dialogue box for Phase 3 with optimized dimensions for hand types list
  */
 function showLargeDialogue(scene: Scene, text: string, onComplete: () => void): Phaser.GameObjects.Container {
     const dialogueContainer = scene.add.container(scene.cameras.main.width / 2, scene.cameras.main.height / 2);
 
-    // Larger box dimensions for Phase 3 hand types explanation
-    const boxWidth = Math.min(scene.cameras.main.width * 0.95, 1600);
-    const boxHeight = scene.cameras.main.height * 0.60; // Taller box for hand types list
+    // Optimized box dimensions for Phase 3 hand types explanation
+    const boxWidth = Math.min(scene.cameras.main.width * 0.92, 1500);
+    const boxHeight = scene.cameras.main.height * 0.52; // Adjusted height for better fit
     
     // Text should wrap INSIDE the box with padding
     const textWrapWidth = boxWidth - 120;
@@ -200,7 +200,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
             });
         });
 
-        const dialogue = "Hands determine your action's power. Here's the hierarchy:\n\nHigh Card: +0\nPair: +3, ×1.2\nTwo Pair: +6, ×1.3\nThree of a Kind: +10, ×1.5\nStraight: +12, ×1.6\nFlush: +15, ×1.7 (UNLOCKS SPECIAL)\nFull House: +20, ×2.0\nFour of a Kind: +25, ×2.2\nStraight Flush: +35, ×2.5\nFive of a Kind: +38, ×2.6 (requires relic)";
+        const dialogue = "Poker hands grant bonuses and multipliers to amplify your power.\nBetter hands = stronger actions!\n\nHigh Card: +0\nPair: +3, ×1.2\nTwo Pair: +6, ×1.3\nThree of a Kind: +10, ×1.5\nStraight: +12, ×1.6\nFlush: +15, ×1.7\nFull House: +20, ×2.0\nFour of a Kind: +25, ×2.2\nStraight Flush: +35, ×2.5\nFive of a Kind: +38, ×2.6 (requires relic)";
 
         const exampleCards: Partial<PlayingCard>[] = [
             { id: 'ex1', rank: '5', suit: 'Apoy' },
