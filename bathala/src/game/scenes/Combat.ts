@@ -2078,7 +2078,7 @@ export class Combat extends Scene {
     // Calculate dynamic box height based on rewards
     let estimatedHeight = 80; // Base height with padding
     if (scaledGold > 0) estimatedHeight += 30;
-    if (reward && typeof reward === 'object' && 'diamante' in reward && (reward as any).diamante > 0) estimatedHeight += 30;
+    // Diamante not shown in rewards
     if (reward.healthHealing > 0) estimatedHeight += 30;
     estimatedHeight += 30; // Landas change (always shown)
     if (reward.bonusEffect) estimatedHeight += 35;
@@ -2113,19 +2113,6 @@ export class Combat extends Scene {
           fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#e8eced",
-          align: "center",
-        })
-        .setOrigin(0.5);
-      rewardY += 25 * scaleFactor;
-    }
-
-    // Diamante reward (check if property exists)
-    if (reward && typeof reward === 'object' && 'diamante' in reward && (reward as any).diamante > 0) {
-      this.add
-        .text(screenWidth/2, rewardY, `💎 ${(reward as any).diamante} Diamante`, {
-          fontFamily: "dungeon-mode",
-          fontSize: Math.floor(16 * scaleFactor),
-          color: "#4ecdc4",
           align: "center",
         })
         .setOrigin(0.5);
