@@ -404,12 +404,7 @@ export class Combat extends Scene {
           eliteRelics[0],  // Babaylan's Talisman
           bossRelics[0],   // Echo of the Ancestors
         ],
-        potions: [
-          // Add some test potions to showcase the new inventory UI
-          commonPotions[0], // Potion of Clarity
-          commonPotions[1], // Elixir of Fortitude
-          commonPotions[2], // Draught of Swiftness
-        ],
+        potions: [], // Start with no potions - gain from treasure chests
         discardCharges: 3,  // Changed from 1 to 3
         maxDiscardCharges: 3,  // Changed from 1 to 3
       };

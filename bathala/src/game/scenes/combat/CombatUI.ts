@@ -100,6 +100,10 @@ export class CombatUI {
   private relicUpdatePending: boolean = false;
   private lastRelicCount: number = 0;
   
+  // Potion UI Elements
+  public potionInventory!: Phaser.GameObjects.Container;
+  public currentPotionTooltip!: Phaser.GameObjects.Container | null;
+  
   // Modal/Overlay Elements
   public landasChoiceContainer!: Phaser.GameObjects.Container;
   public rewardsContainer!: Phaser.GameObjects.Container;
@@ -130,6 +134,7 @@ export class CombatUI {
   public initialize(): void {
     this.createCombatUI();
     this.createRelicInventory();
+    this.createPotionInventory();
     // Deck sprite is created in Combat.ts, not here
     // this.createDeckSprite();
     // Discard pile created here with proper stacking effect
@@ -617,6 +622,77 @@ export class CombatUI {
     this.relicInventory.sendToBack(mainBg);
     this.relicInventory.sendToBack(innerBorder);
     this.relicInventory.sendToBack(outerBorder);
+  }
+  
+  /**
+   * Create potion inventory on the right side (3-slot grid beside relics)
+   */
+  public createPotionInventory(): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Position on the right side of screen
+    this.potionInventory = this.scene.add.container(screenWidth - 120, screenHeight / 2);
+    this.potionInventory.setVisible(true);
+    this.currentPotionTooltip = null;
+    
+    console.log("Creating potion inventory container at:", screenWidth - 120, screenHeight / 2);
+    
+    const inventoryWidth = 90;
+    const inventoryHeight = 200;
+    
+    // Enhanced Prologue-style double border design
+    const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
+    outerBorder.setStrokeStyle(3, 0x77888C, 0.9);
+    
+    const innerBorder = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C, 0.8);
+    
+    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x120C0E);
+    
+    // Title text
+    const potionsTitle = this.scene.add.text(0, -inventoryHeight/2 + 15, "POTIONS", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    
+    // Grid layout parameters (3 vertical slots)
+    const potionSlotSize = 50;
+    const maxPotions = 3;
+    const padding = 10;
+    const gridStartY = -30;
+    
+    // Create 3 potion slots vertically
+    for (let i = 0; i < maxPotions; i++) {
+      const slotY = gridStartY + i * (potionSlotSize + padding);
+      
+      // Create slot container
+      const slotContainer = this.scene.add.container(0, slotY);
+      
+      // Outer border (matching relic style)
+      const outerBorder = this.scene.add.rectangle(0, 0, potionSlotSize + 4, potionSlotSize + 4, undefined, 0);
+      outerBorder.setStrokeStyle(2, 0x555555, 1.0);
+      
+      // Inner background
+      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x333333);
+      
+      slotContainer.add([bg, outerBorder]);
+      (slotContainer as any).isPotionSlot = true;
+      (slotContainer as any).slotIndex = i;
+      
+      this.potionInventory.add(slotContainer);
+    }
+    
+    // Add all elements to container
+    this.potionInventory.add([mainBg, innerBorder, outerBorder, potionsTitle]);
+    this.potionInventory.sendToBack(mainBg);
+    this.potionInventory.sendToBack(innerBorder);
+    this.potionInventory.sendToBack(outerBorder);
+    
+    // Update potion display immediately
+    this.updatePotionInventory();
   }
   
 
@@ -1122,6 +1198,111 @@ export class CombatUI {
   public forceRelicInventoryUpdate(): void {
     this.relicUpdatePending = true;
     this.updateRelicInventory();
+  }
+  
+  /**
+   * Update potion inventory with current potions (3-slot vertical grid)
+   */
+  public updatePotionInventory(): void {
+    if (!this.potionInventory) return;
+    
+    const combatState = this.scene.getCombatState();
+    const potions = combatState.player.potions || [];
+    
+    console.log("Updating potion inventory. Potions:", potions.length);
+    
+    // Grid configuration
+    const potionSlotSize = 50;
+    const maxPotions = 3;
+    const padding = 10;
+    const gridStartY = -30;
+    
+    // Remove only the potion icons (keep the permanent slot frames)
+    this.potionInventory.list.forEach(child => {
+      if ((child as any).isPotionIcon) {
+        child.destroy();
+      }
+    });
+    
+    // Get references to existing slot containers
+    const potionSlots = this.potionInventory.list.filter(child => (child as any).isPotionSlot) as Phaser.GameObjects.Container[];
+    
+    // Add potion icons to existing slots
+    potions.forEach((potion: any, index: number) => {
+      if (index < maxPotions && potionSlots[index]) {
+        const slot = potionSlots[index];
+        
+        console.log(`Adding potion ${index}:`, potion.name, "ID:", potion.id);
+        
+        // Calculate absolute position for the icon
+        const iconY = gridStartY + index * (potionSlotSize + padding);
+        
+        // Add potion icon (emoji for now, can add sprites later)
+        const potionIcon = this.scene.add.text(0, iconY, potion.emoji || "🧪", {
+          fontSize: 36,
+          color: "#ffffff",
+          align: "center"
+        }).setOrigin(0.5).setDepth(100);
+        
+        (potionIcon as any).isPotionIcon = true;
+        this.potionInventory.add(potionIcon);
+        
+        // Make slot interactive with hover effects
+        slot.setSize(potionSlotSize + 4, potionSlotSize + 4);
+        slot.setInteractive(
+          new Phaser.Geom.Rectangle(-(potionSlotSize + 4)/2, -(potionSlotSize + 4)/2, potionSlotSize + 4, potionSlotSize + 4),
+          Phaser.Geom.Rectangle.Contains
+        );
+        
+        // Clear any existing event listeners to prevent memory leaks
+        slot.removeAllListeners();
+        
+        // Get border and bg references from slot
+        const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
+        const bg = slotChildren[0]; // Background
+        const outerBorder = slotChildren[1]; // Border
+        
+        slot.on("pointerover", () => {
+          bg.setFillStyle(0x555555); // Brighten background
+          outerBorder.setStrokeStyle(2, 0x777777); // Brighten border
+          
+          // Kill any existing tweens on this icon to prevent conflicts
+          this.scene.tweens.killTweensOf(potionIcon);
+          
+          this.scene.tweens.add({
+            targets: potionIcon,
+            scaleX: 1.2,
+            scaleY: 1.2,
+            duration: 150,
+            ease: 'Back.easeOut'
+          });
+          
+          this.showPotionTooltip(potion.name, this.potionInventory.x - 100, this.potionInventory.y + iconY);
+        });
+        
+        slot.on("pointerout", () => {
+          bg.setFillStyle(0x333333); // Reset background
+          outerBorder.setStrokeStyle(2, 0x555555); // Reset border
+          
+          // Kill any existing tweens on this icon to prevent conflicts
+          this.scene.tweens.killTweensOf(potionIcon);
+          
+          this.scene.tweens.add({
+            targets: potionIcon,
+            scaleX: 1.0,
+            scaleY: 1.0,
+            duration: 150,
+            ease: 'Back.easeOut'
+          });
+          
+          this.hidePotionTooltip();
+        });
+        
+        slot.on("pointerdown", () => {
+          this.showPotionConfirmationModal(potion, index);
+        });
+      }
+    });
   }
   
   /**
@@ -2148,19 +2329,198 @@ export class CombatUI {
   }
   
   /**
+   * Show potion confirmation modal (Yes/Cancel)
+   */
+  private showPotionConfirmationModal(potion: any, potionIndex: number): void {
+    console.log("Showing potion confirmation for:", potion.name);
+    
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Create modal container
+    const modalContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2);
+    modalContainer.setDepth(3000);
+    
+    // Semi-transparent overlay background
+    const overlay = this.scene.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7);
+    overlay.setInteractive();
+    
+    // Modal window dimensions
+    const modalWidth = 400;
+    const modalHeight = 250;
+    
+    // Main modal background with Prologue styling (cyan accent for potions)
+    const modalBg = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, 0x0f0a0b);
+    const outerBorder = this.scene.add.rectangle(0, 0, modalWidth + 6, modalHeight + 6, undefined, 0);
+    outerBorder.setStrokeStyle(3, 0x4ecdc4, 1.0); // Cyan for potions
+    const innerBorder = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x4ecdc4, 0.8); // Cyan for potions
+    
+    // Title section with potion icon
+    const titleY = -modalHeight/2 + 40;
+    const potionIcon = this.scene.add.text(0, titleY, potion.emoji || "🧪", {
+      fontSize: 40,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    const potionName = this.scene.add.text(0, titleY + 50, potion.name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#4ecdc4",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Description
+    const description = this.scene.add.text(0, titleY + 85, potion.description || "Use this potion?", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: modalWidth - 40 }
+    }).setOrigin(0.5);
+    
+    // Button container
+    const buttonY = modalHeight/2 - 50;
+    const buttonSpacing = 120;
+    
+    // Yes button (green)
+    const yesButton = this.createConfirmButton(-buttonSpacing/2, buttonY, "YES", 0x2ed573);
+    yesButton.on('pointerdown', () => {
+      modalContainer.destroy();
+      this.usePotionInCombat(potion, potionIndex);
+    });
+    
+    // Cancel button (red)
+    const cancelButton = this.createConfirmButton(buttonSpacing/2, buttonY, "CANCEL", 0xff6b6b);
+    cancelButton.on('pointerdown', () => {
+      modalContainer.destroy();
+    });
+    
+    // Add all elements to modal
+    modalContainer.add([
+      overlay,
+      outerBorder,
+      innerBorder,
+      modalBg,
+      potionIcon,
+      potionName,
+      description,
+      yesButton,
+      cancelButton
+    ]);
+    
+    // Add entrance animation
+    modalContainer.setScale(0.8);
+    modalContainer.setAlpha(0);
+    this.scene.tweens.add({
+      targets: modalContainer,
+      scale: 1,
+      alpha: 1,
+      duration: 200,
+      ease: 'Back.easeOut'
+    });
+  }
+  
+  /**
+   * Create confirmation button (for potion modal)
+   */
+  private createConfirmButton(x: number, y: number, label: string, color: number): Phaser.GameObjects.Container {
+    const button = this.scene.add.container(x, y);
+    
+    const buttonWidth = 100;
+    const buttonHeight = 40;
+    
+    const bg = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, color, 0.3);
+    const border = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0);
+    border.setStrokeStyle(2, color, 1.0);
+    
+    const text = this.scene.add.text(0, 0, label, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#ffffff",
+      align: "center"
+    }).setOrigin(0.5);
+    
+    button.add([bg, border, text]);
+    button.setSize(buttonWidth, buttonHeight);
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    // Hover effects
+    button.on('pointerover', () => {
+      bg.setFillStyle(color, 0.6);
+      this.scene.tweens.add({
+        targets: button,
+        scaleX: 1.05,
+        scaleY: 1.05,
+        duration: 100,
+        ease: 'Sine.easeOut'
+      });
+    });
+    
+    button.on('pointerout', () => {
+      bg.setFillStyle(color, 0.3);
+      this.scene.tweens.add({
+        targets: button,
+        scaleX: 1.0,
+        scaleY: 1.0,
+        duration: 100,
+        ease: 'Sine.easeOut'
+      });
+    });
+    
+    return button;
+  }
+  
+  /**
    * Use potion in combat
    */
   private usePotionInCombat(potion: any, index: number): void {
-    console.log(`Using potion: ${potion.name}`);
-    // TODO: Implement potion effects based on potion.effect
-    // For now, just show a message and remove the potion
-    this.showActionResult(`Used ${potion.name}!`);
+    console.log(`Using potion: ${potion.name}, Effect: ${potion.effect}`);
+    
+    const combatState = this.scene.getCombatState();
+    const player = combatState.player;
+    
+    // Apply potion effect based on effect type
+    switch (potion.effect) {
+      case "heal_20_hp":
+        const healAmount = 20;
+        const oldHP = player.currentHealth;
+        player.currentHealth = Math.min(player.currentHealth + healAmount, player.maxHealth);
+        const actualHeal = player.currentHealth - oldHP;
+        
+        this.showActionResult(`Healed ${actualHeal} HP!`, "#2ed573");
+        this.showPlayerHealingIndicator(actualHeal, false);
+        this.updatePlayerUI(); // Update player UI to reflect new health
+        break;
+        
+      case "draw_3":
+        this.showActionResult(`Drew 3 cards!`, "#4ecdc4");
+        // Note: Drawing cards requires Combat scene methods
+        break;
+        
+      case "gain_15_block":
+        player.block = (player.block || 0) + 15;
+        this.showActionResult(`Gained 15 Block!`, "#ffd93d");
+        this.updatePlayerUI();
+        break;
+        
+      case "gain_dexterity":
+        this.showActionResult(`Gained 1 Dexterity!`, "#ff6b6b");
+        // Note: Status effects require Combat scene methods
+        break;
+        
+      default:
+        this.showActionResult(`Used ${potion.name}!`, "#4ecdc4");
+        console.warn(`Unknown potion effect: ${potion.effect}`);
+    }
     
     // Remove potion from player inventory
-    const combatState = this.scene.getCombatState();
-    if (combatState.player.potions) {
-      combatState.player.potions.splice(index, 1);
-      this.forceRelicInventoryUpdate(); // Force update after potion use
+    if (player.potions) {
+      player.potions.splice(index, 1);
+      this.updatePotionInventory(); // Update potion inventory after use
     }
   }
   

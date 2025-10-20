@@ -10,12 +10,18 @@ import {
   act1MythologicalRelics
 } from "../../data/relics";
 import { allShopItems } from "../../data/relics/ShopItems";
+import { Potion, commonPotions } from "../../data/potions/Act1Potions";
+
+// Treasure reward can be either a Relic or a Potion
+type TreasureReward = 
+  | { type: "relic"; item: Relic }
+  | { type: "potion"; item: Potion };
 
 export class Treasure extends Scene {
   private player!: Player;
   private treasureChest!: Phaser.GameObjects.Sprite;
-  private relicOptions: Relic[] = [];
-  private relicButtons: Phaser.GameObjects.Container[] = [];
+  private rewardOptions: TreasureReward[] = [];
+  private rewardButtons: Phaser.GameObjects.Container[] = [];
   private descriptionText!: Phaser.GameObjects.Text;
   private tooltipBox!: Phaser.GameObjects.Container;
 
@@ -30,9 +36,14 @@ export class Treasure extends Scene {
     
     // If we have saved player data with relics, merge it with the passed player data
     if (savedPlayerData && savedPlayerData.relics) {
-      this.player = { ...data.player, relics: [...savedPlayerData.relics] };
+      this.player = { ...data.player, ...savedPlayerData };
     } else {
       this.player = data.player;
+    }
+    
+    // Initialize potions array if it doesn't exist
+    if (!this.player.potions) {
+      this.player.potions = [];
     }
     
     // Get all shop relic IDs to exclude from treasure
@@ -64,15 +75,19 @@ export class Treasure extends Scene {
       item => !this.player.relics.some(r => r.id === item.relic.id)
     );
     
-    // Select 3 unique relics using weighted randomization
-    const uniqueRelics: Relic[] = [];
+    // Select relics using weighted randomization
+    const selectedRelics: Relic[] = [];
     const seenIds = new Set<string>();
     const poolCopy = [...availablePool];
     
-    while (uniqueRelics.length < 3 && poolCopy.length > 0) {
+    // 80% chance to have a potion as one of the options (only if player has < 3 potions)
+    const shouldIncludePotion = this.player.potions.length < 3 && Math.random() < 0.8;
+    const numRelicsToSelect = shouldIncludePotion ? 2 : 3; // If potion, only select 2 relics
+    
+    while (selectedRelics.length < numRelicsToSelect && poolCopy.length > 0) {
       const selectedRelic = this.weightedRandomSelect(poolCopy);
       if (!seenIds.has(selectedRelic.id)) {
-        uniqueRelics.push(selectedRelic);
+        selectedRelics.push(selectedRelic);
         seenIds.add(selectedRelic.id);
         // Remove selected relic from pool to ensure uniqueness
         const index = poolCopy.findIndex(item => item.relic.id === selectedRelic.id);
@@ -80,7 +95,18 @@ export class Treasure extends Scene {
       }
     }
     
-    this.relicOptions = uniqueRelics;
+    // Build reward options array
+    this.rewardOptions = selectedRelics.map(relic => ({ type: "relic" as const, item: relic }));
+    
+    // Add potion if applicable
+    if (shouldIncludePotion) {
+      const healingPotion = commonPotions.find(p => p.id === "healing_potion");
+      if (healingPotion) {
+        // Insert potion at random position (0, 1, or 2)
+        const insertIndex = Math.floor(Math.random() * 3);
+        this.rewardOptions.splice(insertIndex, 0, { type: "potion" as const, item: healingPotion });
+      }
+    }
   }
 
   create(): void {
@@ -207,43 +233,59 @@ export class Treasure extends Scene {
     const buttonWidth = isNarrow ? 84 : 100;
     const buttonHeight = isNarrow ? 84 : 100;
     const spacing = isNarrow ? 28 : 50;
-    const totalWidth = this.relicOptions.length * buttonWidth + (this.relicOptions.length - 1) * spacing;
+    const totalWidth = this.rewardOptions.length * buttonWidth + (this.rewardOptions.length - 1) * spacing;
     const startX = (screenWidth - totalWidth) / 2 + buttonWidth / 2;
     const y = Math.min(this.descriptionText.y + (isNarrow ? 110 : 130), screenHeight - (isNarrow ? 90 : 110));
 
-    this.relicButtons = [];
+    this.rewardButtons = [];
 
-    this.relicOptions.forEach((relic, index) => {
+    this.rewardOptions.forEach((reward, index) => {
       const x = startX + index * (buttonWidth + spacing);
       
       const button = this.add.container(x, y);
       
+      // Background color depends on reward type
+      const isPotionSlot = reward.type === "potion";
+      const gradientTop = isPotionSlot ? 0x3d2f42 : 0x2f3542;
+      const gradientBottom = isPotionSlot ? 0x26192d : 0x1a1d26;
+      const borderColor = isPotionSlot ? 0x4ecdc4 : 0x57606f;
+      
       // Background styled similar to Shop's slots (gradient and rounded corners via Graphics)
       const slotBg = this.add.graphics();
-      slotBg.fillGradientStyle(0x2f3542, 0x2f3542, 0x1a1d26, 0x1a1d26, 0.95);
-      slotBg.lineStyle(2, 0x57606f, 0.9);
+      slotBg.fillGradientStyle(gradientTop, gradientTop, gradientBottom, gradientBottom, 0.95);
+      slotBg.lineStyle(2, borderColor, 0.9);
       slotBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
       slotBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
       
-      // Relic sprite (use sprite if available, fallback to emoji)
-      const spriteKey = this.getRelicSpriteKey(relic.id);
-      let relicVisual: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+      // Visual display (sprite/emoji for relics, emoji for potions)
+      let visual: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
       
-      if (this.textures.exists(spriteKey)) {
-        // Use sprite
-        relicVisual = this.add.image(0, 0, spriteKey).setOrigin(0.5);
-        // Scale sprite to fit nicely in the button
-        const spriteSize = isNarrow ? 70 : 80;
-        const scale = Math.min(spriteSize / relicVisual.width, spriteSize / relicVisual.height);
-        relicVisual.setScale(scale);
+      if (reward.type === "relic") {
+        const relic = reward.item;
+        const spriteKey = this.getRelicSpriteKey(relic.id);
+        
+        if (this.textures.exists(spriteKey)) {
+          // Use sprite
+          visual = this.add.image(0, 0, spriteKey).setOrigin(0.5);
+          // Scale sprite to fit nicely in the button
+          const spriteSize = isNarrow ? 70 : 80;
+          const scale = Math.min(spriteSize / visual.width, spriteSize / visual.height);
+          visual.setScale(scale);
+        } else {
+          // Fallback to emoji
+          visual = this.add.text(0, 0, relic.emoji, {
+            fontSize: isNarrow ? 40 : 48,
+          }).setOrigin(0.5);
+        }
       } else {
-        // Fallback to emoji
-        relicVisual = this.add.text(0, 0, relic.emoji, {
-          fontSize: isNarrow ? 40 : 48,
+        // Potion - use emoji
+        const potion = reward.item;
+        visual = this.add.text(0, 0, potion.emoji || "❤️", {
+          fontSize: isNarrow ? 48 : 56,
         }).setOrigin(0.5);
       }
       
-      button.add([slotBg, relicVisual]);
+      button.add([slotBg, visual]);
       
       // Make interactive
       button.setInteractive(
@@ -251,32 +293,35 @@ export class Treasure extends Scene {
         Phaser.Geom.Rectangle.Contains
       );
       
-      button.on("pointerdown", () => this.selectRelic(relic, button));
+      button.on("pointerdown", () => this.selectReward(reward, button));
       button.on("pointerover", () => {
         if (button.active) {
-          // Hover glow and scale like Shop
+          // Hover glow and scale
           this.tweens.add({ targets: button, scale: 1.05, duration: 120, ease: 'Power2' });
           slotBg.clear();
-          slotBg.fillGradientStyle(0x3d4454, 0x3d4454, 0x232735, 0x232735, 1);
-          slotBg.lineStyle(3, 0xa78bfa, 0.9);
+          const hoverGradTop = isPotionSlot ? 0x4d3f52 : 0x3d4454;
+          const hoverGradBottom = isPotionSlot ? 0x36293d : 0x232735;
+          const hoverBorder = isPotionSlot ? 0x4ecdc4 : 0xa78bfa;
+          slotBg.fillGradientStyle(hoverGradTop, hoverGradTop, hoverGradBottom, hoverGradBottom, 1);
+          slotBg.lineStyle(3, hoverBorder, 0.9);
           slotBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
           slotBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
-          this.showTooltip(relic, x + buttonWidth/2 + 10, y);
+          this.showRewardTooltip(reward, x + buttonWidth/2 + 10, y);
         }
       });
       button.on("pointerout", () => {
         if (button.active) {
           this.tweens.add({ targets: button, scale: 1, duration: 150, ease: 'Power2' });
           slotBg.clear();
-          slotBg.fillGradientStyle(0x2f3542, 0x2f3542, 0x1a1d26, 0x1a1d26, 0.95);
-          slotBg.lineStyle(2, 0x57606f, 0.9);
+          slotBg.fillGradientStyle(gradientTop, gradientTop, gradientBottom, gradientBottom, 0.95);
+          slotBg.lineStyle(2, borderColor, 0.9);
           slotBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
           slotBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
           this.hideTooltip();
         }
       });
       
-      this.relicButtons.push(button);
+      this.rewardButtons.push(button);
 
       // Entrance animation (staggered) for each option
       button.setScale(0.85).setAlpha(0);
@@ -294,6 +339,68 @@ export class Treasure extends Scene {
   private createTooltipBox(): void {
     this.tooltipBox = this.add.container(0, 0);
     this.tooltipBox.setVisible(false);
+  }
+
+  private showRewardTooltip(reward: TreasureReward, x: number, y: number): void {
+    if (reward.type === "relic") {
+      this.showTooltip(reward.item, x, y);
+    } else {
+      // Show potion tooltip
+      this.showPotionTooltip(reward.item, x, y);
+    }
+  }
+  
+  private showPotionTooltip(potion: Potion, x: number, y: number): void {
+    // Clear previous tooltip
+    this.tooltipBox.removeAll(true);
+    
+    const camW = this.cameras.main.width;
+    const camH = this.cameras.main.height;
+    const tooltipWidth = 280;
+    const horizontalPadding = 16;
+    const verticalPadding = 14;
+    
+    // Potion name
+    const nameText = this.add.text(0, 0, potion.name, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 20,
+      color: "#4ecdc4", // Cyan for potions
+      align: "center",
+      wordWrap: { width: tooltipWidth - horizontalPadding * 2 }
+    }).setOrigin(0.5, 0);
+    nameText.setShadow(1, 1, '#000000', 2, false, true);
+
+    // Potion description
+    const descText = this.add.text(0, nameText.height + 10, potion.description, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: tooltipWidth - horizontalPadding * 2 }
+    }).setOrigin(0.5, 0);
+    
+    const contentHeight = nameText.height + 10 + descText.height + verticalPadding * 2;
+    
+    // Background
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0f0a0b, 0.95);
+    bg.lineStyle(2, 0x4ecdc4, 0.8); // Cyan border
+    bg.fillRoundedRect(-tooltipWidth/2, -verticalPadding, tooltipWidth, contentHeight, 8);
+    bg.strokeRoundedRect(-tooltipWidth/2, -verticalPadding, tooltipWidth, contentHeight, 8);
+    
+    this.tooltipBox.add([bg, nameText, descText]);
+    
+    // Position tooltip
+    let tooltipX = x;
+    let tooltipY = y;
+    if (tooltipX + tooltipWidth / 2 > camW - 20) tooltipX = camW - tooltipWidth / 2 - 20;
+    if (tooltipX - tooltipWidth / 2 < 20) tooltipX = tooltipWidth / 2 + 20;
+    if (tooltipY + contentHeight > camH - 20) tooltipY = camH - contentHeight - 20;
+    if (tooltipY < 20) tooltipY = 20 + contentHeight / 2;
+    
+    this.tooltipBox.setPosition(tooltipX, tooltipY);
+    this.tooltipBox.setVisible(true);
+    this.tooltipBox.setDepth(5000);
   }
 
   private showTooltip(relic: Relic, x: number, y: number): void {
@@ -439,14 +546,26 @@ export class Treasure extends Scene {
     // Apply immediate relic acquisition effects (healing, stat boosts, etc.)
     RelicManager.applyRelicAcquisitionEffect(relic.id, this.player);
     
+    // 80% chance to also find a healing potion if player has space (max 3 potions)
+    let potionMessage = "";
+    if (this.player.potions.length < 3 && Math.random() < 0.8) {
+      // Give healing potion (only healing, no other effects)
+      const healingPotion = commonPotions.find(p => p.id === "healing_potion");
+      if (healingPotion) {
+        this.player.potions.push(healingPotion);
+        potionMessage = " + Healing Potion!";
+      }
+    }
+    
     // Persist updated player data immediately - pass the entire player object to preserve all data
     gameState.updatePlayerData({ 
       ...this.player,
-      relics: [...this.player.relics] // Create a new array to ensure it's saved
+      relics: [...this.player.relics],
+      potions: [...this.player.potions]
     });
     
     // Update UI
-    this.descriptionText.setText(`You take the ${relic.name}!`);
+    this.descriptionText.setText(`You take the ${relic.name}!${potionMessage}`);
     this.descriptionText.setColor("#2ed573");
     
     // Disable all relic buttons to prevent multiple selections
@@ -467,7 +586,76 @@ export class Treasure extends Scene {
     });
     
     // Show message
-    this.showMessage(`Acquired: ${relic.name}`, "#2ed573");
+    this.showMessage(`Acquired: ${relic.name}${potionMessage}`, "#2ed573");
+    
+    // Hide tooltip
+    this.hideTooltip();
+    
+    // Immediately return to Overworld (player data already updated above)
+    gameState.completeCurrentNode(true);
+    const overworldScene = this.scene.get("Overworld");
+    if (overworldScene) {
+      (overworldScene as any).resume();
+    }
+    this.scene.stop();
+    this.scene.resume("Overworld");
+  }
+  
+  private selectReward(reward: TreasureReward, selectedButton: Phaser.GameObjects.Container): void {
+    // Get GameState instance first to ensure we're working with the persistent player data
+    const gameState = GameState.getInstance();
+    
+    if (reward.type === "relic") {
+      // Add relic to player
+      this.player.relics.push(reward.item);
+      
+      // Apply immediate relic acquisition effects (healing, stat boosts, etc.)
+      RelicManager.applyRelicAcquisitionEffect(reward.item.id, this.player);
+      
+      // Persist updated player data
+      gameState.updatePlayerData({ 
+        ...this.player,
+        relics: [...this.player.relics],
+        potions: [...this.player.potions]
+      });
+      
+      // Update UI
+      this.descriptionText.setText(`You take the ${reward.item.name}!`);
+      this.descriptionText.setColor("#2ed573");
+      this.showMessage(`Acquired: ${reward.item.name}`, "#2ed573");
+    } else {
+      // Add potion to player
+      this.player.potions.push(reward.item);
+      
+      // Persist updated player data
+      gameState.updatePlayerData({ 
+        ...this.player,
+        relics: [...this.player.relics],
+        potions: [...this.player.potions]
+      });
+      
+      // Update UI
+      this.descriptionText.setText(`You take the ${reward.item.name}!`);
+      this.descriptionText.setColor("#4ecdc4"); // Cyan for potions
+      this.showMessage(`Acquired: ${reward.item.name}`, "#4ecdc4");
+    }
+    
+    // Disable all reward buttons to prevent multiple selections
+    this.rewardButtons.forEach(button => {
+      button.disableInteractive();
+      button.setActive(false);
+      // Redraw slot background (Graphics) to a dimmed state
+      const slotBg = button.getAt(0) as Phaser.GameObjects.Graphics | undefined;
+      if (slotBg && slotBg.clear) {
+        slotBg.clear();
+        const buttonWidth = 100;
+        const buttonHeight = 100;
+        slotBg.fillGradientStyle(0x1a1d26, 0x1a1d26, 0x0a0d16, 0x0a0d16, 0.8);
+        slotBg.lineStyle(2, 0x3a3d3f, 1);
+        slotBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
+        slotBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
+      }
+    });
     
     // Hide tooltip
     this.hideTooltip();

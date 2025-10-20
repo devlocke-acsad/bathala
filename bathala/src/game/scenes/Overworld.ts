@@ -179,24 +179,7 @@ export class Overworld extends Scene {
         ginto: 9999,
         diamante: 20,
         relics: [], // No test relics - will be empty until player finds them
-        potions: [
-          {
-            id: "clarity_potion",
-            name: "Potion of Clarity",
-            description: "Draw 3 cards.",
-            effect: "draw_3_cards",
-            emoji: "🧠",
-            rarity: "common" as const
-          },
-          {
-            id: "fortitude_potion",
-            name: "Elixir of Fortitude", 
-            description: "Gain 15 Block.",
-            effect: "gain_15_block",
-            emoji: "🛡️",
-            rarity: "common" as const
-          }
-        ],
+        potions: [], // Start with no potions - gain from treasure chests
         discardCharges: 1,
         maxDiscardCharges: 1
       };
@@ -254,24 +237,7 @@ export class Overworld extends Scene {
         ginto: 9999,
         diamante: 20,
         relics: [], // Start with no relics
-        potions: [
-          {
-            id: "clarity_potion",
-            name: "Potion of Clarity",
-            description: "Draw 3 cards.",
-            effect: "draw_3_cards",
-            emoji: "🧠",
-            rarity: "common" as const
-          },
-          {
-            id: "fortitude_potion",
-            name: "Elixir of Fortitude", 
-            description: "Gain 15 Block.",
-            effect: "gain_15_block",
-            emoji: "🛡️",
-            rarity: "common" as const
-          }
-        ],
+        potions: [], // Start with no potions - gain from treasure chests
         discardCharges: 1,
         maxDiscardCharges: 1
       };
@@ -3508,9 +3474,9 @@ export class Overworld extends Scene {
       potionBg.fillRect(potionX, potionY, slotSize, slotSize);
       potionBg.strokeRect(potionX, potionY, slotSize, slotSize);
       
-      // Potion icon
-      const potionIcon = this.add.text(potionX + slotSize/2, potionY + slotSize/2, "🧪", {
-        fontSize: "16px"
+      // Potion icon (use potion's emoji or default)
+      const potionIcon = this.add.text(potionX + slotSize/2, potionY + slotSize/2, potion.emoji || "🧪", {
+        fontSize: "24px"
       }).setOrigin(0.5);
       
       this.potionsContainer.add([potionBg, potionIcon]);
