@@ -259,12 +259,21 @@ export class Preloader extends Scene {
     this.load.image("bathala_moon_icon", "ui/icons/bathala_moon_icon.png");
     this.load.image("bathala_boss_icon", "ui/icons/bathala_boss_icon.png");
     
-    // Load background music
-    // Note: Using placeholder music for all scenes
+    // ========================================================================
+    // MUSIC LOADING - Managed by MusicManager
+    // ========================================================================
+    // MusicManager owns ALL music assignment logic (see MusicManager.ts sceneMusicMap)
+    // Scenes never specify which music to play - they just call playSceneMusic()
+    // MusicManager decides: track, volume, fade, loop behavior
+    //
+    // Current Music Tracks:
+    // - placeholder_music: Main game music (used by most scenes)
+    // - disclaimer_music: Boot/Disclaimer sequence music
+    //
     // Supported formats: .mp3, .ogg, .wav
-    this.load.audio("placeholder_music", "music/bathalaMusicPLHDR.mp3");
+    // ========================================================================
     
-    // Load disclaimer music (plays from Boot through Disclaimer)
+    this.load.audio("placeholder_music", "music/bathalaMusicPLHDR.mp3");
     this.load.audio("disclaimer_music", "music/bathala_disclaimer.mp3");
     
     // Debug: Log when assets are loaded

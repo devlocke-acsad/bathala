@@ -2,18 +2,36 @@ import { Scene } from "phaser";
 
 /**
  * Scene-to-Music mapping configuration
- * Defines which music track plays for each scene
+ * MusicManager owns all music assignment logic
  */
 interface SceneMusicConfig {
-  musicKey: string;
-  volume: number;
-  fadeIn: boolean;
+  musicKey: string;    // Which audio file to play
+  volume: number;      // Volume level (0.0 to 1.0)
+  fadeIn: boolean;     // Whether to fade in
+  loop: boolean;       // Whether to loop continuously
 }
 
 /**
  * MusicManager - Singleton class to manage all background music in the game
- * Automatically assigns and plays appropriate music for each scene
- * Scenes only need to call playSceneMusic() and stopMusic()
+ * ============================================================================
+ * 
+ * ARCHITECTURE:
+ * - MusicManager OWNS all music assignment and playback logic
+ * - Scenes ONLY call playSceneMusic() and stopMusic()
+ * - MusicManager decides: which track, volume, fade, loop behavior
+ * 
+ * USAGE IN SCENES:
+ * ```typescript
+ * create() {
+ *   const musicManager = MusicManager.getInstance();
+ *   musicManager.setScene(this);
+ *   musicManager.playSceneMusic(); // That's it! MusicManager handles everything
+ * }
+ * 
+ * shutdown() {
+ *   MusicManager.getInstance().stopMusic();
+ * }
+ * ```
  */
 export class MusicManager {
   private static instance: MusicManager;
@@ -26,31 +44,37 @@ export class MusicManager {
   private fadeInDuration: number = 1000; // ms
 
   /**
-   * Scene-to-Music mapping
-   * All scenes use placeholder music that loops continuously
+   * Scene-to-Music mapping - MusicManager's music assignment logic
+   * ================================================================
+   * This is the SINGLE SOURCE OF TRUTH for which music plays in which scene.
+   * Scenes never specify music - they just call playSceneMusic().
    */
   private readonly sceneMusicMap: Record<string, SceneMusicConfig> = {
+    // Boot & Disclaimer
+    "Boot": { musicKey: "disclaimer_music", volume: 0.4, fadeIn: true, loop: true },
+    "Disclaimer": { musicKey: "disclaimer_music", volume: 0.4, fadeIn: false, loop: true },
+    
     // Main Scenes
-    "MainMenu": { musicKey: "placeholder_music", volume: 0.5, fadeIn: true },
-    "Overworld": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true },
+    "MainMenu": { musicKey: "placeholder_music", volume: 0.5, fadeIn: true, loop: true },
+    "Overworld": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true, loop: true },
     
     // Combat Scenes
-    "Combat": { musicKey: "placeholder_music", volume: 0.5, fadeIn: true },
+    "Combat": { musicKey: "placeholder_music", volume: 0.5, fadeIn: true, loop: true },
     
     // Activity Scenes
-    "Shop": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true },
-    "Campfire": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true },
-    "EventScene": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true },
-    "Treasure": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true },
+    "Shop": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true, loop: true },
+    "Campfire": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true, loop: true },
+    "EventScene": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true, loop: true },
+    "Treasure": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true, loop: true },
     
     // UI Scenes
-    "GameOver": { musicKey: "placeholder_music", volume: 0.5, fadeIn: true },
-    "Credits": { musicKey: "placeholder_music", volume: 0.3, fadeIn: true },
-    "Settings": { musicKey: "placeholder_music", volume: 0.3, fadeIn: true },
-    "Discover": { musicKey: "placeholder_music", volume: 0.3, fadeIn: true },
+    "GameOver": { musicKey: "placeholder_music", volume: 0.5, fadeIn: true, loop: true },
+    "Credits": { musicKey: "placeholder_music", volume: 0.3, fadeIn: true, loop: true },
+    "Settings": { musicKey: "placeholder_music", volume: 0.3, fadeIn: true, loop: true },
+    "Discover": { musicKey: "placeholder_music", volume: 0.3, fadeIn: true, loop: true },
     
     // Tutorial
-    "Prologue": { musicKey: "placeholder_music", volume: 0.3, fadeIn: true },
+    "Prologue": { musicKey: "placeholder_music", volume: 0.3, fadeIn: true, loop: true },
   };
 
   private constructor() {
@@ -75,28 +99,25 @@ export class MusicManager {
   }
 
   /**
-   * Play music automatically based on the current scene
-   * This is the main method scenes should call
+   * Play music for the current scene - MAIN SCENE API
+   * ===================================================
+   * Scenes call this and MusicManager handles everything:
+   * - Looks up which track to play
+   * - Sets volume, fade, loop automatically
+   * - Prevents redundant restarts of same music
+   * 
    * @param sceneKey - Optional scene key override (uses current scene if not provided)
-   * @param musicKeyOverride - Optional music key override (for special cases like boss music)
    */
-  playSceneMusic(sceneKey?: string, musicKeyOverride?: string): void {
+  playSceneMusic(sceneKey?: string): void {
     if (!this.scene) {
       console.warn("MusicManager: No scene set. Call setScene() first.");
       return;
     }
 
-    // Determine which scene key to use
+    // Determine which scene to get music for
     const targetSceneKey = sceneKey || this.scene.scene.key;
     
-    // If music key override is provided, use it directly
-    if (musicKeyOverride) {
-      const config = this.sceneMusicMap[targetSceneKey] || { volume: 0.5, fadeIn: true };
-      this.play(musicKeyOverride, config.volume, config.fadeIn, true);
-      return;
-    }
-
-    // Get music configuration for this scene
+    // Get music configuration from MusicManager's assignment logic
     const config = this.sceneMusicMap[targetSceneKey];
     
     if (!config) {
@@ -104,12 +125,39 @@ export class MusicManager {
       return;
     }
 
-    // Play the configured music
-    this.play(config.musicKey, config.volume, config.fadeIn, true);
+    // MusicManager plays the music with all settings it assigned
+    this.play(config.musicKey, config.volume, config.fadeIn, config.loop);
+  }
+  
+  /**
+   * Play specific music with override (for special cases like boss music)
+   * ======================================================================
+   * Use this when you need to temporarily override the scene's default music.
+   * 
+   * @param musicKey - The specific music track to play
+   * @param volume - Optional volume override
+   * @param fadeIn - Optional fade in override
+   * @param loop - Optional loop override
+   */
+  playMusic(musicKey: string, volume?: number, fadeIn?: boolean, loop?: boolean): void {
+    if (!this.scene) {
+      console.warn("MusicManager: No scene set. Call setScene() first.");
+      return;
+    }
+
+    // Use provided values or defaults
+    const finalVolume = volume ?? this.defaultVolume;
+    const finalFadeIn = fadeIn ?? true;
+    const finalLoop = loop ?? true;
+
+    this.play(musicKey, finalVolume, finalFadeIn, finalLoop);
   }
 
   /**
-   * Stop the current music (scenes should call this before transitioning)
+   * Stop the current music - SCENE API
+   * ===================================
+   * Scenes call this before transitioning.
+   * 
    * @param fadeOut - Whether to fade out before stopping (default: true)
    */
   stopMusic(fadeOut: boolean = true): void {
@@ -117,11 +165,15 @@ export class MusicManager {
   }
 
   /**
-   * Play background music with optional fade-in
+   * PRIVATE: Play background music with MusicManager's configuration
+   * =================================================================
+   * This is internal logic - scenes never call this directly.
+   * All playback settings (volume, fade, loop) come from MusicManager.
+   * 
    * @param key - The audio key loaded in Preloader
-   * @param volume - Volume level (0.0 to 1.0)
-   * @param fadeIn - Whether to fade in the music
-   * @param loop - Whether to loop the music (default: true)
+   * @param volume - Volume level (0.0 to 1.0) - assigned by MusicManager
+   * @param fadeIn - Whether to fade in - assigned by MusicManager
+   * @param loop - Whether to loop - assigned by MusicManager
    */
   private play(key: string, volume: number = this.defaultVolume, fadeIn: boolean = true, loop: boolean = true): void {
     if (!this.scene) {
