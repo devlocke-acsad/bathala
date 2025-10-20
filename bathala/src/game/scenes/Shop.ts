@@ -394,7 +394,7 @@ export class Shop extends Scene {
   private createMerchantCharacter(): void {
     const screenHeight = this.cameras.main.height;
     
-    // Position merchant on the left side - matching card layout
+    // Position merchant on the left side
     const merchantX = 180;
     const merchantY = screenHeight * 0.5;
     
@@ -402,83 +402,21 @@ export class Shop extends Scene {
     this.merchantCharacter = this.add.container(merchantX, merchantY);
     this.merchantCharacter.setDepth(500);
     
-    // Match the premium card design with layered approach
-    const panelWidth = 280;
-    const panelHeight = 400;
-    
-    // LAYER 1: Outer glow (matching card outerGlow)
-    const outerGlow = this.add.rectangle(0, 0, panelWidth, panelHeight, 0xfbbf24, 0.12)
-      .setStrokeStyle(2, 0xfbbf24, 0.5);
-    
-    // LAYER 2: Main background (matching card background)
-    const background = this.add.rectangle(0, 0, panelWidth - 8, panelHeight - 8, 0x1d151a)
-      .setStrokeStyle(1, 0x4a3a40);
-    
-    // LAYER 3: Top decorative accent bar (matching card topBar)
-    const topBar = this.add.rectangle(0, -panelHeight/2 + 9, panelWidth - 16, 6, 0xfbbf24, 0.7);
-    
-    // Title text with gold theme (matching shop gold color)
-    const merchantTitle = this.add.text(0, -panelHeight/2 + 35, 'MYSTERIOUS', {
-      fontFamily: 'dungeon-mode',
-      fontSize: 16,
-      color: '#fbbf24',
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    const merchantSubtitle = this.add.text(0, -panelHeight/2 + 52, 'MERCHANT', {
-      fontFamily: 'dungeon-mode',
-      fontSize: 20,
-      color: '#fbbf24',
-      align: 'center',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // Sprite frame area (matching card spriteFrame style)
-    const spriteFrameWidth = 220;
-    const spriteFrameHeight = 260;
-    const spriteFrame = this.add.rectangle(0, 20, spriteFrameWidth, spriteFrameHeight, 0x000000, 0)
-      .setStrokeStyle(2, 0xffffff, 0.3);
-    
-    // Create the static merchant sprite - no animation
-    const merchantSprite = this.add.sprite(0, 20, 'merchant_main');
-    merchantSprite.setScale(0.8); // Keep the same size
-    
-    // Add subtle mystical glow effect (gold theme)
-    const magicGlow = this.add.graphics();
-    magicGlow.fillStyle(0xfbbf24, 0.15);
-    magicGlow.fillCircle(0, 20, 100);
+    // Create the static merchant sprite - no card background
+    const merchantSprite = this.add.sprite(0, 0, 'merchant_main');
+    merchantSprite.setScale(0.8);
     
     // Create dialogue system
     this.createMerchantDialogueSystem();
     
-    // Bottom description area (matching card style)
-    const descArea = this.add.rectangle(0, panelHeight/2 - 50, panelWidth - 30, 60, 0xfbbf24, 0.1)
-      .setStrokeStyle(1, 0xfbbf24, 0.3);
-    
-    // Description text with gold theme
-    const descText = this.add.text(0, panelHeight/2 - 50, 'Dealer of rare relics\nand mystical artifacts', {
-      fontFamily: 'dungeon-mode',
-      fontSize: 12,
-      color: '#fbbf24',
-      align: 'center'
-    }).setOrigin(0.5);
-    
-    // Add all elements to container (layered approach matching cards)
+    // Add only the sprite to container (removed all card decorations)
     this.merchantCharacter.add([
-      outerGlow,
-      background,
-      topBar,
-      merchantTitle,
-      merchantSubtitle,
-      spriteFrame,
-      magicGlow,
-      merchantSprite,
-      descArea,
-      descText
+      merchantSprite
     ]);
     
     // Make the entire merchant container interactive for dialogue
-    this.merchantCharacter.setSize(panelWidth, panelHeight);
+    // Size based on sprite dimensions (approximate visible area)
+    this.merchantCharacter.setSize(200, 300);
     this.merchantCharacter.setInteractive()
       .on('pointerdown', () => this.showMerchantDialogue())
       .on('pointerover', () => {
@@ -572,15 +510,16 @@ export class Shop extends Scene {
     dialogueBg.lineStyle(1, 0x9BA3A7, 0.8);
     dialogueBg.strokeRoundedRect(-boxWidth/2 + 6, -boxHeight/2 + 6, boxWidth - 12, boxHeight - 12, 8);
 
-    // Character name plate
+    // Character name plate - made wider to fit "MYSTERIOUS MERCHANT"
+    const namePlateWidth = 220; // Increased from 160 to 220
     const namePlate = this.add.graphics();
     namePlate.fillStyle(0x77888C, 0.9);
-    namePlate.fillRoundedRect(-boxWidth/2 + 20, -boxHeight/2 - 15, 160, 30, 8);
+    namePlate.fillRoundedRect(-boxWidth/2 + 20, -boxHeight/2 - 15, namePlateWidth, 30, 8);
     namePlate.lineStyle(2, 0x9BA3A7, 0.8);
-    namePlate.strokeRoundedRect(-boxWidth/2 + 20, -boxHeight/2 - 15, 160, 30, 8);
+    namePlate.strokeRoundedRect(-boxWidth/2 + 20, -boxHeight/2 - 15, namePlateWidth, 30, 8);
 
-    // Character name
-    const characterName = this.add.text(-boxWidth/2 + 100, -boxHeight/2, 'MYSTERIOUS MERCHANT', {
+    // Character name - centered within the wider plate
+    const characterName = this.add.text(-boxWidth/2 + 20 + namePlateWidth/2, -boxHeight/2, 'MYSTERIOUS MERCHANT', {
       fontFamily: 'dungeon-mode',
       fontSize: 12,
       color: '#E8E8E8',
