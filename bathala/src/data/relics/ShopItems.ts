@@ -50,9 +50,9 @@ export const shopRelics: ShopItem[] = [
 // Premium shop items (now using centralized relic data)
 // Removed: bargain_talisman, echo_ancestors, bakunawa_scale, tigmamanukan_eye (no sprites)
 export const premiumShopItems: ShopItem[] = [
-  createShopItemFromRelic("lucky_charm", 4, "diamante"),
-  createShopItemFromRelic("diwatas_crown", 6, "diamante"),
-  createShopItemFromRelic("stone_golem_heart", 3, "diamante")
+  createShopItemFromRelic("lucky_charm", 250, "ginto"),
+  createShopItemFromRelic("diwatas_crown", 300, "ginto"),
+  createShopItemFromRelic("stone_golem_heart", 200, "ginto")
 ];
 
 // All shop items combined
