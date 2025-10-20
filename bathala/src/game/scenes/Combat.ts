@@ -1703,17 +1703,8 @@ export class Combat extends Scene {
     const innerBorder = this.add.rectangle(0, 0, dialogueBoxWidth, dialogueBoxHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
     const bg = this.add.rectangle(0, 0, dialogueBoxWidth, dialogueBoxHeight, 0x150E10);
 
-    // Enemy portrait using combat sprite
-    const enemySpriteKey = this.dialogue.getEnemySpriteKey(this.combatState.enemy.name);
-    let enemyPortrait: Phaser.GameObjects.Sprite | null = null;
-    
-    if (this.textures.exists(enemySpriteKey)) {
-      enemyPortrait = this.add.sprite(0, -80, enemySpriteKey);
-      enemyPortrait.setScale(2.0 * scaleFactor);
-    }
-
     // Enemy name with Prologue styling
-    const enemyNameText = this.add.text(0, -130, dialogue.name, {
+    const enemyNameText = this.add.text(0, -80, dialogue.name, {
       fontFamily: "dungeon-mode",
       fontSize: Math.floor(24 * scaleFactor),
       color: "#77888C",
@@ -1721,7 +1712,7 @@ export class Combat extends Scene {
     }).setOrigin(0.5);
 
     // Main dialogue text with Prologue styling
-    const mainText = this.add.text(0, -20, "You have defeated this creature. What do you choose?", {
+    const mainText = this.add.text(0, 0, "You have defeated this creature. What do you choose?", {
       fontFamily: "dungeon-mode",
       fontSize: Math.floor(18 * scaleFactor),
       color: "#77888C",
@@ -1734,10 +1725,9 @@ export class Combat extends Scene {
       outerBorder,
       innerBorder,
       bg,
-      enemyPortrait,
       enemyNameText,
       mainText
-    ].filter(child => child !== null);
+    ];
 
     dialogueContainer.add(containerChildren);
     dialogueContainer.setDepth(5001);
