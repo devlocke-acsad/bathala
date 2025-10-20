@@ -2027,14 +2027,28 @@ export class Combat extends Scene {
       })
       .setOrigin(0.5);
 
-    // Rewards box
-    const rewardsBoxWidth = Math.min(600, screenWidth * 0.6);
-    const rewardsBoxHeight = Math.min(250, screenHeight * 0.4);
-    const rewardsBox = this.add.rectangle(screenWidth/2, 400, rewardsBoxWidth, rewardsBoxHeight, 0x2f3542);
+    // Calculate dynamic box height based on rewards
+    let estimatedHeight = 80; // Base height with padding
+    if (scaledGold > 0) estimatedHeight += 30;
+    if (reward && typeof reward === 'object' && 'diamante' in reward && (reward as any).diamante > 0) estimatedHeight += 30;
+    if (reward.healthHealing > 0) estimatedHeight += 30;
+    estimatedHeight += 30; // Landas change (always shown)
+    if (reward.bonusEffect) estimatedHeight += 35;
+    if (reward.relics && reward.relics.length > 0) {
+      estimatedHeight += 90; // Relic name + description with extra space
+    }
+
+    // Rewards box with dynamic sizing
+    const rewardsBoxWidth = Math.min(700, screenWidth * 0.75);
+    const rewardsBoxHeight = Math.max(250, Math.min(estimatedHeight, screenHeight * 0.5));
+    const rewardsBoxY = 320 + (rewardsBoxHeight / 2);
+    const rewardsBox = this.add.rectangle(screenWidth/2, rewardsBoxY, rewardsBoxWidth, rewardsBoxHeight, 0x2f3542);
     rewardsBox.setStrokeStyle(2, 0x57606f);
 
+    // Rewards title
+    const rewardsTitleY = rewardsBoxY - (rewardsBoxHeight / 2) + 30;
     this.add
-      .text(screenWidth/2, 320, "Rewards", {
+      .text(screenWidth/2, rewardsTitleY, "Rewards", {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(24 * scaleFactor),
         color: "#ffd93d",
@@ -2042,7 +2056,7 @@ export class Combat extends Scene {
       })
       .setOrigin(0.5);
 
-    let rewardY = 360;
+    let rewardY = rewardsTitleY + 40;
 
     // Ginto reward - display the DDA-scaled amount
     if (scaledGold > 0) {
@@ -2102,9 +2116,10 @@ export class Combat extends Scene {
           fontSize: Math.floor(14 * scaleFactor),
           color: "#ffd93d",
           align: "center",
+          wordWrap: { width: rewardsBoxWidth - 40 }
         })
         .setOrigin(0.5);
-      rewardY += 25 * scaleFactor;
+      rewardY += 30 * scaleFactor;
     }
 
     // Relic drop display
@@ -2121,9 +2136,10 @@ export class Combat extends Scene {
             fontSize: Math.floor(16 * scaleFactor),
             color: "#a29bfe",
             align: "center",
+            wordWrap: { width: rewardsBoxWidth - 40 }
           })
           .setOrigin(0.5);
-        rewardY += 25 * scaleFactor;
+        rewardY += 30 * scaleFactor;
         
         // Show relic description
         this.add
@@ -2132,10 +2148,10 @@ export class Combat extends Scene {
             fontSize: Math.floor(12 * scaleFactor),
             color: "#95a5a6",
             align: "center",
-            wordWrap: { width: screenWidth * 0.7 }
+            wordWrap: { width: rewardsBoxWidth - 60 }
           })
           .setOrigin(0.5);
-        rewardY += 40 * scaleFactor;
+        rewardY += 45 * scaleFactor;
       } else {
         // Relic drop failed
         this.add
@@ -2150,6 +2166,10 @@ export class Combat extends Scene {
       }
     }
 
+    // Calculate positions for elements below the rewards box
+    const landasY = rewardsBoxY + (rewardsBoxHeight / 2) + 50;
+    const continueButtonY = landasY + 60;
+
     // Current landas status
     const landasTier = this.getLandasTier(this.combatState.player.landasScore);
     const landasColor = this.getLandasColor(landasTier);
@@ -2157,7 +2177,7 @@ export class Combat extends Scene {
     this.add
       .text(
         screenWidth/2,
-        520,
+        landasY,
         `Landas: ${
           this.combatState.player.landasScore
         } (${landasTier.toUpperCase()})`,
@@ -2171,7 +2191,7 @@ export class Combat extends Scene {
       .setOrigin(0.5);
 
     // Continue button
-    this.createDialogueButton(screenWidth/2, 600, "Continue", "#4ecdc4", () => {
+    this.createDialogueButton(screenWidth/2, continueButtonY, "Continue", "#4ecdc4", () => {
       // Save player state and return to overworld
       this.returnToOverworld();
     });
