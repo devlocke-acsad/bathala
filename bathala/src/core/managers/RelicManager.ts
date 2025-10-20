@@ -62,33 +62,35 @@ export class RelicManager {
 
       switch (relicId) {
         case "earthwardens_plate":
-          // BUFFED: Start with 12 Block (was 8)
-          player.block += 12;
+          // BALANCED: Start with 5 Block (defensive foundation without being overpowered)
+          player.block += 5;
           break;
           
         case "swift_wind_agimat":
-          // BUFFED: +2 discard charges (5 total: 3 base + 2 from relic)
-          player.discardCharges += 2;
-          player.maxDiscardCharges += 2;
-          // BUFFED: Draw 1 additional card at start (handled in Combat.ts)
+          // BALANCED: +1 discard charge (4 total: 3 base + 1 from relic)
+          // Provides flexibility without trivializing hand management
+          player.discardCharges += 1;
+          player.maxDiscardCharges += 1;
+          // No additional card draw - focus on discard utility
           break;
           
         case "umalagad_spirit":
-          // BUFFED: All Defend actions gain +8 Block (was 6)
-          // +3 Block per card played (implemented in combat damage calculation)
+          // BALANCED: +2 Block per card played (consistent defensive scaling)
+          // No flat Defend bonus - rewards playing more cards
           break;
           
         case "diwatas_crown":
-          // Buffed: 10 → 15 Block, All Defend actions gain +6 Block
-          player.block += 15;
+          // BALANCED: +5 Block at start, All Defend actions gain +3 Block
+          player.block += 5;
           // Defend bonus handled in combat damage calculation
           break;
           
         case "stone_golem_heart":
-          // Buffed: 10 → 15 Max HP, 2 → 3 Block
-          player.maxHealth += 15;
-          player.currentHealth += 15;
-          player.block += 3;
+          // BALANCED: +8 Max HP, +2 Block at start
+          // Modest HP increase (~7% of 120) with small defensive bonus
+          player.maxHealth += 8;
+          player.currentHealth += 8;
+          player.block += 2;
           break;
       }
     });
@@ -106,24 +108,24 @@ export class RelicManager {
 
       switch (relicId) {
         case "ember_fetish":
-          // BUFFED: 4 Attack when Block = 0, 2 Attack when Block > 0
+          // BALANCED: +2 Strength when Block = 0 (encourages risky play), +1 Strength otherwise
           if (player.block === 0) {
-            RelicManager.addStrengthEffect(player, "strength_ember", 4);
-          } else {
             RelicManager.addStrengthEffect(player, "strength_ember", 2);
+          } else {
+            RelicManager.addStrengthEffect(player, "strength_ember", 1);
           }
           break;
           
         case "earthwardens_plate":
-          // BUFFED: +2 Block at start of each turn (in addition to 12 Block at combat start)
-          player.block += 2;
-          console.log(`[Earthwarden's Plate] +2 Block at start of turn`);
+          // BALANCED: +1 Block at start of each turn (total +5-10 over 5 turns)
+          player.block += 1;
+          console.log(`[Earthwarden's Plate] +1 Block at start of turn`);
           break;
           
         case "tiyanak_tear":
-          // NEW: +2 Strength at start of each turn
-          RelicManager.addStrengthEffect(player, "strength_tiyanak", 2);
-          console.log(`[Tiyanak Tear] +2 Strength at start of turn`);
+          // BALANCED: +1 Strength at start of each turn (~3-5 extra damage per turn)
+          RelicManager.addStrengthEffect(player, "strength_tiyanak", 1);
+          console.log(`[Tiyanak Tear] +1 Strength at start of turn`);
           break;
       }
     });
@@ -141,25 +143,25 @@ export class RelicManager {
 
       switch (relicId) {
         case "ancestral_blade":
-          // Buffed: 2 Strength → 3 Attack per Flush
+          // BALANCED: +2 Strength per Flush (rewards element focus)
           if (evaluation.type === "flush") {
-            RelicManager.addStrengthEffect(player, "strength_ancestral", 3);
+            RelicManager.addStrengthEffect(player, "strength_ancestral", 2);
           }
           break;
           
         case "sarimanok_feather":
         case "lucky_charm":
-          // Buffed: 1 → 2 Ginto per Straight or better
+          // BALANCED: +1 Ginto per Straight or better (modest economy boost)
           if (RelicManager.isHandTypeAtLeast(evaluation.type, "straight")) {
-            player.ginto += 2;
+            player.ginto += 1;
           }
           break;
           
         case "umalagad_spirit":
-          // BUFFED: +3 Block per card played (applies to ALL actions: Attack/Defend/Special)
+          // BALANCED: +2 Block per card played (consistent defensive scaling)
           const cardsPlayed = hand.length;
           if (cardsPlayed > 0) {
-            const blockBonus = cardsPlayed * 3;
+            const blockBonus = cardsPlayed * 2;
             player.block += blockBonus;
             console.log(`[Umalagad's Spirit] +${blockBonus} Block from playing ${cardsPlayed} cards`);
           }
@@ -178,22 +180,22 @@ export class RelicManager {
   static calculateDefendBlockBonus(player: Player): number {
     let bonusBlock = 0;
     
-    // BUFFED: Umalagad's Spirit: All Defend actions gain +8 Block (was 6)
+    // BALANCED: Umalagad's Spirit: All Defend actions gain +4 Block
     const umalagadSpirit = player.relics.find(r => r.id === "umalagad_spirit");
     if (umalagadSpirit) {
-      bonusBlock += 8;
+      bonusBlock += 4;
     }
     
-    // Diwata's Crown: All Defend actions gain +6 Block
+    // BALANCED: Diwata's Crown: All Defend actions gain +3 Block
     const diwatasCrown = player.relics.find(r => r.id === "diwatas_crown");
     if (diwatasCrown) {
-      bonusBlock += 6;
+      bonusBlock += 3;
     }
     
-    // NEW: Duwende Charm: All Defend actions gain +5 Block
+    // BALANCED: Duwende Charm: All Defend actions gain +3 Block
     const duwendeCharm = player.relics.find(r => r.id === "duwende_charm");
     if (duwendeCharm) {
-      bonusBlock += 5;
+      bonusBlock += 3;
     }
     
     return bonusBlock;
@@ -201,37 +203,34 @@ export class RelicManager {
 
   /**
    * Calculate additional Block from "Umalagad's Spirit" when playing cards
-   * NEW: +3 Block per card played
+   * BALANCED: +2 Block per card played
    */
   static calculateUmalagadCardPlayBonus(player: Player, cardsPlayed: number = 0): number {
     const umalagadSpirit = player.relics.find(r => r.id === "umalagad_spirit");
     if (umalagadSpirit && cardsPlayed > 0) {
-      return 3 * cardsPlayed; // +3 Block per card played
+      return 2 * cardsPlayed; // +2 Block per card played
     }
     return 0;
   }
 
   /**
    * Calculate additional Block from "Earthwarden's Plate" at start of each turn
-   * NEW: +2 Block per turn
+   * BALANCED: +1 Block per turn
    */
   static calculateEarthwardenTurnBonus(player: Player): number {
     const earthwardensPlate = player.relics.find(r => r.id === "earthwardens_plate");
     if (earthwardensPlate) {
-      return 2; // +2 Block at start of turn
+      return 1; // +1 Block at start of turn
     }
     return 0;
   }
 
   /**
    * Calculate additional initial draw from "Swift Wind Agimat"
-   * NEW: +1 card at start of combat (in addition to +2 discard charges)
+   * REMOVED: No longer provides extra card draw
    */
-  static calculateSwiftWindDrawBonus(player: Player): number {
-    const swiftWindAgimat = player.relics.find(r => r.id === "swift_wind_agimat");
-    if (swiftWindAgimat) {
-      return 1; // +1 additional card at start
-    }
+  static calculateSwiftWindDrawBonus(_player: Player): number {
+    // Swift Wind Agimat now only provides +1 discard charge
     return 0;
   }
 
@@ -239,11 +238,11 @@ export class RelicManager {
    * Calculate dodge chance with "Tikbalang's Hoof" effect
    */
   static calculateDodgeChance(player: Player): number {
-    // Buffed: 10% → 15% dodge chance
+    // BALANCED: 10% dodge chance (1 in 10 attacks avoided)
     let dodgeChance = 0;
     const tikbalangsHoof = player.relics.find(r => r.id === "tikbalangs_hoof");
     if (tikbalangsHoof) {
-      dodgeChance += 0.15; // 15% dodge chance
+      dodgeChance += 0.10; // 10% dodge chance
     }
     return dodgeChance;
   }
@@ -255,19 +254,19 @@ export class RelicManager {
     const baleteRoot = player.relics.find(r => r.id === "balete_root");
     if (baleteRoot) {
       const lupaCards = playedHand.filter(card => card.suit === "Lupa").length;
-      return lupaCards * 3; // Buffed: +2 → +3 Block per Lupa card
+      return lupaCards * 2; // BALANCED: +2 Block per Lupa card
     }
     return 0;
   }
 
   /**
    * Calculate additional damage from "Sigbin Heart" effect
-   * NEW: +5 damage on all Attack actions
+   * BALANCED: +3 damage on all Attack actions
    */
   static calculateSigbinHeartDamage(player: Player): number {
     const sigbinHeart = player.relics.find(r => r.id === "sigbin_heart");
     if (sigbinHeart) {
-      return 5; // +5 damage on Attack actions
+      return 3; // +3 damage on Attack actions
     }
     return 0;
   }
@@ -289,17 +288,12 @@ export class RelicManager {
   }
 
   /**
-   * Calculate initial hand size - REMOVED tigmamanukan_eye (no sprite)
+   * Calculate initial hand size - REMOVED Swift Wind Agimat draw bonus
    */
-  static calculateInitialHandSize(baseHandSize: number, player: Player): number {
+  static calculateInitialHandSize(baseHandSize: number, _player: Player): number {
     let handSize = baseHandSize;
     
-    // Swift Wind Agimat: +1 additional card at start
-    const swiftWindAgimat = player.relics.find(r => r.id === "swift_wind_agimat");
-    if (swiftWindAgimat) {
-      handSize += 1; // +1 additional card draw at combat start
-      console.log(`[Swift Wind Agimat] +1 additional card drawn at combat start`);
-    }
+    // Swift Wind Agimat no longer provides card draw bonus (only +1 discard charge)
     
     return handSize;
   }
@@ -310,9 +304,9 @@ export class RelicManager {
   static applyRelicAcquisitionEffect(relicId: string, player: Player): void {
     switch (relicId) {
       case "stone_golem_heart":
-        // Buffed: Gain 15 Max HP permanently (was 10)
-        player.maxHealth += 15;
-        player.currentHealth += 15; // Also heal when first obtained
+        // BALANCED: Gain +8 Max HP permanently (~7% increase)
+        player.maxHealth += 8;
+        player.currentHealth += 8; // Also heal when first obtained
         break;
         
       // Removed relics (no sprites):
@@ -365,19 +359,19 @@ export class RelicManager {
 
   /**
    * Calculate additional damage from "Mangangaway Wand" on Special actions
-   * NEW: +10 damage on Special actions
+   * BALANCED: +5 damage on Special actions
    */
   static calculateMangangawayWandDamage(player: Player): number {
     const mangangawayWand = player.relics.find(r => r.id === "mangangaway_wand");
     if (mangangawayWand) {
-      return 10; // +10 damage on Special actions
+      return 5; // +5 damage on Special actions
     }
     return 0;
   }
 
   /**
    * Check if "Amomongo Claw" should apply Vulnerable on Attack
-   * NEW: Apply 2 Vulnerable on Attack actions
+   * BALANCED: Apply 1 Vulnerable on Attack actions
    */
   static shouldApplyAmomongoVulnerable(player: Player): boolean {
     const amomongoClaw = player.relics.find(r => r.id === "amomongo_claw");
@@ -390,14 +384,14 @@ export class RelicManager {
   static getAmomongoVulnerableStacks(player: Player): number {
     const amomongoClaw = player.relics.find(r => r.id === "amomongo_claw");
     if (amomongoClaw) {
-      return 2; // Apply 2 stacks of Vulnerable
+      return 1; // Apply 1 stack of Vulnerable
     }
     return 0;
   }
 
   /**
    * Calculate additional damage from "Bungisngis Grin" effect when enemy has debuffs
-   * NEW: +8 damage on Attack when enemy has any debuff
+   * BALANCED: +4 damage on Attack when enemy has any debuff
    */
   static calculateBungisngisGrinDamage(player: Player, enemy: any): number {
     const bungisngisGrin = player.relics.find(r => r.id === "bungisngis_grin");
@@ -410,7 +404,7 @@ export class RelicManager {
         effect.name === "Burn"
       );
       if (hasDebuff) {
-        return 8; // +8 damage when enemy has debuff
+        return 4; // +4 damage when enemy has debuff
       }
     }
     return 0;
@@ -436,8 +430,8 @@ export class RelicManager {
 
       switch (relicId) {
         case "tidal_amulet":
-          // Buffed: 2 HP → 3 HP per card remaining in hand
-          const healAmount = player.hand.length * 3;
+          // BALANCED: +1 HP per card remaining in hand (max +8 HP with full hand)
+          const healAmount = player.hand.length * 1;
           player.currentHealth = Math.min(player.maxHealth, player.currentHealth + healAmount);
           break;
       }

@@ -567,8 +567,8 @@ export class CombatUI {
     
     console.log("Creating relic inventory container at:", screenWidth / 2, 80);
     
-    const inventoryWidth = 600;
-    const inventoryHeight = 140;
+    const inventoryWidth = 640;
+    const inventoryHeight = 120;
     
     // Enhanced Prologue-style double border design
     const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
@@ -587,12 +587,12 @@ export class CombatUI {
       align: "left"
     }).setOrigin(0, 0.5);
     
-    // Grid layout parameters (like Overworld)
-    const relicSlotSize = 50;
+    // Grid layout parameters - improved spacing
+    const relicSlotSize = 70;
     const relicsPerRow = 6;
-    const padding = 15;
+    const padding = 12;
     const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
-    const gridStartY = 10;
+    const gridStartY = 8;
     
     // Create 6 relic slots in a single row
     for (let i = 0; i < relicsPerRow; i++) {
@@ -603,12 +603,12 @@ export class CombatUI {
       // Create slot container
       const slotContainer = this.scene.add.container(slotX, slotY);
       
-      // Outer border (matching Overworld style)
+      // Outer border (subtle glow effect)
       const outerBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 4, relicSlotSize + 4, undefined, 0);
-      outerBorder.setStrokeStyle(2, 0x555555, 1.0);
+      outerBorder.setStrokeStyle(2, 0x444444, 0.8);
       
-      // Inner background
-      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x333333);
+      // Inner background (darker for contrast)
+      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x1a1a1a);
       
       slotContainer.add([bg, outerBorder]);
       (slotContainer as any).isRelicSlot = true;
@@ -1066,11 +1066,11 @@ export class CombatUI {
     console.log("Relic data:", relics);
     
     // Grid configuration (matching createRelicInventory)
-    const relicSlotSize = 50;
+    const relicSlotSize = 70;
     const relicsPerRow = 6;
-    const padding = 15;
+    const padding = 12;
     const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
-    const gridStartY = 10;
+    const gridStartY = 8;
     
     // Remove only the relic icons (keep the permanent slot frames)
     this.relicInventory.list.forEach(child => {
@@ -1101,16 +1101,23 @@ export class CombatUI {
         let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
         
         if (spriteKey && this.scene.textures.exists(spriteKey)) {
-          // Use sprite if available
-          relicIcon = this.scene.add.image(iconX, iconY, spriteKey)
+          // Use sprite if available - properly scaled to fit slot
+          const sprite = this.scene.add.image(iconX, iconY, spriteKey);
+          
+          // Calculate scale to fit nicely within slot (leave small padding)
+          const maxSize = relicSlotSize - 10; // 10px padding
+          const scale = Math.min(maxSize / sprite.width, maxSize / sprite.height);
+          
+          sprite.setScale(scale)
             .setOrigin(0.5)
-            .setDisplaySize(44, 44) // Fit within 50px slot
             .setDepth(100);
-          console.log(`Using sprite for relic: ${spriteKey}`);
+          
+          relicIcon = sprite;
+          console.log(`Using sprite for relic: ${spriteKey}, scale: ${scale}`);
         } else {
           // Fallback to emoji if sprite not found
           relicIcon = this.scene.add.text(iconX, iconY, relic.emoji || "⚙️", {
-            fontSize: 36,
+            fontSize: 42,
             color: "#ffffff",
             align: "center"
           }).setOrigin(0.5).setDepth(100);
@@ -1118,9 +1125,10 @@ export class CombatUI {
         }
         
         (relicIcon as any).isRelicIcon = true;
+        (relicIcon as any).originalScale = relicIcon.scale; // Store original scale
         this.relicInventory.add(relicIcon);
         
-        // Make slot interactive with hover effects (matching Overworld style)
+        // Make slot interactive with hover effects
         slot.setSize(relicSlotSize + 4, relicSlotSize + 4);
         slot.setInteractive(
           new Phaser.Geom.Rectangle(-(relicSlotSize + 4)/2, -(relicSlotSize + 4)/2, relicSlotSize + 4, relicSlotSize + 4),
@@ -1130,22 +1138,24 @@ export class CombatUI {
         // Clear any existing event listeners to prevent memory leaks
         slot.removeAllListeners();
         
-        // Get border and bg references from slot (matching createRelicInventory structure)
+        // Get border and bg references from slot
         const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
         const bg = slotChildren[0]; // Background
         const outerBorder = slotChildren[1]; // Border
         
         slot.on("pointerover", () => {
-          bg.setFillStyle(0x555555); // Brighten background
-          outerBorder.setStrokeStyle(2, 0x777777); // Brighten border
+          bg.setFillStyle(0x2a2a2a); // Subtle brighten
+          outerBorder.setStrokeStyle(2, 0xfbbf24, 1.0); // Gold highlight
           
           // Kill any existing tweens on this icon to prevent conflicts
           this.scene.tweens.killTweensOf(relicIcon);
           
+          // Scale up slightly on hover
+          const originalScale = (relicIcon as any).originalScale;
           this.scene.tweens.add({
             targets: relicIcon,
-            scaleX: 0.2,
-            scaleY: 0.2,
+            scaleX: originalScale * 1.15,
+            scaleY: originalScale * 1.15,
             duration: 150,
             ease: 'Back.easeOut'
           });
@@ -1154,18 +1164,20 @@ export class CombatUI {
         });
         
         slot.on("pointerout", () => {
-          bg.setFillStyle(0x333333); // Reset background
-          outerBorder.setStrokeStyle(2, 0x555555); // Reset border
+          bg.setFillStyle(0x1a1a1a); // Reset background
+          outerBorder.setStrokeStyle(2, 0x444444, 0.8); // Reset border
           
           // Kill any existing tweens on this icon to prevent conflicts
           this.scene.tweens.killTweensOf(relicIcon);
           
+          // Scale back to original
+          const originalScale = (relicIcon as any).originalScale;
           this.scene.tweens.add({
             targets: relicIcon,
-            scaleX: 0.1,
-            scaleY: 0.1,
+            scaleX: originalScale,
+            scaleY: originalScale,
             duration: 150,
-            ease: 'Back.easeOut'
+            ease: 'Back.easeIn'
           });
           
           this.hideRelicTooltip();

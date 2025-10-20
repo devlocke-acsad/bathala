@@ -11,25 +11,25 @@ export const commonRelics: Relic[] = [
   {
     id: "earthwardens_plate",
     name: "Earthwarden's Plate",
-    description: "Forged from the sacred linga stones of the mountain spirits. Start each combat with 12 Block and gain +2 Block at the start of each turn.",
+    description: "Forged from the sacred linga stones of the mountain spirits. Start each combat with 5 Block and gain +1 Block at the start of each turn.",
     emoji: "🛡️"
   },
   {
     id: "swift_wind_agimat",
     name: "Agimat of the Swift Wind",
-    description: "A blessed talisman that captures the essence of Tikbalang's speed. Start each combat with 2 additional discard charges (5 total per turn) and draw 1 additional card at start of combat.",
+    description: "A blessed talisman that captures the essence of Tikbalang's speed. Start each combat with 1 additional discard charge (4 total per turn).",
     emoji: "💨"
   },
   {
     id: "ember_fetish",
     name: "Ember Fetish",
-    description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 4 Attack. If you have Block, gain 2 Attack.",
+    description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 2 Strength. If you have Block, gain 1 Strength.",
     emoji: "🔥"
   },
   {
     id: "umalagad_spirit",
     name: "Umalagad's Spirit",
-    description: "The protective essence of a sea serpent that guides travelers. All Defend actions gain +8 Block. Gain +3 Block whenever you play a card.",
+    description: "The protective essence of a sea serpent that guides travelers. All Defend actions gain +4 Block. Gain +2 Block whenever you play a card.",
     emoji: "🐍"
   }
 ];
@@ -45,19 +45,19 @@ export const eliteRelics: Relic[] = [
   {
     id: "ancestral_blade",
     name: "Ancestral Blade",
-    description: "A kampilan blessed by the spirits of your ancestors. Each time you play a Flush, gain 3 Attack for rest of combat.",
+    description: "A kampilan blessed by the spirits of your ancestors. Each time you play a Flush, gain 2 Strength for rest of combat.",
     emoji: "⚔️"
   },
   {
     id: "tidal_amulet",
     name: "Tidal Amulet",
-    description: "An enchanted piece of coral that pulses with the rhythm of the sea. At the end of your turn, heal 3 HP for each card remaining in your hand.",
+    description: "An enchanted piece of coral that pulses with the rhythm of the sea. At the end of your turn, heal 1 HP for each card remaining in your hand.",
     emoji: "🌊"
   },
   {
     id: "sarimanok_feather",
     name: "Sarimanok Feather",
-    description: "A radiant feather from the mythical bird that brings prosperity. Whenever you play a Straight or better, gain 2 Ginto.",
+    description: "A radiant feather from the mythical bird that brings prosperity. Whenever you play a Straight or better, gain 1 Ginto.",
     emoji: "🦚"
   }
 ];
@@ -67,7 +67,7 @@ export const bossRelics: Relic[] = [
   {
     id: "diwatas_crown",
     name: "Diwata's Crown",
-    description: "A crown blessed by the benevolent nature spirits. Start each combat with 15 Block. All Defend actions gain +6 Block. Enables Five of a Kind hand (5 cards of same value for +30 bonus).",
+    description: "A crown blessed by the benevolent nature spirits. Start each combat with 5 Block. All Defend actions gain +3 Block. Enables Five of a Kind hand (5 cards of same value for +30 bonus).",
     emoji: "👑"
   }
   // Removed: echo_ancestors, bakunawa_scale (no sprites)
@@ -78,13 +78,13 @@ export const treasureRelics: Relic[] = [
   {
     id: "lucky_charm",
     name: "Lucky Charm",
-    description: "A mutya jewel that brings fortune to its bearer. Whenever you play a Straight or better, gain 2 Ginto.",
+    description: "A mutya jewel that brings fortune to its bearer. Whenever you play a Straight or better, gain 1 Ginto.",
     emoji: "🍀"
   },
   {
     id: "stone_golem_heart",
     name: "Stone Golem's Heart",
-    description: "The eternal heart of an earth guardian. Gain 15 Max HP. At the start of combat, gain 3 Block.",
+    description: "The eternal heart of an earth guardian. Gain 8 Max HP. At the start of combat, gain 2 Block.",
     emoji: "❤️"
   }
   // Removed: tigmamanukan_eye, merchants_scale (no sprites)
@@ -100,43 +100,43 @@ export const mythologicalRelics: Relic[] = [
   {
     id: "tikbalangs_hoof",
     name: "Tikbalang's Hoof",
-    description: "+15% chance to dodge enemy attacks. Based on the Tikbalang's supernatural trickery and ability to confuse travelers.",
+    description: "10% chance to dodge enemy attacks. Based on the Tikbalang's supernatural trickery and ability to confuse travelers.",
     emoji: "🐴"
   },
   {
     id: "balete_root",
     name: "Balete Root",
-    description: "Gain +3 Block for each Lupa (Earth) card in your played hand. The Balete tree is a sacred portal to the spirit realm.",
+    description: "Gain +2 Block for each Lupa (Earth) card in your played hand. The Balete tree is a sacred portal to the spirit realm.",
     emoji: "🌳"
   },
   {
     id: "sigbin_heart",
     name: "Sigbin Heart",
-    description: "Attack actions deal +5 additional damage. The Sigbin's heart holds immense dark power.",
+    description: "Attack actions deal +3 additional damage. The Sigbin's heart holds immense dark power.",
     emoji: "🐐"
   },
   {
     id: "duwende_charm",
     name: "Duwende Charm",
-    description: "Defend actions gain +5 additional Block. Blessed by the fortune-bringing duwende spirits.",
+    description: "Defend actions gain +3 additional Block. Blessed by the fortune-bringing duwende spirits.",
     emoji: "🧚"
   },
   {
     id: "tiyanak_tear",
     name: "Tiyanak Tear",
-    description: "At the start of your turn, gain +2 Strength (Attack damage). The crystallized tear of a corrupted infant spirit.",
+    description: "At the start of your turn, gain +1 Strength (Attack damage). The crystallized tear of a corrupted infant spirit.",
     emoji: "💧"
   },
   {
     id: "amomongo_claw",
     name: "Amomongo Claw",
-    description: "Attack actions apply 2 Vulnerable to enemies. The razor-sharp claw of the ape-like creature.",
+    description: "Attack actions apply 1 Vulnerable to enemies. The razor-sharp claw of the ape-like creature.",
     emoji: "🪲"
   },
   {
     id: "bungisngis_grin",
     name: "Bungisngis Grin",
-    description: "Attack actions deal +8 damage when enemy has any debuff (Weak, Vulnerable, Burn, etc.). The giant's mocking laughter empowers your strikes.",
+    description: "Attack actions deal +4 damage when enemy has any debuff (Weak, Vulnerable, Burn, etc.). The giant's mocking laughter empowers your strikes.",
     emoji: "👹"
   },
   {
@@ -148,7 +148,7 @@ export const mythologicalRelics: Relic[] = [
   {
     id: "mangangaway_wand",
     name: "Mangangaway Wand",
-    description: "Special actions deal +10 damage. The sorcerer's wand amplifies your elemental power.",
+    description: "Special actions deal +5 damage. The sorcerer's wand amplifies your elemental power.",
     emoji: "🪄"
   }
   // Removed: wind_veil (no sprite)
