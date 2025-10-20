@@ -84,8 +84,8 @@ export interface DDAModifiers {
       aiComplexity: 1.0;
     };
     thriving: {
-      healthMultiplier: 1.15;   // +15% enemy HP
-      damageMultiplier: 1.15;   // +15% enemy damage
+      healthMultiplier: 1.10;   // +10% enemy HP
+      damageMultiplier: 1.10;   // +10% enemy damage
       aiComplexity: 1.3;        // More complex patterns
     };
     mastering: {
@@ -219,8 +219,8 @@ export const DEFAULT_DDA_CONFIG: DDAModifiers = {
       aiComplexity: 1.0,
     },
     thriving: {
-      healthMultiplier: 1.15,
-      damageMultiplier: 1.15,
+      healthMultiplier: 1.10,
+      damageMultiplier: 1.10,
       aiComplexity: 1.3,
     },
     mastering: {
