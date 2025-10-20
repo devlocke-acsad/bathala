@@ -1,4 +1,5 @@
 import { Scene, GameObjects } from "phaser";
+import { MusicManager } from "../../core/managers/MusicManager";
 
 export class Preloader extends Scene {
   progressBar: Phaser.GameObjects.Rectangle;
@@ -255,6 +256,9 @@ export class Preloader extends Scene {
     // Supported formats: .mp3, .ogg, .wav
     this.load.audio("placeholder_music", "music/bathalaMusicPLHDR.mp3");
     
+    // Load disclaimer music (plays from Boot through Disclaimer)
+    this.load.audio("disclaimer_music", "music/bathala_disclaimer.mp3");
+    
     // Debug: Log when assets are loaded
     this.load.on('filecomplete', (key: string, type: string) => {
       console.log(`Loaded asset: ${key} (${type})`);
@@ -311,7 +315,11 @@ export class Preloader extends Scene {
         console.warn("Could not create sprite animations:", error);
       }
 
-      //  Move to the MainMenu instead of directly to Overworld
+      // Start disclaimer music before transitioning
+      MusicManager.getInstance().setScene(this);
+      MusicManager.getInstance().playSceneMusic();
+
+      //  Move to the Disclaimer scene
       this.scene.start("Disclaimer");
     });
   }

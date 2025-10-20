@@ -21,6 +21,7 @@ export class TutorialManager {
     private currentPhaseIndex: number;
     private skipButton: GameObjects.Container;
     private skipPhaseButton: GameObjects.Container;
+    private helpButton: GameObjects.Container;
     private particles?: Phaser.GameObjects.Particles.ParticleEmitter;
 
     constructor(scene: Scene) {
@@ -117,15 +118,29 @@ export class TutorialManager {
             buttonWidth // Same fixed width for uniformity
         );
         
+        // Add Help/Navigation button (top right)
+        const helpButtonX = this.scene.cameras.main.width * 0.88;
+        const helpButtonY = this.scene.cameras.main.height * 0.08;
+        this.helpButton = createButton(
+            this.scene,
+            helpButtonX,
+            helpButtonY,
+            'ℹ Navigation',
+            () => this.showPhaseNavigation(),
+            buttonWidth
+        );
+        
         // Don't add buttons to container - add them directly to scene so they're always visible
         
         // Ensure buttons are always visible at top depth - add to scene directly
         this.skipButton.setDepth(5000);
         this.skipPhaseButton.setDepth(5000);
+        this.helpButton.setDepth(5000);
         
         // Make sure buttons are always visible
         this.skipButton.setAlpha(1);
         this.skipPhaseButton.setAlpha(1);
+        this.helpButton.setAlpha(1);
 
         const tutorialUI = new TutorialUI(this.scene);
 
@@ -228,6 +243,14 @@ export class TutorialManager {
         // Clean up current phase - try all possible cleanup methods
         const currentPhase = this.phases[this.currentPhaseIndex - 1];
         if (currentPhase) {
+            // Kill all tweens on phase container
+            if (currentPhase.container) {
+                this.scene.tweens.killTweensOf(currentPhase.container);
+                currentPhase.container.getAll().forEach((child: any) => {
+                    this.scene.tweens.killTweensOf(child);
+                });
+            }
+            
             // Try cleanup() method first
             if (currentPhase.cleanup && typeof currentPhase.cleanup === 'function') {
                 currentPhase.cleanup();
@@ -262,6 +285,183 @@ export class TutorialManager {
             duration: 300,
             ease: 'Power2',
             onComplete: () => {
+                this.scene.time.delayedCall(600, () => {
+                    this.scene.tweens.add({
+                        targets: notification,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => notification.destroy()
+                    });
+                });
+            }
+        });
+
+        // Move to next phase with proper delay
+        this.scene.time.delayedCall(1000, () => {
+            this.startNextPhase();
+        });
+    }
+
+    private showPhaseNavigation() {
+        // Create phase navigation menu
+        const navContainer = this.scene.add.container(
+            this.scene.cameras.main.width / 2,
+            this.scene.cameras.main.height / 2
+        );
+
+        const menuWidth = 600;
+        const menuHeight = 550;
+
+        const bg = this.scene.add.rectangle(0, 0, menuWidth, menuHeight, 0x150E10, 0.98);
+        
+        // Double border design
+        const outerBorder = this.scene.add.rectangle(0, 0, menuWidth + 8, menuHeight + 8, undefined, 0)
+            .setStrokeStyle(3, 0x77888C, 0.8);
+        const innerBorder = this.scene.add.rectangle(0, 0, menuWidth + 2, menuHeight + 2, undefined, 0)
+            .setStrokeStyle(2, 0x556065, 0.6);
+
+        const titleText = this.scene.add.text(0, -menuHeight/2 + 40, 'Phase Navigation', {
+            fontFamily: 'dungeon-mode',
+            fontSize: 32,
+            color: '#77888C',
+            align: 'center'
+        }).setOrigin(0.5);
+
+        const currentPhaseText = this.scene.add.text(0, -menuHeight/2 + 80, `Current: Phase ${this.currentPhaseIndex}`, {
+            fontFamily: 'dungeon-mode',
+            fontSize: 18,
+            color: '#FFAA00',
+            align: 'center'
+        }).setOrigin(0.5);
+
+        navContainer.add([outerBorder, bg, innerBorder, titleText, currentPhaseText]);
+
+        // Phase names
+        const phaseNames = [
+            'Welcome',
+            'Understanding Cards',
+            'Hand Types & Bonuses',
+            'Combat Actions',
+            'Discard Mechanic',
+            'Items (Relics & Potions)',
+            'Moral Choice (Landás)',
+            'Advanced Concepts'
+        ];
+
+        // Create phase buttons
+        const buttonsPerRow = 2;
+        const buttonSpacing = 150;
+        const buttonWidth = 250;
+        const startY = -menuHeight/2 + 140;
+
+        phaseNames.forEach((phaseName, index) => {
+            const row = Math.floor(index / buttonsPerRow);
+            const col = index % buttonsPerRow;
+            const x = (col - 0.5) * buttonSpacing;
+            const y = startY + (row * 55);
+
+            const phaseButton = createButton(
+                this.scene,
+                x,
+                y,
+                `${index + 1}. ${phaseName}`,
+                () => this.jumpToPhase(index, navContainer),
+                buttonWidth
+            );
+
+            // Highlight current phase
+            if (index === this.currentPhaseIndex - 1) {
+                const highlight = this.scene.add.rectangle(x, y, buttonWidth + 10, 50, 0xFFAA00, 0.2);
+                navContainer.add(highlight);
+            }
+
+            navContainer.add(phaseButton);
+        });
+
+        // Close button
+        const closeButton = createButton(
+            this.scene,
+            0,
+            menuHeight/2 - 50,
+            'Close',
+            () => {
+                this.scene.tweens.add({
+                    targets: navContainer,
+                    alpha: 0,
+                    scale: 0.9,
+                    duration: 300,
+                    ease: 'Power2',
+                    onComplete: () => navContainer.destroy()
+                });
+            }
+        );
+
+        navContainer.add(closeButton);
+        navContainer.setDepth(6000).setAlpha(0).setScale(0.9);
+
+        this.scene.tweens.add({
+            targets: navContainer,
+            alpha: 1,
+            scale: 1,
+            duration: 400,
+            ease: 'Back.easeOut'
+        });
+    }
+
+    private jumpToPhase(phaseIndex: number, navContainer: GameObjects.Container) {
+        // Close navigation menu
+        this.scene.tweens.add({
+            targets: navContainer,
+            alpha: 0,
+            scale: 0.9,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => navContainer.destroy()
+        });
+
+        // Clean up current phase
+        const currentPhase = this.phases[this.currentPhaseIndex - 1];
+        if (currentPhase && currentPhase.container) {
+            this.scene.tweens.killTweensOf(currentPhase.container);
+            currentPhase.container.getAll().forEach((child: any) => {
+                this.scene.tweens.killTweensOf(child);
+            });
+            this.scene.tweens.add({
+                targets: currentPhase.container,
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (currentPhase.container && currentPhase.container.active) {
+                        currentPhase.container.removeAll(true);
+                    }
+                }
+            });
+        }
+
+        // Jump to selected phase
+        this.currentPhaseIndex = phaseIndex;
+        
+        // Show notification
+        const notification = this.scene.add.text(
+            this.scene.cameras.main.width / 2,
+            this.scene.cameras.main.height * 0.3,
+            `Jumping to Phase ${phaseIndex + 1}`,
+            {
+                fontFamily: 'dungeon-mode',
+                fontSize: 28,
+                color: '#77DD77',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setAlpha(0).setDepth(2500);
+
+        this.scene.tweens.add({
+            targets: notification,
+            alpha: 1,
+            y: notification.y - 20,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
                 this.scene.time.delayedCall(800, () => {
                     this.scene.tweens.add({
                         targets: notification,
@@ -273,7 +473,7 @@ export class TutorialManager {
             }
         });
 
-        // Move to next phase
+        // Start the selected phase
         this.scene.time.delayedCall(500, () => {
             this.startNextPhase();
         });
@@ -281,15 +481,59 @@ export class TutorialManager {
 
     private startNextPhase() {
         if (this.currentPhaseIndex < this.phases.length) {
+            // Clean up previous phase properly
+            const prevPhaseIndex = this.currentPhaseIndex - 1;
+            if (prevPhaseIndex >= 0 && prevPhaseIndex < this.phases.length) {
+                const prevPhase = this.phases[prevPhaseIndex];
+                if (prevPhase && prevPhase.container) {
+                    // Kill all active tweens
+                    this.scene.tweens.killTweensOf(prevPhase.container);
+                    prevPhase.container.getAll().forEach((child: any) => {
+                        this.scene.tweens.killTweensOf(child);
+                    });
+                    
+                    // Fade out previous phase
+                    this.scene.tweens.add({
+                        targets: prevPhase.container,
+                        alpha: 0,
+                        duration: 300,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            // Clean up after fade
+                            if (prevPhase.container && prevPhase.container.active) {
+                                prevPhase.container.removeAll(true);
+                            }
+                        }
+                    });
+                }
+            }
+            
             const phase = this.phases[this.currentPhaseIndex++];
             
             // Skip phase button is always visible
             this.skipPhaseButton.setVisible(true);
             
-            // Add phase transition effect
-            this.scene.cameras.main.flash(300, 21, 14, 16, false); // #150E10 flash
-            
-            phase.start();
+            // Subtle transition - remove flash, use gentle fade
+            this.scene.time.delayedCall(400, () => {
+                // Start phase with container at 0 alpha
+                if (phase.container) {
+                    phase.container.setAlpha(0);
+                }
+                
+                phase.start();
+                
+                // Fade in new phase
+                this.scene.time.delayedCall(100, () => {
+                    if (phase.container && phase.container.active) {
+                        this.scene.tweens.add({
+                            targets: phase.container,
+                            alpha: 1,
+                            duration: 500,
+                            ease: 'Power2'
+                        });
+                    }
+                });
+            });
         } else {
             this.endTutorial();
         }

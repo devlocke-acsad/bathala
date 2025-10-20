@@ -12,8 +12,17 @@ export class Phase1_Welcome extends TutorialPhase {
     }
 
     public start(): void {
+        // Fade in container
+        this.scene.tweens.add({
+            targets: this.container,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+        
         // Progress indicator
         const progress = createProgressIndicator(this.scene, 1, 8);
+        progress.setAlpha(0);
         this.container.add(progress);
 
         // Phase header with subtitle
@@ -22,13 +31,23 @@ export class Phase1_Welcome extends TutorialPhase {
             'Welcome, Traveler',
             'Begin your journey to master the sacred arts'
         );
+        header.setAlpha(0);
         this.container.add(header);
+
+        // Stagger fade-in of elements
+        this.scene.tweens.add({
+            targets: [progress, header],
+            alpha: 1,
+            duration: 600,
+            delay: 300,
+            ease: 'Power2'
+        });
 
         // Main dialogue
         const dialogue = "Welcome, traveler. This tutorial will guide you through every skill needed to survive the corrupted realms.\n\nYou may skip at any time using the button in the corner, but knowledge is your greatest weapon.\n\nAre you ready to begin your training?";
 
         // Delay dialogue to appear after header animation
-        this.scene.time.delayedCall(600, () => {
+        this.scene.time.delayedCall(900, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 // Show a tip before transitioning
                 const tip = createInfoBox(
@@ -36,21 +55,38 @@ export class Phase1_Welcome extends TutorialPhase {
                     'Pay close attention - the elements hold the key to victory!',
                     'tip'
                 );
+                tip.setAlpha(0);
                 this.container.add(tip);
+                
+                this.scene.tweens.add({
+                    targets: tip,
+                    alpha: 1,
+                    duration: 400,
+                    ease: 'Power2'
+                });
                 
                 this.scene.time.delayedCall(2000, () => {
                     this.scene.tweens.add({
-                        targets: [progress, header, dialogueBox, tip],
+                        targets: this.container,
                         alpha: 0,
-                        duration: 400,
+                        duration: 500,
                         ease: 'Power2',
                         onComplete: () => {
+                            this.cleanup();
                             this.onComplete();
                         }
                     });
                 });
             });
+            dialogueBox.setAlpha(0);
             this.container.add(dialogueBox);
+            
+            this.scene.tweens.add({
+                targets: dialogueBox,
+                alpha: 1,
+                duration: 600,
+                ease: 'Power2'
+            });
         });
     }
 }

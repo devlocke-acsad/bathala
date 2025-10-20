@@ -13,8 +13,17 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
     }
 
     public start(): void {
+        // Fade in container
+        this.scene.tweens.add({
+            targets: this.container,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+        
         // Progress indicator
         const progress = createProgressIndicator(this.scene, 2, 8);
+        progress.setAlpha(0);
         this.container.add(progress);
 
         // Phase header
@@ -23,17 +32,27 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
             'The Four Sacred Elements',
             'Master the elemental forces that shape combat'
         );
+        header.setAlpha(0);
         this.container.add(header);
+        
+        // Stagger fade-in
+        this.scene.tweens.add({
+            targets: [progress, header],
+            alpha: 1,
+            duration: 600,
+            delay: 300,
+            ease: 'Power2'
+        });
 
         // Skip Phase button
         this.createSkipPhaseButton(() => {
             this.scene.tweens.add({
-                targets: this.container.getAll(),
+                targets: this.container,
                 alpha: 0,
-                duration: 300,
+                duration: 400,
                 ease: 'Power2',
                 onComplete: () => {
-                    this.container.removeAll(true);
+                    this.cleanup();
                     this.onComplete();
                 }
             });
@@ -48,7 +67,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
             { id: '1-Hangin', rank: '1', suit: 'Hangin' }
         ];
 
-        this.scene.time.delayedCall(700, () => {
+        this.scene.time.delayedCall(900, () => {
             this.displayUI('The Elements', dialogue, cardsToShow, () => {
                 // Add info box before transitioning
                 const info = createInfoBox(
@@ -56,7 +75,15 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
                     'Each element offers unique advantages - combine them wisely!',
                     'info'
                 );
+                info.setAlpha(0);
                 this.container.add(info);
+                
+                this.scene.tweens.add({
+                    targets: info,
+                    alpha: 1,
+                    duration: 400,
+                    ease: 'Power2'
+                });
                 
                 this.scene.time.delayedCall(1800, () => {
                     this.showCardValues();
@@ -66,16 +93,21 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
     }
 
     private showCardValues(): void {
+        // Fade out current elements
         this.scene.tweens.add({
-            targets: this.container.getAll(),
+            targets: this.container,
             alpha: 0,
-            duration: 400,
+            duration: 500,
             ease: 'Power2',
             onComplete: () => {
                 this.container.removeAll(true);
                 
+                // Reset container alpha
+                this.container.setAlpha(1);
+                
                 // Progress indicator for second part
                 const progress = createProgressIndicator(this.scene, 2, 9);
+                progress.setAlpha(0);
                 this.container.add(progress);
 
                 // New header
@@ -84,7 +116,17 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
                     'Card Ranks & Values',
                     'From humble warriors to mighty chiefs'
                 );
+                header.setAlpha(0);
                 this.container.add(header);
+                
+                // Fade in new elements
+                this.scene.tweens.add({
+                    targets: [progress, header],
+                    alpha: 1,
+                    duration: 600,
+                    delay: 200,
+                    ease: 'Power2'
+                });
 
                 const dialogue = "Each card has a rank from 1 to 13:\n\nAce, 2-10: Number Cards (basic values)\nJack (J): Mandirigma (Warrior)\nQueen (Q): Babaylan (Shaman)\nKing (K): Datu (Chief)\n\nHigher ranks create stronger hands and more powerful actions!";
 
@@ -96,22 +138,33 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
                     { id: '13-Apoy', rank: 'Datu', suit: 'Apoy' }
                 ];
 
-                this.scene.time.delayedCall(600, () => {
+                this.scene.time.delayedCall(800, () => {
                     this.displayUI('Card Ranks', dialogue, cardsToShow, () => {
                         const success = createInfoBox(
                             this.scene,
                             'You now understand the foundation of your deck!',
                             'success'
                         );
+                        success.setAlpha(0);
                         this.container.add(success);
+                        
+                        this.scene.tweens.add({
+                            targets: success,
+                            alpha: 1,
+                            duration: 400,
+                            ease: 'Power2'
+                        });
                         
                         this.scene.time.delayedCall(2000, () => {
                             this.scene.tweens.add({
-                                targets: this.container.getAll(),
+                                targets: this.container,
                                 alpha: 0,
                                 duration: 500,
                                 ease: 'Power2',
-                                onComplete: () => this.onComplete()
+                                onComplete: () => {
+                                    this.cleanup();
+                                    this.onComplete();
+                                }
                             });
                         });
                     }, progress);

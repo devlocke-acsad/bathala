@@ -15,8 +15,17 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
     }
 
     public start(): void {
+        // Fade in container
+        this.scene.tweens.add({
+            targets: this.container,
+            alpha: 1,
+            duration: 500,
+            ease: 'Power2'
+        });
+        
         // Progress indicator
         const progress = createProgressIndicator(this.scene, 3, 8);
+        progress.setAlpha(0);
         this.container.add(progress);
 
         // Phase header
@@ -25,17 +34,27 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
             'Hand Types & Bonuses',
             'Understanding poker hands and their power'
         );
+        header.setAlpha(0);
         this.container.add(header);
+        
+        // Stagger fade-in
+        this.scene.tweens.add({
+            targets: [progress, header],
+            alpha: 1,
+            duration: 600,
+            delay: 300,
+            ease: 'Power2'
+        });
 
         // Skip Phase button
         this.createSkipPhaseButton(() => {
             this.scene.tweens.add({
-                targets: this.container.getAll(),
+                targets: this.container,
                 alpha: 0,
-                duration: 300,
+                duration: 400,
                 ease: 'Power2',
                 onComplete: () => {
-                    this.container.removeAll(true);
+                    this.cleanup();
                     this.onComplete();
                 }
             });
@@ -51,14 +70,22 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
             { id: 'ex5', rank: 'Datu', suit: 'Apoy' }
         ];
 
-        this.scene.time.delayedCall(700, () => {
+        this.scene.time.delayedCall(900, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const tip = createInfoBox(
                     this.scene,
                     'Higher hands = more powerful actions. Master them!',
                     'tip'
                 );
+                tip.setAlpha(0);
                 this.container.add(tip);
+                
+                this.scene.tweens.add({
+                    targets: tip,
+                    alpha: 1,
+                    duration: 400,
+                    ease: 'Power2'
+                });
 
                 // Card showcase - only show when tooltip appears
                 const { width, height } = this.scene.cameras.main;
@@ -94,24 +121,34 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
                 this.scene.time.delayedCall(1500, () => {
                     this.scene.tweens.add({
-                        targets: [progress, header, dialogueBox, tip, ...cardContainer.getAll()],
+                        targets: this.container,
                         alpha: 0,
-                        duration: 400,
+                        duration: 500,
                         ease: 'Power2',
                         onComplete: () => {
                             this.container.removeAll(true);
+                            this.container.setAlpha(1);
                             this.practicePair();
                         }
                     });
                 });
             });
+            dialogueBox.setAlpha(0);
             this.container.add(dialogueBox);
+            
+            this.scene.tweens.add({
+                targets: dialogueBox,
+                alpha: 1,
+                duration: 600,
+                ease: 'Power2'
+            });
         });
     }
 
     private practicePair(): void {
         // New progress indicator
         const progress = createProgressIndicator(this.scene, 3, 9);
+        progress.setAlpha(0);
         this.container.add(progress);
 
         const header = createPhaseHeader(
@@ -119,11 +156,21 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
             'Practice: Form a Pair',
             'Two cards with matching ranks'
         );
+        header.setAlpha(0);
         this.container.add(header);
+        
+        // Fade in elements
+        this.scene.tweens.add({
+            targets: [progress, header],
+            alpha: 1,
+            duration: 600,
+            delay: 200,
+            ease: 'Power2'
+        });
 
         const dialogue = "Form a Pair (two cards with the same rank)\n\nSelect 5 cards total to form your hand.";
 
-        this.scene.time.delayedCall(700, () => {
+        this.scene.time.delayedCall(800, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 dialogueBox.destroy();
                 
@@ -269,11 +316,14 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
                     this.scene.time.delayedCall(2000, () => {
                         this.scene.tweens.add({
-                            targets: this.container.getAll(),
+                            targets: this.container,
                             alpha: 0,
                             duration: 500,
                             ease: 'Power2',
-                            onComplete: () => this.onComplete()
+                            onComplete: () => {
+                                this.cleanup();
+                                this.onComplete();
+                            }
                         });
                     });
                 });
