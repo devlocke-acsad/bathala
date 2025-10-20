@@ -9,11 +9,13 @@ export abstract class TutorialPhase {
     protected tutorialUI: TutorialUI;
     protected player: Player;
     protected skipPhaseButton?: Phaser.GameObjects.Container;
+    protected isCleaningUp: boolean = false;
 
     constructor(scene: Scene, tutorialUI: TutorialUI) {
         this.scene = scene;
         this.tutorialUI = tutorialUI;
         this.container = this.scene.add.container(0, 0);
+        this.container.setAlpha(0); // Start hidden for smooth fade-in
         this.player = {
             name: 'Player',
             x: this.scene.cameras.main.width / 2,
@@ -54,7 +56,25 @@ export abstract class TutorialPhase {
         this.container.add(this.skipPhaseButton);
     }
 
+    /**
+     * Cleanup method to properly dispose of phase resources
+     */
+    public cleanup(): void {
+        if (this.isCleaningUp) return;
+        this.isCleaningUp = true;
+        
+        // Kill all tweens on container and its children
+        this.scene.tweens.killTweensOf(this.container);
+        this.container.getAll().forEach((child: any) => {
+            this.scene.tweens.killTweensOf(child);
+        });
+        
+        // Remove all children
+        this.container.removeAll(true);
+    }
+
     public destroy(): void {
+        this.cleanup();
         this.container.destroy();
     }
 }

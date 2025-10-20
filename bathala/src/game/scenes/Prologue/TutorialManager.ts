@@ -21,6 +21,7 @@ export class TutorialManager {
     private currentPhaseIndex: number;
     private skipButton: GameObjects.Container;
     private skipPhaseButton: GameObjects.Container;
+    private helpButton: GameObjects.Container;
     private particles?: Phaser.GameObjects.Particles.ParticleEmitter;
 
     constructor(scene: Scene) {
@@ -117,15 +118,29 @@ export class TutorialManager {
             buttonWidth // Same fixed width for uniformity
         );
         
+        // Add Help/Navigation button (top right) - aligned with skip buttons
+        const helpButtonX = this.scene.cameras.main.width * 0.94; // Further right, aligned with skip buttons
+        const helpButtonY = this.scene.cameras.main.height * 0.08;
+        this.helpButton = createButton(
+            this.scene,
+            helpButtonX,
+            helpButtonY,
+            'ℹ',
+            () => this.showPhaseNavigation(),
+            80 // Smaller width for just the icon
+        );
+        
         // Don't add buttons to container - add them directly to scene so they're always visible
         
         // Ensure buttons are always visible at top depth - add to scene directly
         this.skipButton.setDepth(5000);
         this.skipPhaseButton.setDepth(5000);
+        this.helpButton.setDepth(5000);
         
         // Make sure buttons are always visible
         this.skipButton.setAlpha(1);
         this.skipPhaseButton.setAlpha(1);
+        this.helpButton.setAlpha(1);
 
         const tutorialUI = new TutorialUI(this.scene);
 
@@ -228,6 +243,14 @@ export class TutorialManager {
         // Clean up current phase - try all possible cleanup methods
         const currentPhase = this.phases[this.currentPhaseIndex - 1];
         if (currentPhase) {
+            // Kill all tweens on phase container
+            if (currentPhase.container) {
+                this.scene.tweens.killTweensOf(currentPhase.container);
+                currentPhase.container.getAll().forEach((child: any) => {
+                    this.scene.tweens.killTweensOf(child);
+                });
+            }
+            
             // Try cleanup() method first
             if (currentPhase.cleanup && typeof currentPhase.cleanup === 'function') {
                 currentPhase.cleanup();
@@ -262,6 +285,180 @@ export class TutorialManager {
             duration: 300,
             ease: 'Power2',
             onComplete: () => {
+                this.scene.time.delayedCall(600, () => {
+                    this.scene.tweens.add({
+                        targets: notification,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => notification.destroy()
+                    });
+                });
+            }
+        });
+
+        // Move to next phase with proper delay
+        this.scene.time.delayedCall(1000, () => {
+            this.startNextPhase();
+        });
+    }
+
+    private showPhaseNavigation() {
+        // Create phase navigation menu
+        const navContainer = this.scene.add.container(
+            this.scene.cameras.main.width / 2,
+            this.scene.cameras.main.height / 2
+        );
+
+        const menuWidth = 550;
+        const menuHeight = 740; // Increased to accommodate larger gaps
+
+        const bg = this.scene.add.rectangle(0, 0, menuWidth, menuHeight, 0x150E10, 0.98);
+        
+        // Double border design
+        const outerBorder = this.scene.add.rectangle(0, 0, menuWidth + 8, menuHeight + 8, undefined, 0)
+            .setStrokeStyle(3, 0x77888C, 0.8);
+        const innerBorder = this.scene.add.rectangle(0, 0, menuWidth + 2, menuHeight + 2, undefined, 0)
+            .setStrokeStyle(2, 0x556065, 0.6);
+
+        const titleText = this.scene.add.text(0, -menuHeight/2 + 50, 'Phase Navigation', {
+            fontFamily: 'dungeon-mode',
+            fontSize: 32,
+            color: '#77888C',
+            align: 'center'
+        }).setOrigin(0.5);
+
+        const currentPhaseText = this.scene.add.text(0, -menuHeight/2 + 95, `Current: Phase ${this.currentPhaseIndex}`, {
+            fontFamily: 'dungeon-mode',
+            fontSize: 18,
+            color: '#FFAA00',
+            align: 'center'
+        }).setOrigin(0.5);
+
+        navContainer.add([outerBorder, bg, innerBorder, titleText, currentPhaseText]);
+
+        // Phase names
+        const phaseNames = [
+            'Welcome',
+            'Understanding Cards',
+            'Hand Types & Bonuses',
+            'Combat Actions',
+            'Discard Mechanic',
+            'Items (Relics & Potions)',
+            'Moral Choice (Landás)',
+            'Advanced Concepts'
+        ];
+
+        // Create phase buttons - single column, more compact
+        const buttonWidth = 450;
+        const buttonHeight = 45;
+        const buttonSpacing = 64; // Further increased gap between buttons
+        const startY = -menuHeight/2 + 150; // More space from top
+
+        phaseNames.forEach((phaseName, index) => {
+            const y = startY + (index * buttonSpacing);
+
+            // Highlight current phase
+            if (index === this.currentPhaseIndex - 1) {
+                const highlight = this.scene.add.rectangle(0, y, buttonWidth + 10, buttonHeight, 0xFFAA00, 0.2);
+                navContainer.add(highlight);
+            }
+
+            const phaseButton = createButton(
+                this.scene,
+                0,
+                y,
+                `${index + 1}. ${phaseName}`,
+                () => this.jumpToPhase(index, navContainer),
+                buttonWidth
+            );
+
+            navContainer.add(phaseButton);
+        });
+
+        // Close button
+        const closeButton = createButton(
+            this.scene,
+            0,
+            menuHeight/2 - 48, // More space from bottom
+            'Close',
+            () => {
+                this.scene.tweens.add({
+                    targets: navContainer,
+                    alpha: 0,
+                    scale: 0.9,
+                    duration: 300,
+                    ease: 'Power2',
+                    onComplete: () => navContainer.destroy()
+                });
+            }
+        );
+
+        navContainer.add(closeButton);
+        navContainer.setDepth(6000).setAlpha(0).setScale(0.9);
+
+        this.scene.tweens.add({
+            targets: navContainer,
+            alpha: 1,
+            scale: 1,
+            duration: 400,
+            ease: 'Back.easeOut'
+        });
+    }
+
+    private jumpToPhase(phaseIndex: number, navContainer: GameObjects.Container) {
+        // Close navigation menu
+        this.scene.tweens.add({
+            targets: navContainer,
+            alpha: 0,
+            scale: 0.9,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => navContainer.destroy()
+        });
+
+        // Clean up current phase
+        const currentPhase = this.phases[this.currentPhaseIndex - 1];
+        if (currentPhase && currentPhase.container) {
+            this.scene.tweens.killTweensOf(currentPhase.container);
+            currentPhase.container.getAll().forEach((child: any) => {
+                this.scene.tweens.killTweensOf(child);
+            });
+            this.scene.tweens.add({
+                targets: currentPhase.container,
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (currentPhase.container && currentPhase.container.active) {
+                        currentPhase.container.removeAll(true);
+                    }
+                }
+            });
+        }
+
+        // Jump to selected phase
+        this.currentPhaseIndex = phaseIndex;
+        
+        // Show notification
+        const notification = this.scene.add.text(
+            this.scene.cameras.main.width / 2,
+            this.scene.cameras.main.height * 0.3,
+            `Jumping to Phase ${phaseIndex + 1}`,
+            {
+                fontFamily: 'dungeon-mode',
+                fontSize: 28,
+                color: '#77DD77',
+                align: 'center'
+            }
+        ).setOrigin(0.5).setAlpha(0).setDepth(2500);
+
+        this.scene.tweens.add({
+            targets: notification,
+            alpha: 1,
+            y: notification.y - 20,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
                 this.scene.time.delayedCall(800, () => {
                     this.scene.tweens.add({
                         targets: notification,
@@ -273,7 +470,7 @@ export class TutorialManager {
             }
         });
 
-        // Move to next phase
+        // Start the selected phase
         this.scene.time.delayedCall(500, () => {
             this.startNextPhase();
         });
@@ -281,15 +478,59 @@ export class TutorialManager {
 
     private startNextPhase() {
         if (this.currentPhaseIndex < this.phases.length) {
+            // Clean up previous phase properly
+            const prevPhaseIndex = this.currentPhaseIndex - 1;
+            if (prevPhaseIndex >= 0 && prevPhaseIndex < this.phases.length) {
+                const prevPhase = this.phases[prevPhaseIndex];
+                if (prevPhase && prevPhase.container) {
+                    // Kill all active tweens
+                    this.scene.tweens.killTweensOf(prevPhase.container);
+                    prevPhase.container.getAll().forEach((child: any) => {
+                        this.scene.tweens.killTweensOf(child);
+                    });
+                    
+                    // Fade out previous phase
+                    this.scene.tweens.add({
+                        targets: prevPhase.container,
+                        alpha: 0,
+                        duration: 300,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            // Clean up after fade
+                            if (prevPhase.container && prevPhase.container.active) {
+                                prevPhase.container.removeAll(true);
+                            }
+                        }
+                    });
+                }
+            }
+            
             const phase = this.phases[this.currentPhaseIndex++];
             
             // Skip phase button is always visible
             this.skipPhaseButton.setVisible(true);
             
-            // Add phase transition effect
-            this.scene.cameras.main.flash(300, 21, 14, 16, false); // #150E10 flash
-            
-            phase.start();
+            // Subtle transition - remove flash, use gentle fade
+            this.scene.time.delayedCall(400, () => {
+                // Start phase with container at 0 alpha
+                if (phase.container) {
+                    phase.container.setAlpha(0);
+                }
+                
+                phase.start();
+                
+                // Fade in new phase
+                this.scene.time.delayedCall(100, () => {
+                    if (phase.container && phase.container.active) {
+                        this.scene.tweens.add({
+                            targets: phase.container,
+                            alpha: 1,
+                            duration: 500,
+                            ease: 'Power2'
+                        });
+                    }
+                });
+            });
         } else {
             this.endTutorial();
         }
@@ -309,13 +550,33 @@ export class TutorialManager {
         // Completion message
         const { width, height } = this.scene.cameras.main;
         
+        // Add background image (same as used throughout prologue)
+        const completionBg = this.scene.add.image(
+            width / 2,
+            height / 2,
+            'chap1_no_leaves_boss'
+        );
+        const scaleX = width / completionBg.width;
+        const scaleY = height / completionBg.height;
+        const scale = Math.max(scaleX, scaleY);
+        completionBg.setScale(scale).setDepth(2900).setAlpha(0);
+        
+        // Add overlay (matching prologue style)
+        const completionOverlay = this.scene.add.rectangle(
+            width / 2,
+            height / 2,
+            width,
+            height,
+            0x150E10
+        ).setAlpha(0).setDepth(2950);
+        
         const completionText = this.scene.add.text(
             width / 2,
-            height / 2 - 80,
-            '🎉 Tutorial Complete! 🎉',
+            height / 2 - 100,
+            'Tutorial Complete!',
             {
                 fontFamily: 'dungeon-mode',
-                fontSize: 42,
+                fontSize: 48,
                 color: '#FFD700',
                 align: 'center'
             }
@@ -323,61 +584,95 @@ export class TutorialManager {
 
         const messageText = this.scene.add.text(
             width / 2,
-            height / 2,
+            height / 2 + 20,
             'You have learned the ways of the Babaylan.\n\nThe corrupted realms await your judgment.\n\nRestore balance to the sacred lands!',
             {
                 fontFamily: 'dungeon-mode',
-                fontSize: 24,
+                fontSize: 26,
                 color: '#77888C',
                 align: 'center',
-                wordWrap: { width: width * 0.7 }
+                wordWrap: { width: width * 0.65 },
+                lineSpacing: 8
             }
         ).setOrigin(0.5).setAlpha(0).setDepth(3000);
 
         const readyText = this.scene.add.text(
             width / 2,
-            height / 2 + 100,
+            height / 2 + 160,
             'Click anywhere to begin your journey...',
             {
                 fontFamily: 'dungeon-mode',
-                fontSize: 20,
+                fontSize: 22,
                 color: '#FFAA00',
                 align: 'center'
             }
         ).setOrigin(0.5).setAlpha(0).setDepth(3000);
 
-        // Fade in completion screen
+        // Fade in background first
         this.scene.tweens.add({
-            targets: [completionText, messageText, readyText],
+            targets: completionBg,
             alpha: 1,
-            duration: 1000,
-            ease: 'Power2',
-            stagger: 200
+            duration: 800,
+            ease: 'Power2'
         });
 
-        // Pulse ready text
         this.scene.tweens.add({
-            targets: readyText,
-            alpha: 0.5,
-            duration: 1000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
+            targets: completionOverlay,
+            alpha: 0.92,
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => {
+                // Then fade in text with stagger
+                this.scene.tweens.add({
+                    targets: [completionText, messageText, readyText],
+                    alpha: 1,
+                    duration: 1000,
+                    ease: 'Power2',
+                    stagger: 300
+                });
+
+                // Pulse ready text
+                this.scene.tweens.add({
+                    targets: readyText,
+                    alpha: 0.6,
+                    duration: 1200,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
         });
 
-        // Click to continue
+        // Click to continue with enhanced transition
         this.scene.input.once('pointerdown', () => {
+            // Stop the pulsing animation on ready text
+            this.scene.tweens.killTweensOf(readyText);
+            
+            // Fade out all text quickly
             this.scene.tweens.add({
                 targets: [completionText, messageText, readyText],
                 alpha: 0,
-                duration: 600,
-                ease: 'Power2',
-                onComplete: () => {
-                    completionText.destroy();
-                    messageText.destroy();
-                    readyText.destroy();
-                    this.endTutorial();
-                }
+                duration: 400,
+                ease: 'Power2.easeOut'
+            });
+
+            // Wait for text to fade before starting background transition
+            this.scene.time.delayedCall(400, () => {
+                // Fade background and overlay together
+                this.scene.tweens.add({
+                    targets: [completionBg, completionOverlay],
+                    alpha: 0,
+                    duration: 800,
+                    ease: 'Power2.easeInOut',
+                    onComplete: () => {
+                        completionText.destroy();
+                        messageText.destroy();
+                        readyText.destroy();
+                        completionBg.destroy();
+                        completionOverlay.destroy();
+                        this.endTutorial();
+                    }
+                });
             });
         });
     }
@@ -387,15 +682,43 @@ export class TutorialManager {
             this.particles.stop();
         }
 
-        // Fade to main game
-        this.scene.cameras.main.fadeOut(1200, 21, 14, 16);
-        this.scene.time.delayedCall(1200, () => {
-            // Clean up all containers
-            this.container?.destroy();
-            this.bgContainer?.destroy();
-            
-            // Start the overworld
-            this.scene.scene.start('Overworld');
+        const { width, height } = this.scene.cameras.main;
+
+        // Create a fade overlay that starts transparent
+        const fadeOverlay = this.scene.add.rectangle(
+            width / 2,
+            height / 2,
+            width,
+            height,
+            0x000000
+        ).setDepth(4000).setAlpha(0);
+
+        // Smooth fade to black
+        this.scene.tweens.add({
+            targets: fadeOverlay,
+            alpha: 1,
+            duration: 1000,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                // Clean up all containers
+                if (this.container) {
+                    this.container.removeAll(true);
+                    this.container.destroy();
+                }
+                if (this.bgContainer) {
+                    this.bgContainer.removeAll(true);
+                    this.bgContainer.destroy();
+                }
+                
+                // Keep the black screen for a moment before transitioning
+                this.scene.time.delayedCall(300, () => {
+                    // Start the overworld scene
+                    this.scene.scene.start('Overworld');
+                    
+                    // The fade overlay will be destroyed when the scene changes
+                    fadeOverlay.destroy();
+                });
+            }
         });
     }
 }
