@@ -458,24 +458,24 @@ export class Overworld_TooltipManager {
       shop: {
         name: "Merchant's Shop",
         type: "shop",
-        spriteKey: "necromancer_f0",
-        animationKey: "necromancer_idle",
+        spriteKey: "merchant_overworld",
+        animationKey: null, // Static sprite, no animation
         stats: "Services: Buy/Sell Items\nCurrency: Gold Coins\nSpecialty: Rare Relics & Potions",
         description: "A mystical merchant offers powerful relics and potions to aid your journey. Browse their wares and strengthen your deck with ancient artifacts and magical brews."
       },
       event: {
         name: "Mysterious Event",
         type: "event", 
-        spriteKey: "doc_f0",
-        animationKey: "doc_idle",
+        spriteKey: "event_overworld",
+        animationKey: null, // Static sprite, no animation
         stats: "Outcome: Variable\nRisk: Medium\nReward: Unique Benefits",
         description: "Strange occurrences and mysterious encounters await. These events may offer unique opportunities, challenging choices, or unexpected rewards for the brave."
       },
       campfire: {
         name: "Sacred Campfire",
         type: "campfire",
-        spriteKey: "angel_f0", 
-        animationKey: "angel_idle",
+        spriteKey: "campfire_overworld", 
+        animationKey: "campfire_burn",
         stats: "Healing: Full Health\nOptions: Rest or Upgrade\nSafety: Complete Protection",
         description: "A blessed sanctuary where weary travelers can rest and recover. Choose to restore your health completely or upgrade one of your cards to become more powerful."
       },

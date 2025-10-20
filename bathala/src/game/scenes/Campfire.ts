@@ -168,8 +168,8 @@ export class Campfire extends Scene {
     // Create glow effect behind bonfire
     const glow = this.add.pointlight(x, y, 0xff4500, 200, 0.5, 0.5);
     
-    // Create bonfire animation
-    this.campfire = this.add.sprite(x, y, "campfire");
+    // Create bonfire animation using new campfire sprite
+    this.campfire = this.add.sprite(x, y, "campfire_overworld");
     this.campfire.setScale(3);
     
     // Try to play animation, fallback if it fails

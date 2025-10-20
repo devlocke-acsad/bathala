@@ -252,8 +252,8 @@ export class Overworld extends Scene {
     const savedPosition = gameState.getPlayerPosition();
     
     if (savedPosition) {
-      // Restore player at saved position
-      this.player = this.add.sprite(savedPosition.x, savedPosition.y, "overworld_player");
+      // Restore player at saved position - use down sprite as default
+      this.player = this.add.sprite(savedPosition.x, savedPosition.y, "player_down");
       // Clear the saved position so it's not used again
       gameState.clearPlayerPosition();
     } else {
@@ -262,7 +262,7 @@ export class Overworld extends Scene {
       
       // Calculate player start position using manager
       const startPos = this.mazeGenManager.calculatePlayerStartPosition();
-      this.player = this.add.sprite(startPos.x, startPos.y, "overworld_player");
+      this.player = this.add.sprite(startPos.x, startPos.y, "player_down");
     }
     
     this.player.setScale(2); // Scale up from 16x16 to 32x32
@@ -1046,25 +1046,33 @@ export class Overworld extends Scene {
     // Play walking animation with error checking
     let walkAnimation = "avatar_walk_down";
     let idleAnimation = "avatar_idle_down";
+    let textureKey = "player_down";
     
     switch (direction) {
       case "up":
         walkAnimation = "avatar_walk_up";
         idleAnimation = "avatar_idle_up";
+        textureKey = "player_up";
         break;
       case "down":
         walkAnimation = "avatar_walk_down";
         idleAnimation = "avatar_idle_down";
+        textureKey = "player_down";
         break;
       case "left":
         walkAnimation = "avatar_walk_left";
         idleAnimation = "avatar_idle_left";
+        textureKey = "player_left";
         break;
       case "right":
         walkAnimation = "avatar_walk_right";
         idleAnimation = "avatar_idle_right";
+        textureKey = "player_right";
         break;
     }
+    
+    // Switch texture to match the direction
+    this.player.setTexture(textureKey);
     
     console.log("Playing walk animation:", walkAnimation);
     if (this.anims.exists(walkAnimation)) {
