@@ -3149,6 +3149,32 @@ export class Combat extends Scene {
           this.heal(entity, effect.value);
           effect.duration--;
           break;
+        case "Stunned":
+          // Stun: No action needed here, just decrement duration
+          // The stun check happens in executeEnemyTurn()
+          effect.duration--;
+          console.log(`[Stunned] Duration decremented to ${effect.duration}`);
+          break;
+        case "Weak":
+          // Weak: Reduces damage dealt (applied in damagePlayer/damageEnemy)
+          // Just decrement duration each turn
+          effect.duration--;
+          console.log(`[Weak] Duration decremented to ${effect.duration}`);
+          break;
+        case "Vulnerable":
+          // Vulnerable: Increases damage taken (applied in damagePlayer/damageEnemy)
+          // Just decrement duration each turn
+          effect.duration--;
+          break;
+        case "Strength":
+        case "Dexterity":
+          // Strength/Dexterity: Permanent buffs (duration 999)
+          // No decrement needed
+          break;
+        default:
+          // For any other status effects, decrement duration by default
+          effect.duration--;
+          break;
       }
     });
 
