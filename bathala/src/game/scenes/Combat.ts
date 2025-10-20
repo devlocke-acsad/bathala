@@ -1963,7 +1963,7 @@ export class Combat extends Scene {
       
       // Safety check for camera
       if (this.cameras.main) {
-        this.cameras.main.setBackgroundColor(0x0e1112);
+        this.cameras.main.setBackgroundColor(0x150E10);
       }
 
       // Add small delay before showing rewards screen
@@ -1998,10 +1998,58 @@ export class Combat extends Scene {
     const landasChangeText =
       landasChange > 0 ? `+${landasChange}` : `${landasChange}`;
 
-      // Get screen dimensions
-      const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
-      const screenHeight = this.cameras.main?.height || this.scale.height || 768;
-      const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));    // Title
+    // Get screen dimensions
+    const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
+    const screenHeight = this.cameras.main?.height || this.scale.height || 768;
+    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+
+    // Add background image (same as MainMenu)
+    const bgImage = this.add.image(screenWidth / 2, screenHeight / 2, 'chap1_no_leaves_boss');
+    const bgScaleX = screenWidth / bgImage.width;
+    const bgScaleY = screenHeight / bgImage.height;
+    const bgScale = Math.max(bgScaleX, bgScaleY);
+    bgImage.setScale(bgScale);
+    bgImage.setDepth(-100);
+    
+    // Add overlay - 70% opacity (same as MainMenu)
+    const overlay = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x150E10, 0.70);
+    overlay.setDepth(-90);
+
+    // Create floating embers/spirits particles (same as MainMenu)
+    const particles = this.add.particles(0, 0, '__WHITE', {
+      x: { min: 0, max: screenWidth },
+      y: { min: -20, max: screenHeight + 20 },
+      lifespan: 5000,
+      speed: { min: 20, max: 60 },
+      angle: { min: 75, max: 105 }, // Slight drift
+      scale: { start: 1.2, end: 0.3 }, // Much larger
+      alpha: { start: 0.7, end: 0 }, // Very visible
+      blendMode: 'ADD',
+      frequency: 80, // Spawn faster
+      tint: 0x77888C,
+      maxParticles: 100, // Many more particles
+      gravityY: 15 // Gentle downward pull
+    });
+    particles.setDepth(-70);
+    
+    // Add second layer of smaller, faster particles for depth (same as MainMenu)
+    const dustParticles = this.add.particles(0, 0, '__WHITE', {
+      x: { min: 0, max: screenWidth },
+      y: { min: -10, max: screenHeight + 10 },
+      lifespan: 3000,
+      speed: { min: 30, max: 80 },
+      angle: { min: 70, max: 110 },
+      scale: { start: 0.5, end: 0.1 },
+      alpha: { start: 0.5, end: 0 },
+      blendMode: 'ADD',
+      frequency: 60,
+      tint: 0x99aabb,
+      maxParticles: 80,
+      gravityY: 20
+    });
+    dustParticles.setDepth(-75);
+
+    // Title
     this.add
       .text(
         screenWidth/2,
