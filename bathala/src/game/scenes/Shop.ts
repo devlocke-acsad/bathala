@@ -943,28 +943,22 @@ export class Shop extends Scene {
     
     // Layered card background for depth (matching Discover)
     const outerGlow = this.add.rectangle(0, 0, width, height, typeColor, isOwned ? 0.06 : 0.12)
-      .setStrokeStyle(2, typeColor, isOwned ? 0.25 : 0.5)
       .setOrigin(0.5);
       
     const background = this.add.rectangle(0, 0, width - 8, height - 8, 0x1d151a)
       .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0.5);
     
-    // Top decorative accent bar
-    const topBar = this.add.rectangle(0, -height/2 + 12, width - 16, 6, typeColor, isOwned ? 0.35 : 0.7)
-      .setOrigin(0.5);
-    
-    // Name badge at top (replacing price badge)
+    // Name badge at top - moved up now that decorative bar is removed
     const actualPrice = this.getActualPrice(item);
     const hasDiscount = actualPrice < item.price;
     
     // Calculate badge width based on name length
     const estimatedWidth = Math.min(Math.max(item.name.length * 8 + 20, 120), width - 20);
-    const nameBadge = this.add.rectangle(0, -height/2 + 39, estimatedWidth, 28, 0x2a1f24)
-      .setStrokeStyle(2, typeColor)
+    const nameBadge = this.add.rectangle(0, -height/2 + 20, estimatedWidth, 28, 0x2a1f24)
       .setOrigin(0.5);
       
-    const nameBadgeText = this.add.text(0, -height/2 + 39, item.name, {
+    const nameBadgeText = this.add.text(0, -height/2 + 20, item.name, {
       fontFamily: "dungeon-mode",
       fontSize: 13,
       color: isOwned ? "#9ca3af" : typeColorHex,
@@ -973,9 +967,10 @@ export class Shop extends Scene {
       align: "center"
     }).setOrigin(0.5);
     
-    // Sprite container frame with subtle shadow
-    const spriteFrame = this.add.rectangle(0, -height/2 + 160, 200, 200, 0x0f0a0d)
-      .setStrokeStyle(1, typeColor, isOwned ? 0.2 : 0.4)
+    // Sprite container frame - larger now with more available space
+    const spriteFrameSize = 180; // Increased from 160 to use freed space
+    const spriteY = 5; // Slightly lower to center better
+    const spriteFrame = this.add.rectangle(0, spriteY, spriteFrameSize, spriteFrameSize, 0x0f0a0d)
       .setOrigin(0.5);
     
     // Get sprite key for this relic
@@ -984,12 +979,12 @@ export class Shop extends Scene {
     // Character sprite - NATURAL ASPECT RATIO with max width constraint
     let itemVisual: Phaser.GameObjects.GameObject;
     if (this.textures.exists(spriteKey)) {
-      const sprite = this.add.image(0, -height/2 + 160, spriteKey).setOrigin(0.5);
+      const sprite = this.add.image(0, spriteY, spriteKey).setOrigin(0.5);
       const texture = this.textures.get(spriteKey);
       const frame = texture.get();
       const aspectRatio = frame.width / frame.height;
-      const maxWidth = 190;
-      const maxHeight = 190;
+      const maxWidth = spriteFrameSize - 10; // 10px padding
+      const maxHeight = spriteFrameSize - 10;
       
       let displayWidth, displayHeight;
       if (aspectRatio > 1) {
@@ -1004,8 +999,8 @@ export class Shop extends Scene {
       if (isOwned) sprite.setAlpha(0.6);
       itemVisual = sprite;
     } else {
-      const symbolText = this.add.text(0, -height/2 + 160, item.emoji, {
-        fontSize: 80,
+      const symbolText = this.add.text(0, spriteY, item.emoji, {
+        fontSize: 80, // Larger to match increased frame size
         color: "#e8eced"
       }).setOrigin(0.5);
       if (isOwned) symbolText.setAlpha(0.6);
@@ -1020,7 +1015,7 @@ export class Shop extends Scene {
     
     // Build components array starting with base elements
     const components: Phaser.GameObjects.GameObject[] = [
-      outerGlow, background, topBar, nameBadge, nameBadgeText, spriteFrame, 
+      outerGlow, background, nameBadge, nameBadgeText, spriteFrame, 
       itemVisual, pricePanel
     ];
     
@@ -1112,7 +1107,7 @@ export class Shop extends Scene {
           this.input.setDefaultCursor('pointer');
           
           // Kill any existing tweens on these targets to prevent conflicts
-          this.tweens.killTweensOf([outerGlow, topBar, container]);
+          this.tweens.killTweensOf([outerGlow, container]);
           
           // Store current Y if not already stored (in case container moved)
           const originalY = (container as any).originalY;
@@ -1125,13 +1120,6 @@ export class Shop extends Scene {
             scaleY: 1.02,
             duration: 200,
             ease: 'Power2'
-          });
-          
-          // Accent brightness
-          this.tweens.add({
-            targets: topBar,
-            alpha: 1,
-            duration: 200
           });
           
           // Subtle lift - use stored original Y
@@ -1147,7 +1135,7 @@ export class Shop extends Scene {
           this.input.setDefaultCursor('default');
           
           // Kill any existing tweens on these targets to prevent conflicts
-          this.tweens.killTweensOf([outerGlow, topBar, container]);
+          this.tweens.killTweensOf([outerGlow, container]);
           
           // Get stored original Y position
           const originalY = (container as any).originalY;
@@ -1160,13 +1148,6 @@ export class Shop extends Scene {
             scaleY: 1,
             duration: 200,
             ease: 'Power2'
-          });
-          
-          // Reset accent
-          this.tweens.add({
-            targets: topBar,
-            alpha: 0.7,
-            duration: 200
           });
           
           // Reset position to original Y
