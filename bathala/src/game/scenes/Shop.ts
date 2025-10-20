@@ -162,6 +162,22 @@ export class Shop extends Scene {
     MusicManager.getInstance().setScene(this);
     MusicManager.getInstance().playSceneMusic();
 
+    // Add forest background image
+    const forestBg = this.add.image(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      "forest_bg"
+    );
+    // Scale to cover the entire screen
+    const scaleX = this.cameras.main.width / forestBg.width;
+    const scaleY = this.cameras.main.height / forestBg.height;
+    const scale = Math.max(scaleX, scaleY);
+    forestBg.setScale(scale);
+    forestBg.setDepth(0); // Behind everything
+    
+    // Dim only the background image (not the whole screen)
+    forestBg.setAlpha(0.4); // 40% visible = nicely dimmed background
+
     // Create animated background elements
     this.createBackgroundElements();
 
