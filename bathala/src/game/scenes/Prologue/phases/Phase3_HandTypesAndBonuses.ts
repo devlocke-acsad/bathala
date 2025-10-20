@@ -154,6 +154,99 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
         super(scene, tutorialUI);
     }
 
+    /**
+     * Creates a reference image showing example cards for a hand type
+     */
+    private createHandReferenceImage(
+        _handType: string,
+        cards: {rank: string, suit: string}[]
+    ): Phaser.GameObjects.Container {
+        const { width, height } = this.scene.cameras.main;
+        const container = this.scene.add.container(width / 2, height * 0.35); // Position at center-top
+
+        // Background panel with border
+        const panelWidth = 600;
+        const panelHeight = 180;
+        
+        const bg = this.scene.add.rectangle(0, 0, panelWidth, panelHeight, 0x150E10, 0.92);
+        bg.setStrokeStyle(2, 0x77888C, 0.6);
+        
+        const innerBorder = this.scene.add.rectangle(0, 0, panelWidth - 8, panelHeight - 8, undefined, 0);
+        innerBorder.setStrokeStyle(1, 0x556065, 0.4);
+        
+        container.add([bg, innerBorder]);
+
+        // Label
+        const label = this.scene.add.text(0, -70, 'EXAMPLE:', {
+            fontFamily: 'dungeon-mode',
+            fontSize: 14,
+            color: '#FFAA00',
+            align: 'center'
+        }).setOrigin(0.5);
+        container.add(label);
+
+        // Add cards
+        const cardScale = 0.65;
+        const cardWidth = 80 * cardScale;
+        const cardSpacing = 12;
+        const totalWidth = cards.length * cardWidth + (cards.length - 1) * cardSpacing;
+        let startX = -totalWidth / 2 + cardWidth / 2;
+
+        cards.forEach((card, index) => {
+            const x = startX + index * (cardWidth + cardSpacing);
+            this.addReferenceCard(container, card.rank, card.suit, x, -10, cardScale);
+        });
+
+        return container;
+    }
+
+    /**
+     * Adds a single card sprite to the reference image
+     */
+    private addReferenceCard(
+        container: Phaser.GameObjects.Container,
+        rank: string,
+        suit: string,
+        x: number,
+        y: number,
+        scale: number
+    ): void {
+        const rankMap: Record<string, string> = {
+            "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
+            "6": "6", "7": "7", "8": "8", "9": "9", "10": "10",
+            "Mandirigma": "11", "Babaylan": "12", "Datu": "13"
+        };
+        const spriteRank = rankMap[rank] || rank;
+
+        const suitMap: Record<string, string> = {
+            "Apoy": "apoy", "Tubig": "tubig", "Lupa": "lupa", "Hangin": "hangin"
+        };
+        const spriteSuit = suitMap[suit] || "apoy";
+
+        const textureKey = `card_${spriteRank}_${spriteSuit}`;
+
+        if (this.scene.textures.exists(textureKey)) {
+            const cardSprite = this.scene.add.image(x, y, textureKey);
+            cardSprite.setDisplaySize(80 * scale, 112 * scale);
+            if (cardSprite.texture) {
+                cardSprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+            }
+            container.add(cardSprite);
+        } else {
+            // Fallback placeholder if texture doesn't exist
+            const cardPlaceholder = this.scene.add.rectangle(x, y, 80 * scale, 112 * scale, 0xffffff);
+            cardPlaceholder.setStrokeStyle(3 * scale, 0x333333);
+            container.add(cardPlaceholder);
+
+            const rankText = this.scene.add.text(x, y, rank, {
+                fontFamily: 'dungeon-mode',
+                fontSize: Math.floor(16 * scale),
+                color: '#000000'
+            }).setOrigin(0.5);
+            container.add(rankText);
+        }
+    }
+
     public start(): void {
         // Fade in container
         this.scene.tweens.add({
@@ -299,9 +392,17 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
         header.setAlpha(0);
         this.container.add(header);
         
+        // Add reference image - showing a pair example (two 7s + three other cards)
+        const refContainer = this.createHandReferenceImage(
+            'pair',
+            [{rank: '7', suit: 'Lupa'}, {rank: '7', suit: 'Apoy'}, {rank: '3', suit: 'Tubig'}, {rank: '9', suit: 'Hangin'}, {rank: 'Datu', suit: 'Lupa'}]
+        );
+        refContainer.setAlpha(0);
+        this.container.add(refContainer);
+        
         // Fade in elements
         this.scene.tweens.add({
-            targets: [progress, header],
+            targets: [progress, header, refContainer],
             alpha: 1,
             duration: 600,
             delay: 200,
@@ -366,6 +467,13 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
         );
         this.container.add(header);
 
+        // Add reference image - showing two pair example (5s and Datus + one kicker)
+        const refContainer = this.createHandReferenceImage(
+            'two_pair',
+            [{rank: '5', suit: 'Hangin'}, {rank: '5', suit: 'Apoy'}, {rank: 'Datu', suit: 'Tubig'}, {rank: 'Datu', suit: 'Lupa'}, {rank: '9', suit: 'Hangin'}]
+        );
+        this.container.add(refContainer);
+
         const dialogue = "Form Two Pair (two separate pairs)\n\nSelect 5 cards total to form your hand.";
 
         this.scene.time.delayedCall(700, () => {
@@ -423,6 +531,13 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
             'Three cards with matching ranks'
         );
         this.container.add(header);
+
+        // Add reference image - showing three of a kind example (three 8s + two kickers)
+        const refContainer = this.createHandReferenceImage(
+            'three_of_a_kind',
+            [{rank: '8', suit: 'Apoy'}, {rank: '8', suit: 'Tubig'}, {rank: '8', suit: 'Lupa'}, {rank: '4', suit: 'Hangin'}, {rank: 'Babaylan', suit: 'Apoy'}]
+        );
+        this.container.add(refContainer);
 
         const dialogue = "Form Three of a Kind (three cards with the same rank)\n\nSelect 5 cards total to form your hand.";
 
