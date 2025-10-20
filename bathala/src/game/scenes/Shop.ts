@@ -190,9 +190,9 @@ export class Shop extends Scene {
     // Title background panel with prologue/combat theme - made much wider
     const titlePanel = this.add.graphics();
     titlePanel.fillStyle(0x150E10, 0.9);
-    titlePanel.fillRoundedRect(screenWidth/2 - 300, 10, 600, 60, 12); // Increased from 400px to 600px
+    titlePanel.fillRoundedRect(screenWidth/2 - 350, 10, 700, 60, 12); // Increased from 600px to 700px
     titlePanel.lineStyle(2, 0x77888C, 0.8);
-    titlePanel.strokeRoundedRect(screenWidth/2 - 300, 10, 600, 60, 12); // Increased from 400px to 600px
+    titlePanel.strokeRoundedRect(screenWidth/2 - 350, 10, 700, 60, 12); // Increased from 600px to 700px
     titlePanel.setDepth(2000); // Ensure title stays on top and doesn't scroll
     
     // Main title with prologue/combat styling
@@ -208,11 +208,11 @@ export class Shop extends Scene {
       }
     ).setOrigin(0.5).setDepth(2001); // Ensure title text stays on top
     
-    // Subtitle
+    // Subtitle - fixed typo and made it fit better
     const subtitle = this.add.text(
       screenWidth / 2,
       65,
-      "• Rare Relics & Mystical Artifactssss •",
+      "• Rare Relics & Mystical Artifacts •",
       {
         fontFamily: "dungeon-mode",
         fontSize: 14,
@@ -443,18 +443,6 @@ export class Shop extends Scene {
     const merchantSprite = this.add.sprite(0, 20, 'merchant_main');
     merchantSprite.setScale(0.8); // Keep the same size
     
-    // Make merchant sprite interactive for dialogue
-    merchantSprite.setInteractive();
-    merchantSprite.on('pointerdown', () => this.showMerchantDialogue());
-    merchantSprite.on('pointerover', () => {
-      merchantSprite.setTint(0xdddddd); // Slight tint on hover
-      this.input.setDefaultCursor('pointer');
-    });
-    merchantSprite.on('pointerout', () => {
-      merchantSprite.clearTint();
-      this.input.setDefaultCursor('default');
-    });
-
     // Add subtle mystical glow effect (gold theme)
     const magicGlow = this.add.graphics();
     magicGlow.fillStyle(0xfbbf24, 0.15);
@@ -488,6 +476,19 @@ export class Shop extends Scene {
       descArea,
       descText
     ]);
+    
+    // Make the entire merchant container interactive for dialogue
+    this.merchantCharacter.setSize(panelWidth, panelHeight);
+    this.merchantCharacter.setInteractive()
+      .on('pointerdown', () => this.showMerchantDialogue())
+      .on('pointerover', () => {
+        merchantSprite.setTint(0xdddddd); // Slight tint on hover
+        this.input.setDefaultCursor('pointer');
+      })
+      .on('pointerout', () => {
+        merchantSprite.clearTint();
+        this.input.setDefaultCursor('default');
+      });
     
     // Add simple floating animation for the merchant panel
     this.tweens.add({
@@ -607,7 +608,7 @@ export class Shop extends Scene {
     this.dialogueContainer.add([dialogueBg, namePlate, characterName, dialogueText, continueText]);
 
     // Clean up existing typewriter timer before creating a new one
-    if (this.typewriterTimer) {
+    if (this.typewriterTimer !== null) {
       this.typewriterTimer.destroy();
       this.typewriterTimer = null;
     }
@@ -619,9 +620,8 @@ export class Shop extends Scene {
       callback: () => {
         // Safety check: ensure dialogue container and text still exist
         if (!this.dialogueContainer || !dialogueText || !dialogueText.active) {
-          const timer = this.typewriterTimer;
-          if (timer) {
-            timer.destroy();
+          if (this.typewriterTimer) {
+            this.typewriterTimer.destroy();
             this.typewriterTimer = null;
           }
           return;
@@ -633,16 +633,14 @@ export class Shop extends Scene {
             currentChar++;
           } catch (error) {
             console.warn("Error updating dialogue text:", error);
-            const timer = this.typewriterTimer;
-            if (timer) {
-              timer.destroy();
+            if (this.typewriterTimer) {
+              this.typewriterTimer.destroy();
               this.typewriterTimer = null;
             }
           }
         } else {
-          const timer = this.typewriterTimer;
-          if (timer) {
-            timer.destroy();
+          if (this.typewriterTimer) {
+            this.typewriterTimer.destroy();
             this.typewriterTimer = null;
           }
           
@@ -671,30 +669,56 @@ export class Shop extends Scene {
       repeat: dialogue.length - 1
     });
 
-    // Click to close (after typing is done)
-    this.dialogueContainer.setInteractive(
-      new Phaser.Geom.Rectangle(-boxWidth/2, -boxHeight/2, boxWidth, boxHeight), 
-      Phaser.Geom.Rectangle.Contains
-    );
-    
-    this.dialogueContainer.on('pointerdown', () => {
-      if (currentChar >= dialogue.length) {
-        // Smooth exit animation
-        this.tweens.add({
-          targets: this.dialogueContainer,
-          alpha: 0,
-          y: screenHeight - 80,
-          duration: 300,
-          ease: 'Power2.easeIn',
-          onComplete: () => {
-            if (this.dialogueContainer) {
-              this.dialogueContainer.destroy();
-              this.dialogueContainer = undefined;
+    // Click to close (after typing is done) - make the entire dialogue container clickable
+    this.dialogueContainer.setSize(boxWidth, boxHeight);
+    this.dialogueContainer.setInteractive()
+      .on('pointerdown', () => {
+        if (currentChar >= dialogue.length) {
+          // Smooth exit animation
+          this.tweens.add({
+            targets: this.dialogueContainer,
+            alpha: 0,
+            y: screenHeight - 80,
+            duration: 300,
+            ease: 'Power2.easeIn',
+            onComplete: () => {
+              if (this.dialogueContainer) {
+                this.dialogueContainer.destroy();
+                this.dialogueContainer = undefined;
+              }
             }
+          });
+        } else {
+          // Skip typewriter effect and show full dialogue
+          if (this.typewriterTimer) {
+            this.typewriterTimer.destroy();
+            this.typewriterTimer = null;
           }
-        });
-      }
-    });
+          currentChar = dialogue.length;
+          dialogueText.text = dialogue;
+          
+          if (continueText && continueText.active) {
+            continueText.setVisible(true);
+            
+            // Pulse animation for continue indicator
+            this.tweens.add({
+              targets: continueText,
+              alpha: 0.3,
+              duration: 800,
+              yoyo: true,
+              repeat: -1,
+              ease: 'Sine.easeInOut'
+            });
+          }
+          
+          // Auto-close dialogue after 2 seconds
+          this.time.delayedCall(2000, () => {
+            if (this.dialogueContainer && this.dialogueContainer.active) {
+              this.closeDialogueSmooth();
+            }
+          });
+        }
+      });
 
     // Auto-hide after 5 seconds if it's an auto dialogue
     if (isAuto) {
@@ -885,7 +909,7 @@ export class Shop extends Scene {
     const rightMargin = 100; // Right margin for balance
     const cardWidth = 200;  // Restored to original size (was 180)
     const cardHeight = 260; // Restored to original size (was 240)
-    const cardSpacing = 30; // Spacing between cards
+    const cardSpacing = 30; // Spacing between cards (both horizontal and vertical)
     const cardsPerRow = 6; // Fixed 6-column grid
     
     // Calculate grid starting position with left margin
@@ -930,18 +954,23 @@ export class Shop extends Scene {
     const topBar = this.add.rectangle(0, -height/2 + 12, width - 16, 6, typeColor, isOwned ? 0.35 : 0.7)
       .setOrigin(0.5);
     
-    // Price badge at top (replacing type badge)
+    // Name badge at top (replacing price badge)
     const actualPrice = this.getActualPrice(item);
     const hasDiscount = actualPrice < item.price;
-    const priceBadge = this.add.rectangle(0, -height/2 + 39, 110, 28, 0x2a1f24)
+    
+    // Calculate badge width based on name length
+    const estimatedWidth = Math.min(Math.max(item.name.length * 8 + 20, 120), width - 20);
+    const nameBadge = this.add.rectangle(0, -height/2 + 39, estimatedWidth, 28, 0x2a1f24)
       .setStrokeStyle(2, typeColor)
       .setOrigin(0.5);
       
-    const priceText = this.add.text(0, -height/2 + 39, `💰 ${actualPrice}`, {
+    const nameBadgeText = this.add.text(0, -height/2 + 39, item.name, {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: isOwned ? "#9ca3af" : (hasDiscount ? "#2ed573" : typeColorHex),
-      fontStyle: "bold"
+      fontSize: 13,
+      color: isOwned ? "#9ca3af" : typeColorHex,
+      fontStyle: "bold",
+      wordWrap: { width: estimatedWidth - 10 },
+      align: "center"
     }).setOrigin(0.5);
     
     // Sprite container frame with subtle shadow
@@ -983,47 +1012,58 @@ export class Shop extends Scene {
       itemVisual = symbolText;
     }
     
-    // Item name with better visibility
-    const nameText = this.add.text(0, height/2 - 66, item.name, {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 18,
-      color: isOwned ? "#9ca3af" : "#e8eced",
-      wordWrap: { width: width - 30 },
-      align: "center"
-    }).setOrigin(0.5);
-    
-    // Price display panel at bottom
-    const pricePanel = this.add.rectangle(0, height/2 - 22, width - 16, 35, 0x0f0a0d)
+    // Bottom panel - compact size for price only
+    const bottomPanelHeight = 50;
+    const pricePanel = this.add.rectangle(0, height/2 - bottomPanelHeight/2, width - 16, bottomPanelHeight, 0x0f0a0d)
       .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0.5);
     
-    // Original price with strikethrough if discounted
-    let discountText = null;
+    // Build components array starting with base elements
+    const components: Phaser.GameObjects.GameObject[] = [
+      outerGlow, background, topBar, nameBadge, nameBadgeText, spriteFrame, 
+      itemVisual, pricePanel
+    ];
+    
+    // Add price information in the bottom panel (centered vertically)
     if (hasDiscount && !isOwned) {
-      discountText = this.add.text(-30, height/2 - 22, `${item.price}`, {
+      // Original price with strikethrough (left side)
+      const discountText = this.add.text(-40, height/2 - bottomPanelHeight/2, `${item.price}`, {
         fontFamily: "dungeon-mode",
-        fontSize: 14,
+        fontSize: 13,
         color: "#9ca3af"
       }).setOrigin(0.5);
       discountText.setStroke("#666666", 1);
+      
+      // Sale label and discounted price (right side)
+      const saleLabel = this.add.text(35, height/2 - bottomPanelHeight/2 - 8, "SALE", {
+        fontFamily: "dungeon-mode",
+        fontSize: 10,
+        color: "#2ed573"
+      }).setOrigin(0.5);
+      
+      const finalPriceValue = this.add.text(35, height/2 - bottomPanelHeight/2 + 8, `${actualPrice} 💰`, {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 15,
+        color: "#2ed573"
+      }).setOrigin(0.5);
+      
+      components.push(discountText, saleLabel, finalPriceValue);
+    } else {
+      // Normal price display (no discount) - centered
+      const finalPriceLabel = this.add.text(0, height/2 - bottomPanelHeight/2 - 8, "PRICE", {
+        fontFamily: "dungeon-mode",
+        fontSize: 11,
+        color: "#77888C"
+      }).setOrigin(0.5);
+      
+      const finalPriceValue = this.add.text(0, height/2 - bottomPanelHeight/2 + 8, `${actualPrice} 💰`, {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 16,
+        color: isOwned ? "#666666" : "#fbbf24"
+      }).setOrigin(0.5);
+      
+      components.push(finalPriceLabel, finalPriceValue);
     }
-    
-    const finalPriceLabel = this.add.text(hasDiscount && !isOwned ? 20 : 0, height/2 - 32, hasDiscount && !isOwned ? "SALE" : "PRICE", {
-      fontFamily: "dungeon-mode",
-      fontSize: 11,
-      color: hasDiscount && !isOwned ? "#2ed573" : "#77888C"
-    }).setOrigin(0.5);
-    
-    const finalPriceValue = this.add.text(hasDiscount && !isOwned ? 20 : 0, height/2 - 14, `${actualPrice} 💰`, {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 16,
-      color: isOwned ? "#666666" : (hasDiscount ? "#2ed573" : "#fbbf24")
-    }).setOrigin(0.5);
-    
-    // Add all elements to container in proper z-order
-    const components = [outerGlow, background, topBar, priceBadge, priceText, spriteFrame, 
-                       itemVisual, nameText, pricePanel, finalPriceLabel, finalPriceValue];
-    if (discountText) components.push(discountText);
     
     // Owned overlay (matching Discover style)
     if (isOwned) {
@@ -1050,9 +1090,16 @@ export class Shop extends Scene {
     // Store original Y position on the container for reliable hover reset
     (container as any).originalY = y;
     
-    // Enhanced hover effects (matching Discover)
+    // Enhanced hover effects (matching Discover) - make the entire container interactive
     if (!isOwned) {
-      background.setInteractive(new Phaser.Geom.Rectangle(-width/2, -height/2, width, height), Phaser.Geom.Rectangle.Contains)
+      // Create an invisible hit area that covers the entire card
+      const hitArea = this.add.rectangle(0, 0, width, height, 0x000000, 0)
+        .setOrigin(0.5);
+      container.add(hitArea);
+      
+      // Make the container itself interactive using the full card dimensions
+      container.setSize(width, height);
+      container.setInteractive()
         .on('pointerdown', () => {
           // 40% chance to trigger merchant dialogue
           if (Math.random() < 0.4) {
@@ -1061,6 +1108,9 @@ export class Shop extends Scene {
           this.showItemDetails(item);
         })
         .on('pointerover', () => {
+          // Change cursor to pointer
+          this.input.setDefaultCursor('pointer');
+          
           // Kill any existing tweens on these targets to prevent conflicts
           this.tweens.killTweensOf([outerGlow, topBar, container]);
           
@@ -1093,6 +1143,9 @@ export class Shop extends Scene {
           });
         })
         .on('pointerout', () => {
+          // Reset cursor
+          this.input.setDefaultCursor('default');
+          
           // Kill any existing tweens on these targets to prevent conflicts
           this.tweens.killTweensOf([outerGlow, topBar, container]);
           
@@ -1211,10 +1264,10 @@ export class Shop extends Scene {
     const screenHeight = this.cameras.main.height;
     
     const buttonText = "Leave Shop";
-    const baseWidth = 200; // Increased from 150
+    const baseWidth = 220; // Increased from 200
     const textWidth = buttonText.length * 12; // Increased per character width
     const buttonWidth = Math.max(baseWidth, textWidth + 40); // Increased padding
-    const buttonHeight = 50;
+    const buttonHeight = 60; // Increased from 50
     
     const backButton = this.add.container(50 + buttonWidth/2, screenHeight - 50);
     
@@ -1242,7 +1295,7 @@ export class Shop extends Scene {
     // Button text with prologue/combat styling
     const text = this.add.text(0, 0, buttonText, {
       fontFamily: "dungeon-mode",
-      fontSize: 18,
+      fontSize: 20, // Increased from 18
       color: "#77888C",
       fontStyle: "bold"
     }).setOrigin(0.5, 0.5);
@@ -1252,14 +1305,13 @@ export class Shop extends Scene {
     // Set depth
     backButton.setDepth(2000);
     
-    // Make interactive
-    backButton.setInteractive(
-      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
-      Phaser.Geom.Rectangle.Contains
-    );
+    // Make interactive with proper size
+    backButton.setSize(buttonWidth, buttonHeight);
+    backButton.setInteractive();
     
     // Enhanced hover effects with prologue/combat theme
     backButton.on("pointerover", () => {
+      this.input.setDefaultCursor('pointer');
       this.tweens.add({
         targets: backButton,
         scale: 1.05,
@@ -1278,6 +1330,7 @@ export class Shop extends Scene {
     });
     
     backButton.on("pointerout", () => {
+      this.input.setDefaultCursor('default');
       this.tweens.add({
         targets: backButton,
         scale: 1,
@@ -1508,18 +1561,19 @@ export class Shop extends Scene {
     const closeBg = this.add.graphics();
     closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
     closeBg.lineStyle(2, 0xfca5a5, 0.8);
-    closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
-    closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+    closeBg.fillRoundedRect(-20, -20, 40, 40, 8); // Increased from 30x30 to 40x40
+    closeBg.strokeRoundedRect(-20, -20, 40, 40, 8);
     
     const closeText = this.add.text(0, 0, "✕", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 16,
+      fontSize: 18, // Increased from 16 to 18
       color: "#ffffff",
     }).setOrigin(0.5, 0.5);
     closeText.setShadow(1, 1, '#000000', 2, false, true);
     
     closeBtn.add([closeBg, closeText]);
-    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-15, -15, 30, 30), Phaser.Geom.Rectangle.Contains);
+    closeBtn.setSize(40, 40); // Set proper size for interaction
+    closeBtn.setInteractive();
     closeBtn.on("pointerdown", () => {
       // Smooth exit animation
       this.tweens.add({
@@ -1535,6 +1589,7 @@ export class Shop extends Scene {
       });
     });
     closeBtn.on("pointerover", () => {
+      this.input.setDefaultCursor('pointer');
       this.tweens.add({
         targets: closeBtn,
         scale: 1.1,
@@ -1544,10 +1599,11 @@ export class Shop extends Scene {
       closeBg.clear();
       closeBg.fillGradientStyle(0xf87171, 0xef4444, 0xdc2626, 0xb91c1c, 0.95);
       closeBg.lineStyle(2, 0xfca5a5, 1);
-      closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
-      closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+      closeBg.fillRoundedRect(-20, -20, 40, 40, 8);
+      closeBg.strokeRoundedRect(-20, -20, 40, 40, 8);
     });
     closeBtn.on("pointerout", () => {
+      this.input.setDefaultCursor('default');
       this.tweens.add({
         targets: closeBtn,
         scale: 1,
@@ -1557,8 +1613,8 @@ export class Shop extends Scene {
       closeBg.clear();
       closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
       closeBg.lineStyle(2, 0xfca5a5, 0.8);
-      closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
-      closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+      closeBg.fillRoundedRect(-20, -20, 40, 40, 8);
+      closeBg.strokeRoundedRect(-20, -20, 40, 40, 8);
     });
     
     // Modern buy button with shop theme - positioned at bottom
@@ -1582,7 +1638,8 @@ export class Shop extends Scene {
     buyText.setShadow(2, 2, '#000000', 3, false, true);
     
     buyBtn.add([buyBg, buyInnerGlow, buyText]);
-    buyBtn.setInteractive(new Phaser.Geom.Rectangle(-120, -25, 240, 50), Phaser.Geom.Rectangle.Contains);
+    buyBtn.setSize(240, 50); // Set proper size for interaction
+    buyBtn.setInteractive();
     buyBtn.on("pointerdown", () => {
       // Clean up panel with animation
       this.tweens.add({
@@ -1600,6 +1657,7 @@ export class Shop extends Scene {
       });
     });
     buyBtn.on("pointerover", () => {
+      this.input.setDefaultCursor('pointer');
       this.tweens.add({
         targets: buyBtn,
         scale: 1.05,
@@ -1614,6 +1672,7 @@ export class Shop extends Scene {
       buyText.setColor("#ffffff"); // White text on hover
     });
     buyBtn.on("pointerout", () => {
+      this.input.setDefaultCursor('default');
       this.tweens.add({
         targets: buyBtn,
         scale: 1,
