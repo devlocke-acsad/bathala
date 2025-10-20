@@ -95,7 +95,7 @@ export class GameOver extends Scene
             subtitleY, 
             'Your journey has ended...', 
             {
-                fontFamily: 'heinzheinrich',
+                fontFamily: 'dungeon-mode',
                 fontSize: Math.floor(24 * scaleFactor),
                 color: '#cccccc',
                 align: 'center'
@@ -129,7 +129,7 @@ export class GameOver extends Scene
                 detailsY,
                 'Defeated By:',
                 {
-                    fontFamily: 'heinzheinrich',
+                    fontFamily: 'dungeon-mode',
                     fontSize: Math.floor(18 * scaleFactor),
                     color: '#999999'
                 }
@@ -164,7 +164,7 @@ export class GameOver extends Scene
                 statsY,
                 `Turns Survived: ${this.defeatData.turnsPlayed}`,
                 {
-                    fontFamily: 'heinzheinrich',
+                    fontFamily: 'dungeon-mode',
                     fontSize: Math.floor(16 * scaleFactor),
                     color: '#aaaaaa'
                 }
@@ -180,7 +180,7 @@ export class GameOver extends Scene
             footerY,
             'Click anywhere to return to Main Menu',
             {
-                fontFamily: 'heinzheinrich',
+                fontFamily: 'dungeon-mode',
                 fontSize: Math.floor(20 * scaleFactor),
                 color: '#888888'
             }
