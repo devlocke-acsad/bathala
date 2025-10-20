@@ -1220,21 +1220,16 @@ export class Combat extends Scene {
       return;
     }
 
-    // Apply enemy action based on intent
-    if (enemy.intent.type === "attack") {
-      let damage = enemy.intent.value;
-      if (enemy.statusEffects.some((e) => e.name === "Weak")) {
-        damage *= 0.5;
-      }
-      this.animations.animateEnemyAttack(); // Add animation when enemy attacks
-      this.damagePlayer(damage);
-    } else if (enemy.intent.type === "defend") {
-      // Enemy gains block (show visual feedback)
-      const blockGain = enemy.intent.value;
-      enemy.block = (enemy.block || 0) + blockGain;
-      this.showActionResult(`Enemy gains ${blockGain} Block!`);
-      this.ui.updateEnemyUI();
+    // Apply enemy action - ALWAYS ATTACK (simplified combat)
+    // Calculate damage with Weak modifier
+    let damage = enemy.damage || enemy.intent.value || 12;
+    if (enemy.statusEffects.some((e) => e.name === "Weak")) {
+      damage = Math.floor(damage * 0.5);
     }
+    
+    console.log(`Enemy attacking for ${damage} damage`);
+    this.animations.animateEnemyAttack();
+    this.damagePlayer(damage);
 
     // Update enemy intent for next turn
     this.updateEnemyIntent();
