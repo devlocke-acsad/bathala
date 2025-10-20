@@ -592,10 +592,10 @@ export class Shop extends Scene {
       this.typewriterTimer = null;
     }
 
-    // Typewriter effect with safety checks
+    // Fast typewriter effect with safety checks
     let currentChar = 0;
     this.typewriterTimer = this.time.addEvent({
-      delay: 50, // Speed of typing
+      delay: 15, // Faster typing (was 50ms, now 15ms)
       callback: () => {
         // Safety check: ensure dialogue container and text still exist
         if (!this.dialogueContainer || !dialogueText || !dialogueText.active) {
@@ -639,6 +639,13 @@ export class Shop extends Scene {
               ease: 'Sine.easeInOut'
             });
           }
+          
+          // Auto-close dialogue after 2 seconds
+          this.time.delayedCall(2000, () => {
+            if (this.dialogueContainer && this.dialogueContainer.active) {
+              this.closeDialogueSmooth();
+            }
+          });
         }
       },
       repeat: dialogue.length - 1
@@ -1020,6 +1027,9 @@ export class Shop extends Scene {
     
     container.add(components);
     
+    // Store original Y position on the container for reliable hover reset
+    (container as any).originalY = y;
+    
     // Enhanced hover effects (matching Discover)
     if (!isOwned) {
       background.setInteractive(new Phaser.Geom.Rectangle(-width/2, -height/2, width, height), Phaser.Geom.Rectangle.Contains)
@@ -1033,6 +1043,9 @@ export class Shop extends Scene {
         .on('pointerover', () => {
           // Kill any existing tweens on these targets to prevent conflicts
           this.tweens.killTweensOf([outerGlow, topBar, container]);
+          
+          // Store current Y if not already stored (in case container moved)
+          const originalY = (container as any).originalY;
           
           // Glow effect
           this.tweens.add({
@@ -1051,10 +1064,10 @@ export class Shop extends Scene {
             duration: 200
           });
           
-          // Subtle lift
+          // Subtle lift - use stored original Y
           this.tweens.add({
             targets: container,
-            y: y - 5,
+            y: originalY - 5,
             duration: 200,
             ease: 'Power2'
           });
@@ -1062,6 +1075,9 @@ export class Shop extends Scene {
         .on('pointerout', () => {
           // Kill any existing tweens on these targets to prevent conflicts
           this.tweens.killTweensOf([outerGlow, topBar, container]);
+          
+          // Get stored original Y position
+          const originalY = (container as any).originalY;
           
           // Reset glow
           this.tweens.add({
@@ -1080,10 +1096,10 @@ export class Shop extends Scene {
             duration: 200
           });
           
-          // Reset position
+          // Reset position to original Y
           this.tweens.add({
             targets: container,
-            y: y,
+            y: originalY,
             duration: 200,
             ease: 'Power2'
           });
@@ -2038,9 +2054,11 @@ export class Shop extends Scene {
       ease: 'Back.easeOut'
     });
 
-    // Auto-hide after 4 seconds
-    this.time.delayedCall(4000, () => {
-      this.closeDialogueSmooth();
+    // Auto-hide after 2 seconds
+    this.time.delayedCall(2000, () => {
+      if (this.dialogueContainer && this.dialogueContainer.active) {
+        this.closeDialogueSmooth();
+      }
     });
 
     // Click to close

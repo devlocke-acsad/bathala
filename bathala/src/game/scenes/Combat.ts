@@ -2607,7 +2607,7 @@ export class Combat extends Scene {
           description: "Takes 10 damage at the start of each turn.",
           emoji: "🔥",
         });
-        this.showActionResult("Applied Burn (10 damage/turn)!");
+        this.ui.showSpecialEffectNotification("Apoy", "Burn", "Deals 10 damage per turn for 3 turns");
         break;
         
       case "Tubig": // Water - Heal (30 HP)
@@ -2626,7 +2626,7 @@ export class Combat extends Scene {
         );
         
         this.ui.updatePlayerUI();
-        this.showActionResult(`Healed ${actualHealed} HP and cleansed debuffs!`);
+        this.ui.showSpecialEffectNotification("Tubig", "Heal", `Restored ${actualHealed} HP and cleansed debuffs`);
         break;
         
       case "Lupa": // Earth - Stun (1 turn)
@@ -2646,7 +2646,7 @@ export class Combat extends Scene {
           description: "Cannot act for 1 turn.",
           emoji: "💫",
         });
-        this.showActionResult("Enemy is Stunned for 1 turn!");
+        this.ui.showSpecialEffectNotification("Lupa", "Stun", "Enemy cannot act for 1 turn");
         break;
         
       case "Hangin": // Air - Weak (enemy deals half damage for 3 turns)
@@ -2671,7 +2671,7 @@ export class Combat extends Scene {
           description: "Deals only 50% damage for 3 turns.",
           emoji: "⚠️",
         });
-        this.showActionResult(`Drew ${cardsToDraw} cards and applied Weak!`);
+        this.ui.showSpecialEffectNotification("Hangin", "Weak", `Drew ${cardsToDraw} cards • Enemy deals 50% damage for 3 turns`);
         break;
     }
   }

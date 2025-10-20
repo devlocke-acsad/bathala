@@ -1837,6 +1837,120 @@ export class CombatUI {
   }
   
   /**
+   * Show enhanced special effect notification with element-specific styling
+   * @param elementType - The element type (Apoy, Tubig, Lupa, Hangin)
+   * @param effectName - Name of the effect (Burn, Heal, Stun, Weak)
+   * @param description - Description of the effect
+   */
+  public showSpecialEffectNotification(elementType: string, effectName: string, description: string): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Create container for the notification
+    const notificationContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2 - 150);
+    notificationContainer.setDepth(5000);
+    
+    // Element-specific styling
+    const elementStyles: Record<string, { color: number, emoji: string, textColor: string, glowColor: number }> = {
+      'Apoy': { color: 0xff6b35, emoji: '🔥', textColor: '#ff6b35', glowColor: 0xff4500 },
+      'Tubig': { color: 0x4ecdc4, emoji: '💧', textColor: '#4ecdc4', glowColor: 0x00bcd4 },
+      'Lupa': { color: 0x8b7355, emoji: '💫', textColor: '#d4a574', glowColor: 0xa0826d },
+      'Hangin': { color: 0xe8eced, emoji: '⚠️', textColor: '#e8eced', glowColor: 0xc0c5ce }
+    };
+    
+    const style = elementStyles[elementType] || elementStyles['Apoy'];
+    
+    // Animated glow background
+    const glowCircle = this.scene.add.circle(0, 0, 80, style.glowColor, 0.3);
+    
+    // Main background panel
+    const panelWidth = 320;
+    const panelHeight = 100;
+    const panel = this.scene.add.rectangle(0, 0, panelWidth, panelHeight, 0x0a0a0a, 0.95);
+    panel.setStrokeStyle(3, style.color, 1.0);
+    
+    // Inner accent border
+    const innerBorder = this.scene.add.rectangle(0, 0, panelWidth - 10, panelHeight - 10, undefined, 0);
+    innerBorder.setStrokeStyle(2, style.color, 0.6);
+    
+    // Element icon (large)
+    const iconSize = 48;
+    const icon = this.scene.add.text(-panelWidth/2 + 50, 0, style.emoji, {
+      fontSize: iconSize,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Effect name
+    const effectTitle = this.scene.add.text(-panelWidth/2 + 100, -20, effectName.toUpperCase(), {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 20,
+      color: style.textColor,
+      align: "left",
+      fontStyle: "bold"
+    }).setOrigin(0, 0.5);
+    
+    // Effect description
+    const effectDesc = this.scene.add.text(-panelWidth/2 + 100, 10, description, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e8eced",
+      align: "left",
+      wordWrap: { width: panelWidth - 120 }
+    }).setOrigin(0, 0.5);
+    
+    // Element indicator badge
+    const elementBadge = this.scene.add.text(panelWidth/2 - 15, -panelHeight/2 + 15, elementType.toUpperCase(), {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: style.textColor,
+      align: "right"
+    }).setOrigin(1, 0.5);
+    
+    // Add all elements to container
+    notificationContainer.add([glowCircle, panel, innerBorder, icon, effectTitle, effectDesc, elementBadge]);
+    
+    // Entrance animation - pop in from center
+    notificationContainer.setScale(0.5);
+    notificationContainer.setAlpha(0);
+    
+    // Glow pulse animation
+    this.scene.tweens.add({
+      targets: glowCircle,
+      scale: 1.3,
+      alpha: 0,
+      duration: 800,
+      ease: 'Power2',
+      repeat: 2
+    });
+    
+    // Main entrance animation
+    this.scene.tweens.add({
+      targets: notificationContainer,
+      scale: 1,
+      alpha: 1,
+      duration: 300,
+      ease: 'Back.Out',
+      onComplete: () => {
+        // Hold for a moment
+        this.scene.time.delayedCall(1500, () => {
+          // Exit animation
+          this.scene.tweens.add({
+            targets: notificationContainer,
+            scale: 0.8,
+            alpha: 0,
+            y: notificationContainer.y - 50,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => {
+              notificationContainer.destroy();
+            }
+          });
+        });
+      }
+    });
+  }
+  
+  /**
    * Show relic tooltip (Prologue style) with proper text wrapping
    */
   private showRelicTooltip(name: string, x: number, y: number): void {
