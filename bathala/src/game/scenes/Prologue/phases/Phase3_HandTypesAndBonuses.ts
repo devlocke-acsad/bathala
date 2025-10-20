@@ -176,25 +176,25 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
         
         container.add([bg, innerBorder]);
 
-        // Label
-        const label = this.scene.add.text(0, -70, 'EXAMPLE:', {
+        // Label - better centered
+        const label = this.scene.add.text(0, -60, 'EXAMPLE:', {
             fontFamily: 'dungeon-mode',
-            fontSize: 14,
+            fontSize: 16,
             color: '#FFAA00',
             align: 'center'
         }).setOrigin(0.5);
         container.add(label);
 
-        // Add cards
+        // Add cards - better centered vertically
         const cardScale = 0.65;
         const cardWidth = 80 * cardScale;
         const cardSpacing = 12;
         const totalWidth = cards.length * cardWidth + (cards.length - 1) * cardSpacing;
-        let startX = -totalWidth / 2 + cardWidth / 2;
+        const startX = -totalWidth / 2 + cardWidth / 2;
 
         cards.forEach((card, index) => {
             const x = startX + index * (cardWidth + cardSpacing);
-            this.addReferenceCard(container, card.rank, card.suit, x, -10, cardScale);
+            this.addReferenceCard(container, card.rank, card.suit, x, 5, cardScale); // Moved down slightly for better centering
         });
 
         return container;
@@ -397,12 +397,12 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
             'pair',
             [{rank: '7', suit: 'Lupa'}, {rank: '7', suit: 'Apoy'}, {rank: '3', suit: 'Tubig'}, {rank: '9', suit: 'Hangin'}, {rank: 'Datu', suit: 'Lupa'}]
         );
-        refContainer.setAlpha(0);
+        refContainer.setAlpha(0); // Hidden initially, will show when cards appear
         this.container.add(refContainer);
         
-        // Fade in elements
+        // Fade in elements (except refContainer which shows with cards)
         this.scene.tweens.add({
-            targets: [progress, header, refContainer],
+            targets: [progress, header],
             alpha: 1,
             duration: 600,
             delay: 200,
@@ -414,6 +414,9 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
         this.scene.time.delayedCall(800, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 dialogueBox.destroy();
+                
+                // Show reference container when cards appear
+                refContainer.setAlpha(1);
                 
                 const cardInteraction = drawCards(this.scene, 'pair', (selected) => {
                     if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'pair') {
@@ -472,6 +475,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
             'two_pair',
             [{rank: '5', suit: 'Hangin'}, {rank: '5', suit: 'Apoy'}, {rank: 'Datu', suit: 'Tubig'}, {rank: 'Datu', suit: 'Lupa'}, {rank: '9', suit: 'Hangin'}]
         );
+        refContainer.setAlpha(0); // Hidden initially, will show when cards appear
         this.container.add(refContainer);
 
         const dialogue = "Form Two Pair (two separate pairs)\n\nSelect 5 cards total to form your hand.";
@@ -479,6 +483,9 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 dialogueBox.destroy();
+                
+                // Show reference container when cards appear
+                refContainer.setAlpha(1);
                 
                 const cardInteraction = drawCards(this.scene, 'twoPair', (selected) => {
                     if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'two_pair') {
@@ -537,6 +544,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
             'three_of_a_kind',
             [{rank: '8', suit: 'Apoy'}, {rank: '8', suit: 'Tubig'}, {rank: '8', suit: 'Lupa'}, {rank: '4', suit: 'Hangin'}, {rank: 'Babaylan', suit: 'Apoy'}]
         );
+        refContainer.setAlpha(0); // Hidden initially, will show when cards appear
         this.container.add(refContainer);
 
         const dialogue = "Form Three of a Kind (three cards with the same rank)\n\nSelect 5 cards total to form your hand.";
@@ -544,6 +552,9 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 dialogueBox.destroy();
+                
+                // Show reference container when cards appear
+                refContainer.setAlpha(1);
                 
                 const cardInteraction = drawCards(this.scene, 'threeOfAKind', (selected) => {
                     if (HandEvaluator.evaluateHand(selected, 'attack').type !== 'three_of_a_kind') {
