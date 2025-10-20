@@ -345,27 +345,15 @@ export class CombatDialogue {
     const dialogueContainer = this.scene.add.container(screenWidth / 2, 120);
     
     const combatState = this.scene.getCombatState();
-    const enemyName = combatState.enemy.name;
-    const enemySpriteKey = this.getEnemySpriteKey(enemyName);
     
     // Double border design with Prologue colors (smaller for enemy dialogue)
     const outerBorder = this.scene.add.rectangle(0, 0, screenWidth * 0.8 + 8, 108, undefined, 0).setStrokeStyle(2, 0x77888C);
     const innerBorder = this.scene.add.rectangle(0, 0, screenWidth * 0.8, 100, undefined, 0).setStrokeStyle(2, 0x77888C);
     const bg = this.scene.add.rectangle(0, 0, screenWidth * 0.8, 100, 0x150E10).setInteractive();
     
-    // Create enemy icon with combat sprite if available
-    let enemyIcon: Phaser.GameObjects.Sprite | null = null;
-    if (this.scene.textures.exists(enemySpriteKey)) {
-      enemyIcon = this.scene.add.sprite(
-        -(screenWidth * 0.8 / 2) + 35,
-        0,
-        enemySpriteKey
-      ).setScale(0.8).setDepth(5002);
-    }
-    
     // Create enemy name text with Prologue styling
     const enemyNameText = this.scene.add.text(
-      -(screenWidth * 0.8 / 2) + 70,
+      -(screenWidth * 0.8 / 2) + 20,
       -30,
       combatState.enemy.name,
       {
@@ -378,7 +366,7 @@ export class CombatDialogue {
     
     // Create enemy dialogue text with Prologue styling
     const enemyDialogueText = this.scene.add.text(
-      -(screenWidth * 0.8 / 2) + 70,
+      -(screenWidth * 0.8 / 2) + 20,
       -5,
       this.getBattleStartDialogue(),
       {
@@ -386,7 +374,7 @@ export class CombatDialogue {
         fontSize: 16,
         color: "#77888C",
         align: "left",
-        wordWrap: { width: screenWidth * 0.8 - 90 }
+        wordWrap: { width: screenWidth * 0.8 - 40 }
       }
     ).setOrigin(0, 0).setDepth(5002);
     
@@ -406,11 +394,10 @@ export class CombatDialogue {
       outerBorder,
       innerBorder,
       bg,
-      enemyIcon,
       enemyNameText,
       enemyDialogueText,
       continueIndicator
-    ].filter(child => child !== null);
+    ];
 
     dialogueContainer.add(containerChildren);
     dialogueContainer.setScrollFactor(0).setDepth(5000);
@@ -434,17 +421,39 @@ export class CombatDialogue {
       ease: 'Sine.easeInOut' 
     });
     
-    // Add click handler with Prologue-style transition
+    // Track if dialogue has been dismissed
+    let dismissed = false;
+    
+    // Auto-fade after 3.5 seconds
+    this.scene.time.delayedCall(3500, () => {
+      if (!dismissed) {
+        dismissed = true;
+        this.scene.tweens.add({
+          targets: dialogueContainer,
+          alpha: 0,
+          duration: 300,
+          ease: 'Power2',
+          onComplete: () => {
+            dialogueContainer.destroy();
+          }
+        });
+      }
+    });
+    
+    // Add click handler for manual dismissal
     bg.on('pointerdown', () => {
-      this.scene.tweens.add({
-        targets: dialogueContainer,
-        alpha: 0,
-        duration: 300,
-        ease: 'Power2',
-        onComplete: () => {
-          dialogueContainer.destroy();
-        }
-      });
+      if (!dismissed) {
+        dismissed = true;
+        this.scene.tweens.add({
+          targets: dialogueContainer,
+          alpha: 0,
+          duration: 300,
+          ease: 'Power2',
+          onComplete: () => {
+            dialogueContainer.destroy();
+          }
+        });
+      }
     });
   }
 
