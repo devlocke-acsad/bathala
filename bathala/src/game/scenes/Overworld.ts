@@ -115,7 +115,6 @@ export class Overworld extends Scene {
   private relicsContainer!: Phaser.GameObjects.Container;
   private potionsContainer!: Phaser.GameObjects.Container;
   private currencyText!: Phaser.GameObjects.Text;
-  private diamanteText!: Phaser.GameObjects.Text;
   private landasText!: Phaser.GameObjects.Text;
   private landasMeterIndicator!: Phaser.GameObjects.Graphics;
   private deckInfoText!: Phaser.GameObjects.Text;
@@ -2421,29 +2420,11 @@ export class Overworld extends Scene {
       color: "#ffffff"
     });
     
-    // Diamante label and value
-    const diamanteLabel = this.add.text(x + 140, y + 45, "Diamante", {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px",
-      color: "#888888"
-    });
-    
-    const diamanteIcon = this.add.text(x + 140, y + 65, "💎", {
-      fontSize: "16px",
-      color: "#00ddff"
-    });
-    
-    this.diamanteText = this.add.text(x + 165, y + 65, `${this.playerData.diamante}`, {
-      fontFamily: "dungeon-mode",
-      fontSize: "14px",
-      color: "#ffffff"
-    });
-    
     // Create health bar graphics (required for updateHealthBar method)
     this.healthBar = this.add.graphics();
     this.uiContainer.add(this.healthBar);
     
-    this.uiContainer.add([healthLabel, healthIcon, this.healthText, goldLabel, goldIcon, this.currencyText, diamanteLabel, diamanteIcon, this.diamanteText]);
+    this.uiContainer.add([healthLabel, healthIcon, this.healthText, goldLabel, goldIcon, this.currencyText]);
   }
 
   /**
@@ -2617,28 +2598,6 @@ export class Overworld extends Scene {
     });
     this.currencyText.setShadow(2, 2, '#000000', 2, false, true);
     
-    // Diamante currency display - positioned further right to prevent overlap
-    const diamanteIcon = this.add.text(x + 125, y + 108, "💎", {
-      fontSize: "20px"
-    });
-    diamanteIcon.setShadow(1, 1, '#00ffff', 2, false, true);
-    
-    const diamanteLabel = this.add.text(x + 153, y + 103, "DIAMANTE", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: "12px",
-      color: "#00ffff",
-      fontStyle: "bold"
-    });
-    diamanteLabel.setShadow(1, 1, '#000000', 2, false, true);
-    
-    this.diamanteText = this.add.text(x + 153, y + 120, "0", {
-      fontFamily: "dungeon-mode",
-      fontSize: "16px",
-      color: "#ffffff",
-      fontStyle: "bold"
-    });
-    this.diamanteText.setShadow(2, 2, '#000000', 2, false, true);
-    
     // Enhanced separator
     const currencySeparator = this.add.graphics();
     currencySeparator.lineStyle(2, 0x666666, 0.6);
@@ -2652,7 +2611,7 @@ export class Overworld extends Scene {
     // Enhanced Landás meter
     this.createLandasMeter(x, y + 162, 250, 28);
     
-    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel, diamanteIcon, diamanteLabel]);
+    this.uiContainer.add([healthIcon, healthLabel, gintoIcon, gintoLabel]);
   }
 
   /**
@@ -3102,13 +3061,10 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Update currency display for retro style with separate gold and diamante
+   * Update currency display for retro style with gold only
    */
   private updateCurrencyDisplay(): void {
     this.currencyText.setText(`${this.playerData.ginto}`);
-    if (this.diamanteText) {
-      this.diamanteText.setText(`${this.playerData.diamante}`);
-    }
   }
 
   /**
