@@ -57,8 +57,8 @@ export class MainMenu extends Scene {
     bgImage.setScale(scale);
     bgImage.setDepth(-100);
     
-    // Add lighter overlay - 70% opacity to show more background
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x150E10, 0.70);
+    // Add lighter overlay - 50% opacity to show more background
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x150E10, 0.50);
     overlay.setDepth(-90);
     
     // Create highly visible floating embers/spirits

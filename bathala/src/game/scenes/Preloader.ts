@@ -312,7 +312,7 @@ export class Preloader extends Scene {
       }
 
       //  Move to the MainMenu instead of directly to Overworld
-      this.scene.start("MainMenu");
+      this.scene.start("Disclaimer");
     });
   }
 
