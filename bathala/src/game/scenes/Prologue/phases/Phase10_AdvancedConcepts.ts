@@ -1,10 +1,150 @@
 import { Scene } from 'phaser';
 import { TutorialPhase } from './TutorialPhase';
-import { showDialogue } from '../ui/Dialogue';
 import { TutorialUI } from '../ui/TutorialUI';
 import { createPhaseHeader, createSectionDivider } from '../ui/PhaseHeader';
 import { createProgressIndicator } from '../ui/ProgressIndicator';
 import { createInfoBox } from '../ui/InfoBox';
+
+/**
+ * Custom dialogue box for Phase 10 with larger dimensions for advanced concepts
+ */
+function showLargeDialogue(scene: Scene, text: string, onComplete: () => void): Phaser.GameObjects.Container {
+    const dialogueContainer = scene.add.container(scene.cameras.main.width / 2, scene.cameras.main.height / 2);
+
+    // Larger box dimensions for Phase 10 advanced concepts
+    const boxWidth = Math.min(scene.cameras.main.width * 0.95, 1600);
+    const boxHeight = scene.cameras.main.height * 0.58; // Taller for more content
+    
+    // Text should wrap INSIDE the box with padding
+    const textWrapWidth = boxWidth - 120;
+    
+    const dialogueText = scene.add.text(0, 0, text, {
+        fontFamily: 'dungeon-mode',
+        fontSize: 20,
+        color: '#77888C',
+        align: 'center',
+        wordWrap: { width: textWrapWidth },
+        lineSpacing: 10
+    }).setOrigin(0.5);
+
+    // Background - matching intro style
+    const bg = scene.add.rectangle(0, 0, boxWidth, boxHeight, 0x150E10, 0.95).setInteractive();
+
+    // Double border design (matching intro style)
+    const outerBorder = scene.add.rectangle(0, 0, boxWidth + 8, boxHeight + 8, undefined, 0)
+        .setStrokeStyle(3, 0x77888C, 0.8);
+    const innerBorder = scene.add.rectangle(0, 0, boxWidth + 2, boxHeight + 2, undefined, 0)
+        .setStrokeStyle(2, 0x556065, 0.6);
+
+    dialogueText.setText(''); // Clear text for typing effect
+
+    // Continue indicator - using arrow symbol
+    const continueIndicator = scene.add.text(0, boxHeight/2 - 40, '▼', {
+        fontFamily: 'dungeon-mode',
+        fontSize: 24,
+        color: '#77888C'
+    }).setOrigin(0.5).setAlpha(0.7).setVisible(false);
+
+    dialogueContainer.add([bg, outerBorder, innerBorder, dialogueText, continueIndicator]);
+    dialogueContainer.setDepth(2000);
+
+    // Fade in with scale animation
+    dialogueContainer.setAlpha(0).setScale(0.95);
+    scene.tweens.add({ 
+        targets: dialogueContainer, 
+        alpha: 1, 
+        scale: 1,
+        duration: 500, 
+        ease: 'Back.easeOut'
+    });
+
+    let typingComplete = false;
+    let typingTimer: Phaser.Time.TimerEvent | null = null;
+
+    const typeText = (textObject: Phaser.GameObjects.Text, text: string): Promise<void> => {
+        if (typingTimer) typingTimer.remove();
+        return new Promise(resolve => {
+            if (!textObject || !textObject.active) {
+                resolve();
+                return;
+            }
+            textObject.setText('');
+            let charIndex = 0;
+            typingTimer = scene.time.addEvent({
+                delay: 25,
+                callback: () => {
+                    if (!textObject || !textObject.active) {
+                        if (typingTimer) {
+                            typingTimer.remove();
+                            typingTimer = null;
+                        }
+                        resolve();
+                        return;
+                    }
+                    const currentText = textObject.text || '';
+                    textObject.setText(currentText + text[charIndex++]);
+                    if (charIndex === text.length) {
+                        typingTimer = null;
+                        resolve();
+                    }
+                },
+                repeat: text.length - 1
+            });
+        });
+    }
+
+    typeText(dialogueText, text).then(() => {
+        typingComplete = true;
+        continueIndicator.setVisible(true).setAlpha(0);
+        scene.tweens.add({ 
+            targets: continueIndicator, 
+            alpha: 1,
+            y: '+=10', 
+            duration: 800, 
+            yoyo: true, 
+            repeat: -1, 
+            ease: 'Sine.easeInOut' 
+        });
+    });
+
+    bg.on('pointerdown', () => {
+        if (!typingComplete) {
+            if (typingTimer) {
+                typingTimer.remove();
+                typingTimer = null;
+            }
+            dialogueText.setText(text);
+            typingComplete = true;
+            continueIndicator.setVisible(true).setAlpha(0);
+            scene.tweens.add({ 
+                targets: continueIndicator, 
+                alpha: 1,
+                y: '+=10', 
+                duration: 800, 
+                yoyo: true, 
+                repeat: -1, 
+                ease: 'Sine.easeInOut' 
+            });
+        } else {
+            if (typingTimer) typingTimer.remove();
+            scene.tweens.killTweensOf(continueIndicator);
+            bg.removeAllListeners('pointerdown');
+            scene.tweens.add({ 
+                targets: dialogueContainer, 
+                alpha: 0,
+                scale: 0.95,
+                duration: 400, 
+                ease: 'Power2', 
+                onComplete: () => { 
+                    dialogueContainer.destroy(); 
+                    onComplete(); 
+                } 
+            });
+        }
+    });
+
+    return dialogueContainer;
+}
 
 export class Phase10_AdvancedConcepts extends TutorialPhase {
     private sectionIndex: number = 0;
@@ -80,10 +220,10 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
         );
         this.container.add(header);
 
-        const dialogue = "Master deck-sculpting to grow stronger:\n\n🛒 PURIFY (Shop): Remove unwanted cards\n     Slim down your deck for consistency\n\n🔮 ATTUNE (Rest Sites): Upgrade card values\n     Make your cards more powerful\n\n⚡ INFUSE (After Elites/Bosses): Add powerful cards\n     Expand your arsenal with rare cards\n\nA lean, upgraded deck is key to victory!";
+        const dialogue = "Master deck-sculpting to grow stronger:\n\nPURIFY (Shop): Remove unwanted cards\n     Slim down your deck for consistency\n\nATTUNE (Rest Sites): Upgrade card values\n     Make your cards more powerful\n\nINFUSE (Obtain rarely from Elites/Bosses): Add powerful cards\n     Expand your arsenal with rare cards\n\nA lean, upgraded deck is key to victory!";
 
         this.scene.time.delayedCall(600, () => {
-            const dialogueBox = showDialogue(this.scene, dialogue, () => {
+            const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 const tip = createInfoBox(
                     this.scene,
                     'Quality over quantity - a small, focused deck is often best!',
@@ -107,10 +247,10 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
         );
         this.container.add(header);
 
-        const dialogue = "The realm cycles between day and night:\n\n☀️ DAY (50 actions):\n   • Neutral, standard enemies\n   • Safer exploration\n   • Normal rewards\n\n🌙 NIGHT (50 actions):\n   • Aggressive, dangerous enemies\n   • Higher risk encounters\n   • Better rewards!\n\n👹 BOSS: Appears after 5 complete cycles (~500 actions)";
+        const dialogue = "The realm cycles between day and night:\n\nDAY (50 actions):\n   • Neutral, standard enemies\n   • Safer exploration\n   • Normal rewards\n\nNIGHT (50 actions):\n   • Aggressive, dangerous enemies\n   • Higher risk encounters\n   • Better rewards!\n\nBOSS: Appears after 5 complete cycles (~500 actions)";
 
         this.scene.time.delayedCall(600, () => {
-            const dialogueBox = showDialogue(this.scene, dialogue, () => {
+            const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 const info = createInfoBox(
                     this.scene,
                     'Risk vs reward - night is dangerous but lucrative!',
@@ -134,10 +274,10 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
         );
         this.container.add(header);
 
-        const dialogue = "THE PATH AHEAD:\n\n🗺️ Navigate the overworld\n   Choose your route carefully\n\n💪 Grow stronger\n   Collect relics, upgrade cards, master combos\n\n🎭 Face chapter bosses\n   Three mighty foes await:\n   • Mangangaway (Corrupted Forest)\n   • Bakunawa (Submerged Barangays)\n   • False Bathala (Skyward Citadel)\n\n⚖️ Restore balance\n   Purify the realms and save the spirits!";
+        const dialogue = "THE PATH AHEAD:\n\nNavigate the overworld\n   Choose your route carefully\n\nGrow stronger\n   Collect relics, upgrade cards, master combos\n\nFace chapter bosses\n   Three mighty foes await:\n   • Mangangaway (Corrupted Forest)\n   • Bakunawa (Submerged Barangays)\n   • False Bathala (Skyward Citadel)\n\nRestore balance\n   Purify the realms and save the spirits!";
 
         this.scene.time.delayedCall(600, () => {
-            const dialogueBox = showDialogue(this.scene, dialogue, () => {
+            const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 const success = createInfoBox(
                     this.scene,
                     'You are ready! Your training is nearly complete!',
