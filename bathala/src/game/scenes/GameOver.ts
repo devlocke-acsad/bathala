@@ -7,7 +7,7 @@ interface GameOverData {
     finalHealth?: number;
     turnsPlayed?: number;
     totalDamageDealt?: number;
-    cardsPlayed?: number;
+    bestHand?: string;
     relicsObtained?: number;
 }
 
@@ -190,12 +190,15 @@ export class GameOver extends Scene
         this.uiContainer.add(statsTitle);
         detailsY += 35 * scaleFactor;
 
+        // Format best hand for display
+        const bestHandDisplay = this.formatHandType(this.defeatData.bestHand || 'High Card');
+        
         // Stats display - three columns
         const statsConfig = [
-            { label: 'Turns Survived', value: this.defeatData.turnsPlayed ?? 0, color: '#4ecdc4' },
-            { label: 'Total Damage', value: this.defeatData.totalDamageDealt ?? 0, color: '#ff6b6b' },
-            { label: 'Cards Played', value: this.defeatData.cardsPlayed ?? 0, color: '#95e1d3' },
-            { label: 'Relics Obtained', value: this.defeatData.relicsObtained ?? 0, color: '#ffd93d' }
+            { label: 'Turns Survived', value: this.defeatData.turnsPlayed ?? 0, color: '#4ecdc4', isNumber: true },
+            { label: 'Total Damage', value: this.defeatData.totalDamageDealt ?? 0, color: '#ff6b6b', isNumber: true },
+            { label: 'Best Hand', value: bestHandDisplay, color: '#95e1d3', isNumber: false },
+            { label: 'Relics Obtained', value: this.defeatData.relicsObtained ?? 0, color: '#ffd93d', isNumber: true }
         ];
 
         statsConfig.forEach((stat, index) => {
@@ -434,6 +437,31 @@ export class GameOver extends Scene
         );
         lore.setOrigin(0.5, 0);
         this.uiContainer.add(lore);
+    }
+
+    /**
+     * Format hand type for display (convert snake_case to Title Case)
+     */
+    private formatHandType(handType: string): string {
+        // Map of hand types to display names
+        const handTypeMap: { [key: string]: string } = {
+            'high_card': 'High Card',
+            'pair': 'Pair',
+            'two_pair': 'Two Pair',
+            'three_of_a_kind': 'Three of a Kind',
+            'straight': 'Straight',
+            'flush': 'Flush',
+            'full_house': 'Full House',
+            'four_of_a_kind': 'Four of a Kind',
+            'straight_flush': 'Straight Flush',
+            'five_of_a_kind': 'Five of a Kind'
+        };
+
+        const lowerHandType = handType.toLowerCase();
+        return handTypeMap[lowerHandType] || handType
+            .split('_')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
     }
 
     shutdown() {

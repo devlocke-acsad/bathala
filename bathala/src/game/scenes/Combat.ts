@@ -85,7 +85,6 @@ export class Combat extends Scene {
   private isSorting: boolean = false; // Track if cards are currently being sorted
   private turnCount: number = 0;
   private totalDamageDealt: number = 0; // Track total damage dealt to enemy
-  private cardsPlayedCount: number = 0; // Track total cards played
   private kapresCigarUsed: boolean = false; // Track if Kapre's Cigar minion summon has been used this combat
   private deckPosition!: { x: number; y: number };
   private discardPilePosition!: { x: number; y: number };
@@ -452,7 +451,6 @@ export class Combat extends Scene {
     this.combatEnded = false;
     this.turnCount = 0;
     this.totalDamageDealt = 0;
-    this.cardsPlayedCount = 0;
     this.bestHandAchieved = "high_card";
     this.isActionProcessing = false;
     
@@ -1667,7 +1665,7 @@ export class Combat extends Scene {
           finalHealth: this.combatState.player.currentHealth,
           turnsPlayed: this.turnCount || 0,
           totalDamageDealt: this.totalDamageDealt || 0,
-          cardsPlayed: this.cardsPlayedCount || 0,
+          bestHand: this.bestHandAchieved || 'high_card',
           relicsObtained: this.combatState.player.relics.length || 0
         });
       });
@@ -2476,9 +2474,6 @@ export class Combat extends Scene {
     
     // Display the hand type with visual flair
     this.displayHandType(evaluation.type);
-    
-    // Track cards played
-    this.cardsPlayedCount += this.combatState.player.playedHand.length;
     
     // Track best hand for DDA
     if (this.isHandBetterThan(evaluation.type, this.bestHandAchieved)) {
