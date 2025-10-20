@@ -1,23 +1,32 @@
 import { MapNode } from "../core/types/MapTypes";
-import { ChunkData, ChunkRegion } from "./MazeGeneration/types";
-import { ChunkManager } from "./MazeGeneration/ChunkManager";
-import { DelaunayMazeGenerator } from "./MazeGeneration/DelaunayMazeGenerator";
-import { NodeGenerator } from "./MazeGeneration/NodeGenerator";
-import { RandomUtil } from "./MazeGeneration/RandomUtil";
+import { ChunkData, ChunkRegion } from "./MazeGeneration/Core/types";
+import { ChunkManager } from "./MazeGeneration/Shared/ChunkManager";
+import { MazeGeneratorRegistry } from "./MazeGeneration/MazeGeneratorRegistry";
+import { NodeGenerator } from "./MazeGeneration/Shared/NodeGenerator";
+import { RandomUtil } from "./MazeGeneration/Core/RandomUtil";
 
 /*
   MazeOverworldGenerator
   ----------------------
-  Main entry point for overworld maze generation using Delaunay triangulation.
+  Main entry point for overworld maze generation.
   
   This class orchestrates the generation of maze chunks for the overworld,
-  using the DelaunayMazeGenerator for the actual maze layout generation.
+  using any registered maze generator through the MazeGeneratorRegistry.
   
   Features:
     - Chunk-based generation for infinite worlds
     - Caching for performance
     - Node placement (enemies, shops, etc.)
     - Connection point generation for chunk connectivity
+    - Seamless switching between different generation algorithms
+    
+  Usage:
+    // Use default generator
+    MazeOverworldGenerator.getChunk(0, 0, 20);
+    
+    // Switch to different generator
+    MazeOverworldGenerator.setGeneratorType('cellular-automata');
+    MazeOverworldGenerator.getChunk(0, 0, 20);
 */
 export class MazeOverworldGenerator {
   // =============================
@@ -26,6 +35,7 @@ export class MazeOverworldGenerator {
   
   private static chunkSize: number = 20; // Larger chunk size for corridor generation
   private static globalSeed: number = Math.floor(Math.random() * 100000); // Global seed for deterministic generation
+  private static generatorType: string = 'delaunay'; // Current generator type
 
   /**
    * Generate or retrieve a maze chunk with guaranteed connections
@@ -50,20 +60,25 @@ export class MazeOverworldGenerator {
   }
 
   /**
-   * Generate a chunk using Delaunay triangulation and A* pathfinding
-   * This is the primary maze generation method using the DelaunayMazeGenerator class.
+   * Generate a chunk using the currently selected maze generator
+   * This method uses the MazeGeneratorRegistry to get the active generator.
    */
   private static generateCorridorChunk(chunkX: number, chunkY: number, gridSize: number): ChunkData {
-    // Create generator instance (uses Delaunay triangulation for connectivity)
-    const generator = new DelaunayMazeGenerator();
+    // Get the current generator from the registry
+    const generator = MazeGeneratorRegistry.getGenerator(this.generatorType);
     
-    // Configure generator for this chunk
-    generator.levelSize = [this.chunkSize, this.chunkSize];
-    generator.regionCount = Math.max(this.chunkSize, this.chunkSize) * 2; // More regions for denser connections
-    generator.minRegionDistance = 3;
+    // Configure generator for this chunk if it supports configuration
+    if (generator.configure) {
+      generator.configure({
+        levelSize: [this.chunkSize, this.chunkSize],
+        regionCount: Math.max(this.chunkSize, this.chunkSize) * 2,
+        minRegionDistance: 3
+      });
+    }
     
-    // Generate the layout
-    const intGrid = generator.generateLayout();
+    // Generate the layout using the chunk-specific seed
+    const chunkSeed = RandomUtil.getChunkSeed(chunkX, chunkY, this.globalSeed);
+    const intGrid = generator.generateLayout(this.chunkSize, this.chunkSize, chunkSeed);
     
     // Convert IntGrid to number[][] format (0 = path, 1 = wall)
     const maze: number[][] = [];
@@ -162,6 +177,36 @@ export class MazeOverworldGenerator {
   static setSeed(seed: number): void {
     this.globalSeed = seed;
     this.clearCache(); // Clear cache when changing seed
+  }
+
+  /**
+   * Set the maze generator type to use for new chunks
+   * Available types: 'delaunay', 'cellular-automata', etc.
+   */
+  static setGeneratorType(type: string): void {
+    if (!MazeGeneratorRegistry.hasGenerator(type)) {
+      const available = MazeGeneratorRegistry.getAvailableTypes();
+      throw new Error(
+        `Generator type '${type}' not found. Available types: ${available.join(', ')}`
+      );
+    }
+    this.generatorType = type;
+    this.clearCache(); // Clear cache when changing generator
+    console.log(`✓ MazeOverworldGenerator now using: ${type}`);
+  }
+
+  /**
+   * Get the current generator type
+   */
+  static getGeneratorType(): string {
+    return this.generatorType;
+  }
+
+  /**
+   * Get information about available generators
+   */
+  static getAvailableGenerators(): Array<{ type: string; name: string; config: Record<string, any> }> {
+    return MazeGeneratorRegistry.getGeneratorInfo();
   }
 
   /**

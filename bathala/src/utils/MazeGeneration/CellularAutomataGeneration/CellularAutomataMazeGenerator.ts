@@ -1,4 +1,4 @@
-import { SeededRandom } from "./types";
+import { SeededRandom } from "../Core/types";
 
 /**
  * Maze generation using cellular automata algorithm

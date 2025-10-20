@@ -1,4 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
+import { initializeMazeGenerators } from '../../utils/MazeGeneration';
 
 export class Boot extends Scene
 {
@@ -11,6 +12,9 @@ export class Boot extends Scene
     constructor ()
     {
         super('Boot');
+        
+        // Initialize maze generators once at boot
+        initializeMazeGenerators();
     }
 
     preload ()

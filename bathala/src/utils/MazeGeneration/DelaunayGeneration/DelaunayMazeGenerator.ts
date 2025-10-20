@@ -1,4 +1,4 @@
-import { IntGrid } from './IntGrid';
+import { IntGrid } from '../Core/IntGrid';
 
 /** Immutable 2D point used for region seeds and triangulation. */
 export class Point {

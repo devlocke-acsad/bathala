@@ -1,5 +1,5 @@
-import { MapNode } from "../../core/types/MapTypes";
-import { ChunkData, ChunkRegion } from "./types";
+import { MapNode } from "../../../core/types/MapTypes";
+import { ChunkData, ChunkRegion } from "../Core/types";
 
 /*
   ChunkManager

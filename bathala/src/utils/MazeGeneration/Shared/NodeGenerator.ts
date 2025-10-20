@@ -1,6 +1,6 @@
-import { MapNode, NodeType } from "../../core/types/MapTypes";
-import { SeededRandom } from "./types";
-import { ACT1_COMMON_ENEMIES, ACT1_ELITE_ENEMIES } from "../../data/enemies/Act1Enemies";
+import { MapNode, NodeType } from "../../../core/types/MapTypes";
+import { SeededRandom } from "../Core/types";
+import { ACT1_COMMON_ENEMIES, ACT1_ELITE_ENEMIES } from "../../../data/enemies/Act1Enemies";
 
 /*
   NodeGenerator
