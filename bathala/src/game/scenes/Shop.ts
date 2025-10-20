@@ -187,18 +187,18 @@ export class Shop extends Scene {
     // Create modern title section
     const screenWidth = this.cameras.main.width;
     
-    // Title background panel with prologue/combat theme - made much wider
+    // Title background panel with prologue/combat theme - taller for better spacing
     const titlePanel = this.add.graphics();
     titlePanel.fillStyle(0x150E10, 0.9);
-    titlePanel.fillRoundedRect(screenWidth/2 - 350, 10, 700, 60, 12); // Increased from 600px to 700px
+    titlePanel.fillRoundedRect(screenWidth/2 - 350, 10, 700, 75, 12); // Increased height from 60px to 75px
     titlePanel.lineStyle(2, 0x77888C, 0.8);
-    titlePanel.strokeRoundedRect(screenWidth/2 - 350, 10, 700, 60, 12); // Increased from 600px to 700px
+    titlePanel.strokeRoundedRect(screenWidth/2 - 350, 10, 700, 75, 12); // Increased height from 60px to 75px
     titlePanel.setDepth(2000); // Ensure title stays on top and doesn't scroll
     
     // Main title with prologue/combat styling
     const title = this.add.text(
       screenWidth / 2,
-      40,
+      35,
       "MYSTERIOUS MERCHANT",
       {
         fontFamily: "dungeon-mode",
@@ -208,10 +208,10 @@ export class Shop extends Scene {
       }
     ).setOrigin(0.5).setDepth(2001); // Ensure title text stays on top
     
-    // Subtitle - fixed typo and made it fit better
+    // Subtitle - better positioned with more breathing room
     const subtitle = this.add.text(
       screenWidth / 2,
-      65,
+      63,
       "• Rare Relics & Mystical Artifacts •",
       {
         fontFamily: "dungeon-mode",
