@@ -274,13 +274,13 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
         );
         this.container.add(header);
 
-        const dialogue = "THE PATH AHEAD:\n\nNavigate the overworld\n   Choose your route carefully\n\nGrow stronger\n   Collect relics, upgrade cards, master combos\n\nFace chapter bosses\n   Three mighty foes await:\n   • Mangangaway (Corrupted Forest)\n   • Bakunawa (Submerged Barangays)\n   • False Bathala (Skyward Citadel)\n\nRestore balance\n   Purify the realms and save the spirits!";
+        const dialogue = "THE PATH AHEAD:\n\nNavigate the overworld\n   Choose your route carefully\n\nGrow stronger\n   Collect relics, upgrade cards, master combos\n\nFace the corruption\n   Three realms writhe under dark influence...\n   • Ancient groves twisted by hexes and deception\n   • Sunken depths where a great hunger stirs\n   • A sky citadel where false divinity reigns\n\nRestore balance\n   The spirits cry out for salvation!";
 
         this.scene.time.delayedCall(600, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 const success = createInfoBox(
                     this.scene,
-                    'You are ready! Your training is nearly complete!',
+                    'You are ready. The corrupted realms await your judgment.',
                     'success'
                 );
                 this.container.add(success);

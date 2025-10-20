@@ -550,13 +550,33 @@ export class TutorialManager {
         // Completion message
         const { width, height } = this.scene.cameras.main;
         
+        // Add background image (same as used throughout prologue)
+        const completionBg = this.scene.add.image(
+            width / 2,
+            height / 2,
+            'chap1_no_leaves_boss'
+        );
+        const scaleX = width / completionBg.width;
+        const scaleY = height / completionBg.height;
+        const scale = Math.max(scaleX, scaleY);
+        completionBg.setScale(scale).setDepth(2900).setAlpha(0);
+        
+        // Add overlay (matching prologue style)
+        const completionOverlay = this.scene.add.rectangle(
+            width / 2,
+            height / 2,
+            width,
+            height,
+            0x150E10
+        ).setAlpha(0).setDepth(2950);
+        
         const completionText = this.scene.add.text(
             width / 2,
-            height / 2 - 80,
-            '🎉 Tutorial Complete! 🎉',
+            height / 2 - 100,
+            'Tutorial Complete!',
             {
                 fontFamily: 'dungeon-mode',
-                fontSize: 42,
+                fontSize: 48,
                 color: '#FFD700',
                 align: 'center'
             }
@@ -564,61 +584,95 @@ export class TutorialManager {
 
         const messageText = this.scene.add.text(
             width / 2,
-            height / 2,
+            height / 2 + 20,
             'You have learned the ways of the Babaylan.\n\nThe corrupted realms await your judgment.\n\nRestore balance to the sacred lands!',
             {
                 fontFamily: 'dungeon-mode',
-                fontSize: 24,
+                fontSize: 26,
                 color: '#77888C',
                 align: 'center',
-                wordWrap: { width: width * 0.7 }
+                wordWrap: { width: width * 0.65 },
+                lineSpacing: 8
             }
         ).setOrigin(0.5).setAlpha(0).setDepth(3000);
 
         const readyText = this.scene.add.text(
             width / 2,
-            height / 2 + 100,
+            height / 2 + 160,
             'Click anywhere to begin your journey...',
             {
                 fontFamily: 'dungeon-mode',
-                fontSize: 20,
+                fontSize: 22,
                 color: '#FFAA00',
                 align: 'center'
             }
         ).setOrigin(0.5).setAlpha(0).setDepth(3000);
 
-        // Fade in completion screen
+        // Fade in background first
         this.scene.tweens.add({
-            targets: [completionText, messageText, readyText],
+            targets: completionBg,
             alpha: 1,
-            duration: 1000,
-            ease: 'Power2',
-            stagger: 200
+            duration: 800,
+            ease: 'Power2'
         });
 
-        // Pulse ready text
         this.scene.tweens.add({
-            targets: readyText,
-            alpha: 0.5,
-            duration: 1000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
+            targets: completionOverlay,
+            alpha: 0.92,
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => {
+                // Then fade in text with stagger
+                this.scene.tweens.add({
+                    targets: [completionText, messageText, readyText],
+                    alpha: 1,
+                    duration: 1000,
+                    ease: 'Power2',
+                    stagger: 300
+                });
+
+                // Pulse ready text
+                this.scene.tweens.add({
+                    targets: readyText,
+                    alpha: 0.6,
+                    duration: 1200,
+                    yoyo: true,
+                    repeat: -1,
+                    ease: 'Sine.easeInOut'
+                });
+            }
         });
 
-        // Click to continue
+        // Click to continue with enhanced transition
         this.scene.input.once('pointerdown', () => {
+            // Stop the pulsing animation on ready text
+            this.scene.tweens.killTweensOf(readyText);
+            
+            // Fade out all text quickly
             this.scene.tweens.add({
                 targets: [completionText, messageText, readyText],
                 alpha: 0,
-                duration: 600,
-                ease: 'Power2',
-                onComplete: () => {
-                    completionText.destroy();
-                    messageText.destroy();
-                    readyText.destroy();
-                    this.endTutorial();
-                }
+                duration: 400,
+                ease: 'Power2.easeOut'
+            });
+
+            // Wait for text to fade before starting background transition
+            this.scene.time.delayedCall(400, () => {
+                // Fade background and overlay together
+                this.scene.tweens.add({
+                    targets: [completionBg, completionOverlay],
+                    alpha: 0,
+                    duration: 800,
+                    ease: 'Power2.easeInOut',
+                    onComplete: () => {
+                        completionText.destroy();
+                        messageText.destroy();
+                        readyText.destroy();
+                        completionBg.destroy();
+                        completionOverlay.destroy();
+                        this.endTutorial();
+                    }
+                });
             });
         });
     }
@@ -628,15 +682,43 @@ export class TutorialManager {
             this.particles.stop();
         }
 
-        // Fade to main game
-        this.scene.cameras.main.fadeOut(1200, 21, 14, 16);
-        this.scene.time.delayedCall(1200, () => {
-            // Clean up all containers
-            this.container?.destroy();
-            this.bgContainer?.destroy();
-            
-            // Start the overworld
-            this.scene.scene.start('Overworld');
+        const { width, height } = this.scene.cameras.main;
+
+        // Create a fade overlay that starts transparent
+        const fadeOverlay = this.scene.add.rectangle(
+            width / 2,
+            height / 2,
+            width,
+            height,
+            0x000000
+        ).setDepth(4000).setAlpha(0);
+
+        // Smooth fade to black
+        this.scene.tweens.add({
+            targets: fadeOverlay,
+            alpha: 1,
+            duration: 1000,
+            ease: 'Sine.easeInOut',
+            onComplete: () => {
+                // Clean up all containers
+                if (this.container) {
+                    this.container.removeAll(true);
+                    this.container.destroy();
+                }
+                if (this.bgContainer) {
+                    this.bgContainer.removeAll(true);
+                    this.bgContainer.destroy();
+                }
+                
+                // Keep the black screen for a moment before transitioning
+                this.scene.time.delayedCall(300, () => {
+                    // Start the overworld scene
+                    this.scene.scene.start('Overworld');
+                    
+                    // The fade overlay will be destroyed when the scene changes
+                    fadeOverlay.destroy();
+                });
+            }
         });
     }
 }
