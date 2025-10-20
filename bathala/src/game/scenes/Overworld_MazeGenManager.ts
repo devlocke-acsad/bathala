@@ -670,16 +670,16 @@ export class Overworld_MazeGenManager {
         }
         break;
       case "shop":
-        spriteKey = "necromancer_f0";
-        animKey = "necromancer_idle";
+        spriteKey = "merchant_overworld";
+        animKey = null; // Static sprite, no animation
         break;
       case "event":
-        spriteKey = "doc_f0";
-        animKey = "doc_idle";
+        spriteKey = "event_overworld";
+        animKey = null; // Static sprite, no animation
         break;
       case "campfire":
-        spriteKey = "angel_f0";
-        animKey = "angel_idle";
+        spriteKey = "campfire_overworld";
+        animKey = "campfire_burn";
         break;
       case "treasure":
         spriteKey = "chest_f0";

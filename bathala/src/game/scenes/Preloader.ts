@@ -101,8 +101,27 @@ export class Preloader extends Scene {
     // Player sprite for Combat
     this.load.image("combat_player", "sprites/combat/player/mc_combat.png");
 
-    // Avatar sprite sheet for Overworld - 1 row, 10 columns of 16x16 (160x16 total)
-    this.load.spritesheet("overworld_player", "sprites/overworld/player.png", {
+    // Avatar sprite sheets for Overworld - separated by direction (16x16 per frame)
+    // Down: 3 frames (48x16)
+    this.load.spritesheet("player_down", "sprites/overworld/player/mc_down.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
+    
+    // Up: 3 frames (48x16)
+    this.load.spritesheet("player_up", "sprites/overworld/player/mc_up.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
+    
+    // Left: 2 frames (32x16)
+    this.load.spritesheet("player_left", "sprites/overworld/player/mc_left.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
+    
+    // Right: 2 frames (32x16)
+    this.load.spritesheet("player_right", "sprites/overworld/player/mc_right.png", {
       frameWidth: 16,
       frameHeight: 16,
     });
@@ -189,28 +208,17 @@ export class Preloader extends Scene {
     this.load.image("big_demon_f2", "sprites/overworld/elite/big_demon_idle_anim_f2.png");
     this.load.image("big_demon_f3", "sprites/overworld/elite/big_demon_idle_anim_f3.png");
     
-    // Campfire node sprites (angel)
-    this.load.image("angel_f0", "sprites/overworld/campfire/angel_idle_anim_f0.png");
-    this.load.image("angel_f1", "sprites/overworld/campfire/angel_idle_anim_f1.png");
-    this.load.image("angel_f2", "sprites/overworld/campfire/angel_idle_anim_f2.png");
-    this.load.image("angel_f3", "sprites/overworld/campfire/angel_idle_anim_f3.png");
-    
-    // Add campfire spritesheet for animated campfire
-    this.load.spritesheet("campfire", "sprites/overworld/campfire/angel_idle_anim_f0.png", {
-      frameWidth: 16,
-      frameHeight: 16,
+    // Campfire node sprite (6-frame animation, 32x48 per frame)
+    this.load.spritesheet("campfire_overworld", "sprites/overworld/campfire/campfire_overworld.png", {
+      frameWidth: 32,
+      frameHeight: 48,
     });
     
-    // Shop node sprites (necromancer)
-    this.load.image("necromancer_f0", "sprites/overworld/shop/necromancer_anim_f0.png");
-    this.load.image("necromancer_f1", "sprites/overworld/shop/necromancer_anim_f1.png");
-    this.load.image("necromancer_f2", "sprites/overworld/shop/necromancer_anim_f2.png");
-    this.load.image("necromancer_f3", "sprites/overworld/shop/necromancer_anim_f3.png");
+    // Shop node sprite (merchant)
+    this.load.image("merchant_overworld", "sprites/overworld/shop/merchant_overworld.png");
     
-    // Event node sprites (doc)
-    this.load.image("doc_f0", "sprites/overworld/event/doc_idle_anim_f0.png");
-    this.load.image("doc_f1", "sprites/overworld/event/doc_idle_anim_f1.png");
-    this.load.image("doc_f2", "sprites/overworld/event/doc_idle_anim_f2.png");
+    // Event node sprite
+    this.load.image("event_overworld", "sprites/overworld/event/event_overworld.png");
     
     // Treasure node sprites (chest)
     this.load.image("chest_f0", "sprites/overworld/treasure/chest_full_open_anim_f0.png");
@@ -300,8 +308,67 @@ export class Preloader extends Scene {
     if (this.textures.exists("tiyanak")) {
       this.textures.get("tiyanak").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
-    if (this.textures.exists("overworld_player")) {
-      this.textures.get("overworld_player").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    if (this.textures.exists("player_down")) {
+      this.textures.get("player_down").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("player_up")) {
+      this.textures.get("player_up").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("player_left")) {
+      this.textures.get("player_left").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("player_right")) {
+      this.textures.get("player_right").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    
+    // Apply NEAREST filtering to overworld node sprites for crisp pixel art
+    if (this.textures.exists("merchant_overworld")) {
+      this.textures.get("merchant_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("event_overworld")) {
+      this.textures.get("event_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("chest_f0")) {
+      this.textures.get("chest_f0").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("chest_f1")) {
+      this.textures.get("chest_f1").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("chest_f2")) {
+      this.textures.get("chest_f2").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("amomongo_overworld")) {
+      this.textures.get("amomongo_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("balete_overworld")) {
+      this.textures.get("balete_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("bungisngis_overworld")) {
+      this.textures.get("bungisngis_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("duwende_overworld")) {
+      this.textures.get("duwende_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("kapre_overworld")) {
+      this.textures.get("kapre_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("mangangaway_overworld")) {
+      this.textures.get("mangangaway_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("sigbin_overworld")) {
+      this.textures.get("sigbin_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("tawonglipod_overworld")) {
+      this.textures.get("tawonglipod_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("tikbalang_overworld")) {
+      this.textures.get("tikbalang_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("tiyanak_overworld")) {
+      this.textures.get("tiyanak_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
+    if (this.textures.exists("campfire_overworld")) {
+      this.textures.get("campfire_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
 
     // Ensure fonts are loaded before proceeding
@@ -381,73 +448,73 @@ export class Preloader extends Scene {
   private createAvatarAnimations(): void {
     console.log("Creating avatar animations");
     
-    // Avatar idle down animation (middle frame of down animation)
+    // Avatar idle down animation (middle frame - frame 1 of 3)
     this.anims.create({
       key: "avatar_idle_down",
-      frames: [{ key: "overworld_player", frame: 1 }],
+      frames: [{ key: "player_down", frame: 1 }],
       frameRate: 1,
       repeat: -1,
     });
     console.log("Created avatar_idle_down animation");
 
-    // Avatar walk down animation (columns 1-3)
+    // Avatar walk down animation (all 3 frames: 0, 1, 2)
     this.anims.create({
       key: "avatar_walk_down",
-      frames: this.anims.generateFrameNumbers("overworld_player", { start: 0, end: 2 }),
+      frames: this.anims.generateFrameNumbers("player_down", { start: 0, end: 2 }),
       frameRate: 6,
       repeat: -1,
     });
     console.log("Created avatar_walk_down animation");
 
-    // Avatar idle up animation (middle frame of up animation)
+    // Avatar idle up animation (middle frame - frame 1 of 3)
     this.anims.create({
       key: "avatar_idle_up",
-      frames: [{ key: "overworld_player", frame: 4 }],
+      frames: [{ key: "player_up", frame: 1 }],
       frameRate: 1,
       repeat: -1,
     });
     console.log("Created avatar_idle_up animation");
 
-    // Avatar walk up animation (columns 4-6)
+    // Avatar walk up animation (all 3 frames: 0, 1, 2)
     this.anims.create({
       key: "avatar_walk_up",
-      frames: this.anims.generateFrameNumbers("overworld_player", { start: 3, end: 5 }),
+      frames: this.anims.generateFrameNumbers("player_up", { start: 0, end: 2 }),
       frameRate: 6,
       repeat: -1,
     });
     console.log("Created avatar_walk_up animation");
 
-    // Avatar idle left animation (first frame of left animation)
+    // Avatar idle left animation (first frame - frame 0 of 2)
     this.anims.create({
       key: "avatar_idle_left",
-      frames: [{ key: "overworld_player", frame: 6 }],
+      frames: [{ key: "player_left", frame: 0 }],
       frameRate: 1,
       repeat: -1,
     });
     console.log("Created avatar_idle_left animation");
 
-    // Avatar walk left animation (columns 7-8)
+    // Avatar walk left animation (both 2 frames: 0, 1)
     this.anims.create({
       key: "avatar_walk_left",
-      frames: this.anims.generateFrameNumbers("overworld_player", { start: 6, end: 7 }),
+      frames: this.anims.generateFrameNumbers("player_left", { start: 0, end: 1 }),
       frameRate: 6,
       repeat: -1,
     });
     console.log("Created avatar_walk_left animation");
 
-    // Avatar idle right animation (first frame of right animation)
+    // Avatar idle right animation (first frame - frame 0 of 2)
     this.anims.create({
       key: "avatar_idle_right",
-      frames: [{ key: "overworld_player", frame: 8 }],
+      frames: [{ key: "player_right", frame: 0 }],
       frameRate: 1,
       repeat: -1,
     });
     console.log("Created avatar_idle_right animation");
 
-    // Avatar walk right animation (columns 9-10)
+    // Avatar walk right animation (both 2 frames: 0, 1)
     this.anims.create({
       key: "avatar_walk_right",
-      frames: this.anims.generateFrameNumbers("overworld_player", { start: 8, end: 9 }),
+      frames: this.anims.generateFrameNumbers("player_right", { start: 0, end: 1 }),
       frameRate: 6,
       repeat: -1,
     });
@@ -490,59 +557,20 @@ export class Preloader extends Scene {
     console.log("Created big_demon_idle animation");
     
     // Campfire node animation (angel)
-    this.anims.create({
-      key: "angel_idle",
-      frames: [
-        { key: "angel_f0" },
-        { key: "angel_f1" },
-        { key: "angel_f2" },
-        { key: "angel_f3" }
-      ],
-      frameRate: 4,
-      repeat: -1,
-    });
-    console.log("Created angel_idle animation");
-    
-    // Campfire animation (same as angel)
+    // Campfire animation (6 frames from spritesheet)
     this.anims.create({
       key: "campfire_burn",
-      frames: [
-        { key: "angel_f0" },
-        { key: "angel_f1" },
-        { key: "angel_f2" },
-        { key: "angel_f3" }
-      ],
-      frameRate: 4,
+      frames: this.anims.generateFrameNumbers("campfire_overworld", { start: 0, end: 5 }),
+      frameRate: 8,
       repeat: -1,
     });
     console.log("Created campfire_burn animation");
     
-    // Shop node animation (necromancer)
-    this.anims.create({
-      key: "necromancer_idle",
-      frames: [
-        { key: "necromancer_f0" },
-        { key: "necromancer_f1" },
-        { key: "necromancer_f2" },
-        { key: "necromancer_f3" }
-      ],
-      frameRate: 4,
-      repeat: -1,
-    });
-    console.log("Created necromancer_idle animation");
+    // Shop node - static merchant sprite (no animation needed)
+    console.log("Shop merchant sprite loaded (static)");
     
-    // Event node animation (doc)
-    this.anims.create({
-      key: "doc_idle",
-      frames: [
-        { key: "doc_f0" },
-        { key: "doc_f1" },
-        { key: "doc_f2" }
-      ],
-      frameRate: 4,
-      repeat: -1,
-    });
-    console.log("Created doc_idle animation");
+    // Event node - static sprite (no animation needed)
+    console.log("Event sprite loaded (static)");
     
     // Treasure node animation (chest)
     this.anims.create({
