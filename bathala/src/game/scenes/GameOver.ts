@@ -534,7 +534,7 @@ export class GameOver extends Scene
                 stat.label,
                 {
                     fontFamily: 'dungeon-mode',
-                    fontSize: Math.floor(14 * scaleFactor),
+                    fontSize: Math.floor(12 * scaleFactor),
                     color: stat.labelColor,
                     align: 'center',
                     wordWrap: { width: panelWidth * 0.8 }
@@ -550,7 +550,7 @@ export class GameOver extends Scene
                 stat.value.toString(),
                 {
                     fontFamily: 'dungeon-mode',
-                    fontSize: Math.floor(26 * scaleFactor),
+                    fontSize: Math.floor(16 * scaleFactor),
                     color: stat.color,
                     align: 'center',
                     stroke: '#000000',
