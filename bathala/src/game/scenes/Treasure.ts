@@ -756,7 +756,7 @@ export class Treasure extends Scene {
     
     dialog.add([dialogBg, title, instructions]);
     
-    // Create relic selection grid (2 rows of 3) - simplified boxes
+    // Create relic selection grid (2 rows of 3) - with properly scaled sprites
     const relicCardWidth = 200;
     const relicCardHeight = 100;
     const spacing = 15;
@@ -776,23 +776,44 @@ export class Treasure extends Scene {
       const cardBg = this.add.rectangle(0, 0, relicCardWidth, relicCardHeight, 0x2a1f2a)
         .setStrokeStyle(2, 0x77888C);
       
-      // Relic emoji/icon (centered, larger)
-      const emoji = this.add.text(0, -15, relic.emoji || "✦", {
-        fontSize: 32,
-        color: "#feca57",
-        align: "center"
-      }).setOrigin(0.5);
+      relicCard.add([cardBg]);
       
-      // Relic name (wrapped text)
-      const nameText = this.add.text(0, 20, relic.name, {
+      // Relic sprite - scaled to fit card properly
+      const spriteKey = getRelicSpriteKey(relic.id);
+      if (spriteKey && this.textures.exists(spriteKey)) {
+        const sprite = this.add.sprite(0, -10, spriteKey);
+        
+        // Calculate scale to fit within card bounds (leave room for text)
+        const maxSpriteWidth = relicCardWidth - 40;
+        const maxSpriteHeight = relicCardHeight - 45; // Leave space for name
+        const spriteScale = Math.min(
+          maxSpriteWidth / sprite.width,
+          maxSpriteHeight / sprite.height,
+          0.25 // Maximum scale cap to prevent too large sprites
+        );
+        
+        sprite.setScale(spriteScale);
+        relicCard.add(sprite);
+      } else {
+        // Fallback to emoji if sprite doesn't exist
+        const emoji = this.add.text(0, -10, relic.emoji || "✦", {
+          fontSize: 28,
+          color: "#feca57",
+          align: "center"
+        }).setOrigin(0.5);
+        relicCard.add(emoji);
+      }
+      
+      // Relic name (wrapped text, positioned at bottom)
+      const nameText = this.add.text(0, 35, relic.name, {
         fontFamily: "dungeon-mode",
-        fontSize: 13,
+        fontSize: 11,
         color: "#e8eced",
         align: "center",
         wordWrap: { width: relicCardWidth - 20 }
       }).setOrigin(0.5);
       
-      relicCard.add([cardBg, emoji, nameText]);
+      relicCard.add(nameText);
       
       // Make interactive
       cardBg.setInteractive({ useHandCursor: true });
