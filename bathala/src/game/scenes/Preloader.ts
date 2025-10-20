@@ -262,19 +262,26 @@ export class Preloader extends Scene {
     // ========================================================================
     // MUSIC LOADING - Managed by MusicManager
     // ========================================================================
-    // MusicManager owns ALL music assignment logic (see MusicManager.ts sceneMusicMap)
-    // Scenes never specify which music to play - they just call playSceneMusic()
-    // MusicManager decides: track, volume, fade, loop behavior
+    // MusicManager owns ALL music definitions (file paths, keys, assignments)
+    // Preloader just loads what MusicManager tells it to load
+    // Scenes never know about music files - they just call playSceneMusic()
     //
-    // Current Music Tracks:
-    // - placeholder_music: Main game music (used by most scenes)
-    // - disclaimer_music: Boot/Disclaimer sequence music
-    //
-    // Supported formats: .mp3, .ogg, .wav
+    // To add new music:
+    // 1. Add the .mp3 file to public/assets/music/
+    // 2. Add entry in MusicManager.musicTracks with key and path
+    // 3. Assign to scenes in MusicManager.sceneMusicMap
+    // 4. That's it! No changes needed here.
     // ========================================================================
     
-    this.load.audio("placeholder_music", "music/bathalaMusicPLHDR.mp3");
-    this.load.audio("disclaimer_music", "music/bathala_disclaimer.mp3");
+    // Get music tracks from MusicManager
+    const musicManager = MusicManager.getInstance();
+    const musicTracks = musicManager.getMusicTracks();
+    
+    // Load all music tracks defined by MusicManager
+    for (const track of musicTracks) {
+      console.log(`Loading music: ${track.key} from ${track.path}`);
+      this.load.audio(track.key, track.path);
+    }
     
     // Debug: Log when assets are loaded
     this.load.on('filecomplete', (key: string, type: string) => {

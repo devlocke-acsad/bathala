@@ -1,11 +1,19 @@
 import { Scene } from "phaser";
 
 /**
+ * Music track definition - MusicManager owns the file path mapping
+ */
+interface MusicTrackDefinition {
+  key: string;         // Unique identifier for this track
+  path: string;        // File path relative to assets folder
+}
+
+/**
  * Scene-to-Music mapping configuration
  * MusicManager owns all music assignment logic
  */
 interface SceneMusicConfig {
-  musicKey: string;    // Which audio file to play
+  musicKey: string;    // Which audio file to play (references MusicTrackDefinition.key)
   volume: number;      // Volume level (0.0 to 1.0)
   fadeIn: boolean;     // Whether to fade in
   loop: boolean;       // Whether to loop continuously
@@ -44,6 +52,24 @@ export class MusicManager {
   private fadeInDuration: number = 1000; // ms
 
   /**
+   * Music Track Definitions - MusicManager owns the file path mapping
+   * ===================================================================
+   * This is the SINGLE SOURCE OF TRUTH for which .mp3/.ogg files exist.
+   * Preloader reads this to know what to load.
+   * 
+   * To add new music:
+   * 1. Add the .mp3/.ogg file to public/assets/music/
+   * 2. Add a new entry here with unique key and path
+   * 3. Reference the key in sceneMusicMap below
+   */
+  private readonly musicTracks: MusicTrackDefinition[] = [
+    { key: "disclaimer_music", path: "music/bathala_disclaimer.mp3" },
+    { key: "placeholder_music", path: "music/bathalaMusicPLHDR.mp3" },
+    { key: "main_menu_music", path: "music/Bathala_Soundtrack/Bathala_MainMenu.mp3" },
+    // Add more music tracks here as they become available
+  ];
+
+  /**
    * Scene-to-Music mapping - MusicManager's music assignment logic
    * ================================================================
    * This is the SINGLE SOURCE OF TRUTH for which music plays in which scene.
@@ -55,8 +81,8 @@ export class MusicManager {
     "Disclaimer": { musicKey: "disclaimer_music", volume: 0.4, fadeIn: false, loop: true },
     
     // Main Scenes
-    "MainMenu": { musicKey: "placeholder_music", volume: 0.5, fadeIn: true, loop: true },
-    "Overworld": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true, loop: true },
+    "MainMenu": { musicKey: "main_menu_music", volume: 0.5, fadeIn: true, loop: true },
+    "Overworld": { musicKey: "main_menu_music", volume: 0.4, fadeIn: true, loop: true },
     
     // Combat Scenes
     "Combat": { musicKey: "placeholder_music", volume: 0.5, fadeIn: true, loop: true },
@@ -96,6 +122,18 @@ export class MusicManager {
    */
   setScene(scene: Scene): void {
     this.scene = scene;
+  }
+
+  /**
+   * Get all music tracks that need to be loaded by Preloader
+   * =========================================================
+   * Preloader calls this to know which music files to load.
+   * Returns array of { key, path } for each music track.
+   * 
+   * @returns Array of music track definitions for loading
+   */
+  getMusicTracks(): MusicTrackDefinition[] {
+    return this.musicTracks;
   }
 
   /**
