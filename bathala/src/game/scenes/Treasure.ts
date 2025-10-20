@@ -17,6 +17,37 @@ type TreasureReward =
   | { type: "relic"; item: Relic }
   | { type: "potion"; item: Potion };
 
+/**
+ * Helper function to get the sprite key for a relic based on its ID
+ * Note: Currently unused in discard dialog (using emoji instead), but kept for potential future use
+ */
+function getRelicSpriteKey(relicId: string): string {
+  const spriteMap: Record<string, string> = {
+    'swift_wind_agimat': 'relic_swift_wind_agimat',
+    'amomongo_claw': 'relic_amomongo_claw',
+    'ancestral_blade': 'relic_ancestral_blade',
+    'balete_root': 'relic_balete_root',
+    'babaylans_talisman': 'relic_babaylans_talisman',
+    'bungisngis_grin': 'relic_bungisngis_grin',
+    'diwatas_crown': 'relic_diwatas_crown',
+    'duwende_charm': 'relic_duwende_charm',
+    'earthwardens_plate': 'relic_earthwardens_plate',
+    'ember_fetish': 'relic_ember_fetish',
+    'kapres_cigar': 'relic_kapres_cigar',
+    'lucky_charm': 'relic_lucky_charm',
+    'mangangaway_wand': 'relic_mangangaway_wand',
+    'sarimanok_feather': 'relic_sarimanok_feather',
+    'sigbin_heart': 'relic_sigbin_heart',
+    'stone_golem_heart': 'relic_stone_golem_heart',
+    'tidal_amulet': 'relic_tidal_amulet',
+    'tikbalangs_hoof': 'relic_tikbalangs_hoof',
+    'tiyanak_tear': 'relic_tiyanak_tear',
+    'umalagad_spirit': 'relic_umalagad_spirit'
+  };
+  
+  return spriteMap[relicId] || '';
+}
+
 export class Treasure extends Scene {
   private player!: Player;
   private treasureChest!: Phaser.GameObjects.Sprite;
@@ -606,6 +637,12 @@ export class Treasure extends Scene {
     const gameState = GameState.getInstance();
     
     if (reward.type === "relic") {
+      // Check if player has 6 relics - need to discard one first
+      if (this.player.relics.length >= 6) {
+        this.showRelicDiscardDialog(reward, selectedButton);
+        return;
+      }
+      
       // Add relic to player
       this.player.relics.push(reward.item);
       
@@ -671,6 +708,193 @@ export class Treasure extends Scene {
   }
 
   // (continue button removed: we auto-return after selection)
+
+  /**
+   * Show relic discard dialog when player has 6 relics
+   */
+  private showRelicDiscardDialog(reward: TreasureReward, selectedButton: Phaser.GameObjects.Container): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Create overlay
+    const overlay = this.add.rectangle(
+      screenWidth / 2,
+      screenHeight / 2,
+      screenWidth,
+      screenHeight,
+      0x000000
+    ).setAlpha(0.8).setScrollFactor(0).setDepth(10000);
+    
+    // Create dialog container
+    const dialogWidth = 700;
+    const dialogHeight = 500;
+    const dialog = this.add.container(
+      screenWidth / 2,
+      screenHeight / 2
+    ).setScrollFactor(0).setDepth(10001);
+    
+    // Dialog background
+    const dialogBg = this.add.graphics();
+    dialogBg.fillGradientStyle(0x1a1a1a, 0x1a1a1a, 0x0a0a0a, 0x0a0a0a, 0.98);
+    dialogBg.lineStyle(3, 0xfeca57, 1);
+    dialogBg.fillRoundedRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 10);
+    dialogBg.strokeRoundedRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 10);
+    
+    // Title
+    const title = this.add.text(0, -dialogHeight/2 + 30, "RELIC INVENTORY FULL!", {
+      fontFamily: "dungeon-mode",
+      fontSize: 24,
+      color: "#feca57",
+    }).setOrigin(0.5);
+    
+    // Instructions
+    const instructions = this.add.text(0, -dialogHeight/2 + 65, "Choose a relic to discard:", {
+      fontFamily: "dungeon-mode",
+      fontSize: 16,
+      color: "#e8eced",
+    }).setOrigin(0.5);
+    
+    dialog.add([dialogBg, title, instructions]);
+    
+    // Create relic selection grid (2 rows of 3) - simplified boxes
+    const relicCardWidth = 200;
+    const relicCardHeight = 100;
+    const spacing = 15;
+    const startX = -((relicCardWidth + spacing) * 3 - spacing) / 2 + relicCardWidth / 2;
+    const startY = -100;
+    
+    this.player.relics.forEach((relic, index) => {
+      const row = Math.floor(index / 3);
+      const col = index % 3;
+      const x = startX + col * (relicCardWidth + spacing);
+      const y = startY + row * (relicCardHeight + spacing);
+      
+      // Create relic card container
+      const relicCard = this.add.container(x, y);
+      
+      // Card background with gradient
+      const cardBg = this.add.rectangle(0, 0, relicCardWidth, relicCardHeight, 0x2a1f2a)
+        .setStrokeStyle(2, 0x77888C);
+      
+      // Relic emoji/icon (centered, larger)
+      const emoji = this.add.text(0, -15, relic.emoji || "✦", {
+        fontSize: 32,
+        color: "#feca57",
+        align: "center"
+      }).setOrigin(0.5);
+      
+      // Relic name (wrapped text)
+      const nameText = this.add.text(0, 20, relic.name, {
+        fontFamily: "dungeon-mode",
+        fontSize: 13,
+        color: "#e8eced",
+        align: "center",
+        wordWrap: { width: relicCardWidth - 20 }
+      }).setOrigin(0.5);
+      
+      relicCard.add([cardBg, emoji, nameText]);
+      
+      // Make interactive
+      cardBg.setInteractive({ useHandCursor: true });
+      cardBg.on("pointerover", () => {
+        cardBg.setStrokeStyle(3, 0xfeca57);
+        this.tweens.add({
+          targets: relicCard,
+          scale: 1.05,
+          duration: 150
+        });
+      });
+      cardBg.on("pointerout", () => {
+        cardBg.setStrokeStyle(2, 0x77888C);
+        this.tweens.add({
+          targets: relicCard,
+          scale: 1,
+          duration: 150
+        });
+      });
+      cardBg.on("pointerdown", () => {
+        // Discard this relic and proceed with reward
+        this.player.relics.splice(index, 1);
+        
+        // Clean up dialog
+        overlay.destroy();
+        dialog.destroy();
+        
+        // Now proceed with adding the new relic
+        if (reward.type === "relic") {
+          const gameState = GameState.getInstance();
+          
+          // Add new relic to player
+          this.player.relics.push(reward.item);
+          
+          // Apply immediate relic acquisition effects
+          RelicManager.applyRelicAcquisitionEffect(reward.item.id, this.player);
+          
+          // Persist updated player data
+          gameState.updatePlayerData({ 
+            ...this.player,
+            relics: [...this.player.relics],
+            potions: [...this.player.potions]
+          });
+          
+          // Update UI
+          this.descriptionText.setText(`Discarded ${relic.name}. Acquired ${reward.item.name}!`);
+          this.descriptionText.setColor("#2ed573");
+          this.showMessage(`Discarded ${relic.name}`, "#ff9f43");
+          
+          // Disable all reward buttons
+          this.rewardButtons.forEach(button => {
+            button.disableInteractive();
+            button.setActive(false);
+          });
+          
+          // Return to overworld after short delay
+          this.time.delayedCall(1500, () => {
+            gameState.completeCurrentNode(true);
+            const overworldScene = this.scene.get("Overworld");
+            if (overworldScene) {
+              (overworldScene as any).resume();
+            }
+            this.scene.stop();
+            this.scene.resume("Overworld");
+          });
+        }
+      });
+      
+      dialog.add(relicCard);
+    });
+    
+    // Cancel button
+    const cancelBtn = this.add.container(0, dialogHeight/2 - 40);
+    const cancelBg = this.add.graphics();
+    cancelBg.fillStyle(0xff4757, 0.9);
+    cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
+    const cancelText = this.add.text(0, 0, "CANCEL", {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#ffffff",
+    }).setOrigin(0.5);
+    
+    cancelBtn.add([cancelBg, cancelText]);
+    cancelBtn.setSize(120, 40);
+    cancelBtn.setInteractive({ useHandCursor: true });
+    cancelBtn.on("pointerdown", () => {
+      overlay.destroy();
+      dialog.destroy();
+    });
+    cancelBtn.on("pointerover", () => {
+      cancelBg.clear();
+      cancelBg.fillStyle(0xff6b81, 0.9);
+      cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
+    });
+    cancelBtn.on("pointerout", () => {
+      cancelBg.clear();
+      cancelBg.fillStyle(0xff4757, 0.9);
+      cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
+    });
+    
+    dialog.add(cancelBtn);
+  }
 
   private showMessage(message: string, color: string): void {
     const screenWidth = this.cameras.main.width;

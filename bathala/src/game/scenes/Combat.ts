@@ -1226,6 +1226,12 @@ export class Combat extends Scene {
       }
       this.animations.animateEnemyAttack(); // Add animation when enemy attacks
       this.damagePlayer(damage);
+    } else if (enemy.intent.type === "defend") {
+      // Enemy gains block (show visual feedback)
+      const blockGain = enemy.intent.value;
+      enemy.block = (enemy.block || 0) + blockGain;
+      this.showActionResult(`Enemy gains ${blockGain} Block!`);
+      this.ui.updateEnemyUI();
     }
 
     // Update enemy intent for next turn
@@ -1491,7 +1497,7 @@ export class Combat extends Scene {
         description: "Gains 5 block",
         icon: "⛨",
       };
-      enemy.block += 5;
+      // Block is gained in executeEnemyTurn(), not here (intent only shows what will happen)
     }
 
     this.ui.updateEnemyUI();
@@ -3723,9 +3729,10 @@ export class Combat extends Scene {
     if (this.turnText) this.turnText.setVisible(true);
     if (this.actionsText) this.actionsText.setVisible(true);
     if (this.handEvaluationText) this.handEvaluationText.setVisible(true);
-    if (this.enemyIntentText) this.enemyIntentText.setVisible(true);
+    // Keep enemy intent and attack preview hidden
+    // if (this.enemyIntentText) this.enemyIntentText.setVisible(true);
     if (this.actionResultText) this.actionResultText.setVisible(true);
-    if (this.enemyAttackPreviewText) this.enemyAttackPreviewText.setVisible(true);
+    // if (this.enemyAttackPreviewText) this.enemyAttackPreviewText.setVisible(true);
   }
 
   /**
