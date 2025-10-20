@@ -148,7 +148,7 @@ export class Shop extends Scene {
     
     // Log for thesis data collection
     if (ddaAdjustedPrice !== basePrice || finalPrice !== ddaAdjustedPrice) {
-      console.log(`💰 DDA Shop Pricing [${item.name}]: ${basePrice} → ${ddaAdjustedPrice} (DDA ${adjustment.tier}) → ${finalPrice} (relics)`);
+      console.log(`♦ DDA Shop Pricing [${item.name}]: ${basePrice} → ${ddaAdjustedPrice} (DDA ${adjustment.tier}) → ${finalPrice} (relics)`);
     }
     
     return finalPrice;
@@ -753,51 +753,61 @@ export class Shop extends Scene {
   private createCurrencyDisplay(): void {
     const screenWidth = this.cameras.main.width;
     
-    // Create currency panel with prologue/combat theme double borders
-    const currencyPanel = this.add.graphics();
+    // Health and Currency display - positioned in top-right corner with background panel
+    const topRightX = screenWidth - 20; // Right edge with padding
+    const topY = 40; // Aligned below title panel
+    
+    // Background panel for stats (compact design)
+    const panelWidth = 160;
+    const panelHeight = 70;
+    const panelX = screenWidth - panelWidth / 2 - 20;
+    const panelY = topY;
+    
+    const statsPanel = this.add.graphics();
+    statsPanel.setDepth(2000);
     
     // Outer border
-    currencyPanel.lineStyle(2, 0x77888C);
-    currencyPanel.strokeRoundedRect(screenWidth - 288, 81, 268, 88, 10);
+    statsPanel.lineStyle(2, 0x77888C, 0.8);
+    statsPanel.strokeRoundedRect(panelX - panelWidth/2, panelY - panelHeight/2, panelWidth, panelHeight, 8);
     
-    // Inner border
-    currencyPanel.lineStyle(2, 0x77888C);
-    currencyPanel.strokeRoundedRect(screenWidth - 284, 85, 260, 80, 10);
+    // Background fill
+    statsPanel.fillStyle(0x150E10, 0.92);
+    statsPanel.fillRoundedRect(panelX - panelWidth/2, panelY - panelHeight/2, panelWidth, panelHeight, 8);
     
-    // Background
-    currencyPanel.fillStyle(0x150E10, 0.9);
-    currencyPanel.fillRoundedRect(screenWidth - 284, 85, 260, 80, 10);
+    // Health display with combat styling
+    const healthY = topY - 12;
+    const healthIcon = this.add.text(topRightX - 25, healthY, "♥", {
+      fontSize: 20,
+      color: "#ff6b6b",
+    }).setOrigin(1, 0.5).setDepth(2001);
     
-    // Health display with prologue/combat styling
     this.healthText = this.add.text(
-      screenWidth - 154,
-      105,
-      `Health: ${this.player.currentHealth}/${this.player.maxHealth} ♥`,
+      topRightX - 35,
+      healthY,
+      `${this.player.currentHealth}/${this.player.maxHealth}`,
       {
         fontFamily: "dungeon-mode",
         fontSize: 16,
-        color: "#77888C",
+        color: "#e8eced",
+        fontStyle: "bold"
       }
-    ).setOrigin(0.5, 0.5);
+    ).setOrigin(1, 0.5).setDepth(2001);
     
-    // Currency section with proper centering
-    const currencyY = 135;
-    
-    // Gold section - centered within currency area
-    const gintoX = screenWidth - 154; // Center the gold display
-    const gintoIcon = this.add.text(gintoX - 20, currencyY, "�", {
+    // Gold display - positioned below health
+    const goldY = topY + 13;
+    const gintoIcon = this.add.text(topRightX - 25, goldY, "♦", {
       fontSize: 18,
-    }).setOrigin(0.5, 0.5);
+    }).setOrigin(1, 0.5).setDepth(2001);
     
-    this.gintoText = this.add.text(gintoX + 10, currencyY, `${this.player.ginto}`, {
+    this.gintoText = this.add.text(topRightX - 35, goldY, `${this.player.ginto}`, {
       fontFamily: "dungeon-mode",
       fontSize: 16,
-      color: "#77888C",
+      color: "#fbbf24",
       fontStyle: "bold"
-    }).setOrigin(0, 0.5);
+    }).setOrigin(1, 0.5).setDepth(2001);
     
     // Add subtle pulse animation to currency
-    const currencyElements = [this.gintoText, gintoIcon];
+    const currencyElements = [this.gintoText, gintoIcon, healthIcon];
     currencyElements.forEach((element, index) => {
       this.tweens.add({
         targets: element,
@@ -1036,7 +1046,7 @@ export class Shop extends Scene {
         color: "#2ed573"
       }).setOrigin(0.5);
       
-      const finalPriceValue = this.add.text(35, height/2 - bottomPanelHeight/2 + 8, `${actualPrice} 💰`, {
+      const finalPriceValue = this.add.text(35, height/2 - bottomPanelHeight/2 + 8, `${actualPrice} ♦`, {
         fontFamily: "dungeon-mode-inverted",
         fontSize: 15,
         color: "#2ed573"
@@ -1051,7 +1061,7 @@ export class Shop extends Scene {
         color: "#77888C"
       }).setOrigin(0.5);
       
-      const finalPriceValue = this.add.text(0, height/2 - bottomPanelHeight/2 + 8, `${actualPrice} 💰`, {
+      const finalPriceValue = this.add.text(0, height/2 - bottomPanelHeight/2 + 8, `${actualPrice} ♦`, {
         fontFamily: "dungeon-mode-inverted",
         fontSize: 16,
         color: isOwned ? "#666666" : "#fbbf24"
@@ -1442,7 +1452,7 @@ export class Shop extends Scene {
     
     let priceEmoji;
     if (item.currency === "ginto") {
-      priceEmoji = "💰";
+      priceEmoji = "♦";
     } else {
       priceEmoji = "💎";
     }
