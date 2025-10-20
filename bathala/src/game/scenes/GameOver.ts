@@ -1,10 +1,14 @@
 import { Scene } from 'phaser';
+import { ENEMY_LORE_DATA } from '../../data/lore/EnemyLore';
 
 interface GameOverData {
     defeatedBy?: string;
     enemySpriteKey?: string;
     finalHealth?: number;
     turnsPlayed?: number;
+    totalDamageDealt?: number;
+    cardsPlayed?: number;
+    relicsObtained?: number;
 }
 
 export class GameOver extends Scene
@@ -14,6 +18,7 @@ export class GameOver extends Scene
     gameover_text : Phaser.GameObjects.Text;
     private defeatData: GameOverData = {};
     private uiContainer!: Phaser.GameObjects.Container;
+    private enemySpriteContainer!: Phaser.GameObjects.Container; // Separate container for enemy sprite
 
     constructor ()
     {
@@ -77,7 +82,7 @@ export class GameOver extends Scene
         this.uiContainer.add(overlay);
 
         // Main "DEFEATED" text with dramatic styling
-        this.gameover_text = this.add.text(screenWidth/2, screenHeight * 0.25, 'DEFEATED', {
+        this.gameover_text = this.add.text(screenWidth/2, screenHeight * 0.15, 'DEFEATED', {
             fontFamily: 'dungeon-mode-inverted', 
             fontSize: Math.floor(80 * scaleFactor), 
             color: '#ff4444',
@@ -89,7 +94,7 @@ export class GameOver extends Scene
         this.uiContainer.add(this.gameover_text);
 
         // Subtitle text
-        const subtitleY = screenHeight * 0.32;
+        const subtitleY = screenHeight * 0.22;
         const subtitle = this.add.text(
             screenWidth/2, 
             subtitleY, 
@@ -104,10 +109,13 @@ export class GameOver extends Scene
         subtitle.setOrigin(0.5);
         this.uiContainer.add(subtitle);
 
-        // Defeat details panel - positioned lower to avoid overlap
-        const panelY = screenHeight * 0.55;
-        const panelWidth = Math.min(500 * scaleFactor, screenWidth * 0.8);
-        const panelHeight = 220 * scaleFactor;
+        // Create enemy sprite display on the left side (separate container)
+        this.createEnemySpriteDisplay(screenWidth, screenHeight, scaleFactor);
+
+        // Defeat details panel - center of screen
+        const panelY = screenHeight * 0.52;
+        const panelWidth = Math.min(550 * scaleFactor, screenWidth * 0.5);
+        const panelHeight = 380 * scaleFactor;
 
         // Panel background with border
         const panelBg = this.add.rectangle(
@@ -121,7 +129,7 @@ export class GameOver extends Scene
         this.uiContainer.add(panelBg);
 
         // Defeated by text
-        let detailsY = panelY - (panelHeight * 0.35);
+        let detailsY = panelY - (panelHeight * 0.42);
         
         if (this.defeatData.defeatedBy) {
             const defeatedByText = this.add.text(
@@ -137,7 +145,7 @@ export class GameOver extends Scene
             defeatedByText.setOrigin(0.5);
             this.uiContainer.add(defeatedByText);
 
-            detailsY += 35 * scaleFactor;
+            detailsY += 32 * scaleFactor;
 
             const enemyName = this.add.text(
                 screenWidth/2,
@@ -152,29 +160,80 @@ export class GameOver extends Scene
             enemyName.setOrigin(0.5);
             this.uiContainer.add(enemyName);
 
-            detailsY += 50 * scaleFactor;
+            detailsY += 45 * scaleFactor;
         }
 
-        // Combat stats
-        const statsY = detailsY;
+        // Divider line
+        const divider1 = this.add.rectangle(
+            screenWidth/2,
+            detailsY,
+            panelWidth * 0.8,
+            2,
+            0x663333
+        );
+        this.uiContainer.add(divider1);
+        detailsY += 30 * scaleFactor;
 
-        if (this.defeatData.turnsPlayed !== undefined) {
-            const turnsText = this.add.text(
-                screenWidth/2,
-                statsY,
-                `Turns Survived: ${this.defeatData.turnsPlayed}`,
+        // Run Statistics section
+        const statsTitle = this.add.text(
+            screenWidth/2,
+            detailsY,
+            '━━━ RUN STATISTICS ━━━',
+            {
+                fontFamily: 'dungeon-mode-inverted',
+                fontSize: Math.floor(20 * scaleFactor),
+                color: '#ffd93d',
+                align: 'center'
+            }
+        );
+        statsTitle.setOrigin(0.5);
+        this.uiContainer.add(statsTitle);
+        detailsY += 35 * scaleFactor;
+
+        // Stats display - three columns
+        const statsConfig = [
+            { label: 'Turns Survived', value: this.defeatData.turnsPlayed ?? 0, color: '#4ecdc4' },
+            { label: 'Total Damage', value: this.defeatData.totalDamageDealt ?? 0, color: '#ff6b6b' },
+            { label: 'Cards Played', value: this.defeatData.cardsPlayed ?? 0, color: '#95e1d3' },
+            { label: 'Relics Obtained', value: this.defeatData.relicsObtained ?? 0, color: '#ffd93d' }
+        ];
+
+        statsConfig.forEach((stat, index) => {
+            const statY = detailsY + Math.floor(index / 2) * (28 * scaleFactor);
+            const statX = screenWidth/2 + ((index % 2 === 0 ? -1 : 1) * panelWidth * 0.25);
+
+            const statText = this.add.text(
+                statX,
+                statY,
+                `${stat.label}: ${stat.value}`,
                 {
                     fontFamily: 'dungeon-mode',
                     fontSize: Math.floor(16 * scaleFactor),
-                    color: '#aaaaaa'
+                    color: stat.color
                 }
             );
-            turnsText.setOrigin(0.5);
-            this.uiContainer.add(turnsText);
-        }
+            statText.setOrigin(0.5);
+            this.uiContainer.add(statText);
+        });
+
+        detailsY += 70 * scaleFactor;
+
+        // Divider line
+        const divider2 = this.add.rectangle(
+            screenWidth/2,
+            detailsY,
+            panelWidth * 0.8,
+            2,
+            0x663333
+        );
+        this.uiContainer.add(divider2);
+        detailsY += 30 * scaleFactor;
+
+        // Lore snippet section
+        this.createLoreSection(screenWidth/2, detailsY, panelWidth, scaleFactor);
 
         // Footer instruction
-        const footerY = screenHeight * 0.85;
+        const footerY = screenHeight * 0.92;
         const clickText = this.add.text(
             screenWidth/2,
             footerY,
@@ -220,7 +279,161 @@ export class GameOver extends Scene
         if (this.uiContainer) {
             this.uiContainer.destroy();
         }
+        if (this.enemySpriteContainer) {
+            this.enemySpriteContainer.destroy();
+        }
         this.createUI();
+    }
+
+    /**
+     * Create enemy sprite display (separate container on left side)
+     */
+    private createEnemySpriteDisplay(screenWidth: number, screenHeight: number, scaleFactor: number): void {
+        this.enemySpriteContainer = this.add.container(0, 0);
+
+        // Position on left side
+        const spriteX = screenWidth * 0.2;
+        const spriteY = screenHeight * 0.52;
+
+        // Background panel for sprite
+        const spriteBg = this.add.rectangle(
+            spriteX,
+            spriteY,
+            200 * scaleFactor,
+            280 * scaleFactor,
+            0x1a0a0a
+        );
+        spriteBg.setStrokeStyle(3, 0x663333);
+        this.enemySpriteContainer.add(spriteBg);
+
+        // Debug log
+        console.log(`[GameOver] Enemy sprite key: ${this.defeatData.enemySpriteKey}`);
+        console.log(`[GameOver] Texture exists: ${this.defeatData.enemySpriteKey ? this.textures.exists(this.defeatData.enemySpriteKey) : false}`);
+
+        // Try to display enemy sprite if available
+        if (this.defeatData.enemySpriteKey && this.textures.exists(this.defeatData.enemySpriteKey)) {
+            const enemySprite = this.add.sprite(
+                spriteX,
+                spriteY - 20 * scaleFactor,
+                this.defeatData.enemySpriteKey
+            );
+            
+            // Scale sprite to fit panel
+            const maxWidth = 150 * scaleFactor;
+            const maxHeight = 180 * scaleFactor;
+            const spriteScale = Math.min(
+                maxWidth / enemySprite.width,
+                maxHeight / enemySprite.height
+            );
+            enemySprite.setScale(spriteScale);
+            
+            console.log(`[GameOver] Enemy sprite created with scale: ${spriteScale}`);
+            
+            this.enemySpriteContainer.add(enemySprite);
+
+            // Add subtle glow effect behind sprite
+            const glow = this.add.rectangle(
+                spriteX,
+                spriteY - 20 * scaleFactor,
+                enemySprite.width * spriteScale + 20,
+                enemySprite.height * spriteScale + 20,
+                0xff4444,
+                0.2
+            );
+            this.enemySpriteContainer.add(glow);
+            this.enemySpriteContainer.sendToBack(glow);
+            this.enemySpriteContainer.sendToBack(spriteBg); // Ensure background is at back
+        } else {
+            console.warn(`[GameOver] Enemy sprite not found or not loaded: ${this.defeatData.enemySpriteKey}`);
+            
+            // Show placeholder icon if sprite unavailable
+            const placeholderText = this.add.text(
+                spriteX,
+                spriteY - 20 * scaleFactor,
+                '👹',
+                {
+                    fontSize: Math.floor(80 * scaleFactor),
+                    align: 'center'
+                }
+            );
+            placeholderText.setOrigin(0.5);
+            this.enemySpriteContainer.add(placeholderText);
+        }
+
+        // Label below sprite
+        const spriteLabel = this.add.text(
+            spriteX,
+            spriteY + 110 * scaleFactor,
+            'Your Nemesis',
+            {
+                fontFamily: 'dungeon-mode',
+                fontSize: Math.floor(16 * scaleFactor),
+                color: '#999999',
+                align: 'center'
+            }
+        );
+        spriteLabel.setOrigin(0.5);
+        this.enemySpriteContainer.add(spriteLabel);
+
+        // Fade in sprite container separately
+        this.enemySpriteContainer.setAlpha(0);
+        this.tweens.add({
+            targets: this.enemySpriteContainer,
+            alpha: 1,
+            duration: 1200,
+            delay: 300,
+            ease: 'Power2'
+        });
+    }
+
+    /**
+     * Create lore snippet section from enemy mythology data
+     */
+    private createLoreSection(centerX: number, startY: number, panelWidth: number, scaleFactor: number): void {
+        // Title
+        const loreTitle = this.add.text(
+            centerX,
+            startY,
+            '━━━ MYTHOLOGY ━━━',
+            {
+                fontFamily: 'dungeon-mode-inverted',
+                fontSize: Math.floor(20 * scaleFactor),
+                color: '#ffd93d',
+                align: 'center'
+            }
+        );
+        loreTitle.setOrigin(0.5);
+        this.uiContainer.add(loreTitle);
+
+        // Get lore data for the enemy
+        let loreText = 'A creature of Filipino mythology...';
+        
+        if (this.defeatData.defeatedBy) {
+            // Convert enemy name to lore key (lowercase and replace spaces with underscores)
+            const loreKey = this.defeatData.defeatedBy.toLowerCase().replace(/\s+/g, '_');
+            const enemyLore = ENEMY_LORE_DATA[loreKey];
+            
+            if (enemyLore) {
+                // Use the mythology field for the lore snippet
+                loreText = enemyLore.mythology;
+            }
+        }
+
+        const lore = this.add.text(
+            centerX,
+            startY + 30 * scaleFactor,
+            loreText,
+            {
+                fontFamily: 'dungeon-mode',
+                fontSize: Math.floor(15 * scaleFactor),
+                color: '#d4b878',
+                fontStyle: 'italic',
+                align: 'center',
+                wordWrap: { width: panelWidth * 0.85 }
+            }
+        );
+        lore.setOrigin(0.5, 0);
+        this.uiContainer.add(lore);
     }
 
     shutdown() {
