@@ -1,8 +1,8 @@
-# Delaunay Corridor Generator: Mathematical & Technical Notes
+# Delaunay Corridor Generator: Logic & Method
 
 ## Scope
 
-This document expands on the implementations in `DelaunayMazeGenerator.ts`, `MazeOverworldGenerator.ts`, and the surrounding utilities under `utils/MazeGeneration/`. It captures the formulas, heuristics, and computational flow that drive the current Delaunay-based corridor generator used for overworld chunks.
+This document explains the logic, heuristics, and computational flow that drive the current Delaunay-based corridor generator used for overworld chunks. It focuses on purpose, operation, and rationale rather than code.
 
 ---
 
@@ -10,19 +10,7 @@ This document expands on the implementations in `DelaunayMazeGenerator.ts`, `Maz
 
 ### 1.1 Rejection Sampling Loop
 
-For a requested `regionCount`, the generator repeatedly samples integer coordinates until the minimum spacing constraint is satisfied:
-
-```text
-attempts < MAX_REGION_POINT_ATTEMPTS
-```
-
-Each candidate point `(x_i, y_i)` is accepted only if:
-
-```math
-\forall p_j \in P: \; ||(x_i, y_i) - p_j||_2^2 \ge \text{minRegionDistance}^2
-```
-
-Where `P` is the already accepted point set. This enforces a Poisson-disc-like distribution on the integer lattice without resorting to full dart throwing.
+For a requested number of region anchors, the generator repeatedly samples integer coordinates until the minimum spacing constraint is satisfied. Each candidate is accepted only if its squared Euclidean distance from every already-accepted point meets or exceeds the squared spacing threshold. This produces a Poisson-disc-like distribution on the integer lattice without requiring full dart throwing.
 
 ### 1.2 Parameter Effects
 
@@ -45,23 +33,11 @@ The current implementation substitutes a true Delaunay triangulation with a near
 
 ### 2.1 Neighbor Selection
 
-For every seed `p_i`, compute Euclidean distances to all other seeds and select the `k=3` nearest:
-
-```math
- d_{ij} = \sqrt{(x_i - x_j)^2 + (y_i - y_j)^2}
-```
-
-Edges are added between `p_i` and the three smallest `d_{ij}` values. The undirected edge set is stored canonically as `(min(p_i, p_j), max(p_i, p_j))` to eliminate duplicates.
+For every region anchor, compute Euclidean distances to all others and select the k nearest (typically three). Undirected edges are created to these neighbors, deduplicated consistently. This approximates Delaunay connectivity while staying computationally simple.
 
 ### 2.2 Edge Sorting
 
-Before carving paths, edges are sorted by Euclidean length to prioritize local corridors:
-
-```math
-\text{edgeLength}(p,q) = \sqrt{(x_q - x_p)^2 + (y_q - y_p)^2}
-```
-
-Short edges produce dense local structure; longer edges are processed later, giving breadth to the layout once nearby regions are connected.
+Before carving paths, edges are sorted by Euclidean length to prioritize local corridors. Short edges produce dense local structure; longer ones are processed later to add breadth once nearby regions are connected.
 
 ### 2.3 Step-by-Step Flow
 
@@ -75,41 +51,15 @@ Short edges produce dense local structure; longer edges are processed later, giv
 
 ## 3. Multi-Waypoint A* Path Carving
 
-For each edge `(p, q)`, integer coordinates are rounded: `p' = (⌊x_p⌋, ⌊y_p⌋)`, `q' = (⌊x_q⌋, ⌊y_q⌋)`. The generator then creates stylistic waypoints before running A*.
+For each edge between two anchors, their positions are discretized to grid coordinates. The generator then creates stylistic waypoints before running A*.
 
 ### 3.1 Waypoint Heuristics
 
-Depending on Manhattan separation `D = |dx| + |dy|`, different waypoint styles activate:
-
-- **No waypoint** if `D < MIN_WAYPOINT_DISTANCE`.
-- **L-shape**: introduces one orthogonal detour with probability `L_SHAPE_FIRST_AXIS_PROB` of horizontal-first.
-- **Step pattern**: adds midpoint perturbations within `±STEP_MIDPOINT_JITTER` tiles.
-- **Zigzag**: for `D > ZIGZAG_MIN_DISTANCE`, adds thirds-based control points to emulate weaving corridors.
-
-The waypoint array `W = {w_1, …, w_m}` augments the path search as segmented goals: `p' → w_1 → … → w_m → q'`.
+Depending on Manhattan separation between endpoints, different waypoint styles activate: none for very short spans, an L-shaped detour for short-to-medium spans, a stepped pattern with jitter for medium spans, and a zigzag pattern for long spans. Waypoints segment the path search into smaller goals to create controlled variety: start to waypoint(s) to goal.
 
 ### 3.2 A* Cost Model
 
-For each segment, standard A* operates on a 4-connected grid:
-
-```math
-f(n) = g(n) + h(n)
-```
-
-- **Heuristic** `h(n)` is Manhattan distance:
-  ```math
-  h(n) = |x_n - x_{goal}| + |y_n - y_{goal}|
-  ```
-- **Tile cost** `g(n)` increments by `BASE_TILE_COST (≈1.2)` per move.
-- **Direction penalty** `Δdir` adds `DIRECTION_CHANGE_PENALTY (≈0.1)` when the move vector changes:
-  ```math
-  Δdir = \begin{cases}
-  0 & \text{if direction unchanged}\\
-  0.1 & \text{otherwise}
-  \end{cases}
-  ```
-
-Future iterations may reduce `BASE_TILE_COST` to `1.0` when traversing existing `PATH_TILE`s to encourage reuse (not yet active in current code).
+For each segment, A* operates on a four-directional grid. The total estimated cost equals the path cost so far plus a Manhattan-distance heuristic to the goal. Each move adds a base cost, with a small extra cost when changing direction to encourage straighter corridors. Optionally, traversing existing corridor tiles can reduce cost to promote reuse and interconnection.
 
 ### 3.3 Path Reconstruction
 
@@ -130,35 +80,11 @@ Once the goal is reached, parents are traced back to the start to recover discre
 
 ### 4.1 Double-Wide Block Pruning
 
-To eliminate `2×2` path blocks (large rooms) the generator scans for sets of four adjacent coordinates:
-
-```math
-B = \{(x, y), (x+1, y), (x, y+1), (x+1, y+1)\}
-```
-
-Any block where all members are `PATH_TILE` triggers pruning:
-
-1. Count **external degree** (path neighbors outside `B`) for each member.
-2. Sort ascending; attempt to remove the lowest-degree tile.
-3. Skip removal if it disconnects a straight corridor (two opposite neighbors or degree ≥ 3).
-4. Fall back to removing the smallest-degree tile if no safe option exists.
-
-The iteration repeats up to `MAX_DOUBLE_WIDE_FIX_ITER` times to stabilize.
+To eliminate two-by-two path blocks (room-like spaces), the generator scans for sets of four adjacent corridor tiles. For each detected block, it estimates which tile removal least harms connectivity (favoring the lowest external degree and avoiding straight-corridor cuts), removes that tile, and repeats until no blocks remain or an iteration cap is reached.
 
 ### 4.2 Dead-End Extension
 
-Dead ends are tiles with exactly one adjacent path. For each, the algorithm attempts to extend forward up to five tiles along the outward vector:
-
-```math
-\vec{d} = (x_{dead} - x_{conn}, \; y_{dead} - y_{conn})
-```
-
-It carves tiles along `(x_{dead} + k·d_x, y_{dead} + k·d_y)` until it either:
-
-- Hits another corridor, creating a loop, or
-- Reaches world bounds or the five-step cap.
-
-This improves traversal loops without complex graph analysis.
+Dead ends are corridor tiles with exactly one adjacent corridor. For each, the algorithm extends forward a short distance along the outward direction until it either merges into another corridor (creating a loop) or reaches a cap or boundary. This increases traversal loops without expensive graph analysis.
 
 ### 4.3 Step-by-Step Flow
 
@@ -173,22 +99,11 @@ This improves traversal loops without complex graph analysis.
 
 ## 5. Interactions With the Overworld Pipeline
 
-1. **Chunk Generation** (`MazeOverworldGenerator.generateCorridorChunk`):
-   - Sets `levelSize`, dense `regionCount`, and `minRegionDistance` per chunk.
-   - Invokes `generateLayout()` to obtain an `IntGrid` of `PATH_TILE`/`REGION_TILE` values.
-
-2. **Chunk Connectivity** (`generateConnectionPoints`, `ChunkConnectivityManager`):
-   - After carving paths, border scans locate `PATH_TILE`s to create deterministic inter-chunk gateways.
-   - Additional adjustments may widen or offset entrances; planned future work adds probability control using chunk coordinates.
-
-3. **Node Placement** (`NodeGenerator.generateOptimizedNodes`):
-   - Uses the carved grid to find candidate cells with neighborhood openness ≥ threshold. Map nodes (NPCs, shops, events) inherit the deterministic chunk seed.
-
-4. **Caching** (`ChunkManager`):
-   - Generated `maze` arrays are cached by chunk key. Seeds from `RandomUtil.getChunkSeed(chunkX, chunkY, globalSeed)` ensure reproducibility.
-
-5. **Runtime Visualization** (`Overworld_MazeGenManager.ts`):
-   - Dev mode overlays (outer tile markers) rely on chunk boundaries and region lookups to visualize the Delaunay output.
+1) Chunk generation configures chunk dimensions, region density, and spacing, then produces the corridor grid.
+2) Chunk connectivity scans borders for corridor tiles and creates inter-chunk gateways, optionally widening entrances and adding inward paths.
+3) Node placement finds candidate cells with sufficient neighborhood openness and spacing to host encounters and events.
+4) Caching stores generated results keyed by chunk coordinates for reuse.
+5) Optional debug overlays can visualize chunk boundaries, region anchors, and carved corridors in real time.
 
 ### 5.1 Step-by-Step Interaction Narrative
 
@@ -204,19 +119,13 @@ This improves traversal loops without complex graph analysis.
 
 ## 6. Randomness & Seeding
 
-Although the Delaunay generator currently uses `Math.random()`, chunk orchestration seeds deterministic PRNGs through `RandomUtil`. Extending the generator to accept an injected RNG would allow per-chunk repeatability:
-
-```text
-seed = RandomUtil.getChunkSeed(chunkX, chunkY, globalSeed)
-```
-
-Applying the same seed ensures identical region points, triangulation, and A* path choices, enabling reproducible worlds across runs.
+The system uses deterministic per-chunk seeding so that the same inputs yield the same corridors. Applying the same seed ensures identical region points, neighbor selection, waypoint choices, and path outcomes, enabling reproducible worlds across runs.
 
 ### 6.1 Step-by-Step Flow
 
-1. **Derive chunk seed** using `RandomUtil.getChunkSeed`, typically a hash over `(chunkX, chunkY, globalSeed)`.
-2. **Instantiate PRNG** via `RandomUtil.createSeededRandom(seed)`; downstream systems (nodes, loot) pull random values from this generator.
-3. **Future integration**: once `DelaunayMazeGenerator` accepts an injected RNG, region point sampling and waypoint decisions will use the same seeded stream, guaranteeing identical corridor layouts per chunk.
+1) Derive a chunk seed deterministically from chunk coordinates and a global seed.
+2) Use a seeded random source consistently so downstream systems (nodes, loot) share the same randomness.
+3) Ensure region sampling and waypoint choices use this seeded stream to guarantee identical corridor layouts per chunk.
 
 ---
 
@@ -231,25 +140,24 @@ Applying the same seed ensures identical region points, triangulation, and A* pa
 
 ## 8. Extension Hooks
 
-- **True Delaunay**: Swap `createSimpleTriangulation` for a library (e.g., Delaunator). Replace distance-based neighbor selection with actual triangle faces.
-- **Weighted Edge Selection**: Introduce weights `w_{pq}` to bias corridor carving order, e.g., based on biome tags or chunk metadata.
-- **A* Penalties**: Integrate additional cost terms such as congestion, node density, or alignment with existing roads.
-- **PRNG Injection**: Accept a seeded RNG from `MazeOverworldGenerator` to avoid global `Math.random` usage and align all stochastic decisions.
+- True Delaunay: Replace nearest-neighbor selection with triangle-face connectivity to gain planarity and stronger optimality.
+- Weighted edge selection: Bias carving order based on biome tags or chunk metadata for stronger theming.
+- Additional A* penalties: Incorporate congestion, node density, or alignment with existing roads.
+- PRNG injection: Accept a seeded RNG from the orchestrator to align all stochastic decisions across systems.
 
 ---
 
 ## 9. Formula Summary Table
 
-| Stage | Formula / Heuristic | Purpose |
-|-------|---------------------|---------|
-| Region spacing | `||p_i - p_j||_2^2 ≥ minRegionDistance^2` | Enforce minimum seed distance |
-| Edge length | `√((x_q - x_p)^2 + (y_q - y_p)^2)` | Sort edges by locality |
-| Manhattan heuristic | `|x - x_goal| + |y - y_goal|` | A* admissible heuristic |
-| Cost accumulation | `g_{new} = g_{curr} + BASE_TILE_COST + Δdir` | Control corridor straightness |
-| Waypoint trigger | `D ≥ MIN_WAYPOINT_DISTANCE` | Decide if segmented path is needed |
-| Double-wide detection | All tiles in `B` are PATH | Identify 2×2 corridors |
-| Dead-end vector | `d = deadEnd - connection` | Extend corridor forward |
+Key stages and their purposes:
+- Region spacing: Enforce a minimum distance between seeds to avoid clustering.
+- Edge length ordering: Sort edges by locality to build local structure first.
+- Manhattan heuristic: Guide A* toward goals efficiently on a grid.
+- Directional cost accumulation: Control corridor straightness with mild turn penalties.
+- Waypoint triggering: Decide when to segment paths for visual variety.
+- Double-wide detection: Remove 2×2 corridor blocks to preserve single-width identity.
+- Dead-end extension: Promote loops and reduce cul-de-sacs.
 
 ---
 
-This reference should provide enough mathematical and implementation context to extend, analyze, or refactor the Delaunay corridor generator while maintaining compatibility with the surrounding overworld systems.
+This reference should provide enough conceptual context to extend, analyze, or refactor the Delaunay corridor generator while maintaining compatibility with the surrounding overworld systems.
