@@ -101,6 +101,12 @@ export class Preloader extends Scene {
     // Player sprite for Combat
     this.load.image("combat_player", "sprites/combat/player/mc_combat.png");
 
+    // Slash attack animation (12 frames as PNG sequence)
+    for (let i = 1; i <= 12; i++) {
+      const frameNum = i.toString().padStart(5, '0');
+      this.load.image(`slash_${frameNum}`, `animation/attack/skash_${frameNum}.png`);
+    }
+
     // Avatar sprite sheets for Overworld - separated by direction (16x16 per frame)
     // Down: 3 frames (48x16)
     this.load.spritesheet("player_down", "sprites/overworld/player/mc_down.png", {

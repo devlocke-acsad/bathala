@@ -403,44 +403,59 @@ export class CombatAnimations {
     const playerSprite = this.scene.getPlayerSprite();
     const originalX = playerSprite.x;
     const originalScale = playerSprite.scaleX;
-    
-    // Get the appropriate color based on suit
-    const suitColors: Record<Suit, number> = {
-      "Apoy": 0xff4500,    // Fire red/orange
-      "Tubig": 0x1e90ff,   // Water blue
-      "Lupa": 0x32cd32,    // Earth green
-      "Hangin": 0x87ceeb    // Wind light blue
-    };
-    
-    const color = suitColors[suit];
-    
-    // More dramatic movement for cinematic effect
     const enemySprite = this.scene.getEnemySprite();
-    const dashDistance = enemySprite.x - 80; // Get closer to enemy
-    
-    // Dash forward with dramatic scale and slash effect
+    const slashX = enemySprite.x - 40;
+    const slashY = enemySprite.y;
+
+    // Create slash attack animation from PNG sequence
+    if (!this.scene.anims.exists("slash_attack_anim")) {
+      this.scene.anims.create({
+        key: "slash_attack_anim",
+        frames: [
+          { key: "slash_00001" },
+          { key: "slash_00002" },
+          { key: "slash_00003" },
+          { key: "slash_00004" },
+          { key: "slash_00005" },
+          { key: "slash_00006" },
+          { key: "slash_00007" },
+          { key: "slash_00008" },
+          { key: "slash_00009" },
+          { key: "slash_00010" },
+          { key: "slash_00011" },
+          { key: "slash_00012" }
+        ],
+        frameRate: 24,
+        repeat: 0
+      });
+    }
+    const slashAnim = this.scene.add.sprite(slashX, slashY, "slash_00001")
+      .setOrigin(0.5)
+      .setScale(1.2)
+      .setDepth(1002)
+      .setAlpha(1);
+    slashAnim.play("slash_attack_anim");
+    slashAnim.on("animationcomplete", () => {
+      slashAnim.destroy();
+    });
+
+    // Animate player dash
     this.scene.tweens.add({
       targets: playerSprite,
-      x: dashDistance,
-      scaleX: originalScale * 1.2, // Make player slightly larger during attack
-      scaleY: originalScale * 1.2,
+      x: slashX - 40,
+      scaleX: playerSprite.scaleX * 1.2,
+      scaleY: playerSprite.scaleY * 1.2,
       duration: 150,
       ease: 'Power3.Out',
-      onStart: () => {
-        // Add multiple slash visual effects for more impact
-        this.createDramaticSlashEffect(playerSprite.x, playerSprite.y, color);
-      },
       onComplete: () => {
-        // Brief pause at target, then return
-        this.scene.time.delayedCall(100, () => {
-          this.scene.tweens.add({
-            targets: playerSprite,
-            x: originalX,
-            scaleX: originalScale,
-            scaleY: originalScale,
-            duration: 300,
-            ease: 'Back.Out'
-          });
+        // Return player to original position
+        this.scene.tweens.add({
+          targets: playerSprite,
+          x: originalX,
+          scaleX: originalScale,
+          scaleY: originalScale,
+          duration: 120,
+          ease: 'Power3.In'
         });
       }
     });
@@ -762,10 +777,10 @@ export class CombatAnimations {
   public animatePlayerAttack(): void {
     const playerSprite = this.scene.getPlayerSprite();
     if (!playerSprite) return;
-    
+
     const originalX = playerSprite.x;
-    
-    // Move forward
+
+    // Move player forward
     this.scene.tweens.add({
       targets: playerSprite,
       x: originalX + 50,
@@ -773,30 +788,57 @@ export class CombatAnimations {
       ease: 'Power2',
       yoyo: true
     });
+
+    // Show slash attack animation at enemy position
+    const enemySprite = this.scene.getEnemySprite();
+        if (!playerSprite) return;
+  const slashX = enemySprite.x - 60; // Move animation further left
+  const slashY = enemySprite.y;
+    // Remove any previous slash animation
+    const prevSlash = this.scene.children.getByName("slash_effect");
+    if (prevSlash) {
+      prevSlash.destroy();
+    }
+
+    // Create animation if not exists
+    if (!this.scene.anims.exists("slash_attack_anim")) {
+      this.scene.anims.create({
+        key: "slash_attack_anim",
+        frames: [
+          { key: "slash_00001" },
+          { key: "slash_00002" },
+          { key: "slash_00003" },
+          { key: "slash_00004" },
+          { key: "slash_00005" },
+          { key: "slash_00006" },
+          { key: "slash_00007" },
+          { key: "slash_00008" },
+          { key: "slash_00009" },
+          { key: "slash_00010" },
+          { key: "slash_00011" },
+          { key: "slash_00012" }
+        ],
+        frameRate: 24,
+        repeat: 0
+      });
+    }
+
+    // Add animated sprite using first frame
+    const slashAnim = this.scene.add.sprite(slashX, slashY, "slash_00001")
+      .setOrigin(0.5, 0.5)
+      .setScale(2.2)
+      .setName("slash_effect")
+      .setDepth(100);
+    slashAnim.play("slash_attack_anim");
+    slashAnim.on("animationcomplete", () => {
+      slashAnim.destroy();
+    });
   }
 
-  public animateEnemySlash(player: Phaser.GameObjects.Sprite, enemy: Phaser.GameObjects.Sprite): void {
-    if (!player || !enemy) return;
-
-    const slash = this.scene.add.graphics();
-    slash.lineStyle(5, 0xffffff, 1);
-    slash.beginPath();
-    slash.moveTo(player.x, player.y);
-    slash.lineTo(enemy.x, enemy.y);
-    slash.closePath();
-    slash.strokePath();
-
-    slash.setAlpha(0);
-
-    this.scene.tweens.add({
-        targets: slash,
-        alpha: { from: 1, to: 0 },
-        duration: 250,
-        ease: 'Cubic.easeOut',
-        onComplete: () => {
-            slash.destroy();
-        }
-    });
+  public animateEnemySlash(): void {
+    // Deprecated: replaced by GIF slash effect
+    // If you want to use the GIF, call animatePlayerAttack instead
+    return;
   }
 
   /** Animate enemy death */
