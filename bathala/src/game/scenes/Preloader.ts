@@ -79,6 +79,14 @@ export class Preloader extends Scene {
         `assets/animation/attack/special_tubig/water${frameNum}.png`
       );
     }
+    // Fire special animation (Apoy) - load as PNG sequence (png_00.png to png_83.png)
+    for (let i = 0; i <= 83; i++) {
+      const frameNum = i.toString().padStart(2, "0");
+      this.load.image(
+        `fire_special_${frameNum}`,
+        `assets/animation/attack/special_fire/png_${frameNum}.png`
+      );
+    }
     // Lupa special animation (Earth Crusher)
     this.load.spritesheet(
       "lupa_special",

@@ -14,6 +14,47 @@ import { DeckManager } from "../../../utils/DeckManager";
  */
 export class CombatAnimations {
   /**
+   * Play the Apoy (Inferno Strike) special animation using PNG sequence
+   * @param x X position for animation (usually enemy position)
+   * @param y Y position for animation (usually enemy position)
+   * @param scale Optional scale factor (default 1.2)
+   */
+  public apoySpecialAnimation(x: number, y: number, scale: number = 1.2): void {
+    // Check all frame keys exist before creating animation
+    const missingFrames: string[] = [];
+    for (let i = 0; i <= 83; i++) {
+      const frameKey = `fire_special_${i.toString().padStart(2, "0")}`;
+      if (!this.scene.textures.exists(frameKey)) {
+        missingFrames.push(frameKey);
+      }
+    }
+    if (missingFrames.length > 0) {
+      console.error("Missing Apoy special animation frames:", missingFrames);
+      // Optionally, show a fallback or skip animation
+      return;
+    }
+    // Create the animation if it doesn't exist
+    if (!this.scene.anims.exists("apoy_special_anim")) {
+      this.scene.anims.create({
+        key: "apoy_special_anim",
+        frames: Array.from({ length: 84 }, (_, i) => ({ key: `fire_special_${i.toString().padStart(2, "0")}` })),
+        frameRate: 40,
+        repeat: 0
+      });
+    }
+    // Add the sprite and play the animation
+    const enemySpriteScale = 0.4; // Use the same scale as enemy sprites for consistency
+    const apoyAnim = this.scene.add.sprite(x, y, `fire_special_00`)
+      .setOrigin(0.5)
+      .setScale(enemySpriteScale)
+      .setDepth(1002)
+      .setAlpha(1);
+    apoyAnim.play("apoy_special_anim");
+    apoyAnim.on("animationcomplete", () => {
+      apoyAnim.destroy();
+    });
+  }
+  /**
    * Play the Tubig (Tidal Slash) special animation using the tubig_special spritesheet
    * @param x X position for animation (usually enemy position)
    * @param y Y position for animation (usually enemy position)
@@ -365,6 +406,31 @@ export class CombatAnimations {
           120,
           120,
           0x1e90ff // Water blue
+        ).setAlpha(0).setDepth(1004);
+        this.scene.tweens.add({
+          targets: impactFlash,
+          alpha: [0, 0.3, 0],
+          duration: 200,
+          ease: 'Cubic.Out',
+          onComplete: () => {
+            impactFlash.destroy();
+          }
+        });
+        // Damage feedback: flash red and show damage number
+        this.animateSpriteDamage(enemySprite);
+        this.showDamageNumber(enemySprite.x, enemySprite.y, this.getSpecialAttackDamage(suit));
+      });
+    } else if (suit === "Apoy") {
+      this.apoySpecialAnimation(enemySprite.x, enemySprite.y);
+      // Add impact effects and damage feedback during the animation
+      this.scene.time.delayedCall(300, () => {
+        this.scene.cameras.main.shake(150, 0.01);
+        const impactFlash = this.scene.add.rectangle(
+          enemySprite.x,
+          enemySprite.y,
+          120,
+          120,
+          0xff4500 // Fire red/orange
         ).setAlpha(0).setDepth(1004);
         this.scene.tweens.add({
           targets: impactFlash,
