@@ -71,6 +71,11 @@ export class Preloader extends Scene {
   }
 
   preload() {
+    //  Load the assets for the game
+    this.load.setPath("assets");
+
+    // Healing potion asset for Treasure scene
+    this.load.image("heal_potion", "potion/heal_potion.png");
     // Tubig special animation (Tidal Slash) - load as PNG sequence (water90000 to water90041)
     for (let i = 0; i < 42; i++) {
       const frameNum = (90000 + i).toString();
