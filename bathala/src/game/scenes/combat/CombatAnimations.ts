@@ -42,14 +42,24 @@ export class CombatAnimations {
         repeat: 0
       });
     }
-    // Add the sprite and play the animation
-    const enemySpriteScale = 0.4; // Use the same scale as enemy sprites for consistency
-    const apoyAnim = this.scene.add.sprite(x, y, `fire_special_00`)
+    // Position: just below enemy sprite, but above its bottom
+    // Try to get enemy sprite height if available
+    let fireY = y;
+    const enemySprite = this.getCurrentEnemySprite?.() ?? null;
+    if (enemySprite && enemySprite.displayHeight) {
+      fireY = enemySprite.y + enemySprite.displayHeight / 2 - 32; // 32px above bottom
+    } else {
+      fireY = y + 40;
+    }
+    // Make the fire animation larger
+    const fireScale = 1.7;
+    const apoyAnim = this.scene.add.sprite(x, fireY, `fire_special_00`)
       .setOrigin(0.5)
-      .setScale(enemySpriteScale)
+      .setScale(fireScale)
       .setDepth(1002)
       .setAlpha(1);
-    apoyAnim.play("apoy_special_anim");
+    // Play animation faster
+    apoyAnim.anims.play({ key: "apoy_special_anim", frameRate: 90 });
     apoyAnim.on("animationcomplete", () => {
       apoyAnim.destroy();
     });
