@@ -1384,7 +1384,7 @@ export class Combat extends Scene {
 
     // Add visual feedback for enemy taking damage
     this.animations.animateSpriteDamage(this.enemySprite);
-    this.animations.animateEnemySlash(this.enemySprite);
+    this.animations.animateEnemySlash(this.playerSprite, this.enemySprite);
     this.ui.updateEnemyUI();
 
     // Show detailed damage calculation if there are special bonuses
