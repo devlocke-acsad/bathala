@@ -775,6 +775,32 @@ export class CombatAnimations {
     });
   }
 
+  public animateEnemySlash(target: Phaser.GameObjects.Sprite): void {
+    if (!target) return;
+
+    const slash = this.scene.add.graphics();
+    slash.lineStyle(5, 0xffffff, 1);
+    slash.beginPath();
+    slash.moveTo(-50, -50);
+    slash.lineTo(50, 50);
+    slash.closePath();
+    slash.strokePath();
+
+    slash.x = target.x;
+    slash.y = target.y;
+    slash.setAlpha(0);
+
+    this.scene.tweens.add({
+        targets: slash,
+        alpha: { from: 1, to: 0 },
+        duration: 250,
+        ease: 'Cubic.easeOut',
+        onComplete: () => {
+            slash.destroy();
+        }
+    });
+  }
+
   /** Animate enemy death */
   public animateEnemyDeath(): void {
     const enemySprite = this.scene.getEnemySprite();
