@@ -71,6 +71,24 @@ export class Preloader extends Scene {
   }
 
   preload() {
+    // Tubig special animation (Tidal Slash) - load as PNG sequence (water90000 to water90041)
+    for (let i = 0; i < 42; i++) {
+      const frameNum = (90000 + i).toString();
+      this.load.image(
+        `water${frameNum}`,
+        `assets/animation/attack/special_tubig/water${frameNum}.png`
+      );
+    }
+    // Lupa special animation (Earth Crusher)
+    this.load.spritesheet(
+      "lupa_special",
+      "assets/animation/attack/special_lupa/lupa_special.png",
+      {
+        frameWidth: 96,
+        frameHeight: 96,
+        endFrame: 99 // 100 frames, 0-indexed
+      }
+    );
     //  Load the assets for the game
     this.load.setPath("assets");
 

@@ -13,10 +13,115 @@ import { DeckManager } from "../../../utils/DeckManager";
  * - Character slash animations
  */
 export class CombatAnimations {
+  /**
+   * Play the Tubig (Tidal Slash) special animation using the tubig_special spritesheet
+   * @param x X position for animation (usually enemy position)
+   * @param y Y position for animation (usually enemy position)
+   * @param scale Optional scale factor (default 1.2)
+   */
+  public tubigSpecialAnimation(x: number, y: number, scale: number = 1.2): void {
+    // Check all frame keys exist before creating animation
+    const missingFrames: string[] = [];
+    for (let i = 0; i < 42; i++) {
+      const frameKey = `water${(90000 + i).toString()}`;
+      if (!this.scene.textures.exists(frameKey)) {
+        missingFrames.push(frameKey);
+      }
+    }
+    if (missingFrames.length > 0) {
+      console.error("Missing Tubig special animation frames:", missingFrames);
+      // Optionally, show a fallback or skip animation
+      return;
+    }
+    // Create the animation if it doesn't exist
+    if (!this.scene.anims.exists("tubig_special_anim")) {
+      this.scene.anims.create({
+        key: "tubig_special_anim",
+        frames: Array.from({ length: 42 }, (_, i) => ({ key: `water${(90000 + i).toString()}` })),
+        frameRate: 40,
+        repeat: 0
+      });
+    }
+    // Add the sprite and play the animation
+    const enemySpriteScale = 0.4; // Use the same scale as enemy sprites for consistency
+    const tubigAnim = this.scene.add.sprite(x, y, `water90000`)
+      .setOrigin(0.5)
+      .setScale(enemySpriteScale)
+      .setDepth(1002)
+      .setAlpha(1);
+    tubigAnim.play("tubig_special_anim");
+    tubigAnim.on("animationcomplete", () => {
+      tubigAnim.destroy();
+    });
+  }
+  /**
+   * Play the Lupa (Earth Crusher) special animation using the lupa_special spritesheet
+   * @param x X position for animation (usually enemy position)
+   * @param y Y position for animation (usually enemy position)
+   * @param scale Optional scale factor (default 1.2)
+   */
+  public lupaSpecialAnimation(x: number, y: number, scale: number = 1.2): void {
+    // Create the animation if it doesn't exist
+    if (!this.scene.anims.exists("lupa_special_anim")) {
+      this.scene.anims.create({
+        key: "lupa_special_anim",
+        frames: this.scene.anims.generateFrameNumbers("lupa_special", { start: 0, end: 99 }),
+        frameRate: 40,
+        repeat: 0
+      });
+    }
+    // Add the sprite and play the animation
+    const lupaAnim = this.scene.add.sprite(x, y, "lupa_special", 0)
+      .setOrigin(0.5)
+      .setScale(scale)
+      .setDepth(1002)
+      .setAlpha(1);
+    lupaAnim.play("lupa_special_anim");
+    lupaAnim.on("animationcomplete", () => {
+      lupaAnim.destroy();
+    });
+  }
   private scene: Combat;
 
   constructor(scene: Combat) {
     this.scene = scene;
+  }
+
+  /**
+   * Fallback: Get special attack damage for animation display
+   * Replace with actual game logic as needed
+   */
+  private getSpecialAttackDamage(suit: Suit): number {
+    // TODO: Replace with real damage calculation from Combat scene
+    if (suit === "Lupa") return 42;
+    if (suit === "Tubig") return 36;
+    return 20;
+  }
+
+  /**
+   * Show damage number above enemy sprite
+   */
+  private showDamageNumber(x: number, y: number, damage: number): void {
+    const dmgText = this.scene.add.text(x, y - 50, `-${damage}`,
+      {
+        fontFamily: 'Arial',
+        fontSize: '32px',
+        color: '#ff2222',
+        stroke: '#000',
+        strokeThickness: 4,
+        fontStyle: 'bold'
+      })
+      .setOrigin(0.5)
+      .setDepth(1005)
+      .setAlpha(1);
+    this.scene.tweens.add({
+      targets: dmgText,
+      y: y - 80,
+      alpha: 0,
+      duration: 700,
+      ease: 'Cubic.Out',
+      onComplete: () => dmgText.destroy()
+    });
   }
 
   /**
@@ -223,33 +328,80 @@ export class CombatAnimations {
    * Perform the actual special attack animation after announcement
    */
   private performSpecialAttack(suit: Suit): void {
-    // Character slash animation
-    this.animateCharacterSlash(suit);
-    
-    // Add impact effects during the attack
-    this.scene.time.delayedCall(300, () => {
-      // Screen shake for impact
-      this.scene.cameras.main.shake(150, 0.01);
-      
-      // Create impact flash
-      const impactFlash = this.scene.add.rectangle(
-        this.scene.cameras.main.width / 2,
-        this.scene.cameras.main.height / 2,
-        this.scene.cameras.main.width,
-        this.scene.cameras.main.height,
-        0xffffff
-      ).setAlpha(0).setDepth(1004);
-      
-      this.scene.tweens.add({
-        targets: impactFlash,
-        alpha: [0, 0.3, 0],
-        duration: 200,
-        ease: 'Cubic.Out',
-        onComplete: () => {
-          impactFlash.destroy();
-        }
+    const enemySprite = this.scene.getEnemySprite();
+    if (suit === "Lupa") {
+      this.lupaSpecialAnimation(enemySprite.x, enemySprite.y, 1.2);
+      // Add impact effects and damage feedback during the animation
+      this.scene.time.delayedCall(300, () => {
+        this.scene.cameras.main.shake(150, 0.01);
+        const impactFlash = this.scene.add.rectangle(
+          enemySprite.x,
+          enemySprite.y,
+          120,
+          120,
+          0x32cd32 // Earth green
+        ).setAlpha(0).setDepth(1004);
+        this.scene.tweens.add({
+          targets: impactFlash,
+          alpha: [0, 0.3, 0],
+          duration: 200,
+          ease: 'Cubic.Out',
+          onComplete: () => {
+            impactFlash.destroy();
+          }
+        });
+        // Damage feedback: flash red and show damage number
+        this.animateSpriteDamage(enemySprite);
+        this.showDamageNumber(enemySprite.x, enemySprite.y, this.getSpecialAttackDamage(suit));
       });
-    });
+    } else if (suit === "Tubig") {
+      this.tubigSpecialAnimation(enemySprite.x, enemySprite.y);
+      // Add impact effects and damage feedback during the animation
+      this.scene.time.delayedCall(300, () => {
+        this.scene.cameras.main.shake(150, 0.01);
+        const impactFlash = this.scene.add.rectangle(
+          enemySprite.x,
+          enemySprite.y,
+          120,
+          120,
+          0x1e90ff // Water blue
+        ).setAlpha(0).setDepth(1004);
+        this.scene.tweens.add({
+          targets: impactFlash,
+          alpha: [0, 0.3, 0],
+          duration: 200,
+          ease: 'Cubic.Out',
+          onComplete: () => {
+            impactFlash.destroy();
+          }
+        });
+        // Damage feedback: flash red and show damage number
+        this.animateSpriteDamage(enemySprite);
+        this.showDamageNumber(enemySprite.x, enemySprite.y, this.getSpecialAttackDamage(suit));
+      });
+    } else {
+      // Other suits use slash animation
+      this.animateCharacterSlash(suit);
+      this.scene.time.delayedCall(300, () => {
+        this.scene.cameras.main.shake(150, 0.01);
+        const impactFlash = this.scene.add.rectangle(
+          this.scene.cameras.main.width / 2,
+          this.scene.cameras.main.height / 2,
+          this.scene.cameras.main.width,
+          this.scene.cameras.main.height,
+          0xffffff
+        ).setAlpha(0).setDepth(1004);
+        this.scene.tweens.add({
+          targets: impactFlash,
+          alpha: [0, 0.3, 0],
+          duration: 200,
+          ease: 'Cubic.Out',
+          onComplete: () => {
+            impactFlash.destroy();
+          }
+        });
+      });
+    }
   }
   
   /** Create immersive cinematic effect for special action sequence (Final Fantasy horizontal focus style) */
