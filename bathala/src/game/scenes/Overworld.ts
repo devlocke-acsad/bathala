@@ -3438,10 +3438,9 @@ export class Overworld extends Scene {
       potionBg.fillRect(potionX, potionY, slotSize, slotSize);
       potionBg.strokeRect(potionX, potionY, slotSize, slotSize);
       
-      // Potion icon (use potion's emoji or default)
-      const potionIcon = this.add.text(potionX + slotSize/2, potionY + slotSize/2, potion.emoji || "🧪", {
-        fontSize: "24px"
-      }).setOrigin(0.5);
+      // Potion icon (use heal_potion image instead of emoji)
+  const potionIcon = this.add.image(potionX + slotSize/2, potionY + slotSize/2, "heal_potion").setOrigin(0.5);
+  potionIcon.setDisplaySize(48, 48); // Fit within 60px slot
       
       this.potionsContainer.add([potionBg, potionIcon]);
       

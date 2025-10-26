@@ -74,6 +74,37 @@ export class Preloader extends Scene {
     //  Load the assets for the game
     this.load.setPath("assets");
 
+    // Healing potion asset for Treasure scene
+    this.load.image("heal_potion", "potion/heal_potion.png");
+    // Tubig special animation (Tidal Slash) - load as PNG sequence (water90000 to water90041)
+    for (let i = 0; i < 42; i++) {
+      const frameNum = (90000 + i).toString();
+      this.load.image(
+        `water${frameNum}`,
+        `assets/animation/attack/special_tubig/water${frameNum}.png`
+      );
+    }
+    // Fire special animation (Apoy) - load as PNG sequence (png_00.png to png_83.png)
+    for (let i = 0; i <= 83; i++) {
+      const frameNum = i.toString().padStart(2, "0");
+      this.load.image(
+        `fire_special_${frameNum}`,
+        `assets/animation/attack/special_fire/png_${frameNum}.png`
+      );
+    }
+    // Lupa special animation (Earth Crusher)
+    this.load.spritesheet(
+      "lupa_special",
+      "assets/animation/attack/special_lupa/lupa_special.png",
+      {
+        frameWidth: 96,
+        frameHeight: 96,
+        endFrame: 99 // 100 frames, 0-indexed
+      }
+    );
+    //  Load the assets for the game
+    this.load.setPath("assets");
+
     // Basic assets
     this.load.image("logo", "logo.png");
     this.load.image("bg", "bg.png");
@@ -100,6 +131,12 @@ export class Preloader extends Scene {
 
     // Player sprite for Combat
     this.load.image("combat_player", "sprites/combat/player/mc_combat.png");
+
+    // Slash attack animation (12 frames as PNG sequence)
+    for (let i = 1; i <= 12; i++) {
+      const frameNum = i.toString().padStart(5, '0');
+      this.load.image(`slash_${frameNum}`, `animation/attack/skash_${frameNum}.png`);
+    }
 
     // Avatar sprite sheets for Overworld - separated by direction (16x16 per frame)
     // Down: 3 frames (48x16)

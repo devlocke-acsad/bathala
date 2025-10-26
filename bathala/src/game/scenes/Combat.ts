@@ -253,6 +253,16 @@ export class Combat extends Scene {
     // Initialize CombatAnimations
     this.animations = new CombatAnimations(this);
 
+    // Ensure slash animation is registered before any attack
+    if (!this.anims.exists('slash_anim_play')) {
+      this.anims.create({
+        key: 'slash_anim_play',
+        frames: this.anims.generateFrameNumbers('slash_anim', { start: 0, end: 7 }),
+        frameRate: 20,
+        repeat: 0
+      });
+    }
+
     // Create action result UI for displaying combat messages
     this.createActionResultUI();
 
@@ -1384,6 +1394,7 @@ export class Combat extends Scene {
 
     // Add visual feedback for enemy taking damage
     this.animations.animateSpriteDamage(this.enemySprite);
+    this.animations.animateEnemySlash(this.playerSprite, this.enemySprite);
     this.ui.updateEnemyUI();
 
     // Show detailed damage calculation if there are special bonuses

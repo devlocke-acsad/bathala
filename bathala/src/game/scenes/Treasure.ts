@@ -274,6 +274,10 @@ export class Treasure extends Scene {
   }
 
   private createRelicOptions(): void {
+    // Debug: check if heal_potion texture is loaded
+    if (!this.textures.exists("heal_potion")) {
+      console.warn("heal_potion texture not loaded! Check Preloader and asset path.");
+    }
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     const isNarrow = screenWidth < 520;
@@ -304,34 +308,28 @@ export class Treasure extends Scene {
       slotBg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
       slotBg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 10);
       
-      // Visual display (sprite/emoji for relics, emoji for potions)
+      // Visual display (sprite for relics, image for potions)
       let visual: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
-      
       if (reward.type === "relic") {
         const relic = reward.item;
         const spriteKey = this.getRelicSpriteKey(relic.id);
-        
         if (this.textures.exists(spriteKey)) {
-          // Use sprite
           visual = this.add.image(0, 0, spriteKey).setOrigin(0.5);
-          // Scale sprite to fit nicely in the button
           const spriteSize = isNarrow ? 70 : 80;
           const scale = Math.min(spriteSize / visual.width, spriteSize / visual.height);
           visual.setScale(scale);
         } else {
-          // Fallback to emoji
           visual = this.add.text(0, 0, relic.emoji, {
             fontSize: isNarrow ? 40 : 48,
           }).setOrigin(0.5);
         }
       } else {
-        // Potion - use emoji
-        const potion = reward.item;
-        visual = this.add.text(0, 0, potion.emoji || "❤️", {
-          fontSize: isNarrow ? 48 : 56,
-        }).setOrigin(0.5);
+        // Potion - use heal_potion image asset
+        visual = this.add.image(0, 0, "heal_potion").setOrigin(0.5);
+        const spriteSize = isNarrow ? 70 : 80;
+        const scale = Math.min(spriteSize / visual.width, spriteSize / visual.height);
+        visual.setScale(scale);
       }
-      
       button.add([slotBg, visual]);
       
       // Make interactive

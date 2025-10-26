@@ -82,7 +82,7 @@ describe("HandEvaluator", () => {
 		expect(result.type).toBe("two_pair");
 	});
 
-	it("recognises five of a kind only when Echo of the Ancestors is equipped", () => {
+	it("recognises five of a kind only when Diwata's Crown is equipped", () => {
 		const cards = createHand([
 			{ rank: "7" },
 			{ rank: "7" },
@@ -95,7 +95,7 @@ describe("HandEvaluator", () => {
 		const withRelic = HandEvaluator.evaluateHand(
 			cards,
 			"attack",
-			createPlayerWithRelics(["echo_ancestors"])
+			createPlayerWithRelics(["diwatas_crown"])
 		);
 
 		expect(withoutRelic.type).toBe("four_of_a_kind");
