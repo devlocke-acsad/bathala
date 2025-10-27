@@ -11,6 +11,7 @@ export class MainMenu extends Scene {
   menuTexts: GameObjects.Text[] = [];
   versionText: GameObjects.Text;
   footerText: GameObjects.Text;
+  private music?: Phaser.Sound.BaseSound;
 
   constructor() {
     super("MainMenu");
@@ -20,9 +21,9 @@ export class MainMenu extends Scene {
     // Set camera background color to custom background color ONLY
     this.cameras.main.setBackgroundColor(0x150E10); // Updated background color (#150E10)
 
-    // Initialize MusicManager and play scene music automatically
-    MusicManager.getInstance().setScene(this);
-    MusicManager.getInstance().playSceneMusic();
+    // Start main menu music
+    this.startMusic();
+    this.setupMusicLifecycle();
 
     // Create background effects
     this.createBackgroundEffects();
@@ -179,6 +180,8 @@ export class MainMenu extends Scene {
       menuText
         .setInteractive({ useHandCursor: true })
         .on("pointerdown", () => {
+          // Music will auto-stop via shutdown() when scene.start() is called
+          
           switch (option) {
             case "Play":
               // Reset game state when starting a new game
@@ -186,20 +189,15 @@ export class MainMenu extends Scene {
               GameState.getInstance().reset();
               OverworldGameState.getInstance().reset();
               RuleBasedDDA.getInstance().resetSession();
-              // Stop music before transitioning
-              MusicManager.getInstance().stopMusic();
               this.scene.start("Prologue");
               break;
             case "Discover":
-              MusicManager.getInstance().stopMusic();
               this.scene.start("Discover");
               break;
             case "Credits":
-              MusicManager.getInstance().stopMusic();
               this.scene.start("Credits");
               break;
             case "Settings":
-              MusicManager.getInstance().stopMusic();
               this.scene.start("Settings");
               break;
           }
@@ -255,9 +253,96 @@ export class MainMenu extends Scene {
   }
 
   /**
+   * Start music for this scene
+   */
+  private startMusic(): void {
+    try {
+      // Stop any existing music first
+      if (this.music) {
+        console.log(`MainMenu: Stopping existing music before starting new track`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+      
+      const manager = MusicManager.getInstance();
+      const musicConfig = manager.getMusicKeyForScene(this.scene.key);
+      
+      if (!musicConfig) {
+        console.warn(`MainMenu: No music configured for scene "${this.scene.key}"`);
+        return;
+      }
+
+      // Check if audio key exists in cache
+      if (!this.cache.audio.exists(musicConfig.musicKey)) {
+        console.warn(`MainMenu: Audio key "${musicConfig.musicKey}" not found in cache. Skipping music.`);
+        return;
+      }
+      
+      this.music = this.sound.add(musicConfig.musicKey, {
+        volume: manager.getEffectiveMusicVolume(),
+        loop: true
+      });
+      
+      this.music.play();
+      console.log(`✅ MainMenu: Started music "${musicConfig.musicKey}"`);
+    } catch (error) {
+      console.error(`MainMenu: Failed to start music:`, error);
+      // Game continues without music
+    }
+  }
+
+  /**
+   * Setup music lifecycle listeners
+   */
+  private setupMusicLifecycle(): void {
+    this.events.on('pause', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE PAUSE: MainMenu → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+
+    this.events.on('resume', () => {
+      console.log(`🎵 ========== SCENE RESUME: MainMenu → Restarting music ==========`);
+      this.startMusic();
+    });
+
+    this.events.on('shutdown', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE SHUTDOWN: MainMenu → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+  }
+
+  /**
+   * Stop music when leaving the scene
+   */
+  shutdown(): void {
+    try {
+      if (this.music) {
+        console.log(`🎵 ========== MUSIC STOP: MainMenu (shutdown) ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    } catch (error) {
+      console.error(`❌ MainMenu: Error in shutdown:`, error);
+    }
+    
+    // Clean up resize listener
+    this.scale.off('resize', this.handleResize, this);
+  }
+
+  /**
    * Update method for animation effects
    */
-  update(time: number, delta: number): void {
-    // No scanlines to animate anymore
+  update(_time: number, _delta: number): void {
+    // No animations to update
   }
 }

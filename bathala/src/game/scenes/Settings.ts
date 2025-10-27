@@ -10,6 +10,7 @@ export class Settings extends Scene {
   scanlines: GameObjects.TileSprite;
   scanlineTimer: number = 0;
   backButton: GameObjects.Text;
+  private music?: Phaser.Sound.BaseSound;
 
   constructor() {
     super("Settings");
@@ -18,6 +19,10 @@ export class Settings extends Scene {
   create() {
     // Set camera background color to custom background color ONLY
     this.cameras.main.setBackgroundColor(0x150E10); // Updated background color (#150E10)
+
+    // Start settings music
+    this.startMusic();
+    this.setupMusicLifecycle();
 
     // Create background effects
     this.createBackgroundEffects();
@@ -132,6 +137,13 @@ export class Settings extends Scene {
               this.showControls();
               break;
             case "Back to Main Menu":
+              // Stop music BEFORE transitioning
+              if (this.music) {
+                console.log(`Settings: Stopping music before transition to MainMenu`);
+                this.music.stop();
+                this.music.destroy();
+                this.music = undefined;
+              }
               this.scene.start("MainMenu");
               break;
           }
@@ -205,7 +217,7 @@ export class Settings extends Scene {
     
     // Get current music volume from MusicManager
     const musicManager = MusicManager.getInstance();
-    const currentMusicVolume = musicManager.getVolume();
+    const currentMusicVolume = musicManager.getMusicVolume();
     const currentMasterVolume = this.sound.volume; // Phaser's master volume
     
     // Master Volume Slider
@@ -229,7 +241,7 @@ export class Settings extends Scene {
       currentMusicVolume,
       (volume: number) => {
         // Update MusicManager volume
-        musicManager.setVolume(volume, true);
+        musicManager.setMusicVolume(volume);
         console.log(`Music Volume set to: ${Math.round(volume * 100)}%`);
       }
     );
@@ -238,7 +250,7 @@ export class Settings extends Scene {
     const muteButton = this.add.text(
       screenWidth/2,
       screenHeight/2 + 80,
-      musicManager.isMusicMuted() ? "Unmute Music" : "Mute Music",
+      musicManager.isMusicMutedState() ? "Unmute Music" : "Mute Music",
       {
         fontFamily: "dungeon-mode-inverted",
         fontSize: 20,
@@ -248,8 +260,8 @@ export class Settings extends Scene {
     ).setOrigin(0.5)
     .setInteractive({ useHandCursor: true })
     .on("pointerdown", () => {
-      musicManager.toggleMute();
-      muteButton.setText(musicManager.isMusicMuted() ? "Unmute Music" : "Mute Music");
+      musicManager.toggleMusicMute();
+      muteButton.setText(musicManager.isMusicMutedState() ? "Unmute Music" : "Mute Music");
     })
     .on("pointerover", () => {
       muteButton.setColor("#e8eced");
@@ -606,5 +618,91 @@ export class Settings extends Scene {
       .on("pointerout", () => {
         backText.setColor("#77888C");
       });
+  }
+
+  /**
+   * Start music for this scene
+   */
+  private startMusic(): void {
+    try {
+      // Stop any existing music first
+      if (this.music) {
+        console.log(`Settings: Stopping existing music before starting new track`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+      
+      const manager = MusicManager.getInstance();
+      const musicConfig = manager.getMusicKeyForScene(this.scene.key);
+      
+      if (!musicConfig) {
+        console.warn(`Settings: No music configured for scene "${this.scene.key}"`);
+        return;
+      }
+
+      if (!this.cache.audio.exists(musicConfig.musicKey)) {
+        console.warn(`Settings: Audio key "${musicConfig.musicKey}" not found in cache. Skipping music.`);
+        return;
+      }
+      
+      this.music = this.sound.add(musicConfig.musicKey, {
+        volume: manager.getEffectiveMusicVolume(),
+        loop: true
+      });
+      
+      this.music.play();
+      console.log(`✅ Settings: Started music "${musicConfig.musicKey}"`);
+    } catch (error) {
+      console.error(`Settings: Failed to start music:`, error);
+      // Game continues without music
+    }
+  }
+
+  /**
+   * Setup music lifecycle listeners
+   */
+  private setupMusicLifecycle(): void {
+    this.events.on('pause', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE PAUSE: Settings → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+
+    this.events.on('resume', () => {
+      console.log(`🎵 ========== SCENE RESUME: Settings → Restarting music ==========`);
+      this.startMusic();
+    });
+
+    this.events.on('shutdown', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE SHUTDOWN: Settings → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+  }
+
+  /**
+   * Stop music when leaving the scene
+   */
+  shutdown(): void {
+    try {
+      if (this.music) {
+        console.log(`🎵 ========== MUSIC STOP: Settings (shutdown) ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    } catch (error) {
+      console.error(`❌ Settings: Error in shutdown:`, error);
+    }
+    
+    // Clean up resize listener
+    this.scale.off('resize', this.handleResize, this);
   }
 }

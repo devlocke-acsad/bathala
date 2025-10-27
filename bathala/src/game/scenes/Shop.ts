@@ -48,6 +48,7 @@ export class Shop extends Scene {
   private gintoText!: Phaser.GameObjects.Text;
   private healthText!: Phaser.GameObjects.Text;
   private tooltipBox!: Phaser.GameObjects.Container;
+  private music?: Phaser.Sound.BaseSound;
   private scrollContainer: Phaser.GameObjects.Container | null = null;
   private currentTooltip: Phaser.GameObjects.Container | null = null;
   private merchantCharacter!: Phaser.GameObjects.Container;
@@ -158,9 +159,9 @@ export class Shop extends Scene {
     if (!this.cameras.main) return;
     this.cameras.main.setBackgroundColor(0x150E10); // Match combat background
 
-    // Initialize MusicManager and play scene music automatically
-    MusicManager.getInstance().setScene(this);
-    MusicManager.getInstance().playSceneMusic();
+    // Start shop music
+    this.startMusic();
+    this.setupMusicLifecycle();
 
     // Add forest background image
     const forestBg = this.add.image(
@@ -2301,7 +2302,9 @@ export class Shop extends Scene {
     }
   }
 
-  /**\n   * Handle scene resize\n   */
+  /**
+   * Handle scene resize
+   */
   private handleResize(): void {
     // Clear and recreate UI
     this.children.removeAll();
@@ -2311,6 +2314,100 @@ export class Shop extends Scene {
     this.createCategorizedInventoryUI();
     this.createTooltipBox();
     this.createBackButton();
+  }
+
+  /**
+   * Start music for Shop scene
+   */
+  private startMusic(): void {
+    try {
+      console.log(`🎵 ========== MUSIC START: Shop ==========`);
+      
+      // Stop any existing music first
+      if (this.music) {
+        console.log(`🎵 Shop: Stopping existing music before starting new track`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+
+      // Get music configuration from MusicManager
+      const musicManager = MusicManager.getInstance();
+      const musicConfig = musicManager.getMusicKeyForScene('Shop');
+      
+      if (!musicConfig) {
+        console.warn(`⚠️ Shop: No music configured for Shop scene`);
+        console.log(`🎵 ========== MUSIC START FAILED: Shop (no config) ==========`);
+        return;
+      }
+
+      console.log(`🎵 Shop: Music config found - Key: "${musicConfig.musicKey}", Volume: ${musicConfig.volume}`);
+
+      // Validate that the audio file exists in cache
+      if (!this.cache.audio.exists(musicConfig.musicKey)) {
+        console.error(`❌ Shop: Audio key '${musicConfig.musicKey}' not found in cache - skipping music playback`);
+        console.log(`🎵 ========== MUSIC START FAILED: Shop (not in cache) ==========`);
+        return;
+      }
+
+      // Create and play the music using Phaser's sound API
+      this.music = this.sound.add(musicConfig.musicKey, {
+        volume: musicConfig.volume ?? musicManager.getEffectiveMusicVolume(),
+        loop: true
+      });
+
+      this.music.play();
+      console.log(`✅ Shop: Music '${musicConfig.musicKey}' started successfully`);
+      console.log(`🎵 ========== MUSIC START SUCCESS: Shop ==========`);
+
+    } catch (error) {
+      console.error(`❌ Shop: Error starting music:`, error);
+      console.log(`🎵 ========== MUSIC START ERROR: Shop ==========`);
+    }
+  }
+
+  /**
+   * Setup music lifecycle listeners
+   */
+  private setupMusicLifecycle(): void {
+    this.events.on('pause', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE PAUSE: Shop → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+
+    this.events.on('resume', () => {
+      console.log(`🎵 ========== SCENE RESUME: Shop → Restarting music ==========`);
+      this.startMusic();
+    });
+
+    this.events.on('shutdown', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE SHUTDOWN: Shop → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+  }
+
+  /**
+   * Shutdown method - called when scene is stopped
+   */
+  shutdown(): void {
+    try {
+      if (this.music) {
+        console.log(`🎵 ========== MUSIC STOP: Shop (shutdown) ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    } catch (error) {
+      console.error(`❌ Shop: Error in shutdown:`, error);
+    }
   }
 
 }
