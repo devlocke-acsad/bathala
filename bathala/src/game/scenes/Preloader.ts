@@ -76,12 +76,12 @@ export class Preloader extends Scene {
 
     // Healing potion asset for Treasure scene
     this.load.image("heal_potion", "potion/heal_potion.png");
-    // Tubig special animation (Tidal Slash) - load as PNG sequence (water90000 to water90041)
+    // Tubig special animation (Tidal Slash) - load as PNG sequence (water90000.png to water90041.png)
     for (let i = 0; i < 42; i++) {
       const frameNum = (90000 + i).toString();
       this.load.image(
         `water${frameNum}`,
-        `assets/animation/attack/special_tubig/water${frameNum}.png`
+        `animation/attack/special_tubig/water${frameNum}.png`
       );
     }
     // Fire special animation (Apoy) - load as PNG sequence (png_00.png to png_83.png)
@@ -89,7 +89,7 @@ export class Preloader extends Scene {
       const frameNum = i.toString().padStart(2, "0");
       this.load.image(
         `fire_special_${frameNum}`,
-        `assets/animation/attack/special_fire/png_${frameNum}.png`
+        `animation/attack/special_fire/png_${frameNum}.png`
       );
     }
     // Lupa special animation (Earth Crusher)
