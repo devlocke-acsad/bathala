@@ -1,4 +1,5 @@
 import { Scene, GameObjects } from "phaser";
+import { MusicManager } from "../../core/managers/MusicManager";
 
 export class Disclaimer extends Scene {
   private canContinue: boolean = false;
@@ -7,6 +8,7 @@ export class Disclaimer extends Scene {
   private totalPages: number = 3;
   private contentContainer: GameObjects.Container;
   private isTransitioning: boolean = false;
+  private music?: Phaser.Sound.BaseSound;
 
   constructor() {
     super("Disclaimer");
@@ -15,6 +17,9 @@ export class Disclaimer extends Scene {
   create() {
     // Set camera background color
     this.cameras.main.setBackgroundColor(0x150E10);
+
+    // Start disclaimer music (placeholder_music according to sceneMusicMap)
+    this.startMusic();
 
     // Create background effects
     this.createBackgroundEffects();
@@ -262,6 +267,14 @@ export class Disclaimer extends Scene {
           this.showPage(this.currentPage + 1);
         } else {
           // All pages shown, go to MainMenu
+          // Stop music BEFORE transitioning
+          if (this.music) {
+            console.log(`Disclaimer: Stopping music before transition to MainMenu`);
+            this.music.stop();
+            this.music.destroy();
+            this.music = undefined;
+          }
+          
           this.cameras.main.fadeOut(500, 21, 14, 16);
           this.cameras.main.once('camerafadeoutcomplete', () => {
             this.scene.start('MainMenu');
@@ -299,6 +312,11 @@ export class Disclaimer extends Scene {
    * Handle scene resize
    */
   private handleResize(): void {
+    // Don't attempt resize if scene is not fully initialized
+    if (!this.cameras || !this.cameras.main) {
+      return;
+    }
+    
     // Clear and recreate everything on resize
     this.children.removeAll();
     this.tweens.killAll();
@@ -313,5 +331,64 @@ export class Disclaimer extends Scene {
     
     // Show current page again
     this.showPage(this.currentPage);
+  }
+
+  /**
+   * Start music for this scene
+   */
+  private startMusic(): void {
+    try {
+      // Stop any existing music first
+      if (this.music) {
+        console.log(`Disclaimer: Stopping existing music before starting new track`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+      
+      const manager = MusicManager.getInstance();
+      const musicConfig = manager.getMusicKeyForScene(this.scene.key);
+      
+      if (!musicConfig) {
+        console.warn(`Disclaimer: No music configured for scene "${this.scene.key}"`);
+        return;
+      }
+
+      // Check if audio key exists in cache
+      if (!this.cache.audio.exists(musicConfig.musicKey)) {
+        console.warn(`Disclaimer: Audio key "${musicConfig.musicKey}" not found in cache. Skipping music.`);
+        return;
+      }
+      
+      this.music = this.sound.add(musicConfig.musicKey, {
+        volume: manager.getEffectiveMusicVolume(),
+        loop: true
+      });
+      
+      this.music.play();
+      console.log(`✅ Disclaimer: Started music "${musicConfig.musicKey}"`);
+    } catch (error) {
+      console.error(`Disclaimer: Failed to start music:`, error);
+      // Game continues without music
+    }
+  }
+
+  /**
+   * Stop music when leaving the scene
+   */
+  shutdown(): void {
+    try {
+      if (this.music) {
+        console.log(`Disclaimer: Stopping music on scene shutdown`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    } catch (error) {
+      console.error(`Disclaimer: Failed to stop music:`, error);
+    }
+    
+    // Clean up resize listener
+    this.scale.off('resize', this.handleResize, this);
   }
 }

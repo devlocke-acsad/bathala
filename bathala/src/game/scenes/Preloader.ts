@@ -50,11 +50,11 @@ export class Preloader extends Scene {
     // Create more subtle retro CRT scanline effect
     this.scanlines = this.add.tileSprite(0, 0, screenWidth, screenHeight, '__WHITE')
       .setOrigin(0)
-      .setAlpha(0.15) // More subtle opacity
+      .setAlpha(0.15)
       .setTint(0x77888C);
       
     // Create a subtle scanline pattern
-    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    const graphics = this.make.graphics({ x: 0, y: 0 });
     graphics.fillStyle(0x000000, 1);
     graphics.fillRect(0, 0, 4, 1);
     graphics.fillStyle(0xffffff, 1);
@@ -296,20 +296,9 @@ export class Preloader extends Scene {
     this.load.image("bathala_moon_icon", "ui/icons/bathala_moon_icon.png");
     this.load.image("bathala_boss_icon", "ui/icons/bathala_boss_icon.png");
     
-    // Load background music
-    // Note: Using placeholder music for all scenes
-    // Supported formats: .mp3, .ogg, .wav
-    //this.load.audio("placeholder_music", "music/bathalaMusicPLHDR.mp3");
-    //this.load.audio("main_menu_music", "music/Bathala_Soundtrack/Bathala_MainMenu.mp3");
-    this.load.audio("placeholder_music", "music/Bathala_Soundtrack/Bathala_MainMenu.mp3");
-    
-    // Load disclaimer music (plays from Boot through Disclaimer)
-    this.load.audio("disclaimer_music", "music/bathala_disclaimer.mp3");
-    
-    // Debug: Log when assets are loaded
-    this.load.on('filecomplete', (key: string, type: string) => {
-      console.log(`Loaded asset: ${key} (${type})`);
-    });
+    // Load all audio assets via MusicManager
+    // MusicManager handles all audio loading and naming
+    MusicManager.getInstance().loadAudioAssets(this);
   }
 
   create() {
@@ -421,9 +410,8 @@ export class Preloader extends Scene {
         console.warn("Could not create sprite animations:", error);
       }
 
-      // Start disclaimer music before transitioning
-      MusicManager.getInstance().setScene(this);
-      MusicManager.getInstance().playSceneMusic();
+      // Music will be handled by the Disclaimer scene itself
+      // No need to start it here anymore
 
       //  Move to the Disclaimer scene
       this.scene.start("Disclaimer");
