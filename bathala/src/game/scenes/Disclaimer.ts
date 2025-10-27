@@ -20,6 +20,7 @@ export class Disclaimer extends Scene {
 
     // Start disclaimer music (placeholder_music according to sceneMusicMap)
     this.startMusic();
+    this.setupMusicLifecycle();
 
     // Create background effects
     this.createBackgroundEffects();
@@ -267,13 +268,7 @@ export class Disclaimer extends Scene {
           this.showPage(this.currentPage + 1);
         } else {
           // All pages shown, go to MainMenu
-          // Stop music BEFORE transitioning
-          if (this.music) {
-            console.log(`Disclaimer: Stopping music before transition to MainMenu`);
-            this.music.stop();
-            this.music.destroy();
-            this.music = undefined;
-          }
+          // Music will auto-stop via shutdown() when scene.start() is called
           
           this.cameras.main.fadeOut(500, 21, 14, 16);
           this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -374,18 +369,46 @@ export class Disclaimer extends Scene {
   }
 
   /**
+   * Setup music lifecycle listeners
+   */
+  private setupMusicLifecycle(): void {
+    this.events.on('pause', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE PAUSE: Disclaimer → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+
+    this.events.on('resume', () => {
+      console.log(`🎵 ========== SCENE RESUME: Disclaimer → Restarting music ==========`);
+      this.startMusic();
+    });
+
+    this.events.on('shutdown', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE SHUTDOWN: Disclaimer → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+  }
+
+  /**
    * Stop music when leaving the scene
    */
   shutdown(): void {
     try {
       if (this.music) {
-        console.log(`Disclaimer: Stopping music on scene shutdown`);
+        console.log(`🎵 ========== MUSIC STOP: Disclaimer (shutdown) ==========`);
         this.music.stop();
         this.music.destroy();
         this.music = undefined;
       }
     } catch (error) {
-      console.error(`Disclaimer: Failed to stop music:`, error);
+      console.error(`❌ Disclaimer: Error in shutdown:`, error);
     }
     
     // Clean up resize listener

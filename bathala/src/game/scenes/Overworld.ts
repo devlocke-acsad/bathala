@@ -128,6 +128,9 @@ export class Overworld extends Scene {
   
   // Fog of War Manager
   private fogOfWarManager!: Overworld_FogOfWarManager;
+  
+  // Music
+  private music?: Phaser.Sound.BaseSound;
 
   constructor() {
     super({ key: "Overworld" });
@@ -196,9 +199,11 @@ export class Overworld extends Scene {
     // Set camera background color to match forest theme
     this.cameras.main.setBackgroundColor(0x323C39);
     
-    // Initialize MusicManager and play scene music automatically
-    MusicManager.getInstance().setScene(this);
-    MusicManager.getInstance().playSceneMusic();
+    // Start music for Overworld scene
+    this.startMusic();
+    
+    // Setup automatic music lifecycle management
+    this.setupMusicLifecycle();
     
     // Explicitly set default cursor to prevent pointer cursor from persisting
     this.input.setDefaultCursor('default');
@@ -1365,6 +1370,7 @@ export class Overworld extends Scene {
           ease: 'Power2',
           onComplete: () => {
             // Pause this scene and launch boss combat
+            // Music will auto-stop via 'pause' event listener
             this.scene.pause();
             this.scene.launch("Combat", { 
               nodeType: "boss",
@@ -1983,6 +1989,7 @@ export class Overworld extends Scene {
           ease: 'Power2',
           onComplete: () => {
             // Pause this scene and start combat scene
+            // Music will auto-stop via 'pause' event listener
             this.scene.pause();
             this.scene.launch("Combat", { 
               nodeType: nodeType,
@@ -2088,6 +2095,7 @@ export class Overworld extends Scene {
           ease: 'Power2',
           onComplete: () => {
             // Pause this scene and start combat scene
+            // Music will auto-stop via 'pause' event listener
             this.scene.pause();
             this.scene.launch("Combat", { 
               nodeType: nodeType,
@@ -2163,6 +2171,7 @@ export class Overworld extends Scene {
           ease: 'Power2',
           onComplete: () => {
             // Pause this scene and launch boss combat
+            // Music will auto-stop via 'pause' event listener
             this.scene.pause();
             this.scene.launch("Combat", { 
               nodeType: "boss",
@@ -2188,6 +2197,14 @@ export class Overworld extends Scene {
    */
   shutdown(): void {
     console.log('🧹 Overworld: Cleaning up scene resources');
+    
+    // Stop music when scene shuts down
+    if (this.music) {
+      console.log(`🎵 ========== MUSIC STOP: Overworld (shutdown) ==========`);
+      this.music.stop();
+      this.music.destroy();
+      this.music = undefined;
+    }
     
     // Reset cursor when leaving the scene
     this.input.setDefaultCursor('default');
@@ -4244,5 +4261,89 @@ ${potion.description}`, {
     }
     
     console.log(`🎮 Initial UI scale set to ${uiScale} (camera zoom: ${cameraZoom})`);
+  }
+
+  /**
+   * Start music for Overworld scene
+   * Uses MusicManager to get the correct music track and plays it using Phaser's sound API
+   */
+  private startMusic(): void {
+    try {
+      console.log(`🎵 ========== MUSIC START: Overworld ==========`);
+      
+      // Stop any existing music first
+      if (this.music) {
+        console.log(`🎵 Overworld: Stopping existing music before starting new track`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+
+      // Get music configuration from MusicManager
+      const musicManager = MusicManager.getInstance();
+      const musicConfig = musicManager.getMusicKeyForScene('Overworld');
+      
+      if (!musicConfig) {
+        console.warn(`⚠️ Overworld: No music configured for Overworld scene`);
+        console.log(`🎵 ========== MUSIC START FAILED: Overworld (no config) ==========`);
+        return;
+      }
+
+      console.log(`🎵 Overworld: Music config found - Key: "${musicConfig.musicKey}", Volume: ${musicConfig.volume}`);
+
+      // Validate that the audio file exists in cache
+      if (!this.cache.audio.exists(musicConfig.musicKey)) {
+        console.error(`❌ Overworld: Audio key '${musicConfig.musicKey}' not found in cache - skipping music playback`);
+        console.log(`🎵 ========== MUSIC START FAILED: Overworld (not in cache) ==========`);
+        return;
+      }
+
+      // Create and play the music using Phaser's sound API
+      this.music = this.sound.add(musicConfig.musicKey, {
+        volume: musicConfig.volume ?? musicManager.getEffectiveMusicVolume(),
+        loop: true
+      });
+
+      this.music.play();
+      console.log(`✅ Overworld: Music '${musicConfig.musicKey}' started successfully`);
+      console.log(`🎵 ========== MUSIC START SUCCESS: Overworld ==========`);
+
+    } catch (error) {
+      console.error(`❌ Overworld: Error starting music:`, error);
+      console.log(`🎵 ========== MUSIC START ERROR: Overworld ==========`);
+      // Continue without music - game should still be playable
+    }
+  }
+
+  /**
+   * Setup automatic music lifecycle management
+   * This listens to scene events and automatically stops music when the scene is paused
+   */
+  private setupMusicLifecycle(): void {
+    // When this scene is paused (e.g., by launching Combat), stop the music
+    this.events.on('pause', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE PAUSE: Overworld → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+
+    // When this scene is resumed (e.g., Combat returns), restart the music
+    this.events.on('resume', () => {
+      console.log(`🎵 ========== SCENE RESUME: Overworld → Restarting music ==========`);
+      this.startMusic();
+    });
+
+    // When this scene is shut down (e.g., scene.start() replaces it), stop the music
+    this.events.on('shutdown', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE SHUTDOWN: Overworld → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
   }
 }

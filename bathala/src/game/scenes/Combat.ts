@@ -108,6 +108,7 @@ export class Combat extends Scene {
   private relicInventory!: Phaser.GameObjects.Container;
   private currentRelicTooltip!: Phaser.GameObjects.Container | null;
   private pokerHandInfoButton!: Phaser.GameObjects.Container;
+  private music?: Phaser.Sound.BaseSound;
 
   constructor() {
     super({ key: "Combat" });
@@ -235,9 +236,9 @@ export class Combat extends Scene {
     // Initialize combat state
     this.initializeCombat(data.nodeType, data.enemyId);
     
-    // Initialize MusicManager and play scene music automatically
-    MusicManager.getInstance().setScene(this);
-    MusicManager.getInstance().playSceneMusic();
+    // Start music for Combat scene
+    this.startMusic();
+    this.setupMusicLifecycle();
 
     // Initialize managers
     this.enemyDialogueManager = new EnemyDialogueManager(this);
@@ -1665,6 +1666,8 @@ export class Combat extends Scene {
         // Get enemy sprite key using the dialogue manager method
         const enemySpriteKey = this.dialogue.getEnemySpriteKey(this.combatState.enemy.name);
         
+        // Music will auto-stop via shutdown() when scene.start() is called
+        
         // Pass defeat data to GameOver scene and stop this scene
         this.scene.start("GameOver", {
           defeatedBy: this.combatState.enemy.name,
@@ -2339,6 +2342,9 @@ export class Combat extends Scene {
         }, 100);
       } catch (fallbackError) {
         console.error("Emergency fallback also failed:", fallbackError);
+        
+        // Music will auto-stop via shutdown() when scene.start() is called
+        
         // Absolute last resort - restart the game
         this.scene.start("MainMenu");
       }
@@ -3839,5 +3845,111 @@ export class Combat extends Scene {
     this.ui?.updatePlayerUI();
     this.ui?.updateEnemyUI();
     this.ui?.updateActionButtons();
+  }
+
+  /**
+   * Start music for Combat scene
+   * Uses MusicManager to get the correct music track and plays it using Phaser's sound API
+   */
+  private startMusic(): void {
+    try {
+      console.log(`🎵 ========== MUSIC START: Combat ==========`);
+      
+      // Stop any existing music first
+      if (this.music) {
+        console.log(`🎵 Combat: Stopping existing music before starting new track`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+
+      // Get music configuration from MusicManager
+      const musicManager = MusicManager.getInstance();
+      const musicConfig = musicManager.getMusicKeyForScene('Combat');
+      
+      if (!musicConfig) {
+        console.warn(`⚠️ Combat: No music configured for Combat scene`);
+        console.log(`🎵 ========== MUSIC START FAILED: Combat (no config) ==========`);
+        return;
+      }
+
+      console.log(`🎵 Combat: Music config found - Key: "${musicConfig.musicKey}", Volume: ${musicConfig.volume}`);
+
+      // Validate that the audio file exists in cache
+      if (!this.cache.audio.exists(musicConfig.musicKey)) {
+        console.error(`❌ Combat: Audio key '${musicConfig.musicKey}' not found in cache - skipping music playback`);
+        console.log(`🎵 ========== MUSIC START FAILED: Combat (not in cache) ==========`);
+        return;
+      }
+
+      // Create and play the music using Phaser's sound API
+      this.music = this.sound.add(musicConfig.musicKey, {
+        volume: musicConfig.volume ?? musicManager.getEffectiveMusicVolume(),
+        loop: true
+      });
+
+      this.music.play();
+      console.log(`✅ Combat: Music '${musicConfig.musicKey}' started successfully`);
+      console.log(`🎵 ========== MUSIC START SUCCESS: Combat ==========`);
+
+    } catch (error) {
+      console.error(`❌ Combat: Error starting music:`, error);
+      console.log(`🎵 ========== MUSIC START ERROR: Combat ==========`);
+      // Continue without music - game should still be playable
+    }
+  }
+
+  /**
+   * Setup music lifecycle listeners
+   * Automatically handles music on scene pause/resume/shutdown
+   */
+  private setupMusicLifecycle(): void {
+    // Stop music when scene is paused (e.g., when another scene is launched on top)
+    this.events.on('pause', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE PAUSE: Combat → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+
+    // Restart music when scene is resumed (e.g., when launched scene stops and this scene becomes active again)
+    this.events.on('resume', () => {
+      console.log(`🎵 ========== SCENE RESUME: Combat → Restarting music ==========`);
+      this.startMusic();
+    });
+
+    // Stop music when scene is shut down (e.g., when scene.start() replaces it)
+    this.events.on('shutdown', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE SHUTDOWN: Combat → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+  }
+
+  /**
+   * Shutdown method - called when scene is stopped
+   * Cleans up music and event listeners
+   */
+  shutdown(): void {
+    try {
+      // Stop music when scene shuts down
+      if (this.music) {
+        console.log(`🎵 ========== MUSIC STOP: Combat (shutdown) ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+
+      // Clean up resize listener
+      this.scale.off('resize', this.handleResize, this);
+      
+    } catch (error) {
+      console.error(`❌ Combat: Error in shutdown:`, error);
+    }
   }
 }

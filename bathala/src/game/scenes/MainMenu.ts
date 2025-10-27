@@ -23,6 +23,7 @@ export class MainMenu extends Scene {
 
     // Start main menu music
     this.startMusic();
+    this.setupMusicLifecycle();
 
     // Create background effects
     this.createBackgroundEffects();
@@ -179,13 +180,7 @@ export class MainMenu extends Scene {
       menuText
         .setInteractive({ useHandCursor: true })
         .on("pointerdown", () => {
-          // Stop music BEFORE transitioning to any scene
-          if (this.music) {
-            console.log(`MainMenu: Stopping music before transition`);
-            this.music.stop();
-            this.music.destroy();
-            this.music = undefined;
-          }
+          // Music will auto-stop via shutdown() when scene.start() is called
           
           switch (option) {
             case "Play":
@@ -298,18 +293,46 @@ export class MainMenu extends Scene {
   }
 
   /**
+   * Setup music lifecycle listeners
+   */
+  private setupMusicLifecycle(): void {
+    this.events.on('pause', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE PAUSE: MainMenu → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+
+    this.events.on('resume', () => {
+      console.log(`🎵 ========== SCENE RESUME: MainMenu → Restarting music ==========`);
+      this.startMusic();
+    });
+
+    this.events.on('shutdown', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE SHUTDOWN: MainMenu → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+  }
+
+  /**
    * Stop music when leaving the scene
    */
   shutdown(): void {
     try {
       if (this.music) {
-        console.log(`MainMenu: Stopping music on scene shutdown`);
+        console.log(`🎵 ========== MUSIC STOP: MainMenu (shutdown) ==========`);
         this.music.stop();
         this.music.destroy();
         this.music = undefined;
       }
     } catch (error) {
-      console.error(`MainMenu: Failed to stop music:`, error);
+      console.error(`❌ MainMenu: Error in shutdown:`, error);
     }
     
     // Clean up resize listener
