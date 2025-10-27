@@ -99,6 +99,16 @@ export class MusicManager {
       path: "music/Bathala_Soundtrack/Bathala_MainMenu.mp3",
       type: "music"
     },
+     { 
+      key: "battle_music_1", 
+      path: "music/Bathala_Soundtrack/Bathala_BattleTheme_1.mp3",
+      type: "music"
+    },
+     { 
+      key: "npc_interaction_music", 
+      path: "music/Bathala_Soundtrack/Scraps/FunkyKatutubo.mp3",
+      type: "music"
+    },
     
     // === SOUND EFFECTS ===
     // Add SFX here as they are created
@@ -115,19 +125,19 @@ export class MusicManager {
   private readonly sceneMusicMap: Record<string, SceneMusicConfig> = {
     // Startup Scenes
     "Boot": { musicKey: "placeholder_music", volume: 0.4, fadeIn: false },
-    "Disclaimer": { musicKey: "placeholder_music", volume: 0.4, fadeIn: false },
+    "Disclaimer": { musicKey: "main_menu_music", volume: 0.4, fadeIn: false },
     
     // Main Scenes
     "MainMenu": { musicKey: "main_menu_music", volume: 0.5, fadeIn: true },
     "Overworld": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true },
     
     // Combat Scenes
-    "Combat": { musicKey: "placeholder_music", volume: 0.5, fadeIn: true },
+    "Combat": { musicKey: "battle_music_1", volume: 0.5, fadeIn: true },
     
     // Activity Scenes
-    "Shop": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true },
-    "Campfire": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true },
-    "EventScene": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true },
+    "Shop": { musicKey: "npc_interaction_music", volume: 0.4, fadeIn: true },
+    "Campfire": { musicKey: "npc_interaction_music", volume: 0.4, fadeIn: true },
+    "EventScene": { musicKey: "npc_interaction_music", volume: 0.4, fadeIn: true },
     "Treasure": { musicKey: "placeholder_music", volume: 0.4, fadeIn: true },
     
     // UI Scenes
