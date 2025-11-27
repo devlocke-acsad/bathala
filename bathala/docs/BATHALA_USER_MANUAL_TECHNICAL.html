@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bathala - Technical User Manual</title>
+    <style>
+        @page {
+            margin: 1in;
+            size: letter;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+        }
+        h1 {
+            color: #77888C;
+            text-align: center;
+            font-size: 36px;
+            border-bottom: 3px solid #77888C;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #150E10;
+            font-size: 24px;
+            border-left: 4px solid #77888C;
+            padding-left: 15px;
+            margin-top: 40px;
+        }
+        h3 {
+            color: #4a3a40;
+            font-size: 18px;
+            margin-top: 25px;
+        }
+        h4 {
+            color: #666;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        .cover-page {
+            text-align: center;
+            page-break-after: always;
+            padding: 100px 0;
+        }
+        .cover-page h1 {
+            font-size: 48px;
+            color: #77888C;
+            margin-bottom: 20px;
+            border: none;
+        }
+        .cover-page .subtitle {
+            font-size: 24px;
+            color: #4a3a40;
+            margin-bottom: 50px;
+        }
+        .cover-page .version {
+            font-size: 18px;
+            color: #666;
+            margin-top: 100px;
+        }
+        .toc {
+            page-break-after: always;
+        }
+        .toc h2 {
+            text-align: center;
+            border: none;
+            padding: 0;
+        }
+        .toc ul {
+            list-style: none;
+            padding: 0;
+        }
+        .toc li {
+            padding: 6px 0;
+            border-bottom: 1px dotted #ccc;
+        }
+        .toc li.sub {
+            padding-left: 20px;
+            font-size: 14px;
+        }
+        .toc a {
+            color: #333;
+            text-decoration: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #77888C;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .tip-box {
+            background: #e8f4f8;
+            border-left: 4px solid #06d6a0;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffd93d;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .code-box {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .code-box .keyword { color: #569cd6; }
+        .code-box .string { color: #ce9178; }
+        .code-box .number { color: #b5cea8; }
+        .code-box .comment { color: #6a9955; }
+        .code-box .type { color: #4ec9b0; }
+        .formula-box {
+            background: #f8f9fa;
+            border: 2px solid #77888C;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        .formula-box .formula {
+            font-family: 'Georgia', serif;
+            font-size: 18px;
+            font-style: italic;
+            color: #150E10;
+        }
+        .section {
+            page-break-inside: avoid;
+        }
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .flowchart {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+        .tech-specs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .tech-spec-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 3px solid #77888C;
+        }
+        .tech-spec-item h4 {
+            margin: 0 0 10px 0;
+            color: #150E10;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover-page">
+    <h1>BATHALA</h1>
+    <div class="subtitle">Technical User Manual</div>
+    <p style="font-size: 18px; color: #666;">For IT Professionals & Developers</p>
+    <div class="version">
+        <p>Version 0.5.0</p>
+        <p>Developed by Devlocke</p>
+        <p>© 2025</p>
+    </div>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+    <h2>Table of Contents</h2>
+    <ul>
+        <li><a href="#overview">1. Technical Overview</a></li>
+        <li class="sub"><a href="#tech-stack">1.1 Technology Stack</a></li>
+        <li class="sub"><a href="#architecture">1.2 Game Architecture</a></li>
+        <li><a href="#gameplay">2. Gameplay Systems</a></li>
+        <li class="sub"><a href="#combat-system">2.1 Combat System</a></li>
+        <li class="sub"><a href="#poker-hands">2.2 Poker Hand Evaluation</a></li>
+        <li class="sub"><a href="#damage-calc">2.3 Damage Calculation</a></li>
+        <li><a href="#dda">3. Dynamic Difficulty Adjustment (DDA)</a></li>
+        <li class="sub"><a href="#dda-overview">3.1 DDA Overview</a></li>
+        <li class="sub"><a href="#pps">3.2 Player Performance Score (PPS)</a></li>
+        <li class="sub"><a href="#difficulty-tiers">3.3 Difficulty Tiers</a></li>
+        <li class="sub"><a href="#dda-formula">3.4 PPS Calculation Formula</a></li>
+        <li><a href="#pcg">4. Procedural Content Generation (PCG)</a></li>
+        <li class="sub"><a href="#pcg-overview">4.1 PCG Architecture Overview</a></li>
+        <li class="sub"><a href="#delaunay">4.2 Delaunay Maze Generator</a></li>
+        <li class="sub"><a href="#astar">4.3 A* Pathfinding</a></li>
+        <li class="sub"><a href="#waypoints">4.4 Waypoint Generation Styles</a></li>
+        <li class="sub"><a href="#cellular">4.5 Cellular Automata Generator (Legacy)</a></li>
+        <li class="sub"><a href="#roads">4.6 Road Network Generator</a></li>
+        <li class="sub"><a href="#nodes">4.7 Node Generator</a></li>
+        <li class="sub"><a href="#chunks">4.8 Chunk Management System</a></li>
+        <li class="sub"><a href="#seeded-rng">4.9 Seeded Random Number Generator</a></li>
+        <li><a href="#data-structures">5. Data Structures</a></li>
+        <li class="sub"><a href="#player-data">5.1 Player Data</a></li>
+        <li class="sub"><a href="#enemy-data">5.2 Enemy Data</a></li>
+        <li class="sub"><a href="#relic-data">5.3 Relic Data</a></li>
+        <li><a href="#scenes">6. Scene Architecture</a></li>
+        <li><a href="#enemies-tech">7. Enemy Technical Reference</a></li>
+        <li><a href="#relics-tech">8. Relic Technical Reference</a></li>
+        <li><a href="#status-effects">9. Status Effects System</a></li>
+        <li><a href="#events-tech">10. Events System</a></li>
+        <li><a href="#config">11. Configuration & Constants</a></li>
+        <li><a href="#controls">12. Controls & Input Handling</a></li>
+    </ul>
+</div>
+
+<!-- SECTION 1: TECHNICAL OVERVIEW -->
+<h2 id="overview">1. Technical Overview</h2>
+
+<h3 id="tech-stack">1.1 Technology Stack</h3>
+<div class="tech-specs">
+    <div class="tech-spec-item">
+        <h4>Game Engine</h4>
+        <p>Phaser 3.x (HTML5 Game Framework)</p>
+    </div>
+    <div class="tech-spec-item">
+        <h4>Language</h4>
+        <p>TypeScript 5.x</p>
+    </div>
+    <div class="tech-spec-item">
+        <h4>Build Tool</h4>
+        <p>Vite</p>
+    </div>
+    <div class="tech-spec-item">
+        <h4>Testing</h4>
+        <p>Jest</p>
+    </div>
+    <div class="tech-spec-item">
+        <h4>Resolution</h4>
+        <p>1920×1080 (16:9, scales to fit)</p>
+    </div>
+    <div class="tech-spec-item">
+        <h4>Scale Mode</h4>
+        <p>Phaser.Scale.RESIZE with CENTER_BOTH</p>
+    </div>
+</div>
+
+<h3 id="architecture">1.2 Game Architecture</h3>
+<p>Bathala follows a scene-based architecture using Phaser's scene manager:</p>
+
+<div class="code-box">
+<span class="comment">// Scene Flow</span>
+Boot → Preloader → Disclaimer → MainMenu → Prologue → Overworld
+                                                        ↓
+                    ← Combat ← Shop ← Campfire ← Treasure ← Event
+</div>
+
+<h4>Directory Structure</h4>
+<div class="code-box">
+src/
+├── core/
+│   ├── dda/           <span class="comment">// Dynamic Difficulty Adjustment</span>
+│   ├── managers/      <span class="comment">// Game state, Music, Relics</span>
+│   └── types/         <span class="comment">// TypeScript type definitions</span>
+├── data/
+│   ├── enemies/       <span class="comment">// Enemy definitions</span>
+│   ├── events/        <span class="comment">// Event encounters</span>
+│   ├── lore/          <span class="comment">// Enemy lore data</span>
+│   ├── potions/       <span class="comment">// Potion definitions</span>
+│   └── relics/        <span class="comment">// Relic definitions</span>
+├── game/
+│   ├── scenes/        <span class="comment">// Phaser scenes</span>
+│   └── ui/            <span class="comment">// UI components</span>
+└── utils/
+    ├── DamageCalculator.ts
+    ├── HandEvaluator.ts
+    └── DeckManager.ts
+</div>
+
+<!-- SECTION 2: GAMEPLAY SYSTEMS -->
+<h2 id="gameplay">2. Gameplay Systems</h2>
+
+<h3 id="combat-system">2.1 Combat System</h3>
+<p>Combat is turn-based with the following phases:</p>
+
+<ol>
+    <li><strong>Player Turn Start:</strong> Reset block to 0, apply start-of-turn effects</li>
+    <li><strong>Draw Phase:</strong> Draw 7 cards from draw pile</li>
+    <li><strong>Action Phase:</strong> Player selects cards and chooses action</li>
+    <li><strong>Resolution:</strong> Calculate and apply damage/block</li>
+    <li><strong>Enemy Turn:</strong> Execute enemy intent</li>
+    <li><strong>Turn End:</strong> Apply end-of-turn effects, increment turn counter</li>
+</ol>
+
+<h3 id="poker-hands">2.2 Poker Hand Evaluation</h3>
+<p>The <code>HandEvaluator</code> class determines the poker hand type from selected cards:</p>
+
+<div class="code-box">
+<span class="keyword">enum</span> <span class="type">HandType</span> {
+  high_card, pair, two_pair, three_of_a_kind,
+  straight, flush, full_house, four_of_a_kind,
+  straight_flush, royal_flush, five_of_a_kind
+}
+</div>
+
+<h4>Hand Detection Priority (Highest First)</h4>
+<table>
+    <tr>
+        <th>Priority</th>
+        <th>Hand Type</th>
+        <th>Detection Logic</th>
+    </tr>
+    <tr>
+        <td>1</td>
+        <td>Five of a Kind</td>
+        <td>5 cards same rank (requires special relic)</td>
+    </tr>
+    <tr>
+        <td>2</td>
+        <td>Royal Flush</td>
+        <td>10-11-12-13-1 same suit</td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td>Straight Flush</td>
+        <td>5 sequential same suit</td>
+    </tr>
+    <tr>
+        <td>4</td>
+        <td>Four of a Kind</td>
+        <td>4 cards same rank</td>
+    </tr>
+    <tr>
+        <td>5</td>
+        <td>Full House</td>
+        <td>3 of kind + pair</td>
+    </tr>
+    <tr>
+        <td>6</td>
+        <td>Flush</td>
+        <td>5 cards same suit</td>
+    </tr>
+    <tr>
+        <td>7</td>
+        <td>Straight</td>
+        <td>5 sequential cards</td>
+    </tr>
+    <tr>
+        <td>8</td>
+        <td>Three of a Kind</td>
+        <td>3 cards same rank</td>
+    </tr>
+    <tr>
+        <td>9</td>
+        <td>Two Pair</td>
+        <td>2 different pairs</td>
+    </tr>
+    <tr>
+        <td>10</td>
+        <td>Pair</td>
+        <td>2 cards same rank</td>
+    </tr>
+    <tr>
+        <td>11</td>
+        <td>High Card</td>
+        <td>Default fallback</td>
+    </tr>
+</table>
+
+<h3 id="damage-calc">2.3 Damage Calculation</h3>
+<p>The <code>DamageCalculator</code> class computes final damage values:</p>
+
+<div class="formula-box">
+    <div class="formula">
+        Final Damage = (Base Value + Hand Bonus + Elemental Bonus + Status Bonus) × Hand Multiplier
+    </div>
+</div>
+
+<h4>Card Base Values</h4>
+<table>
+    <tr>
+        <th>Rank</th>
+        <th>Value</th>
+        <th>Rank</th>
+        <th>Value</th>
+    </tr>
+    <tr><td>2</td><td>2</td><td>8</td><td>5</td></tr>
+    <tr><td>3</td><td>2</td><td>9</td><td>5</td></tr>
+    <tr><td>4</td><td>3</td><td>10</td><td>6</td></tr>
+    <tr><td>5</td><td>3</td><td>Mandirigma (11)</td><td>6</td></tr>
+    <tr><td>6</td><td>4</td><td>Babaylan (12)</td><td>7</td></tr>
+    <tr><td>7</td><td>4</td><td>Datu (13)</td><td>7</td></tr>
+    <tr><td>1 (Ace)</td><td>6</td><td></td><td></td></tr>
+</table>
+
+<h4>Hand Bonuses and Multipliers</h4>
+<table>
+    <tr>
+        <th>Hand Type</th>
+        <th>Bonus</th>
+        <th>Multiplier</th>
+    </tr>
+    <tr><td>High Card</td><td>+0</td><td>×1.0</td></tr>
+    <tr><td>Pair</td><td>+3</td><td>×1.2</td></tr>
+    <tr><td>Two Pair</td><td>+6</td><td>×1.3</td></tr>
+    <tr><td>Three of a Kind</td><td>+10</td><td>×1.5</td></tr>
+    <tr><td>Straight</td><td>+12</td><td>×1.6</td></tr>
+    <tr><td>Flush</td><td>+15</td><td>×1.7</td></tr>
+    <tr><td>Full House</td><td>+20</td><td>×2.0</td></tr>
+    <tr><td>Four of a Kind</td><td>+25</td><td>×2.2</td></tr>
+    <tr><td>Straight Flush</td><td>+35</td><td>×2.5</td></tr>
+    <tr><td>Royal Flush</td><td>+40</td><td>×2.8</td></tr>
+    <tr><td>Five of a Kind</td><td>+38</td><td>×2.6</td></tr>
+</table>
+
+<h4>Elemental Bonuses (Special Action Only)</h4>
+<table>
+    <tr>
+        <th>Cards of Same Suit</th>
+        <th>Elemental Bonus</th>
+    </tr>
+    <tr><td>1</td><td>+1</td></tr>
+    <tr><td>2</td><td>+3</td></tr>
+    <tr><td>3</td><td>+6</td></tr>
+    <tr><td>4</td><td>+10</td></tr>
+    <tr><td>5 (Pure)</td><td>+15</td></tr>
+</table>
+
+<!-- SECTION 3: DDA SYSTEM -->
+<h2 id="dda">3. Dynamic Difficulty Adjustment (DDA)</h2>
+
+<h3 id="dda-overview">3.1 DDA Overview</h3>
+<p>Bathala implements a performance-based DDA system inspired by Hades, Dead Cells, and Risk of Rain 2. The system adapts difficulty based on player skill demonstration, not win/loss ratios.</p>
+
+<div class="tip-box">
+    <strong>Key Principle:</strong> In roguelikes, defeat ends the run. The DDA focuses on HOW WELL players perform, not WHETHER they win.
+</div>
+
+<h3 id="pps">3.2 Player Performance Score (PPS)</h3>
+<p>PPS is a floating-point value from 0.0 to 5.0 that tracks player skill:</p>
+
+<div class="code-box">
+<span class="keyword">interface</span> <span class="type">PlayerPerformanceScore</span> {
+  currentPPS: <span class="type">number</span>;       <span class="comment">// Current score (0-5)</span>
+  previousPPS: <span class="type">number</span>;      <span class="comment">// Previous score</span>
+  tier: <span class="type">DifficultyTier</span>;     <span class="comment">// Current difficulty tier</span>
+  lastUpdated: <span class="type">number</span>;      <span class="comment">// Timestamp</span>
+  combatHistory: <span class="type">CombatMetrics[]</span>; <span class="comment">// Last 10 combats</span>
+  totalCombatsCompleted: <span class="type">number</span>;
+  isCalibrating: <span class="type">boolean</span>;  <span class="comment">// First 3 combats</span>
+  consecutiveVictories: <span class="type">number</span>;
+  consecutiveDefeats: <span class="type">number</span>;
+}
+</div>
+
+<h3 id="difficulty-tiers">3.3 Difficulty Tiers</h3>
+<table>
+    <tr>
+        <th>Tier</th>
+        <th>PPS Range</th>
+        <th>Enemy HP</th>
+        <th>Enemy DMG</th>
+        <th>Shop Prices</th>
+        <th>Gold Rewards</th>
+    </tr>
+    <tr>
+        <td><strong>Struggling</strong></td>
+        <td>0.0 - 1.5</td>
+        <td>×0.85</td>
+        <td>×0.85</td>
+        <td>×0.85</td>
+        <td>×1.15</td>
+    </tr>
+    <tr>
+        <td><strong>Learning</strong></td>
+        <td>1.5 - 2.5</td>
+        <td>×1.0</td>
+        <td>×1.0</td>
+        <td>×1.0</td>
+        <td>×1.0</td>
+    </tr>
+    <tr>
+        <td><strong>Thriving</strong></td>
+        <td>2.5 - 3.5</td>
+        <td>×1.1</td>
+        <td>×1.1</td>
+        <td>×1.1</td>
+        <td>×0.95</td>
+    </tr>
+    <tr>
+        <td><strong>Mastering</strong></td>
+        <td>3.5 - 5.0</td>
+        <td>×1.2</td>
+        <td>×1.2</td>
+        <td>×1.15</td>
+        <td>×0.9</td>
+    </tr>
+</table>
+
+<h3 id="dda-formula">3.4 PPS Calculation Formula</h3>
+<p>After each combat, PPS is adjusted based on multiple performance metrics:</p>
+
+<h4>1. Health Retention (Primary Metric)</h4>
+<table>
+    <tr>
+        <th>HP % at End</th>
+        <th>Adjustment</th>
+    </tr>
+    <tr><td>≥ 90%</td><td>+0.20 (Excellent)</td></tr>
+    <tr><td>70-89%</td><td>+0.10 (Good)</td></tr>
+    <tr><td>50-69%</td><td>0 (Neutral)</td></tr>
+    <tr><td>30-49%</td><td>-0.05 (Moderate)</td></tr>
+    <tr><td>< 30%</td><td>-0.10 (Poor)</td></tr>
+    <tr><td>0 damage taken</td><td>+0.15 (Perfect)</td></tr>
+</table>
+
+<h4>2. Hand Quality Bonuses</h4>
+<table>
+    <tr>
+        <th>Best Hand Achieved</th>
+        <th>Adjustment</th>
+    </tr>
+    <tr><td>Four of Kind or better</td><td>+0.10</td></tr>
+    <tr><td>Straight, Flush, Full House</td><td>+0.05</td></tr>
+</table>
+
+<h4>3. Combat Efficiency (Turn Count)</h4>
+<p>Expected turn counts vary by tier:</p>
+<ul>
+    <li><strong>Mastering:</strong> Expected 1-3 turns (efficient ≤2, inefficient ≥5)</li>
+    <li><strong>Thriving:</strong> Expected 2-4 turns (efficient ≤3, inefficient ≥6)</li>
+    <li><strong>Learning:</strong> Expected 3-6 turns (efficient ≤4, inefficient ≥8)</li>
+    <li><strong>Struggling:</strong> Expected 6-9 turns (efficient ≤6, inefficient ≥11)</li>
+</ul>
+<p>Finishing faster than expected: +0.05 | Slower than expected: -0.05</p>
+
+<h4>4. Damage Efficiency</h4>
+<div class="formula-box">
+    <div class="formula">
+        Efficiency Ratio = (Damage Dealt ÷ Turn Count) ÷ (Enemy HP ÷ Expected Turns)
+    </div>
+</div>
+<ul>
+    <li>Ratio ≥ 1.3: +0.08 (High efficiency)</li>
+    <li>Ratio ≤ 0.7: -0.05 (Low efficiency)</li>
+</ul>
+
+<h4>5. Resource Management</h4>
+<p>If discards used ≤ 30% of available: +0.03</p>
+
+<h4>6. Clutch Performance Bonus</h4>
+<p>Entering combat with < 50% HP and performing well grants bonus based on disadvantage level.</p>
+
+<h4>7. Comeback Momentum</h4>
+<p>When PPS < 1.5 (struggling) and performing positively:</p>
+<ul>
+    <li>Base comeback bonus: +0.05</li>
+    <li>Per consecutive good performance: +0.02 (max +0.10)</li>
+</ul>
+
+<h4>Tier Scaling</h4>
+<p>All bonuses/penalties are multiplied by tier-specific scaling:</p>
+<table>
+    <tr>
+        <th>Tier</th>
+        <th>Bonus Multiplier</th>
+        <th>Penalty Multiplier</th>
+    </tr>
+    <tr><td>Struggling</td><td>×1.2</td><td>×0.6</td></tr>
+    <tr><td>Learning</td><td>×1.0</td><td>×1.0</td></tr>
+    <tr><td>Thriving</td><td>×0.9</td><td>×1.1</td></tr>
+    <tr><td>Mastering</td><td>×0.8</td><td>×1.3</td></tr>
+</table>
+
+<div class="warning-box">
+    <strong>Calibration Period:</strong> The first 3 combats are a calibration period where the player remains in "Learning" tier regardless of PPS calculations.
+</div>
+
+<!-- SECTION 4: PROCEDURAL CONTENT GENERATION -->
+<h2 id="pcg">4. Procedural Content Generation (PCG)</h2>
+
+<h3 id="pcg-overview">4.1 PCG Architecture Overview</h3>
+<p>Bathala uses a sophisticated chunk-based procedural generation system for the overworld. The system generates deterministic, seeded layouts using Delaunay triangulation with A* pathfinding for corridor carving.</p>
+
+<div class="code-box">
+<span class="comment">// PCG Pipeline Flow</span>
+MazeOverworldGenerator
+    ├── ChunkManager (Cache & Lifecycle)
+    │       └── getChunk() / cacheChunk() / preloadChunksAround()
+    ├── DelaunayMazeGenerator (Primary)
+    │       ├── generateRegionPoints() <span class="comment">// Seed points with spacing</span>
+    │       ├── createSimpleTriangulation() <span class="comment">// Delaunay edges</span>
+    │       ├── findPath() + findPathSegment() <span class="comment">// A* carving</span>
+    │       ├── fixDoubleWidePaths() <span class="comment">// 2×2 block pruning</span>
+    │       └── reduceDeadEnds() <span class="comment">// Dead-end extension</span>
+    ├── RoadNetworkGenerator (Roads)
+    │       └── Bresenham line algorithm
+    ├── NodeGenerator (POIs)
+    │       └── Spatial distribution of encounters
+    └── RandomUtil (Deterministic RNG)
+            └── Linear Congruential Generator
+</div>
+
+<div class="tip-box">
+    <strong>Key Features:</strong>
+    <ul style="margin: 5px 0 0 20px;">
+        <li>Chunk-based generation for infinite worlds (50×50 default chunk size)</li>
+        <li>Deterministic seeding for reproducible worlds</li>
+        <li>LRU caching with automatic eviction (max 100 chunks)</li>
+        <li>Background preloading for smooth gameplay</li>
+    </ul>
+</div>
+
+<h3 id="delaunay">4.2 Delaunay Maze Generator</h3>
+<p>The primary maze generation algorithm uses Delaunay triangulation to establish connectivity between region seed points, then carves corridors using A* pathfinding.</p>
+
+<h4>Generation Pipeline</h4>
+<ol>
+    <li><strong>Seed Region Points:</strong> Random points with minimum spacing (minRegionDistance = 4)</li>
+    <li><strong>Triangulate Connectivity:</strong> Connect each point to its 3 nearest neighbors</li>
+    <li><strong>Sort Edges by Length:</strong> Shorter edges processed first for local clustering</li>
+    <li><strong>Carve Multi-Waypoint Paths:</strong> A* with waypoint styles for variety</li>
+    <li><strong>Fix Double-Wide Paths:</strong> Remove 2×2 path blocks (max 10 iterations)</li>
+    <li><strong>Reduce Dead Ends:</strong> Extend dead ends up to 5 tiles</li>
+</ol>
+
+<h4>Tunable Constants</h4>
+<table>
+    <tr>
+        <th>Constant</th>
+        <th>Value</th>
+        <th>Description</th>
+    </tr>
+    <tr><td>BASE_TILE_COST</td><td>1.2</td><td>Nominal A* movement cost</td></tr>
+    <tr><td>DIRECTION_CHANGE_PENALTY</td><td>0.1</td><td>Cost for turning corners</td></tr>
+    <tr><td>MIN_WAYPOINT_DISTANCE</td><td>8</td><td>Manhattan distance threshold for waypoints</td></tr>
+    <tr><td>ZIGZAG_MIN_DISTANCE</td><td>15</td><td>Minimum distance for zigzag style</td></tr>
+    <tr><td>STEP_MIDPOINT_JITTER</td><td>2</td><td>±range for step midpoint randomization</td></tr>
+    <tr><td>MAX_DOUBLE_WIDE_FIX_ITER</td><td>10</td><td>Safety cap for pruning loop</td></tr>
+    <tr><td>MAX_REGION_POINT_ATTEMPTS</td><td>1000</td><td>Rejection sampling cap</td></tr>
+    <tr><td>L_SHAPE_FIRST_AXIS_PROB</td><td>0.5</td><td>Probability horizontal-first in L-shape</td></tr>
+</table>
+
+<h4>IntGrid Tile Types</h4>
+<div class="code-box">
+<span class="keyword">const</span> PATH_TILE = <span class="number">0</span>;   <span class="comment">// Walkable corridor</span>
+<span class="keyword">const</span> REGION_TILE = <span class="number">1</span>; <span class="comment">// Wall / uncarved area</span>
+</div>
+
+<h3 id="astar">4.3 A* Pathfinding</h3>
+<p>The A* implementation uses Manhattan distance heuristic with cost modifiers for path variety:</p>
+
+<div class="code-box">
+<span class="keyword">class</span> <span class="type">PathNode</span> {
+  position: [<span class="type">number</span>, <span class="type">number</span>];  <span class="comment">// Grid coordinates</span>
+  parent: <span class="type">PathNode</span> | <span class="keyword">null</span>;   <span class="comment">// For path reconstruction</span>
+  g: <span class="type">number</span>;  <span class="comment">// Cost from start (accumulated tile + turn costs)</span>
+  h: <span class="type">number</span>;  <span class="comment">// Heuristic to goal (Manhattan distance)</span>
+  f: <span class="type">number</span>;  <span class="comment">// Total estimated cost (g + h)</span>
+}
+</div>
+
+<div class="formula-box">
+    <div class="formula">
+        f(n) = g(n) + h(n)
+    </div>
+    <p style="margin-top: 10px; font-size: 14px;">
+        g(n) = BASE_TILE_COST + DIRECTION_CHANGE_PENALTY (if turning)<br>
+        h(n) = |current.x - goal.x| + |current.y - goal.y|
+    </p>
+</div>
+
+<h4>A* Cost Model</h4>
+<table>
+    <tr>
+        <th>Movement Type</th>
+        <th>Cost</th>
+    </tr>
+    <tr><td>Straight movement</td><td>1.2 (BASE_TILE_COST)</td></tr>
+    <tr><td>Direction change</td><td>1.3 (BASE + PENALTY)</td></tr>
+    <tr><td>Existing PATH tile</td><td>1.0 (encourages reuse)</td></tr>
+</table>
+
+<h3 id="waypoints">4.4 Waypoint Generation Styles</h3>
+<p>For paths longer than MIN_WAYPOINT_DISTANCE (8), one of three styles is randomly selected:</p>
+
+<table>
+    <tr>
+        <th>Style</th>
+        <th>Description</th>
+        <th>Pattern</th>
+    </tr>
+    <tr>
+        <td><strong>L-Shape</strong></td>
+        <td>90° turn at midpoint</td>
+        <td>Horizontal→Vertical or Vertical→Horizontal (50/50)</td>
+    </tr>
+    <tr>
+        <td><strong>Step</strong></td>
+        <td>Stair-step pattern with jitter</td>
+        <td>H→V→H with ±2 midpoint offset</td>
+    </tr>
+    <tr>
+        <td><strong>Zigzag</strong></td>
+        <td>Multi-point zigzag (distance ≥ 15)</td>
+        <td>4 waypoints at 1/3 and 2/3 intervals</td>
+    </tr>
+</table>
+
+<div class="code-box">
+<span class="comment">// Waypoint generation pseudocode</span>
+<span class="keyword">if</span> (distance < <span class="number">8</span>) <span class="keyword">return</span> [];  <span class="comment">// Direct path</span>
+
+<span class="keyword">switch</span> (randomStyle) {
+  <span class="keyword">case</span> <span class="string">'L_shape'</span>:
+    <span class="keyword">return</span> Math.random() < <span class="number">0.5</span>
+      ? [[end.x, start.y]]       <span class="comment">// Horizontal first</span>
+      : [[start.x, end.y]];      <span class="comment">// Vertical first</span>
+
+  <span class="keyword">case</span> <span class="string">'step'</span>:
+    midX = start.x + dx/<span class="number">2</span> + jitter;
+    midY = start.y + dy/<span class="number">2</span> + jitter;
+    <span class="keyword">return</span> [[midX, start.y], [midX, midY], [end.x, midY]];
+
+  <span class="keyword">case</span> <span class="string">'zigzag'</span>:
+    <span class="keyword">if</span> (distance > <span class="number">15</span>) {
+      <span class="keyword">return</span> [
+        [start.x + dx/<span class="number">3</span>, start.y],
+        [start.x + dx/<span class="number">3</span>, start.y + dy/<span class="number">3</span>],
+        [start.x + <span class="number">2</span>*dx/<span class="number">3</span>, start.y + dy/<span class="number">3</span>],
+        [start.x + <span class="number">2</span>*dx/<span class="number">3</span>, start.y + <span class="number">2</span>*dy/<span class="number">3</span>]
+      ];
+    }
+}
+</div>
+
+<h3 id="cellular">4.5 Cellular Automata Generator (Legacy)</h3>
+<p>An alternative generator producing organic, cave-like layouts. Currently dormant but available for future biome-specific generation.</p>
+
+<h4>Algorithm</h4>
+<ol>
+    <li><strong>Initialize:</strong> Fill grid with 45% walls randomly</li>
+    <li><strong>Iterate:</strong> Apply cellular automata rules (4 iterations)</li>
+    <li><strong>Post-process:</strong> Remove isolated walls, widen paths</li>
+</ol>
+
+<h4>Cellular Automata Rules</h4>
+<div class="code-box">
+<span class="comment">// For each cell, count wall neighbors (8-directional)</span>
+<span class="keyword">if</span> (wallCount >= <span class="number">5</span>) {
+  newCell = WALL;         <span class="comment">// Become wall</span>
+} <span class="keyword">else if</span> (wallCount <= <span class="number">3</span>) {
+  newCell = PATH;         <span class="comment">// Become path</span>
+} <span class="keyword">else</span> {
+  newCell = currentCell;  <span class="comment">// Keep state (10% flip chance)</span>
+}
+</div>
+
+<h4>Configuration</h4>
+<table>
+    <tr>
+        <th>Parameter</th>
+        <th>Value</th>
+    </tr>
+    <tr><td>FILL_PROBABILITY</td><td>0.45 (45% initial walls)</td></tr>
+    <tr><td>ITERATIONS</td><td>4</td></tr>
+    <tr><td>ISOLATED_WALL_THRESHOLD</td><td>2 neighbors</td></tr>
+    <tr><td>PATH_WIDENING_CHANCE</td><td>0.1 (10%)</td></tr>
+</table>
+
+<h3 id="roads">4.6 Road Network Generator</h3>
+<p>Generates major and secondary roads using Bresenham's line algorithm:</p>
+
+<h4>Bresenham's Line Algorithm</h4>
+<div class="code-box">
+<span class="comment">// Efficient integer-based line drawing</span>
+<span class="keyword">function</span> bresenhamLine(x0, y0, x1, y1): [<span class="type">number</span>, <span class="type">number</span>][] {
+  dx = Math.abs(x1 - x0);
+  dy = Math.abs(y1 - y0);
+  sx = x0 < x1 ? <span class="number">1</span> : <span class="number">-1</span>;
+  sy = y0 < y1 ? <span class="number">1</span> : <span class="number">-1</span>;
+  err = dx - dy;
+
+  <span class="keyword">while</span> (<span class="keyword">true</span>) {
+    points.push([x, y]);
+    <span class="keyword">if</span> (x === x1 && y === y1) <span class="keyword">break</span>;
+
+    e2 = <span class="number">2</span> * err;
+    <span class="keyword">if</span> (e2 > -dy) { err -= dy; x += sx; }
+    <span class="keyword">if</span> (e2 < dx)  { err += dx; y += sy; }
+  }
+  <span class="keyword">return</span> points;
+}
+</div>
+
+<h4>Road Generation Parameters</h4>
+<table>
+    <tr>
+        <th>Parameter</th>
+        <th>Value</th>
+        <th>Description</th>
+    </tr>
+    <tr><td>ROAD_DENSITY</td><td>0.8</td><td>80% chance of major road per chunk</td></tr>
+    <tr><td>SECONDARY_ROAD_CHANCE</td><td>0.9</td><td>90% chance of secondary roads</td></tr>
+    <tr><td>ROAD_WIDTH</td><td>1</td><td>Width in tiles</td></tr>
+    <tr><td>MIN_SECONDARY_ROADS</td><td>1</td><td>Minimum secondary roads</td></tr>
+    <tr><td>MAX_SECONDARY_ROADS</td><td>2</td><td>Maximum secondary roads</td></tr>
+    <tr><td>MIN_ROAD_LENGTH</td><td>8</td><td>Minimum road length</td></tr>
+    <tr><td>MAX_ROAD_LENGTH</td><td>22</td><td>Maximum road length</td></tr>
+</table>
+
+<h3 id="nodes">4.7 Node Generator</h3>
+<p>Places points of interest (combat, elite, shop, event, campfire, treasure) on valid path tiles using spatial distribution:</p>
+
+<div class="code-box">
+<span class="keyword">interface</span> <span class="type">MapNode</span> {
+  id: <span class="type">string</span>;               <span class="comment">// e.g., "combat-0-1-2"</span>
+  type: <span class="type">NodeType</span>;           <span class="comment">// combat | elite | shop | event | campfire | treasure</span>
+  x: <span class="type">number</span>;                <span class="comment">// World X coordinate</span>
+  y: <span class="type">number</span>;                <span class="comment">// World Y coordinate</span>
+  row: <span class="type">number</span>;              <span class="comment">// Grid row</span>
+  connections: <span class="type">string[]</span>;   <span class="comment">// Connected node IDs</span>
+  visited: <span class="type">boolean</span>;
+  available: <span class="type">boolean</span>;
+  completed: <span class="type">boolean</span>;
+  enemyId?: <span class="type">string</span>;         <span class="comment">// For combat/elite nodes</span>
+}
+</div>
+
+<h4>Node Placement Algorithm</h4>
+<ol>
+    <li><strong>Find Valid Positions:</strong> Path tiles with ≥5 open neighbors, ≥3 tiles from edge</li>
+    <li><strong>Spatial Distribution:</strong> Maximize minimum distance between nodes (chunkSize/4)</li>
+    <li><strong>Assign Types:</strong> Random selection from available node types</li>
+    <li><strong>Assign Enemies:</strong> For combat/elite nodes, randomly select from enemy pool</li>
+</ol>
+
+<table>
+    <tr>
+        <th>Parameter</th>
+        <th>Value</th>
+    </tr>
+    <tr><td>MIN_DISTANCE_FROM_EDGE</td><td>3 tiles</td></tr>
+    <tr><td>MIN_OPEN_NEIGHBORS</td><td>5 (of 9 in 3×3 area)</td></tr>
+    <tr><td>BASE_NODE_COUNT</td><td>3 nodes per chunk</td></tr>
+    <tr><td>MIN_NODE_DISTANCE_FACTOR</td><td>4 (chunkSize/4)</td></tr>
+</table>
+
+<h3 id="chunks">4.8 Chunk Management System</h3>
+<p>The ChunkManager handles caching, retrieval, and lifecycle of generated chunks:</p>
+
+<div class="code-box">
+<span class="keyword">class</span> <span class="type">ChunkManager</span> {
+  <span class="keyword">private static</span> chunks: Map&lt;<span class="type">string</span>, <span class="type">ChunkData</span>&gt;;
+  <span class="keyword">private static</span> maxCachedChunks = <span class="number">100</span>;
+
+  <span class="comment">// Generate unique key for chunk coordinates</span>
+  <span class="keyword">static</span> generateChunkKey(chunkX, chunkY): <span class="type">string</span> {
+    <span class="keyword">return</span> <span class="string">`${chunkX},${chunkY}`</span>;
+  }
+
+  <span class="comment">// LRU-style eviction when cache is full</span>
+  <span class="keyword">static</span> cacheChunk(key, chunk) {
+    <span class="keyword">if</span> (<span class="keyword">this</span>.chunks.size >= <span class="keyword">this</span>.maxCachedChunks) {
+      <span class="keyword">const</span> oldest = <span class="keyword">this</span>.chunks.keys().next().value;
+      <span class="keyword">this</span>.chunks.delete(oldest);
+    }
+    <span class="keyword">this</span>.chunks.set(key, chunk);
+  }
+
+  <span class="comment">// Background preloading for smooth gameplay</span>
+  <span class="keyword">static</span> preloadChunksAround(centerX, centerY, radius) {
+    <span class="keyword">for</span> (dy = -radius; dy <= radius; dy++) {
+      <span class="keyword">for</span> (dx = -radius; dx <= radius; dx++) {
+        setTimeout(() => getChunk(centerX + dx, centerY + dy), <span class="number">0</span>);
+      }
+    }
+  }
+}
+</div>
+
+<h4>Chunk Data Structure</h4>
+<div class="code-box">
+<span class="keyword">interface</span> <span class="type">ChunkData</span> {
+  maze: <span class="type">number[][]</span>;           <span class="comment">// 2D grid (0=path, 1=wall)</span>
+  nodes: <span class="type">MapNode[]</span>;           <span class="comment">// Points of interest</span>
+  roadConnections: {          <span class="comment">// Border connections</span>
+    x: <span class="type">number</span>;
+    y: <span class="type">number</span>;
+    direction: <span class="string">'north'</span> | <span class="string">'south'</span> | <span class="string">'east'</span> | <span class="string">'west'</span>;
+  }[];
+}
+</div>
+
+<h3 id="seeded-rng">4.9 Seeded Random Number Generator</h3>
+<p>Deterministic random generation using a Linear Congruential Generator (LCG) for reproducible worlds:</p>
+
+<div class="formula-box">
+    <div class="formula">
+        seed<sub>n+1</sub> = (seed<sub>n</sub> × 16807) mod 2147483647
+    </div>
+    <p style="margin-top: 10px; font-size: 14px;">
+        Park-Miller "minimal standard" LCG with modulus 2<sup>31</sup>-1
+    </p>
+</div>
+
+<div class="code-box">
+<span class="keyword">class</span> <span class="type">RandomUtil</span> {
+  <span class="comment">// Create seeded RNG for deterministic generation</span>
+  <span class="keyword">static</span> createSeededRandom(seed: <span class="type">number</span>): <span class="type">SeededRandom</span> {
+    <span class="keyword">return</span> {
+      seed: seed,
+      next(): <span class="type">number</span> {
+        <span class="keyword">this</span>.seed = (<span class="keyword">this</span>.seed * <span class="number">16807</span>) % <span class="number">2147483647</span>;
+        <span class="keyword">return</span> (<span class="keyword">this</span>.seed - <span class="number">1</span>) / <span class="number">2147483646</span>;  <span class="comment">// Normalize to [0, 1)</span>
+      }
+    };
+  }
+
+  <span class="comment">// Generate deterministic chunk seed using bit manipulation</span>
+  <span class="keyword">static</span> getChunkSeed(chunkX, chunkY, globalSeed): <span class="type">number</span> {
+    <span class="keyword">return</span> ((chunkX * <span class="number">73856093</span>) ^ (chunkY * <span class="number">19349663</span>) ^ globalSeed) & <span class="number">0x7fffffff</span>;
+  }
+}
+</div>
+
+<h4>Hash Constants</h4>
+<table>
+    <tr>
+        <th>Constant</th>
+        <th>Value</th>
+        <th>Purpose</th>
+    </tr>
+    <tr><td>LCG Multiplier</td><td>16807 (7<sup>5</sup>)</td><td>Park-Miller constant</td></tr>
+    <tr><td>LCG Modulus</td><td>2147483647 (2<sup>31</sup>-1)</td><td>Mersenne prime</td></tr>
+    <tr><td>X Hash Prime</td><td>73856093</td><td>Spatial hashing for X</td></tr>
+    <tr><td>Y Hash Prime</td><td>19349663</td><td>Spatial hashing for Y</td></tr>
+</table>
+
+<div class="tip-box">
+    <strong>Shareable Seeds:</strong> By using deterministic seeding, players can share world seeds to experience the same procedurally generated layout.
+</div>
+
+<!-- SECTION 5: DATA STRUCTURES -->
+<h2 id="data-structures">5. Data Structures</h2>
+
+<h3 id="player-data">5.1 Player Data</h3>
+<div class="code-box">
+<span class="keyword">interface</span> <span class="type">Player</span> <span class="keyword">extends</span> <span class="type">CombatEntity</span> {
+  hand: <span class="type">PlayingCard[]</span>;        <span class="comment">// Current hand (max 7)</span>
+  deck: <span class="type">PlayingCard[]</span>;        <span class="comment">// Full deck</span>
+  discardPile: <span class="type">PlayingCard[]</span>; <span class="comment">// Discarded cards</span>
+  drawPile: <span class="type">PlayingCard[]</span>;    <span class="comment">// Cards to draw</span>
+  playedHand: <span class="type">PlayingCard[]</span>;  <span class="comment">// Currently selected</span>
+  landasScore: <span class="type">number</span>;        <span class="comment">// Moral alignment</span>
+  ginto: <span class="type">number</span>;              <span class="comment">// Gold currency</span>
+  diamante: <span class="type">number</span>;           <span class="comment">// Premium currency</span>
+  relics: <span class="type">Relic[]</span>;            <span class="comment">// Max 6 relics</span>
+  potions: <span class="type">Potion[]</span>;          <span class="comment">// Max 3 potions</span>
+  discardCharges: <span class="type">number</span>;     <span class="comment">// Per turn (default 3)</span>
+  maxDiscardCharges: <span class="type">number</span>;  <span class="comment">// Max per turn</span>
+}
+</div>
+
+<h3 id="enemy-data">5.2 Enemy Data</h3>
+<div class="code-box">
+<span class="keyword">interface</span> <span class="type">Enemy</span> <span class="keyword">extends</span> <span class="type">CombatEntity</span> {
+  intent: <span class="type">EnemyIntent</span>;          <span class="comment">// Next action</span>
+  damage: <span class="type">number</span>;               <span class="comment">// Base damage</span>
+  attackPattern: <span class="type">string[]</span>;      <span class="comment">// Action sequence</span>
+  currentPatternIndex: <span class="type">number</span>;  <span class="comment">// Current position</span>
+  halfHealthTriggered?: <span class="type">boolean</span>; <span class="comment">// Phase change</span>
+}
+
+<span class="keyword">interface</span> <span class="type">EnemyIntent</span> {
+  type: <span class="string">"attack"</span> | <span class="string">"defend"</span> | <span class="string">"buff"</span> | <span class="string">"debuff"</span> | <span class="string">"unknown"</span>;
+  value: <span class="type">number</span>;
+  description: <span class="type">string</span>;
+  icon: <span class="type">string</span>;
+}
+</div>
+
+<h3 id="relic-data">5.3 Relic Data</h3>
+<div class="code-box">
+<span class="keyword">interface</span> <span class="type">Relic</span> {
+  id: <span class="type">string</span>;           <span class="comment">// Unique identifier</span>
+  name: <span class="type">string</span>;         <span class="comment">// Display name</span>
+  description: <span class="type">string</span>;  <span class="comment">// Effect description</span>
+  emoji: <span class="type">string</span>;        <span class="comment">// Fallback icon</span>
+}
+</div>
+
+<!-- SECTION 6: SCENES -->
+<h2 id="scenes">6. Scene Architecture</h2>
+
+<table>
+    <tr>
+        <th>Scene</th>
+        <th>Key</th>
+        <th>Description</th>
+    </tr>
+    <tr><td>Boot</td><td>Boot</td><td>Initial bootstrap, minimal assets</td></tr>
+    <tr><td>Preloader</td><td>Preloader</td><td>Load all game assets</td></tr>
+    <tr><td>Disclaimer</td><td>Disclaimer</td><td>Legal disclaimer screen</td></tr>
+    <tr><td>MainMenu</td><td>MainMenu</td><td>Main menu with Play/Discover/Settings</td></tr>
+    <tr><td>Prologue</td><td>Prologue</td><td>11-phase tutorial system</td></tr>
+    <tr><td>Overworld</td><td>Overworld</td><td>Map navigation with fog of war</td></tr>
+    <tr><td>Combat</td><td>Combat</td><td>Main combat scene (~4000 lines)</td></tr>
+    <tr><td>Shop</td><td>Shop</td><td>Relic shop with merchant</td></tr>
+    <tr><td>Campfire</td><td>Campfire</td><td>Rest/Heal/Upgrade options</td></tr>
+    <tr><td>Treasure</td><td>Treasure</td><td>Reward selection</td></tr>
+    <tr><td>Event</td><td>EventScene</td><td>Random event encounters</td></tr>
+    <tr><td>Discover</td><td>Discover</td><td>Enemy compendium viewer</td></tr>
+    <tr><td>Settings</td><td>Settings</td><td>Volume and options</td></tr>
+    <tr><td>Credits</td><td>Credits</td><td>Development credits</td></tr>
+    <tr><td>GameOver</td><td>GameOver</td><td>End screen</td></tr>
+</table>
+
+<h3>Scene Lifecycle</h3>
+<div class="code-box">
+<span class="comment">// Standard Phaser scene lifecycle</span>
+init(data)   <span class="comment">// Receive data from previous scene</span>
+preload()    <span class="comment">// Load scene-specific assets</span>
+create()     <span class="comment">// Create game objects</span>
+update()     <span class="comment">// Per-frame logic</span>
+shutdown()   <span class="comment">// Cleanup when scene stops</span>
+</div>
+
+<!-- SECTION 7: ENEMIES TECHNICAL -->
+<h2 id="enemies-tech">7. Enemy Technical Reference</h2>
+
+<h3>Common Enemies (Act 1)</h3>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>HP</th>
+        <th>Damage</th>
+        <th>Attack Pattern</th>
+    </tr>
+    <tr>
+        <td>tikbalang_scout</td>
+        <td>Tikbalang Scout</td>
+        <td>180</td>
+        <td>21</td>
+        <td>["attack", "confuse", "attack"]</td>
+    </tr>
+    <tr>
+        <td>balete_wraith</td>
+        <td>Balete Wraith</td>
+        <td>150</td>
+        <td>15</td>
+        <td>["attack", "strengthen", "attack"]</td>
+    </tr>
+    <tr>
+        <td>sigbin_charger</td>
+        <td>Sigbin Charger</td>
+        <td>220</td>
+        <td>30</td>
+        <td>["charge", "attack", "wait"]</td>
+    </tr>
+    <tr>
+        <td>duwende_trickster</td>
+        <td>Duwende Trickster</td>
+        <td>130</td>
+        <td>12</td>
+        <td>["steal_block", "disrupt_draw", "attack"]</td>
+    </tr>
+    <tr>
+        <td>tiyanak_ambusher</td>
+        <td>Tiyanak Ambusher</td>
+        <td>170</td>
+        <td>18</td>
+        <td>["fear", "critical_attack", "attack"]</td>
+    </tr>
+    <tr>
+        <td>amomongo</td>
+        <td>Amomongo</td>
+        <td>160</td>
+        <td>15</td>
+        <td>["bleed_attack", "fast_attack", "attack"]</td>
+    </tr>
+    <tr>
+        <td>bungisngis</td>
+        <td>Bungisngis</td>
+        <td>200</td>
+        <td>36</td>
+        <td>["laugh_debuff", "high_swing", "attack"]</td>
+    </tr>
+</table>
+
+<h3>Elite Enemies</h3>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>HP</th>
+        <th>Damage</th>
+        <th>Attack Pattern</th>
+    </tr>
+    <tr>
+        <td>kapre_shade</td>
+        <td>Kapre Shade</td>
+        <td>320</td>
+        <td>36</td>
+        <td>["burn_aoe", "summon_minion", "attack"]</td>
+    </tr>
+    <tr>
+        <td>tawong_lipod</td>
+        <td>Tawong Lipod</td>
+        <td>300</td>
+        <td>30</td>
+        <td>["stun", "air_attack", "attack"]</td>
+    </tr>
+</table>
+
+<h3>Boss</h3>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>HP</th>
+        <th>Damage</th>
+        <th>Attack Pattern</th>
+    </tr>
+    <tr>
+        <td>mangangaway</td>
+        <td>Mangangaway</td>
+        <td>600</td>
+        <td>45</td>
+        <td>["mimic_element", "curse_cards", "hex_of_reversal", "attack"]</td>
+    </tr>
+</table>
+
+<!-- SECTION 8: RELICS TECHNICAL -->
+<h2 id="relics-tech">8. Relic Technical Reference</h2>
+
+<h3>Relic Effect Categories</h3>
+<table>
+    <tr>
+        <th>Category</th>
+        <th>Trigger</th>
+        <th>Relics</th>
+    </tr>
+    <tr>
+        <td>START_OF_COMBAT</td>
+        <td>When combat begins</td>
+        <td>earthwardens_plate, swift_wind_agimat, umalagad_spirit, diwatas_crown, stone_golem_heart</td>
+    </tr>
+    <tr>
+        <td>START_OF_TURN</td>
+        <td>Each player turn</td>
+        <td>ember_fetish, earthwardens_plate, tiyanak_tear</td>
+    </tr>
+    <tr>
+        <td>END_OF_TURN</td>
+        <td>After player turn</td>
+        <td>tidal_amulet</td>
+    </tr>
+    <tr>
+        <td>HAND_EVALUATION</td>
+        <td>When hand is evaluated</td>
+        <td>babaylans_talisman, diwatas_crown</td>
+    </tr>
+    <tr>
+        <td>AFTER_HAND_PLAYED</td>
+        <td>After playing cards</td>
+        <td>ancestral_blade, sarimanok_feather, lucky_charm, umalagad_spirit</td>
+    </tr>
+    <tr>
+        <td>PASSIVE_COMBAT</td>
+        <td>Always active</td>
+        <td>tikbalangs_hoof, balete_root, sigbin_heart, duwende_charm, amomongo_claw, bungisngis_grin, mangangaway_wand, kapres_cigar</td>
+    </tr>
+</table>
+
+<h3>Relic Implementation Details</h3>
+<table>
+    <tr>
+        <th>Relic ID</th>
+        <th>Effect Value</th>
+    </tr>
+    <tr><td>sigbin_heart</td><td>+3 damage on Attack</td></tr>
+    <tr><td>duwende_charm</td><td>+3 block on Defend</td></tr>
+    <tr><td>bungisngis_grin</td><td>+4 damage when enemy debuffed</td></tr>
+    <tr><td>mangangaway_wand</td><td>+5 damage on Special</td></tr>
+    <tr><td>tikbalangs_hoof</td><td>10% dodge chance</td></tr>
+    <tr><td>kapres_cigar</td><td>First Attack ×2 damage (once per combat)</td></tr>
+    <tr><td>amomongo_claw</td><td>Apply 1 Vulnerable on Attack</td></tr>
+    <tr><td>babaylans_talisman</td><td>Hand tier +1</td></tr>
+</table>
+
+<!-- SECTION 9: STATUS EFFECTS -->
+<h2 id="status-effects">9. Status Effects System</h2>
+
+<div class="code-box">
+<span class="keyword">interface</span> <span class="type">StatusEffect</span> {
+  id: <span class="type">string</span>;         <span class="comment">// Unique identifier</span>
+  name: <span class="type">string</span>;       <span class="comment">// Display name</span>
+  type: <span class="string">"buff"</span> | <span class="string">"debuff"</span>;
+  duration: <span class="type">number</span>;   <span class="comment">// Turns remaining (-1 = permanent)</span>
+  value: <span class="type">number</span>;      <span class="comment">// Stack count or intensity</span>
+  description: <span class="type">string</span>;
+  emoji: <span class="type">string</span>;
+}
+</div>
+
+<h3>Common Status Effects</h3>
+<table>
+    <tr>
+        <th>Effect</th>
+        <th>Type</th>
+        <th>Description</th>
+    </tr>
+    <tr>
+        <td>Strength</td>
+        <td>Buff</td>
+        <td>+X damage per attack (stacks)</td>
+    </tr>
+    <tr>
+        <td>Dexterity</td>
+        <td>Buff</td>
+        <td>+X block per defend (stacks)</td>
+    </tr>
+    <tr>
+        <td>Weak</td>
+        <td>Debuff</td>
+        <td>Deal 25% less damage</td>
+    </tr>
+    <tr>
+        <td>Vulnerable</td>
+        <td>Debuff</td>
+        <td>Take 50% more damage</td>
+    </tr>
+    <tr>
+        <td>Regeneration</td>
+        <td>Buff</td>
+        <td>Heal X HP per turn</td>
+    </tr>
+    <tr>
+        <td>Burn</td>
+        <td>Debuff</td>
+        <td>Take X damage per turn</td>
+    </tr>
+</table>
+
+<!-- SECTION 10: EVENTS -->
+<h2 id="events-tech">10. Events System</h2>
+
+<div class="code-box">
+<span class="keyword">interface</span> <span class="type">GameEvent</span> {
+  id: <span class="type">string</span>;
+  name: <span class="type">string</span>;
+  description: <span class="type">string[]</span>;      <span class="comment">// Multiple lines</span>
+  choices: <span class="type">EventChoice[]</span>;
+  dayEvent: <span class="type">boolean</span>;          <span class="comment">// Day or night event</span>
+}
+
+<span class="keyword">interface</span> <span class="type">EventChoice</span> {
+  text: <span class="type">string</span>;                  <span class="comment">// Choice button text</span>
+  outcome: (context: <span class="type">EventContext</span>) => <span class="type">string</span>; <span class="comment">// Result</span>
+}
+</div>
+
+<h3>Act 1 Events</h3>
+<table>
+    <tr>
+        <th>Event ID</th>
+        <th>Name</th>
+        <th>Type</th>
+    </tr>
+    <tr><td>anito_shrine</td><td>Anito Shrine</td><td>Day</td></tr>
+    <tr><td>balete_vision</td><td>Balete Vision</td><td>Night</td></tr>
+    <tr><td>diwata_whisper</td><td>Diwata Whisper</td><td>Day</td></tr>
+    <tr><td>forgotten_altar</td><td>Forgotten Altar</td><td>Day</td></tr>
+    <tr><td>tikbalang_crossroads</td><td>Tikbalang Crossroads</td><td>Night</td></tr>
+    <tr><td>wind_omen</td><td>Wind Omen</td><td>Day</td></tr>
+    <tr><td>sacred_grove</td><td>Sacred Grove</td><td>Day</td></tr>
+    <tr><td>tiyanak_wail</td><td>Tiyanak Wail</td><td>Night</td></tr>
+</table>
+
+<!-- SECTION 11: CONFIGURATION -->
+<h2 id="config">11. Configuration & Constants</h2>
+
+<h3>Game Constants</h3>
+<table>
+    <tr>
+        <th>Constant</th>
+        <th>Value</th>
+        <th>Description</th>
+    </tr>
+    <tr><td>MAX_HAND_SIZE</td><td>7</td><td>Cards drawn per turn</td></tr>
+    <tr><td>MAX_DISCARD_CHARGES</td><td>3</td><td>Default discards per turn</td></tr>
+    <tr><td>MAX_RELICS</td><td>6</td><td>Maximum relics player can hold</td></tr>
+    <tr><td>MAX_POTIONS</td><td>3</td><td>Maximum potions player can hold</td></tr>
+    <tr><td>STARTING_HP</td><td>80</td><td>Default player max HP</td></tr>
+    <tr><td>STARTING_GINTO</td><td>100</td><td>Default starting gold</td></tr>
+    <tr><td>DDA_CALIBRATION_COMBATS</td><td>3</td><td>Combats before DDA activates</td></tr>
+</table>
+
+<h3>DDA Configuration</h3>
+<div class="code-box">
+<span class="keyword">const</span> DEFAULT_DDA_CONFIG = {
+  calibration: {
+    enabled: <span class="keyword">true</span>,
+    combatCount: <span class="number">3</span>,
+    trackPPSDuringCalibration: <span class="keyword">true</span>
+  },
+  difficultyTiers: {
+    struggling: { min: <span class="number">0</span>, max: <span class="number">1.5</span> },
+    learning: { min: <span class="number">1.5</span>, max: <span class="number">2.5</span> },
+    thriving: { min: <span class="number">2.5</span>, max: <span class="number">3.5</span> },
+    mastering: { min: <span class="number">3.5</span>, max: <span class="number">5.0</span> }
+  },
+  ppsModifiers: {
+    excellentHealthBonus: <span class="number">0.20</span>,
+    goodHealthBonus: <span class="number">0.10</span>,
+    moderateHealthPenalty: <span class="number">-0.05</span>,
+    poorHealthPenalty: <span class="number">-0.10</span>,
+    perfectCombatBonus: <span class="number">0.15</span>,
+    <span class="comment">// ... more modifiers</span>
+  }
+};
+</div>
+
+<!-- SECTION 12: CONTROLS -->
+<h2 id="controls">12. Controls & Input Handling</h2>
+
+<h3>Input Types</h3>
+<table>
+    <tr>
+        <th>Input</th>
+        <th>Scene</th>
+        <th>Handler</th>
+    </tr>
+    <tr>
+        <td>Left Click</td>
+        <td>All</td>
+        <td>Primary interaction (select, confirm)</td>
+    </tr>
+    <tr>
+        <td>Mouse Wheel</td>
+        <td>Shop, Discover</td>
+        <td>Scroll content</td>
+    </tr>
+    <tr>
+        <td>Drag</td>
+        <td>Shop, Discover</td>
+        <td>Touch-style scrolling</td>
+    </tr>
+    <tr>
+        <td>ESC Key</td>
+        <td>Discover, Popups</td>
+        <td>Close/Back navigation</td>
+    </tr>
+    <tr>
+        <td>Arrow Keys</td>
+        <td>Shop</td>
+        <td>Scroll content</td>
+    </tr>
+</table>
+
+<h3>Phaser Input System</h3>
+<div class="code-box">
+<span class="comment">// Standard Phaser interactive setup</span>
+gameObject.setInteractive({ useHandCursor: <span class="keyword">true</span> })
+  .on(<span class="string">'pointerdown'</span>, () => { <span class="comment">/* click handler */</span> })
+  .on(<span class="string">'pointerover'</span>, () => { <span class="comment">/* hover handler */</span> })
+  .on(<span class="string">'pointerout'</span>, () => { <span class="comment">/* unhover handler */</span> });
+
+<span class="comment">// Keyboard input</span>
+<span class="keyword">this</span>.input.keyboard.on(<span class="string">'keydown-ESC'</span>, <span class="keyword">this</span>.handleEscape, <span class="keyword">this</span>);
+
+<span class="comment">// Mouse wheel</span>
+<span class="keyword">this</span>.input.on(<span class="string">'wheel'</span>, <span class="keyword">this</span>.handleWheel, <span class="keyword">this</span>);
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+    <p><strong>Bathala - Technical User Manual</strong></p>
+    <p>Version 0.5.0 | Developed by Devlocke | © 2025</p>
+    <p>For IT professionals and developers</p>
+</div>
+
+</body>
+</html>
+

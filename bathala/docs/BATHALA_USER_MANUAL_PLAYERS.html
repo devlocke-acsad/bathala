@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bathala - Player's Guide</title>
+    <style>
+        @page {
+            margin: 1in;
+            size: letter;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #fff;
+        }
+        h1 {
+            color: #77888C;
+            text-align: center;
+            font-size: 36px;
+            border-bottom: 3px solid #77888C;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #150E10;
+            font-size: 24px;
+            border-left: 4px solid #77888C;
+            padding-left: 15px;
+            margin-top: 40px;
+        }
+        h3 {
+            color: #4a3a40;
+            font-size: 18px;
+            margin-top: 25px;
+        }
+        .cover-page {
+            text-align: center;
+            page-break-after: always;
+            padding: 100px 0;
+        }
+        .cover-page h1 {
+            font-size: 48px;
+            color: #77888C;
+            margin-bottom: 20px;
+            border: none;
+        }
+        .cover-page .subtitle {
+            font-size: 24px;
+            color: #4a3a40;
+            margin-bottom: 50px;
+        }
+        .cover-page .version {
+            font-size: 18px;
+            color: #666;
+            margin-top: 100px;
+        }
+        .toc {
+            page-break-after: always;
+        }
+        .toc h2 {
+            text-align: center;
+            border: none;
+            padding: 0;
+        }
+        .toc ul {
+            list-style: none;
+            padding: 0;
+        }
+        .toc li {
+            padding: 8px 0;
+            border-bottom: 1px dotted #ccc;
+        }
+        .toc a {
+            color: #333;
+            text-decoration: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #77888C;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .tip-box {
+            background: #e8f4f8;
+            border-left: 4px solid #06d6a0;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffd93d;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .danger-box {
+            background: #f8d7da;
+            border-left: 4px solid #ff6b6b;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .element-fire { color: #FF6B6B; font-weight: bold; }
+        .element-water { color: #54A0FF; font-weight: bold; }
+        .element-earth { color: #00D2D3; font-weight: bold; }
+        .element-wind { color: #A29BFE; font-weight: bold; }
+        .section {
+            page-break-inside: avoid;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 15px auto;
+        }
+        .image-caption {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+            margin-top: -10px;
+            margin-bottom: 20px;
+        }
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .emoji {
+            font-size: 20px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover-page">
+    <h1>BATHALA</h1>
+    <div class="subtitle">Player's Guide</div>
+    <p style="font-size: 18px; color: #666;">A Filipino Mythology-Inspired Roguelike Card Game</p>
+    <div class="version">
+        <p>Version 0.5.0</p>
+        <p>Developed by Devlocke</p>
+        <p>© 2025</p>
+    </div>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+    <h2>Table of Contents</h2>
+    <ul>
+        <li><a href="#introduction">1. Introduction to Bathala</a></li>
+        <li><a href="#getting-started">2. Getting Started</a></li>
+        <li><a href="#main-menu">3. Main Menu</a></li>
+        <li><a href="#tutorial">4. Tutorial (Prologue)</a></li>
+        <li><a href="#overworld">5. Exploring the Overworld</a></li>
+        <li><a href="#combat">6. Combat System</a></li>
+        <li><a href="#poker-hands">7. Poker Hands & Damage</a></li>
+        <li><a href="#elements">8. Elements & Card Suits</a></li>
+        <li><a href="#actions">9. Combat Actions</a></li>
+        <li><a href="#enemies">10. Enemies Guide</a></li>
+        <li><a href="#relics">11. Relics Guide</a></li>
+        <li><a href="#potions">12. Potions Guide</a></li>
+        <li><a href="#campfire">13. Campfire & Rest</a></li>
+        <li><a href="#shop">14. Shop & Trading</a></li>
+        <li><a href="#events">15. Events</a></li>
+        <li><a href="#tips">16. Tips & Strategies</a></li>
+        <li><a href="#controls">17. Controls Reference</a></li>
+    </ul>
+</div>
+
+<!-- SECTION 1: INTRODUCTION -->
+<h2 id="introduction">1. Introduction to Bathala</h2>
+<div class="section">
+    <p><strong>Bathala</strong> is a roguelike deck-building game inspired by Filipino mythology. You play as a traveler journeying through corrupted ancestral forests, battling creatures from Philippine folklore using a unique poker-based combat system.</p>
+    
+    <h3>What is a Roguelike?</h3>
+    <p>A roguelike is a type of game where:</p>
+    <ul>
+        <li><strong>Permadeath:</strong> If you lose all your health, your run ends and you start fresh</li>
+        <li><strong>Procedural Generation:</strong> Each playthrough offers different encounters</li>
+        <li><strong>Strategic Choices:</strong> Decisions matter - choose your path wisely</li>
+        <li><strong>Progression:</strong> Get stronger throughout your run with relics and upgrades</li>
+    </ul>
+
+    <h3>The Story</h3>
+    <p>The ancestral forests of the Philippines have been corrupted by the engkanto (enchanted beings). Creatures that once protected these sacred lands - the Tikbalang, Kapre, and Duwende - have been twisted by dark magic. You must journey through these corrupted realms, facing mythological creatures and ultimately confronting the source of the corruption.</p>
+
+    <div class="tip-box">
+        <strong>💡 Tip:</strong> Bathala draws from rich Filipino mythology. Each enemy you face has roots in real Philippine folklore!
+    </div>
+</div>
+
+<!-- SECTION 2: GETTING STARTED -->
+<h2 id="getting-started">2. Getting Started</h2>
+<div class="section">
+    <h3>Launching the Game</h3>
+    <p>When you launch Bathala, you'll be greeted by the main menu with atmospheric music and floating ember particles.</p>
+
+    <h3>First Time Players</h3>
+    <p>If this is your first time playing:</p>
+    <ol>
+        <li>Select <strong>"Play"</strong> from the main menu</li>
+        <li>Complete the <strong>Tutorial (Prologue)</strong> - it teaches you all the mechanics</li>
+        <li>Don't skip the tutorial! Knowledge is your greatest weapon</li>
+    </ol>
+
+    <div class="warning-box">
+        <strong>⚠️ Note:</strong> The tutorial has 11 phases covering cards, combat, status effects, and more. Take your time to learn!
+    </div>
+</div>
+
+<!-- SECTION 3: MAIN MENU -->
+<h2 id="main-menu">3. Main Menu</h2>
+<div class="section">
+    <p>The main menu offers the following options:</p>
+    
+    <table>
+        <tr>
+            <th>Option</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td><strong>Play</strong></td>
+            <td>Start a new game. This resets your progress and begins with the tutorial.</td>
+        </tr>
+        <tr>
+            <td><strong>Discover</strong></td>
+            <td>View the Mythical Compendium - learn about enemies, their lore, and abilities.</td>
+        </tr>
+        <tr>
+            <td><strong>Credits</strong></td>
+            <td>See the development team credits.</td>
+        </tr>
+        <tr>
+            <td><strong>Settings</strong></td>
+            <td>Adjust game settings including audio volume.</td>
+        </tr>
+    </table>
+</div>
+
+<!-- SECTION 4: TUTORIAL -->
+<h2 id="tutorial">4. Tutorial (Prologue)</h2>
+<div class="section">
+    <p>The tutorial consists of 11 phases that teach you everything you need to know:</p>
+
+    <table>
+        <tr>
+            <th>Phase</th>
+            <th>What You'll Learn</th>
+        </tr>
+        <tr>
+            <td>1. Welcome</td>
+            <td>Introduction to your journey</td>
+        </tr>
+        <tr>
+            <td>2. Understanding Cards</td>
+            <td>Card ranks, suits, and elements</td>
+        </tr>
+        <tr>
+            <td>3. Hand Types & Bonuses</td>
+            <td>Poker hands and their damage bonuses</td>
+        </tr>
+        <tr>
+            <td>4. Combat Actions</td>
+            <td>Attack, Defend, and Special actions</td>
+        </tr>
+        <tr>
+            <td>5. Discard Mechanic</td>
+            <td>How to discard and redraw cards</td>
+        </tr>
+        <tr>
+            <td>6. Status Effects</td>
+            <td>Buffs and debuffs that affect combat</td>
+        </tr>
+        <tr>
+            <td>7. Items</td>
+            <td>Relics and potions</td>
+        </tr>
+        <tr>
+            <td>8. Enemy Intents</td>
+            <td>Reading what enemies plan to do</td>
+        </tr>
+        <tr>
+            <td>9. Moral Choices</td>
+            <td>The Landas system (Conquest, Balance, Mercy)</td>
+        </tr>
+        <tr>
+            <td>10. Advanced Concepts</td>
+            <td>Advanced strategies and synergies</td>
+        </tr>
+        <tr>
+            <td>11. Final Trial</td>
+            <td>Put your knowledge to the test!</td>
+        </tr>
+    </table>
+
+    <div class="tip-box">
+        <strong>💡 Tip:</strong> You can skip the tutorial using the button in the corner, but we highly recommend completing it first!
+    </div>
+</div>
+
+<!-- SECTION 5: OVERWORLD -->
+<h2 id="overworld">5. Exploring the Overworld</h2>
+<div class="section">
+    <p>After the tutorial, you'll enter the Overworld - a maze-like forest with various locations to visit.</p>
+
+    <h3>Node Types</h3>
+    <p>Different icons represent different encounters:</p>
+    
+    <table>
+        <tr>
+            <th>Icon</th>
+            <th>Node Type</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>⚔️</td>
+            <td><strong>Combat</strong></td>
+            <td>Fight common enemies. Rewards: Gold, sometimes relics</td>
+        </tr>
+        <tr>
+            <td>💀</td>
+            <td><strong>Elite Combat</strong></td>
+            <td>Harder enemies with better rewards</td>
+        </tr>
+        <tr>
+            <td>👹</td>
+            <td><strong>Boss</strong></td>
+            <td>Major boss fight at the end of each act</td>
+        </tr>
+        <tr>
+            <td>🔥</td>
+            <td><strong>Campfire</strong></td>
+            <td>Rest, heal, or upgrade cards</td>
+        </tr>
+        <tr>
+            <td>🛒</td>
+            <td><strong>Shop</strong></td>
+            <td>Buy relics using gold (Ginto)</td>
+        </tr>
+        <tr>
+            <td>📦</td>
+            <td><strong>Treasure</strong></td>
+            <td>Free relic or potion choice</td>
+        </tr>
+        <tr>
+            <td>❓</td>
+            <td><strong>Event</strong></td>
+            <td>Random encounters with choices</td>
+        </tr>
+    </table>
+
+    <h3>Navigation</h3>
+    <ul>
+        <li>Click on adjacent nodes to move</li>
+        <li>The fog of war reveals as you explore</li>
+        <li>Plan your route - you can't backtrack!</li>
+    </ul>
+</div>
+
+<!-- SECTION 6: COMBAT SYSTEM -->
+<h2 id="combat">6. Combat System</h2>
+<div class="section">
+    <p>Combat in Bathala uses a unique poker-based system. You draw cards and form poker hands to attack, defend, or use special abilities.</p>
+
+    <h3>Combat Flow</h3>
+    <ol>
+        <li><strong>Draw Phase:</strong> Draw 7 cards to your hand</li>
+        <li><strong>Selection Phase:</strong> Select 1-5 cards to play</li>
+        <li><strong>Action Phase:</strong> Choose Attack, Defend, or Special</li>
+        <li><strong>Resolution:</strong> Damage is calculated based on your hand</li>
+        <li><strong>Enemy Turn:</strong> The enemy performs their intended action</li>
+        <li><strong>Repeat:</strong> Continue until victory or defeat</li>
+    </ol>
+
+    <h3>Your Resources</h3>
+    <table>
+        <tr>
+            <th>Resource</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td><strong>Health (HP)</strong></td>
+            <td>Your life points. Reach 0 and the run ends.</td>
+        </tr>
+        <tr>
+            <td><strong>Block</strong></td>
+            <td>Temporary shield that absorbs damage. Resets each turn.</td>
+        </tr>
+        <tr>
+            <td><strong>Discard Charges</strong></td>
+            <td>Used to discard cards and draw new ones (3 per turn)</td>
+        </tr>
+        <tr>
+            <td><strong>Ginto (Gold)</strong></td>
+            <td>Currency for buying items at the shop</td>
+        </tr>
+    </table>
+
+    <div class="tip-box">
+        <strong>💡 Tip:</strong> Watch the enemy's intent icon! It shows what they'll do next turn.
+    </div>
+</div>
+
+<!-- SECTION 7: POKER HANDS -->
+<h2 id="poker-hands">7. Poker Hands & Damage</h2>
+<div class="section">
+    <p>The poker hand you form determines your base damage. Better hands = more damage!</p>
+
+    <h3>Hand Rankings (Weakest to Strongest)</h3>
+    <table>
+        <tr>
+            <th>Hand Type</th>
+            <th>How to Make It</th>
+            <th>Bonus</th>
+            <th>Multiplier</th>
+        </tr>
+        <tr>
+            <td><strong>High Card</strong></td>
+            <td>Just your highest card value</td>
+            <td>+0</td>
+            <td>×1.0</td>
+        </tr>
+        <tr>
+            <td><strong>Pair</strong></td>
+            <td>Two cards of the same rank (e.g., two 7s)</td>
+            <td>+3</td>
+            <td>×1.2</td>
+        </tr>
+        <tr>
+            <td><strong>Two Pair</strong></td>
+            <td>Two different pairs (e.g., two 5s and two 8s)</td>
+            <td>+6</td>
+            <td>×1.3</td>
+        </tr>
+        <tr>
+            <td><strong>Three of a Kind</strong></td>
+            <td>Three cards of the same rank</td>
+            <td>+10</td>
+            <td>×1.5</td>
+        </tr>
+        <tr>
+            <td><strong>Straight</strong></td>
+            <td>Five cards in sequence (e.g., 3-4-5-6-7)</td>
+            <td>+12</td>
+            <td>×1.6</td>
+        </tr>
+        <tr>
+            <td><strong>Flush</strong></td>
+            <td>Five cards of the same suit</td>
+            <td>+15</td>
+            <td>×1.7</td>
+        </tr>
+        <tr>
+            <td><strong>Full House</strong></td>
+            <td>Three of a kind + a pair</td>
+            <td>+20</td>
+            <td>×2.0</td>
+        </tr>
+        <tr>
+            <td><strong>Four of a Kind</strong></td>
+            <td>Four cards of the same rank</td>
+            <td>+25</td>
+            <td>×2.2</td>
+        </tr>
+        <tr>
+            <td><strong>Straight Flush</strong></td>
+            <td>Five sequential cards of the same suit</td>
+            <td>+35</td>
+            <td>×2.5</td>
+        </tr>
+        <tr>
+            <td><strong>Royal Flush</strong></td>
+            <td>10-Mandirigma-Babaylan-Datu-1 of same suit</td>
+            <td>+40</td>
+            <td>×2.8</td>
+        </tr>
+    </table>
+
+    <h3>Damage Calculation</h3>
+    <p>Your damage is calculated as:</p>
+    <p style="text-align: center; font-size: 18px; background: #f0f0f0; padding: 15px; border-radius: 5px;">
+        <strong>Final Damage = (Card Values + Hand Bonus + Elemental Bonus) × Hand Multiplier</strong>
+    </p>
+
+    <h3>Card Values</h3>
+    <table>
+        <tr>
+            <th>Card Rank</th>
+            <th>Value</th>
+        </tr>
+        <tr><td>2, 3</td><td>2</td></tr>
+        <tr><td>4, 5</td><td>3</td></tr>
+        <tr><td>6, 7</td><td>4</td></tr>
+        <tr><td>8, 9</td><td>5</td></tr>
+        <tr><td>10, Mandirigma (Jack)</td><td>6</td></tr>
+        <tr><td>1 (Ace)</td><td>6</td></tr>
+        <tr><td>Babaylan (Queen)</td><td>7</td></tr>
+        <tr><td>Datu (King)</td><td>7</td></tr>
+    </table>
+</div>
+
+<!-- SECTION 8: ELEMENTS -->
+<h2 id="elements">8. Elements & Card Suits</h2>
+<div class="section">
+    <p>Cards in Bathala have four elemental suits based on Filipino nature spirits:</p>
+
+    <table>
+        <tr>
+            <th>Suit</th>
+            <th>Element</th>
+            <th>Symbol</th>
+            <th>Color</th>
+        </tr>
+        <tr>
+            <td><strong>Apoy</strong></td>
+            <td>Fire 🔥</td>
+            <td>Flame</td>
+            <td class="element-fire">Red</td>
+        </tr>
+        <tr>
+            <td><strong>Tubig</strong></td>
+            <td>Water 💧</td>
+            <td>Droplet</td>
+            <td class="element-water">Blue</td>
+        </tr>
+        <tr>
+            <td><strong>Lupa</strong></td>
+            <td>Earth 🌿</td>
+            <td>Leaf</td>
+            <td class="element-earth">Teal/Green</td>
+        </tr>
+        <tr>
+            <td><strong>Hangin</strong></td>
+            <td>Wind 💨</td>
+            <td>Spiral</td>
+            <td class="element-wind">Purple</td>
+        </tr>
+    </table>
+
+    <h3>Elemental Bonuses</h3>
+    <p>When using <strong>Special</strong> actions, having multiple cards of the same element gives bonus damage:</p>
+    <ul>
+        <li>1 card of same element: +1 bonus</li>
+        <li>2 cards of same element: +3 bonus</li>
+        <li>3 cards of same element: +6 bonus</li>
+        <li>4 cards of same element: +10 bonus</li>
+        <li>5 cards of same element (pure): +15 bonus</li>
+    </ul>
+
+    <div class="tip-box">
+        <strong>💡 Tip:</strong> Elemental bonuses only apply to Special actions, not Attack or Defend!
+    </div>
+</div>
+
+<!-- SECTION 9: COMBAT ACTIONS -->
+<h2 id="actions">9. Combat Actions</h2>
+<div class="section">
+    <p>After selecting your cards, choose one of three actions:</p>
+
+    <h3>⚔️ Attack</h3>
+    <p>Deal damage to the enemy based on your hand value.</p>
+    <ul>
+        <li>Best for offensive plays</li>
+        <li>Enhanced by Strength status effect</li>
+        <li>Some relics boost attack damage</li>
+    </ul>
+
+    <h3>🛡️ Defend</h3>
+    <p>Gain Block equal to your hand value. Block absorbs incoming damage.</p>
+    <ul>
+        <li>Essential for surviving tough hits</li>
+        <li>Block resets at the start of your turn</li>
+        <li>Enhanced by Dexterity status effect</li>
+    </ul>
+
+    <h3>✨ Special</h3>
+    <p>Deal damage with elemental bonuses based on the dominant suit in your hand.</p>
+    <ul>
+        <li>Best when you have many cards of the same suit</li>
+        <li>Can trigger special relic effects</li>
+        <li>Great for pure element builds</li>
+    </ul>
+
+    <h3>Discarding Cards</h3>
+    <p>You have <strong>3 discard charges</strong> per turn. Use them wisely to:</p>
+    <ul>
+        <li>Get rid of bad cards</li>
+        <li>Try to draw better combinations</li>
+        <li>Fish for specific suits or ranks</li>
+    </ul>
+
+    <div class="warning-box">
+        <strong>⚠️ Important:</strong> You can only discard up to 3 times per turn. Plan ahead!
+    </div>
+</div>
+
+<!-- SECTION 10: ENEMIES -->
+<h2 id="enemies">10. Enemies Guide</h2>
+<div class="section">
+    <p>All enemies in Bathala are based on creatures from Filipino mythology.</p>
+
+    <h3>Common Enemies</h3>
+    <table>
+        <tr>
+            <th>Enemy</th>
+            <th>HP</th>
+            <th>ATK</th>
+            <th>Special Ability</th>
+        </tr>
+        <tr>
+            <td><strong>Tikbalang Scout</strong></td>
+            <td>180</td>
+            <td>21</td>
+            <td>Confuses your targeting</td>
+        </tr>
+        <tr>
+            <td><strong>Balete Wraith</strong></td>
+            <td>150</td>
+            <td>15</td>
+            <td>Gains Strength when hurt; starts Vulnerable</td>
+        </tr>
+        <tr>
+            <td><strong>Sigbin Charger</strong></td>
+            <td>220</td>
+            <td>30</td>
+            <td>Burst attack every 3 turns</td>
+        </tr>
+        <tr>
+            <td><strong>Duwende Trickster</strong></td>
+            <td>130</td>
+            <td>12</td>
+            <td>Steals your Block; disrupts card draw</td>
+        </tr>
+        <tr>
+            <td><strong>Tiyanak Ambusher</strong></td>
+            <td>170</td>
+            <td>18</td>
+            <td>Causes Fear; deals critical hits</td>
+        </tr>
+        <tr>
+            <td><strong>Amomongo</strong></td>
+            <td>160</td>
+            <td>15</td>
+            <td>Causes Bleed with fast attacks</td>
+        </tr>
+        <tr>
+            <td><strong>Bungisngis</strong></td>
+            <td>200</td>
+            <td>36</td>
+            <td>Laugh debuff; high damage swings</td>
+        </tr>
+    </table>
+
+    <h3>Elite Enemies</h3>
+    <table>
+        <tr>
+            <th>Enemy</th>
+            <th>HP</th>
+            <th>ATK</th>
+            <th>Special Ability</th>
+        </tr>
+        <tr>
+            <td><strong>Kapre Shade</strong></td>
+            <td>320</td>
+            <td>36</td>
+            <td>AoE Burn damage; summons minions</td>
+        </tr>
+        <tr>
+            <td><strong>Tawong Lipod</strong></td>
+            <td>300</td>
+            <td>30</td>
+            <td>Invisible stuns; gains Dexterity</td>
+        </tr>
+    </table>
+
+    <h3>Boss</h3>
+    <table>
+        <tr>
+            <th>Enemy</th>
+            <th>HP</th>
+            <th>ATK</th>
+            <th>Special Ability</th>
+        </tr>
+        <tr>
+            <td><strong>Mangangaway</strong></td>
+            <td>600</td>
+            <td>45</td>
+            <td>Mimics elements; curses cards; Hex of Reversal</td>
+        </tr>
+    </table>
+
+    <div class="danger-box">
+        <strong>⚠️ Boss Warning:</strong> The Mangangaway is a dark sorcerer who can mimic your elemental attacks. Build a versatile deck!
+    </div>
+</div>
+
+<!-- SECTION 11: RELICS -->
+<h2 id="relics">11. Relics Guide</h2>
+<div class="section">
+    <p>Relics are powerful artifacts that provide passive bonuses throughout your run. You can hold up to 6 relics.</p>
+
+    <h3>Common Relics</h3>
+    <table>
+        <tr>
+            <th>Relic</th>
+            <th>Effect</th>
+        </tr>
+        <tr>
+            <td><strong>Earthwarden's Plate</strong></td>
+            <td>Start combat with 5 Block; gain +1 Block each turn</td>
+        </tr>
+        <tr>
+            <td><strong>Agimat of Swift Wind</strong></td>
+            <td>Start combat with 4 discard charges (instead of 3)</td>
+        </tr>
+        <tr>
+            <td><strong>Ember Fetish</strong></td>
+            <td>Gain Strength at start of turn (more if you have no Block)</td>
+        </tr>
+        <tr>
+            <td><strong>Umalagad's Spirit</strong></td>
+            <td>All Defend actions gain +4 Block; +2 Block per card played</td>
+        </tr>
+    </table>
+
+    <h3>Elite Relics</h3>
+    <table>
+        <tr>
+            <th>Relic</th>
+            <th>Effect</th>
+        </tr>
+        <tr>
+            <td><strong>Babaylan's Talisman</strong></td>
+            <td>Your hands are evaluated one tier higher (Pair → Two Pair)</td>
+        </tr>
+        <tr>
+            <td><strong>Ancestral Blade</strong></td>
+            <td>Gain 2 Strength when you play a Flush</td>
+        </tr>
+        <tr>
+            <td><strong>Tidal Amulet</strong></td>
+            <td>Heal 1 HP for each card in hand at end of turn</td>
+        </tr>
+        <tr>
+            <td><strong>Sarimanok Feather</strong></td>
+            <td>Gain 1 Ginto when you play a Straight or better</td>
+        </tr>
+    </table>
+
+    <h3>Mythological Relics</h3>
+    <table>
+        <tr>
+            <th>Relic</th>
+            <th>Effect</th>
+        </tr>
+        <tr>
+            <td><strong>Tikbalang's Hoof</strong></td>
+            <td>10% chance to dodge enemy attacks</td>
+        </tr>
+        <tr>
+            <td><strong>Sigbin Heart</strong></td>
+            <td>Attack actions deal +3 additional damage</td>
+        </tr>
+        <tr>
+            <td><strong>Kapre's Cigar</strong></td>
+            <td>First Attack each combat deals double damage</td>
+        </tr>
+        <tr>
+            <td><strong>Amomongo Claw</strong></td>
+            <td>Attacks apply Vulnerable to enemies</td>
+        </tr>
+    </table>
+
+    <div class="tip-box">
+        <strong>💡 Tip:</strong> Relics can be found in treasure chests, dropped by enemies, or purchased at shops!
+    </div>
+</div>
+
+<!-- SECTION 12: POTIONS -->
+<h2 id="potions">12. Potions Guide</h2>
+<div class="section">
+    <p>Potions are consumable items that provide immediate effects. You can carry up to 3 potions.</p>
+
+    <h3>Common Potions</h3>
+    <table>
+        <tr>
+            <th>Potion</th>
+            <th>Effect</th>
+        </tr>
+        <tr>
+            <td><strong>Healing Potion</strong></td>
+            <td>Heal 20 HP</td>
+        </tr>
+        <tr>
+            <td><strong>Potion of Clarity</strong></td>
+            <td>Draw 3 cards</td>
+        </tr>
+        <tr>
+            <td><strong>Elixir of Fortitude</strong></td>
+            <td>Gain 15 Block</td>
+        </tr>
+        <tr>
+            <td><strong>Draught of Swiftness</strong></td>
+            <td>Gain 1 temporary Dexterity</td>
+        </tr>
+    </table>
+
+    <h3>Uncommon Potions</h3>
+    <table>
+        <tr>
+            <th>Potion</th>
+            <th>Effect</th>
+        </tr>
+        <tr>
+            <td><strong>Phial of Elements</strong></td>
+            <td>Choose which element becomes dominant in your next hand</td>
+        </tr>
+        <tr>
+            <td><strong>Tonic of Regeneration</strong></td>
+            <td>Gain 2 Regeneration for 3 turns</td>
+        </tr>
+        <tr>
+            <td><strong>Brew of Strength</strong></td>
+            <td>Gain 2 temporary Strength</td>
+        </tr>
+    </table>
+
+    <h3>Rare Potions</h3>
+    <table>
+        <tr>
+            <th>Potion</th>
+            <th>Effect</th>
+        </tr>
+        <tr>
+            <td><strong>Balm of Resilience</strong></td>
+            <td>Remove all debuffs</td>
+        </tr>
+        <tr>
+            <td><strong>Divine Elixir</strong></td>
+            <td>Gain 10 temporary Max HP until combat ends</td>
+        </tr>
+    </table>
+</div>
+
+<!-- SECTION 13: CAMPFIRE -->
+<h2 id="campfire">13. Campfire & Rest</h2>
+<div class="section">
+    <p>Campfires are safe havens where you can rest and prepare for battles ahead.</p>
+
+    <h3>Campfire Options</h3>
+    <table>
+        <tr>
+            <th>Action</th>
+            <th>Effect</th>
+        </tr>
+        <tr>
+            <td><strong>HEAL</strong></td>
+            <td>Restore 30% of your maximum HP</td>
+        </tr>
+        <tr>
+            <td><strong>PURIFY</strong></td>
+            <td>Remove a card from your deck permanently</td>
+        </tr>
+        <tr>
+            <td><strong>ATTUNE</strong></td>
+            <td>Upgrade a card to the next rank (e.g., 5 → 6)</td>
+        </tr>
+        <tr>
+            <td><strong>VIEW DECK</strong></td>
+            <td>See all cards in your current deck</td>
+        </tr>
+    </table>
+
+    <div class="tip-box">
+        <strong>💡 Strategy Tip:</strong> Early game, prioritize PURIFY to remove weak cards. Late game, HEAL becomes more valuable as enemies hit harder!
+    </div>
+</div>
+
+<!-- SECTION 14: SHOP -->
+<h2 id="shop">14. Shop & Trading</h2>
+<div class="section">
+    <p>The Mysterious Merchant offers powerful relics in exchange for Ginto (gold).</p>
+
+    <h3>Shop Tips</h3>
+    <ul>
+        <li>Relics you already own won't appear in the shop</li>
+        <li>Prices may vary based on your performance (DDA system)</li>
+        <li>Hover over items to see detailed descriptions</li>
+        <li>You can only hold 6 relics - choose wisely!</li>
+    </ul>
+
+    <h3>Earning Ginto</h3>
+    <ul>
+        <li>Win combat encounters</li>
+        <li>Find gold in events</li>
+        <li>Some relics (like Sarimanok Feather) generate gold</li>
+    </ul>
+
+    <div class="tip-box">
+        <strong>💡 Tip:</strong> Click on the merchant to hear lore about the relics!
+    </div>
+</div>
+
+<!-- SECTION 15: EVENTS -->
+<h2 id="events">15. Events</h2>
+<div class="section">
+    <p>Events are random encounters that offer choices with different outcomes.</p>
+
+    <h3>Example Events</h3>
+    <table>
+        <tr>
+            <th>Event</th>
+            <th>Choices</th>
+        </tr>
+        <tr>
+            <td><strong>Anito Shrine</strong></td>
+            <td>Pray (Heal 20 HP) or Meditate (Gain 15 Block for next combat)</td>
+        </tr>
+        <tr>
+            <td><strong>Balete Vision</strong></td>
+            <td>Touch the tree (Upgrade a card) or Step away (Gain 20 Ginto)</td>
+        </tr>
+        <tr>
+            <td><strong>Diwata Whisper</strong></td>
+            <td>Follow (Gain a random potion) or Ignore (Gain +2 discards)</td>
+        </tr>
+        <tr>
+            <td><strong>Sacred Grove</strong></td>
+            <td>Rest (Fully heal HP) or Move on</td>
+        </tr>
+        <tr>
+            <td><strong>Forgotten Altar</strong></td>
+            <td>Take the flower (Gain a relic) or Leave it</td>
+        </tr>
+    </table>
+
+    <div class="warning-box">
+        <strong>⚠️ Beware:</strong> Some events like "Tiyanak Wail" can be traps! Read the descriptions carefully.
+    </div>
+</div>
+
+<!-- SECTION 16: TIPS -->
+<h2 id="tips">16. Tips & Strategies</h2>
+<div class="section">
+    <h3>Beginner Tips</h3>
+    <ol>
+        <li><strong>Watch enemy intents:</strong> The icon above enemies shows their next action</li>
+        <li><strong>Block before big hits:</strong> If an enemy shows a high damage attack, prioritize Defend</li>
+        <li><strong>Use discard charges:</strong> Don't waste them! Try to form better hands</li>
+        <li><strong>Thin your deck:</strong> Removing weak cards makes drawing good hands easier</li>
+        <li><strong>Health is a resource:</strong> Sometimes taking damage is okay to deal more</li>
+    </ol>
+
+    <h3>Advanced Strategies</h3>
+    <ol>
+        <li><strong>Build synergies:</strong> Collect relics that work together (e.g., attack boosters)</li>
+        <li><strong>Element focus:</strong> If going for Special attacks, stack cards of one suit</li>
+        <li><strong>Relic priority:</strong> Babaylan's Talisman is extremely powerful - upgrade your hands!</li>
+        <li><strong>Preserve HP:</strong> Your health carries between fights - don't be reckless</li>
+        <li><strong>Know the boss:</strong> Mangangaway mimics elements - have a backup plan</li>
+    </ol>
+
+    <h3>Hand Building Tips</h3>
+    <ul>
+        <li><strong>Pairs are reliable:</strong> Easy to form, decent damage</li>
+        <li><strong>Flushes for Special:</strong> 5 cards of one suit = massive elemental bonus</li>
+        <li><strong>Straights are tricky:</strong> Don't force them - take what comes</li>
+        <li><strong>Face cards matter:</strong> Babaylan and Datu have the highest values</li>
+    </ul>
+</div>
+
+<!-- SECTION 17: CONTROLS -->
+<h2 id="controls">17. Controls Reference</h2>
+<div class="section">
+    <table>
+        <tr>
+            <th>Action</th>
+            <th>Control</th>
+        </tr>
+        <tr>
+            <td>Select cards</td>
+            <td>Left-click on cards</td>
+        </tr>
+        <tr>
+            <td>Deselect cards</td>
+            <td>Click selected card again</td>
+        </tr>
+        <tr>
+            <td>Execute action</td>
+            <td>Click Attack/Defend/Special button</td>
+        </tr>
+        <tr>
+            <td>Discard cards</td>
+            <td>Select cards, click Discard button</td>
+        </tr>
+        <tr>
+            <td>Move on overworld</td>
+            <td>Click adjacent nodes</td>
+        </tr>
+        <tr>
+            <td>View deck</td>
+            <td>Click deck icon during combat</td>
+        </tr>
+        <tr>
+            <td>Use potion</td>
+            <td>Click potion slot</td>
+        </tr>
+        <tr>
+            <td>View relic info</td>
+            <td>Hover over relic icons</td>
+        </tr>
+        <tr>
+            <td>Close popup/Go back</td>
+            <td>ESC key or click outside</td>
+        </tr>
+        <tr>
+            <td>Scroll (Discover/Shop)</td>
+            <td>Mouse wheel or drag</td>
+        </tr>
+    </table>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+    <p><strong>Bathala - Player's Guide</strong></p>
+    <p>Version 0.5.0 | Developed by Devlocke | © 2025</p>
+    <p>All creatures are based on Filipino mythology and folklore.</p>
+</div>
+
+</body>
+</html>
+
