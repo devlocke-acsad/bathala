@@ -115,15 +115,24 @@
     - Test effect application in combat scenarios
     - _Requirements: 4.5_
 
-- [ ] 5. Implement Act 3 relics and potions
-  - [ ] 5.1 Create Act3Relics.ts with 10 chapter-specific relics
+- [x] 5. Implement Act 3 relics and potions
+
+
+
+
+
+  - [x] 5.1 Create Act3Relics.ts with 10 chapter-specific relics
+
+
     - Define relic data structures with multi-element synergies
     - Include lore inspiration citations
     - Categorize relics appropriately
     - Add helper functions
     - _Requirements: 4.2, 4.4, 6.3_
 
-  - [ ] 5.2 Create Act3Potions.ts with 10 chapter-specific potions
+  - [x] 5.2 Create Act3Potions.ts with 10 chapter-specific potions
+
+
     - Define potion data structures with multi-element effects
     - Include lore inspiration citations
     - Add effect definitions
