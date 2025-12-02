@@ -27,6 +27,10 @@ export const TIKBALANG_SCOUT: Omit<Enemy, "id"> = {
   damage: 21,
   attackPattern: ["attack", "confuse", "attack"],
   currentPatternIndex: 0,
+  elementalAffinity: {
+    weakness: "fire",      // Air creature: weak to Fire
+    resistance: "air",     // Air creature: resists Air
+  },
 };
 
 export const BALETE_WRAITH: Omit<Enemy, "id"> = {
@@ -54,6 +58,10 @@ export const BALETE_WRAITH: Omit<Enemy, "id"> = {
   damage: 15,
   attackPattern: ["attack", "strengthen", "attack"],
   currentPatternIndex: 0,
+  elementalAffinity: {
+    weakness: "air",       // Earth creature (tree spirit): weak to Air
+    resistance: "water",   // Earth creature: resists Water
+  },
 };
 
 export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
@@ -71,6 +79,10 @@ export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
   damage: 30,
   attackPattern: ["charge", "attack", "wait"],
   currentPatternIndex: 0,
+  elementalAffinity: {
+    weakness: "water",     // Fire creature (aggressive): weak to Water
+    resistance: "earth",   // Fire creature: resists Earth
+  },
 };
 
 export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
@@ -88,6 +100,10 @@ export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
   damage: 12,            // Was 4, now 4 × 3 = 12
   attackPattern: ["steal_block", "disrupt_draw", "attack"],
   currentPatternIndex: 0,
+  elementalAffinity: {
+    weakness: "air",       // Earth creature (dwarf): weak to Air
+    resistance: "water",   // Earth creature: resists Water
+  },
 };
 
 export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
@@ -105,6 +121,10 @@ export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
   damage: 18,
   attackPattern: ["fear", "critical_attack", "attack"],
   currentPatternIndex: 0,
+  elementalAffinity: {
+    weakness: "earth",     // Water creature (swamp spirit): weak to Earth
+    resistance: "fire",    // Water creature: resists Fire
+  },
 };
 
 export const AMOMONGO: Omit<Enemy, "id"> = {
@@ -122,6 +142,10 @@ export const AMOMONGO: Omit<Enemy, "id"> = {
   damage: 15,
   attackPattern: ["bleed_attack", "fast_attack", "attack"],
   currentPatternIndex: 0,
+  elementalAffinity: {
+    weakness: "air",       // Earth creature (ape): weak to Air
+    resistance: "water",   // Earth creature: resists Water
+  },
 };
 
 export const BUNGISNGIS: Omit<Enemy, "id"> = {
@@ -139,6 +163,10 @@ export const BUNGISNGIS: Omit<Enemy, "id"> = {
   damage: 36,            // Was 12, now 12 × 3 = 36
   attackPattern: ["laugh_debuff", "high_swing", "attack"],
   currentPatternIndex: 0,
+  elementalAffinity: {
+    weakness: "air",       // Earth creature (giant): weak to Air
+    resistance: "water",   // Earth creature: resists Water
+  },
 };
 
 // Elite Enemies
@@ -157,6 +185,10 @@ export const KAPRE_SHADE: Omit<Enemy, "id"> = {
   damage: 36,
   attackPattern: ["burn_aoe", "summon_minion", "attack"],
   currentPatternIndex: 0,
+  elementalAffinity: {
+    weakness: "water",     // Fire creature (smoke/fire spirit): weak to Water
+    resistance: "earth",   // Fire creature: resists Earth
+  },
 };
 
 export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
@@ -184,6 +216,10 @@ export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
   damage: 30,
   attackPattern: ["stun", "air_attack", "attack"],
   currentPatternIndex: 0,
+  elementalAffinity: {
+    weakness: "fire",      // Air creature (wind spirit): weak to Fire
+    resistance: "air",     // Air creature: resists Air
+  },
 };
 
 // Boss
@@ -202,6 +238,10 @@ export const MANGNANGAWAY: Omit<Enemy, "id"> = {
   damage: 45,            // Was 15, now 15 × 3 = 45
   attackPattern: ["mimic_element", "curse_cards", "hex_of_reversal", "attack"],
   currentPatternIndex: 0,
+  elementalAffinity: {
+    weakness: "earth",     // Water creature (witch/sorcerer): weak to Earth
+    resistance: "fire",    // Water creature: resists Fire
+  },
 };
 
 // Enemy pools for encounters

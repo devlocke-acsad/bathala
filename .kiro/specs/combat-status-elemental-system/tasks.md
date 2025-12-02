@@ -65,7 +65,12 @@
   - **Property 9: Damage calculation order**
   - **Validates: Requirements 6.2, 7.2**
 
-- [ ] 4. Update enemy definitions with elemental affinities
+- [x] 4. Update enemy definitions with elemental affinities
+
+
+
+
+
   - Add elementalAffinity property to all Act 1 common enemies (7 enemies)
   - Add elementalAffinity property to all Act 1 elite enemies (2 enemies)
   - Add elementalAffinity property to Act 1 boss (Mangangaway)
