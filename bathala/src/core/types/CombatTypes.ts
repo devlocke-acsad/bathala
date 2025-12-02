@@ -165,3 +165,18 @@ export interface CreatureDialogue {
   spareReward: PostCombatReward;
   killReward: PostCombatReward;
 }
+
+/**
+ * Chapter/Act type definition
+ */
+export type Chapter = 1 | 2 | 3;
+
+/**
+ * Visual theme configuration for each chapter
+ */
+export interface ChapterTheme {
+  overlayColor: number;      // Hex color for tint (e.g., 0x4A90E2)
+  overlayAlpha: number;       // Transparency (0-1)
+  particleEffect?: string;    // Optional particle system identifier
+  ambientSound?: string;      // Optional ambient audio key
+}
