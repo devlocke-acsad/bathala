@@ -147,8 +147,14 @@
     - Test effect application in combat scenarios
     - _Requirements: 4.5_
 
-- [ ] 6. Implement visual theme system
-  - [ ] 6.1 Create VisualThemeManager.ts
+- [x] 6. Implement visual theme system
+
+
+
+
+  - [x] 6.1 Create VisualThemeManager.ts
+
+
     - Define CHAPTER_THEMES configuration object
     - Implement applyChapterTheme(chapterNumber) method
     - Implement removeChapterTheme() method
