@@ -21,11 +21,11 @@ export const TIKBALANG_SCOUT: Omit<Enemy, "id"> = {
   intent: {
     type: "attack",
     value: 21,           // Was 7, now 7 × 3 = 21
-    description: "Confuses targeting",
+    description: "Attacks and weakens",
     icon: "†",
   },
   damage: 21,
-  attackPattern: ["attack", "confuse", "attack"],
+  attackPattern: ["attack", "weaken", "attack"], // Simplified: confusing = weakening
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "fire",      // Air creature: weak to Fire
@@ -43,7 +43,6 @@ export const BALETE_WRAITH: Omit<Enemy, "id"> = {
       id: "vulnerable",
       name: "Vulnerable",
       type: "debuff",
-      duration: -1, // Permanent
       value: 1,
       description: "Takes 50% more damage from all sources.",
       emoji: "🛡️💔",
@@ -71,13 +70,13 @@ export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
   block: 0,
   statusEffects: [],
   intent: {
-    type: "attack",
-    value: 30,           // Was 10, now 10 × 3 = 30
-    description: "Burst every 3 turns",
-    icon: "†",
+    type: "defend",
+    value: 5,
+    description: "Defends then attacks",
+    icon: "⛨",
   },
   damage: 30,
-  attackPattern: ["charge", "attack", "wait"],
+  attackPattern: ["defend", "attack", "defend"], // Simplified: defensive then aggressive
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "water",     // Fire creature (aggressive): weak to Water
@@ -93,12 +92,12 @@ export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
   statusEffects: [],
   intent: {
     type: "debuff",
-    value: 0,
-    description: "Disrupts draw, steals block",
-    icon: "†",
+    value: 1,
+    description: "Weakens repeatedly",
+    icon: "⚠️",
   },
   damage: 12,            // Was 4, now 4 × 3 = 12
-  attackPattern: ["steal_block", "disrupt_draw", "attack"],
+  attackPattern: ["weaken", "attack", "weaken"], // Simplified: tricky = weakens repeatedly
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "air",       // Earth creature (dwarf): weak to Air
@@ -113,13 +112,13 @@ export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
   block: 0,
   statusEffects: [],
   intent: {
-    type: "attack",
-    value: 18,           // Was 6, now 6 × 3 = 18
-    description: "Criticals, Fear",
-    icon: "†",
+    type: "debuff",
+    value: 1,
+    description: "Weakens then double attacks",
+    icon: "⚠️",
   },
   damage: 18,
-  attackPattern: ["fear", "critical_attack", "attack"],
+  attackPattern: ["weaken", "attack", "attack"], // Simplified: fear = weaken, then double attack
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "earth",     // Water creature (swamp spirit): weak to Earth
@@ -136,11 +135,11 @@ export const AMOMONGO: Omit<Enemy, "id"> = {
   intent: {
     type: "attack",
     value: 15,           // Was 5, now 5 × 3 = 15
-    description: "Claws bleed, fast attacks",
+    description: "Fast attacks then defends",
     icon: "†",
   },
   damage: 15,
-  attackPattern: ["bleed_attack", "fast_attack", "attack"],
+  attackPattern: ["attack", "attack", "defend"], // Simplified: fast = attacks twice, then defends
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "air",       // Earth creature (ape): weak to Air
@@ -156,12 +155,12 @@ export const BUNGISNGIS: Omit<Enemy, "id"> = {
   statusEffects: [],
   intent: {
     type: "debuff",
-    value: 0,
-    description: "Laugh debuff, high swings",
-    icon: "†",
+    value: 1,
+    description: "Weakens, attacks, strengthens",
+    icon: "⚠️",
   },
   damage: 36,            // Was 12, now 12 × 3 = 36
-  attackPattern: ["laugh_debuff", "high_swing", "attack"],
+  attackPattern: ["weaken", "attack", "strengthen"], // Simplified: weakens you, attacks, gets stronger
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "air",       // Earth creature (giant): weak to Air
@@ -177,13 +176,13 @@ export const KAPRE_SHADE: Omit<Enemy, "id"> = {
   block: 0,
   statusEffects: [],
   intent: {
-    type: "attack",
-    value: 36,           // Was 12, now 12 × 3 = 36
-    description: "AoE Burn, minions",
-    icon: "†",
+    type: "debuff",
+    value: 2,
+    description: "Poisons, strengthens, attacks",
+    icon: "☠️",
   },
   damage: 36,
-  attackPattern: ["burn_aoe", "summon_minion", "attack"],
+  attackPattern: ["poison", "strengthen", "attack"], // Simplified: burns (poison), gets stronger, attacks
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "water",     // Fire creature (smoke/fire spirit): weak to Water
@@ -201,20 +200,19 @@ export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
       id: "dexterity",
       name: "Dexterity",
       type: "buff",
-      duration: -1, // Permanent (invisible wind being trait)
       value: 2,
       description: "Gain +2 block per stack when using Defend actions. Represents the elusive, wind-dancing nature of Tawong Lipod.",
       emoji: "💨",
     }
   ],
   intent: {
-    type: "attack",
-    value: 30,           // Was 10, now 10 × 3 = 30
-    description: "Invisible stuns, Air benefits",
-    icon: "†",
+    type: "debuff",
+    value: 2,
+    description: "Stuns, attacks, evades",
+    icon: "💫",
   },
   damage: 30,
-  attackPattern: ["stun", "air_attack", "attack"],
+  attackPattern: ["stun", "attack", "defend"], // Simplified: stuns (frail), attacks, evades (defend)
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "fire",      // Air creature (wind spirit): weak to Fire
@@ -230,13 +228,13 @@ export const MANGNANGAWAY: Omit<Enemy, "id"> = {
   block: 0,
   statusEffects: [],
   intent: {
-    type: "debuff", // Changed from "special" to valid type
-    value: 0,
-    description: "Mimics elements, curses cards, Hex of Reversal",
-    icon: "†",
+    type: "debuff",
+    value: 1,
+    description: "Weakens, poisons, strengthens",
+    icon: "⚠️",
   },
   damage: 45,            // Was 15, now 15 × 3 = 45
-  attackPattern: ["mimic_element", "curse_cards", "hex_of_reversal", "attack"],
+  attackPattern: ["weaken", "poison", "strengthen", "attack"], // Simplified: uses all debuffs/buffs, then attacks
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "earth",     // Water creature (witch/sorcerer): weak to Earth
