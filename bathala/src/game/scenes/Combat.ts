@@ -1192,16 +1192,35 @@ export class Combat extends Scene {
     target: CombatEntity,
     timing: 'start_of_turn' | 'end_of_turn'
   ): void {
+    // Store effects before processing to detect expirations
+    const effectsBefore = target.statusEffects.map(e => ({ id: e.id, emoji: e.emoji, type: e.type }));
+    
     // Process status effects at the specified timing
     const results = StatusEffectManager.processStatusEffects(target, timing);
     
-    // Display feedback for each triggered effect
+    // Display feedback for each triggered effect with visual animations
     results.forEach(result => {
       this.showActionResult(result.message);
+      // Show floating text for the effect trigger
+      this.ui.showStatusEffectFeedback(result, target);
     });
     
     // Clean up expired effects (those with 0 stacks)
     StatusEffectManager.cleanupExpiredEffects(target);
+    
+    // Detect and show expiration animations for removed effects
+    const effectsAfter = target.statusEffects.map(e => e.id);
+    effectsBefore.forEach(effectBefore => {
+      if (!effectsAfter.includes(effectBefore.id)) {
+        // Effect expired - show expiration animation
+        this.ui.showStatusEffectExpirationFeedback(
+          target,
+          effectBefore.id,
+          effectBefore.emoji,
+          effectBefore.type
+        );
+      }
+    });
     
     // Update UI to reflect changes
     if (target === this.combatState.player) {
@@ -1294,16 +1313,19 @@ export class Combat extends Scene {
       // Enemy applies 2 stacks of Strength to itself
       StatusEffectManager.applyStatusEffect(enemy, 'strength', 2);
       this.showActionResult(`${enemy.name} gains 2 Strength!`);
+      this.ui.showStatusEffectApplicationFeedback(enemy, 'strength', 2);
       this.ui.updateEnemyUI();
     } else if (currentAction === "poison") {
       // Enemy applies 2 stacks of Poison to player
       StatusEffectManager.applyStatusEffect(this.combatState.player, 'poison', 2);
       this.showActionResult(`${enemy.name} poisons you for 2 stacks!`);
+      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'poison', 2);
       this.ui.updatePlayerUI();
     } else if (currentAction === "weaken") {
       // Enemy applies 1 stack of Weak to player
       StatusEffectManager.applyStatusEffect(this.combatState.player, 'weak', 1);
       this.showActionResult(`${enemy.name} weakens you!`);
+      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'weak', 1);
       this.ui.updatePlayerUI();
     }
 
@@ -2743,6 +2765,7 @@ export class Combat extends Scene {
         
         // Apply Poison: 3 stacks (deals 2 damage per stack per turn)
         StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'poison', 3);
+        this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'poison', 3);
         this.ui.updateEnemyUI();
         this.ui.showSpecialEffectNotification("Apoy", "Poison", "Applied 3 stacks of Poison (6 damage/turn)");
         break;
@@ -2756,6 +2779,7 @@ export class Combat extends Scene {
         
         // Apply Weak: 2 stacks (reduces enemy attack damage by 25% per stack)
         StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'weak', 2);
+        this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'weak', 2);
         this.ui.updateEnemyUI();
         this.ui.showSpecialEffectNotification("Tubig", "Weak", "Applied 2 stacks of Weak (50% damage reduction)");
         break;
@@ -2769,6 +2793,7 @@ export class Combat extends Scene {
         
         // Apply Vulnerable: makes enemy take 50% more damage (non-stackable, but refresh duration)
         StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'vulnerable', 1);
+        this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'vulnerable', 1);
         this.ui.updateEnemyUI();
         this.ui.showSpecialEffectNotification("Lupa", "Vulnerable", "Enemy takes 50% more damage");
         break;
@@ -2782,6 +2807,7 @@ export class Combat extends Scene {
         
         // Apply Frail: 2 stacks (reduces enemy block from Defend actions by 25% per stack)
         StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'frail', 2);
+        this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'frail', 2);
         this.ui.updateEnemyUI();
         this.ui.showSpecialEffectNotification("Hangin", "Frail", "Applied 2 stacks of Frail (50% block reduction)");
         break;

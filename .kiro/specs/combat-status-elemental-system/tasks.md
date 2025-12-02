@@ -113,7 +113,12 @@
   - **Property 4: Elemental Special action effects**
   - **Validates: Requirements 3.1, 3.2, 3.3, 3.4**
 
-- [ ] 7. Create status effect UI components
+- [x] 7. Create status effect UI components
+
+
+
+
+
   - Create status effect container for player (above player sprite)
   - Create status effect container for enemy (above enemy sprite)
   - Implement status effect icon rendering with emoji and stack count
@@ -125,7 +130,12 @@
   - **Property 7: Status effect UI display completeness**
   - **Validates: Requirements 2.5, 5.2, 5.4**
 
-- [ ] 8. Add status effect visual feedback
+- [x] 8. Add status effect visual feedback
+
+
+
+
+
   - Create floating text animation for status effect triggers (damage, healing, block)
   - Create visual animation for status effect application (fade in with icon)
   - Create visual indication for status effect expiration (fade out)

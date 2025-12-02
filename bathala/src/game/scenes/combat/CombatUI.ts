@@ -6,11 +6,13 @@ import {
   PlayingCard,
   Suit,
   HandType,
+  CombatEntity,
 } from "../../../core/types/CombatTypes";
 import { DeckManager } from "../../../utils/DeckManager";
 import { HandEvaluator } from "../../../utils/HandEvaluator";
 import { Combat } from "../Combat";
 import { createButton } from "../../ui/Button";
+import { StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
 
 /**
  * Helper function to get the sprite key for a relic based on its ID
@@ -2509,30 +2511,308 @@ export class CombatUI {
         
       case "draw_3":
         this.showActionResult(`Drew 3 cards!`, "#4ecdc4");
-        // Note: Drawing cards requires Combat scene methods
+        // Note: Drawing cards requires Combat scene method
         break;
-        
-      case "gain_15_block":
-        player.block = (player.block || 0) + 15;
-        this.showActionResult(`Gained 15 Block!`, "#ffd93d");
-        this.updatePlayerUI();
-        break;
-        
-      case "gain_dexterity":
-        this.showActionResult(`Gained 1 Dexterity!`, "#ff6b6b");
-        // Note: Status effects require Combat scene methods
-        break;
-        
-      default:
-        this.showActionResult(`Used ${potion.name}!`, "#4ecdc4");
-        console.warn(`Unknown potion effect: ${potion.effect}`);
     }
     
-    // Remove potion from player inventory
-    if (player.potions) {
-      player.potions.splice(index, 1);
-      this.updatePotionInventory(); // Update potion inventory after use
+    // Remove potion from inventory
+    player.potions.splice(index, 1);
+    this.updatePotionInventory();
+  }
+  
+  // ==================== STATUS EFFECT VISUAL FEEDBACK ====================
+  
+  /**
+   * Show floating text animation for status effect triggers (damage, healing, block)
+   * @param target - The entity affected by the status effect
+   * @param message - The message to display
+   * @param value - The numeric value (damage, healing, or block)
+   * @param type - The type of effect ('damage', 'healing', 'block')
+   */
+  public showStatusEffectFloatingText(
+    target: CombatEntity,
+    message: string,
+    value: number,
+    type: 'damage' | 'healing' | 'block'
+  ): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Determine position based on target
+    const isPlayer = target === this.scene.getCombatState().player;
+    const baseX = isPlayer ? screenWidth * 0.25 : screenWidth * 0.75;
+    const baseY = screenHeight * 0.4;
+    
+    // Add random offset to prevent overlapping text
+    const offsetX = Phaser.Math.Between(-30, 30);
+    const offsetY = Phaser.Math.Between(-20, 20);
+    
+    // Color coding based on type
+    const colors = {
+      damage: '#ff6b6b',    // Red for damage
+      healing: '#2ed573',   // Green for healing
+      block: '#4ecdc4'      // Cyan for block
+    };
+    
+    const color = colors[type];
+    
+    // Create floating text
+    const floatingText = this.scene.add.text(
+      baseX + offsetX,
+      baseY + offsetY,
+      `${value > 0 ? '+' : ''}${value}`,
+      {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 28,
+        color: color,
+        align: "center",
+        fontStyle: "bold"
+      }
+    ).setOrigin(0.5).setDepth(5000);
+    
+    // Animate floating text upward and fade out
+    this.scene.tweens.add({
+      targets: floatingText,
+      y: floatingText.y - 80,
+      alpha: 0,
+      duration: 1200,
+      ease: 'Power2',
+      onComplete: () => {
+        floatingText.destroy();
+      }
+    });
+  }
+  
+  /**
+   * Show visual animation for status effect application (fade in with icon)
+   * @param target - The entity receiving the status effect
+   * @param effectId - The ID of the status effect
+   * @param emoji - The emoji icon for the effect
+   * @param stacks - The number of stacks applied
+   * @param type - Whether it's a buff or debuff
+   */
+  public showStatusEffectApplication(
+    target: CombatEntity,
+    effectId: string,
+    emoji: string,
+    stacks: number,
+    type: 'buff' | 'debuff'
+  ): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Determine position based on target
+    const isPlayer = target === this.scene.getCombatState().player;
+    const baseX = isPlayer ? screenWidth * 0.25 : screenWidth * 0.75;
+    const baseY = screenHeight * 0.4;
+    
+    // Create status effect badge
+    const badge = this.scene.add.container(baseX, baseY - 100);
+    badge.setDepth(4500);
+    
+    // Color coding: green/blue for buffs, red/orange for debuffs
+    const borderColor = type === 'buff' ? 0x2ed573 : 0xff6b6b;
+    const bgColor = type === 'buff' ? 0x0a2a1a : 0x2a0a0a;
+    const textColor = type === 'buff' ? "#2ed573" : "#ff6b6b";
+    
+    const badgeWidth = 80;
+    const badgeHeight = 80;
+    
+    // Outer glow
+    const outerBorder = this.scene.add.rectangle(0, 0, badgeWidth + 6, badgeHeight + 6, undefined, 0)
+      .setStrokeStyle(3, borderColor, 1.0);
+    
+    // Inner border
+    const innerBorder = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, undefined, 0)
+      .setStrokeStyle(2, borderColor, 0.6);
+    
+    // Background
+    const bg = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.95);
+    
+    // Effect emoji
+    const emojiText = this.scene.add.text(0, -8, emoji, {
+      fontSize: 36,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Stack count
+    const stackText = this.scene.add.text(0, 18, `+${stacks}`, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: textColor,
+      align: "center",
+      fontStyle: "bold"
+    }).setOrigin(0.5);
+    
+    // Add elements to badge
+    badge.add([outerBorder, innerBorder, bg, emojiText, stackText]);
+    
+    // Entrance animation - pop in and fade in
+    badge.setScale(0.5);
+    badge.setAlpha(0);
+    
+    this.scene.tweens.add({
+      targets: badge,
+      scale: 1.2,
+      alpha: 1,
+      duration: 200,
+      ease: 'Back.Out',
+      onComplete: () => {
+        // Slight bounce back
+        this.scene.tweens.add({
+          targets: badge,
+          scale: 1.0,
+          duration: 150,
+          ease: 'Sine.InOut',
+          onComplete: () => {
+            // Hold for a moment then fade out
+            this.scene.time.delayedCall(800, () => {
+              this.scene.tweens.add({
+                targets: badge,
+                alpha: 0,
+                y: badge.y - 30,
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => {
+                  badge.destroy();
+                }
+              });
+            });
+          }
+        });
+      }
+    });
+  }
+  
+  /**
+   * Show visual indication for status effect expiration (fade out)
+   * @param target - The entity losing the status effect
+   * @param effectId - The ID of the status effect
+   * @param emoji - The emoji icon for the effect
+   * @param type - Whether it's a buff or debuff
+   */
+  public showStatusEffectExpiration(
+    target: CombatEntity,
+    effectId: string,
+    emoji: string,
+    type: 'buff' | 'debuff'
+  ): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Determine position based on target
+    const isPlayer = target === this.scene.getCombatState().player;
+    const baseX = isPlayer ? screenWidth * 0.25 : screenWidth * 0.75;
+    const baseY = screenHeight * 0.4;
+    
+    // Create expiration indicator
+    const indicator = this.scene.add.container(baseX, baseY - 100);
+    indicator.setDepth(4500);
+    
+    // Color coding: green/blue for buffs, red/orange for debuffs
+    const borderColor = type === 'buff' ? 0x2ed573 : 0xff6b6b;
+    const bgColor = type === 'buff' ? 0x0a2a1a : 0x2a0a0a;
+    
+    const badgeWidth = 70;
+    const badgeHeight = 70;
+    
+    // Outer border (will fade)
+    const outerBorder = this.scene.add.rectangle(0, 0, badgeWidth + 6, badgeHeight + 6, undefined, 0)
+      .setStrokeStyle(2, borderColor, 0.8);
+    
+    // Background (will fade)
+    const bg = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.7);
+    
+    // Effect emoji (will fade and shrink)
+    const emojiText = this.scene.add.text(0, 0, emoji, {
+      fontSize: 32,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Add elements to indicator
+    indicator.add([outerBorder, bg, emojiText]);
+    
+    // Exit animation - fade out and shrink
+    this.scene.tweens.add({
+      targets: indicator,
+      scale: 0.3,
+      alpha: 0,
+      y: indicator.y + 20,
+      duration: 600,
+      ease: 'Power2',
+      onComplete: () => {
+        indicator.destroy();
+      }
+    });
+  }
+  
+  /**
+   * Show comprehensive status effect feedback (combines trigger result with visual feedback)
+   * This is the main method called by Combat scene when status effects trigger
+   * @param result - The status effect trigger result from StatusEffectManager
+   * @param target - The entity affected
+   */
+  public showStatusEffectFeedback(
+    result: StatusEffectTriggerResult,
+    target: CombatEntity
+  ): void {
+    // Determine the type of effect based on the message
+    let type: 'damage' | 'healing' | 'block' = 'damage';
+    
+    if (result.message.includes('poison') || result.message.includes('damage')) {
+      type = 'damage';
+    } else if (result.message.includes('heal') || result.message.includes('Regeneration')) {
+      type = 'healing';
+    } else if (result.message.includes('block') || result.message.includes('Plated Armor')) {
+      type = 'block';
     }
+    
+    // Show floating text for the numeric value
+    this.showStatusEffectFloatingText(target, result.message, result.value, type);
+  }
+  
+  /**
+   * Show status effect application with full visual feedback
+   * This should be called whenever a status effect is applied
+   * @param target - The entity receiving the status effect
+   * @param effectId - The ID of the status effect
+   * @param stacks - The number of stacks applied
+   */
+  public showStatusEffectApplicationFeedback(
+    target: CombatEntity,
+    effectId: string,
+    stacks: number
+  ): void {
+    // Get the status effect from the target to retrieve emoji and type
+    const effect = target.statusEffects.find(e => e.id === effectId);
+    if (!effect) return;
+    
+    // Show the application animation
+    this.showStatusEffectApplication(
+      target,
+      effectId,
+      effect.emoji,
+      stacks,
+      effect.type
+    );
+  }
+  
+  /**
+   * Show status effect expiration with visual feedback
+   * This should be called when a status effect reaches 0 stacks
+   * @param target - The entity losing the status effect
+   * @param effectId - The ID of the status effect
+   * @param emoji - The emoji icon for the effect
+   * @param type - Whether it's a buff or debuff
+   */
+  public showStatusEffectExpirationFeedback(
+    target: CombatEntity,
+    effectId: string,
+    emoji: string,
+    type: 'buff' | 'debuff'
+  ): void {
+    // Show the expiration animation
+    this.showStatusEffectExpiration(target, effectId, emoji, type);
   }
   
   /**
