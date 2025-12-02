@@ -69,6 +69,7 @@ export class CombatUI {
   public enemyHealthText!: Phaser.GameObjects.Text;
   public enemyBlockText!: Phaser.GameObjects.Text;
   public enemyIntentText!: Phaser.GameObjects.Text;
+  public enemyIntentTooltip!: Phaser.GameObjects.Container | null;
   public enemyStatusContainer!: Phaser.GameObjects.Container;
   public enemySprite!: Phaser.GameObjects.Sprite;
   public enemyShadow!: Phaser.GameObjects.Graphics;
@@ -388,7 +389,7 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Intent display - hidden for now
+    // Intent display - now visible with status effect support
     this.enemyIntentText = this.scene.add
       .text(enemyX, statusYOffset + 30, "", {
         fontFamily: "dungeon-mode",
@@ -398,7 +399,20 @@ export class CombatUI {
         wordWrap: { width: 200 }
       })
       .setOrigin(0.5)
-      .setVisible(false); // Hidden
+      .setVisible(true) // Now visible
+      .setInteractive({ useHandCursor: true }); // Make interactive for tooltip
+    
+    // Initialize intent tooltip as null
+    this.enemyIntentTooltip = null;
+    
+    // Add hover events for intent tooltip
+    this.enemyIntentText.on('pointerover', () => {
+      this.showEnemyIntentTooltip();
+    });
+    
+    this.enemyIntentText.on('pointerout', () => {
+      this.hideEnemyIntentTooltip();
+    });
 
     // Status effects container - positioned dynamically
     this.enemyStatusContainer = this.scene.add.container(enemyX, statusYOffset);
@@ -1146,7 +1160,140 @@ export class CombatUI {
     const enemy = combatState.enemy;
     this.enemyHealthText.setText(`♥ ${enemy.currentHealth}/${enemy.maxHealth}`);
     this.enemyBlockText.setText(enemy.block > 0 ? `⛨ ${enemy.block}` : "");
-    this.enemyIntentText.setText(`${enemy.intent.icon} ${enemy.intent.description}`);
+    
+    // Display intent with status effect icon and information
+    let intentText = `${enemy.intent.icon} ${enemy.intent.description}`;
+    
+    // Add status effect stack count if it's a buff or debuff
+    if ((enemy.intent.type === "buff" || enemy.intent.type === "debuff") && enemy.intent.value > 0) {
+      intentText = `${enemy.intent.icon} ${enemy.intent.description}`;
+    }
+    
+    this.enemyIntentText.setText(intentText);
+    
+    // Update intent text color based on type
+    if (enemy.intent.type === "attack") {
+      this.enemyIntentText.setColor("#ff6b6b"); // Red for attacks
+    } else if (enemy.intent.type === "defend") {
+      this.enemyIntentText.setColor("#4ecdc4"); // Cyan for defense
+    } else if (enemy.intent.type === "buff") {
+      this.enemyIntentText.setColor("#2ed573"); // Green for buffs
+    } else if (enemy.intent.type === "debuff") {
+      this.enemyIntentText.setColor("#feca57"); // Yellow for debuffs
+    } else {
+      this.enemyIntentText.setColor("#feca57"); // Default yellow
+    }
+  }
+  
+  /**
+   * Show enemy intent tooltip with detailed status effect information
+   */
+  private showEnemyIntentTooltip(): void {
+    // Hide any existing tooltip first
+    this.hideEnemyIntentTooltip();
+    
+    const combatState = this.scene.getCombatState();
+    const enemy = combatState.enemy;
+    const intent = enemy.intent;
+    
+    // Build tooltip text based on intent type
+    let tooltipTitle = "";
+    let tooltipDescription = "";
+    
+    if (intent.type === "attack") {
+      tooltipTitle = "Attack";
+      tooltipDescription = `The enemy will attack for ${intent.value} damage.`;
+    } else if (intent.type === "defend") {
+      tooltipTitle = "Defend";
+      tooltipDescription = `The enemy will gain ${intent.value} block.`;
+    } else if (intent.type === "buff") {
+      tooltipTitle = intent.description;
+      if (intent.description.includes("Strength")) {
+        tooltipDescription = `The enemy will gain ${intent.value} Strength.\nAttack actions deal +3 damage per stack.`;
+      } else {
+        tooltipDescription = `The enemy will apply a buff with ${intent.value} stacks.`;
+      }
+    } else if (intent.type === "debuff") {
+      tooltipTitle = intent.description;
+      if (intent.description.includes("Poison")) {
+        tooltipDescription = `The enemy will apply ${intent.value} Poison to you.\nTakes ${intent.value * 2} damage at start of turn, then reduces by 1.`;
+      } else if (intent.description.includes("Weak")) {
+        tooltipDescription = `The enemy will apply ${intent.value} Weak to you.\nAttack actions deal 25% less damage per stack.`;
+      } else {
+        tooltipDescription = `The enemy will apply a debuff with ${intent.value} stacks.`;
+      }
+    } else {
+      tooltipTitle = "Unknown";
+      tooltipDescription = intent.description;
+    }
+    
+    // Get intent text position
+    const intentX = this.enemyIntentText.x;
+    const intentY = this.enemyIntentText.y;
+    
+    // Create tooltip container
+    const tooltipWidth = 280;
+    const tooltipHeight = 100;
+    const tooltipX = intentX;
+    const tooltipY = intentY + 50; // Position below the intent text
+    
+    this.enemyIntentTooltip = this.scene.add.container(tooltipX, tooltipY);
+    
+    // Prologue-style double border design
+    const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
+      .setStrokeStyle(2, 0x77888C);
+    const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
+      .setStrokeStyle(2, 0x77888C);
+    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+    
+    // Title text
+    const titleText = this.scene.add.text(0, -30, tooltipTitle, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#feca57",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    // Description text
+    const descText = this.scene.add.text(0, 10, tooltipDescription, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#77888C",
+      align: "center",
+      wordWrap: { width: tooltipWidth - 20 }
+    }).setOrigin(0.5);
+    
+    this.enemyIntentTooltip.add([outerBorder, innerBorder, bg, titleText, descText]);
+    this.enemyIntentTooltip.setDepth(6000);
+    this.enemyIntentTooltip.setAlpha(0);
+    
+    // Fade in animation
+    this.scene.tweens.add({
+      targets: this.enemyIntentTooltip,
+      alpha: 1,
+      duration: 200,
+      ease: 'Power2.easeOut'
+    });
+  }
+  
+  /**
+   * Hide enemy intent tooltip
+   */
+  private hideEnemyIntentTooltip(): void {
+    if (this.enemyIntentTooltip) {
+      this.scene.tweens.add({
+        targets: this.enemyIntentTooltip,
+        alpha: 0,
+        duration: 200,
+        ease: 'Power2.easeOut',
+        onComplete: () => {
+          if (this.enemyIntentTooltip) {
+            this.enemyIntentTooltip.destroy();
+            this.enemyIntentTooltip = null;
+          }
+        }
+      });
+    }
   }
   
   /**

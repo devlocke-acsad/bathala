@@ -154,7 +154,12 @@
   - Position indicators near enemy health bar
   - _Requirements: 1.5, 8.3_
 
-- [ ] 10. Update enemy intent display for status effects
+- [x] 10. Update enemy intent display for status effects
+
+
+
+
+
   - Modify enemy intent UI to show status effect icons
   - Display status effect name and stack count in intent tooltip
   - Update intent text to include status effect information

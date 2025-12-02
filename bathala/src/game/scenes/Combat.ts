@@ -1607,6 +1607,30 @@ export class Combat extends Scene {
         icon: "⛨",
       };
       // Block is gained in executeEnemyTurn(), not here (intent only shows what will happen)
+    } else if (nextAction === "strengthen") {
+      // Enemy will apply 2 stacks of Strength to itself
+      enemy.intent = {
+        type: "buff",
+        value: 2,
+        description: "Gains 2 Strength",
+        icon: "💪",
+      };
+    } else if (nextAction === "poison") {
+      // Enemy will apply 2 stacks of Poison to player
+      enemy.intent = {
+        type: "debuff",
+        value: 2,
+        description: "Applies 2 Poison",
+        icon: "☠️",
+      };
+    } else if (nextAction === "weaken") {
+      // Enemy will apply 1 stack of Weak to player
+      enemy.intent = {
+        type: "debuff",
+        value: 1,
+        description: "Applies 1 Weak",
+        icon: "⚠️",
+      };
     }
 
     this.ui.updateEnemyUI();
