@@ -165,14 +165,22 @@
   - Update intent text to include status effect information
   - _Requirements: 4.5_
 
-- [ ]* 11. Integrate with DDA system
+- [x] 11. Integrate with DDA system
+
+
+
+
+
+
   - Verify DDA stat adjustments preserve elemental affinities
   - Ensure elemental multipliers apply after DDA adjustments
   - Test that exploiting weaknesses doesn't trigger negative DDA
   - Update DDA display to show base and adjusted stats separately
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ]* 11.1 Write property test for DDA and elemental affinity independence
+- [x] 11.1 Write property test for DDA and elemental affinity independence
+
+
   - **Property 8: DDA and elemental affinity independence**
   - **Validates: Requirements 6.1, 6.3**
 
