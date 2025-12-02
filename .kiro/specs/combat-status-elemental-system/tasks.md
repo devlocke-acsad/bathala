@@ -142,7 +142,12 @@
   - Add color coding: green/blue for buffs, red/orange for debuffs
   - _Requirements: 5.1, 5.3, 5.5_
 
-- [ ] 9. Add elemental affinity UI indicators
+- [x] 9. Add elemental affinity UI indicators
+
+
+
+
+
   - Display enemy weakness icon using element symbol (🔥💧🌿💨)
   - Display enemy resistance icon using element symbol
   - Add tooltip on hover showing "Weak to [Element]" and "Resists [Element]"

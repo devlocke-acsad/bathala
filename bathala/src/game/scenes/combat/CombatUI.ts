@@ -13,6 +13,7 @@ import { HandEvaluator } from "../../../utils/HandEvaluator";
 import { Combat } from "../Combat";
 import { createButton } from "../../ui/Button";
 import { StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
+import { ElementalAffinitySystem } from "../../../core/managers/ElementalAffinitySystem";
 
 /**
  * Helper function to get the sprite key for a relic based on its ID
@@ -71,6 +72,8 @@ export class CombatUI {
   public enemyStatusContainer!: Phaser.GameObjects.Container;
   public enemySprite!: Phaser.GameObjects.Sprite;
   public enemyShadow!: Phaser.GameObjects.Graphics;
+  public enemyAffinityContainer!: Phaser.GameObjects.Container;
+  public currentAffinityTooltip!: Phaser.GameObjects.Container | null;
   
   // Card UI Elements
   public handContainer!: Phaser.GameObjects.Container;
@@ -125,6 +128,7 @@ export class CombatUI {
     this.scene = scene;
     this.battleStartDialogueContainer = null;
     this.currentRelicTooltip = null;
+    this.currentAffinityTooltip = null;
     this.ddaDebugContainer = null;
     this.relicUpdatePending = false;
     this.lastRelicCount = 0;
@@ -172,6 +176,8 @@ export class CombatUI {
     this.scene.enemyIntentText = this.enemyIntentText;
     // @ts-ignore
     this.scene.enemyStatusContainer = this.enemyStatusContainer;
+    // @ts-ignore
+    this.scene.enemyAffinityContainer = this.enemyAffinityContainer;
     // @ts-ignore
     this.scene.enemySprite = this.enemySprite;
     // @ts-ignore
@@ -397,10 +403,155 @@ export class CombatUI {
     // Status effects container - positioned dynamically
     this.enemyStatusContainer = this.scene.add.container(enemyX, statusYOffset);
 
+    // Elemental affinity indicators - positioned near health bar
+    this.createElementalAffinityIndicators(enemyX, healthYOffset);
+
     // Information button for enemy lore
     this.createEnemyInfoButton(enemyX, enemyY - 200);
 
     this.updateEnemyUI();
+  }
+  
+  /**
+   * Create elemental affinity indicators for enemy
+   */
+  private createElementalAffinityIndicators(enemyX: number, healthY: number): void {
+    const combatState = this.scene.getCombatState();
+    const enemy = combatState.enemy;
+    
+    // Get affinity display data
+    const affinityData = ElementalAffinitySystem.getAffinityDisplayData(enemy.elementalAffinity);
+    
+    // Create container for affinity indicators - positioned to the right of health bar
+    this.enemyAffinityContainer = this.scene.add.container(enemyX + 120, healthY);
+    
+    const iconSize = 32;
+    const iconSpacing = 40;
+    let currentX = 0;
+    
+    // Weakness indicator (left side)
+    if (affinityData.weaknessIcon) {
+      const weaknessContainer = this.scene.add.container(currentX, 0);
+      
+      // Background circle for weakness (red tint)
+      const weaknessBg = this.scene.add.circle(0, 0, iconSize / 2, 0xff6b6b, 0.3);
+      const weaknessBorder = this.scene.add.circle(0, 0, iconSize / 2, undefined, 0);
+      weaknessBorder.setStrokeStyle(2, 0xff6b6b, 0.8);
+      
+      // Weakness icon
+      const weaknessIcon = this.scene.add.text(0, 0, affinityData.weaknessIcon, {
+        fontSize: 20,
+        align: "center"
+      }).setOrigin(0.5);
+      
+      weaknessContainer.add([weaknessBg, weaknessBorder, weaknessIcon]);
+      
+      // Make interactive for tooltip
+      weaknessContainer.setSize(iconSize, iconSize);
+      weaknessContainer.setInteractive(
+        new Phaser.Geom.Rectangle(-iconSize/2, -iconSize/2, iconSize, iconSize),
+        Phaser.Geom.Rectangle.Contains
+      );
+      
+      weaknessContainer.on('pointerover', () => {
+        weaknessBg.setFillStyle(0xff6b6b, 0.5);
+        this.showAffinityTooltip(affinityData.weaknessText, enemyX + 120 + currentX, healthY - 40);
+      });
+      
+      weaknessContainer.on('pointerout', () => {
+        weaknessBg.setFillStyle(0xff6b6b, 0.3);
+        this.hideAffinityTooltip();
+      });
+      
+      this.enemyAffinityContainer.add(weaknessContainer);
+      currentX += iconSpacing;
+    }
+    
+    // Resistance indicator (right side)
+    if (affinityData.resistanceIcon) {
+      const resistanceContainer = this.scene.add.container(currentX, 0);
+      
+      // Background circle for resistance (blue tint)
+      const resistanceBg = this.scene.add.circle(0, 0, iconSize / 2, 0x4ecdc4, 0.3);
+      const resistanceBorder = this.scene.add.circle(0, 0, iconSize / 2, undefined, 0);
+      resistanceBorder.setStrokeStyle(2, 0x4ecdc4, 0.8);
+      
+      // Resistance icon
+      const resistanceIcon = this.scene.add.text(0, 0, affinityData.resistanceIcon, {
+        fontSize: 20,
+        align: "center"
+      }).setOrigin(0.5);
+      
+      resistanceContainer.add([resistanceBg, resistanceBorder, resistanceIcon]);
+      
+      // Make interactive for tooltip
+      resistanceContainer.setSize(iconSize, iconSize);
+      resistanceContainer.setInteractive(
+        new Phaser.Geom.Rectangle(-iconSize/2, -iconSize/2, iconSize, iconSize),
+        Phaser.Geom.Rectangle.Contains
+      );
+      
+      resistanceContainer.on('pointerover', () => {
+        resistanceBg.setFillStyle(0x4ecdc4, 0.5);
+        this.showAffinityTooltip(affinityData.resistanceText, enemyX + 120 + currentX, healthY - 40);
+      });
+      
+      resistanceContainer.on('pointerout', () => {
+        resistanceBg.setFillStyle(0x4ecdc4, 0.3);
+        this.hideAffinityTooltip();
+      });
+      
+      this.enemyAffinityContainer.add(resistanceContainer);
+    }
+  }
+  
+  /**
+   * Show affinity tooltip
+   */
+  private showAffinityTooltip(text: string, x: number, y: number): void {
+    this.hideAffinityTooltip();
+    
+    const tooltipContainer = this.scene.add.container(x, y);
+    const maxTooltipWidth = 220;
+    const tooltipPadding = 12;
+    
+    // Create text first to measure it
+    const tooltipText = this.scene.add.text(0, 0, text, {
+      fontFamily: "dungeon-mode",
+      fontSize: 13,
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: maxTooltipWidth - tooltipPadding * 2 }
+    }).setOrigin(0.5);
+    
+    // Calculate tooltip dimensions based on text size
+    const textBounds = tooltipText.getBounds();
+    const tooltipWidth = Math.min(textBounds.width + tooltipPadding * 2, maxTooltipWidth);
+    const tooltipHeight = textBounds.height + tooltipPadding;
+    
+    // Prologue-style double border
+    const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0);
+    outerBorder.setStrokeStyle(2, 0x77888C);
+    
+    const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C);
+    
+    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+    
+    tooltipContainer.add([outerBorder, innerBorder, bg, tooltipText]);
+    tooltipContainer.setDepth(6000);
+    
+    this.currentAffinityTooltip = tooltipContainer;
+  }
+  
+  /**
+   * Hide affinity tooltip
+   */
+  private hideAffinityTooltip(): void {
+    if (this.currentAffinityTooltip) {
+      this.currentAffinityTooltip.destroy();
+      this.currentAffinityTooltip = null;
+    }
   }
   
   /**
