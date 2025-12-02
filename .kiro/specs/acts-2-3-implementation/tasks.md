@@ -11,8 +11,14 @@
   - Define ChapterTheme interface for visual system
   - _Requirements: 5.3, 6.2, 7.1_
 
-- [ ] 2. Implement Act 2 enemy data (The Submerged Barangays)
-  - [ ] 2.1 Create Act2Enemies.ts file with all enemy definitions
+- [x] 2. Implement Act 2 enemy data (The Submerged Barangays)
+
+
+
+
+  - [x] 2.1 Create Act2Enemies.ts file with all enemy definitions
+
+
     - Define 7 common enemies with simplified attack patterns (2-4 actions)
     - Define 2 elite enemies with moderate patterns (3-5 actions)
     - Define boss enemy (Bakunawa) with complex pattern (5-6 actions)
