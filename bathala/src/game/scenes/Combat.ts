@@ -106,7 +106,7 @@ export class Combat extends Scene {
   private enemyStatusContainer!: Phaser.GameObjects.Container;
   private playerSprite!: Phaser.GameObjects.Sprite;
   private enemySprite!: Phaser.GameObjects.Sprite;
-  private deckSprite!: Phaser.GameObjects.Sprite;
+  private deckSprite!: Phaser.GameObjects.Container;
   private discardPileSprite!: Phaser.GameObjects.Sprite;
   private landasChoiceContainer!: Phaser.GameObjects.Container;
   private rewardsContainer!: Phaser.GameObjects.Container;
@@ -239,7 +239,7 @@ export class Combat extends Scene {
     return this.enemySprite;
   }
 
-  public getDeckSprite(): Phaser.GameObjects.Sprite {
+  public getDeckSprite(): Phaser.GameObjects.Container {
     return this.deckSprite;
   }
 
@@ -1074,7 +1074,8 @@ export class Combat extends Scene {
     this.updateSelectionCounter();
     this.updateCardVisuals(card);
     this.ui.updateHandIndicator();
-    this.updateDamagePreview(this.combatState.phase === "action_selection");
+    // Show damage preview only during action selection phase
+    this.updateDamagePreview(false);
   }
 
   /**
@@ -1541,8 +1542,8 @@ export class Combat extends Scene {
     this.isActionProcessing = false;
     this.setActionButtonsEnabled(true);
     
-    // Update damage preview visibility based on phase
-    this.updateDamagePreview(this.combatState.phase === "action_selection");
+    // Update damage preview visibility - hide at start of turn
+    this.updateDamagePreview(false);
   }
 
   /**
@@ -1618,7 +1619,7 @@ export class Combat extends Scene {
 
     // Add visual feedback for enemy taking damage
     this.animations.animateSpriteDamage(this.enemySprite);
-    this.animations.animateEnemySlash(this.playerSprite, this.enemySprite);
+    this.animations.animateEnemySlash();
     this.ui.updateEnemyUI();
 
     // Show detailed damage calculation if there are special bonuses
@@ -2528,6 +2529,78 @@ export class Combat extends Scene {
   }
 
   /**
+   * Handle chapter progression after boss defeat
+   * Detects boss defeats and unlocks the next chapter
+   */
+  private handleChapterProgression(gameState: GameState): void {
+    const currentChapter = gameState.getCurrentChapter();
+    const defeatedEnemy = this.combatState.enemy.name;
+    
+    console.log(`Checking chapter progression: Current chapter ${currentChapter}, defeated ${defeatedEnemy}`);
+    
+    // Check if a boss was defeated and unlock next chapter
+    if (defeatedEnemy === "Mangangaway" && currentChapter === 1) {
+      // Act 1 boss defeated - unlock Act 2
+      console.log("🎉 Act 1 boss defeated! Unlocking Chapter 2...");
+      gameState.unlockChapter(2);
+      gameState.setCurrentChapter(2);
+      
+      // Apply visual theme for new chapter
+      const themeManager = new VisualThemeManager(this);
+      themeManager.applyChapterTheme(2);
+      
+      console.log("✅ Chapter 2 unlocked and set as current chapter");
+    } else if (defeatedEnemy === "Bakunawa" && currentChapter === 2) {
+      // Act 2 boss defeated - unlock Act 3
+      console.log("🎉 Act 2 boss defeated! Unlocking Chapter 3...");
+      gameState.unlockChapter(3);
+      gameState.setCurrentChapter(3);
+      
+      // Apply visual theme for new chapter
+      const themeManager = new VisualThemeManager(this);
+      themeManager.applyChapterTheme(3);
+      
+      console.log("✅ Chapter 3 unlocked and set as current chapter");
+    } else if (defeatedEnemy === "False Bathala" && currentChapter === 3) {
+      // Act 3 boss defeated - game complete! Trigger epilogue
+      console.log("🎉 Act 3 boss defeated! Game complete! Triggering epilogue...");
+      this.triggerEpilogue();
+    }
+  }
+
+  /**
+   * Trigger epilogue sequence after defeating False Bathala
+   * Redirects to Credits scene instead of returning to overworld
+   */
+  private triggerEpilogue(): void {
+    console.log("Starting epilogue sequence...");
+    
+    // Clean shutdown of combat scene
+    this.input.removeAllListeners();
+    this.time.removeAllEvents();
+    
+    // Stop the Overworld scene if it's running
+    if (this.scene.isActive('Overworld') || this.scene.isPaused('Overworld')) {
+      this.scene.stop('Overworld');
+    }
+    
+    // Stop this scene and start Credits (epilogue)
+    this.scene.stop();
+    
+    // Small delay before starting credits to ensure clean transition
+    setTimeout(() => {
+      try {
+        console.log("Launching Credits scene as epilogue...");
+        this.scene.manager.start("Credits");
+      } catch (error) {
+        console.error("Error starting Credits scene:", error);
+        // Fallback to main menu
+        this.scene.manager.start("MainMenu");
+      }
+    }, 100);
+  }
+
+  /**
    * Return to overworld with updated player state
    */
   private returnToOverworld(): void {
@@ -2572,6 +2645,20 @@ export class Combat extends Scene {
 
       // Mark the current node as completed
       gameState.completeCurrentNode(true);
+      
+      // Check for boss defeat and trigger chapter progression
+      // Note: If False Bathala is defeated, this will trigger epilogue and return early
+      const currentChapter = gameState.getCurrentChapter();
+      const defeatedEnemy = this.combatState.enemy.name;
+      
+      // Handle chapter progression
+      this.handleChapterProgression(gameState);
+      
+      // If False Bathala was defeated, epilogue was triggered - don't continue to overworld
+      if (defeatedEnemy === "False Bathala" && currentChapter === 3) {
+        console.log("Epilogue triggered, skipping overworld return");
+        return;
+      }
 
       // Clean shutdown of combat scene
       this.input.removeAllListeners();

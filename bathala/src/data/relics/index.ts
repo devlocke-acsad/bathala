@@ -15,7 +15,6 @@ export {
   eliteRelics as act2EliteRelics,
   bossRelics as act2BossRelics,
   treasureRelics as act2TreasureRelics,
-  shopRelics as act2ShopRelics,
   allAct2Relics
 } from './Act2Relics';
 
@@ -24,7 +23,6 @@ export {
   eliteRelics as act3EliteRelics,
   bossRelics as act3BossRelics,
   treasureRelics as act3TreasureRelics,
-  shopRelics as act3ShopRelics,
   allAct3Relics
 } from './Act3Relics';
 
@@ -32,6 +30,10 @@ export {
   shopRelics,
   premiumShopItems,
   allShopItems,
+  act2ShopRelics,
+  act2PremiumShopItems,
+  act3ShopRelics,
+  act3PremiumShopItems,
   getChapterShopItems
 } from './ShopItems';
 

@@ -261,17 +261,31 @@
     - Test potion effects in chapter contexts
     - _Requirements: 1.3, 2.3, 4.5_
 
-- [ ] 10. Checkpoint - Ensure all tests pass
+- [x] 10. Checkpoint - Ensure all tests pass
+
+
+
+
+
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 11. Add chapter transition logic to game flow
-  - [ ] 11.1 Update Map.ts or Overworld.ts for chapter progression
+- [x] 11. Add chapter transition logic to game flow
+
+
+
+
+
+  - [x] 11.1 Update Map.ts or Overworld.ts for chapter progression
+
+
     - Add chapter completion detection
     - Trigger chapter unlock on boss defeat
     - Apply visual theme when entering new chapter
     - _Requirements: 1.1, 1.4, 2.1, 2.4, 7.4_
 
-  - [ ] 11.2 Add epilogue trigger for Act 3 completion
+  - [x] 11.2 Add epilogue trigger for Act 3 completion
+
+
     - Detect False Bathala defeat
     - Trigger epilogue sequence
     - _Requirements: 2.4_

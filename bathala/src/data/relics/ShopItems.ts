@@ -121,7 +121,7 @@ export const act3ShopRelics: ShopItem[] = [
 ];
 
 export const act3PremiumShopItems: ShopItem[] = [
-  createAct3ShopItemFromRelic("apolakis_spear", 250, "ginto"),
+  createAct3ShopItemFromRelic("apolaki_spear", 250, "ginto"),
   createAct3ShopItemFromRelic("coconut_diwa", 300, "ginto")
 ];
 

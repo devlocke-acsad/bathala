@@ -33,6 +33,18 @@ export class MainMenu extends Scene {
 
     // Listen for resize events
     this.scale.on('resize', this.handleResize, this);
+    
+    // Dev mode: Backtick (`) key to open Combat Debug Scene
+    this.input.keyboard?.on('keydown-BACKTICK', () => {
+      console.log('Opening Combat Debug Scene...');
+      this.scene.launch('CombatDebugScene');
+    });
+    
+    // Dev mode: Also bind to "1" key for easier access
+    this.input.keyboard?.on('keydown-ONE', () => {
+      console.log('Opening Combat Debug Scene...');
+      this.scene.launch('CombatDebugScene');
+    });
   }
 
   /**
@@ -205,6 +217,38 @@ export class MainMenu extends Scene {
       
       this.menuTexts.push(menuText);
     });
+    
+    // Add Dev Mode button in bottom right corner
+    const devModeButton = this.add
+      .text(screenWidth - 40, screenHeight - 80, "[Dev Mode]", {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#ffd93d", // Yellow to stand out
+        align: "right",
+      })
+      .setOrigin(1, 1)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => {
+        console.log('Opening Combat Debug Scene...');
+        // Launch the scene if not already running
+        if (!this.scene.isActive('CombatDebugScene')) {
+          this.scene.launch('CombatDebugScene');
+        }
+        // Get the scene and make it visible
+        const debugScene = this.scene.get('CombatDebugScene') as any;
+        if (debugScene && debugScene.toggleVisibility) {
+          // If it's hidden, show it
+          if (!debugScene.isVisible) {
+            debugScene.toggleVisibility();
+          }
+        }
+      })
+      .on("pointerover", function() {
+        this.setColor("#ffffff"); // White on hover
+      })
+      .on("pointerout", function() {
+        this.setColor("#ffd93d"); // Back to yellow
+      });
   }
 
   /**
