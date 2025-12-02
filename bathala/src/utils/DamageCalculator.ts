@@ -5,7 +5,9 @@ import {
   Player,
   StatusEffect,
   Suit,
+  Enemy,
 } from "../core/types/CombatTypes";
+import { ElementalAffinitySystem } from "../core/managers/ElementalAffinitySystem";
 
 /**
  * DamageCalculator - Balatro-inspired damage calculation system
@@ -17,10 +19,11 @@ export interface DamageCalculation {
   handBonus: number;          // Bonus from hand type
   handMultiplier: number;     // Multiplier from hand type
   elementalBonus: number;     // Bonus from dominant element
+  elementalMultiplier: number; // Multiplier from elemental weakness/resistance (0.75, 1.0, or 1.5)
   statusBonus: number;        // Bonus from status effects (Strength/Dexterity)
   relicBonuses: { name: string; amount: number }[];
   subtotal: number;           // (baseValue + handBonus + elementalBonus + statusBonus)
-  finalValue: number;         // subtotal × handMultiplier
+  finalValue: number;         // subtotal × handMultiplier × elementalMultiplier
   breakdown: string[];        // Human-readable breakdown
 }
 
@@ -124,6 +127,7 @@ export class DamageCalculator {
    * @param handType - Evaluated poker hand type
    * @param actionType - Type of action (attack/defend/special)
    * @param player - Player entity (for status effects and relics)
+   * @param enemy - Enemy entity (for elemental affinity calculations)
    * @param relicBonuses - Additional relic bonuses to include
    */
   static calculate(
@@ -131,6 +135,7 @@ export class DamageCalculator {
     handType: HandType,
     actionType: "attack" | "defend" | "special",
     player?: Player,
+    enemy?: Enemy,
     relicBonuses: { name: string; amount: number }[] = []
   ): DamageCalculation {
     const breakdown: string[] = [];
@@ -220,6 +225,27 @@ export class DamageCalculator {
       breakdown.push(`⚠️ Weak: ×0.5`);
     }
 
+    // 9. Apply elemental weakness/resistance multiplier (after DDA adjustments)
+    let elementalMultiplier = 1.0;
+    if (enemy && enemy.elementalAffinity) {
+      const dominantElement = ElementalAffinitySystem.getDominantElement(cards);
+      elementalMultiplier = ElementalAffinitySystem.calculateElementalMultiplier(
+        dominantElement,
+        enemy.elementalAffinity
+      );
+      
+      // Add breakdown text for elemental multipliers
+      if (elementalMultiplier !== 1.0) {
+        const elementIcon = dominantElement ? ElementalAffinitySystem.getElementIcon(dominantElement) : '';
+        if (elementalMultiplier === 1.5) {
+          breakdown.push(`${elementIcon} Weakness: ×1.5`);
+        } else if (elementalMultiplier === 0.75) {
+          breakdown.push(`${elementIcon} Resistance: ×0.75`);
+        }
+        finalValue = Math.floor(finalValue * elementalMultiplier);
+      }
+    }
+
     breakdown.push(`Final: ${finalValue}`);
 
     return {
@@ -227,6 +253,7 @@ export class DamageCalculator {
       handBonus,
       handMultiplier,
       elementalBonus,
+      elementalMultiplier,
       statusBonus,
       relicBonuses,
       subtotal,

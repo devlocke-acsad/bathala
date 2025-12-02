@@ -6,11 +6,14 @@ import {
   PlayingCard,
   Suit,
   HandType,
+  CombatEntity,
 } from "../../../core/types/CombatTypes";
 import { DeckManager } from "../../../utils/DeckManager";
 import { HandEvaluator } from "../../../utils/HandEvaluator";
 import { Combat } from "../Combat";
 import { createButton } from "../../ui/Button";
+import { StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
+import { ElementalAffinitySystem } from "../../../core/managers/ElementalAffinitySystem";
 
 /**
  * Helper function to get the sprite key for a relic based on its ID
@@ -66,9 +69,12 @@ export class CombatUI {
   public enemyHealthText!: Phaser.GameObjects.Text;
   public enemyBlockText!: Phaser.GameObjects.Text;
   public enemyIntentText!: Phaser.GameObjects.Text;
+  public enemyIntentTooltip!: Phaser.GameObjects.Container | null;
   public enemyStatusContainer!: Phaser.GameObjects.Container;
   public enemySprite!: Phaser.GameObjects.Sprite;
   public enemyShadow!: Phaser.GameObjects.Graphics;
+  public enemyAffinityContainer!: Phaser.GameObjects.Container;
+  public currentAffinityTooltip!: Phaser.GameObjects.Container | null;
   
   // Card UI Elements
   public handContainer!: Phaser.GameObjects.Container;
@@ -123,6 +129,7 @@ export class CombatUI {
     this.scene = scene;
     this.battleStartDialogueContainer = null;
     this.currentRelicTooltip = null;
+    this.currentAffinityTooltip = null;
     this.ddaDebugContainer = null;
     this.relicUpdatePending = false;
     this.lastRelicCount = 0;
@@ -170,6 +177,8 @@ export class CombatUI {
     this.scene.enemyIntentText = this.enemyIntentText;
     // @ts-ignore
     this.scene.enemyStatusContainer = this.enemyStatusContainer;
+    // @ts-ignore
+    this.scene.enemyAffinityContainer = this.enemyAffinityContainer;
     // @ts-ignore
     this.scene.enemySprite = this.enemySprite;
     // @ts-ignore
@@ -380,7 +389,7 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Intent display - hidden for now
+    // Intent display - now visible with status effect support
     this.enemyIntentText = this.scene.add
       .text(enemyX, statusYOffset + 30, "", {
         fontFamily: "dungeon-mode",
@@ -390,15 +399,173 @@ export class CombatUI {
         wordWrap: { width: 200 }
       })
       .setOrigin(0.5)
-      .setVisible(false); // Hidden
+      .setVisible(true) // Now visible
+      .setInteractive({ useHandCursor: true }); // Make interactive for tooltip
+    
+    // Initialize intent tooltip as null
+    this.enemyIntentTooltip = null;
+    
+    // Add hover events for intent tooltip
+    this.enemyIntentText.on('pointerover', () => {
+      this.showEnemyIntentTooltip();
+    });
+    
+    this.enemyIntentText.on('pointerout', () => {
+      this.hideEnemyIntentTooltip();
+    });
 
     // Status effects container - positioned dynamically
     this.enemyStatusContainer = this.scene.add.container(enemyX, statusYOffset);
+
+    // Elemental affinity indicators - positioned near health bar
+    this.createElementalAffinityIndicators(enemyX, healthYOffset);
 
     // Information button for enemy lore
     this.createEnemyInfoButton(enemyX, enemyY - 200);
 
     this.updateEnemyUI();
+  }
+  
+  /**
+   * Create elemental affinity indicators for enemy
+   */
+  private createElementalAffinityIndicators(enemyX: number, healthY: number): void {
+    const combatState = this.scene.getCombatState();
+    const enemy = combatState.enemy;
+    
+    // Get affinity display data
+    const affinityData = ElementalAffinitySystem.getAffinityDisplayData(enemy.elementalAffinity);
+    
+    // Create container for affinity indicators - positioned to the right of health bar
+    this.enemyAffinityContainer = this.scene.add.container(enemyX + 120, healthY);
+    
+    const iconSize = 32;
+    const iconSpacing = 40;
+    let currentX = 0;
+    
+    // Weakness indicator (left side)
+    if (affinityData.weaknessIcon) {
+      const weaknessContainer = this.scene.add.container(currentX, 0);
+      
+      // Background circle for weakness (red tint)
+      const weaknessBg = this.scene.add.circle(0, 0, iconSize / 2, 0xff6b6b, 0.3);
+      const weaknessBorder = this.scene.add.circle(0, 0, iconSize / 2, undefined, 0);
+      weaknessBorder.setStrokeStyle(2, 0xff6b6b, 0.8);
+      
+      // Weakness icon
+      const weaknessIcon = this.scene.add.text(0, 0, affinityData.weaknessIcon, {
+        fontSize: 20,
+        align: "center"
+      }).setOrigin(0.5);
+      
+      weaknessContainer.add([weaknessBg, weaknessBorder, weaknessIcon]);
+      
+      // Make interactive for tooltip
+      weaknessContainer.setSize(iconSize, iconSize);
+      weaknessContainer.setInteractive(
+        new Phaser.Geom.Rectangle(-iconSize/2, -iconSize/2, iconSize, iconSize),
+        Phaser.Geom.Rectangle.Contains
+      );
+      
+      weaknessContainer.on('pointerover', () => {
+        weaknessBg.setFillStyle(0xff6b6b, 0.5);
+        this.showAffinityTooltip(affinityData.weaknessText, enemyX + 120 + currentX, healthY - 40);
+      });
+      
+      weaknessContainer.on('pointerout', () => {
+        weaknessBg.setFillStyle(0xff6b6b, 0.3);
+        this.hideAffinityTooltip();
+      });
+      
+      this.enemyAffinityContainer.add(weaknessContainer);
+      currentX += iconSpacing;
+    }
+    
+    // Resistance indicator (right side)
+    if (affinityData.resistanceIcon) {
+      const resistanceContainer = this.scene.add.container(currentX, 0);
+      
+      // Background circle for resistance (blue tint)
+      const resistanceBg = this.scene.add.circle(0, 0, iconSize / 2, 0x4ecdc4, 0.3);
+      const resistanceBorder = this.scene.add.circle(0, 0, iconSize / 2, undefined, 0);
+      resistanceBorder.setStrokeStyle(2, 0x4ecdc4, 0.8);
+      
+      // Resistance icon
+      const resistanceIcon = this.scene.add.text(0, 0, affinityData.resistanceIcon, {
+        fontSize: 20,
+        align: "center"
+      }).setOrigin(0.5);
+      
+      resistanceContainer.add([resistanceBg, resistanceBorder, resistanceIcon]);
+      
+      // Make interactive for tooltip
+      resistanceContainer.setSize(iconSize, iconSize);
+      resistanceContainer.setInteractive(
+        new Phaser.Geom.Rectangle(-iconSize/2, -iconSize/2, iconSize, iconSize),
+        Phaser.Geom.Rectangle.Contains
+      );
+      
+      resistanceContainer.on('pointerover', () => {
+        resistanceBg.setFillStyle(0x4ecdc4, 0.5);
+        this.showAffinityTooltip(affinityData.resistanceText, enemyX + 120 + currentX, healthY - 40);
+      });
+      
+      resistanceContainer.on('pointerout', () => {
+        resistanceBg.setFillStyle(0x4ecdc4, 0.3);
+        this.hideAffinityTooltip();
+      });
+      
+      this.enemyAffinityContainer.add(resistanceContainer);
+    }
+  }
+  
+  /**
+   * Show affinity tooltip
+   */
+  private showAffinityTooltip(text: string, x: number, y: number): void {
+    this.hideAffinityTooltip();
+    
+    const tooltipContainer = this.scene.add.container(x, y);
+    const maxTooltipWidth = 220;
+    const tooltipPadding = 12;
+    
+    // Create text first to measure it
+    const tooltipText = this.scene.add.text(0, 0, text, {
+      fontFamily: "dungeon-mode",
+      fontSize: 13,
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: maxTooltipWidth - tooltipPadding * 2 }
+    }).setOrigin(0.5);
+    
+    // Calculate tooltip dimensions based on text size
+    const textBounds = tooltipText.getBounds();
+    const tooltipWidth = Math.min(textBounds.width + tooltipPadding * 2, maxTooltipWidth);
+    const tooltipHeight = textBounds.height + tooltipPadding;
+    
+    // Prologue-style double border
+    const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0);
+    outerBorder.setStrokeStyle(2, 0x77888C);
+    
+    const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0);
+    innerBorder.setStrokeStyle(2, 0x77888C);
+    
+    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+    
+    tooltipContainer.add([outerBorder, innerBorder, bg, tooltipText]);
+    tooltipContainer.setDepth(6000);
+    
+    this.currentAffinityTooltip = tooltipContainer;
+  }
+  
+  /**
+   * Hide affinity tooltip
+   */
+  private hideAffinityTooltip(): void {
+    if (this.currentAffinityTooltip) {
+      this.currentAffinityTooltip.destroy();
+      this.currentAffinityTooltip = null;
+    }
   }
   
   /**
@@ -981,6 +1148,9 @@ export class CombatUI {
     this.playerHealthText.setText(`♥ ${currentHealth}/${maxHealth}`);
     this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
     
+    // Update status effect display
+    this.updateStatusEffectDisplay(player, this.playerStatusContainer);
+    
     // Schedule relic inventory update instead of immediate update
     this.scheduleRelicInventoryUpdate();
   }
@@ -993,7 +1163,246 @@ export class CombatUI {
     const enemy = combatState.enemy;
     this.enemyHealthText.setText(`♥ ${enemy.currentHealth}/${enemy.maxHealth}`);
     this.enemyBlockText.setText(enemy.block > 0 ? `⛨ ${enemy.block}` : "");
-    this.enemyIntentText.setText(`${enemy.intent.icon} ${enemy.intent.description}`);
+    
+    // Display intent with status effect icon and information
+    let intentText = `${enemy.intent.icon} ${enemy.intent.description}`;
+    
+    // Add status effect stack count if it's a buff or debuff
+    if ((enemy.intent.type === "buff" || enemy.intent.type === "debuff") && enemy.intent.value > 0) {
+      intentText = `${enemy.intent.icon} ${enemy.intent.description}`;
+    }
+    
+    this.enemyIntentText.setText(intentText);
+    
+    // Update intent text color based on type
+    if (enemy.intent.type === "attack") {
+      this.enemyIntentText.setColor("#ff6b6b"); // Red for attacks
+    } else if (enemy.intent.type === "defend") {
+      this.enemyIntentText.setColor("#4ecdc4"); // Cyan for defense
+    } else if (enemy.intent.type === "buff") {
+      this.enemyIntentText.setColor("#2ed573"); // Green for buffs
+    } else if (enemy.intent.type === "debuff") {
+      this.enemyIntentText.setColor("#feca57"); // Yellow for debuffs
+    } else {
+      this.enemyIntentText.setColor("#feca57"); // Default yellow
+    }
+    
+    // Update status effect display
+    this.updateStatusEffectDisplay(enemy, this.enemyStatusContainer);
+  }
+  
+  /**
+   * Show enemy intent tooltip with detailed status effect information
+   */
+  private showEnemyIntentTooltip(): void {
+    // Hide any existing tooltip first
+    this.hideEnemyIntentTooltip();
+    
+    const combatState = this.scene.getCombatState();
+    const enemy = combatState.enemy;
+    const intent = enemy.intent;
+    
+    // Build tooltip text based on intent type
+    let tooltipTitle = "";
+    let tooltipDescription = "";
+    
+    if (intent.type === "attack") {
+      tooltipTitle = "Attack";
+      tooltipDescription = `The enemy will attack for ${intent.value} damage.`;
+    } else if (intent.type === "defend") {
+      tooltipTitle = "Defend";
+      tooltipDescription = `The enemy will gain ${intent.value} block.`;
+    } else if (intent.type === "buff") {
+      tooltipTitle = intent.description;
+      if (intent.description.includes("Strength")) {
+        tooltipDescription = `The enemy will gain ${intent.value} Strength.\nAttack actions deal +3 damage per stack.`;
+      } else {
+        tooltipDescription = `The enemy will apply a buff with ${intent.value} stacks.`;
+      }
+    } else if (intent.type === "debuff") {
+      tooltipTitle = intent.description;
+      if (intent.description.includes("Poison")) {
+        tooltipDescription = `The enemy will apply ${intent.value} Poison to you.\nTakes ${intent.value * 2} damage at start of turn, then reduces by 1.`;
+      } else if (intent.description.includes("Weak")) {
+        tooltipDescription = `The enemy will apply ${intent.value} Weak to you.\nAttack actions deal 25% less damage per stack.`;
+      } else {
+        tooltipDescription = `The enemy will apply a debuff with ${intent.value} stacks.`;
+      }
+    } else {
+      tooltipTitle = "Unknown";
+      tooltipDescription = intent.description;
+    }
+    
+    // Get intent text position
+    const intentX = this.enemyIntentText.x;
+    const intentY = this.enemyIntentText.y;
+    
+    // Create tooltip container
+    const tooltipWidth = 280;
+    const tooltipHeight = 100;
+    const tooltipX = intentX;
+    const tooltipY = intentY + 50; // Position below the intent text
+    
+    this.enemyIntentTooltip = this.scene.add.container(tooltipX, tooltipY);
+    
+    // Prologue-style double border design
+    const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
+      .setStrokeStyle(2, 0x77888C);
+    const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
+      .setStrokeStyle(2, 0x77888C);
+    const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+    
+    // Title text
+    const titleText = this.scene.add.text(0, -30, tooltipTitle, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#feca57",
+      align: "center",
+    }).setOrigin(0.5);
+    
+    // Description text
+    const descText = this.scene.add.text(0, 10, tooltipDescription, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#77888C",
+      align: "center",
+      wordWrap: { width: tooltipWidth - 20 }
+    }).setOrigin(0.5);
+    
+    this.enemyIntentTooltip.add([outerBorder, innerBorder, bg, titleText, descText]);
+    this.enemyIntentTooltip.setDepth(6000);
+    this.enemyIntentTooltip.setAlpha(0);
+    
+    // Fade in animation
+    this.scene.tweens.add({
+      targets: this.enemyIntentTooltip,
+      alpha: 1,
+      duration: 200,
+      ease: 'Power2.easeOut'
+    });
+  }
+  
+  /**
+   * Hide enemy intent tooltip
+   */
+  private hideEnemyIntentTooltip(): void {
+    if (this.enemyIntentTooltip) {
+      this.scene.tweens.add({
+        targets: this.enemyIntentTooltip,
+        alpha: 0,
+        duration: 200,
+        ease: 'Power2.easeOut',
+        onComplete: () => {
+          if (this.enemyIntentTooltip) {
+            this.enemyIntentTooltip.destroy();
+            this.enemyIntentTooltip = null;
+          }
+        }
+      });
+    }
+  }
+  
+  /**
+   * Update status effect display for a target entity
+   * Renders status effect icons with stack counts and tooltips
+   */
+  private updateStatusEffectDisplay(
+    target: any,
+    container: Phaser.GameObjects.Container
+  ): void {
+    // Clear existing status effect display
+    container.removeAll(true);
+    
+    if (!target.statusEffects || target.statusEffects.length === 0) {
+      return;
+    }
+    
+    // Sort status effects: buffs first, then debuffs
+    const sortedEffects = [...target.statusEffects].sort((a, b) => {
+      if (a.type === 'buff' && b.type === 'debuff') return -1;
+      if (a.type === 'debuff' && b.type === 'buff') return 1;
+      return 0;
+    });
+    
+    // Display each status effect
+    const spacing = 35;
+    const startX = -(sortedEffects.length - 1) * spacing / 2;
+    
+    sortedEffects.forEach((effect, index) => {
+      const x = startX + index * spacing;
+      
+      // Create status effect icon with stack count
+      const effectContainer = this.scene.add.container(x, 0);
+      
+      // Background circle for the icon
+      const bg = this.scene.add.circle(0, 0, 16, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b, 0.3);
+      const border = this.scene.add.circle(0, 0, 16, undefined, 0).setStrokeStyle(2, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b);
+      
+      // Status effect emoji
+      const icon = this.scene.add.text(0, 0, effect.emoji, {
+        fontSize: '20px',
+      }).setOrigin(0.5);
+      
+      // Stack count
+      const stackText = this.scene.add.text(12, 12, effect.value.toString(), {
+        fontFamily: "dungeon-mode",
+        fontSize: 14,
+        color: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 3,
+      }).setOrigin(0.5);
+      
+      effectContainer.add([bg, border, icon, stackText]);
+      effectContainer.setInteractive(
+        new Phaser.Geom.Circle(0, 0, 16),
+        Phaser.Geom.Circle.Contains
+      );
+      
+      // Add tooltip on hover
+      let tooltip: Phaser.GameObjects.Container | null = null;
+      
+      effectContainer.on('pointerover', () => {
+        // Create tooltip
+        const tooltipWidth = 200;
+        const tooltipHeight = 80;
+        
+        tooltip = this.scene.add.container(x, 40);
+        
+        const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
+          .setStrokeStyle(2, 0x77888C);
+        const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
+          .setStrokeStyle(2, 0x77888C);
+        const tooltipBg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+        
+        const titleText = this.scene.add.text(0, -20, `${effect.emoji} ${effect.name}`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 16,
+          color: effect.type === 'buff' ? "#2ed573" : "#ff6b6b",
+          align: "center",
+        }).setOrigin(0.5);
+        
+        const descText = this.scene.add.text(0, 10, `${effect.description}\nStacks: ${effect.value}`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 12,
+          color: "#77888C",
+          align: "center",
+          wordWrap: { width: tooltipWidth - 20 }
+        }).setOrigin(0.5);
+        
+        tooltip.add([outerBorder, innerBorder, tooltipBg, titleText, descText]);
+        tooltip.setDepth(7000);
+        container.add(tooltip);
+      });
+      
+      effectContainer.on('pointerout', () => {
+        if (tooltip) {
+          tooltip.destroy();
+          tooltip = null;
+        }
+      });
+      
+      container.add(effectContainer);
+    });
   }
   
   /**
@@ -2509,30 +2918,308 @@ export class CombatUI {
         
       case "draw_3":
         this.showActionResult(`Drew 3 cards!`, "#4ecdc4");
-        // Note: Drawing cards requires Combat scene methods
+        // Note: Drawing cards requires Combat scene method
         break;
-        
-      case "gain_15_block":
-        player.block = (player.block || 0) + 15;
-        this.showActionResult(`Gained 15 Block!`, "#ffd93d");
-        this.updatePlayerUI();
-        break;
-        
-      case "gain_dexterity":
-        this.showActionResult(`Gained 1 Dexterity!`, "#ff6b6b");
-        // Note: Status effects require Combat scene methods
-        break;
-        
-      default:
-        this.showActionResult(`Used ${potion.name}!`, "#4ecdc4");
-        console.warn(`Unknown potion effect: ${potion.effect}`);
     }
     
-    // Remove potion from player inventory
-    if (player.potions) {
-      player.potions.splice(index, 1);
-      this.updatePotionInventory(); // Update potion inventory after use
+    // Remove potion from inventory
+    player.potions.splice(index, 1);
+    this.updatePotionInventory();
+  }
+  
+  // ==================== STATUS EFFECT VISUAL FEEDBACK ====================
+  
+  /**
+   * Show floating text animation for status effect triggers (damage, healing, block)
+   * @param target - The entity affected by the status effect
+   * @param message - The message to display
+   * @param value - The numeric value (damage, healing, or block)
+   * @param type - The type of effect ('damage', 'healing', 'block')
+   */
+  public showStatusEffectFloatingText(
+    target: CombatEntity,
+    message: string,
+    value: number,
+    type: 'damage' | 'healing' | 'block'
+  ): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Determine position based on target
+    const isPlayer = target === this.scene.getCombatState().player;
+    const baseX = isPlayer ? screenWidth * 0.25 : screenWidth * 0.75;
+    const baseY = screenHeight * 0.4;
+    
+    // Add random offset to prevent overlapping text
+    const offsetX = Phaser.Math.Between(-30, 30);
+    const offsetY = Phaser.Math.Between(-20, 20);
+    
+    // Color coding based on type
+    const colors = {
+      damage: '#ff6b6b',    // Red for damage
+      healing: '#2ed573',   // Green for healing
+      block: '#4ecdc4'      // Cyan for block
+    };
+    
+    const color = colors[type];
+    
+    // Create floating text
+    const floatingText = this.scene.add.text(
+      baseX + offsetX,
+      baseY + offsetY,
+      `${value > 0 ? '+' : ''}${value}`,
+      {
+        fontFamily: "dungeon-mode-inverted",
+        fontSize: 28,
+        color: color,
+        align: "center",
+        fontStyle: "bold"
+      }
+    ).setOrigin(0.5).setDepth(5000);
+    
+    // Animate floating text upward and fade out
+    this.scene.tweens.add({
+      targets: floatingText,
+      y: floatingText.y - 80,
+      alpha: 0,
+      duration: 1200,
+      ease: 'Power2',
+      onComplete: () => {
+        floatingText.destroy();
+      }
+    });
+  }
+  
+  /**
+   * Show visual animation for status effect application (fade in with icon)
+   * @param target - The entity receiving the status effect
+   * @param effectId - The ID of the status effect
+   * @param emoji - The emoji icon for the effect
+   * @param stacks - The number of stacks applied
+   * @param type - Whether it's a buff or debuff
+   */
+  public showStatusEffectApplication(
+    target: CombatEntity,
+    effectId: string,
+    emoji: string,
+    stacks: number,
+    type: 'buff' | 'debuff'
+  ): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Determine position based on target
+    const isPlayer = target === this.scene.getCombatState().player;
+    const baseX = isPlayer ? screenWidth * 0.25 : screenWidth * 0.75;
+    const baseY = screenHeight * 0.4;
+    
+    // Create status effect badge
+    const badge = this.scene.add.container(baseX, baseY - 100);
+    badge.setDepth(4500);
+    
+    // Color coding: green/blue for buffs, red/orange for debuffs
+    const borderColor = type === 'buff' ? 0x2ed573 : 0xff6b6b;
+    const bgColor = type === 'buff' ? 0x0a2a1a : 0x2a0a0a;
+    const textColor = type === 'buff' ? "#2ed573" : "#ff6b6b";
+    
+    const badgeWidth = 80;
+    const badgeHeight = 80;
+    
+    // Outer glow
+    const outerBorder = this.scene.add.rectangle(0, 0, badgeWidth + 6, badgeHeight + 6, undefined, 0)
+      .setStrokeStyle(3, borderColor, 1.0);
+    
+    // Inner border
+    const innerBorder = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, undefined, 0)
+      .setStrokeStyle(2, borderColor, 0.6);
+    
+    // Background
+    const bg = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.95);
+    
+    // Effect emoji
+    const emojiText = this.scene.add.text(0, -8, emoji, {
+      fontSize: 36,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Stack count
+    const stackText = this.scene.add.text(0, 18, `+${stacks}`, {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 16,
+      color: textColor,
+      align: "center",
+      fontStyle: "bold"
+    }).setOrigin(0.5);
+    
+    // Add elements to badge
+    badge.add([outerBorder, innerBorder, bg, emojiText, stackText]);
+    
+    // Entrance animation - pop in and fade in
+    badge.setScale(0.5);
+    badge.setAlpha(0);
+    
+    this.scene.tweens.add({
+      targets: badge,
+      scale: 1.2,
+      alpha: 1,
+      duration: 200,
+      ease: 'Back.Out',
+      onComplete: () => {
+        // Slight bounce back
+        this.scene.tweens.add({
+          targets: badge,
+          scale: 1.0,
+          duration: 150,
+          ease: 'Sine.InOut',
+          onComplete: () => {
+            // Hold for a moment then fade out
+            this.scene.time.delayedCall(800, () => {
+              this.scene.tweens.add({
+                targets: badge,
+                alpha: 0,
+                y: badge.y - 30,
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => {
+                  badge.destroy();
+                }
+              });
+            });
+          }
+        });
+      }
+    });
+  }
+  
+  /**
+   * Show visual indication for status effect expiration (fade out)
+   * @param target - The entity losing the status effect
+   * @param effectId - The ID of the status effect
+   * @param emoji - The emoji icon for the effect
+   * @param type - Whether it's a buff or debuff
+   */
+  public showStatusEffectExpiration(
+    target: CombatEntity,
+    effectId: string,
+    emoji: string,
+    type: 'buff' | 'debuff'
+  ): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Determine position based on target
+    const isPlayer = target === this.scene.getCombatState().player;
+    const baseX = isPlayer ? screenWidth * 0.25 : screenWidth * 0.75;
+    const baseY = screenHeight * 0.4;
+    
+    // Create expiration indicator
+    const indicator = this.scene.add.container(baseX, baseY - 100);
+    indicator.setDepth(4500);
+    
+    // Color coding: green/blue for buffs, red/orange for debuffs
+    const borderColor = type === 'buff' ? 0x2ed573 : 0xff6b6b;
+    const bgColor = type === 'buff' ? 0x0a2a1a : 0x2a0a0a;
+    
+    const badgeWidth = 70;
+    const badgeHeight = 70;
+    
+    // Outer border (will fade)
+    const outerBorder = this.scene.add.rectangle(0, 0, badgeWidth + 6, badgeHeight + 6, undefined, 0)
+      .setStrokeStyle(2, borderColor, 0.8);
+    
+    // Background (will fade)
+    const bg = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.7);
+    
+    // Effect emoji (will fade and shrink)
+    const emojiText = this.scene.add.text(0, 0, emoji, {
+      fontSize: 32,
+      align: "center"
+    }).setOrigin(0.5);
+    
+    // Add elements to indicator
+    indicator.add([outerBorder, bg, emojiText]);
+    
+    // Exit animation - fade out and shrink
+    this.scene.tweens.add({
+      targets: indicator,
+      scale: 0.3,
+      alpha: 0,
+      y: indicator.y + 20,
+      duration: 600,
+      ease: 'Power2',
+      onComplete: () => {
+        indicator.destroy();
+      }
+    });
+  }
+  
+  /**
+   * Show comprehensive status effect feedback (combines trigger result with visual feedback)
+   * This is the main method called by Combat scene when status effects trigger
+   * @param result - The status effect trigger result from StatusEffectManager
+   * @param target - The entity affected
+   */
+  public showStatusEffectFeedback(
+    result: StatusEffectTriggerResult,
+    target: CombatEntity
+  ): void {
+    // Determine the type of effect based on the message
+    let type: 'damage' | 'healing' | 'block' = 'damage';
+    
+    if (result.message.includes('poison') || result.message.includes('damage')) {
+      type = 'damage';
+    } else if (result.message.includes('heal') || result.message.includes('Regeneration')) {
+      type = 'healing';
+    } else if (result.message.includes('block') || result.message.includes('Plated Armor')) {
+      type = 'block';
     }
+    
+    // Show floating text for the numeric value
+    this.showStatusEffectFloatingText(target, result.message, result.value, type);
+  }
+  
+  /**
+   * Show status effect application with full visual feedback
+   * This should be called whenever a status effect is applied
+   * @param target - The entity receiving the status effect
+   * @param effectId - The ID of the status effect
+   * @param stacks - The number of stacks applied
+   */
+  public showStatusEffectApplicationFeedback(
+    target: CombatEntity,
+    effectId: string,
+    stacks: number
+  ): void {
+    // Get the status effect from the target to retrieve emoji and type
+    const effect = target.statusEffects.find(e => e.id === effectId);
+    if (!effect) return;
+    
+    // Show the application animation
+    this.showStatusEffectApplication(
+      target,
+      effectId,
+      effect.emoji,
+      stacks,
+      effect.type
+    );
+  }
+  
+  /**
+   * Show status effect expiration with visual feedback
+   * This should be called when a status effect reaches 0 stacks
+   * @param target - The entity losing the status effect
+   * @param effectId - The ID of the status effect
+   * @param emoji - The emoji icon for the effect
+   * @param type - Whether it's a buff or debuff
+   */
+  public showStatusEffectExpirationFeedback(
+    target: CombatEntity,
+    effectId: string,
+    emoji: string,
+    type: 'buff' | 'debuff'
+  ): void {
+    // Show the expiration animation
+    this.showStatusEffectExpiration(target, effectId, emoji, type);
   }
   
   /**
