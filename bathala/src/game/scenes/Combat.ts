@@ -37,6 +37,7 @@ import { DifficultyAdjustment } from "../../core/dda/DDATypes";
 import { commonPotions } from "../../data/potions/Act1Potions";
 import { MusicManager } from "../../core/managers/MusicManager";
 import { StatusEffectManager, StatusEffectTriggerResult } from "../../core/managers/StatusEffectManager";
+import { ElementalAffinitySystem } from "../../core/managers/ElementalAffinitySystem";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -2512,10 +2513,10 @@ export class Combat extends Scene {
 
   public getSpecialActionName(suit: Suit): string {
     const specialActions: Record<Suit, string> = {
-      Apoy: "Burn (10 dmg/turn)",
-      Tubig: "Heal (30 HP)",
-      Lupa: "Stun (1 turn)",
-      Hangin: "Weak (half dmg, 3 turns)",
+      Apoy: "Poison (3 stacks)",
+      Tubig: "Weak (2 stacks)",
+      Lupa: "Vulnerable",
+      Hangin: "Frail (2 stacks)",
     };
     return specialActions[suit];
   }
@@ -2733,94 +2734,56 @@ export class Combat extends Scene {
     }
     
     switch (suit) {
-      case "Apoy": // Fire - Burn (10 damage per turn)
+      case "Apoy": // Fire - Damage + Poison (3 stacks)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const apoyAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (apoyAdditionalDamage > 0) {
           this.damageEnemy(apoyAdditionalDamage);
         }
         
-        // Apply Burn: 10 damage per turn
-        this.addStatusEffect(this.combatState.enemy, {
-          id: "burn",
-          name: "Burn",
-          type: "debuff",
-          duration: 3,
-          value: 10,
-          description: "Takes 10 damage at the start of each turn.",
-          emoji: "🔥",
-        });
-        this.ui.showSpecialEffectNotification("Apoy", "Burn", "Deals 10 damage per turn for 3 turns");
+        // Apply Poison: 3 stacks (deals 2 damage per stack per turn)
+        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'poison', 3);
+        this.ui.updateEnemyUI();
+        this.ui.showSpecialEffectNotification("Apoy", "Poison", "Applied 3 stacks of Poison (6 damage/turn)");
         break;
         
-      case "Tubig": // Water - Heal (30 HP)
-        // Heal player by 30 HP
-        const healAmount = 30;
-        const oldHealth = this.combatState.player.currentHealth;
-        this.combatState.player.currentHealth = Math.min(
-          this.combatState.player.maxHealth,
-          this.combatState.player.currentHealth + healAmount
-        );
-        const actualHealed = this.combatState.player.currentHealth - oldHealth;
+      case "Tubig": // Water - Damage + Weak (2 stacks)
+        // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
+        const tubigAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
+        if (tubigAdditionalDamage > 0) {
+          this.damageEnemy(tubigAdditionalDamage);
+        }
         
-        // Check if player had any debuffs to cleanse
-        const hadDebuffs = this.combatState.player.statusEffects.some(effect => effect.type === "debuff");
-        
-        // Cleanse all debuffs from player
-        this.combatState.player.statusEffects = this.combatState.player.statusEffects.filter(
-          effect => effect.type !== "debuff"
-        );
-        
-        this.ui.updatePlayerUI();
-        this.ui.showSpecialEffectNotification("Tubig", "Heal", `Restored ${actualHealed} HP and cleansed debuffs`);
-        
-        // Show healing indicator on player side
-        this.ui.showPlayerHealingIndicator(actualHealed, hadDebuffs);
+        // Apply Weak: 2 stacks (reduces enemy attack damage by 25% per stack)
+        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'weak', 2);
+        this.ui.updateEnemyUI();
+        this.ui.showSpecialEffectNotification("Tubig", "Weak", "Applied 2 stacks of Weak (50% damage reduction)");
         break;
         
-      case "Lupa": // Earth - Stun (1 turn)
+      case "Lupa": // Earth - Damage + Vulnerable (2 stacks)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const lupaAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (lupaAdditionalDamage > 0) {
           this.damageEnemy(lupaAdditionalDamage);
         }
         
-        // Apply Stun: Enemy skips next turn
-        this.addStatusEffect(this.combatState.enemy, {
-          id: "stun",
-          name: "Stunned",
-          type: "debuff",
-          duration: 1,
-          value: 1,
-          description: "Cannot act for 1 turn.",
-          emoji: "💫",
-        });
-        this.ui.showSpecialEffectNotification("Lupa", "Stun", "Enemy cannot act for 1 turn");
+        // Apply Vulnerable: makes enemy take 50% more damage (non-stackable, but refresh duration)
+        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'vulnerable', 1);
+        this.ui.updateEnemyUI();
+        this.ui.showSpecialEffectNotification("Lupa", "Vulnerable", "Enemy takes 50% more damage");
         break;
         
-      case "Hangin": // Air - Weak (enemy deals half damage for 3 turns)
-        // Apply "Wind Veil" effect: Additional cards drawn based on Hangin cards played
-        let cardsToDraw = 2;
-        cardsToDraw += RelicManager.calculateWindVeilCardDraw(this.combatState.player.playedHand, this.combatState.player);
-        this.drawCards(cardsToDraw);
-        
+      case "Hangin": // Air - Damage + Frail (2 stacks)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const hanginAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (hanginAdditionalDamage > 0) {
           this.damageEnemy(hanginAdditionalDamage);
         }
         
-        // Apply Weak: Enemy deals half damage for 3 turns
-        this.addStatusEffect(this.combatState.enemy, {
-          id: "weak",
-          name: "Weak",
-          type: "debuff",
-          duration: 3,
-          value: 0.5,
-          description: "Deals only 50% damage for 3 turns.",
-          emoji: "⚠️",
-        });
-        this.ui.showSpecialEffectNotification("Hangin", "Weak", `Drew ${cardsToDraw} cards • Enemy deals 50% damage for 3 turns`);
+        // Apply Frail: 2 stacks (reduces enemy block from Defend actions by 25% per stack)
+        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'frail', 2);
+        this.ui.updateEnemyUI();
+        this.ui.showSpecialEffectNotification("Hangin", "Frail", "Applied 2 stacks of Frail (50% block reduction)");
         break;
     }
   }

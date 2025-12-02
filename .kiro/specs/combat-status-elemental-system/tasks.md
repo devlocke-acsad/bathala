@@ -98,7 +98,10 @@
   - **Property 6: Enemy status effect actions**
   - **Validates: Requirements 4.1, 4.2, 4.3, 4.4**
 
-- [ ] 6. Implement elemental Special action effects
+- [x] 6. Implement elemental Special action effects
+
+
+
   - Update Combat.performSpecialAction() to detect dominant element
   - Apply Poison (3 stacks) for Fire Special actions
   - Apply healing (8 HP) for Water Special actions
