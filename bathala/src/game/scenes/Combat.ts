@@ -23,9 +23,22 @@ import {
   getBossEnemy,
   getEnemyByName,
 } from "../../data/enemies/Act1Enemies";
+import {
+  getRandomCommonEnemy as getAct2RandomCommonEnemy,
+  getRandomEliteEnemy as getAct2RandomEliteEnemy,
+  getBossEnemy as getAct2BossEnemy,
+  getEnemyByName as getAct2EnemyByName,
+} from "../../data/enemies/Act2Enemies";
+import {
+  getRandomCommonEnemy as getAct3RandomCommonEnemy,
+  getRandomEliteEnemy as getAct3RandomEliteEnemy,
+  getBossEnemy as getAct3BossEnemy,
+  getEnemyByName as getAct3EnemyByName,
+} from "../../data/enemies/Act3Enemies";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 import { RelicManager } from "../../core/managers/RelicManager";
-import { RELIC_EFFECTS, hasRelicEffect, getRelicById } from "../../data/relics/Act1Relics";
+import { RELIC_EFFECTS, hasRelicEffect } from "../../data/relics/Act1Relics";
+import { getRelicById } from "../../data/relics";
 import { commonRelics, eliteRelics, bossRelics } from "../../data/relics/Act1Relics";
 import { EnemyDialogueManager } from "../managers/EnemyDialogueManager";
 import { EnemyLoreUI } from "../managers/EnemyLoreUI";
@@ -35,10 +48,11 @@ import { CombatAnimations } from "./combat/CombatAnimations";
 import { CombatDDA } from "./combat/CombatDDA";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { DifficultyAdjustment } from "../../core/dda/DDATypes";
-import { commonPotions } from "../../data/potions/Act1Potions";
+import { act1CommonPotions as commonPotions } from "../../data/potions";
 import { MusicManager } from "../../core/managers/MusicManager";
 import { StatusEffectManager, StatusEffectTriggerResult } from "../../core/managers/StatusEffectManager";
 import { ElementalAffinitySystem } from "../../core/managers/ElementalAffinitySystem";
+import { VisualThemeManager } from "../../core/managers/VisualThemeManager";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -253,6 +267,12 @@ export class Combat extends Scene {
 
     // Add 50% opacity overlay with #150E10 to dim the background (Prologue style)
     const overlay = this.add.rectangle(this.cameras.main.centerX, this.cameras.main.centerY, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.50);
+    
+    // Apply chapter-specific visual theme
+    const gameState = GameState.getInstance();
+    const currentChapter = gameState.getCurrentChapter();
+    const themeManager = new VisualThemeManager(this);
+    themeManager.applyChapterTheme(currentChapter);
 
     // Initialize StatusEffectManager
     StatusEffectManager.initialize();
@@ -501,31 +521,88 @@ export class Combat extends Scene {
   }
 
   /**
-   * Get enemy based on node type
+   * Get enemy based on node type and current chapter
    */
   private getEnemyForNodeType(nodeType: string): Omit<Enemy, "id"> {
-    switch (nodeType) {
-      case "elite":
-        return getRandomEliteEnemy();
-      case "boss":
-        return getBossEnemy();
-      case "common":
-      case "combat":
+    // Get current chapter from GameState
+    const gameState = GameState.getInstance();
+    const currentChapter = gameState.getCurrentChapter();
+    
+    // Select enemy based on chapter and node type
+    switch (currentChapter) {
+      case 2:
+        // Act 2: The Submerged Barangays
+        switch (nodeType) {
+          case "elite":
+            return getAct2RandomEliteEnemy();
+          case "boss":
+            return getAct2BossEnemy();
+          case "common":
+          case "combat":
+          default:
+            return getAct2RandomCommonEnemy();
+        }
+      
+      case 3:
+        // Act 3: The Skyward Citadel
+        switch (nodeType) {
+          case "elite":
+            return getAct3RandomEliteEnemy();
+          case "boss":
+            return getAct3BossEnemy();
+          case "common":
+          case "combat":
+          default:
+            return getAct3RandomCommonEnemy();
+        }
+      
+      case 1:
       default:
-        return getRandomCommonEnemy();
+        // Act 1: The Enchanted Forest (default)
+        switch (nodeType) {
+          case "elite":
+            return getRandomEliteEnemy();
+          case "boss":
+            return getBossEnemy();
+          case "common":
+          case "combat":
+          default:
+            return getRandomCommonEnemy();
+        }
     }
   }
 
   /**
    * Get specific enemy by ID (e.g., from overworld direct selection)
+   * Searches across all chapters
    */
   private getSpecificEnemyById(enemyId: string): Omit<Enemy, "id"> {
-    const enemy = getEnemyByName(enemyId);
-    if (!enemy) {
-      console.warn(`Enemy with id "${enemyId}" not found, falling back to random common enemy`);
-      return getRandomCommonEnemy();
+    // Try Act 1 first
+    let enemy = getEnemyByName(enemyId);
+    if (enemy) return enemy;
+    
+    // Try Act 2
+    enemy = getAct2EnemyByName(enemyId);
+    if (enemy) return enemy;
+    
+    // Try Act 3
+    enemy = getAct3EnemyByName(enemyId);
+    if (enemy) return enemy;
+    
+    // Not found in any chapter, fall back to current chapter's random common enemy
+    console.warn(`Enemy with id "${enemyId}" not found in any chapter, falling back to random common enemy`);
+    const gameState = GameState.getInstance();
+    const currentChapter = gameState.getCurrentChapter();
+    
+    switch (currentChapter) {
+      case 2:
+        return getAct2RandomCommonEnemy();
+      case 3:
+        return getAct3RandomCommonEnemy();
+      case 1:
+      default:
+        return getRandomCommonEnemy();
     }
-    return enemy;
   }
 
   /**

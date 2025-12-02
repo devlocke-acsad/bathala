@@ -3,8 +3,8 @@ import { GameState } from "../../core/managers/GameState";
 import { RelicManager } from "../../core/managers/RelicManager";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { Player, Relic } from "../../core/types/CombatTypes";
-import { allShopItems, ShopItem } from "../../data/relics/ShopItems";
-import { getRelicById } from "../../data/relics/Act1Relics";
+import { allShopItems, ShopItem, getChapterShopItems } from "../../data/relics/ShopItems";
+import { getRelicById } from "../../data/relics";
 import { MusicManager } from "../../core/managers/MusicManager";
 
 /**
@@ -127,8 +127,14 @@ export class Shop extends Scene {
 
   init(data: { player: Player }) {
     this.player = data.player;
+    
+    // Get current chapter to determine which shop items to show
+    const gameState = GameState.getInstance();
+    const currentChapter = gameState.getCurrentChapter();
+    const chapterShopItems = getChapterShopItems(currentChapter);
+    
     // Filter out relics the player already has and exclude merchants_scale (moved to treasure)
-    this.shopItems = allShopItems.filter(
+    this.shopItems = chapterShopItems.filter(
       item => item.item.id !== 'merchants_scale' && !this.player.relics.some(relic => relic.id === item.item.id)
     );
   }

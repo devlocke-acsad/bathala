@@ -224,21 +224,31 @@
     - Test UI visibility toggling
     - _Requirements: 5.4, 5.5_
 
-- [ ] 9. Integrate chapter system with combat
-  - [ ] 9.1 Modify Combat.ts to load chapter-specific enemies
+- [x] 9. Integrate chapter system with combat
+
+
+
+
+  - [x] 9.1 Modify Combat.ts to load chapter-specific enemies
+
+
     - Add chapter detection logic
     - Import Act2Enemies and Act3Enemies
     - Update enemy selection to use chapter-appropriate pools
     - Apply visual theme on combat scene creation
     - _Requirements: 1.2, 1.3, 2.2, 2.3, 3.4_
 
-  - [ ] 9.2 Update RelicManager to handle chapter-specific relics
+  - [x] 9.2 Update RelicManager to handle chapter-specific relics
+
+
     - Import Act2Relics and Act3Relics
     - Update relic acquisition logic to use chapter-appropriate pools
     - Ensure relic effects work across all chapters
     - _Requirements: 4.1, 4.2, 4.5_
 
-  - [ ] 9.3 Update potion system to handle chapter-specific potions
+  - [x] 9.3 Update potion system to handle chapter-specific potions
+
+
     - Import Act2Potions and Act3Potions
     - Update potion drop logic to use chapter-appropriate pools
     - Ensure potion effects work correctly

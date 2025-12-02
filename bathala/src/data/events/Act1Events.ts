@@ -1,5 +1,5 @@
 ﻿import { GameEvent, EventContext } from "./EventTypes";
-import { commonPotions, uncommonPotions } from "../potions/Act1Potions";
+import { act1CommonPotions as commonPotions, act1UncommonPotions as uncommonPotions } from "../potions";
 import { commonRelics, treasureRelics } from "../relics/Act1Relics";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 

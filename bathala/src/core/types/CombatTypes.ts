@@ -3,7 +3,7 @@
  * Based on poker hands with elemental modifications
  */
 
-import { Potion } from "../../data/potions/Act1Potions";
+import { Potion } from "../../data/potions";
 
 export type Suit = "Apoy" | "Tubig" | "Lupa" | "Hangin";
 export type Rank =
