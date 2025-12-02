@@ -262,7 +262,13 @@
 
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ]* 17. Update game balance
+- [x] 17. Update game balance
+
+
+
+
+
+
   - Test elemental multipliers (1.5×, 0.75×) for balance
   - Verify status effect values (Poison 2/stack, Plated Armor 3/stack, etc.)
   - Ensure Special action 0.6× modifier balances status effect application
