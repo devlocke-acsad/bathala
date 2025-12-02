@@ -46,8 +46,8 @@ export class HandEvaluator {
       };
     }
 
-    // Five of a Kind is disabled (echo_ancestors removed - no sprite)
-    const enableFiveOfAKind = false;
+    // Five of a Kind is enabled when player has Diwata's Crown relic
+    const enableFiveOfAKind = player?.relics?.some((r: any) => r.id === "diwatas_crown") || false;
     
     let handType = this.determineHandType(cards, enableFiveOfAKind);
     

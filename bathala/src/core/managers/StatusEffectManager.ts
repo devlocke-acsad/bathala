@@ -28,9 +28,23 @@ export interface StatusEffectTriggerResult {
   message: string;
 }
 
+/**
+ * Callback type for relic modifications to status effects
+ * @param effectId - The status effect being applied
+ * @param stacks - The number of stacks being applied
+ * @param target - The entity receiving the effect
+ * @returns Modified stack count
+ */
+export type StatusEffectModifierCallback = (
+  effectId: string,
+  stacks: number,
+  target: CombatEntity
+) => number;
+
 export class StatusEffectManager {
   private static definitions: Map<string, StatusEffectDefinition> = new Map();
   private static initialized = false;
+  private static modifierCallbacks: StatusEffectModifierCallback[] = [];
 
   /**
    * Initialize all status effect definitions
@@ -196,6 +210,22 @@ export class StatusEffectManager {
   }
 
   /**
+   * Register a callback for modifying status effect applications
+   * Relics can use this to modify status effect stacks
+   * @param callback - Function that modifies status effect stacks
+   */
+  static registerModifier(callback: StatusEffectModifierCallback): void {
+    this.modifierCallbacks.push(callback);
+  }
+
+  /**
+   * Clear all registered modifiers (useful for testing and combat reset)
+   */
+  static clearModifiers(): void {
+    this.modifierCallbacks = [];
+  }
+
+  /**
    * Apply a status effect to a target
    * Handles stacking logic and max stack limits
    */
@@ -204,15 +234,58 @@ export class StatusEffectManager {
     effectId: string,
     stacks: number
   ): void {
-    const definition = this.definitions.get(effectId);
-    
-    if (!definition) {
-      console.warn(`Unknown status effect ID: ${effectId}`);
+    // Validate target
+    if (!target) {
+      console.error('StatusEffectManager.applyStatusEffect: target is null or undefined');
       return;
     }
 
-    // Prevent negative stacks
+    // Ensure target has statusEffects array
+    if (!target.statusEffects) {
+      console.warn('StatusEffectManager.applyStatusEffect: target missing statusEffects array, initializing');
+      target.statusEffects = [];
+    }
+
+    // Validate effect ID
+    const definition = this.definitions.get(effectId);
+    if (!definition) {
+      console.warn(`StatusEffectManager.applyStatusEffect: Unknown status effect ID: ${effectId}, skipping`);
+      return;
+    }
+
+    // Validate and sanitize stacks
+    if (typeof stacks !== 'number' || isNaN(stacks) || !isFinite(stacks)) {
+      console.warn(`StatusEffectManager.applyStatusEffect: Invalid stacks value: ${stacks}, defaulting to 0`);
+      stacks = 0;
+    }
+
+    // Prevent negative stacks - set to 0 and skip
     if (stacks <= 0) {
+      return;
+    }
+
+    // Apply relic modifiers to stack count
+    let modifiedStacks = stacks;
+    try {
+      for (const modifier of this.modifierCallbacks) {
+        const result = modifier(effectId, modifiedStacks, target);
+        
+        // Validate modifier result
+        if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) {
+          console.warn(`StatusEffectManager.applyStatusEffect: Modifier returned invalid value: ${result}, using original stacks`);
+          continue;
+        }
+        
+        modifiedStacks = result;
+      }
+    } catch (error) {
+      console.error('StatusEffectManager.applyStatusEffect: Error in modifier callback:', error);
+      // Continue with unmodified stacks
+      modifiedStacks = stacks;
+    }
+
+    // Ensure stacks remain positive after modifications
+    if (modifiedStacks <= 0) {
       return;
     }
 
@@ -222,23 +295,39 @@ export class StatusEffectManager {
     if (existingEffect) {
       // Stack with existing effect
       if (definition.stackable) {
-        existingEffect.value += stacks;
+        existingEffect.value += modifiedStacks;
         
-        // Apply max stack limit
+        // Apply max stack limit (stack overflow protection)
         if (definition.maxStacks !== undefined) {
-          existingEffect.value = Math.min(existingEffect.value, definition.maxStacks);
+          const cappedValue = Math.min(existingEffect.value, definition.maxStacks);
+          if (existingEffect.value > cappedValue) {
+            console.log(`StatusEffectManager.applyStatusEffect: Capping ${effectId} stacks from ${existingEffect.value} to ${cappedValue}`);
+          }
+          existingEffect.value = cappedValue;
+        }
+        
+        // Additional safety: cap at 999 stacks to prevent overflow
+        if (existingEffect.value > 999) {
+          console.warn(`StatusEffectManager.applyStatusEffect: ${effectId} exceeded 999 stacks, capping`);
+          existingEffect.value = 999;
         }
       } else {
         // Non-stackable effects just refresh
-        existingEffect.value = stacks;
+        existingEffect.value = modifiedStacks;
       }
     } else {
       // Create new effect
-      let finalStacks = stacks;
+      let finalStacks = modifiedStacks;
       
       // Apply max stack limit for new effects
       if (definition.maxStacks !== undefined) {
-        finalStacks = Math.min(stacks, definition.maxStacks);
+        finalStacks = Math.min(modifiedStacks, definition.maxStacks);
+      }
+      
+      // Additional safety: cap at 999 stacks
+      if (finalStacks > 999) {
+        console.warn(`StatusEffectManager.applyStatusEffect: ${effectId} exceeded 999 stacks, capping`);
+        finalStacks = 999;
       }
 
       const newEffect: StatusEffect = {
@@ -247,8 +336,7 @@ export class StatusEffectManager {
         type: definition.type,
         value: finalStacks,
         emoji: definition.emoji,
-        description: definition.description,
-        duration: 0 // Legacy field, not used in new system
+        description: definition.description
       };
 
       target.statusEffects.push(newEffect);
@@ -256,9 +344,13 @@ export class StatusEffectManager {
 
     // Call onApply callback if defined
     if (definition.onApply) {
-      const currentEffect = target.statusEffects.find(e => e.id === effectId);
-      if (currentEffect) {
-        definition.onApply(target, currentEffect.value);
+      try {
+        const currentEffect = target.statusEffects.find(e => e.id === effectId);
+        if (currentEffect) {
+          definition.onApply(target, currentEffect.value);
+        }
+      } catch (error) {
+        console.error(`StatusEffectManager.applyStatusEffect: Error in onApply callback for ${effectId}:`, error);
       }
     }
   }
@@ -273,6 +365,19 @@ export class StatusEffectManager {
   ): StatusEffectTriggerResult[] {
     const results: StatusEffectTriggerResult[] = [];
 
+    // Validate target
+    if (!target) {
+      console.error('StatusEffectManager.processStatusEffects: target is null or undefined');
+      return results;
+    }
+
+    // Ensure target has statusEffects array
+    if (!target.statusEffects) {
+      console.warn('StatusEffectManager.processStatusEffects: target missing statusEffects array, initializing');
+      target.statusEffects = [];
+      return results;
+    }
+
     // Process effects in consistent order: buffs first, then debuffs
     const sortedEffects = [...target.statusEffects].sort((a, b) => {
       if (a.type === 'buff' && b.type === 'debuff') return -1;
@@ -281,41 +386,146 @@ export class StatusEffectManager {
     });
 
     for (const effect of sortedEffects) {
+      // Validate effect has required properties
+      if (!effect || !effect.id) {
+        console.warn('StatusEffectManager.processStatusEffects: Invalid effect object, skipping');
+        continue;
+      }
+
       const definition = this.definitions.get(effect.id);
       
       if (!definition) {
-        console.warn(`Unknown status effect in processing: ${effect.id}`);
+        console.warn(`StatusEffectManager.processStatusEffects: Unknown status effect ID: ${effect.id}, skipping`);
         continue;
       }
 
       // Only process effects that match the current timing
       if (definition.triggerTiming === timing && definition.onTrigger) {
-        const result = definition.onTrigger(target, effect.value);
-        if (result) {
-          results.push(result);
+        try {
+          // Validate effect value before triggering
+          if (typeof effect.value !== 'number' || isNaN(effect.value) || !isFinite(effect.value)) {
+            console.warn(`StatusEffectManager.processStatusEffects: Invalid effect value for ${effect.id}: ${effect.value}, skipping`);
+            continue;
+          }
+
+          const result = definition.onTrigger(target, effect.value);
+          if (result) {
+            results.push(result);
+          }
+        } catch (error) {
+          console.error(`StatusEffectManager.processStatusEffects: Error triggering ${effect.id}:`, error);
+          // Continue processing other effects
         }
       }
     }
 
     return results;
   }
+  
+  /**
+   * Batch process status effects for multiple targets at once
+   * More efficient than calling processStatusEffects multiple times
+   * @param targets - Array of entities to process
+   * @param timing - When to trigger effects
+   * @returns Combined array of all trigger results
+   */
+  static batchProcessStatusEffects(
+    targets: CombatEntity[],
+    timing: 'start_of_turn' | 'end_of_turn'
+  ): StatusEffectTriggerResult[] {
+    const allResults: StatusEffectTriggerResult[] = [];
+    
+    // Validate input
+    if (!targets || !Array.isArray(targets)) {
+      console.warn('StatusEffectManager.batchProcessStatusEffects: Invalid targets array');
+      return allResults;
+    }
+    
+    // Process all targets in a single batch
+    for (const target of targets) {
+      if (!target) continue;
+      
+      const results = this.processStatusEffects(target, timing);
+      allResults.push(...results);
+    }
+    
+    return allResults;
+  }
 
   /**
    * Remove expired status effects (those with 0 or negative stacks)
    */
   static cleanupExpiredEffects(target: CombatEntity): void {
-    const expiredEffects = target.statusEffects.filter(e => e.value <= 0);
+    // Validate target
+    if (!target) {
+      console.error('StatusEffectManager.cleanupExpiredEffects: target is null or undefined');
+      return;
+    }
+
+    // Ensure target has statusEffects array
+    if (!target.statusEffects) {
+      console.warn('StatusEffectManager.cleanupExpiredEffects: target missing statusEffects array, initializing');
+      target.statusEffects = [];
+      return;
+    }
+
+    // Filter expired effects (0 or negative stacks)
+    const expiredEffects = target.statusEffects.filter(e => {
+      // Validate effect value
+      if (typeof e.value !== 'number' || isNaN(e.value) || !isFinite(e.value)) {
+        console.warn(`StatusEffectManager.cleanupExpiredEffects: Invalid effect value for ${e.id}: ${e.value}, treating as expired`);
+        return true; // Remove invalid effects
+      }
+      return e.value <= 0;
+    });
     
     // Call onExpire callbacks
     expiredEffects.forEach(effect => {
+      if (!effect || !effect.id) {
+        return;
+      }
+
       const definition = this.definitions.get(effect.id);
       if (definition?.onExpire) {
-        definition.onExpire(target);
+        try {
+          definition.onExpire(target);
+        } catch (error) {
+          console.error(`StatusEffectManager.cleanupExpiredEffects: Error in onExpire callback for ${effect.id}:`, error);
+        }
       }
     });
 
-    // Remove expired effects
-    target.statusEffects = target.statusEffects.filter(e => e.value > 0);
+    // Remove expired effects and sanitize remaining effects
+    target.statusEffects = target.statusEffects.filter(e => {
+      // Remove effects with invalid values
+      if (typeof e.value !== 'number' || isNaN(e.value) || !isFinite(e.value)) {
+        return false;
+      }
+      // Remove effects with 0 or negative stacks
+      if (e.value <= 0) {
+        return false;
+      }
+      return true;
+    });
+  }
+  
+  /**
+   * Batch cleanup expired effects for multiple targets at once
+   * More efficient than calling cleanupExpiredEffects multiple times
+   * @param targets - Array of entities to clean up
+   */
+  static batchCleanupExpiredEffects(targets: CombatEntity[]): void {
+    // Validate input
+    if (!targets || !Array.isArray(targets)) {
+      console.warn('StatusEffectManager.batchCleanupExpiredEffects: Invalid targets array');
+      return;
+    }
+    
+    // Clean up all targets in a single batch
+    for (const target of targets) {
+      if (!target) continue;
+      this.cleanupExpiredEffects(target);
+    }
   }
 
   /**

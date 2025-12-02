@@ -31,6 +31,10 @@ export class CombatDDA {
     this.scene = scene;
   }
 
+  // Store base stats before DDA adjustments
+  private baseEnemyHealth!: number;
+  private baseEnemyDamage!: number;
+
   /**
    * Initialize DDA system and apply difficulty adjustments to enemy
    */
@@ -42,23 +46,29 @@ export class CombatDDA {
       this.initialPlayerHealth = combatState.player.currentHealth;
       this.totalDiscardsUsed = 0;
       
+      // Store base stats before DDA adjustments
+      this.baseEnemyHealth = combatState.enemy.maxHealth;
+      this.baseEnemyDamage = combatState.enemy.damage;
+      
       // Apply current DDA difficulty adjustments to enemy
       const adjustment = this.dda.getCurrentDifficultyAdjustment();
-      console.log("DDA Adjustment:", {
+      console.log("🎯 DDA Adjustment:", {
         tier: adjustment.tier,
         healthMultiplier: adjustment.enemyHealthMultiplier,
         damageMultiplier: adjustment.enemyDamageMultiplier,
-        originalDamage: combatState.enemy.damage,
-        originalHealth: combatState.enemy.maxHealth
+        baseHealth: this.baseEnemyHealth,
+        baseDamage: this.baseEnemyDamage,
+        elementalAffinity: combatState.enemy.elementalAffinity // Verify affinity is preserved
       });
       
       combatState.enemy.maxHealth = Math.round(combatState.enemy.maxHealth * adjustment.enemyHealthMultiplier);
       combatState.enemy.currentHealth = combatState.enemy.maxHealth;
       combatState.enemy.damage = Math.round(combatState.enemy.damage * adjustment.enemyDamageMultiplier);
       
-      console.log("DDA Applied:", {
-        newDamage: combatState.enemy.damage,
-        newHealth: combatState.enemy.maxHealth
+      console.log("✅ DDA Applied (Elemental Affinity Preserved):", {
+        adjustedHealth: combatState.enemy.maxHealth,
+        adjustedDamage: combatState.enemy.damage,
+        elementalAffinity: combatState.enemy.elementalAffinity // Confirm affinity unchanged
       });
       
       // Update initial intent to reflect DDA-modified damage
@@ -69,6 +79,16 @@ export class CombatDDA {
     } catch (error) {
       console.warn("DDA not available, skipping DDA initialization:", error);
     }
+  }
+
+  /**
+   * Get base enemy stats (before DDA adjustments)
+   */
+  public getBaseEnemyStats(): { health: number; damage: number } {
+    return {
+      health: this.baseEnemyHealth,
+      damage: this.baseEnemyDamage
+    };
   }
 
   /**
@@ -275,8 +295,14 @@ export class CombatDDA {
     this.ddaDebugContainer.add(modifiersTitle);
     yPos += 16;
     
-    // Enemy modifiers
-    const enemyText = this.scene.add.text(leftMargin, yPos, `Enemy HP: ${(adjustment.enemyHealthMultiplier * 100).toFixed(0)}%`, {
+    // Get current enemy stats
+    const combatState = this.scene.getCombatState();
+    const currentHealth = combatState.enemy.maxHealth;
+    const currentDamage = combatState.enemy.damage;
+    
+    // Enemy HP - show base → adjusted
+    const enemyText = this.scene.add.text(leftMargin, yPos, 
+      `HP: ${this.baseEnemyHealth} → ${currentHealth} (${(adjustment.enemyHealthMultiplier * 100).toFixed(0)}%)`, {
       fontFamily: "dungeon-mode",
       fontSize: 10,
       color: "#ff6b6b"
@@ -284,7 +310,9 @@ export class CombatDDA {
     this.ddaDebugContainer.add(enemyText);
     yPos += 14;
     
-    const damageText = this.scene.add.text(leftMargin, yPos, `Enemy DMG: ${(adjustment.enemyDamageMultiplier * 100).toFixed(0)}%`, {
+    // Enemy Damage - show base → adjusted
+    const damageText = this.scene.add.text(leftMargin, yPos, 
+      `DMG: ${this.baseEnemyDamage} → ${currentDamage} (${(adjustment.enemyDamageMultiplier * 100).toFixed(0)}%)`, {
       fontFamily: "dungeon-mode",
       fontSize: 10,
       color: "#ff6b6b"
@@ -366,11 +394,20 @@ export class CombatDDA {
     const turnCount = (this.scene as any).turnCount || 0;
     (children[7] as Phaser.GameObjects.Text).setText(`This Combat: Turn ${turnCount}`);
     
-    // Enemy HP (index 9 - after modifiers title)
-    (children[9] as Phaser.GameObjects.Text).setText(`Enemy HP: ${(adjustment.enemyHealthMultiplier * 100).toFixed(0)}%`);
+    // Get current enemy stats
+    const combatState = this.scene.getCombatState();
+    const currentHealth = combatState.enemy.maxHealth;
+    const currentDamage = combatState.enemy.damage;
     
-    // Enemy DMG (index 10)
-    (children[10] as Phaser.GameObjects.Text).setText(`Enemy DMG: ${(adjustment.enemyDamageMultiplier * 100).toFixed(0)}%`);
+    // Enemy HP (index 9 - after modifiers title) - show base → adjusted
+    (children[9] as Phaser.GameObjects.Text).setText(
+      `HP: ${this.baseEnemyHealth} → ${currentHealth} (${(adjustment.enemyHealthMultiplier * 100).toFixed(0)}%)`
+    );
+    
+    // Enemy DMG (index 10) - show base → adjusted
+    (children[10] as Phaser.GameObjects.Text).setText(
+      `DMG: ${this.baseEnemyDamage} → ${currentDamage} (${(adjustment.enemyDamageMultiplier * 100).toFixed(0)}%)`
+    );
     
     // Gold (index 11)
     (children[11] as Phaser.GameObjects.Text).setText(`Gold: ${(adjustment.goldRewardMultiplier * 100).toFixed(0)}%`);

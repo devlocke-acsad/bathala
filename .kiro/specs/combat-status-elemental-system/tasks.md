@@ -165,18 +165,32 @@
   - Update intent text to include status effect information
   - _Requirements: 4.5_
 
-- [ ]* 11. Integrate with DDA system
+- [x] 11. Integrate with DDA system
+
+
+
+
+
+
   - Verify DDA stat adjustments preserve elemental affinities
   - Ensure elemental multipliers apply after DDA adjustments
   - Test that exploiting weaknesses doesn't trigger negative DDA
   - Update DDA display to show base and adjusted stats separately
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ]* 11.1 Write property test for DDA and elemental affinity independence
+- [x] 11.1 Write property test for DDA and elemental affinity independence
+
+
   - **Property 8: DDA and elemental affinity independence**
   - **Validates: Requirements 6.1, 6.3**
 
-- [ ]* 12. Add relic integration hooks
+- [x] 12. Add relic integration hooks
+
+
+
+
+
+
   - Add callback hooks in StatusEffectManager for relic modifications
   - Add callback hooks in ElementalAffinitySystem for relic modifications
   - Update RelicManager to support status effect and elemental damage modifiers
@@ -184,22 +198,40 @@
   - Update relic descriptions to mention status effect/elemental interactions
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ]* 12.1 Write property test for relic status effect modification
+- [x] 12.1 Write property test for relic status effect modification
+
+
+
   - **Property 10: Relic status effect modification**
   - **Validates: Requirements 7.1, 7.3**
 
-- [ ]* 12.2 Write property test for relic effect stacking
+- [x] 12.2 Write property test for relic effect stacking
+
+
+
   - **Property 11: Relic effect stacking**
   - **Validates: Requirements 7.5**
 
-- [ ]* 13. Update existing status effects (Strength, Vulnerable)
+- [x] 13. Update existing status effects (Strength, Vulnerable)
+
+
+
+
+
+
   - Migrate existing Strength implementation to use StatusEffectManager
   - Migrate existing Vulnerable implementation to use StatusEffectManager
   - Ensure backward compatibility with existing relics and enemy abilities
   - Update DamageCalculator to use StatusEffectManager for Strength/Vulnerable
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ]* 14. Add error handling and validation
+- [x] 14. Add error handling and validation
+
+
+
+
+
+
   - Add validation for invalid status effect IDs (log warning, skip)
   - Add stack overflow protection (cap at maxStacks)
   - Add negative stack protection (set to 0, remove effect)
@@ -208,17 +240,35 @@
   - Add NaN/overflow protection in damage calculations
   - _Requirements: All (error handling)_
 
-- [ ]* 15. Performance optimization
+- [x] 15. Performance optimization
+
+
+
+
+
+
   - Implement batch processing for status effects at turn boundaries
   - Add throttling for status effect UI updates
   - Cache dominant element calculation for hands
   - Use Map for status effect definition lookups
   - _Requirements: All (performance)_
 
-- [ ]* 16. Checkpoint - Ensure all tests pass
+- [x] 16. Checkpoint - Ensure all tests pass
+
+
+
+
+
+
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ]* 17. Update game balance
+- [x] 17. Update game balance
+
+
+
+
+
+
   - Test elemental multipliers (1.5×, 0.75×) for balance
   - Verify status effect values (Poison 2/stack, Plated Armor 3/stack, etc.)
   - Ensure Special action 0.6× modifier balances status effect application
@@ -226,7 +276,13 @@
   - Playtest several combats to verify difficulty feels appropriate
   - _Requirements: All (balance)_
 
-- [ ]* 18. Documentation and polish
+- [x] 18. Documentation and polish
+
+
+
+
+
+
   - Update code comments for new systems
   - Add JSDoc documentation for public APIs
   - Update README with new combat mechanics

@@ -14,6 +14,7 @@ import {
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
+import { DamageCalculator } from "../../utils/DamageCalculator";
 import { GameState } from "../../core/managers/GameState";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import {
@@ -42,6 +43,26 @@ import { ElementalAffinitySystem } from "../../core/managers/ElementalAffinitySy
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
  * Player on left, enemy on right, cards at bottom
+ * 
+ * Features:
+ * - Poker-based combat system with Attack, Defend, and Special actions
+ * - Status effect system with 8 core effects (Poison, Weak, Strength, etc.)
+ * - Elemental weakness/resistance system (Fire, Water, Earth, Air)
+ * - Dynamic Difficulty Adjustment (DDA) system
+ * - Relic system with combat modifiers
+ * 
+ * Combat Flow:
+ * 1. Player turn starts: Process start-of-turn status effects
+ * 2. Player selects cards and action type
+ * 3. Damage/block calculated with elemental multipliers
+ * 4. Status effects applied (if Special action)
+ * 5. Player turn ends: Process end-of-turn status effects
+ * 6. Enemy turn: Process status effects, execute action
+ * 7. Repeat until combat ends
+ * 
+ * @see StatusEffectManager for status effect processing
+ * @see ElementalAffinitySystem for elemental calculations
+ * @see DamageCalculator for damage/block calculations
  */
 export class Combat extends Scene {
   public ui!: CombatUI;
@@ -1489,10 +1510,11 @@ export class Combat extends Scene {
     let vulnerableBonus = 0;
     let bakunawaBonus = 0;
     
-    // Normal damage calculations
-    if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
-      finalDamage *= 1.5;
-      vulnerableBonus = finalDamage - damage;
+    // Apply Vulnerable multiplier using DamageCalculator
+    const damageAfterVulnerable = DamageCalculator.applyVulnerableMultiplier(damage, this.combatState.enemy);
+    if (damageAfterVulnerable > damage) {
+      vulnerableBonus = damageAfterVulnerable - damage;
+      finalDamage = damageAfterVulnerable;
       console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
     }
     
@@ -1566,9 +1588,9 @@ export class Combat extends Scene {
       return; // Player dodged, take no damage
     }
     
-    let finalDamage = damage;
-    if (this.combatState.player.statusEffects.some((e) => e.name === "Vulnerable")) {
-      finalDamage *= 1.5;
+    // Apply Vulnerable multiplier using DamageCalculator
+    let finalDamage = DamageCalculator.applyVulnerableMultiplier(damage, this.combatState.player);
+    if (finalDamage > damage) {
       console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
     }
     
@@ -2774,17 +2796,10 @@ export class Combat extends Scene {
       // Apply "Amomongo Claw" effect: Apply 2 Vulnerable after Attack
       if (actionType === "attack" && RelicManager.shouldApplyAmomongoVulnerable(this.combatState.player)) {
         const vulnerableStacks = RelicManager.getAmomongoVulnerableStacks(this.combatState.player);
-        const vulnerableEffect = {
-          id: `vulnerable_amomongo_${Date.now()}`,
-          name: "Vulnerable",
-          type: "debuff" as const,
-          duration: 2, // Lasts 2 turns
-          value: vulnerableStacks,
-          description: "Takes +50% more damage from attacks.",
-          emoji: "🛡️"
-        };
-        this.addStatusEffect(this.combatState.enemy, vulnerableEffect);
+        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'vulnerable', vulnerableStacks);
+        this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'vulnerable', vulnerableStacks);
         this.showActionResult(`Amomongo Claw applied ${vulnerableStacks} Vulnerable!`);
+        this.ui.updateEnemyUI();
       }
       
       // Result already shown above with detailed calculation
@@ -3276,12 +3291,12 @@ export class Combat extends Scene {
     const sigbinBonus = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
     damage += sigbinBonus;
 
-    // Apply vulnerable effect if enemy has it
+    // Apply Vulnerable multiplier using DamageCalculator
     let vulnerableBonus = 0;
-    if (this.combatState.enemy.statusEffects.some((e) => e.name === "Vulnerable")) {
-      const originalDamage = damage;
-      damage *= 1.5;
-      vulnerableBonus = damage - originalDamage;
+    const damageAfterVulnerable = DamageCalculator.applyVulnerableMultiplier(damage, this.combatState.enemy);
+    if (damageAfterVulnerable > damage) {
+      vulnerableBonus = damageAfterVulnerable - damage;
+      damage = damageAfterVulnerable;
     }
 
     // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
@@ -3433,8 +3448,8 @@ export class Combat extends Scene {
         align: "center"
       }).setOrigin(0.5);
       
-      // Duration counter (bottom of badge)
-      const durationText = this.add.text(0, 16, `${effect.duration} turn${effect.duration !== 1 ? 's' : ''}`, {
+      // Stack counter (bottom of badge) - using value instead of duration
+      const stackText = this.add.text(0, 16, `${effect.value} stack${effect.value !== 1 ? 's' : ''}`, {
         fontFamily: "dungeon-mode",
         fontSize: 11,
         color: textColor,
@@ -3449,7 +3464,7 @@ export class Combat extends Scene {
         align: "center"
       }).setOrigin(0.5).setAlpha(0.8);
       
-      statusBadge.add([outerBorder, innerBorder, bg, nameText, emojiText, durationText]);
+      statusBadge.add([outerBorder, innerBorder, bg, nameText, emojiText, stackText]);
       statusBadge.setInteractive(
         new Phaser.Geom.Rectangle(-badgeWidth/2, -badgeHeight/2, badgeWidth, badgeHeight),
         Phaser.Geom.Rectangle.Contains

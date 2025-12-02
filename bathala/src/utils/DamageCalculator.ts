@@ -6,6 +6,7 @@ import {
   StatusEffect,
   Suit,
   Enemy,
+  CombatEntity,
 } from "../core/types/CombatTypes";
 import { ElementalAffinitySystem } from "../core/managers/ElementalAffinitySystem";
 
@@ -86,8 +87,36 @@ export class DamageCalculator {
    * Calculate base value from all cards in hand
    */
   static calculateBaseValue(cards: PlayingCard[]): number {
+    // Validate input
+    if (!cards || !Array.isArray(cards)) {
+      console.warn('DamageCalculator.calculateBaseValue: Invalid cards array, returning 0');
+      return 0;
+    }
+
     return cards.reduce((sum, card) => {
-      return sum + this.CARD_VALUES[card.rank];
+      // Validate card object
+      if (!card || !card.rank) {
+        console.warn('DamageCalculator.calculateBaseValue: Invalid card object, skipping');
+        return sum;
+      }
+
+      const cardValue = this.CARD_VALUES[card.rank];
+      
+      // Validate card value
+      if (typeof cardValue !== 'number' || isNaN(cardValue) || !isFinite(cardValue)) {
+        console.warn(`DamageCalculator.calculateBaseValue: Invalid card value for rank ${card.rank}, skipping`);
+        return sum;
+      }
+
+      const newSum = sum + cardValue;
+      
+      // Check for overflow
+      if (!isFinite(newSum)) {
+        console.error('DamageCalculator.calculateBaseValue: Sum overflow detected, capping');
+        return sum;
+      }
+
+      return newSum;
     }, 0);
   }
 
@@ -101,7 +130,10 @@ export class DamageCalculator {
       return 0;
     }
 
-    if (cards.length === 0) return 0;
+    // Validate input
+    if (!cards || !Array.isArray(cards) || cards.length === 0) {
+      return 0;
+    }
 
     // Count cards per suit
     const suitCounts: Record<Suit, number> = {
@@ -112,13 +144,39 @@ export class DamageCalculator {
     };
 
     cards.forEach((card) => {
-      suitCounts[card.suit]++;
+      // Validate card object
+      if (!card || !card.suit) {
+        console.warn('DamageCalculator.calculateElementalBonus: Invalid card object, skipping');
+        return;
+      }
+
+      if (suitCounts[card.suit] !== undefined) {
+        suitCounts[card.suit]++;
+      } else {
+        console.warn(`DamageCalculator.calculateElementalBonus: Unknown suit: ${card.suit}, skipping`);
+      }
     });
 
     // Get the dominant suit count
-    const maxCount = Math.max(...Object.values(suitCounts));
+    const counts = Object.values(suitCounts);
+    
+    // Validate counts
+    if (counts.some(c => isNaN(c) || !isFinite(c))) {
+      console.error('DamageCalculator.calculateElementalBonus: Invalid suit counts, returning 0');
+      return 0;
+    }
 
-    return this.ELEMENTAL_BONUSES[maxCount] || 0;
+    const maxCount = Math.max(...counts);
+
+    const bonus = this.ELEMENTAL_BONUSES[maxCount] || 0;
+    
+    // Validate bonus
+    if (isNaN(bonus) || !isFinite(bonus)) {
+      console.error(`DamageCalculator.calculateElementalBonus: Invalid bonus for count ${maxCount}, returning 0`);
+      return 0;
+    }
+
+    return bonus;
   }
 
   /**
@@ -140,42 +198,86 @@ export class DamageCalculator {
   ): DamageCalculation {
     const breakdown: string[] = [];
 
+    // Validate inputs
+    if (!cards || !Array.isArray(cards)) {
+      console.error('DamageCalculator.calculate: Invalid cards array');
+      cards = [];
+    }
+
+    if (!handType) {
+      console.warn('DamageCalculator.calculate: Missing handType, defaulting to high_card');
+      handType = 'high_card';
+    }
+
+    if (!relicBonuses || !Array.isArray(relicBonuses)) {
+      console.warn('DamageCalculator.calculate: Invalid relicBonuses, using empty array');
+      relicBonuses = [];
+    }
+
     // 1. Calculate base value from cards
-    const baseValue = this.calculateBaseValue(cards);
+    let baseValue = this.calculateBaseValue(cards);
+    
+    // Validate base value
+    if (isNaN(baseValue) || !isFinite(baseValue)) {
+      console.error(`DamageCalculator.calculate: Invalid baseValue: ${baseValue}, defaulting to 0`);
+      baseValue = 0;
+    }
+    
     breakdown.push(`Cards: ${baseValue}`);
 
     // 2. Get hand bonus and multiplier
     const handData = this.HAND_BONUSES[handType];
-    const handBonus = handData.bonus;
-    const handMultiplier = handData.multiplier;
+    let handBonus = handData?.bonus ?? 0;
+    let handMultiplier = handData?.multiplier ?? 1.0;
+    
+    // Validate hand data
+    if (isNaN(handBonus) || !isFinite(handBonus)) {
+      console.error(`DamageCalculator.calculate: Invalid handBonus: ${handBonus}, defaulting to 0`);
+      handBonus = 0;
+    }
+    if (isNaN(handMultiplier) || !isFinite(handMultiplier) || handMultiplier <= 0) {
+      console.error(`DamageCalculator.calculate: Invalid handMultiplier: ${handMultiplier}, defaulting to 1.0`);
+      handMultiplier = 1.0;
+    }
+    
     breakdown.push(`Hand Bonus: +${handBonus}`);
 
     // 3. Calculate elemental bonus (only for Special actions)
-    const elementalBonus = this.calculateElementalBonus(cards, actionType);
+    let elementalBonus = this.calculateElementalBonus(cards, actionType);
+    
+    // Validate elemental bonus
+    if (isNaN(elementalBonus) || !isFinite(elementalBonus)) {
+      console.error(`DamageCalculator.calculate: Invalid elementalBonus: ${elementalBonus}, defaulting to 0`);
+      elementalBonus = 0;
+    }
+    
     if (elementalBonus > 0) {
       breakdown.push(`Elemental: +${elementalBonus}`);
     }
 
     // 4. Calculate status effect bonuses
     let statusBonus = 0;
-    let hasWeakDebuff = false;
-    if (player) {
+    let weakStacks = 0;
+    if (player && player.statusEffects) {
       // For attack actions, add Strength bonus
       if (actionType === "attack") {
         const strength = player.statusEffects.find(
-          (e: StatusEffect) => e.name === "Strength"
+          (e: StatusEffect) => e.id === "strength" || e.name === "Strength"
         );
-        if (strength) {
-          statusBonus += strength.value * 3; // Each stack adds 3 base value (reduced from 5)
-          breakdown.push(`Strength: +${strength.value * 3}`);
+        if (strength && typeof strength.value === 'number' && isFinite(strength.value)) {
+          const strengthBonus = strength.value * 3;
+          if (isFinite(strengthBonus)) {
+            statusBonus += strengthBonus;
+            breakdown.push(`Strength: +${strengthBonus}`);
+          }
         }
         
-        // Check for Weak debuff (reduces Attack damage by 50%)
+        // Check for Weak debuff (reduces Attack damage by 25% per stack)
         const weak = player.statusEffects.find(
-          (e: StatusEffect) => e.name === "Weak"
+          (e: StatusEffect) => e.id === "weak" || e.name === "Weak"
         );
-        if (weak) {
-          hasWeakDebuff = true;
+        if (weak && typeof weak.value === 'number' && isFinite(weak.value)) {
+          weakStacks = Math.max(0, Math.min(3, weak.value)); // Cap at 3 stacks
         }
       }
       // For defend actions, add Dexterity bonus
@@ -183,29 +285,55 @@ export class DamageCalculator {
         const dexterity = player.statusEffects.find(
           (e: StatusEffect) => e.name === "Dexterity"
         );
-        if (dexterity) {
-          statusBonus += dexterity.value * 3; // Each stack adds 3 base value (reduced from 5)
-          breakdown.push(`Dexterity: +${dexterity.value * 3}`);
+        if (dexterity && typeof dexterity.value === 'number' && isFinite(dexterity.value)) {
+          const dexterityBonus = dexterity.value * 3;
+          if (isFinite(dexterityBonus)) {
+            statusBonus += dexterityBonus;
+            breakdown.push(`Dexterity: +${dexterityBonus}`);
+          }
         }
       }
+    }
+
+    // Validate status bonus
+    if (isNaN(statusBonus) || !isFinite(statusBonus)) {
+      console.error(`DamageCalculator.calculate: Invalid statusBonus: ${statusBonus}, defaulting to 0`);
+      statusBonus = 0;
     }
 
     // 5. Calculate subtotal (before multiplier)
     let subtotal = baseValue + handBonus + elementalBonus + statusBonus;
 
     // Add relic bonuses to subtotal (they get multiplied too)
-    const totalRelicBonus = relicBonuses.reduce((sum, bonus) => sum + bonus.amount, 0);
-    if (totalRelicBonus > 0) {
+    let totalRelicBonus = 0;
+    relicBonuses.forEach(bonus => {
+      if (bonus && typeof bonus.amount === 'number' && isFinite(bonus.amount)) {
+        totalRelicBonus += bonus.amount;
+        breakdown.push(`${bonus.name || 'Relic'}: +${bonus.amount}`);
+      }
+    });
+    
+    if (isFinite(totalRelicBonus)) {
       subtotal += totalRelicBonus;
-      relicBonuses.forEach(bonus => {
-        breakdown.push(`${bonus.name}: +${bonus.amount}`);
-      });
+    }
+
+    // Validate subtotal
+    if (isNaN(subtotal) || !isFinite(subtotal)) {
+      console.error(`DamageCalculator.calculate: Invalid subtotal: ${subtotal}, defaulting to 0`);
+      subtotal = 0;
     }
 
     breakdown.push(`Subtotal: ${subtotal}`);
 
     // 6. Apply multiplier
     let finalValue = Math.floor(subtotal * handMultiplier);
+    
+    // Validate after multiplier
+    if (isNaN(finalValue) || !isFinite(finalValue)) {
+      console.error(`DamageCalculator.calculate: Invalid finalValue after multiplier: ${finalValue}, defaulting to 0`);
+      finalValue = 0;
+    }
+    
     breakdown.push(`Multiplier: ×${handMultiplier}`);
 
     // 7. Apply action type modifiers
@@ -219,10 +347,23 @@ export class DamageCalculator {
       breakdown.push(`Special Modifier: ×0.6`);
     }
     
-    // 8. Apply Weak debuff (reduces Attack damage by 50%)
-    if (hasWeakDebuff && actionType === "attack") {
-      finalValue = Math.floor(finalValue * 0.5);
-      breakdown.push(`⚠️ Weak: ×0.5`);
+    // Validate after action modifier
+    if (isNaN(finalValue) || !isFinite(finalValue)) {
+      console.error(`DamageCalculator.calculate: Invalid finalValue after action modifier: ${finalValue}, defaulting to 0`);
+      finalValue = 0;
+    }
+    
+    // 8. Apply Weak debuff (reduces Attack damage by 25% per stack, max 3 stacks = 75% reduction)
+    if (weakStacks > 0 && actionType === "attack") {
+      const weakMultiplier = 1.0 - (weakStacks * 0.25);
+      finalValue = Math.floor(finalValue * weakMultiplier);
+      breakdown.push(`⚠️ Weak (${weakStacks}): ×${weakMultiplier.toFixed(2)}`);
+      
+      // Validate after weak
+      if (isNaN(finalValue) || !isFinite(finalValue)) {
+        console.error(`DamageCalculator.calculate: Invalid finalValue after weak: ${finalValue}, defaulting to 0`);
+        finalValue = 0;
+      }
     }
 
     // 9. Apply elemental weakness/resistance multiplier (after DDA adjustments)
@@ -234,6 +375,12 @@ export class DamageCalculator {
         enemy.elementalAffinity
       );
       
+      // Validate elemental multiplier
+      if (isNaN(elementalMultiplier) || !isFinite(elementalMultiplier)) {
+        console.error(`DamageCalculator.calculate: Invalid elementalMultiplier: ${elementalMultiplier}, defaulting to 1.0`);
+        elementalMultiplier = 1.0;
+      }
+      
       // Add breakdown text for elemental multipliers
       if (elementalMultiplier !== 1.0) {
         const elementIcon = dominantElement ? ElementalAffinitySystem.getElementIcon(dominantElement) : '';
@@ -241,9 +388,32 @@ export class DamageCalculator {
           breakdown.push(`${elementIcon} Weakness: ×1.5`);
         } else if (elementalMultiplier === 0.75) {
           breakdown.push(`${elementIcon} Resistance: ×0.75`);
+        } else {
+          breakdown.push(`${elementIcon} Elemental: ×${elementalMultiplier.toFixed(2)}`);
         }
         finalValue = Math.floor(finalValue * elementalMultiplier);
+        
+        // Validate after elemental multiplier
+        if (isNaN(finalValue) || !isFinite(finalValue)) {
+          console.error(`DamageCalculator.calculate: Invalid finalValue after elemental: ${finalValue}, defaulting to 0`);
+          finalValue = 0;
+        }
       }
+    } else if (enemy && !enemy.elementalAffinity) {
+      // Missing affinity fallback - default to 1.0× multiplier
+      console.log('DamageCalculator.calculate: Enemy missing elementalAffinity, using 1.0× multiplier');
+    }
+
+    // Final safety check: cap damage at 9999 to prevent overflow
+    if (finalValue > 9999) {
+      console.warn(`DamageCalculator.calculate: Final value ${finalValue} exceeds maximum, capping at 9999`);
+      finalValue = 9999;
+    }
+    
+    // Ensure non-negative
+    if (finalValue < 0) {
+      console.warn(`DamageCalculator.calculate: Final value ${finalValue} is negative, setting to 0`);
+      finalValue = 0;
     }
 
     breakdown.push(`Final: ${finalValue}`);
@@ -274,5 +444,49 @@ export class DamageCalculator {
    */
   static getHandBonusData(handType: HandType): { bonus: number; multiplier: number } {
     return this.HAND_BONUSES[handType];
+  }
+
+  /**
+   * Apply Vulnerable multiplier to damage
+   * Vulnerable makes the target take 50% more damage from all sources
+   * @param damage - Base damage value
+   * @param target - Target entity to check for Vulnerable status
+   * @returns Modified damage value
+   */
+  static applyVulnerableMultiplier(damage: number, target: CombatEntity): number {
+    // Validate inputs
+    if (typeof damage !== 'number' || isNaN(damage) || !isFinite(damage)) {
+      console.error(`DamageCalculator.applyVulnerableMultiplier: Invalid damage: ${damage}, returning 0`);
+      return 0;
+    }
+
+    if (!target || !target.statusEffects) {
+      console.warn('DamageCalculator.applyVulnerableMultiplier: Invalid target, returning original damage');
+      return damage;
+    }
+
+    const vulnerable = target.statusEffects.find(
+      (e: StatusEffect) => e.id === "vulnerable" || e.name === "Vulnerable"
+    );
+    
+    if (vulnerable && typeof vulnerable.value === 'number' && vulnerable.value > 0) {
+      const modifiedDamage = Math.floor(damage * 1.5);
+      
+      // Validate result
+      if (isNaN(modifiedDamage) || !isFinite(modifiedDamage)) {
+        console.error(`DamageCalculator.applyVulnerableMultiplier: Invalid result: ${modifiedDamage}, returning original damage`);
+        return damage;
+      }
+      
+      // Cap at 9999
+      if (modifiedDamage > 9999) {
+        console.warn(`DamageCalculator.applyVulnerableMultiplier: Result ${modifiedDamage} exceeds maximum, capping at 9999`);
+        return 9999;
+      }
+      
+      return modifiedDamage;
+    }
+    
+    return damage;
   }
 }
