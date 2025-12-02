@@ -1,5 +1,9 @@
 import { Scene } from 'phaser';
 import * as Act1Enemies from '../../../data/enemies/Act1Enemies';
+import * as Act2Enemies from '../../../data/enemies/Act2Enemies';
+import * as Act3Enemies from '../../../data/enemies/Act3Enemies';
+import { GameState } from '../../../core/managers/GameState';
+import { Chapter } from '../../../core/types/CombatTypes';
 
 /**
  * Combat Debug Scene
@@ -11,25 +15,16 @@ export class CombatDebugScene extends Scene {
   private selectedEnemyIndex: number = 0;
   private isVisible: boolean = false;
   private container!: Phaser.GameObjects.Container;
+  private gameState: GameState;
 
   constructor() {
     super({ key: 'CombatDebugScene' });
+    this.gameState = GameState.getInstance();
   }
 
   create(): void {
-    // Build enemy list from Act1Enemies
-    this.enemyList = [
-      { name: 'Tikbalang Scout', key: 'Tikbalang Scout' },
-      { name: 'Balete Wraith', key: 'Balete Wraith' },
-      { name: 'Sigbin Charger', key: 'Sigbin Charger' },
-      { name: 'Duwende Trickster', key: 'Duwende Trickster' },
-      { name: 'Tiyanak Ambusher', key: 'Tiyanak Ambusher' },
-      { name: 'Amomongo', key: 'Amomongo' },
-      { name: 'Bungisngis', key: 'Bungisngis' },
-      { name: 'Kapre Shade (Elite)', key: 'Kapre Shade' },
-      { name: 'Tawong Lipod (Elite)', key: 'Tawong Lipod' },
-      { name: 'Mangangaway (Boss)', key: 'Mangangaway' },
-    ];
+    // Build enemy list based on current chapter
+    this.updateEnemyListForChapter(this.gameState.getCurrentChapter());
 
     this.createDebugUI();
     this.setupKeyboardShortcuts();
@@ -37,6 +32,57 @@ export class CombatDebugScene extends Scene {
     // Start hidden
     this.container.setVisible(false);
     this.isVisible = false;
+  }
+
+  /**
+   * Update enemy list based on the current chapter
+   */
+  private updateEnemyListForChapter(chapter: Chapter): void {
+    switch (chapter) {
+      case 1:
+        this.enemyList = [
+          { name: 'Tikbalang Scout', key: 'Tikbalang Scout' },
+          { name: 'Balete Wraith', key: 'Balete Wraith' },
+          { name: 'Sigbin Charger', key: 'Sigbin Charger' },
+          { name: 'Duwende Trickster', key: 'Duwende Trickster' },
+          { name: 'Tiyanak Ambusher', key: 'Tiyanak Ambusher' },
+          { name: 'Amomongo', key: 'Amomongo' },
+          { name: 'Bungisngis', key: 'Bungisngis' },
+          { name: 'Kapre Shade (Elite)', key: 'Kapre Shade' },
+          { name: 'Tawong Lipod (Elite)', key: 'Tawong Lipod' },
+          { name: 'Mangangaway (Boss)', key: 'Mangangaway' },
+        ];
+        break;
+      case 2:
+        this.enemyList = [
+          { name: 'Sirena Illusionist', key: 'Sirena Illusionist' },
+          { name: 'Siyokoy Raider', key: 'Siyokoy Raider' },
+          { name: 'Santelmo Flicker', key: 'Santelmo Flicker' },
+          { name: 'Berberoka Lurker', key: 'Berberoka Lurker' },
+          { name: 'Magindara Swarm', key: 'Magindara Swarm' },
+          { name: 'Kataw', key: 'Kataw' },
+          { name: 'Berbalang', key: 'Berbalang' },
+          { name: 'Sunken Bangkilan (Elite)', key: 'Sunken Bangkilan' },
+          { name: 'Apoy-Tubig Fury (Elite)', key: 'Apoy-Tubig Fury' },
+          { name: 'Bakunawa (Boss)', key: 'Bakunawa' },
+        ];
+        break;
+      case 3:
+        this.enemyList = [
+          { name: 'Tigmamanukan Watcher', key: 'Tigmamanukan Watcher' },
+          { name: 'Diwata Sentinel', key: 'Diwata Sentinel' },
+          { name: 'Sarimanok Keeper', key: 'Sarimanok Keeper' },
+          { name: 'Bulalakaw Flamewings', key: 'Bulalakaw Flamewings' },
+          { name: 'Minokawa Harbinger', key: 'Minokawa Harbinger' },
+          { name: 'Alan', key: 'Alan' },
+          { name: 'Ekek', key: 'Ekek' },
+          { name: 'Ribung Linti Duo (Elite)', key: 'Ribung Linti Duo' },
+          { name: 'Apolaki Godling (Elite)', key: 'Apolaki Godling' },
+          { name: 'False Bathala (Boss)', key: 'False Bathala' },
+        ];
+        break;
+    }
+    this.selectedEnemyIndex = 0;
   }
 
   private createDebugUI(): void {
@@ -59,12 +105,18 @@ export class CombatDebugScene extends Scene {
     this.container.add(bg);
 
     // Title
-    const title = this.add.text(screenWidth / 2, 50, 'COMBAT DEBUG - Select Enemy', {
-      fontFamily: 'dungeon-mode',
-      fontSize: 32,
-      color: '#ffd93d',
-      align: 'center',
-    }).setOrigin(0.5);
+    const currentChapter = this.gameState.getCurrentChapter();
+    const title = this.add.text(
+      screenWidth / 2, 
+      50, 
+      `COMBAT DEBUG - Chapter ${currentChapter} - Select Enemy`, 
+      {
+        fontFamily: 'dungeon-mode',
+        fontSize: 32,
+        color: '#ffd93d',
+        align: 'center',
+      }
+    ).setOrigin(0.5);
     this.container.add(title);
 
     // Instructions
@@ -81,18 +133,157 @@ export class CombatDebugScene extends Scene {
     ).setOrigin(0.5);
     this.container.add(instructions);
 
+    // Chapter navigation buttons
+    this.createChapterNavigationButtons();
+
+    // Enemy list
+    this.updateEnemyList();
+  }
+
+  /**
+   * Create chapter navigation buttons for dev mode
+   */
+  private createChapterNavigationButtons(): void {
+    const screenWidth = this.cameras.main.width;
+    const buttonY = 140;
+    const buttonSpacing = 180;
+    const startX = screenWidth / 2 - buttonSpacing;
+
+    const chapters: Chapter[] = [1, 2, 3];
+    const chapterNames = ['Forest', 'Submerged', 'Skyward'];
+    const currentChapter = this.gameState.getCurrentChapter();
+
+    chapters.forEach((chapter, index) => {
+      const x = startX + index * buttonSpacing;
+      const isCurrentChapter = chapter === currentChapter;
+
+      // Button background
+      const buttonBg = this.add.rectangle(
+        x,
+        buttonY,
+        160,
+        40,
+        isCurrentChapter ? 0x2ed573 : 0x3d5a80,
+        isCurrentChapter ? 0.5 : 0.3
+      );
+      buttonBg.setInteractive({ useHandCursor: true });
+      this.container.add(buttonBg);
+
+      // Button text
+      const buttonText = this.add.text(
+        x,
+        buttonY,
+        `Ch ${chapter}: ${chapterNames[index]}`,
+        {
+          fontFamily: 'dungeon-mode',
+          fontSize: 16,
+          color: isCurrentChapter ? '#2ed573' : '#e8eced',
+          align: 'center',
+        }
+      ).setOrigin(0.5);
+      this.container.add(buttonText);
+
+      // Button interactions
+      buttonBg.on('pointerdown', () => {
+        this.jumpToChapter(chapter);
+      });
+
+      buttonBg.on('pointerover', () => {
+        buttonBg.setFillStyle(isCurrentChapter ? 0x2ed573 : 0x5a7fa8, 0.6);
+        buttonText.setColor('#ffffff');
+      });
+
+      buttonBg.on('pointerout', () => {
+        buttonBg.setFillStyle(isCurrentChapter ? 0x2ed573 : 0x3d5a80, isCurrentChapter ? 0.5 : 0.3);
+        buttonText.setColor(isCurrentChapter ? '#2ed573' : '#e8eced');
+      });
+    });
+  }
+
+  /**
+   * Jump to a specific chapter (dev mode only)
+   */
+  private jumpToChapter(chapter: Chapter): void {
+    console.log(`Jumping to Chapter ${chapter}`);
+    
+    // Update game state
+    this.gameState.setCurrentChapter(chapter);
+    
+    // Update enemy list for the new chapter
+    this.updateEnemyListForChapter(chapter);
+    
+    // Recreate the entire UI to reflect the new chapter
+    this.recreateDebugUI();
+  }
+
+  /**
+   * Recreate the debug UI (used when switching chapters)
+   */
+  private recreateDebugUI(): void {
+    // Clear the container
+    this.container.removeAll(true);
+    
+    // Recreate the UI
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+
+    // Semi-transparent background
+    const bg = this.add.rectangle(
+      screenWidth / 2,
+      screenHeight / 2,
+      screenWidth,
+      screenHeight,
+      0x000000,
+      0.85
+    );
+    this.container.add(bg);
+
+    // Title
+    const currentChapter = this.gameState.getCurrentChapter();
+    const title = this.add.text(
+      screenWidth / 2, 
+      50, 
+      `COMBAT DEBUG - Chapter ${currentChapter} - Select Enemy`, 
+      {
+        fontFamily: 'dungeon-mode',
+        fontSize: 32,
+        color: '#ffd93d',
+        align: 'center',
+      }
+    ).setOrigin(0.5);
+    this.container.add(title);
+
+    // Instructions
+    const instructions = this.add.text(
+      screenWidth / 2,
+      100,
+      'F3: Toggle | ↑↓: Select | ENTER: Fight | ESC: Close',
+      {
+        fontFamily: 'dungeon-mode',
+        fontSize: 16,
+        color: '#77888C',
+        align: 'center',
+      }
+    ).setOrigin(0.5);
+    this.container.add(instructions);
+
+    // Chapter navigation buttons
+    this.createChapterNavigationButtons();
+
     // Enemy list
     this.updateEnemyList();
   }
 
   private updateEnemyList(): void {
     const screenWidth = this.cameras.main.width;
-    const startY = 180;
+    const startY = 200;
     const spacing = 50;
 
-    // Remove old enemy list items (keep bg, title, instructions)
-    while (this.container.length > 3) {
-      const item = this.container.list[3];
+    // Remove old enemy list items (keep bg, title, instructions, and chapter buttons)
+    // Chapter buttons are 3 buttons × 2 elements each (bg + text) = 6 elements
+    // Plus bg (1) + title (1) + instructions (1) = 9 total to keep
+    while (this.container.length > 9) {
+      const item = this.container.list[9];
       this.container.remove(item, true);
     }
 
@@ -169,21 +360,54 @@ export class CombatDebugScene extends Scene {
   }
 
   private getEnemyData(enemyKey: string): any {
-    // Map enemy keys to Act1Enemies exports
-    const enemyMap: Record<string, any> = {
-      'Tikbalang Scout': Act1Enemies.TIKBALANG_SCOUT,
-      'Balete Wraith': Act1Enemies.BALETE_WRAITH,
-      'Sigbin Charger': Act1Enemies.SIGBIN_CHARGER,
-      'Duwende Trickster': Act1Enemies.DUWENDE_TRICKSTER,
-      'Tiyanak Ambusher': Act1Enemies.TIYANAK_AMBUSHER,
-      'Amomongo': Act1Enemies.AMOMONGO,
-      'Bungisngis': Act1Enemies.BUNGISNGIS,
-      'Kapre Shade': Act1Enemies.KAPRE_SHADE,
-      'Tawong Lipod': Act1Enemies.TAWONG_LIPOD,
-      'Mangangaway': Act1Enemies.MANGNANGAWAY,
-    };
-
-    return enemyMap[enemyKey];
+    const currentChapter = this.gameState.getCurrentChapter();
+    
+    // Map enemy keys to enemy exports based on chapter
+    if (currentChapter === 1) {
+      const enemyMap: Record<string, any> = {
+        'Tikbalang Scout': Act1Enemies.TIKBALANG_SCOUT,
+        'Balete Wraith': Act1Enemies.BALETE_WRAITH,
+        'Sigbin Charger': Act1Enemies.SIGBIN_CHARGER,
+        'Duwende Trickster': Act1Enemies.DUWENDE_TRICKSTER,
+        'Tiyanak Ambusher': Act1Enemies.TIYANAK_AMBUSHER,
+        'Amomongo': Act1Enemies.AMOMONGO,
+        'Bungisngis': Act1Enemies.BUNGISNGIS,
+        'Kapre Shade': Act1Enemies.KAPRE_SHADE,
+        'Tawong Lipod': Act1Enemies.TAWONG_LIPOD,
+        'Mangangaway': Act1Enemies.MANGNANGAWAY,
+      };
+      return enemyMap[enemyKey];
+    } else if (currentChapter === 2) {
+      const enemyMap: Record<string, any> = {
+        'Sirena Illusionist': Act2Enemies.SIRENA_ILLUSIONIST,
+        'Siyokoy Raider': Act2Enemies.SIYOKOY_RAIDER,
+        'Santelmo Flicker': Act2Enemies.SANTELMO_FLICKER,
+        'Berberoka Lurker': Act2Enemies.BERBEROKA_LURKER,
+        'Magindara Swarm': Act2Enemies.MAGINDARA_SWARM,
+        'Kataw': Act2Enemies.KATAW,
+        'Berbalang': Act2Enemies.BERBALANG,
+        'Sunken Bangkilan': Act2Enemies.SUNKEN_BANGKILAN,
+        'Apoy-Tubig Fury': Act2Enemies.APOY_TUBIG_FURY,
+        'Bakunawa': Act2Enemies.BAKUNAWA,
+      };
+      return enemyMap[enemyKey];
+    } else if (currentChapter === 3) {
+      const enemyMap: Record<string, any> = {
+        'Tigmamanukan Watcher': Act3Enemies.TIGMAMANUKAN_WATCHER,
+        'Diwata Sentinel': Act3Enemies.DIWATA_SENTINEL,
+        'Sarimanok Keeper': Act3Enemies.SARIMANOK_KEEPER,
+        'Bulalakaw Flamewings': Act3Enemies.BULALAKAW_FLAMEWINGS,
+        'Minokawa Harbinger': Act3Enemies.MINOKAWA_HARBINGER,
+        'Alan': Act3Enemies.ALAN,
+        'Ekek': Act3Enemies.EKEK,
+        'Ribung Linti Duo': Act3Enemies.RIBUNG_LINTI_DUO,
+        'Apolaki Godling': Act3Enemies.APOLAKI_GODLING,
+        'False Bathala': Act3Enemies.FALSE_BATHALA,
+      };
+      return enemyMap[enemyKey];
+    }
+    
+    return null;
   }
 
   private setupKeyboardShortcuts(): void {

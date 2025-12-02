@@ -171,8 +171,15 @@
     - Test theme transitions
     - _Requirements: 7.4, 7.5_
 
-- [ ] 7. Implement chapter progression system
-  - [ ] 7.1 Modify GameState.ts to track chapter progression
+- [x] 7. Implement chapter progression system
+
+
+
+
+
+  - [x] 7.1 Modify GameState.ts to track chapter progression
+
+
     - Add currentChapter property
     - Add unlockedChapters Set
     - Add chapterCompletions Map
@@ -191,8 +198,15 @@
     - Test completion tracking
     - _Requirements: 1.1, 1.4, 2.1, 2.4_
 
-- [ ] 8. Implement dev mode chapter navigation
-  - [ ] 8.1 Modify CombatDebugScene.ts to add chapter navigation buttons
+- [x] 8. Implement dev mode chapter navigation
+
+
+
+
+
+  - [x] 8.1 Modify CombatDebugScene.ts to add chapter navigation buttons
+
+
     - Add "Jump to Chapter 1" button
     - Add "Jump to Chapter 2" button
     - Add "Jump to Chapter 3" button
