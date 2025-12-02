@@ -253,7 +253,13 @@
   - Use Map for status effect definition lookups
   - _Requirements: All (performance)_
 
-- [ ]* 16. Checkpoint - Ensure all tests pass
+- [x] 16. Checkpoint - Ensure all tests pass
+
+
+
+
+
+
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ]* 17. Update game balance

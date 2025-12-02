@@ -137,8 +137,25 @@ export class ElementalAffinitySystem {
       return null;
     }
 
+    // Filter out invalid cards
+    const validCards = cards.filter(card => {
+      if (!card || typeof card !== 'object') {
+        console.warn('ElementalAffinitySystem.getDominantElement: Skipping invalid card object');
+        return false;
+      }
+      if (!card.suit || !card.id) {
+        console.warn('ElementalAffinitySystem.getDominantElement: Skipping card with missing suit or id');
+        return false;
+      }
+      return true;
+    });
+
+    if (validCards.length === 0) {
+      return null;
+    }
+
     // Create cache key from card IDs (sorted for consistency)
-    const cacheKey = cards
+    const cacheKey = validCards
       .map(card => card.id)
       .sort()
       .join(',');
@@ -167,7 +184,7 @@ export class ElementalAffinitySystem {
       neutral: 0
     };
 
-    cards.forEach(card => {
+    validCards.forEach(card => {
       // Validate card object
       if (!card || !card.suit) {
         console.warn('ElementalAffinitySystem.getDominantElement: Invalid card object, skipping');
