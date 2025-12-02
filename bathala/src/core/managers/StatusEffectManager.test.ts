@@ -96,7 +96,7 @@ describe('StatusEffectManager', () => {
       
       StatusEffectManager.applyStatusEffect(testEntity, 'invalid_effect', 1);
       
-      expect(consoleSpy).toHaveBeenCalledWith('Unknown status effect ID: invalid_effect');
+      expect(consoleSpy).toHaveBeenCalledWith('StatusEffectManager.applyStatusEffect: Unknown status effect ID: invalid_effect, skipping');
       expect(testEntity.statusEffects).toHaveLength(0);
       
       consoleSpy.mockRestore();

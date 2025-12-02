@@ -51,6 +51,19 @@ export class ElementalAffinitySystem {
     element: Element | null,
     affinity: ElementalAffinity
   ): number {
+    // Validate affinity - use default if missing
+    if (!affinity) {
+      console.warn('ElementalAffinitySystem.calculateElementalMultiplier: Missing affinity, using default (1.0× multiplier)');
+      return 1.0;
+    }
+
+    // Validate element - treat invalid elements as neutral
+    const validElements: Element[] = ['fire', 'water', 'earth', 'air', 'neutral'];
+    if (element && !validElements.includes(element)) {
+      console.warn(`ElementalAffinitySystem.calculateElementalMultiplier: Invalid element: ${element}, treating as neutral`);
+      element = null;
+    }
+
     // No element or neutral element = no multiplier
     if (!element || element === 'neutral') {
       return 1.0;
@@ -69,8 +82,33 @@ export class ElementalAffinitySystem {
     }
 
     // Apply relic modifiers
-    for (const modifier of this.modifierCallbacks) {
-      multiplier = modifier(element, multiplier, affinity);
+    try {
+      for (const modifier of this.modifierCallbacks) {
+        const result = modifier(element, multiplier, affinity);
+        
+        // Validate modifier result
+        if (typeof result !== 'number' || isNaN(result) || !isFinite(result)) {
+          console.warn(`ElementalAffinitySystem.calculateElementalMultiplier: Modifier returned invalid value: ${result}, using original multiplier`);
+          continue;
+        }
+        
+        // Ensure multiplier stays within reasonable bounds (0.1 to 10.0)
+        if (result < 0.1 || result > 10.0) {
+          console.warn(`ElementalAffinitySystem.calculateElementalMultiplier: Modifier returned out-of-bounds value: ${result}, clamping`);
+          multiplier = Math.max(0.1, Math.min(10.0, result));
+        } else {
+          multiplier = result;
+        }
+      }
+    } catch (error) {
+      console.error('ElementalAffinitySystem.calculateElementalMultiplier: Error in modifier callback:', error);
+      // Continue with base multiplier
+    }
+
+    // Final validation
+    if (isNaN(multiplier) || !isFinite(multiplier)) {
+      console.error(`ElementalAffinitySystem.calculateElementalMultiplier: Final multiplier is invalid: ${multiplier}, defaulting to 1.0`);
+      return 1.0;
     }
 
     return multiplier;
@@ -83,6 +121,12 @@ export class ElementalAffinitySystem {
    * @returns The dominant element or null
    */
   static getDominantElement(cards: PlayingCard[]): Element | null {
+    // Validate input
+    if (!cards || !Array.isArray(cards)) {
+      console.warn('ElementalAffinitySystem.getDominantElement: Invalid cards array, returning null');
+      return null;
+    }
+
     if (cards.length === 0) {
       return null;
     }
@@ -105,9 +149,17 @@ export class ElementalAffinitySystem {
     };
 
     cards.forEach(card => {
+      // Validate card object
+      if (!card || !card.suit) {
+        console.warn('ElementalAffinitySystem.getDominantElement: Invalid card object, skipping');
+        return;
+      }
+
       const element = suitToElement[card.suit];
       if (element) {
         elementCounts[element]++;
+      } else {
+        console.warn(`ElementalAffinitySystem.getDominantElement: Unknown suit: ${card.suit}, skipping`);
       }
     });
 

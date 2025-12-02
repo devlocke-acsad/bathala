@@ -217,7 +217,13 @@
   - Update DamageCalculator to use StatusEffectManager for Strength/Vulnerable
   - _Requirements: 2.1, 2.2, 2.3, 2.4_
 
-- [ ]* 14. Add error handling and validation
+- [x] 14. Add error handling and validation
+
+
+
+
+
+
   - Add validation for invalid status effect IDs (log warning, skip)
   - Add stack overflow protection (cap at maxStacks)
   - Add negative stack protection (set to 0, remove effect)
