@@ -1,6 +1,8 @@
-import { Player, Relic, PlayingCard, HandType, StatusEffect } from "../types/CombatTypes";
+import { Player, Relic, PlayingCard, HandType, StatusEffect, Element } from "../types/CombatTypes";
 import { HandEvaluator } from "../../utils/HandEvaluator";
 import { RELIC_EFFECTS, hasRelicEffect, getRelicById } from "../../data/relics/Act1Relics";
+import { StatusEffectManager } from "./StatusEffectManager";
+import { ElementalAffinitySystem, ElementalAffinity } from "./ElementalAffinitySystem";
 
 /**
  * RelicManager - Manages all relic effects in combat and other game systems
@@ -51,10 +53,89 @@ export class RelicManager {
   }
   
   /**
+   * Register all relic modifiers for status effects and elemental damage
+   * Should be called at the start of combat after StatusEffectManager.initialize()
+   */
+  static registerRelicModifiers(player: Player): void {
+    // Clear any existing modifiers
+    StatusEffectManager.clearModifiers();
+    ElementalAffinitySystem.clearModifiers();
+
+    // Register status effect modifiers
+    // Implements additive stacking for multiple relics affecting the same status effect
+    StatusEffectManager.registerModifier((effectId, stacks, target) => {
+      let modifiedStacks = stacks;
+
+      // Get additive bonus from all relics
+      const bonus = this.getStatusEffectStackBonus(effectId, player);
+      modifiedStacks += bonus;
+
+      // Ensure stacks remain positive
+      return Math.max(0, modifiedStacks);
+    });
+
+    // Register elemental damage modifiers
+    // Implements additive stacking for multiple relics affecting elemental damage
+    ElementalAffinitySystem.registerModifier((element, multiplier, affinity) => {
+      let modifiedMultiplier = multiplier;
+
+      // Get additive bonus from all relics
+      const bonus = this.getElementalDamageBonus(element, player);
+      modifiedMultiplier += bonus;
+
+      // Ensure multiplier remains positive
+      return Math.max(0, modifiedMultiplier);
+    });
+  }
+
+  /**
+   * Get status effect stack modifier from relics
+   * Returns the total additive bonus to status effect stacks
+   * @param effectId - The status effect being applied
+   * @param player - The player with relics
+   * @returns Total stack bonus (additive)
+   */
+  static getStatusEffectStackBonus(effectId: string, player: Player): number {
+    let bonus = 0;
+
+    // Add relic-specific bonuses here
+    // Example: A relic that adds +1 to all Poison applications
+    // if (effectId === 'poison' && player.relics.some(r => r.id === 'poison_amplifier')) {
+    //   bonus += 1;
+    // }
+
+    return bonus;
+  }
+
+  /**
+   * Get elemental damage multiplier bonus from relics
+   * Returns the total additive bonus to elemental damage multipliers
+   * @param element - The element being used
+   * @param player - The player with relics
+   * @returns Total multiplier bonus (additive)
+   */
+  static getElementalDamageBonus(element: Element | null, player: Player): number {
+    let bonus = 0;
+
+    // Add relic-specific bonuses here
+    // Example: A relic that adds +0.25× to Fire damage
+    // if (element === 'fire' && player.relics.some(r => r.id === 'fire_amplifier')) {
+    //   bonus += 0.25;
+    // }
+
+    return bonus;
+  }
+
+  /**
    * Apply all relevant relic effects at the start of combat
    * Now uses centralized relic system for easier management
    */
   static applyStartOfCombatEffects(player: Player): void {
+    // Register relic modifiers first
+    this.registerRelicModifiers(player);
+    
+    // Apply all start-of-combat effects using the centralized system
+    
     // Apply all start-of-combat effects using the centralized system
     RELIC_EFFECTS.START_OF_COMBAT.forEach(relicId => {
       const relic = player.relics.find(r => r.id === relicId);

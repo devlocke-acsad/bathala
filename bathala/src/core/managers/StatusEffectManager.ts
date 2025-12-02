@@ -28,9 +28,23 @@ export interface StatusEffectTriggerResult {
   message: string;
 }
 
+/**
+ * Callback type for relic modifications to status effects
+ * @param effectId - The status effect being applied
+ * @param stacks - The number of stacks being applied
+ * @param target - The entity receiving the effect
+ * @returns Modified stack count
+ */
+export type StatusEffectModifierCallback = (
+  effectId: string,
+  stacks: number,
+  target: CombatEntity
+) => number;
+
 export class StatusEffectManager {
   private static definitions: Map<string, StatusEffectDefinition> = new Map();
   private static initialized = false;
+  private static modifierCallbacks: StatusEffectModifierCallback[] = [];
 
   /**
    * Initialize all status effect definitions
@@ -196,6 +210,22 @@ export class StatusEffectManager {
   }
 
   /**
+   * Register a callback for modifying status effect applications
+   * Relics can use this to modify status effect stacks
+   * @param callback - Function that modifies status effect stacks
+   */
+  static registerModifier(callback: StatusEffectModifierCallback): void {
+    this.modifierCallbacks.push(callback);
+  }
+
+  /**
+   * Clear all registered modifiers (useful for testing and combat reset)
+   */
+  static clearModifiers(): void {
+    this.modifierCallbacks = [];
+  }
+
+  /**
    * Apply a status effect to a target
    * Handles stacking logic and max stack limits
    */
@@ -216,13 +246,24 @@ export class StatusEffectManager {
       return;
     }
 
+    // Apply relic modifiers to stack count
+    let modifiedStacks = stacks;
+    for (const modifier of this.modifierCallbacks) {
+      modifiedStacks = modifier(effectId, modifiedStacks, target);
+    }
+
+    // Ensure stacks remain positive after modifications
+    if (modifiedStacks <= 0) {
+      return;
+    }
+
     // Find existing effect
     const existingEffect = target.statusEffects.find(e => e.id === effectId);
 
     if (existingEffect) {
       // Stack with existing effect
       if (definition.stackable) {
-        existingEffect.value += stacks;
+        existingEffect.value += modifiedStacks;
         
         // Apply max stack limit
         if (definition.maxStacks !== undefined) {
@@ -230,15 +271,15 @@ export class StatusEffectManager {
         }
       } else {
         // Non-stackable effects just refresh
-        existingEffect.value = stacks;
+        existingEffect.value = modifiedStacks;
       }
     } else {
       // Create new effect
-      let finalStacks = stacks;
+      let finalStacks = modifiedStacks;
       
       // Apply max stack limit for new effects
       if (definition.maxStacks !== undefined) {
-        finalStacks = Math.min(stacks, definition.maxStacks);
+        finalStacks = Math.min(modifiedStacks, definition.maxStacks);
       }
 
       const newEffect: StatusEffect = {

@@ -23,7 +23,7 @@ export const commonRelics: Relic[] = [
   {
     id: "ember_fetish",
     name: "Ember Fetish",
-    description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 2 Strength. If you have Block, gain 1 Strength.",
+    description: "Carved from the heart of a banana tree at midnight and blessed by Apolaki's flame. At the start of your turn, if you have no Block, gain 2 Strength. If you have Block, gain 1 Strength. [Interacts with Strength status effect]",
     emoji: "🔥"
   },
   {
@@ -124,19 +124,19 @@ export const mythologicalRelics: Relic[] = [
   {
     id: "tiyanak_tear",
     name: "Tiyanak Tear",
-    description: "At the start of your turn, gain +1 Strength (Attack damage). The crystallized tear of a corrupted infant spirit.",
+    description: "At the start of your turn, gain +1 Strength (Attack damage). The crystallized tear of a corrupted infant spirit. [Interacts with Strength status effect]",
     emoji: "💧"
   },
   {
     id: "amomongo_claw",
     name: "Amomongo Claw",
-    description: "Attack actions apply 1 Vulnerable to enemies. The razor-sharp claw of the ape-like creature.",
+    description: "Attack actions apply 1 Vulnerable to enemies. The razor-sharp claw of the ape-like creature. [Applies Vulnerable status effect]",
     emoji: "🪲"
   },
   {
     id: "bungisngis_grin",
     name: "Bungisngis Grin",
-    description: "Attack actions deal +4 damage when enemy has any debuff (Weak, Vulnerable, Burn, etc.). The giant's mocking laughter empowers your strikes.",
+    description: "Attack actions deal +4 damage when enemy has any debuff (Weak, Vulnerable, Burn, etc.). The giant's mocking laughter empowers your strikes. [Synergizes with debuff status effects]",
     emoji: "👹"
   },
   {
@@ -148,7 +148,7 @@ export const mythologicalRelics: Relic[] = [
   {
     id: "mangangaway_wand",
     name: "Mangangaway Wand",
-    description: "Special actions deal +5 damage. The sorcerer's wand amplifies your elemental power.",
+    description: "Special actions deal +5 damage. The sorcerer's wand amplifies your elemental power. [Enhances elemental Special actions]",
     emoji: "🪄"
   }
   // Removed: wind_veil (no sprite)

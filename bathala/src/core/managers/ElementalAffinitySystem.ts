@@ -10,7 +10,37 @@ export interface ElementalAffinity {
   resistance: Element | null;  // Takes 0.75× damage from this element
 }
 
+/**
+ * Callback type for relic modifications to elemental damage
+ * @param element - The element being used
+ * @param multiplier - The base elemental multiplier
+ * @param affinity - The target's elemental affinity
+ * @returns Modified multiplier
+ */
+export type ElementalDamageModifierCallback = (
+  element: Element | null,
+  multiplier: number,
+  affinity: ElementalAffinity
+) => number;
+
 export class ElementalAffinitySystem {
+  private static modifierCallbacks: ElementalDamageModifierCallback[] = [];
+  /**
+   * Register a callback for modifying elemental damage multipliers
+   * Relics can use this to modify elemental damage calculations
+   * @param callback - Function that modifies elemental multipliers
+   */
+  static registerModifier(callback: ElementalDamageModifierCallback): void {
+    this.modifierCallbacks.push(callback);
+  }
+
+  /**
+   * Clear all registered modifiers (useful for testing and combat reset)
+   */
+  static clearModifiers(): void {
+    this.modifierCallbacks = [];
+  }
+
   /**
    * Calculate damage multiplier based on element and enemy affinity
    * @param element - The element being used in the attack
@@ -26,18 +56,24 @@ export class ElementalAffinitySystem {
       return 1.0;
     }
 
+    // Calculate base multiplier
+    let multiplier = 1.0;
+
     // Check for weakness
     if (affinity.weakness === element) {
-      return 1.5;
+      multiplier = 1.5;
     }
-
     // Check for resistance
-    if (affinity.resistance === element) {
-      return 0.75;
+    else if (affinity.resistance === element) {
+      multiplier = 0.75;
     }
 
-    // Neutral interaction
-    return 1.0;
+    // Apply relic modifiers
+    for (const modifier of this.modifierCallbacks) {
+      multiplier = modifier(element, multiplier, affinity);
+    }
+
+    return multiplier;
   }
 
   /**

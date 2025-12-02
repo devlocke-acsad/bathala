@@ -176,7 +176,13 @@
   - **Property 8: DDA and elemental affinity independence**
   - **Validates: Requirements 6.1, 6.3**
 
-- [ ]* 12. Add relic integration hooks
+- [x] 12. Add relic integration hooks
+
+
+
+
+
+
   - Add callback hooks in StatusEffectManager for relic modifications
   - Add callback hooks in ElementalAffinitySystem for relic modifications
   - Update RelicManager to support status effect and elemental damage modifiers
@@ -184,11 +190,17 @@
   - Update relic descriptions to mention status effect/elemental interactions
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ]* 12.1 Write property test for relic status effect modification
+- [x] 12.1 Write property test for relic status effect modification
+
+
+
   - **Property 10: Relic status effect modification**
   - **Validates: Requirements 7.1, 7.3**
 
-- [ ]* 12.2 Write property test for relic effect stacking
+- [x] 12.2 Write property test for relic effect stacking
+
+
+
   - **Property 11: Relic effect stacking**
   - **Validates: Requirements 7.5**
 
