@@ -25,6 +25,11 @@ export type ElementalDamageModifierCallback = (
 
 export class ElementalAffinitySystem {
   private static modifierCallbacks: ElementalDamageModifierCallback[] = [];
+  
+  // Cache for dominant element calculations
+  private static dominantElementCache: Map<string, { element: Element | null; timestamp: number }> = new Map();
+  private static readonly CACHE_TTL = 1000; // Cache for 1 second
+  
   /**
    * Register a callback for modifying elemental damage multipliers
    * Relics can use this to modify elemental damage calculations
@@ -117,6 +122,7 @@ export class ElementalAffinitySystem {
   /**
    * Get dominant element from a hand of cards
    * Returns the element with the most cards, or null if tied/none
+   * Uses caching to avoid recalculating for the same hand
    * @param cards - Array of cards to analyze
    * @returns The dominant element or null
    */
@@ -129,6 +135,19 @@ export class ElementalAffinitySystem {
 
     if (cards.length === 0) {
       return null;
+    }
+
+    // Create cache key from card IDs (sorted for consistency)
+    const cacheKey = cards
+      .map(card => card.id)
+      .sort()
+      .join(',');
+    
+    // Check cache
+    const now = Date.now();
+    const cached = this.dominantElementCache.get(cacheKey);
+    if (cached && (now - cached.timestamp) < this.CACHE_TTL) {
+      return cached.element;
     }
 
     // Map suits to elements
@@ -180,10 +199,35 @@ export class ElementalAffinitySystem {
 
     // If there's a tie or no dominant element, return null
     if (tieCount > 1 || maxCount === 0) {
-      return null;
+      dominantElement = null;
+    }
+
+    // Cache the result
+    this.dominantElementCache.set(cacheKey, {
+      element: dominantElement,
+      timestamp: now
+    });
+    
+    // Clean up old cache entries (keep cache size manageable)
+    if (this.dominantElementCache.size > 100) {
+      const entriesToDelete: string[] = [];
+      for (const [key, value] of this.dominantElementCache.entries()) {
+        if (now - value.timestamp > this.CACHE_TTL) {
+          entriesToDelete.push(key);
+        }
+      }
+      entriesToDelete.forEach(key => this.dominantElementCache.delete(key));
     }
 
     return dominantElement;
+  }
+  
+  /**
+   * Clear the dominant element cache
+   * Should be called when starting a new combat or turn
+   */
+  static clearDominantElementCache(): void {
+    this.dominantElementCache.clear();
   }
 
   /**

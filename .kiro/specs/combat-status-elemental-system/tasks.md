@@ -240,7 +240,13 @@
   - Add NaN/overflow protection in damage calculations
   - _Requirements: All (error handling)_
 
-- [ ]* 15. Performance optimization
+- [x] 15. Performance optimization
+
+
+
+
+
+
   - Implement batch processing for status effects at turn boundaries
   - Add throttling for status effect UI updates
   - Cache dominant element calculation for hands

@@ -125,6 +125,10 @@ export class CombatUI {
   // State
   public ddaDebugVisible: boolean = false;
   
+  // Throttling for UI updates
+  private statusEffectUpdateThrottle: Map<string, number> = new Map();
+  private readonly STATUS_UPDATE_THROTTLE_MS = 100; // Throttle status effect updates to 100ms
+  
   constructor(scene: Combat) {
     this.scene = scene;
     this.battleStartDialogueContainer = null;
@@ -1135,6 +1139,14 @@ export class CombatUI {
   // ==================== UPDATE METHODS ====================
   
   /**
+   * Clear status effect update throttle
+   * Should be called at turn boundaries to ensure fresh updates
+   */
+  public clearStatusEffectThrottle(): void {
+    this.statusEffectUpdateThrottle.clear();
+  }
+  
+  /**
    * Update player UI elements
    */
   public updatePlayerUI(): void {
@@ -1305,11 +1317,30 @@ export class CombatUI {
   /**
    * Update status effect display for a target entity
    * Renders status effect icons with stack counts and tooltips
+   * Uses throttling to prevent excessive UI updates
+   * @param target - The entity whose status effects to display
+   * @param container - The container to render status effects in
+   * @param forceUpdate - If true, bypass throttling
    */
   private updateStatusEffectDisplay(
     target: any,
-    container: Phaser.GameObjects.Container
+    container: Phaser.GameObjects.Container,
+    forceUpdate: boolean = false
   ): void {
+    // Throttle updates to prevent excessive re-renders (unless forced)
+    if (!forceUpdate) {
+      const targetKey = target.name || 'unknown';
+      const now = Date.now();
+      const lastUpdate = this.statusEffectUpdateThrottle.get(targetKey) || 0;
+      
+      if (now - lastUpdate < this.STATUS_UPDATE_THROTTLE_MS) {
+        // Skip update if within throttle window
+        return;
+      }
+      
+      this.statusEffectUpdateThrottle.set(targetKey, now);
+    }
+    
     // Clear existing status effect display
     container.removeAll(true);
     

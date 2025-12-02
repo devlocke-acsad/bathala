@@ -421,6 +421,36 @@ export class StatusEffectManager {
 
     return results;
   }
+  
+  /**
+   * Batch process status effects for multiple targets at once
+   * More efficient than calling processStatusEffects multiple times
+   * @param targets - Array of entities to process
+   * @param timing - When to trigger effects
+   * @returns Combined array of all trigger results
+   */
+  static batchProcessStatusEffects(
+    targets: CombatEntity[],
+    timing: 'start_of_turn' | 'end_of_turn'
+  ): StatusEffectTriggerResult[] {
+    const allResults: StatusEffectTriggerResult[] = [];
+    
+    // Validate input
+    if (!targets || !Array.isArray(targets)) {
+      console.warn('StatusEffectManager.batchProcessStatusEffects: Invalid targets array');
+      return allResults;
+    }
+    
+    // Process all targets in a single batch
+    for (const target of targets) {
+      if (!target) continue;
+      
+      const results = this.processStatusEffects(target, timing);
+      allResults.push(...results);
+    }
+    
+    return allResults;
+  }
 
   /**
    * Remove expired status effects (those with 0 or negative stacks)
@@ -477,6 +507,25 @@ export class StatusEffectManager {
       }
       return true;
     });
+  }
+  
+  /**
+   * Batch cleanup expired effects for multiple targets at once
+   * More efficient than calling cleanupExpiredEffects multiple times
+   * @param targets - Array of entities to clean up
+   */
+  static batchCleanupExpiredEffects(targets: CombatEntity[]): void {
+    // Validate input
+    if (!targets || !Array.isArray(targets)) {
+      console.warn('StatusEffectManager.batchCleanupExpiredEffects: Invalid targets array');
+      return;
+    }
+    
+    // Clean up all targets in a single batch
+    for (const target of targets) {
+      if (!target) continue;
+      this.cleanupExpiredEffects(target);
+    }
   }
 
   /**
