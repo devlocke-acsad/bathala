@@ -87,6 +87,7 @@ export interface Enemy extends CombatEntity {
   attackPattern: string[];
   currentPatternIndex: number;
   halfHealthTriggered?: boolean; // For 50% health dialogue trigger
+  elementalAffinity: ElementalAffinity;  // Elemental weakness and resistance
 }
 
 export interface Relic {
@@ -103,14 +104,25 @@ export interface EnemyIntent {
   icon: string;
 }
 
+export interface ElementalAffinity {
+  weakness: Element | null;  // Takes 1.5× damage from this element
+  resistance: Element | null; // Takes 0.75× damage from this element
+}
+
 export interface StatusEffect {
   id: string;
   name: string;
   type: "buff" | "debuff";
-  duration: number;
-  value: number;
+  value: number;  // Stack count (removed duration)
   description: string;
   emoji: string;
+}
+
+export interface StatusEffectTriggerResult {
+  effectName: string;
+  targetName: string;
+  value: number;
+  message: string;  // For floating text display
 }
 
 export type CombatActionType = "attack" | "defend" | "special";

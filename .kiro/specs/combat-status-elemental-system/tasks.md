@@ -28,7 +28,12 @@
   - **Property 14: StatusEffectManager extensibility**
   - **Validates: Requirements 9.1, 9.5**
 
-- [ ] 2. Update CombatTypes and data models
+- [x] 2. Update CombatTypes and data models
+
+
+
+
+
   - Add ElementalAffinity interface to CombatTypes.ts
   - Update Enemy interface to include elementalAffinity property
   - Update StatusEffect interface to match new format (stacks as value, remove duration)
