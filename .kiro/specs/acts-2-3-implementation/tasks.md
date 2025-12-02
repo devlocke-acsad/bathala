@@ -83,15 +83,24 @@
     - **Property 9: Elemental affinity validity**
     - **Validates: Requirements 2.5**
 
-- [ ] 4. Implement Act 2 relics and potions
-  - [ ] 4.1 Create Act2Relics.ts with 10 chapter-specific relics
+- [x] 4. Implement Act 2 relics and potions
+
+
+
+
+
+  - [x] 4.1 Create Act2Relics.ts with 10 chapter-specific relics
+
+
     - Define relic data structures following Act1Relics.ts pattern
     - Include lore inspiration citations
     - Categorize relics (common, elite, boss, treasure)
     - Add helper functions (getRandomCommonRelic, etc.)
     - _Requirements: 4.1, 4.4, 6.3_
 
-  - [ ] 4.2 Create Act2Potions.ts with 10 chapter-specific potions
+  - [x] 4.2 Create Act2Potions.ts with 10 chapter-specific potions
+
+
     - Define potion data structures following Act1Potions.ts pattern
     - Include lore inspiration citations
     - Add effect definitions for Tubig/Apoy synergies
