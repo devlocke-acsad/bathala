@@ -204,7 +204,13 @@
   - **Property 11: Relic effect stacking**
   - **Validates: Requirements 7.5**
 
-- [ ]* 13. Update existing status effects (Strength, Vulnerable)
+- [x] 13. Update existing status effects (Strength, Vulnerable)
+
+
+
+
+
+
   - Migrate existing Strength implementation to use StatusEffectManager
   - Migrate existing Vulnerable implementation to use StatusEffectManager
   - Ensure backward compatibility with existing relics and enemy abilities

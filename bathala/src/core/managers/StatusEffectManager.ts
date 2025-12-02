@@ -288,8 +288,7 @@ export class StatusEffectManager {
         type: definition.type,
         value: finalStacks,
         emoji: definition.emoji,
-        description: definition.description,
-        duration: 0 // Legacy field, not used in new system
+        description: definition.description
       };
 
       target.statusEffects.push(newEffect);

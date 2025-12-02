@@ -6,6 +6,7 @@ import {
   StatusEffect,
   Suit,
   Enemy,
+  CombatEntity,
 } from "../core/types/CombatTypes";
 import { ElementalAffinitySystem } from "../core/managers/ElementalAffinitySystem";
 
@@ -158,24 +159,24 @@ export class DamageCalculator {
 
     // 4. Calculate status effect bonuses
     let statusBonus = 0;
-    let hasWeakDebuff = false;
+    let weakStacks = 0;
     if (player) {
       // For attack actions, add Strength bonus
       if (actionType === "attack") {
         const strength = player.statusEffects.find(
-          (e: StatusEffect) => e.name === "Strength"
+          (e: StatusEffect) => e.id === "strength" || e.name === "Strength"
         );
         if (strength) {
           statusBonus += strength.value * 3; // Each stack adds 3 base value (reduced from 5)
           breakdown.push(`Strength: +${strength.value * 3}`);
         }
         
-        // Check for Weak debuff (reduces Attack damage by 50%)
+        // Check for Weak debuff (reduces Attack damage by 25% per stack)
         const weak = player.statusEffects.find(
-          (e: StatusEffect) => e.name === "Weak"
+          (e: StatusEffect) => e.id === "weak" || e.name === "Weak"
         );
         if (weak) {
-          hasWeakDebuff = true;
+          weakStacks = weak.value;
         }
       }
       // For defend actions, add Dexterity bonus
@@ -219,10 +220,11 @@ export class DamageCalculator {
       breakdown.push(`Special Modifier: ×0.6`);
     }
     
-    // 8. Apply Weak debuff (reduces Attack damage by 50%)
-    if (hasWeakDebuff && actionType === "attack") {
-      finalValue = Math.floor(finalValue * 0.5);
-      breakdown.push(`⚠️ Weak: ×0.5`);
+    // 8. Apply Weak debuff (reduces Attack damage by 25% per stack, max 3 stacks = 75% reduction)
+    if (weakStacks > 0 && actionType === "attack") {
+      const weakMultiplier = 1.0 - (weakStacks * 0.25);
+      finalValue = Math.floor(finalValue * weakMultiplier);
+      breakdown.push(`⚠️ Weak (${weakStacks}): ×${weakMultiplier.toFixed(2)}`);
     }
 
     // 9. Apply elemental weakness/resistance multiplier (after DDA adjustments)
@@ -274,5 +276,24 @@ export class DamageCalculator {
    */
   static getHandBonusData(handType: HandType): { bonus: number; multiplier: number } {
     return this.HAND_BONUSES[handType];
+  }
+
+  /**
+   * Apply Vulnerable multiplier to damage
+   * Vulnerable makes the target take 50% more damage from all sources
+   * @param damage - Base damage value
+   * @param target - Target entity to check for Vulnerable status
+   * @returns Modified damage value
+   */
+  static applyVulnerableMultiplier(damage: number, target: CombatEntity): number {
+    const vulnerable = target.statusEffects.find(
+      (e: StatusEffect) => e.id === "vulnerable" || e.name === "Vulnerable"
+    );
+    
+    if (vulnerable && vulnerable.value > 0) {
+      return Math.floor(damage * 1.5);
+    }
+    
+    return damage;
   }
 }
