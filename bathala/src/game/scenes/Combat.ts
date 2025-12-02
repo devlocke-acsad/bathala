@@ -1327,6 +1327,33 @@ export class Combat extends Scene {
       this.showActionResult(`${enemy.name} weakens you!`);
       this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'weak', 1);
       this.ui.updatePlayerUI();
+    } else if (currentAction === "confuse" || currentAction === "disrupt_draw" || currentAction === "fear") {
+      // Enemy applies Weak (represents confusion/disruption)
+      StatusEffectManager.applyStatusEffect(this.combatState.player, 'weak', 1);
+      this.showActionResult(`${enemy.name} disrupts you!`);
+      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'weak', 1);
+      this.ui.updatePlayerUI();
+    } else if (currentAction === "charge" || currentAction === "wait") {
+      // Enemy prepares or waits (gains block)
+      const blockGained = 3;
+      enemy.block += blockGained;
+      this.showActionResult(`${enemy.name} prepares...`);
+      this.ui.updateEnemyUI();
+    } else if (currentAction === "stun") {
+      // Enemy applies Frail (represents stun effect)
+      StatusEffectManager.applyStatusEffect(this.combatState.player, 'frail', 2);
+      this.showActionResult(`${enemy.name} stuns you!`);
+      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'frail', 2);
+      this.ui.updatePlayerUI();
+    } else {
+      // Unhandled action - enemy attacks as fallback
+      console.warn(`Unhandled enemy action: ${currentAction}, defaulting to attack`);
+      let damage = enemy.damage || 10;
+      if (enemy.statusEffects.some((e) => e.name === "Weak")) {
+        damage = Math.floor(damage * 0.5);
+      }
+      this.animations.animateEnemyAttack();
+      this.damagePlayer(damage);
     }
 
     // Process end-of-turn status effects for enemy
@@ -1630,6 +1657,38 @@ export class Combat extends Scene {
         value: 1,
         description: "Applies 1 Weak",
         icon: "⚠️",
+      };
+    } else if (nextAction === "confuse" || nextAction === "disrupt_draw" || nextAction === "fear") {
+      // Enemy will disrupt/confuse player
+      enemy.intent = {
+        type: "debuff",
+        value: 1,
+        description: "Disrupts (1 Weak)",
+        icon: "😵",
+      };
+    } else if (nextAction === "charge" || nextAction === "wait") {
+      // Enemy will prepare/wait
+      enemy.intent = {
+        type: "defend",
+        value: 3,
+        description: "Prepares (3 block)",
+        icon: "⏳",
+      };
+    } else if (nextAction === "stun") {
+      // Enemy will stun player
+      enemy.intent = {
+        type: "debuff",
+        value: 2,
+        description: "Stuns (2 Frail)",
+        icon: "💫",
+      };
+    } else {
+      // Unknown action - show as attack
+      enemy.intent = {
+        type: "attack",
+        value: enemy.damage,
+        description: `Special Attack (${enemy.damage})`,
+        icon: "†",
       };
     }
 
@@ -2559,10 +2618,10 @@ export class Combat extends Scene {
 
   public getSpecialActionName(suit: Suit): string {
     const specialActions: Record<Suit, string> = {
-      Apoy: "Poison (3 stacks)",
-      Tubig: "Weak (2 stacks)",
-      Lupa: "Vulnerable",
-      Hangin: "Frail (2 stacks)",
+      Apoy: "Burn (3 stacks)",      // Poison effect, but called "Burn" for flavor
+      Tubig: "Frail (2 stacks)",    // Reduces enemy block
+      Lupa: "Vulnerable",           // Enemy takes more damage
+      Hangin: "Weak (2 stacks)",    // Reduces enemy attack
     };
     return specialActions[suit];
   }
@@ -2780,32 +2839,32 @@ export class Combat extends Scene {
     }
     
     switch (suit) {
-      case "Apoy": // Fire - Damage + Poison (3 stacks)
+      case "Apoy": // Fire - Damage + Burn (3 stacks of Poison)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const apoyAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (apoyAdditionalDamage > 0) {
           this.damageEnemy(apoyAdditionalDamage);
         }
         
-        // Apply Poison: 3 stacks (deals 2 damage per stack per turn)
+        // Apply Poison: 3 stacks (deals 2 damage per stack per turn) - displayed as "Burn"
         StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'poison', 3);
         this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'poison', 3);
         this.ui.updateEnemyUI();
-        this.ui.showSpecialEffectNotification("Apoy", "Poison", "Applied 3 stacks of Poison (6 damage/turn)");
+        this.ui.showSpecialEffectNotification("Apoy", "Burn", "Applied 3 stacks of Burn (6 damage/turn)");
         break;
         
-      case "Tubig": // Water - Damage + Weak (2 stacks)
+      case "Tubig": // Water - Damage + Frail (2 stacks)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const tubigAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (tubigAdditionalDamage > 0) {
           this.damageEnemy(tubigAdditionalDamage);
         }
         
-        // Apply Weak: 2 stacks (reduces enemy attack damage by 25% per stack)
-        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'weak', 2);
-        this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'weak', 2);
+        // Apply Frail: 2 stacks (reduces enemy block from Defend actions by 25% per stack)
+        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'frail', 2);
+        this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'frail', 2);
         this.ui.updateEnemyUI();
-        this.ui.showSpecialEffectNotification("Tubig", "Weak", "Applied 2 stacks of Weak (50% damage reduction)");
+        this.ui.showSpecialEffectNotification("Tubig", "Frail", "Applied 2 stacks of Frail (50% block reduction)");
         break;
         
       case "Lupa": // Earth - Damage + Vulnerable (2 stacks)
@@ -2822,18 +2881,18 @@ export class Combat extends Scene {
         this.ui.showSpecialEffectNotification("Lupa", "Vulnerable", "Enemy takes 50% more damage");
         break;
         
-      case "Hangin": // Air - Damage + Frail (2 stacks)
+      case "Hangin": // Air - Damage + Weak (2 stacks)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const hanginAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (hanginAdditionalDamage > 0) {
           this.damageEnemy(hanginAdditionalDamage);
         }
         
-        // Apply Frail: 2 stacks (reduces enemy block from Defend actions by 25% per stack)
-        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'frail', 2);
-        this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'frail', 2);
+        // Apply Weak: 2 stacks (reduces enemy attack damage by 25% per stack)
+        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'weak', 2);
+        this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'weak', 2);
         this.ui.updateEnemyUI();
-        this.ui.showSpecialEffectNotification("Hangin", "Frail", "Applied 2 stacks of Frail (50% block reduction)");
+        this.ui.showSpecialEffectNotification("Hangin", "Weak", "Applied 2 stacks of Weak (50% damage reduction)");
         break;
     }
   }

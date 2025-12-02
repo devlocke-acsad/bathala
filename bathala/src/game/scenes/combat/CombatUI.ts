@@ -1148,6 +1148,9 @@ export class CombatUI {
     this.playerHealthText.setText(`♥ ${currentHealth}/${maxHealth}`);
     this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
     
+    // Update status effect display
+    this.updateStatusEffectDisplay(player, this.playerStatusContainer);
+    
     // Schedule relic inventory update instead of immediate update
     this.scheduleRelicInventoryUpdate();
   }
@@ -1183,6 +1186,9 @@ export class CombatUI {
     } else {
       this.enemyIntentText.setColor("#feca57"); // Default yellow
     }
+    
+    // Update status effect display
+    this.updateStatusEffectDisplay(enemy, this.enemyStatusContainer);
   }
   
   /**
@@ -1294,6 +1300,109 @@ export class CombatUI {
         }
       });
     }
+  }
+  
+  /**
+   * Update status effect display for a target entity
+   * Renders status effect icons with stack counts and tooltips
+   */
+  private updateStatusEffectDisplay(
+    target: any,
+    container: Phaser.GameObjects.Container
+  ): void {
+    // Clear existing status effect display
+    container.removeAll(true);
+    
+    if (!target.statusEffects || target.statusEffects.length === 0) {
+      return;
+    }
+    
+    // Sort status effects: buffs first, then debuffs
+    const sortedEffects = [...target.statusEffects].sort((a, b) => {
+      if (a.type === 'buff' && b.type === 'debuff') return -1;
+      if (a.type === 'debuff' && b.type === 'buff') return 1;
+      return 0;
+    });
+    
+    // Display each status effect
+    const spacing = 35;
+    const startX = -(sortedEffects.length - 1) * spacing / 2;
+    
+    sortedEffects.forEach((effect, index) => {
+      const x = startX + index * spacing;
+      
+      // Create status effect icon with stack count
+      const effectContainer = this.scene.add.container(x, 0);
+      
+      // Background circle for the icon
+      const bg = this.scene.add.circle(0, 0, 16, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b, 0.3);
+      const border = this.scene.add.circle(0, 0, 16, undefined, 0).setStrokeStyle(2, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b);
+      
+      // Status effect emoji
+      const icon = this.scene.add.text(0, 0, effect.emoji, {
+        fontSize: '20px',
+      }).setOrigin(0.5);
+      
+      // Stack count
+      const stackText = this.scene.add.text(12, 12, effect.value.toString(), {
+        fontFamily: "dungeon-mode",
+        fontSize: 14,
+        color: "#ffffff",
+        stroke: "#000000",
+        strokeThickness: 3,
+      }).setOrigin(0.5);
+      
+      effectContainer.add([bg, border, icon, stackText]);
+      effectContainer.setInteractive(
+        new Phaser.Geom.Circle(0, 0, 16),
+        Phaser.Geom.Circle.Contains
+      );
+      
+      // Add tooltip on hover
+      let tooltip: Phaser.GameObjects.Container | null = null;
+      
+      effectContainer.on('pointerover', () => {
+        // Create tooltip
+        const tooltipWidth = 200;
+        const tooltipHeight = 80;
+        
+        tooltip = this.scene.add.container(x, 40);
+        
+        const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
+          .setStrokeStyle(2, 0x77888C);
+        const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
+          .setStrokeStyle(2, 0x77888C);
+        const tooltipBg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+        
+        const titleText = this.scene.add.text(0, -20, `${effect.emoji} ${effect.name}`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 16,
+          color: effect.type === 'buff' ? "#2ed573" : "#ff6b6b",
+          align: "center",
+        }).setOrigin(0.5);
+        
+        const descText = this.scene.add.text(0, 10, `${effect.description}\nStacks: ${effect.value}`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 12,
+          color: "#77888C",
+          align: "center",
+          wordWrap: { width: tooltipWidth - 20 }
+        }).setOrigin(0.5);
+        
+        tooltip.add([outerBorder, innerBorder, tooltipBg, titleText, descText]);
+        tooltip.setDepth(7000);
+        container.add(tooltip);
+      });
+      
+      effectContainer.on('pointerout', () => {
+        if (tooltip) {
+          tooltip.destroy();
+          tooltip = null;
+        }
+      });
+      
+      container.add(effectContainer);
+    });
   }
   
   /**
