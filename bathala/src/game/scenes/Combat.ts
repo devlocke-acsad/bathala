@@ -43,6 +43,26 @@ import { ElementalAffinitySystem } from "../../core/managers/ElementalAffinitySy
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
  * Player on left, enemy on right, cards at bottom
+ * 
+ * Features:
+ * - Poker-based combat system with Attack, Defend, and Special actions
+ * - Status effect system with 8 core effects (Poison, Weak, Strength, etc.)
+ * - Elemental weakness/resistance system (Fire, Water, Earth, Air)
+ * - Dynamic Difficulty Adjustment (DDA) system
+ * - Relic system with combat modifiers
+ * 
+ * Combat Flow:
+ * 1. Player turn starts: Process start-of-turn status effects
+ * 2. Player selects cards and action type
+ * 3. Damage/block calculated with elemental multipliers
+ * 4. Status effects applied (if Special action)
+ * 5. Player turn ends: Process end-of-turn status effects
+ * 6. Enemy turn: Process status effects, execute action
+ * 7. Repeat until combat ends
+ * 
+ * @see StatusEffectManager for status effect processing
+ * @see ElementalAffinitySystem for elemental calculations
+ * @see DamageCalculator for damage/block calculations
  */
 export class Combat extends Scene {
   public ui!: CombatUI;

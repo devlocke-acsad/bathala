@@ -276,7 +276,13 @@
   - Playtest several combats to verify difficulty feels appropriate
   - _Requirements: All (balance)_
 
-- [ ]* 18. Documentation and polish
+- [x] 18. Documentation and polish
+
+
+
+
+
+
   - Update code comments for new systems
   - Add JSDoc documentation for public APIs
   - Update README with new combat mechanics

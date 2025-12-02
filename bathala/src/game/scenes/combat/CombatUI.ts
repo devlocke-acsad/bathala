@@ -49,6 +49,28 @@ function getRelicSpriteKey(relicId: string): string {
 /**
  * CombatUI - Handles all UI creation, updates, and management for Combat scene
  * 
+ * Responsibilities:
+ * - Card display and selection
+ * - Status effect visualization (icons, tooltips, animations)
+ * - Elemental affinity indicators (weakness/resistance icons)
+ * - Health, block, and intent displays
+ * - Damage preview and breakdown
+ * - Relic display
+ * 
+ * Status Effect Display:
+ * - Shows icons above player and enemy sprites
+ * - Displays stack count for each effect
+ * - Provides tooltips with effect descriptions
+ * - Orders effects consistently (buffs first, then debuffs)
+ * 
+ * Elemental Affinity Display:
+ * - Shows weakness and resistance icons near enemy health
+ * - Uses element symbols (🔥💧🌿💨)
+ * - Provides tooltips explaining the affinity
+ * 
+ * @see StatusEffectManager for status effect data
+ * @see ElementalAffinitySystem for elemental affinity data
+ * 
  * This class manages:
  * - UI element creation (player, enemy, cards, buttons, etc.)
  * - UI updates (health, block, status effects, etc.)

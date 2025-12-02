@@ -1,6 +1,6 @@
 # Bathala: A Filipino-Mythology Roguelike Card Game
 
-This is the implementation of **Bathala**, a Filipino mythology-inspired roguelike card game featuring poker-based combat, deck-sculpting mechanics, and a rule-based Dynamic Difficulty Adjustment (DDA) system. This project serves as a thesis focusing on the design and validation of a transparent, rule-based DDA system to maintain player "flow" through measurable performance metrics.
+This is the implementation of **Bathala**, a Filipino mythology-inspired roguelike card game featuring poker-based combat, deck-sculpting mechanics, status effects, elemental weaknesses, and a rule-based Dynamic Difficulty Adjustment (DDA) system. This project serves as a thesis focusing on the design and validation of a transparent, rule-based DDA system to maintain player "flow" through measurable performance metrics.
 
 Built with [Phaser 3.90.0](https://github.com/phaserjs/phaser) and [Vite 6.3.1](https://github.com/vitejs/vite) for bundling with TypeScript support.
 
@@ -9,6 +9,51 @@ Built with [Phaser 3.90.0](https://github.com/phaserjs/phaser) and [Vite 6.3.1](
 ## 🎓 Thesis Project
 
 This project is part of a thesis on game design and dynamic difficulty adjustment systems. The core research focuses on maintaining player "flow" using a rule-based system that adapts to performance metrics without affecting the core game experience.
+
+## 🎮 Combat Mechanics
+
+### Poker-Based Combat System
+
+Bathala features a unique poker-based combat system where players form poker hands from a deck of Filipino-themed cards to execute actions:
+
+- **Attack**: Deal damage to enemies based on hand strength
+- **Defend**: Gain block (temporary shield) to absorb incoming damage
+- **Special**: Execute elemental abilities with status effect applications
+
+### Status Effects
+
+The game includes 8 core status effects inspired by Slay the Spire:
+
+**Buffs:**
+- **💪 Strength**: Attack actions deal +3 damage per stack
+- **🛡️ Plated Armor**: Gain block at start of turn, then reduces by 1 stack
+- **💚 Regeneration**: Heal HP at start of turn, then reduces by 1 stack
+- **✨ Ritual**: Gain +1 Strength at end of turn
+
+**Debuffs:**
+- **☠️ Poison**: Takes damage at start of turn, then reduces by 1 stack
+- **⚠️ Weak**: Attack actions deal 25% less damage per stack (max 3 stacks)
+- **🛡️💔 Vulnerable**: Takes 50% more damage from all sources
+- **🔻 Frail**: Defend actions grant 25% less block per stack (max 3 stacks)
+
+### Elemental System
+
+Each enemy has predefined elemental weaknesses and resistances based on Filipino mythology:
+
+**Elements:**
+- **🔥 Apoy (Fire)**: Special action applies 3 stacks of Poison
+- **💧 Tubig (Water)**: Special action heals 8 HP
+- **🌿 Lupa (Earth)**: Special action grants 3 stacks of Plated Armor
+- **💨 Hangin (Air)**: Special action applies 2 stacks of Weak
+
+**Elemental Multipliers:**
+- **Weakness**: 1.5× damage when using the enemy's weak element
+- **Resistance**: 0.75× damage when using the enemy's resistant element
+- **Neutral**: 1.0× damage for all other elements
+
+The dominant element in your hand determines which elemental multiplier applies, adding strategic depth to card selection beyond just poker hand strength.
+
+**For a comprehensive guide to combat mechanics, status effects, and strategies, see [COMBAT_MECHANICS_GUIDE.md](COMBAT_MECHANICS_GUIDE.md)**
 
 ## Requirements
 
@@ -43,9 +88,16 @@ We have adapted the default template structure to fit our thesis project:
 | `public/style.css`           | Global layout styles                                       |
 | `src/main.ts`                | Application bootstrap                                      |
 | `src/core`                   | Core game systems (combat, DDA, progression)               |
+| `src/core/managers`          | Status effects, elemental affinities, relics               |
 | `src/data`                   | Game data (cards, enemies, relics, potions)                |
 | `src/utils`                  | Utility functions and helpers                              |
-| `src/tests`                  | Unit and integration tests                                 |
+| `src/game/scenes`            | Phaser scenes (Combat, Overworld, etc.)                    |
+
+## Documentation
+
+- **[COMBAT_MECHANICS_GUIDE.md](COMBAT_MECHANICS_GUIDE.md)**: Player-facing guide to combat mechanics, status effects, and strategies
+- **[COMBAT_SYSTEM_ARCHITECTURE.md](COMBAT_SYSTEM_ARCHITECTURE.md)**: Developer documentation for the combat system architecture
+- **[PLAYTEST_GUIDE.md](PLAYTEST_GUIDE.md)**: Guide for playtesting and providing feedback
 
 ## Handling Assets
 
