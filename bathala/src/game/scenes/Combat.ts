@@ -10,6 +10,7 @@ import {
   Landas,
   HandType,
   StatusEffect,
+  CombatEntity,
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
@@ -35,6 +36,7 @@ import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { DifficultyAdjustment } from "../../core/dda/DDATypes";
 import { commonPotions } from "../../data/potions/Act1Potions";
 import { MusicManager } from "../../core/managers/MusicManager";
+import { StatusEffectManager, StatusEffectTriggerResult } from "../../core/managers/StatusEffectManager";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -229,6 +231,9 @@ export class Combat extends Scene {
 
     // Add 50% opacity overlay with #150E10 to dim the background (Prologue style)
     const overlay = this.add.rectangle(this.cameras.main.centerX, this.cameras.main.centerY, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.50);
+
+    // Initialize StatusEffectManager
+    StatusEffectManager.initialize();
 
     // Initialize CombatDDA first (needed by initializeCombat)
     this.dda = new CombatDDA(this);
@@ -1179,11 +1184,41 @@ export class Combat extends Scene {
   }
 
   /**
+   * Apply status effects to a target at a specific timing
+   * Processes effects and cleans up expired ones
+   */
+  private applyStatusEffects(
+    target: CombatEntity,
+    timing: 'start_of_turn' | 'end_of_turn'
+  ): void {
+    // Process status effects at the specified timing
+    const results = StatusEffectManager.processStatusEffects(target, timing);
+    
+    // Display feedback for each triggered effect
+    results.forEach(result => {
+      this.showActionResult(result.message);
+    });
+    
+    // Clean up expired effects (those with 0 stacks)
+    StatusEffectManager.cleanupExpiredEffects(target);
+    
+    // Update UI to reflect changes
+    if (target === this.combatState.player) {
+      this.ui.updatePlayerUI();
+    } else {
+      this.ui.updateEnemyUI();
+    }
+  }
+
+  /**
    * End player turn
    */
   private endPlayerTurn(): void {
     // Apply end-of-turn relic effects
     RelicManager.applyEndOfTurnEffects(this.combatState.player);
+    
+    // Process end-of-turn status effects for player
+    this.applyStatusEffects(this.combatState.player, 'end_of_turn');
     
     this.combatState.phase = "enemy_turn";
     this.selectedCards = [];
@@ -1205,7 +1240,8 @@ export class Combat extends Scene {
       return;
     }
 
-    this.applyStatusEffects(this.combatState.enemy);
+    // Process start-of-turn status effects for enemy
+    this.applyStatusEffects(this.combatState.enemy, 'start_of_turn');
 
     const enemy = this.combatState.enemy;
 
@@ -1224,6 +1260,9 @@ export class Combat extends Scene {
       // Update enemy intent for next turn
       this.updateEnemyIntent();
       
+      // Process end-of-turn cleanup for enemy
+      this.applyStatusEffects(enemy, 'end_of_turn');
+      
       // Start new player turn
       this.time.delayedCall(1500, () => {
         this.startPlayerTurn();
@@ -1231,16 +1270,44 @@ export class Combat extends Scene {
       return;
     }
 
-    // Apply enemy action - ALWAYS ATTACK (simplified combat)
-    // Calculate damage with Weak modifier
-    let damage = enemy.damage || enemy.intent.value || 12;
-    if (enemy.statusEffects.some((e) => e.name === "Weak")) {
-      damage = Math.floor(damage * 0.5);
-    }
+    // Execute enemy action based on attack pattern
+    const currentAction = enemy.attackPattern[enemy.currentPatternIndex];
     
-    console.log(`Enemy attacking for ${damage} damage`);
-    this.animations.animateEnemyAttack();
-    this.damagePlayer(damage);
+    if (currentAction === "attack") {
+      // Calculate damage with Weak modifier
+      let damage = enemy.damage || enemy.intent.value || 12;
+      if (enemy.statusEffects.some((e) => e.name === "Weak")) {
+        damage = Math.floor(damage * 0.5);
+      }
+      
+      console.log(`Enemy attacking for ${damage} damage`);
+      this.animations.animateEnemyAttack();
+      this.damagePlayer(damage);
+    } else if (currentAction === "defend") {
+      // Enemy gains block
+      const blockGained = 5;
+      enemy.block += blockGained;
+      this.showActionResult(`${enemy.name} gains ${blockGained} block!`);
+      this.ui.updateEnemyUI();
+    } else if (currentAction === "strengthen") {
+      // Enemy applies 2 stacks of Strength to itself
+      StatusEffectManager.applyStatusEffect(enemy, 'strength', 2);
+      this.showActionResult(`${enemy.name} gains 2 Strength!`);
+      this.ui.updateEnemyUI();
+    } else if (currentAction === "poison") {
+      // Enemy applies 2 stacks of Poison to player
+      StatusEffectManager.applyStatusEffect(this.combatState.player, 'poison', 2);
+      this.showActionResult(`${enemy.name} poisons you for 2 stacks!`);
+      this.ui.updatePlayerUI();
+    } else if (currentAction === "weaken") {
+      // Enemy applies 1 stack of Weak to player
+      StatusEffectManager.applyStatusEffect(this.combatState.player, 'weak', 1);
+      this.showActionResult(`${enemy.name} weakens you!`);
+      this.ui.updatePlayerUI();
+    }
+
+    // Process end-of-turn status effects for enemy
+    this.applyStatusEffects(enemy, 'end_of_turn');
 
     // Update enemy intent for next turn
     this.updateEnemyIntent();
@@ -1261,7 +1328,14 @@ export class Combat extends Scene {
       return;
     }
 
-    this.applyStatusEffects(this.combatState.player);
+    // Process start-of-turn status effects for player
+    this.applyStatusEffects(this.combatState.player, 'start_of_turn');
+
+    // Check if player died from status effects
+    if (this.combatState.player.currentHealth <= 0 || this.combatEnded) {
+      console.log("Player defeated after status effects");
+      return;
+    }
 
     this.combatState.phase = "player_turn";
     
@@ -3206,52 +3280,7 @@ export class Combat extends Scene {
     this.updateStatusEffectUI(entity);
   }
 
-  private applyStatusEffects(entity: Player | Enemy): void {
-    entity.statusEffects.forEach((effect) => {
-      switch (effect.name) {
-        case "Burn":
-          this.damage(entity, effect.value);
-          effect.duration--;
-          break;
-        case "Regeneration":
-          this.heal(entity, effect.value);
-          effect.duration--;
-          break;
-        case "Stunned":
-          // Stun: No action needed here, just decrement duration
-          // The stun check happens in executeEnemyTurn()
-          effect.duration--;
-          console.log(`[Stunned] Duration decremented to ${effect.duration}`);
-          break;
-        case "Weak":
-          // Weak: Reduces damage dealt (applied in damagePlayer/damageEnemy)
-          // Just decrement duration each turn
-          effect.duration--;
-          console.log(`[Weak] Duration decremented to ${effect.duration}`);
-          break;
-        case "Vulnerable":
-          // Vulnerable: Increases damage taken (applied in damagePlayer/damageEnemy)
-          // Just decrement duration each turn
-          effect.duration--;
-          break;
-        case "Strength":
-        case "Dexterity":
-          // Strength/Dexterity: Permanent buffs (duration 999)
-          // No decrement needed
-          break;
-        default:
-          // For any other status effects, decrement duration by default
-          effect.duration--;
-          break;
-      }
-    });
 
-    entity.statusEffects = entity.statusEffects.filter(
-      (effect) => effect.duration > 0
-    );
-
-    this.updateStatusEffectUI(entity);
-  }
 
   private updateStatusEffectUI(entity: Player | Enemy): void {
     // Check if containers are initialized

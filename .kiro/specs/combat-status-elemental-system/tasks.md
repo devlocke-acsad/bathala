@@ -77,7 +77,12 @@
   - Use thematic assignments: Fire weak to Water/resist Earth, Water weak to Earth/resist Fire, Earth weak to Air/resist Water, Air weak to Fire/resist Air
   - _Requirements: 1.1, 1.5_
 
-- [ ] 5. Integrate status effects into Combat scene
+- [x] 5. Integrate status effects into Combat scene
+
+
+
+
+
   - Add StatusEffectManager.initialize() call in Combat.create()
   - Add status effect processing at start of player turn (call StatusEffectManager.processStatusEffects)
   - Add status effect processing at start of enemy turn
