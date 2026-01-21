@@ -1877,6 +1877,329 @@ export class ExperimentManager {
 
 ---
 
+## Chapter System & Multi-Act Implementation
+
+### Overview
+
+Bathala features a three-act structure with distinct visual themes, enemies, relics, and potions for each chapter. The chapter system tracks player progression and applies chapter-specific content dynamically.
+
+### Chapter Progression
+
+#### GameState Chapter Tracking
+
+```typescript
+// Chapter progression properties in GameState
+public currentChapter: Chapter = 1;
+public unlockedChapters: Set<Chapter> = new Set([1]);
+public chapterCompletions: Map<Chapter, boolean> = new Map();
+
+// Chapter management methods
+unlockChapter(chapter: Chapter): void
+setCurrentChapter(chapter: Chapter): void
+getCurrentChapter(): Chapter
+isChapterUnlocked(chapter: Chapter): boolean
+completeChapter(chapter: Chapter): void
+isChapterCompleted(chapter: Chapter): boolean
+```
+
+**Chapter Unlocking Flow**:
+1. Player starts with Chapter 1 unlocked
+2. Defeating Chapter 1 boss (Mangangaway) unlocks Chapter 2
+3. Defeating Chapter 2 boss (Bakunawa) unlocks Chapter 3
+4. Defeating Chapter 3 boss (False Bathala) triggers epilogue
+
+### Visual Theme System
+
+#### VisualThemeManager
+
+The `VisualThemeManager` applies chapter-specific color overlays to differentiate the visual atmosphere:
+
+```typescript
+// Chapter theme configuration
+public static readonly CHAPTER_THEMES: Record<Chapter, ChapterTheme> = {
+  1: {
+    overlayColor: 0x8B7355, // Brown/earth tones
+    overlayAlpha: 0.15,
+  },
+  2: {
+    overlayColor: 0x4A90E2, // Blue/teal for underwater
+    overlayAlpha: 0.20,
+  },
+  3: {
+    overlayColor: 0xFFD700, // Gold for celestial
+    overlayAlpha: 0.18,
+  },
+};
+
+// Usage in combat scenes
+const themeManager = new VisualThemeManager(this);
+themeManager.applyChapterTheme(gameState.getCurrentChapter());
+```
+
+**Implementation Details**:
+- Overlay is rendered as a `Phaser.GameObjects.Graphics` object
+- Depth set to 5 (above background, below UI)
+- Scrolls with camera for seamless integration
+- Automatically cleaned up on scene transitions
+
+### Chapter-Specific Content
+
+#### Act 2: The Submerged Barangays
+
+**Theme**: Water and Fire elements  
+**File Location**: `bathala/src/data/enemies/Act2Enemies.ts`
+
+**Enemy Scaling**:
+- Common: 15-40 HP base × 8 = 120-320 HP
+- Elite: 68-85 HP base × 6 = 408-510 HP
+- Boss (Bakunawa): 150 HP base × 6 = 900 HP
+
+**Enemies** (10 total):
+- 7 Common: Sirena, Siyokoy, Santelmo, Berberoka, Magindara, Kataw, Berbalang
+- 2 Elite: Sunken Bangkilan, Apoy-Tubig Fury
+- 1 Boss: Bakunawa
+
+**Relics** (10 total):
+- File: `bathala/src/data/relics/Act2Relics.ts`
+- Categories: Common (4), Elite (4), Boss (1), Treasure (1)
+- Focus: Water/Fire synergies, healing, burn damage
+
+**Potions** (10 total):
+- File: `bathala/src/data/potions/Act2Potions.ts`
+- Rarities: Common (4), Uncommon (4), Rare (2)
+- Effects: Healing, burn, block, card draw
+
+#### Act 3: The Skyward Citadel
+
+**Theme**: Multi-element (all four elements)  
+**File Location**: `bathala/src/data/enemies/Act3Enemies.ts`
+
+**Enemy Scaling**:
+- Common: 22-38 HP base × 8 = 176-304 HP
+- Elite: 45-85 HP base × 6 = 270-510 HP
+- Boss (False Bathala): 200 HP base × 6 = 1200 HP
+
+**Enemies** (10 total):
+- 7 Common: Tigmamanukan, Diwata, Sarimanok, Bulalakaw, Minokawa, Alan, Ekek
+- 2 Elite: Ribung Linti Duo, Apolaki Godling
+- 1 Boss: False Bathala
+
+**Relics** (10 total):
+- File: `bathala/src/data/relics/Act3Relics.ts`
+- Categories: Common (4), Elite (4), Boss (1), Treasure (1)
+- Focus: Multi-element combos, card draw, effect resistance
+
+**Potions** (10 total):
+- File: `bathala/src/data/potions/Act3Potions.ts`
+- Rarities: Common (4), Uncommon (4), Rare (2)
+- Effects: Card draw, healing, damage, debuff removal
+
+### Enemy Data Structure
+
+All enemies follow a consistent structure across all acts:
+
+```typescript
+interface Enemy {
+  name: string;
+  maxHealth: number;
+  currentHealth: number;
+  block: number;
+  statusEffects: StatusEffect[];
+  intent: EnemyIntent;
+  damage: number;
+  attackPattern: string[];
+  currentPatternIndex: number;
+  elementalAffinity: {
+    weakness: Element | null;
+    resistance: Element | null;
+  };
+}
+```
+
+**Attack Pattern Actions**:
+- `"attack"` - Deal damage
+- `"defend"` - Gain block
+- `"weaken"` - Apply Weak debuff
+- `"strengthen"` - Apply Strength buff
+- `"poison"` - Apply Burn debuff
+- `"heal"` - Restore HP (Act 2)
+- `"charm"` - Apply miss chance (Act 2)
+- `"nullify"` - Remove buffs (Act 3)
+
+### Combat Integration
+
+#### Loading Chapter-Specific Enemies
+
+```typescript
+// In Combat.ts
+import * as Act1Enemies from "../../data/enemies/Act1Enemies";
+import * as Act2Enemies from "../../data/enemies/Act2Enemies";
+import * as Act3Enemies from "../../data/enemies/Act3Enemies";
+
+// Select enemy pool based on current chapter
+const chapter = gameState.getCurrentChapter();
+let enemyPool;
+
+switch (chapter) {
+  case 1:
+    enemyPool = Act1Enemies.ACT1_COMMON_ENEMIES;
+    break;
+  case 2:
+    enemyPool = Act2Enemies.ACT2_COMMON_ENEMIES;
+    break;
+  case 3:
+    enemyPool = Act3Enemies.ACT3_COMMON_ENEMIES;
+    break;
+}
+```
+
+#### Applying Visual Themes
+
+```typescript
+// In Combat.ts create() method
+const themeManager = new VisualThemeManager(this);
+themeManager.applyChapterTheme(gameState.getCurrentChapter());
+```
+
+### Dev Mode Chapter Navigation
+
+#### CombatDebugScene Integration
+
+For testing and development, the `CombatDebugScene` includes chapter navigation buttons:
+
+```typescript
+// Chapter navigation buttons
+const chapter1Button = this.add.text(10, 150, "Jump to Chapter 1", {
+  fontSize: "16px",
+  color: "#ffffff",
+  backgroundColor: "#8B7355",
+  padding: { x: 10, y: 5 },
+})
+.setInteractive()
+.on("pointerdown", () => {
+  gameState.setCurrentChapter(1);
+  gameState.unlockChapter(1);
+  this.scene.restart();
+});
+
+// Similar buttons for Chapter 2 and Chapter 3
+```
+
+**Dev Mode Features**:
+- Instant chapter switching without progression requirements
+- Automatically unlocks selected chapter
+- Restarts scene with new chapter context
+- Preserves other debug functionality (DDA testing, combat simulation)
+
+**Accessing Dev Mode**:
+1. Press `D` key during gameplay to open debug menu
+2. Click chapter navigation buttons
+3. Scene restarts with selected chapter's content
+
+### Dialogue System
+
+Each enemy has complete dialogue for all combat outcomes:
+
+```typescript
+interface EnemyDialogue {
+  introduction: string;  // Battle start
+  defeat: string;        // When player wins
+  spare: string;         // If player shows mercy
+  slay: string;          // If player executes
+}
+
+// Usage
+const dialogue = getCompleteDialogue(enemy.name);
+console.log(dialogue.introduction);
+```
+
+**Dialogue Functions**:
+- `getEnemyDialogue(name)` - Short intro text
+- `getBattleStartDialogue(name)` - Extended intro
+- `getCompleteDialogue(name)` - Full dialogue set
+
+### Lore Integration
+
+All enemies include lore source citations:
+
+```typescript
+/**
+ * Bakunawa
+ * Lore: Great dragon/serpent that devours the moon, causes eclipses
+ * Source: Filipino mythology - Bakunawa (moon-eating dragon)
+ */
+```
+
+**Lore Sources**:
+- Act 1: Forest/earth creatures (Tikbalang, Kapre, Duwende)
+- Act 2: Water/fire creatures (Sirena, Bakunawa, Santelmo)
+- Act 3: Celestial beings (Tigmamanukan, Apolaki, False Bathala)
+
+### Testing Chapter System
+
+#### Unit Tests
+
+```typescript
+// Test chapter progression
+test("Chapter unlocking is monotonic", () => {
+  const gameState = GameState.getInstance();
+  gameState.reset();
+  
+  expect(gameState.getCurrentChapter()).toBe(1);
+  gameState.completeChapter(1);
+  expect(gameState.isChapterUnlocked(2)).toBe(true);
+});
+
+// Test visual theme application
+test("Visual theme applies correct overlay", () => {
+  const scene = new MockScene();
+  const themeManager = new VisualThemeManager(scene);
+  
+  themeManager.applyChapterTheme(2);
+  expect(themeManager.isThemeActive()).toBe(true);
+});
+```
+
+#### Integration Tests
+
+```typescript
+// Test complete chapter flow
+test("Act 2 combat loads correct enemies", () => {
+  gameState.setCurrentChapter(2);
+  const combat = new Combat();
+  
+  expect(combat.enemy.name).toMatch(/Sirena|Siyokoy|Bakunawa/);
+});
+```
+
+### Performance Considerations
+
+**Asset Loading**:
+- Enemy data is lazy-loaded per chapter
+- Visual overlays use efficient Graphics API
+- Theme transitions are instantaneous (no animation overhead)
+
+**Memory Management**:
+- Previous chapter data is not cached
+- Overlay graphics are destroyed on scene transitions
+- Enemy pools are garbage collected when not in use
+
+### Future Extensibility
+
+The chapter system is designed for easy expansion:
+
+```typescript
+// Adding Act 4
+// 1. Create Act4Enemies.ts with enemy definitions
+// 2. Create Act4Relics.ts with relic definitions
+// 3. Create Act4Potions.ts with potion definitions
+// 4. Add theme to VisualThemeManager.CHAPTER_THEMES
+// 5. Update Chapter type: type Chapter = 1 | 2 | 3 | 4;
+// 6. Add case to Combat.ts enemy loading switch
+```
+
+---
+
 ## Troubleshooting
 
 ### Common Development Issues

@@ -7,10 +7,18 @@ import {
   act1EliteRelics, 
   act1BossRelics, 
   act1TreasureRelics,
-  act1MythologicalRelics
+  act1MythologicalRelics,
+  act2CommonRelics,
+  act2EliteRelics,
+  act2BossRelics,
+  act2TreasureRelics,
+  act3CommonRelics,
+  act3EliteRelics,
+  act3BossRelics,
+  act3TreasureRelics
 } from "../../data/relics";
 import { allShopItems } from "../../data/relics/ShopItems";
-import { Potion, commonPotions } from "../../data/potions/Act1Potions";
+import { Potion, getChapterCommonPotions } from "../../data/potions";
 
 // Treasure reward can be either a Relic or a Potion
 type TreasureReward = 
@@ -77,27 +85,56 @@ export class Treasure extends Scene {
       this.player.potions = [];
     }
     
+    // Get current chapter to determine which relic pool to use
+    const currentChapter = gameState.getCurrentChapter();
+    
     // Get all shop relic IDs to exclude from treasure
     const shopRelicIds = new Set(allShopItems.map(item => item.item.id));
     
+    // Select chapter-specific relic pools
+    let commonRelics: Relic[];
+    let eliteRelics: Relic[];
+    let treasureRelics: Relic[];
+    let mythologicalRelics: Relic[] = []; // Only Act 1 has mythological relics
+    
+    switch (currentChapter) {
+      case 2:
+        commonRelics = act2CommonRelics;
+        eliteRelics = act2EliteRelics;
+        treasureRelics = act2TreasureRelics;
+        break;
+      case 3:
+        commonRelics = act3CommonRelics;
+        eliteRelics = act3EliteRelics;
+        treasureRelics = act3TreasureRelics;
+        break;
+      case 1:
+      default:
+        commonRelics = act1CommonRelics;
+        eliteRelics = act1EliteRelics;
+        treasureRelics = act1TreasureRelics;
+        mythologicalRelics = act1MythologicalRelics;
+        break;
+    }
+    
     // Create weighted pool with drop rates
-    // After filtering shop relics, primary pool is Mythological relics (9 relics)
-    // EXCLUDES: Shop relics (15 total) and Boss relics (reserved for boss rewards)
+    // After filtering shop relics, primary pool is chapter-specific relics
+    // EXCLUDES: Shop relics and Boss relics (reserved for boss rewards)
     const weightedPool: Array<{ relic: Relic; weight: number }> = [
       // Common relics - 50% total (filter out shop relics)
-      ...act1CommonRelics
+      ...commonRelics
         .filter(relic => !shopRelicIds.has(relic.id))
         .map(relic => ({ relic, weight: 12.5 })),
       // Elite relics - 35% total (filter out shop relics)
-      ...act1EliteRelics
+      ...eliteRelics
         .filter(relic => !shopRelicIds.has(relic.id))
         .map(relic => ({ relic, weight: 8.75 })),
       // Treasure relics - 15% total (filter out shop relics)
-      ...act1TreasureRelics
+      ...treasureRelics
         .filter(relic => !shopRelicIds.has(relic.id))
         .map(relic => ({ relic, weight: 7.5 })),
-      // Mythological relics - Equal weight distribution (NOT in shop)
-      ...act1MythologicalRelics
+      // Mythological relics - Equal weight distribution (only Act 1)
+      ...mythologicalRelics
         .map(relic => ({ relic, weight: 11.11 })),
     ];
     
@@ -131,11 +168,16 @@ export class Treasure extends Scene {
     
     // Add potion if applicable
     if (shouldIncludePotion) {
-      const healingPotion = commonPotions.find(p => p.id === "healing_potion");
-      if (healingPotion) {
+      // Get chapter-specific common potions
+      const chapterCommonPotions = getChapterCommonPotions(currentChapter);
+      
+      // Select a random common potion from the chapter
+      const randomPotion = chapterCommonPotions[Math.floor(Math.random() * chapterCommonPotions.length)];
+      
+      if (randomPotion) {
         // Insert potion at random position (0, 1, or 2)
         const insertIndex = Math.floor(Math.random() * 3);
-        this.rewardOptions.splice(insertIndex, 0, { type: "potion" as const, item: healingPotion });
+        this.rewardOptions.splice(insertIndex, 0, { type: "potion" as const, item: randomPotion });
       }
     }
   }
@@ -594,11 +636,16 @@ export class Treasure extends Scene {
     // 80% chance to also find a healing potion if player has space (max 3 potions)
     let potionMessage = "";
     if (this.player.potions.length < 3 && Math.random() < 0.8) {
-      // Give healing potion (only healing, no other effects)
-      const healingPotion = commonPotions.find(p => p.id === "healing_potion");
-      if (healingPotion) {
-        this.player.potions.push(healingPotion);
-        potionMessage = " + Healing Potion!";
+      // Get chapter-specific common potions
+      const gameState = GameState.getInstance();
+      const currentChapter = gameState.getCurrentChapter();
+      const chapterCommonPotions = getChapterCommonPotions(currentChapter);
+      
+      // Give a random common potion from the chapter
+      const randomPotion = chapterCommonPotions[Math.floor(Math.random() * chapterCommonPotions.length)];
+      if (randomPotion) {
+        this.player.potions.push(randomPotion);
+        potionMessage = ` + ${randomPotion.name}!`;
       }
     }
     

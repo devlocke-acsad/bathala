@@ -9,3 +9,5 @@ export { ElementalAffinitySystem } from './ElementalAffinitySystem';
 export type { ElementalAffinity } from './ElementalAffinitySystem';
 
 export { RelicManager } from './RelicManager';
+
+export { VisualThemeManager } from './VisualThemeManager';

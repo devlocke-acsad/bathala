@@ -608,40 +608,74 @@ Execute the defeated enemy
 ### Chapter 2: The Submerged Barangays
 
 **Elements**: Water & Fire  
-**Setting**: Sunken villages and volcanic islands
+**Setting**: Sunken villages and volcanic islands beneath the waves
 
-**Common Enemies**:
-- **Sirena**: Heals other enemies, makes you miss attacks
-- **Siyokoy**: High armor, splash damage
-- **Santelmo**: Burns you, dodges attacks
-- **Berberoka**: Removes cards from your hand
-- **Magindara**: Three weak enemies that regenerate
+**Visual Theme**: Blue/teal underwater atmosphere with shimmering water effects
+
+#### Common Enemies
+- **Sirena Illusionist** (240 HP, 18 damage): Enchanting mermaid who heals and charms
+- **Siyokoy Raider** (320 HP, 27 damage): Aggressive sea warrior with high defense
+- **Santelmo Flicker** (160 HP, 21 damage): Ghostly fire spirit that dances on water
+- **Berberoka Lurker** (256 HP, 24 damage): Water creature that weakens and lurks
+- **Magindara Swarm** (120 HP each × 3, 15 damage): Beautiful mermaids with healing songs
+- **Kataw** (224 HP, 21 damage): Sea guardian who heals and strengthens
+- **Berbalang** (208 HP, 24 damage): Vampire-like creature that splits its body
+
+#### Elite Enemies
+- **Sunken Bangkilan** (420 HP, 33 damage): Cursed spirits from drowned villages
+- **Apoy-Tubig Fury** (408 HP, 30 damage): Unstable fusion of fire and water elements
 
 **Boss: Bakunawa**
-- **HP**: 150
-- **Gimmick**: Shrinks your hand size each turn, temporarily steals relics
-- **Strategy**: Build deck for small hands (fewer cards), don't rely on one relic
-- **Reward**: Water Spirit Shard
+- **HP**: 900
+- **Damage**: 42
+- **Lore**: The great moon-eating dragon serpent who causes eclipses
+- **Gimmick**: Weakens you, strengthens itself, applies burn damage
+- **Strategy**: Focus on water-based healing and fire damage, bring potions
+- **Reward**: Water Spirit Shard, unlock Chapter 3
+
+**Chapter 2 Relics**:
+- **Sirena's Scale**: Heal 2 HP per Water card played
+- **Siyokoy Fin**: +3 Block on splash damage
+- **Santelmo Ember**: Burn damage +2 per stack
+- **Bakunawa Fang**: +5 damage when activating relic effects
+- **Elemental Core**: +3 damage on Fire/Water cards
 
 ---
 
 ### Chapter 3: The Skyward Citadel
 
-**Elements**: All Four  
-**Setting**: Floating divine palace in the clouds
+**Elements**: All Four (Multi-element focus)  
+**Setting**: Floating divine palace in the celestial realm
 
-**Common Enemies**:
-- **Tigmamanukan**: Gains strength over time
-- **Diwata**: Resists opposite elements
-- **Sarimanok**: Blocks your Special actions
-- **Bulalakaw**: Meteor burns, high damage
-- **Alan**: Flying attacks, summons allies
+**Visual Theme**: Gold/purple celestial atmosphere with divine radiance
+
+#### Common Enemies
+- **Tigmamanukan Watcher** (208 HP, 24 damage): Celestial bird from world's edge
+- **Diwata Sentinel** (304 HP, 27 damage): Corrupted nature spirit guardian
+- **Sarimanok Keeper** (240 HP, 24 damage): Legendary fortune bird, now twisted
+- **Bulalakaw Flamewings** (264 HP, 27 damage): Meteor spirit with burning wings
+- **Minokawa Harbinger** (224 HP, 24 damage): Giant bird that swallows the moon
+- **Alan** (192 HP, 27 damage): Winged forest spirit servant
+- **Ekek** (176 HP, 21 damage): Night-hunting bird creature
+
+#### Elite Enemies
+- **Ribung Linti Duo** (270 HP each × 2, 30 damage): Twin lightning spirits in sync
+- **Apolaki Godling** (510 HP, 36 damage): Corrupted manifestation of the sun god
 
 **Boss: False Bathala**
-- **HP**: 200
-- **Gimmick**: Steals relics, changes elemental weakness constantly
-- **Strategy**: Balanced deck with all elements, prepare powerful potions
-- **Reward**: Final Spirit Shard, game completion
+- **HP**: 1200
+- **Damage**: 48
+- **Lore**: The corrupted impostor claiming to be the supreme deity
+- **Gimmick**: Nullifies buffs, weakens and strengthens, burns and attacks
+- **Strategy**: Balanced deck with all elements, save best potions, adapt constantly
+- **Reward**: Final Spirit Shard, game completion, epilogue sequence
+
+**Chapter 3 Relics**:
+- **Tigmamanukan Feather**: Draw 1 card on Straight or better
+- **Diwata Veil**: +10% dodge chance
+- **Sarimanok Plumage**: +1 Special action charge at combat start
+- **Apolaki's Spear**: +5 damage on multi-element hands, +2 Strength at start
+- **Coconut Diwa**: Ignore first nullify/buff removal each combat
 
 ---
 

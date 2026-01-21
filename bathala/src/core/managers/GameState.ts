@@ -1,5 +1,5 @@
 import { GameMap, MapNode } from "../types/MapTypes";
-import { Player } from "../types/CombatTypes";
+import { Player, Chapter } from "../types/CombatTypes";
 
 /**
  * GameState - Manages global game state across scenes
@@ -15,6 +15,11 @@ export class GameState {
   public playerData: Partial<Player> | null = null;
   public playerPosition: { x: number; y: number } | null = null;
   public overworldState: any = null;
+
+  // Chapter progression tracking
+  public currentChapter: Chapter = 1;
+  public unlockedChapters: Set<Chapter> = new Set([1]);
+  public chapterCompletions: Map<Chapter, boolean> = new Map();
 
   private constructor() {}
 
@@ -115,6 +120,11 @@ export class GameState {
     this.playerData = null;
     this.playerPosition = null;
     this.overworldState = null;
+    
+    // Reset chapter progression
+    this.currentChapter = 1;
+    this.unlockedChapters = new Set([1]);
+    this.chapterCompletions = new Map();
   }
 
   /**
@@ -179,5 +189,67 @@ export class GameState {
   clearCombatReturn(): void {
     this.lastCompletedNodeId = null;
     this.combatVictory = false;
+  }
+
+  /**
+   * Unlock a chapter for progression
+   */
+  unlockChapter(chapter: Chapter): void {
+    this.unlockedChapters.add(chapter);
+  }
+
+  /**
+   * Set the current chapter
+   */
+  setCurrentChapter(chapter: Chapter): void {
+    // Validate that the chapter is unlocked or in dev mode
+    if (this.unlockedChapters.has(chapter)) {
+      this.currentChapter = chapter;
+    } else {
+      console.warn(`Attempted to set locked chapter ${chapter}. Unlocking it now.`);
+      this.unlockChapter(chapter);
+      this.currentChapter = chapter;
+    }
+  }
+
+  /**
+   * Get the current chapter
+   */
+  getCurrentChapter(): Chapter {
+    return this.currentChapter;
+  }
+
+  /**
+   * Check if a chapter is unlocked
+   */
+  isChapterUnlocked(chapter: Chapter): boolean {
+    return this.unlockedChapters.has(chapter);
+  }
+
+  /**
+   * Mark a chapter as completed
+   */
+  completeChapter(chapter: Chapter): void {
+    this.chapterCompletions.set(chapter, true);
+    
+    // Unlock the next chapter if it exists
+    const nextChapter = (chapter + 1) as Chapter;
+    if (nextChapter <= 3) {
+      this.unlockChapter(nextChapter);
+    }
+  }
+
+  /**
+   * Check if a chapter is completed
+   */
+  isChapterCompleted(chapter: Chapter): boolean {
+    return this.chapterCompletions.get(chapter) || false;
+  }
+
+  /**
+   * Get all unlocked chapters
+   */
+  getUnlockedChapters(): Chapter[] {
+    return Array.from(this.unlockedChapters).sort();
   }
 }
