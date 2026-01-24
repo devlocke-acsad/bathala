@@ -2,14 +2,14 @@
 import { Scene } from 'phaser';
 import { GameState } from '../../core/managers/GameState';
 import { Player } from '../../core/types/CombatTypes';
-import { GameEvent, EventChoice, EventContext } from '../../data/events/EventTypes';
-import { Act1Events } from '../../data/events/Act1Events';
+import { GameEvent, EventChoice, EventContext, EducationalEvent } from '../../data/events/EventTypes';
+import { CombinedAct1Events } from '../../data/events';
 import { OverworldGameState } from '../../core/managers/OverworldGameState';
 import { MusicManager } from '../../core/managers/MusicManager';
 
 export class EventScene extends Scene {
   private player!: Player;
-  private currentEvent!: GameEvent;
+  private currentEvent!: GameEvent | EducationalEvent;
   private descriptionText!: Phaser.GameObjects.Text;
   private choiceButtons: Phaser.GameObjects.Container[] = [];
   private eventBackground!: Phaser.GameObjects.Graphics;
@@ -29,7 +29,7 @@ export class EventScene extends Scene {
 
   init(data: { player: Player }) {
     this.player = data.player;
-    const availableEvents = Act1Events;
+    const availableEvents = CombinedAct1Events;
     this.currentEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
   }
 
@@ -308,6 +308,12 @@ export class EventScene extends Scene {
     
     const resultMessage = choice.outcome(context);
 
+    // If this is an educational event, track it with the educational event manager
+    if (this.isEducationalEvent(this.currentEvent)) {
+      const educationalEventManager = require('../../core/managers/EducationalEventManager').EducationalEventManager.getInstance();
+      educationalEventManager.markEventEncountered(this.currentEvent);
+    }
+
     const overworldState = OverworldGameState.getInstance();
     overworldState.recordAction();
 
@@ -321,6 +327,10 @@ export class EventScene extends Scene {
     gameState.updatePlayerData(this.player);
   }
 
+  private isEducationalEvent(event: GameEvent | EducationalEvent): event is EducationalEvent {
+    return 'culturalContext' in event && 'academicReferences' in event && 'valuesLesson' in event;
+  }
+
   private showResult(outcome: string): void {
     const { width, height } = this.cameras.main;
 
@@ -328,7 +338,11 @@ export class EventScene extends Scene {
       this.resultText.destroy();
     }
 
-    this.resultText = this.add.text(width / 2, height - 60, `Outcome: ${outcome}`, {
+    // Clear choice buttons
+    this.choiceButtons.forEach(button => button.destroy());
+    this.choiceButtons = [];
+
+    this.resultText = this.add.text(width / 2, height - 200, `Outcome: ${outcome}`, {
       fontFamily: 'dungeon-mode',
       fontSize: '24px',
       color: '#2ed573'  // Match combat success color (green but more muted)
@@ -340,21 +354,80 @@ export class EventScene extends Scene {
       duration: 500,
       ease: 'Power2',
       onComplete: () => {
-        this.time.delayedCall(1500, () => {
-          // Complete the event node and return to overworld
-          const gameState = GameState.getInstance();
-          gameState.completeCurrentNode(true);
-          
-          // Manually call the Overworld resume method to reset movement flags
-          const overworldScene = this.scene.get("Overworld");
-          if (overworldScene) {
-            (overworldScene as any).resume();
-          }
-          
-          this.scene.stop('EventScene');
-          this.scene.resume('Overworld');
+        // If this is an educational event, show educational content
+        if (this.isEducationalEvent(this.currentEvent)) {
+          this.showEducationalContent();
+        } else {
+          this.completeEvent();
+        }
+      }
+    });
+  }
+
+  private showEducationalContent(): void {
+    const { width, height } = this.cameras.main;
+    const educationalEvent = this.currentEvent as EducationalEvent;
+
+    // Show cultural significance
+    const culturalText = this.add.text(width / 2, height - 160, 
+      `Cultural Wisdom: ${educationalEvent.culturalContext.culturalSignificance}`, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '18px',
+      color: '#ffa726',  // Orange color for educational content
+      wordWrap: { width: width * 0.7 },
+      align: 'center'
+    }).setOrigin(0.5).setAlpha(0);
+
+    // Show values lesson
+    const valuesText = this.add.text(width / 2, height - 120, 
+      `Values Lesson: ${educationalEvent.valuesLesson.culturalWisdom}`, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '18px',
+      color: '#66bb6a',  // Green color for values
+      wordWrap: { width: width * 0.7 },
+      align: 'center'
+    }).setOrigin(0.5).setAlpha(0);
+
+    // Show academic reference
+    const reference = educationalEvent.academicReferences[0];
+    const referenceText = this.add.text(width / 2, height - 80, 
+      `Source: ${reference.author}, "${reference.title}" (${reference.publicationYear})`, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '16px',
+      color: '#90a4ae',  // Gray color for references
+      wordWrap: { width: width * 0.7 },
+      align: 'center'
+    }).setOrigin(0.5).setAlpha(0);
+
+    // Animate educational content
+    this.tweens.add({
+      targets: [culturalText, valuesText, referenceText],
+      alpha: 1,
+      duration: 800,
+      ease: 'Power2',
+      delay: 500,
+      onComplete: () => {
+        this.time.delayedCall(3000, () => {
+          this.completeEvent();
         });
       }
+    });
+  }
+
+  private completeEvent(): void {
+    this.time.delayedCall(1500, () => {
+      // Complete the event node and return to overworld
+      const gameState = GameState.getInstance();
+      gameState.completeCurrentNode(true);
+      
+      // Manually call the Overworld resume method to reset movement flags
+      const overworldScene = this.scene.get("Overworld");
+      if (overworldScene) {
+        (overworldScene as any).resume();
+      }
+      
+      this.scene.stop('EventScene');
+      this.scene.resume('Overworld');
     });
   }
 

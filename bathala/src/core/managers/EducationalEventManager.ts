@@ -64,30 +64,78 @@ export class EducationalEventManager {
       !this.encounteredEvents.has(event.id)
     );
 
-    // Select events ensuring diversity in creatures, themes, and regions
-    for (const event of uniqueEvents) {
+    // Score events by how much diversity they add
+    // 3 points = new creature, value, and region
+    // 0 points = nothing new
+    const scoredEvents = uniqueEvents.map(event => {
+      let score = 0;
+      if (event.culturalContext.mythologicalCreature && !usedCreatures.has(event.culturalContext.mythologicalCreature)) score++;
+      if (!usedValues.has(event.valuesLesson.primaryValue)) score++;
+      if (!usedRegions.has(event.regionalOrigin)) score++;
+      return { event, score };
+    });
+
+    // Sort by score descending
+    scoredEvents.sort((a, b) => b.score - a.score);
+
+    // Select top events
+    for (const { event } of scoredEvents) {
       if (selectedEvents.length >= requiredCount) break;
 
+      selectedEvents.push(event);
+      
       const creature = event.culturalContext.mythologicalCreature;
-      const value = event.valuesLesson.primaryValue;
-      const region = event.regionalOrigin;
-
-      // Prioritize events that add diversity
-      const addsDiversity = 
-        (!creature || !usedCreatures.has(creature)) &&
-        !usedValues.has(value) &&
-        !usedRegions.has(region);
-
-      if (addsDiversity || selectedEvents.length < requiredCount) {
-        selectedEvents.push(event);
+      if (creature) usedCreatures.add(creature);
+      usedValues.add(event.valuesLesson.primaryValue);
+      usedRegions.add(event.regionalOrigin);
+      
+      // Re-score remaining events? 
+      // Ideally yes, because selecting one changes the "used" sets.
+      // But a simple sort is a good first heuristic. 
+      // For strictly optimal diversity, we would re-evaluate after each pick.
+      // Let's implement the re-evaluation for better quality.
+    }
+    
+    // Better Greedy Strategy with Re-evaluation
+    // Reset selection and sets
+    const finalSelection: EducationalEvent[] = [];
+    const finalCreatures = new Set<string>();
+    const finalValues = new Set<FilipinoValue>();
+    const finalRegions = new Set<RegionalOrigin>();
+    
+    // Work with a mutable copy of the pool
+    const pool = [...uniqueEvents];
+    
+    while (finalSelection.length < requiredCount && pool.length > 0) {
+      // Find best candidate
+      let bestIndex = -1;
+      let maxScore = -1;
+      
+      for (let i = 0; i < pool.length; i++) {
+        const event = pool[i];
+        let score = 0;
+        if (event.culturalContext.mythologicalCreature && !finalCreatures.has(event.culturalContext.mythologicalCreature)) score += 10;
+        if (!finalValues.has(event.valuesLesson.primaryValue)) score += 5;
+        if (!finalRegions.has(event.regionalOrigin)) score += 5;
         
-        if (creature) usedCreatures.add(creature);
-        usedValues.add(value);
-        usedRegions.add(region);
+        if (score > maxScore) {
+          maxScore = score;
+          bestIndex = i;
+        }
+      }
+      
+      if (bestIndex !== -1) {
+        const bestEvent = pool[bestIndex];
+        finalSelection.push(bestEvent);
+        pool.splice(bestIndex, 1);
+        
+        if (bestEvent.culturalContext.mythologicalCreature) finalCreatures.add(bestEvent.culturalContext.mythologicalCreature);
+        finalValues.add(bestEvent.valuesLesson.primaryValue);
+        finalRegions.add(bestEvent.regionalOrigin);
       }
     }
 
-    return selectedEvents;
+    return finalSelection;
   }
 
   /**
