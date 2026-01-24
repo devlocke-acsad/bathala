@@ -433,14 +433,11 @@ export const Act2EducationalEvents: EducationalEvent[] = [
       },
       {
         text: "Ask for safe passage to the next island.",
-      {
-        text: "Ask for safe passage to the next island.",
         outcome: () => {
           const overworldState = OverworldGameState.getInstance();
           overworldState.addNextCombatBlock(30);
           return "She nods. 'The waves shall carry you gently.' You gain 30 Block for your next combat (Safe Passage).";
         },
-      },
       },
       {
         text: "Demand she calm the storms for your journey.",

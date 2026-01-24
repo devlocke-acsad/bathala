@@ -249,6 +249,35 @@ export class MainMenu extends Scene {
       .on("pointerout", function() {
         this.setColor("#ffd93d"); // Back to yellow
       });
+
+    // Add Educational Debug Mode button (Above Dev Mode)
+    const eduModeButton = this.add
+      .text(screenWidth - 40, screenHeight - 110, "[Edu Mode]", {
+        fontFamily: "dungeon-mode",
+        fontSize: 20,
+        color: "#2ed573", // Green to distinguish
+        align: "right",
+      })
+      .setOrigin(1, 1)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => {
+        console.log('Opening Educational Events Debug Scene...');
+        if (!this.scene.isActive('EducationalEventsDebugScene')) {
+          this.scene.launch('EducationalEventsDebugScene');
+        }
+        const debugScene = this.scene.get('EducationalEventsDebugScene') as any;
+        if (debugScene && debugScene.toggleVisibility) {
+          if (!debugScene.isVisible) {
+            debugScene.toggleVisibility();
+          }
+        }
+      })
+      .on("pointerover", function() {
+        this.setColor("#ffffff");
+      })
+      .on("pointerout", function() {
+        this.setColor("#2ed573");
+      });
   }
 
   /**
