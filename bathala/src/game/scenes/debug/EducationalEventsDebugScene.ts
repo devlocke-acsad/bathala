@@ -83,8 +83,38 @@ export class EducationalEventsDebugScene extends Scene {
   }
 
   private createActButtons(): void {
-      // Simplified for this implementation
-      // Just showing text that you can press 1, 2, 3
+      const screenWidth = this.cameras.main.width;
+      const buttonY = 50;
+      const buttonSpacing = 80;
+      const startX = screenWidth / 2 + 250; // Right of title
+
+      [1, 2, 3].forEach(act => {
+          const x = startX + (act - 1) * buttonSpacing;
+          const bg = this.add.rectangle(x, buttonY, 60, 40, act === this.currentAct ? 0x2ed573 : 0x333333).setInteractive();
+          const text = this.add.text(x, buttonY, `Act ${act}`, { fontSize: 16, color: '#ffffff' }).setOrigin(0.5);
+          
+          this.container.add([bg, text]);
+
+          bg.on('pointerdown', () => this.switchAct(act));
+      });
+  }
+
+  private launchEventScene(event: EducationalEvent): void {
+      console.log(`Launching Event Scene for: ${event.name}`);
+      
+      // Close debug UI
+      this.toggleVisibility();
+
+      // Launch Scene
+      const playerData = GameState.getInstance().getPlayerData();
+      
+      // Tag event source for return
+      (event as any)._debugSource = true;
+
+      this.scene.start('EventScene', { 
+          player: playerData || { name: 'Debugger', health: 100, ginto: 100 },
+          event: event
+      });
   }
 
   private updateEventListUI(): void {
@@ -160,6 +190,21 @@ export class EducationalEventsDebugScene extends Scene {
       ).setOrigin(0.5, 0);
       
       this.container.add(detailsText);
+
+      // Play Button - Launches Real EventScene
+      const playBtnX = screenWidth * 0.9;
+      const playBtnY = previewY;
+      const playBtnBg = this.add.rectangle(playBtnX, playBtnY, 120, 40, 0xffa726).setInteractive({ useHandCursor: true });
+      const playBtnText = this.add.text(playBtnX, playBtnY, "PLAY SCENE", { 
+          fontFamily: 'dungeon-mode', fontSize: 16, color: '#000000' 
+      }).setOrigin(0.5);
+      
+      this.container.add([playBtnBg, playBtnText]);
+      
+      playBtnBg.on('pointerdown', () => this.launchEventScene(event));
+      playBtnBg.on('pointerover', () => playBtnBg.setFillStyle(0xffd180));
+      playBtnBg.on('pointerout', () => playBtnBg.setFillStyle(0xffa726));
+
 
       // Choices Simulation Area
       if (event.choices && event.choices.length > 0) {
@@ -300,7 +345,8 @@ export class EducationalEventsDebugScene extends Scene {
       this.updateEventListUI();
   }
 
-  private toggleVisibility(): void {
+  public toggleVisibility(): void {
+      if (!this.container) return; // Prevent crash if called before create()
       this.isVisible = !this.isVisible;
       this.container.setVisible(this.isVisible);
       if (this.isVisible) {
