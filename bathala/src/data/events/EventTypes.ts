@@ -72,12 +72,26 @@ export interface ValuesLesson {
   applicationToModernLife: string;
 }
 
+export interface GameReward {
+  type: 'health' | 'ginto' | 'diamante' | 'card_draw' | 'status_effect' | 'cultural_knowledge';
+  value: number;
+  description: string;
+  culturalSignificance?: string;
+}
+
+export interface GameConsequence {
+  type: 'health_loss' | 'ginto_loss' | 'card_discard' | 'status_effect' | 'missed_opportunity';
+  value: number;
+  description: string;
+  culturalLesson?: string;
+}
+
 export interface MiniGameMechanic {
   gameType: 'riddle' | 'pattern_matching' | 'memory_game' | 'traditional_game' | 'moral_choice_tree';
   instructions: string;
   culturalConnection: string;
-  successReward: any; // Will be typed as GameReward when that interface exists
-  failureConsequence?: any; // Will be typed as GameConsequence when that interface exists
+  successReward: GameReward;
+  failureConsequence?: GameConsequence;
 }
 
 export interface EducationalEvent extends GameEvent {
