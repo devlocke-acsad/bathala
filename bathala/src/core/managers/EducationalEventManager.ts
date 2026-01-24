@@ -278,4 +278,64 @@ export class EducationalEventManager {
 
     return sortedByRegionalCoverage[0];
   }
+
+  /**
+   * Serialize educational state for saving
+   */
+  public saveProgress(): any {
+    return {
+      version: 1,
+      encounteredEvents: Array.from(this.encounteredEvents),
+      educationalProgress: Array.from(this.educationalProgress.entries()),
+      regionalCoverage: Array.from(this.regionalCoverage.entries())
+    };
+  }
+
+  /**
+   * Load educational state with backward compatibility
+   * @param data - The saved data (any structure)
+   */
+  public loadProgress(data: any): void {
+    if (!data) {
+      // New game or very old save: Reset to defaults
+      this.resetProgress();
+      return;
+    }
+
+    // Handle missing version (Legacy checks)
+    // If we had a version 0, we'd check here. 
+    // For now, robustly check fields.
+
+    if (Array.isArray(data.encounteredEvents)) {
+      this.encounteredEvents = new Set(data.encounteredEvents);
+    } else {
+      this.encounteredEvents = new Set();
+    }
+
+    if (Array.isArray(data.educationalProgress)) {
+      this.educationalProgress = new Map(data.educationalProgress);
+    } else {
+      // Re-initialize defaults if missing
+      this.initializeProgress();
+    }
+
+    if (Array.isArray(data.regionalCoverage)) {
+      this.regionalCoverage = new Map(data.regionalCoverage);
+    } else {
+      // Re-initialize defaults if missing
+      // Note: If we re-init progress but not coverage, coverage needs re-init too.
+      // initializeProgress actually resets ALL maps.
+      // So if missing, we just ensure keys exist.
+      // But initializeProgress wipes existing. Better to partial update?
+      // For simplicity: If missing key map, just ensure defaults for missing keys.
+      
+      // Force defaults for any missing keys in maps
+      Object.values(FilipinoValue).forEach(v => {
+        if (!this.educationalProgress.has(v)) this.educationalProgress.set(v, 0);
+      });
+      Object.values(RegionalOrigin).forEach(r => {
+        if (!this.regionalCoverage.has(r)) this.regionalCoverage.set(r, 0);
+      });
+    }
+  }
 }
