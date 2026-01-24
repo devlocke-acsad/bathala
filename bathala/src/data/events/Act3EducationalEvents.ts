@@ -221,8 +221,7 @@ export const Act3EducationalEvents: EducationalEvent[] = [
     choices: [
       {
         text: "Declare you fight for your friends and community.",
-        outcome: (context: EventContext) => { 
-           const { player } = context;
+        outcome: () => { 
            // player.strength = (player.strength || 0) + 1; // Strength not on player model directly.
            // Use StatusEffect for strength buff
            // We need one that persists? Or just next combat?

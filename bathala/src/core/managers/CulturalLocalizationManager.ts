@@ -32,6 +32,10 @@ export class CulturalLocalizationManager {
         this.currentLocale = locale;
     }
 
+    public getLocale(): string {
+        return this.currentLocale;
+    }
+
     /**
      * Check if a text contains immutable cultural terms that should be preserved.
      * In a real system, this would flag content for translators.

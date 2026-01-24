@@ -5,7 +5,6 @@ import {
   AcademicReference,
   ValuesLesson,
   MiniGameMechanic,
-  FilipinoValue,
   RegionalOrigin
 } from '../../data/events/EventTypes';
 import { EducationalEventManager } from './EducationalEventManager';
@@ -18,8 +17,6 @@ import { EducationalEventManager } from './EducationalEventManager';
  */
 export class EducationalEventBuilder {
   private event: Partial<EducationalEvent>;
-  private isValid: boolean = true;
-  private validationIssues: string[] = [];
 
   constructor(id: string, name: string) {
     this.event = {

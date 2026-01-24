@@ -219,7 +219,7 @@ export class MainMenu extends Scene {
     });
     
     // Add Dev Mode button in bottom right corner
-    const devModeButton = this.add
+    this.add
       .text(screenWidth - 40, screenHeight - 80, "[Dev Mode]", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
@@ -243,15 +243,15 @@ export class MainMenu extends Scene {
           }
         }
       })
-      .on("pointerover", function() {
+      .on("pointerover", function(this: Phaser.GameObjects.Text) {
         this.setColor("#ffffff"); // White on hover
       })
-      .on("pointerout", function() {
+      .on("pointerout", function(this: Phaser.GameObjects.Text) {
         this.setColor("#ffd93d"); // Back to yellow
       });
 
     // Add Educational Debug Mode button (Above Dev Mode)
-    const eduModeButton = this.add
+    this.add
       .text(screenWidth - 40, screenHeight - 110, "[Edu Mode]", {
         fontFamily: "dungeon-mode",
         fontSize: 20,
@@ -272,10 +272,10 @@ export class MainMenu extends Scene {
           }
         }
       })
-      .on("pointerover", function() {
+      .on("pointerover", function(this: Phaser.GameObjects.Text) {
         this.setColor("#ffffff");
       })
-      .on("pointerout", function() {
+      .on("pointerout", function(this: Phaser.GameObjects.Text) {
         this.setColor("#2ed573");
       });
   }

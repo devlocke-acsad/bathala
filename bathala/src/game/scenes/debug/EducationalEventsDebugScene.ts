@@ -16,6 +16,8 @@ export class EducationalEventsDebugScene extends Scene {
   private selectedEventIndex: number = 0;
   private isVisible: boolean = false;
   private container!: Phaser.GameObjects.Container;
+  private listContainer!: Phaser.GameObjects.Container;
+  private previewContainer!: Phaser.GameObjects.Container;
   private currentAct: number = 1;
 
   constructor() {
@@ -68,8 +70,13 @@ export class EducationalEventsDebugScene extends Scene {
     // Instructions
     this.addInstructionText(screenWidth, 100, 'F4: Toggle | 1-3: Acts | ↑↓: Select | ENTER: View Details');
 
-    // Act Buttons (Simple visuals)
+    // Act Buttons (Static)
     this.createActButtons();
+
+    // Initialize Sub-containers for dynamic content
+    this.listContainer = this.add.container(0, 0);
+    this.previewContainer = this.add.container(0, 0);
+    this.container.add([this.listContainer, this.previewContainer]);
 
     // Event List
     this.updateEventListUI();
@@ -84,13 +91,15 @@ export class EducationalEventsDebugScene extends Scene {
 
   private createActButtons(): void {
       const screenWidth = this.cameras.main.width;
-      const buttonY = 50;
+      // Position buttons below the title for better visibility
+      const buttonY = 90; 
       const buttonSpacing = 80;
-      const startX = screenWidth / 2 + 250; // Right of title
+      // Center the group of buttons
+      const startX = (screenWidth / 2) - buttonSpacing; 
 
-      [1, 2, 3].forEach(act => {
-          const x = startX + (act - 1) * buttonSpacing;
-          const bg = this.add.rectangle(x, buttonY, 60, 40, act === this.currentAct ? 0x2ed573 : 0x333333).setInteractive();
+      [1, 2, 3].forEach((act, index) => {
+          const x = startX + (index * buttonSpacing);
+          const bg = this.add.rectangle(x, buttonY, 60, 30, act === this.currentAct ? 0x2ed573 : 0x333333).setInteractive({ useHandCursor: true });
           const text = this.add.text(x, buttonY, `Act ${act}`, { fontSize: 16, color: '#ffffff' }).setOrigin(0.5);
           
           this.container.add([bg, text]);
@@ -118,17 +127,9 @@ export class EducationalEventsDebugScene extends Scene {
   }
 
   private updateEventListUI(): void {
-    // Clear old list items (simple approach: remove all non-static, but here we rebuild or refresh)
-    // For simplicity, I'll remove items tagged as 'list-item' if I tracked them.
-    // Instead, let's just clear the container subset or keep static refs.
-    // I'll rebuild the dynamic part.
-    
-    // Hack: filter children by type? No.
-    // Let's just redraw the whole container content list part.
-    // Removing items from index 3 onwards (BG, Title, Instr).
-    while (this.container.length > 3) {
-        this.container.remove(this.container.list[3], true);
-    }
+    // Clear dynamic containers
+    this.listContainer.removeAll(true);
+    this.previewContainer.removeAll(true);
 
     const startY = 150;
     const spacing = 35;
@@ -151,7 +152,7 @@ export class EducationalEventsDebugScene extends Scene {
         text.setInteractive({ useHandCursor: true })
             .on('pointerdown', () => this.selectEvent(index));
             
-        this.container.add(text);
+        this.listContainer.add(text);
     });
 
     // Preview
@@ -168,7 +169,7 @@ export class EducationalEventsDebugScene extends Scene {
       const previewY = screenHeight * 0.6;
       
       // Divider
-      this.container.add(this.add.rectangle(screenWidth/2, previewY - 20, screenWidth * 0.8, 2, 0x444444));
+      this.previewContainer.add(this.add.rectangle(screenWidth/2, previewY - 20, screenWidth * 0.8, 2, 0x444444));
 
       // Use Presenter logic
       const contextDisplay = EducationalEventPresenter.getCulturalContextDisplay(event);
@@ -189,7 +190,7 @@ export class EducationalEventsDebugScene extends Scene {
           }
       ).setOrigin(0.5, 0);
       
-      this.container.add(detailsText);
+      this.previewContainer.add(detailsText);
 
       // Play Button - Launches Real EventScene
       const playBtnX = screenWidth * 0.9;
@@ -199,7 +200,7 @@ export class EducationalEventsDebugScene extends Scene {
           fontFamily: 'dungeon-mode', fontSize: 16, color: '#000000' 
       }).setOrigin(0.5);
       
-      this.container.add([playBtnBg, playBtnText]);
+      this.previewContainer.add([playBtnBg, playBtnText]);
       
       playBtnBg.on('pointerdown', () => this.launchEventScene(event));
       playBtnBg.on('pointerover', () => playBtnBg.setFillStyle(0xffd180));
@@ -216,7 +217,7 @@ export class EducationalEventsDebugScene extends Scene {
               "CHOICES (Click to Simulate):",
               { fontFamily: 'monospace', fontSize: 14, color: '#ffd93d' }
           );
-          this.container.add(choiceLabel);
+          this.previewContainer.add(choiceLabel);
 
           event.choices.forEach((choice, i) => {
               const choiceText = this.add.text(
@@ -227,10 +228,10 @@ export class EducationalEventsDebugScene extends Scene {
               .setPadding(5)
               .setInteractive({ useHandCursor: true })
               .on('pointerdown', () => this.simulateChoice(choice, i))
-              .on('pointerover', function() { (this as unknown as Phaser.GameObjects.Text).setStyle({ color: '#ffffff' }); })
-              .on('pointerout', function() { (this as unknown as Phaser.GameObjects.Text).setStyle({ color: '#2ed573' }); });
+              .on('pointerover', function(this: Phaser.GameObjects.Text) { this.setStyle({ color: '#ffffff' }); })
+              .on('pointerout', function(this: Phaser.GameObjects.Text) { this.setStyle({ color: '#2ed573' }); });
 
-              this.container.add(choiceText);
+              this.previewContainer.add(choiceText);
           });
       }
   }
@@ -294,14 +295,14 @@ export class EducationalEventsDebugScene extends Scene {
       const items = [popupBg, popupText, closeCta];
       items.forEach(i => {
            i.setDepth(20000); // Top
-           this.container.add(i);
+           this.previewContainer.add(i);
       });
 
       // Close on click
       popupBg.setInteractive();
       popupBg.on('pointerdown', () => {
           items.forEach(i => {
-              this.container.remove(i);
+              this.previewContainer.remove(i);
               i.destroy();
           });
       });

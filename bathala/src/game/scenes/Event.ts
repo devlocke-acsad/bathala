@@ -383,7 +383,8 @@ export class EventScene extends Scene {
     container.add(outcomeText);
     
     // Store reference for eventual destruction if needed, though scenes clear containers
-    this.resultContainer = container;
+    // Store reference for eventual destruction if needed, though scenes clear containers
+    // this.resultContainer = container;
 
     this.tweens.add({
       targets: container,
@@ -412,8 +413,7 @@ export class EventScene extends Scene {
     });
   }
   
-  // Add property declaration shim since I'm introducing resultContainer
-  private resultContainer?: Phaser.GameObjects.Container;
+
 
   private showEducationalContent(): void {
     const { width, height } = this.cameras.main;
