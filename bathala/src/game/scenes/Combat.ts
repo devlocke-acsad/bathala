@@ -2534,6 +2534,7 @@ export class Combat extends Scene {
   /**
    * Handle chapter progression after boss defeat
    * Detects boss defeats and unlocks the next chapter
+   * Also resets all progress for the new chapter (fresh start)
    */
   private handleChapterProgression(gameState: GameState): void {
     const currentChapter = gameState.getCurrentChapter();
@@ -2545,30 +2546,54 @@ export class Combat extends Scene {
     if (defeatedEnemy === "Mangangaway" && currentChapter === 1) {
       // Act 1 boss defeated - unlock Act 2
       console.log("🎉 Act 1 boss defeated! Unlocking Chapter 2...");
-      gameState.unlockChapter(2);
-      gameState.setCurrentChapter(2);
-      
-      // Apply visual theme for new chapter
-      const themeManager = new VisualThemeManager(this);
-      themeManager.applyChapterTheme(2);
-      
+      this.performChapterTransitionReset(gameState, 2);
       console.log("✅ Chapter 2 unlocked and set as current chapter");
     } else if (defeatedEnemy === "Bakunawa" && currentChapter === 2) {
       // Act 2 boss defeated - unlock Act 3
       console.log("🎉 Act 2 boss defeated! Unlocking Chapter 3...");
-      gameState.unlockChapter(3);
-      gameState.setCurrentChapter(3);
-      
-      // Apply visual theme for new chapter
-      const themeManager = new VisualThemeManager(this);
-      themeManager.applyChapterTheme(3);
-      
+      this.performChapterTransitionReset(gameState, 3);
       console.log("✅ Chapter 3 unlocked and set as current chapter");
     } else if (defeatedEnemy === "False Bathala" && currentChapter === 3) {
       // Act 3 boss defeated - game complete! Trigger epilogue
       console.log("🎉 Act 3 boss defeated! Game complete! Triggering epilogue...");
       this.triggerEpilogue();
     }
+  }
+
+  /**
+   * Perform all resets needed for chapter transition
+   * This is called when a boss is defeated to ensure fresh start for new chapter
+   */
+  private performChapterTransitionReset(gameState: GameState, newChapter: number): void {
+    console.log(`🔄 Performing chapter transition reset for Chapter ${newChapter}`);
+    
+    // 1. Unlock and set new chapter
+    gameState.unlockChapter(newChapter as 1 | 2 | 3);
+    gameState.setCurrentChapter(newChapter as 1 | 2 | 3);
+    
+    // 2. Reset GameState for new chapter (clears player data, map, sets flag)
+    console.log("🗺️ Resetting GameState for new chapter...");
+    gameState.resetForNewChapter();
+    
+    // 3. Reset OverworldGameState (day/night cycle, boss progress)
+    console.log("🌅 Resetting day/night cycle...");
+    const overworldGameState = OverworldGameState.getInstance();
+    overworldGameState.reset();
+    
+    // 4. Reset DDA system to default
+    console.log("🎯 Resetting DDA system...");
+    try {
+      const dda = RuleBasedDDA.getInstance();
+      dda.resetSession();
+    } catch (error) {
+      console.warn("Could not reset DDA:", error);
+    }
+    
+    // 5. Apply visual theme for new chapter
+    const themeManager = new VisualThemeManager(this);
+    themeManager.applyChapterTheme(newChapter);
+    
+    console.log(`✅ All resets complete for Chapter ${newChapter}`);
   }
 
   /**
@@ -2610,10 +2635,47 @@ export class Combat extends Scene {
     try {
       console.log("Returning to overworld...");
       
-      // Save player state to GameState manager
       const gameState = GameState.getInstance();
+      const currentChapter = gameState.getCurrentChapter();
+      const defeatedEnemy = this.combatState.enemy.name;
       
-      // Ensure health values are properly rounded and clamped before saving
+      // Check if this is a boss defeat that will trigger chapter progression
+      // If so, we need to handle things differently (fresh start for new chapter)
+      const isBossDefeatChapterTransition = 
+        (defeatedEnemy === "Mangangaway" && currentChapter === 1) ||
+        (defeatedEnemy === "Bakunawa" && currentChapter === 2);
+      
+      if (isBossDefeatChapterTransition) {
+        console.log("🎉 Boss defeated! Triggering chapter transition...");
+        
+        // Mark current node as completed BEFORE chapter progression resets
+        gameState.completeCurrentNode(true);
+        
+        // Handle chapter progression (this will reset everything for new chapter)
+        this.handleChapterProgression(gameState);
+        
+        // Clean shutdown of combat scene
+        this.input.removeAllListeners();
+        this.time.removeAllEvents();
+        this.scene.stop();
+        
+        // Stop Overworld if it's running (we'll start it fresh)
+        const sceneManager = this.scene.manager;
+        if (sceneManager.isActive('Overworld') || sceneManager.getScene('Overworld')) {
+          sceneManager.stop('Overworld');
+        }
+        
+        // Small delay then start Overworld fresh (not resume)
+        setTimeout(() => {
+          console.log("🗺️ Starting fresh Overworld for new chapter...");
+          sceneManager.start("Overworld");
+        }, 100);
+        
+        return; // Don't continue with normal return flow
+      }
+      
+      // Normal combat return (not a chapter transition)
+      // Save player state to GameState manager
       const currentHealth = Math.max(0, Math.floor(this.combatState.player.currentHealth));
       const maxHealth = Math.max(1, Math.floor(this.combatState.player.maxHealth));
       
@@ -2649,17 +2711,10 @@ export class Combat extends Scene {
       // Mark the current node as completed
       gameState.completeCurrentNode(true);
       
-      // Check for boss defeat and trigger chapter progression
-      // Note: If False Bathala is defeated, this will trigger epilogue and return early
-      const currentChapter = gameState.getCurrentChapter();
-      const defeatedEnemy = this.combatState.enemy.name;
-      
-      // Handle chapter progression
-      this.handleChapterProgression(gameState);
-      
-      // If False Bathala was defeated, epilogue was triggered - don't continue to overworld
+      // Check for False Bathala defeat (epilogue trigger)
       if (defeatedEnemy === "False Bathala" && currentChapter === 3) {
-        console.log("Epilogue triggered, skipping overworld return");
+        console.log("🎉 Act 3 boss defeated! Game complete! Triggering epilogue...");
+        this.triggerEpilogue();
         return;
       }
 
