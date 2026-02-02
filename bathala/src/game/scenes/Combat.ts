@@ -2665,10 +2665,11 @@ export class Combat extends Scene {
           sceneManager.stop('Overworld');
         }
         
-        // Small delay then start Overworld fresh (not resume)
+        // Small delay then start Chapter Transition scene
         setTimeout(() => {
-          console.log("🗺️ Starting fresh Overworld for new chapter...");
-          sceneManager.start("Overworld");
+          const newChapter = GameState.getInstance().getCurrentChapter();
+          console.log(`🎬 Starting chapter transition to Chapter ${newChapter}...`);
+          sceneManager.start("ChapterTransition", { chapter: newChapter });
         }, 100);
         
         return; // Don't continue with normal return flow
