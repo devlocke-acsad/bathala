@@ -23,6 +23,21 @@ export {
 } from './Act3Potions';
 
 import { Potion } from './Act1Potions';
+import { 
+  commonPotions as act1CommonPotions,
+  uncommonPotions as act1UncommonPotions,
+  rarePotions as act1RarePotions
+} from './Act1Potions';
+import { 
+  commonPotions as act2CommonPotions,
+  uncommonPotions as act2UncommonPotions,
+  rarePotions as act2RarePotions
+} from './Act2Potions';
+import { 
+  commonPotions as act3CommonPotions,
+  uncommonPotions as act3UncommonPotions,
+  rarePotions as act3RarePotions
+} from './Act3Potions';
 
 /**
  * Get chapter-specific common potions
@@ -30,15 +45,12 @@ import { Potion } from './Act1Potions';
 export function getChapterCommonPotions(chapter: number): Potion[] {
   switch (chapter) {
     case 2:
-      const { commonPotions: act2Common } = require('./Act2Potions');
-      return act2Common;
+      return act2CommonPotions;
     case 3:
-      const { commonPotions: act3Common } = require('./Act3Potions');
-      return act3Common;
+      return act3CommonPotions;
     case 1:
     default:
-      const { commonPotions: act1Common } = require('./Act1Potions');
-      return act1Common;
+      return act1CommonPotions;
   }
 }
 
@@ -48,15 +60,12 @@ export function getChapterCommonPotions(chapter: number): Potion[] {
 export function getChapterUncommonPotions(chapter: number): Potion[] {
   switch (chapter) {
     case 2:
-      const { uncommonPotions: act2Uncommon } = require('./Act2Potions');
-      return act2Uncommon;
+      return act2UncommonPotions;
     case 3:
-      const { uncommonPotions: act3Uncommon } = require('./Act3Potions');
-      return act3Uncommon;
+      return act3UncommonPotions;
     case 1:
     default:
-      const { uncommonPotions: act1Uncommon } = require('./Act1Potions');
-      return act1Uncommon;
+      return act1UncommonPotions;
   }
 }
 
@@ -66,15 +75,12 @@ export function getChapterUncommonPotions(chapter: number): Potion[] {
 export function getChapterRarePotions(chapter: number): Potion[] {
   switch (chapter) {
     case 2:
-      const { rarePotions: act2Rare } = require('./Act2Potions');
-      return act2Rare;
+      return act2RarePotions;
     case 3:
-      const { rarePotions: act3Rare } = require('./Act3Potions');
-      return act3Rare;
+      return act3RarePotions;
     case 1:
     default:
-      const { rarePotions: act1Rare } = require('./Act1Potions');
-      return act1Rare;
+      return act1RarePotions;
   }
 }
 
