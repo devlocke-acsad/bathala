@@ -479,6 +479,9 @@ export class Overworld_FogOfWarManager {
         button.setScale(uiScale);
       });
     }
+    
+    // Note: Chapter indicator is now part of uiContainer, so it's automatically handled
+    // Note: Tooltip handles its own zoom compensation in updateTooltipContent
   }
 
   /**

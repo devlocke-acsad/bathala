@@ -28,9 +28,10 @@ import {
 /**
  * === DEPTH LAYER CONFIGURATION ===
  * Centralized depth values for easy editing
+ * Night overlay is at 999, UI is at 1000-1999, so tooltip should be at 2500+
  */
 const DEPTH = {
-  TOOLTIP: 49 // Above fog of war, NPCs, and all UI elements
+  TOOLTIP: 2500 // Above night overlay (999) and all UI elements
 };
 
 /**
@@ -420,33 +421,30 @@ export class Overworld_TooltipManager {
     // Hide the description separator (cleaner look)
     descSeparator?.setVisible(false);
     
-    // Position tooltip based on mouse position
+    // Position tooltip on the RIGHT side of the screen (fixed position)
+    // Account for camera zoom to keep position stable during day/night transitions
     const camera = this.scene.cameras.main;
     const screenWidth = camera.width;
     const screenHeight = camera.height;
+    const cameraZoom = camera.zoom;
     
-    let tooltipX: number;
-    let tooltipY: number;
+    // Scale tooltip inversely to compensate for zoom (like other UI elements)
+    const uiScale = 1 / cameraZoom;
+    this.tooltipContainer.setScale(uiScale);
     
-    if (mouseX !== undefined && mouseY !== undefined) {
-      const offset = 20;
-      tooltipX = mouseX + offset;
-      tooltipY = mouseY - tooltipHeight / 2;
-      
-      // Ensure tooltip doesn't go off-screen (right edge)
-      if (tooltipX + tooltipWidth > screenWidth - 20) {
-        tooltipX = mouseX - tooltipWidth - offset;
-      }
-      
-      // Ensure tooltip doesn't go off-screen (vertical bounds)
-      tooltipY = Math.max(20, Math.min(tooltipY, screenHeight - tooltipHeight - 20));
-    } else {
-      // Fallback positioning
-      tooltipX = (screenWidth - tooltipWidth) / 2;
-      tooltipY = (screenHeight - tooltipHeight) / 2;
-    }
+    // Calculate offset to compensate for zoom (same formula as FogOfWarManager)
+    const offsetX = (screenWidth * (cameraZoom - 1)) / (2 * cameraZoom);
+    const offsetY = (screenHeight * (cameraZoom - 1)) / (2 * cameraZoom);
     
-    // Position tooltip
+    // Always position on the right side of the screen
+    const rightMargin = 20;
+    // Position from right edge, accounting for zoom offset
+    const tooltipX = screenWidth - tooltipWidth - rightMargin - offsetX;
+    
+    // Vertically center the tooltip, accounting for zoom offset
+    const tooltipY = (screenHeight - tooltipHeight) / 2 + offsetY;
+    
+    // Position tooltip (fixed to right side, doesn't follow mouse)
     this.tooltipContainer.setPosition(tooltipX, tooltipY);
   }
 
@@ -619,5 +617,12 @@ export class Overworld_TooltipManager {
     if (this.tooltipContainer) {
       this.tooltipContainer.destroy();
     }
+  }
+
+  /**
+   * Get the tooltip container for external manipulation (e.g., zoom compensation)
+   */
+  getTooltipContainer(): Phaser.GameObjects.Container | undefined {
+    return this.tooltipContainer;
   }
 }

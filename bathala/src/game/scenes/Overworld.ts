@@ -2521,11 +2521,13 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Create chapter indicator at top-right of screen
+   * Create chapter indicator above the inventory panel (left side)
+   * Added to uiContainer so it inherits zoom compensation automatically
    */
   private createChapterIndicator(screenWidth: number): void {
     const gameState = GameState.getInstance();
     const currentChapter = gameState.getCurrentChapter();
+    const screenHeight = this.cameras.main.height;
     
     // Chapter names
     const chapterNames: Record<number, string> = {
@@ -2541,22 +2543,33 @@ export class Overworld extends Scene {
       3: 0x5a4a7a  // Sky purple
     };
     
-    // Create container positioned at top-right
-    this.chapterIndicatorContainer = this.add.container(screenWidth - 20, 20);
-    this.chapterIndicatorContainer.setScrollFactor(0).setDepth(1500);
-    
-    // Background panel
-    const panelWidth = 220;
+    // Position above the inventory panel (left panel is at x=20, centered vertically)
+    // Left panel: panelWidth=300, panelHeight=450, panelY = screenHeight/2 - 225
+    const panelWidth = 300;
     const panelHeight = 50;
+    const inventoryPanelY = (screenHeight / 2) - 225; // Top of inventory panel
+    const panelX = 20;
+    const panelY = inventoryPanelY - panelHeight - 10; // 10px gap above inventory
+    
+    // Create a sub-container for chapter indicator elements (added to uiContainer)
+    this.chapterIndicatorContainer = this.add.container(panelX, panelY);
+    
+    // Background panel matching inventory style
     const panelBg = this.add.graphics();
-    panelBg.fillStyle(0x000000, 0.8);
-    panelBg.fillRoundedRect(-panelWidth, 0, panelWidth, panelHeight, 8);
-    panelBg.lineStyle(2, chapterColors[currentChapter] || 0x666666, 1);
-    panelBg.strokeRoundedRect(-panelWidth, 0, panelWidth, panelHeight, 8);
+    panelBg.fillStyle(0x0a0a0a, 1.0);
+    panelBg.lineStyle(2, chapterColors[currentChapter] || 0x888888, 1);
+    panelBg.fillRect(0, 0, panelWidth, panelHeight);
+    panelBg.strokeRect(0, 0, panelWidth, panelHeight);
     this.chapterIndicatorContainer.add(panelBg);
     
+    // Inner border to match inventory style
+    const innerBorder = this.add.graphics();
+    innerBorder.lineStyle(1, 0x666666, 1.0);
+    innerBorder.strokeRect(4, 4, panelWidth - 8, panelHeight - 8);
+    this.chapterIndicatorContainer.add(innerBorder);
+    
     // Chapter label
-    const chapterLabel = this.add.text(-panelWidth + 10, 8, `CHAPTER ${currentChapter}`, {
+    const chapterLabel = this.add.text(10, 8, `CHAPTER ${currentChapter}`, {
       fontFamily: "dungeon-mode",
       fontSize: "12px",
       color: "#ffd700"
@@ -2564,12 +2577,16 @@ export class Overworld extends Scene {
     this.chapterIndicatorContainer.add(chapterLabel);
     
     // Chapter name
-    this.chapterIndicatorText = this.add.text(-panelWidth + 10, 26, chapterNames[currentChapter] || `Act ${currentChapter}`, {
+    this.chapterIndicatorText = this.add.text(10, 26, chapterNames[currentChapter] || `Act ${currentChapter}`, {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
       color: "#ffffff"
     });
     this.chapterIndicatorContainer.add(this.chapterIndicatorText);
+    
+    // Add the chapter indicator container to the main UI container
+    // This ensures it inherits the same zoom compensation as the inventory
+    this.uiContainer.add(this.chapterIndicatorContainer);
   }
 
   /**
@@ -4517,6 +4534,9 @@ ${potion.description}`, {
         button.setScale(uiScale);
       });
     }
+    
+    // Note: Chapter indicator is now part of uiContainer, so it's automatically handled
+    // Note: Tooltip handles its own zoom compensation in updateTooltipContent
     
     console.log(`🎮 Initial UI scale set to ${uiScale} (camera zoom: ${cameraZoom})`);
   }
