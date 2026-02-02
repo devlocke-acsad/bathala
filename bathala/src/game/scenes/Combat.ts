@@ -337,6 +337,9 @@ export class Combat extends Scene {
     
     // Create DDA debug overlay
     this.dda.createDDADebugOverlay();
+    
+    // Create auto-win test buttons for DDA scenario testing
+    this.dda.createAutoWinButtons();
 
     // Draw initial hand
     this.drawInitialHand();
