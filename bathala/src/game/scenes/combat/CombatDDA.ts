@@ -4,6 +4,11 @@ import { CombatMetrics } from "../../../core/dda/DDATypes";
 import { HandType } from "../../../core/types/CombatTypes";
 
 /**
+ * Auto-win scenario presets for DDA testing
+ */
+type AutoWinScenario = "bad" | "good" | "spectacular";
+
+/**
  * CombatDDA - Handles Dynamic Difficulty Adjustment tracking and debug UI for combat
  * Separates DDA logic from core Combat scene
  * 
@@ -26,6 +31,9 @@ export class CombatDDA {
   // Debug UI
   private ddaDebugContainer!: Phaser.GameObjects.Container | null;
   private ddaDebugVisible: boolean = false;
+  
+  // Auto-win test buttons
+  private autoWinButtonsContainer!: Phaser.GameObjects.Container | null;
 
   constructor(scene: Combat) {
     this.scene = scene;
@@ -423,6 +431,348 @@ export class CombatDDA {
       case "thriving": return "#2ed573";
       case "mastering": return "#4ecdc4";
       default: return "#ffffff";
+    }
+  }
+
+  /**
+   * Create auto-win test buttons for DDA scenario testing
+   * These buttons allow quick testing of different performance outcomes
+   */
+  public createAutoWinButtons(): void {
+    if (!this.dda) {
+      console.warn("DDA not initialized, skipping auto-win buttons creation");
+      return;
+    }
+
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Create container for auto-win buttons - position at bottom left, above DDA toggle
+    this.autoWinButtonsContainer = this.scene.add.container(10, screenHeight - 180);
+    this.autoWinButtonsContainer.setDepth(1001);
+    
+    // Background panel
+    const panelWidth = 180;
+    const panelHeight = 140;
+    const bg = this.scene.add.rectangle(0, 0, panelWidth, panelHeight, 0x000000, 0.85);
+    bg.setOrigin(0, 0);
+    bg.setStrokeStyle(1, 0x4ecdc4);
+    this.autoWinButtonsContainer.add(bg);
+    
+    // Title
+    const title = this.scene.add.text(panelWidth / 2, 8, "🎮 DDA Test Wins", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#4ecdc4",
+      align: "center"
+    }).setOrigin(0.5, 0);
+    this.autoWinButtonsContainer.add(title);
+    
+    // Subtitle
+    const subtitle = this.scene.add.text(panelWidth / 2, 24, "(Auto-win with preset outcomes)", {
+      fontFamily: "dungeon-mode",
+      fontSize: 8,
+      color: "#888888",
+      align: "center"
+    }).setOrigin(0.5, 0);
+    this.autoWinButtonsContainer.add(subtitle);
+    
+    // Button configs
+    const buttonConfigs: Array<{
+      scenario: AutoWinScenario;
+      label: string;
+      color: string;
+      hoverColor: string;
+      description: string;
+    }> = [
+      {
+        scenario: "bad",
+        label: "😰 Bad Win",
+        color: "#ff4757",
+        hoverColor: "#ff6b81",
+        description: "Low HP, slow, weak hands"
+      },
+      {
+        scenario: "good",
+        label: "😊 Good Win",
+        color: "#ffa502",
+        hoverColor: "#ffbe3d",
+        description: "Decent HP, moderate speed"
+      },
+      {
+        scenario: "spectacular",
+        label: "🌟 Spectacular",
+        color: "#2ed573",
+        hoverColor: "#7bed9f",
+        description: "Full HP, fast, strong hands"
+      }
+    ];
+    
+    let yPos = 42;
+    const buttonHeight = 28;
+    const buttonWidth = panelWidth - 20;
+    
+    buttonConfigs.forEach((config) => {
+      // Button background
+      const btnBg = this.scene.add.rectangle(
+        panelWidth / 2,
+        yPos + buttonHeight / 2,
+        buttonWidth,
+        buttonHeight,
+        Phaser.Display.Color.HexStringToColor(config.color).color,
+        0.3
+      );
+      btnBg.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(config.color).color);
+      btnBg.setInteractive({ useHandCursor: true });
+      
+      // Button text
+      const btnText = this.scene.add.text(panelWidth / 2, yPos + buttonHeight / 2, config.label, {
+        fontFamily: "dungeon-mode",
+        fontSize: 11,
+        color: config.color,
+        align: "center"
+      }).setOrigin(0.5);
+      
+      // Description tooltip (shown on hover)
+      const descText = this.scene.add.text(panelWidth / 2, yPos + buttonHeight + 1, config.description, {
+        fontFamily: "dungeon-mode",
+        fontSize: 7,
+        color: "#666666",
+        align: "center"
+      }).setOrigin(0.5, 0).setVisible(false);
+      
+      // Hover effects
+      btnBg.on('pointerover', () => {
+        btnBg.setFillStyle(Phaser.Display.Color.HexStringToColor(config.hoverColor).color, 0.5);
+        btnText.setColor(config.hoverColor);
+        descText.setVisible(true);
+      });
+      
+      btnBg.on('pointerout', () => {
+        btnBg.setFillStyle(Phaser.Display.Color.HexStringToColor(config.color).color, 0.3);
+        btnText.setColor(config.color);
+        descText.setVisible(false);
+      });
+      
+      // Click handler
+      btnBg.on('pointerdown', () => {
+        this.executeAutoWin(config.scenario);
+      });
+      
+      this.autoWinButtonsContainer!.add([btnBg, btnText, descText]);
+      yPos += buttonHeight + 4;
+    });
+    
+    // Keyboard shortcuts hint
+    const shortcutHint = this.scene.add.text(panelWidth / 2, panelHeight - 8, "[1] Bad  [2] Good  [3] Spectacular", {
+      fontFamily: "dungeon-mode",
+      fontSize: 7,
+      color: "#555555",
+      align: "center"
+    }).setOrigin(0.5, 1);
+    this.autoWinButtonsContainer.add(shortcutHint);
+    
+    // Add keyboard shortcuts
+    this.scene.input.keyboard?.on('keydown-ONE', () => this.executeAutoWin("bad"));
+    this.scene.input.keyboard?.on('keydown-TWO', () => this.executeAutoWin("good"));
+    this.scene.input.keyboard?.on('keydown-THREE', () => this.executeAutoWin("spectacular"));
+  }
+
+  /**
+   * Execute an auto-win scenario with preset combat metrics
+   */
+  private executeAutoWin(scenario: AutoWinScenario): void {
+    if (!this.dda) {
+      console.warn("DDA not initialized, cannot execute auto-win");
+      return;
+    }
+
+    const combatState = this.scene.getCombatState();
+    
+    // Get scenario configuration
+    const config = this.getScenarioConfig(scenario);
+    
+    console.log(`🎮 Auto-Win Triggered: ${scenario.toUpperCase()}`);
+    console.log("📊 Scenario Config:", config);
+    
+    // Apply scenario to combat state
+    // Set player health based on scenario
+    const targetHealth = Math.floor(combatState.player.maxHealth * config.healthPercentage);
+    combatState.player.currentHealth = targetHealth;
+    
+    // Set turn count (access private field via any)
+    (this.scene as any).turnCount = config.turnCount;
+    
+    // Set best hand achieved
+    (this.scene as any).bestHandAchieved = config.bestHand;
+    
+    // Track discards used
+    this.totalDiscardsUsed = config.discardsUsed;
+    
+    // Kill the enemy
+    combatState.enemy.currentHealth = 0;
+    
+    // Update UI to show the final state
+    this.scene.ui.updatePlayerUI();
+    this.scene.ui.updateEnemyUI();
+    
+    // Show visual feedback
+    this.showAutoWinFeedback(scenario, config);
+    
+    // Trigger combat end with victory after a short delay
+    this.scene.time.delayedCall(500, () => {
+      // Call the private endCombat method
+      (this.scene as any).endCombat(true);
+    });
+  }
+
+  /**
+   * Get configuration for each auto-win scenario
+   */
+  private getScenarioConfig(scenario: AutoWinScenario): {
+    healthPercentage: number;
+    turnCount: number;
+    bestHand: HandType;
+    discardsUsed: number;
+    description: string;
+  } {
+    switch (scenario) {
+      case "bad":
+        // Barely won - struggled through combat
+        // DDA should decrease PPS (player is struggling)
+        return {
+          healthPercentage: 0.2,  // Only 20% HP left (<30% = poor health penalty)
+          turnCount: 12,          // Many turns (inefficient)
+          bestHand: "pair",       // Weak hand (no skill bonus)
+          discardsUsed: 9,        // Used all discards (3 per turn for 3 turns worth)
+          description: "Struggled through combat with low health"
+        };
+      
+      case "good":
+        // Won comfortably - solid performance
+        // DDA should moderately increase PPS
+        return {
+          healthPercentage: 0.75, // 75% HP left (70-89% = good health bonus)
+          turnCount: 5,           // Moderate turn count
+          bestHand: "straight",   // Good hand (straight+ bonus)
+          discardsUsed: 3,        // Moderate discard usage
+          description: "Solid victory with good performance"
+        };
+      
+      case "spectacular":
+        // Dominated - exceptional performance
+        // DDA should significantly increase PPS
+        return {
+          healthPercentage: 1.0,    // Full health (perfect combat bonus!)
+          turnCount: 2,             // Very fast (efficient bonus)
+          bestHand: "four_of_a_kind", // Excellent hand (excellent hand bonus)
+          discardsUsed: 0,          // No discards needed (resource efficiency)
+          description: "Flawless victory - dominated the enemy"
+        };
+    }
+  }
+
+  /**
+   * Show visual feedback for auto-win
+   */
+  private showAutoWinFeedback(scenario: AutoWinScenario, config: {
+    healthPercentage: number;
+    turnCount: number;
+    bestHand: HandType;
+    discardsUsed: number;
+    description: string;
+  }): void {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    
+    // Color based on scenario
+    const colors: Record<AutoWinScenario, string> = {
+      bad: "#ff4757",
+      good: "#ffa502",
+      spectacular: "#2ed573"
+    };
+    
+    const labels: Record<AutoWinScenario, string> = {
+      bad: "😰 BAD WIN",
+      good: "😊 GOOD WIN",
+      spectacular: "🌟 SPECTACULAR WIN"
+    };
+    
+    // Create feedback container
+    const feedbackContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2 - 50);
+    feedbackContainer.setDepth(2000);
+    
+    // Background
+    const bg = this.scene.add.rectangle(0, 0, 300, 120, 0x000000, 0.9);
+    bg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(colors[scenario]).color);
+    feedbackContainer.add(bg);
+    
+    // Title
+    const titleText = this.scene.add.text(0, -40, labels[scenario], {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: colors[scenario],
+      align: "center"
+    }).setOrigin(0.5);
+    feedbackContainer.add(titleText);
+    
+    // Stats
+    const statsText = this.scene.add.text(0, 0, [
+      `HP: ${Math.round(config.healthPercentage * 100)}%`,
+      `Turns: ${config.turnCount}`,
+      `Best Hand: ${config.bestHand.replace(/_/g, " ")}`,
+      `Discards: ${config.discardsUsed}`
+    ].join("  |  "), {
+      fontFamily: "dungeon-mode",
+      fontSize: 10,
+      color: "#aaaaaa",
+      align: "center"
+    }).setOrigin(0.5);
+    feedbackContainer.add(statsText);
+    
+    // Description
+    const descText = this.scene.add.text(0, 30, config.description, {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: "#888888",
+      align: "center"
+    }).setOrigin(0.5);
+    feedbackContainer.add(descText);
+    
+    // Animate in and out
+    feedbackContainer.setAlpha(0);
+    feedbackContainer.setScale(0.8);
+    
+    this.scene.tweens.add({
+      targets: feedbackContainer,
+      alpha: 1,
+      scale: 1,
+      duration: 200,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.scene.time.delayedCall(400, () => {
+          this.scene.tweens.add({
+            targets: feedbackContainer,
+            alpha: 0,
+            y: feedbackContainer.y - 30,
+            duration: 300,
+            ease: 'Power2',
+            onComplete: () => {
+              feedbackContainer.destroy();
+            }
+          });
+        });
+      }
+    });
+  }
+
+  /**
+   * Destroy auto-win buttons (cleanup)
+   */
+  public destroyAutoWinButtons(): void {
+    if (this.autoWinButtonsContainer) {
+      this.autoWinButtonsContainer.destroy();
+      this.autoWinButtonsContainer = null;
     }
   }
 }

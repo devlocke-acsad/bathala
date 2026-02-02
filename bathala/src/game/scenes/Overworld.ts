@@ -9,6 +9,7 @@ import { Overworld_KeyInputManager } from "./Overworld_KeyInputManager";
 import { Overworld_MazeGenManager } from "./Overworld_MazeGenManager";
 import { Overworld_TooltipManager } from "./Overworld_TooltipManager";
 import { MusicManager } from "../../core/managers/MusicManager";
+import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 
 /**
  * Helper function to get the sprite key for a relic based on its ID
@@ -126,6 +127,13 @@ export class Overworld extends Scene {
   // Tooltip Manager
   private tooltipManager!: Overworld_TooltipManager;
   
+  // Chapter tracking - to detect chapter changes on resume (e.g., after boss defeat)
+  private sceneChapter: number = 1;
+  
+  // Chapter indicator UI
+  private chapterIndicatorText!: Phaser.GameObjects.Text;
+  private chapterIndicatorContainer!: Phaser.GameObjects.Container;
+  
   // Fog of War Manager
   private fogOfWarManager!: Overworld_FogOfWarManager;
   
@@ -215,15 +223,30 @@ export class Overworld extends Scene {
       console.log('🖱️ Input enabled:', this.input.enabled);
     });
     
-    // Check if we need to reset player data (fresh game start)
+    // Check if we need to reset player data (fresh game start or new chapter)
     const gameState = GameState.getInstance();
     const savedPlayerData = gameState.getPlayerData();
     
-    // If GameState has no player data (null or empty), this is a fresh start - reinitialize
+    // Track which chapter this scene was created for (used to detect chapter changes on resume)
+    this.sceneChapter = gameState.getCurrentChapter();
+    console.log(`🗺️ Overworld created for Chapter ${this.sceneChapter}`);
+    
+    // Check for new chapter transition OR fresh start
+    const isNewChapter = gameState.isNewChapterTransition;
     const isFreshStart = !savedPlayerData || (typeof savedPlayerData === 'object' && Object.keys(savedPlayerData).length === 0);
     
-    if (isFreshStart) {
-      console.log('🔄 Fresh game detected - initializing new player data');
+    if (isNewChapter || isFreshStart) {
+      if (isNewChapter) {
+        console.log(`🎉 New chapter ${this.sceneChapter} - initializing fresh player data`);
+        // Clear the flag so it doesn't trigger again
+        gameState.clearNewChapterFlag();
+        
+        // Also refresh the OverworldGameState reference (singleton might have stale values in this instance)
+        this.gameState = OverworldGameState.getInstance();
+      } else {
+        console.log('🔄 Fresh game detected - initializing new player data');
+      }
+      
       const newDeck = DeckManager.createFullDeck();
       this.playerData = {
         id: "player",
@@ -248,6 +271,28 @@ export class Overworld extends Scene {
       
       // Save fresh player data to GameState
       gameState.updatePlayerData(this.playerData);
+    } else {
+      // Restore player data from saved state
+      this.playerData = {
+        id: savedPlayerData.id || "player",
+        name: savedPlayerData.name || "Hero",
+        maxHealth: savedPlayerData.maxHealth || 120,
+        currentHealth: savedPlayerData.currentHealth !== undefined ? savedPlayerData.currentHealth : 120,
+        block: savedPlayerData.block || 0,
+        statusEffects: savedPlayerData.statusEffects || [],
+        hand: savedPlayerData.hand || [],
+        deck: savedPlayerData.deck || DeckManager.createFullDeck(),
+        discardPile: savedPlayerData.discardPile || [],
+        drawPile: savedPlayerData.drawPile || [],
+        playedHand: savedPlayerData.playedHand || [],
+        landasScore: savedPlayerData.landasScore || 0,
+        ginto: savedPlayerData.ginto !== undefined ? savedPlayerData.ginto : 100,
+        diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : 0,
+        relics: savedPlayerData.relics || [],
+        potions: savedPlayerData.potions || [],
+        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 1,
+        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 1
+      };
     }
     
     // Initialize maze generation manager with dev mode flag
@@ -986,6 +1031,16 @@ export class Overworld extends Scene {
    * Called when the scene resumes from another scene
    */
   resume(): void {
+    const gameState = GameState.getInstance();
+    const currentChapter = gameState.getCurrentChapter();
+    
+    // Check if chapter has changed (e.g., after boss defeat)
+    if (currentChapter !== this.sceneChapter) {
+      console.log(`🎉 Chapter changed! ${this.sceneChapter} → ${currentChapter}`);
+      this.showChapterTransition(currentChapter);
+      return; // Don't continue with normal resume - we're transitioning
+    }
+    
     // Set camera background color to match forest theme
     this.cameras.main.setBackgroundColor(0x323C39);
     
@@ -999,7 +1054,6 @@ export class Overworld extends Scene {
     this.isTransitioningToCombat = false;
     
     // Restore player position if saved
-    const gameState = GameState.getInstance();
     const savedPosition = gameState.getPlayerPosition();
     if (savedPosition) {
       this.player.setPosition(savedPosition.x, savedPosition.y);
@@ -1039,6 +1093,136 @@ export class Overworld extends Scene {
     
     // Update visible chunks around player
     this.updateVisibleChunks();
+  }
+
+  /**
+   * Show chapter transition screen and restart scene for new chapter
+   */
+  private showChapterTransition(newChapter: number): void {
+    // Disable input during transition
+    if (this.keyInputManager) {
+      this.keyInputManager.disableInput();
+    }
+    
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    
+    // Chapter names
+    const chapterNames: Record<number, string> = {
+      1: "The Enchanted Forest",
+      2: "The Submerged Barangays",
+      3: "The Skyward Citadel"
+    };
+    
+    const chapterSubtitles: Record<number, string> = {
+      1: "Where ancient spirits dwell",
+      2: "Depths of forgotten villages",
+      3: "Realm of the divine"
+    };
+    
+    // Create transition overlay
+    const overlay = this.add.rectangle(
+      screenWidth / 2, 
+      screenHeight / 2, 
+      screenWidth, 
+      screenHeight, 
+      0x000000, 
+      0
+    );
+    overlay.setDepth(OVERWORLD_DEPTHS.TRANSITION_OVERLAY);
+    overlay.setScrollFactor(0);
+    
+    // Fade to black
+    this.tweens.add({
+      targets: overlay,
+      alpha: 1,
+      duration: 1000,
+      ease: 'Power2',
+      onComplete: () => {
+        // Create chapter title text (initially hidden)
+        const chapterLabel = this.add.text(screenWidth / 2, screenHeight / 2 - 60, `CHAPTER ${newChapter}`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 28,
+          color: "#ffd700",
+          align: "center"
+        }).setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(OVERWORLD_DEPTHS.TRANSITION_EFFECTS);
+        
+        const chapterTitle = this.add.text(screenWidth / 2, screenHeight / 2, chapterNames[newChapter] || `Act ${newChapter}`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 42,
+          color: "#ffffff",
+          align: "center"
+        }).setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(OVERWORLD_DEPTHS.TRANSITION_EFFECTS);
+        
+        const chapterSubtitle = this.add.text(screenWidth / 2, screenHeight / 2 + 50, chapterSubtitles[newChapter] || "", {
+          fontFamily: "dungeon-mode",
+          fontSize: 18,
+          color: "#aaaaaa",
+          align: "center",
+          fontStyle: "italic"
+        }).setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(OVERWORLD_DEPTHS.TRANSITION_EFFECTS);
+        
+        // Animate text in
+        this.tweens.add({
+          targets: [chapterLabel, chapterTitle, chapterSubtitle],
+          alpha: 1,
+          duration: 800,
+          ease: 'Power2',
+          onComplete: () => {
+            // Hold for a moment
+            this.time.delayedCall(2000, () => {
+              // Fade out text
+              this.tweens.add({
+                targets: [chapterLabel, chapterTitle, chapterSubtitle],
+                alpha: 0,
+                duration: 500,
+                ease: 'Power2',
+                onComplete: () => {
+                  // Clean up
+                  chapterLabel.destroy();
+                  chapterTitle.destroy();
+                  chapterSubtitle.destroy();
+                  
+                  // Stop current scene and restart for new chapter
+                  console.log(`🗺️ Restarting Overworld for Chapter ${newChapter}`);
+                  
+                  // Reset GameState for new chapter (clears player data, map, etc.)
+                  const gameState = GameState.getInstance();
+                  gameState.resetForNewChapter();
+                  
+                  // Reset day/night cycle for new chapter (OverworldGameState)
+                  console.log("🌅 Resetting day/night cycle for new chapter");
+                  const overworldGameState = OverworldGameState.getInstance();
+                  overworldGameState.reset();
+                  
+                  // Reset DDA system to default for fair chapter start
+                  console.log("🎯 Resetting DDA system for new chapter");
+                  try {
+                    const dda = RuleBasedDDA.getInstance();
+                    dda.resetSession();
+                  } catch (error) {
+                    console.warn("Could not reset DDA:", error);
+                  }
+                  
+                  // Fade out overlay and restart scene
+                  this.tweens.add({
+                    targets: overlay,
+                    alpha: 0,
+                    duration: 500,
+                    ease: 'Power2',
+                    onComplete: () => {
+                      overlay.destroy();
+                      // Restart the scene - this will call create() again with new chapter
+                      this.scene.restart();
+                    }
+                  });
+                }
+              });
+            });
+          }
+        });
+      }
+    });
   }
 
   /**
@@ -2320,6 +2504,7 @@ export class Overworld extends Scene {
    */
   private createOverworldUI(): void {
     const screenHeight = this.cameras.main.height;
+    const screenWidth = this.cameras.main.width;
     
     // Create main UI container positioned at top-left
     this.uiContainer = this.add.container(0, 0);
@@ -2328,8 +2513,98 @@ export class Overworld extends Scene {
     // Create compact left panel for all UI elements
     this.createCompactLeftPanel(screenHeight);
     
+    // Create chapter indicator at top-right
+    this.createChapterIndicator(screenWidth);
+    
     // Update all UI elements
     this.updateOverworldUI();
+  }
+
+  /**
+   * Create chapter indicator above the inventory panel (left side)
+   * Added to uiContainer so it inherits zoom compensation automatically
+   */
+  private createChapterIndicator(screenWidth: number): void {
+    const gameState = GameState.getInstance();
+    const currentChapter = gameState.getCurrentChapter();
+    const screenHeight = this.cameras.main.height;
+    
+    // Chapter names
+    const chapterNames: Record<number, string> = {
+      1: "The Enchanted Forest",
+      2: "The Submerged Barangays",
+      3: "The Skyward Citadel"
+    };
+    
+    // Chapter colors
+    const chapterColors: Record<number, number> = {
+      1: 0x2d5a27, // Forest green
+      2: 0x1e4d6b, // Ocean blue
+      3: 0x5a4a7a  // Sky purple
+    };
+    
+    // Position above the inventory panel (left panel is at x=20, centered vertically)
+    // Left panel: panelWidth=300, panelHeight=450, panelY = screenHeight/2 - 225
+    const panelWidth = 300;
+    const panelHeight = 50;
+    const inventoryPanelY = (screenHeight / 2) - 225; // Top of inventory panel
+    const panelX = 20;
+    const panelY = inventoryPanelY - panelHeight - 10; // 10px gap above inventory
+    
+    // Create a sub-container for chapter indicator elements (added to uiContainer)
+    this.chapterIndicatorContainer = this.add.container(panelX, panelY);
+    
+    // Background panel matching inventory style
+    const panelBg = this.add.graphics();
+    panelBg.fillStyle(0x0a0a0a, 1.0);
+    panelBg.lineStyle(2, chapterColors[currentChapter] || 0x888888, 1);
+    panelBg.fillRect(0, 0, panelWidth, panelHeight);
+    panelBg.strokeRect(0, 0, panelWidth, panelHeight);
+    this.chapterIndicatorContainer.add(panelBg);
+    
+    // Inner border to match inventory style
+    const innerBorder = this.add.graphics();
+    innerBorder.lineStyle(1, 0x666666, 1.0);
+    innerBorder.strokeRect(4, 4, panelWidth - 8, panelHeight - 8);
+    this.chapterIndicatorContainer.add(innerBorder);
+    
+    // Chapter label
+    const chapterLabel = this.add.text(10, 8, `CHAPTER ${currentChapter}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: "12px",
+      color: "#ffd700"
+    });
+    this.chapterIndicatorContainer.add(chapterLabel);
+    
+    // Chapter name
+    this.chapterIndicatorText = this.add.text(10, 26, chapterNames[currentChapter] || `Act ${currentChapter}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: "14px",
+      color: "#ffffff"
+    });
+    this.chapterIndicatorContainer.add(this.chapterIndicatorText);
+    
+    // Add the chapter indicator container to the main UI container
+    // This ensures it inherits the same zoom compensation as the inventory
+    this.uiContainer.add(this.chapterIndicatorContainer);
+  }
+
+  /**
+   * Update chapter indicator when chapter changes
+   */
+  private updateChapterIndicator(): void {
+    const gameState = GameState.getInstance();
+    const currentChapter = gameState.getCurrentChapter();
+    
+    const chapterNames: Record<number, string> = {
+      1: "The Enchanted Forest",
+      2: "The Submerged Barangays",
+      3: "The Skyward Citadel"
+    };
+    
+    if (this.chapterIndicatorText) {
+      this.chapterIndicatorText.setText(chapterNames[currentChapter] || `Act ${currentChapter}`);
+    }
   }
 
   /**
@@ -4259,6 +4534,9 @@ ${potion.description}`, {
         button.setScale(uiScale);
       });
     }
+    
+    // Note: Chapter indicator is now part of uiContainer, so it's automatically handled
+    // Note: Tooltip handles its own zoom compensation in updateTooltipContent
     
     console.log(`🎮 Initial UI scale set to ${uiScale} (camera zoom: ${cameraZoom})`);
   }

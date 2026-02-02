@@ -20,6 +20,9 @@ export class GameState {
   public currentChapter: Chapter = 1;
   public unlockedChapters: Set<Chapter> = new Set([1]);
   public chapterCompletions: Map<Chapter, boolean> = new Map();
+  
+  // Flag to indicate a new chapter transition is happening
+  public isNewChapterTransition: boolean = false;
 
   private constructor() {}
 
@@ -251,5 +254,49 @@ export class GameState {
    */
   getUnlockedChapters(): Chapter[] {
     return Array.from(this.unlockedChapters).sort();
+  }
+
+  /**
+   * Reset map state for chapter transition
+   * Clears the current map so a new one is generated for the new chapter
+   */
+  resetMapState(): void {
+    this.currentMap = null;
+    this.currentNodeId = null;
+    this.lastCompletedNodeId = null;
+    this.combatVictory = false;
+    // Note: We keep playerData intact - only the map resets
+    console.log("🗺️ Map state reset for chapter transition");
+  }
+
+  /**
+   * Reset for new chapter transition
+   * This is called when transitioning between chapters (after boss defeat)
+   * Resets player progress but keeps chapter/unlock state
+   */
+  resetForNewChapter(): void {
+    // Set flag so Overworld.create() knows to do a fresh start
+    this.isNewChapterTransition = true;
+    
+    // Reset map
+    this.currentMap = null;
+    this.currentNodeId = null;
+    this.lastCompletedNodeId = null;
+    this.combatVictory = false;
+    this.playerPosition = null;
+    this.overworldState = null;
+    
+    // Reset player data to start fresh for new chapter
+    // Player gets a clean slate: full health, no relics, no potions, fresh deck
+    this.playerData = null;
+    
+    console.log("🎯 GameState reset for new chapter transition");
+  }
+
+  /**
+   * Clear the new chapter transition flag (called after create() processes it)
+   */
+  clearNewChapterFlag(): void {
+    this.isNewChapterTransition = false;
   }
 }
