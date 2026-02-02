@@ -318,5 +318,10 @@
     - Update technical documentation
     - _Requirements: 5.1_
 
-- [ ] 13. Final checkpoint - Ensure all tests pass
+- [x] 13. Final checkpoint - Ensure all tests pass
+
+
+
+
+
   - Ensure all tests pass, ask the user if questions arise.

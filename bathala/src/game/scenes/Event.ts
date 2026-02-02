@@ -2,14 +2,15 @@
 import { Scene } from 'phaser';
 import { GameState } from '../../core/managers/GameState';
 import { Player } from '../../core/types/CombatTypes';
-import { GameEvent, EventChoice, EventContext } from '../../data/events/EventTypes';
-import { Act1Events } from '../../data/events/Act1Events';
+import { GameEvent, EventChoice, EventContext, EducationalEvent } from '../../data/events/EventTypes';
+import { CombinedAct1Events } from '../../data/events';
 import { OverworldGameState } from '../../core/managers/OverworldGameState';
 import { MusicManager } from '../../core/managers/MusicManager';
+import { EducationalEventManager } from '../../core/managers/EducationalEventManager';
 
 export class EventScene extends Scene {
   private player!: Player;
-  private currentEvent!: GameEvent;
+  private currentEvent!: GameEvent | EducationalEvent;
   private descriptionText!: Phaser.GameObjects.Text;
   private choiceButtons: Phaser.GameObjects.Container[] = [];
   private eventBackground!: Phaser.GameObjects.Graphics;
@@ -27,10 +28,16 @@ export class EventScene extends Scene {
     super({ key: 'EventScene' });
   }
 
-  init(data: { player: Player }) {
+  init(data: { player: Player, event?: GameEvent | EducationalEvent }) {
     this.player = data.player;
-    const availableEvents = Act1Events;
-    this.currentEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+    if (data.event) {
+        // Use injected event (Debug/Specific)
+        this.currentEvent = data.event;
+    } else {
+        // Fallback to random Act 1 event (Normal Gameplay loop if not specified)
+        const availableEvents = CombinedAct1Events;
+        this.currentEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+    }
   }
 
   create() {
@@ -308,6 +315,12 @@ export class EventScene extends Scene {
     
     const resultMessage = choice.outcome(context);
 
+    // If this is an educational event, track it with the educational event manager
+    if (this.isEducationalEvent(this.currentEvent)) {
+      const educationalEventManager = EducationalEventManager.getInstance();
+      educationalEventManager.markEventEncountered(this.currentEvent);
+    }
+
     const overworldState = OverworldGameState.getInstance();
     overworldState.recordAction();
 
@@ -321,40 +334,195 @@ export class EventScene extends Scene {
     gameState.updatePlayerData(this.player);
   }
 
+  private isEducationalEvent(event: GameEvent | EducationalEvent): event is EducationalEvent {
+    return 'culturalContext' in event && 'academicReferences' in event && 'valuesLesson' in event;
+  }
+
   private showResult(outcome: string): void {
     const { width, height } = this.cameras.main;
 
+    // Clean up previous result if any
     if (this.resultText) {
       this.resultText.destroy();
+      this.resultText = undefined;
     }
 
-    this.resultText = this.add.text(width / 2, height - 60, `Outcome: ${outcome}`, {
-      fontFamily: 'dungeon-mode',
-      fontSize: '24px',
-      color: '#2ed573'  // Match combat success color (green but more muted)
-    }).setOrigin(0.5).setAlpha(0);
+    // Clear choice buttons
+    this.choiceButtons.forEach(button => button.destroy());
+    this.choiceButtons = [];
+
+    // Container for Result UI
+    const container = this.add.container(width / 2, height / 2);
+    container.setAlpha(0);
+
+    // Background Panel
+    const panelWidth = width * 0.7; // Slightly smaller than educational panel
+    const panelHeight = 250;
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 0.9);
+    bg.lineStyle(2, 0x2ed573, 0.8); // Green border for Outcome
+    bg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 16);
+    bg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 16);
+    container.add(bg);
+
+    // Title
+    const title = this.add.text(0, -panelHeight / 2 + 30, "EVENT OUTCOME", {
+        fontFamily: 'dungeon-mode', fontSize: '24px', color: '#2ed573'
+    }).setOrigin(0.5);
+    container.add(title);
+    
+    // Result Text
+    const textWidth = panelWidth - 80;
+    const outcomeText = this.add.text(0, 0, outcome, {
+        fontFamily: 'monospace', 
+        fontSize: '18px', 
+        color: '#ffffff', 
+        align: 'center', 
+        wordWrap: { width: textWidth } 
+    }).setOrigin(0.5);
+    container.add(outcomeText);
+    
+    // Store reference for eventual destruction if needed, though scenes clear containers
+    // Store reference for eventual destruction if needed, though scenes clear containers
+    // this.resultContainer = container;
 
     this.tweens.add({
-      targets: this.resultText,
+      targets: container,
       alpha: 1,
       duration: 500,
       ease: 'Power2',
       onComplete: () => {
-        this.time.delayedCall(1500, () => {
-          // Complete the event node and return to overworld
-          const gameState = GameState.getInstance();
-          gameState.completeCurrentNode(true);
-          
-          // Manually call the Overworld resume method to reset movement flags
-          const overworldScene = this.scene.get("Overworld");
-          if (overworldScene) {
-            (overworldScene as any).resume();
-          }
-          
-          this.scene.stop('EventScene');
-          this.scene.resume('Overworld');
-        });
+         // Wait a bit before proceeding
+         this.time.delayedCall(2000, () => {
+            this.tweens.add({
+                targets: container,
+                alpha: 0,
+                duration: 500,
+                onComplete: () => {
+                   container.destroy();
+                   // Proceed
+                   if (this.isEducationalEvent(this.currentEvent)) {
+                       this.showEducationalContent();
+                   } else {
+                       this.completeEvent();
+                   }
+                }
+            });
+         });
       }
+    });
+  }
+  
+
+
+  private showEducationalContent(): void {
+    const { width, height } = this.cameras.main;
+    const educationalEvent = this.currentEvent as EducationalEvent;
+
+    // Create a container for the educational outcome
+    const container = this.add.container(width / 2, height / 2);
+    container.setAlpha(0);
+
+    // Background Panel
+    const panelWidth = width * 0.85;
+    const panelHeight = 400;
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 0.9);
+    bg.lineStyle(2, 0xffa726, 0.8); // Orange border for educational context
+    bg.fillRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 16);
+    bg.strokeRoundedRect(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight, 16);
+    container.add(bg);
+
+    // Title
+    const title = this.add.text(0, -panelHeight / 2 + 30, "WISDOM GAINED", {
+        fontFamily: 'dungeon-mode', fontSize: '24px', color: '#ffb74d'
+    }).setOrigin(0.5);
+    container.add(title);
+
+    let currentY = -panelHeight / 2 + 80;
+    const textWidth = panelWidth - 60;
+    const style = { fontFamily: 'monospace', fontSize: '18px', color: '#ffffff', align: 'center', wordWrap: { width: textWidth } };
+
+    // Cultural Wisdom
+    const culturalLabel = this.add.text(0, currentY, "CULTURAL CONTEXT", { ...style, fontSize: '16px', color: '#ffcc80' }).setOrigin(0.5, 0);
+    container.add(culturalLabel);
+    currentY += 25;
+    
+    const culturalText = this.add.text(0, currentY, educationalEvent.culturalContext.culturalSignificance, { ...style, color: '#e8eced' }).setOrigin(0.5, 0);
+    container.add(culturalText);
+    currentY += culturalText.height + 30;
+
+    // Values Lesson
+    const valuesLabel = this.add.text(0, currentY, "VALUES LESSON", { ...style, fontSize: '16px', color: '#a5d6a7' }).setOrigin(0.5, 0);
+    container.add(valuesLabel);
+    currentY += 25;
+
+    const valuesText = this.add.text(0, currentY, educationalEvent.valuesLesson.culturalWisdom, { ...style, color: '#e8eced' }).setOrigin(0.5, 0);
+    container.add(valuesText);
+    currentY += valuesText.height + 30;
+
+    // Source
+    const reference = educationalEvent.academicReferences[0];
+    const refStr = `Source: ${reference.author}, "${reference.title}" (${reference.publicationYear})`;
+    const refText = this.add.text(0, panelHeight / 2 - 40, refStr, {
+        fontFamily: 'monospace', fontSize: '14px', color: '#90a4ae', align: 'center'
+    }).setOrigin(0.5);
+    container.add(refText);
+
+    // Click to continue
+    const continueText = this.add.text(0, panelHeight / 2 + 20, "[ Click to Continue ]", {
+        fontFamily: 'dungeon-mode', fontSize: '18px', color: '#ffffff'
+    }).setOrigin(0.5);
+    
+    // Animate in
+    this.tweens.add({
+        targets: [container, continueText],
+        alpha: 1,
+        duration: 500,
+        ease: 'Power2',
+        onComplete: () => {
+            // Wait for input to close
+            this.input.once('pointerdown', () => {
+                this.tweens.add({
+                     targets: [container, continueText],
+                     alpha: 0,
+                     duration: 300,
+                     onComplete: () => this.completeEvent()
+                });
+            });
+        }
+    });
+
+    // Clean up on shutdown? Scenes handle display list cleanup automatically.
+  }
+
+  private completeEvent(): void {
+    this.time.delayedCall(1500, () => {
+      // Check if we came from Debug Mode
+      if (this.currentEvent && (this.currentEvent as any)._debugSource) {
+           console.log("Returning to Educational Debug Scene");
+           this.scene.stop('EventScene');
+           this.scene.wake('EducationalEventsDebugScene');
+           // Re-enable input or visibility if needed (Wake does this mostly)
+           const debugScene = this.scene.get('EducationalEventsDebugScene') as any;
+           if (debugScene && debugScene.toggleVisibility) {
+               debugScene.toggleVisibility(); // Ensure it shows up if it was hidden
+           }
+           return;
+      }
+
+      // Normal Gameplay Flow
+      const gameState = GameState.getInstance();
+      gameState.completeCurrentNode(true);
+      
+      // Manually call the Overworld resume method to reset movement flags
+      const overworldScene = this.scene.get("Overworld");
+      if (overworldScene) {
+        (overworldScene as any).resume();
+      }
+      
+      this.scene.stop('EventScene');
+      this.scene.resume('Overworld');
     });
   }
 

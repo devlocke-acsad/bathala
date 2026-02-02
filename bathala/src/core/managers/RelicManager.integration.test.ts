@@ -180,8 +180,25 @@ describe('RelicManager Integration Tests', () => {
       fc.assert(
         fc.property(
           fc.constantFrom<Element>('fire', 'water', 'earth', 'air'),
-          fc.array(fc.float({ min: Math.fround(0.1), max: Math.fround(0.5) }), { minLength: 1, maxLength: 5 }),
+          fc.array(
+            fc.double({ min: 0.1, max: 0.5, noNaN: true, noDefaultInfinity: true }), 
+            { minLength: 1, maxLength: 5 }
+          ),
           (element, bonuses) => {
+            // Filter out any invalid values that might have slipped through
+            const validBonuses = bonuses.filter(b => 
+              typeof b === 'number' && 
+              !isNaN(b) && 
+              isFinite(b) && 
+              b >= 0.1 && 
+              b <= 0.5
+            );
+            
+            // Skip test if no valid bonuses
+            if (validBonuses.length === 0) {
+              return true;
+            }
+
             const affinity: ElementalAffinity = {
               weakness: null,
               resistance: null
@@ -189,7 +206,7 @@ describe('RelicManager Integration Tests', () => {
 
             // Register multiple modifiers (simulating multiple relics)
             ElementalAffinitySystem.clearModifiers();
-            bonuses.forEach(bonus => {
+            validBonuses.forEach(bonus => {
               ElementalAffinitySystem.registerModifier((el, multiplier, _affinity) => {
                 if (el === element) {
                   return multiplier + bonus;
@@ -202,8 +219,13 @@ describe('RelicManager Integration Tests', () => {
             const multiplier = ElementalAffinitySystem.calculateElementalMultiplier(element, affinity);
 
             // Verify all bonuses were stacked additively
-            const totalBonus = bonuses.reduce((sum, b) => sum + b, 0);
+            const totalBonus = validBonuses.reduce((sum, b) => sum + b, 0);
             const expectedMultiplier = 1.0 + totalBonus;
+
+            // Ensure the result is valid
+            expect(typeof multiplier).toBe('number');
+            expect(isNaN(multiplier)).toBe(false);
+            expect(isFinite(multiplier)).toBe(true);
 
             // Allow for floating point precision
             expect(Math.abs(multiplier - expectedMultiplier)).toBeLessThan(0.001);

@@ -79,6 +79,14 @@ export interface Player extends CombatEntity {
   potions: Potion[]; // Carried potions (max 3)
   discardCharges: number; // Available discard charges
   maxDiscardCharges: number; // Maximum discard charges per combat
+  
+  // Educational System Tracking
+  educationalProgress?: {
+    valuesLearned: Record<string, number>; // Map of FilipinoValue -> count
+    regionsEncountered: Record<string, number>; // Map of RegionalOrigin -> count
+    culturalKnowledgeScore: number;
+    achievements: string[];
+  };
 }
 
 export interface Enemy extends CombatEntity {
