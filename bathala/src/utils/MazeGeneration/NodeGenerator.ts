@@ -1,6 +1,10 @@
 import { MapNode, NodeType } from "../../core/types/MapTypes";
 import { SeededRandom } from "./types";
 import { ACT1_COMMON_ENEMIES, ACT1_ELITE_ENEMIES } from "../../data/enemies/Act1Enemies";
+import { ACT2_COMMON_ENEMIES, ACT2_ELITE_ENEMIES } from "../../data/enemies/Act2Enemies";
+import { ACT3_COMMON_ENEMIES, ACT3_ELITE_ENEMIES } from "../../data/enemies/Act3Enemies";
+import { GameState } from "../../core/managers/GameState";
+import { Chapter } from "../../core/types/CombatTypes";
 
 /*
   NodeGenerator
@@ -34,6 +38,24 @@ export class NodeGenerator {
   private static readonly MIN_OPEN_NEIGHBORS = 5;          // Minimum open neighbors for valid positions
   private static readonly BASE_NODE_COUNT = 3;             // Base number of nodes per chunk
   private static readonly MIN_NODE_DISTANCE_FACTOR = 4;    // Divisor for minimum distance between nodes
+
+  /**
+   * Get enemy arrays for the current chapter
+   */
+  private static getEnemyArraysForChapter(chapter: Chapter): {
+    common: typeof ACT1_COMMON_ENEMIES;
+    elite: typeof ACT1_ELITE_ENEMIES;
+  } {
+    switch (chapter) {
+      case 2:
+        return { common: ACT2_COMMON_ENEMIES, elite: ACT2_ELITE_ENEMIES };
+      case 3:
+        return { common: ACT3_COMMON_ENEMIES, elite: ACT3_ELITE_ENEMIES };
+      case 1:
+      default:
+        return { common: ACT1_COMMON_ENEMIES, elite: ACT1_ELITE_ENEMIES };
+    }
+  }
 
   /**
    * Generate nodes efficiently using spatial hashing
@@ -111,15 +133,19 @@ export class NodeGenerator {
       if (bestPosition) {
         const type = nodeTypes[Math.floor(rng.next() * nodeTypes.length)];
         
+        // Get current chapter for enemy selection
+        const currentChapter = GameState.getInstance().getCurrentChapter();
+        const enemyArrays = this.getEnemyArraysForChapter(currentChapter);
+        
         let enemyId: string | undefined = undefined;
         if (type === "combat") {
-          const enemyIndex = Math.floor(rng.next() * ACT1_COMMON_ENEMIES.length);
-          enemyId = ACT1_COMMON_ENEMIES[enemyIndex].name;
-          console.log(`Generated combat node: ${type}-${chunkX}-${chunkY}-${i}, enemyId: ${enemyId}, enemyIndex: ${enemyIndex}`);
+          const enemyIndex = Math.floor(rng.next() * enemyArrays.common.length);
+          enemyId = enemyArrays.common[enemyIndex].name;
+          console.log(`Generated combat node: ${type}-${chunkX}-${chunkY}-${i}, enemyId: ${enemyId}, chapter: ${currentChapter}`);
         } else if (type === "elite") {
-          const enemyIndex = Math.floor(rng.next() * ACT1_ELITE_ENEMIES.length);
-          enemyId = ACT1_ELITE_ENEMIES[enemyIndex].name;
-          console.log(`Generated elite node: ${type}-${chunkX}-${chunkY}-${i}, enemyId: ${enemyId}, enemyIndex: ${enemyIndex}`);
+          const enemyIndex = Math.floor(rng.next() * enemyArrays.elite.length);
+          enemyId = enemyArrays.elite[enemyIndex].name;
+          console.log(`Generated elite node: ${type}-${chunkX}-${chunkY}-${i}, enemyId: ${enemyId}, chapter: ${currentChapter}`);
         }
 
         nodes.push({
