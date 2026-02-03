@@ -1,6 +1,5 @@
 import { Boot } from "./scenes/Boot";
 import { GameOver } from "./scenes/GameOver";
-import { Game as MainGame } from "./scenes/Game";
 import { MainMenu } from "./scenes/MainMenu";
 import { Disclaimer } from "./scenes/Disclaimer";
 import { Prologue } from "./scenes/Prologue/Prologue";
@@ -29,7 +28,7 @@ const config: Phaser.Types.Core.GameConfig = {
   height: 1080, // 16:9 resolution height
   parent: "game-container",
   backgroundColor: "#150E10",
-  scene: [Boot, Preloader, Disclaimer, MainMenu, Prologue, Settings, Overworld, Combat, Shop, Campfire, Treasure, Discover, Credits, ChapterTransition, DDADebugScene, CombatDebugScene, EducationalEventsDebugScene, MainGame, GameOver, PokerHandReference, EventScene],
+  scene: [Boot, Preloader, Disclaimer, MainMenu, Prologue, Settings, Overworld, Combat, Shop, Campfire, Treasure, Discover, Credits, ChapterTransition, DDADebugScene, CombatDebugScene, EducationalEventsDebugScene, GameOver, PokerHandReference, EventScene],
 
   // Keep antialias off for crisp rendering, but don't force pixelArt globally
   // render: {
