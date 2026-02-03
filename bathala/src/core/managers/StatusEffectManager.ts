@@ -228,11 +228,13 @@ export class StatusEffectManager {
   /**
    * Apply a status effect to a target
    * Handles stacking logic and max stack limits
+   * @param source - Optional source information for tracking what caused this effect
    */
   static applyStatusEffect(
     target: CombatEntity,
     effectId: string,
-    stacks: number
+    stacks: number,
+    source?: { type: 'relic' | 'enemy' | 'card' | 'other'; id: string; icon: string }
   ): void {
     // Validate target
     if (!target) {
@@ -336,7 +338,8 @@ export class StatusEffectManager {
         type: definition.type,
         value: finalStacks,
         emoji: definition.emoji,
-        description: definition.description
+        description: definition.description,
+        source: source // Track what caused this effect
       };
 
       target.statusEffects.push(newEffect);

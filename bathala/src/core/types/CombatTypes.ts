@@ -124,6 +124,11 @@ export interface StatusEffect {
   value: number;  // Stack count (removed duration)
   description: string;
   emoji: string;
+  source?: {
+    type: 'relic' | 'enemy' | 'card' | 'other';
+    id: string;      // Relic ID or enemy name
+    icon: string;    // Emoji or sprite key
+  };
 }
 
 export interface StatusEffectTriggerResult {

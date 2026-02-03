@@ -93,11 +93,11 @@ export const SARIMANOK_KEEPER: Omit<Enemy, "id"> = {
   intent: {
     type: "debuff",
     value: 1,
-    description: "Nullifies, strengthens, attacks",
-    icon: "🚫",
+    description: "Weakens, strengthens, attacks",
+    icon: "⚠️",
   },
   damage: 24,            // 8 × 3 = 24
-  attackPattern: ["nullify", "strengthen", "attack"],
+  attackPattern: ["weaken", "strengthen", "attack"],
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "water",     // Fire creature: weak to Water
@@ -254,11 +254,11 @@ export const APOLAKI_GODLING: Omit<Enemy, "id"> = {
   intent: {
     type: "buff",
     value: 2,
-    description: "Strengthens, attacks, nullifies, attacks, burns",
+    description: "Strengthens, attacks, weakens, attacks, burns",
     icon: "💪",
   },
   damage: 36,            // 12 × 3 = 36
-  attackPattern: ["strengthen", "attack", "nullify", "attack", "poison"],
+  attackPattern: ["strengthen", "attack", "weaken", "attack", "poison"],
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "water",     // Fire/sun creature: weak to Water
@@ -284,11 +284,11 @@ export const FALSE_BATHALA: Omit<Enemy, "id"> = {
   intent: {
     type: "debuff",
     value: 2,
-    description: "Nullifies, weakens, strengthens, attacks, burns, attacks",
-    icon: "🚫",
+    description: "Stuns, weakens, strengthens, attacks, burns, attacks",
+    icon: "💫",
   },
   damage: 48,            // 16 × 3 = 48
-  attackPattern: ["nullify", "weaken", "strengthen", "attack", "poison", "attack"],
+  attackPattern: ["stun", "weaken", "strengthen", "attack", "poison", "attack"],
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: null,        // Divine being: no weakness

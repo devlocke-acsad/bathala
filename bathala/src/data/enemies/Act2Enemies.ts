@@ -40,11 +40,11 @@ export const SIRENA_ILLUSIONIST: Omit<Enemy, "id"> = {
   intent: {
     type: "buff",
     value: 10,
-    description: "Heals and charms",
+    description: "Heals and stuns",
     icon: "💚",
   },
   damage: 18,            // 6 × 3 = 18
-  attackPattern: ["heal", "charm", "attack"],
+  attackPattern: ["heal", "stun", "attack"],
   currentPatternIndex: 0,
   elementalAffinity: {
     weakness: "earth",     // Water creature: weak to Earth
