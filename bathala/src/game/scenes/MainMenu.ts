@@ -233,13 +233,18 @@ export class MainMenu extends Scene {
         // Launch the scene if not already running
         if (!this.scene.isActive('CombatDebugScene')) {
           this.scene.launch('CombatDebugScene');
-        }
-        // Get the scene and make it visible
-        const debugScene = this.scene.get('CombatDebugScene') as any;
-        if (debugScene && debugScene.toggleVisibility) {
-          // If it's hidden, show it
-          if (!debugScene.isVisible) {
-            debugScene.toggleVisibility();
+          // Wait for next frame to ensure scene's create() has completed
+          this.time.delayedCall(100, () => {
+            const debugScene = this.scene.get('CombatDebugScene') as any;
+            if (debugScene && debugScene.show) {
+              debugScene.show();
+            }
+          });
+        } else {
+          // Scene already active, show immediately
+          const debugScene = this.scene.get('CombatDebugScene') as any;
+          if (debugScene && debugScene.show) {
+            debugScene.show();
           }
         }
       })

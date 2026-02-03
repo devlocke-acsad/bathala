@@ -95,7 +95,7 @@ export class Preloader extends Scene {
     // Lupa special animation (Earth Crusher)
     this.load.spritesheet(
       "lupa_special",
-      "assets/animation/attack/special_lupa/lupa_special.png",
+      "animation/attack/special_lupa/lupa_special.png",
       {
         frameWidth: 96,
         frameHeight: 96,

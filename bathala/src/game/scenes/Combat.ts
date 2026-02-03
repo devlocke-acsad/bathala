@@ -514,6 +514,7 @@ export class Combat extends Scene {
     this.totalDamageDealt = 0;
     this.bestHandAchieved = "high_card";
     this.isActionProcessing = false;
+    this.specialUsedThisCombat = false; // Reset Special usage for new combat
     
     // Initialize DDA tracking and apply adjustments
     this.dda.initializeDDA();
