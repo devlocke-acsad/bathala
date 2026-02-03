@@ -1,11 +1,8 @@
 import { Scene } from 'phaser';
 import { TutorialPhase } from './TutorialPhase';
 import { showDialogue } from '../ui/Dialogue';
-import { createButton } from '../../../ui/Button';
 import { PlayingCard } from '../../../../core/types/CombatTypes';
 import { TutorialUI } from '../ui/TutorialUI';
-import { DUWENDE_TRICKSTER, TIYANAK_AMBUSHER } from '../../../../data/enemies/Act1Enemies';
-import { HandEvaluator } from '../../../../utils/HandEvaluator';
 import { createPhaseHeader } from '../ui/PhaseHeader';
 import { createProgressIndicator } from '../ui/ProgressIndicator';
 import { createInfoBox } from '../ui/InfoBox';
