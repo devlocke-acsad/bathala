@@ -1367,9 +1367,8 @@ export class Combat extends Scene {
 
     const enemy = this.combatState.enemy;
 
-    // Double-check enemy health after status effects
-    if (enemy.currentHealth <= 0 || this.combatEnded) {
-      console.log("Enemy defeated after status effects, skipping attack");
+    // PRIORITY 1: Check if enemy died from status effects using centralized method
+    if (this.checkCombatEnd()) {
       return;
     }
 
@@ -1483,9 +1482,8 @@ export class Combat extends Scene {
     // Process start-of-turn status effects for player
     this.applyStatusEffects(this.combatState.player, 'start_of_turn');
 
-    // Check if player died from status effects
-    if (this.combatState.player.currentHealth <= 0 || this.combatEnded) {
-      console.log("Player defeated after status effects");
+    // PRIORITY 1: Check if player died from status effects using centralized method
+    if (this.checkCombatEnd()) {
       return;
     }
 
@@ -1541,7 +1539,7 @@ export class Combat extends Scene {
     // Apply start-of-turn relic effects (handles ALL relics with START_OF_TURN effects)
     RelicManager.applyStartOfTurnEffects(this.combatState.player);
     
-    // Ensure action processing is reset
+    // PRIORITY 2: ALWAYS reset action processing flag at start of turn
     this.isActionProcessing = false;
     this.setActionButtonsEnabled(true);
     
@@ -1635,23 +1633,14 @@ export class Combat extends Scene {
       this.showEnhancedActionResult(message, "#ff6b6b");
     }
 
-
-
-    // Check if enemy is defeated
-    if (this.combatState.enemy.currentHealth <= 0) {
-      this.combatState.enemy.currentHealth = 0;
-      console.log("Enemy defeated!");
-      
+    // PRIORITY 1: Use centralized combat end check
+    if (this.checkCombatEnd()) {
       // Batch UI update instead of immediate call
       this.scheduleUIUpdate();
       
       // Play death animation
       this.animations.animateEnemyDeath();
-      
-      // Use shorter delay for better responsiveness
-      this.time.delayedCall(300, () => {
-        this.endCombat(true);
-      });
+      return;
     }
   }
 
@@ -1701,15 +1690,38 @@ export class Combat extends Scene {
     // Batch UI update instead of immediate call
     this.scheduleUIUpdate();
 
-    // Check if player is defeated
+    // PRIORITY 1: Use centralized combat end check
+    this.checkCombatEnd();
+  }
+
+  /**
+   * PRIORITY 1 FIX: Centralize combat end checks
+   * Check if combat should end based on health values
+   * Call this after ANY health change (player or enemy)
+   */
+  private checkCombatEnd(): boolean {
+    // Prevent multiple calls
+    if (this.combatEnded) {
+      return true;
+    }
+    
+    // Check enemy defeated
+    if (this.combatState.enemy.currentHealth <= 0) {
+      this.combatState.enemy.currentHealth = 0;
+      console.log("Enemy defeated - ending combat with victory");
+      this.endCombat(true);
+      return true;
+    }
+    
+    // Check player defeated
     if (this.combatState.player.currentHealth <= 0) {
       this.combatState.player.currentHealth = 0;
-      console.log("Player defeated!");
-      // Use shorter delay and batch UI update
-      this.time.delayedCall(300, () => {
-        this.endCombat(false);
-      });
+      console.log("Player defeated - ending combat with defeat");
+      this.endCombat(false);
+      return true;
     }
+    
+    return false;
   }
 
   /**
@@ -1884,16 +1896,17 @@ export class Combat extends Scene {
    * End combat with result
    */
   private endCombat(victory: boolean): void {
-    // Prevent multiple end combat calls
+    // PRIORITY 1 & 2: Prevent multiple end combat calls
     if (this.combatEnded) {
       console.log("Combat already ended, preventing duplicate call");
       return;
     }
     
-    
-    
     this.combatEnded = true;
     this.combatState.phase = "post_combat";
+    
+    // PRIORITY 2: Reset action processing flag (safety)
+    this.isActionProcessing = false;
     
     const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
     const screenHeight = this.cameras.main?.height || this.scale.height || 768;
@@ -2872,7 +2885,7 @@ export class Combat extends Scene {
   }
 
   public executeAction(actionType: "attack" | "defend" | "special"): void {
-    // Prevent action spamming
+    // PRIORITY 2: Prevent action spamming
     if (this.isActionProcessing) {
       console.log("Action already processing, ignoring input");
       return;
@@ -2885,7 +2898,7 @@ export class Combat extends Scene {
       return;
     }
     
-    // Set processing flag
+    // PRIORITY 2: Set processing flag (will be reset in try-finally or delayed call)
     this.isActionProcessing = true;
     
     // Visually disable action buttons
@@ -3034,7 +3047,8 @@ export class Combat extends Scene {
       // Result already shown above with detailed calculation
     }
     
-    // Process enemy turn after a short delay to allow player to see results
+    // PRIORITY 2: Process enemy turn after a short delay
+    // Note: processing flag will be managed by enemy turn flow
     this.time.delayedCall(1000, () => {
       this.processEnemyTurn();
     });
