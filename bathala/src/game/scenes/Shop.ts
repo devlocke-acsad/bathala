@@ -6,36 +6,7 @@ import { Player, Relic } from "../../core/types/CombatTypes";
 import { allShopItems, ShopItem, getChapterShopItems } from "../../data/relics/ShopItems";
 import { getRelicById } from "../../data/relics";
 import { MusicManager } from "../../core/managers/MusicManager";
-
-/**
- * Helper function to get the sprite key for a relic based on its ID
- */
-function getRelicSpriteKey(relicId: string): string {
-  const spriteMap: Record<string, string> = {
-    'swift_wind_agimat': 'relic_swift_wind_agimat',
-    'amomongo_claw': 'relic_amomongo_claw',
-    'ancestral_blade': 'relic_ancestral_blade',
-    'balete_root': 'relic_balete_root',
-    'babaylans_talisman': 'relic_babaylans_talisman',
-    'bungisngis_grin': 'relic_bungisngis_grin',
-    'diwatas_crown': 'relic_diwatas_crown',
-    'duwende_charm': 'relic_duwende_charm',
-    'earthwardens_plate': 'relic_earthwardens_plate',
-    'ember_fetish': 'relic_ember_fetish',
-    'kapres_cigar': 'relic_kapres_cigar',
-    'lucky_charm': 'relic_lucky_charm',
-    'mangangaway_wand': 'relic_mangangaway_wand',
-    'sarimanok_feather': 'relic_sarimanok_feather',
-    'sigbin_heart': 'relic_sigbin_heart',
-    'stone_golem_heart': 'relic_stone_golem_heart',
-    'tidal_amulet': 'relic_tidal_amulet',
-    'tikbalangs_hoof': 'relic_tikbalangs_hoof',
-    'tiyanak_tear': 'relic_tiyanak_tear',
-    'umalagad_spirit': 'relic_umalagad_spirit'
-  };
-  
-  return spriteMap[relicId] || '';
-}
+import { getRelicSpriteKey } from "../../utils/RelicSpriteUtils";
 
 /**
  * Shop scene for purchasing relics and items
