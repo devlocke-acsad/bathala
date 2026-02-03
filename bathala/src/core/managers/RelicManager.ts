@@ -13,7 +13,7 @@ export class RelicManager {
   /**
    * Helper method to add dexterity effect to player
    */
-  private static addDexterityEffect(player: Player, effectId: string, value: number): void {
+  private static addDexterityEffect(player: Player, effectId: string, value: number, relicId?: string, relicIcon?: string): void {
     const dexterityEffect: StatusEffect = {
       id: effectId,
       name: "Dexterity",
@@ -22,6 +22,11 @@ export class RelicManager {
       value: value,
       description: "Gain +1 additional block per stack with Defend actions.",
       emoji: "⛨",
+      source: relicId ? {
+        type: 'relic',
+        id: relicId,
+        icon: relicIcon || '🗿'
+      } : undefined
     };
     
     // Check if dexterity effect already exists to avoid duplicates
@@ -34,7 +39,7 @@ export class RelicManager {
   /**
    * Helper method to add strength effect to player
    */
-  private static addStrengthEffect(player: Player, effectId: string, value: number): void {
+  private static addStrengthEffect(player: Player, effectId: string, value: number, relicId?: string, relicIcon?: string): void {
     const strengthEffect: StatusEffect = {
       id: effectId,
       name: "Strength",
@@ -43,6 +48,11 @@ export class RelicManager {
       value: value,
       description: "Deal +3 additional damage per stack with Attack actions.",
       emoji: "†",
+      source: relicId ? {
+        type: 'relic',
+        id: relicId,
+        icon: relicIcon || '🗿'
+      } : undefined
     };
     
     // Check if strength effect already exists to avoid duplicates
@@ -189,11 +199,11 @@ export class RelicManager {
 
       switch (relicId) {
         case "ember_fetish":
-          // BALANCED: +2 Strength when Block = 0 (encourages risky play), +1 Strength otherwise
+          // BALANCED: +4 Strength when Block = 0 (encourages risky play), +2 Strength otherwise
           if (player.block === 0) {
-            RelicManager.addStrengthEffect(player, "strength_ember", 2);
+            RelicManager.addStrengthEffect(player, "strength_ember", 4, "ember_fetish", "🔥");
           } else {
-            RelicManager.addStrengthEffect(player, "strength_ember", 1);
+            RelicManager.addStrengthEffect(player, "strength_ember", 2, "ember_fetish", "🔥");
           }
           break;
           
@@ -205,7 +215,7 @@ export class RelicManager {
           
         case "tiyanak_tear":
           // BALANCED: +1 Strength at start of each turn (~3-5 extra damage per turn)
-          RelicManager.addStrengthEffect(player, "strength_tiyanak", 1);
+          RelicManager.addStrengthEffect(player, "strength_tiyanak", 1, "tiyanak_tear", "😭");
           console.log(`[Tiyanak Tear] +1 Strength at start of turn`);
           break;
       }
@@ -226,7 +236,7 @@ export class RelicManager {
         case "ancestral_blade":
           // BALANCED: +2 Strength per Flush (rewards element focus)
           if (evaluation.type === "flush") {
-            RelicManager.addStrengthEffect(player, "strength_ancestral", 2);
+            RelicManager.addStrengthEffect(player, "strength_ancestral", 2, "ancestral_blade", "⚔️");
           }
           break;
           

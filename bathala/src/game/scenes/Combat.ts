@@ -784,9 +784,10 @@ export class Combat extends Scene {
 
       // Create Prologue-style tooltip container
       const tooltipContainer = this.add.container(x, spacing);
-      const tooltipText = `${relic.name}\n${relic.description}`;
-      const tooltipWidth = Math.min(tooltipText.length * 6 + 20, 200);
-      const tooltipHeight = 60;
+      const effectDescription = this.getRelicEffectDescription(relic.id);
+      const tooltipText = `${relic.name}\n${effectDescription}`;
+      const tooltipWidth = Math.min(300, Math.max(200, tooltipText.length * 4));
+      const tooltipHeight = Math.min(120, Math.max(60, tooltipText.split('\n').length * 20 + 20));
       
       // Prologue-style double border design
       const outerBorder = this.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
@@ -1415,6 +1416,9 @@ export class Combat extends Scene {
     // Execute enemy action based on attack pattern
     const currentAction = enemy.attackPattern[enemy.currentPatternIndex];
     
+    // PRIORITY 6: Show what enemy is doing NOW
+    this.showCurrentEnemyAction(currentAction);
+    
     if (currentAction === "attack") {
       // Calculate damage with Weak modifier
       let damage = enemy.damage || enemy.intent.value || 12;
@@ -1450,10 +1454,10 @@ export class Combat extends Scene {
       this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'weak', 1);
       this.ui.updatePlayerUI();
     } else if (currentAction === "confuse" || currentAction === "disrupt_draw" || currentAction === "fear") {
-      // Enemy applies Weak (represents confusion/disruption)
-      StatusEffectManager.applyStatusEffect(this.combatState.player, 'weak', 1);
-      this.showActionResult(`${enemy.name} disrupts you!`);
-      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'weak', 1);
+      // SIMPLIFIED: All crowd control = Stunned (skip next turn)
+      StatusEffectManager.applyStatusEffect(this.combatState.player, 'stunned', 1);
+      this.showActionResult(`${enemy.name} stuns you! (Turn skipped)`);
+      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'stunned', 1);
       this.ui.updatePlayerUI();
     } else if (currentAction === "charge" || currentAction === "wait") {
       // Enemy prepares or waits (gains block)
@@ -1462,10 +1466,10 @@ export class Combat extends Scene {
       this.showActionResult(`${enemy.name} prepares...`);
       this.ui.updateEnemyUI();
     } else if (currentAction === "stun") {
-      // Enemy applies Frail (represents stun effect)
-      StatusEffectManager.applyStatusEffect(this.combatState.player, 'frail', 2);
-      this.showActionResult(`${enemy.name} stuns you!`);
-      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'frail', 2);
+      // SIMPLIFIED: All crowd control = Stunned (skip next turn)
+      StatusEffectManager.applyStatusEffect(this.combatState.player, 'stunned', 1);
+      this.showActionResult(`${enemy.name} stuns you! (Turn skipped)`);
+      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'stunned', 1);
       this.ui.updatePlayerUI();
     } else {
       // Unhandled action - enemy attacks as fallback
@@ -1506,6 +1510,21 @@ export class Combat extends Scene {
     // Don't start player turn if combat has ended
     if (this.combatEnded) {
       console.log("Combat has ended, not starting player turn");
+      return;
+    }
+
+    // CHECK: If player is stunned, skip their turn
+    const isStunned = this.combatState.player.statusEffects.some((e) => e.name === "Stunned");
+    if (isStunned) {
+      console.log("Player is stunned, skipping their turn");
+      this.showActionResult("You are Stunned - Turn Skipped!");
+      
+      // Process end-of-turn status effects and move to next turn
+      this.applyStatusEffects(this.combatState.player, 'end_of_turn');
+      
+      this.time.delayedCall(this.DELAY_ENEMY_TURN, () => {
+        this.executeEnemyTurn();
+      });
       return;
     }
 
@@ -1755,15 +1774,18 @@ export class Combat extends Scene {
   }
 
   /**
-   * Update enemy intent
+   * PRIORITY 6: Update enemy intent for NEXT turn
+   * This shows what the enemy WILL do next turn (not current action)
    */
   private updateEnemyIntent(): void {
     const enemy = this.combatState.enemy;
+    // Move to next action in pattern
     enemy.currentPatternIndex =
       (enemy.currentPatternIndex + 1) % enemy.attackPattern.length;
 
     const nextAction = enemy.attackPattern[enemy.currentPatternIndex];
 
+    // Set intent based on NEXT action (not current)
     if (nextAction === "attack") {
       enemy.intent = {
         type: "attack",
@@ -1804,12 +1826,12 @@ export class Combat extends Scene {
         icon: "⚠️",
       };
     } else if (nextAction === "confuse" || nextAction === "disrupt_draw" || nextAction === "fear") {
-      // Enemy will disrupt/confuse player
+      // SIMPLIFIED: All CC = Stun (skip turn)
       enemy.intent = {
         type: "debuff",
         value: 1,
-        description: "Disrupts (1 Weak)",
-        icon: "😵",
+        description: "Stuns (Skip turn)",
+        icon: "💫",
       };
     } else if (nextAction === "charge" || nextAction === "wait") {
       // Enemy will prepare/wait
@@ -1819,12 +1841,12 @@ export class Combat extends Scene {
         description: "Prepares (3 block)",
         icon: "⏳",
       };
-    } else if (nextAction === "stun") {
-      // Enemy will stun player
+    } else if (nextAction === "stun" || nextAction === "charm") {
+      // SIMPLIFIED: All CC = Stun (skip turn)
       enemy.intent = {
         type: "debuff",
-        value: 2,
-        description: "Stuns (2 Frail)",
+        value: 1,
+        description: "Stuns (Skip turn)",
         icon: "💫",
       };
     } else {
@@ -2914,6 +2936,63 @@ export class Combat extends Scene {
     return specialActions[suit];
   }
 
+  /**
+   * PRIORITY 5: RELIC TRIGGER POINTS (in order of execution)
+   * Complete reference for ALL relics - reflects ACTUAL implementation in RelicManager.ts
+   * 
+   * 1. START_OF_COMBAT (initializeCombat - one-time setup):
+   *    - Earthwarden's Plate: +5 Block at combat start (BALANCED)
+   *    - Swift Wind Agimat: +1 discard charge (total: 3 base + 1 = 4)
+   *    - Diwata's Crown: +5 Block, +3 Block on all Defend actions, Enables Five of a Kind
+   *    - Stone Golem's Heart: +8 Max HP (permanent), +2 Block at start (BALANCED)
+   *    - Umalagad's Spirit: Enables +2 Block per card played effect
+   * 
+   * 2. HAND_EVALUATION (HandEvaluator - during hand type calculation):
+   *    - Babaylan's Talisman: Hand tier +1 (Pair → Two Pair, Flush → Full House, etc.)
+   *    - Diwata's Crown: Enables Five of a Kind hand type
+   * 
+   * 3. START_OF_TURN (startPlayerTurn - BEFORE status effects):
+   *    - Earthwarden's Plate: +1 Block per turn (BALANCED)
+   *    - Ember Fetish: +4 Strength (if block = 0 - risky) or +2 Strength (if block > 0 - safe) (BALANCED)
+   *    - Tiyanak Tear: +1 Strength per turn (BALANCED - adds ~3 damage with Attack)
+   * 
+   * 4. AFTER_HAND_PLAYED (executeAction - AFTER evaluation, BEFORE damage):
+   *    - Ancestral Blade: +2 Strength on Flush (BALANCED)
+   *    - Sarimanok Feather: +1 Ginto on Straight or better (BALANCED)
+   *    - Lucky Charm: +1 Ginto on Straight or better (BALANCED)
+   *    - Umalagad's Spirit: +2 Block per card played (BALANCED)
+   * 
+   * 5. PASSIVE_COMBAT (executeAction - calculated during damage/block):
+   *    ON ATTACK:
+   *    - Sigbin Heart: +3 damage on all Attack actions (BALANCED)
+   *    - Bungisngis Grin: +4 damage on Attack when enemy has any debuff (BALANCED)
+   *    - Kapre's Cigar: First Attack deals double damage (once per combat)
+   *    - Amomongo Claw: Apply 1 Vulnerable to enemy (after damage dealt) (BALANCED)
+   *    
+   *    ON DEFEND:
+   *    - Balete Root: +2 Block per Lupa (Earth) card in played hand (BALANCED)
+   *    - Duwende Charm: +3 Block on all Defend actions (BALANCED)
+   *    - Umalagad's Spirit: +4 Block on all Defend actions (BALANCED)
+   *    - Diwata's Crown: +3 Block on all Defend actions (from START_OF_COMBAT)
+   *    
+   *    ON SPECIAL:
+   *    - Mangangaway Wand: +5 damage on all Special actions (BALANCED)
+   *    
+   *    ALWAYS ACTIVE:
+   *    - Tikbalang's Hoof: +10% dodge chance on all incoming damage (BALANCED)
+   * 
+   * 6. END_OF_TURN (endPlayerTurn - AFTER status effects):
+   *    - Tidal Amulet: Heal +1 HP per card remaining in hand (max +8 HP with 8 cards) (BALANCED)
+   * 
+   * EXECUTION ORDER WITHIN EACH PHASE:
+   * - START_OF_COMBAT: All relics apply simultaneously at combat initialization
+   * - START_OF_TURN: Relics → Status Effects → Draw Cards → Enable Actions
+   * - ATTACK/DEFEND/SPECIAL: Evaluate Hand → Relics → Calculate Final Values → Apply
+   * - END_OF_TURN: Status Effects → Relics → Next Turn
+   * 
+   * NOTE: "(BALANCED)" indicates values were tuned during balance pass.
+   * These values reflect the actual code implementation, not design documents.
+   */
   public executeAction(actionType: "attack" | "defend" | "special"): void {
     // PRIORITY 2: Prevent action spamming
     if (this.isActionProcessing) {
@@ -2936,6 +3015,7 @@ export class Combat extends Scene {
     
     console.log(`Executing action: ${actionType}`);
     
+    // STEP 1: Evaluate hand
     const evaluation = HandEvaluator.evaluateHand(
       this.combatState.player.playedHand,
       actionType,
@@ -2951,7 +3031,8 @@ export class Combat extends Scene {
       this.bestHandAchieved = evaluation.type;
     }
     
-    // Apply relic effects after playing a hand (handles ALL relics with AFTER_HAND_PLAYED effects)
+    // STEP 2: Apply relic effects AFTER hand evaluation
+    // This handles: Ancestral Blade, Babaylan's Talisman, Balete Root, etc.
     RelicManager.applyAfterHandPlayedEffects(this.combatState.player, this.combatState.player.playedHand, evaluation);
     
     const dominantSuit = this.getDominantSuit(
@@ -2959,11 +3040,9 @@ export class Combat extends Scene {
     );
     console.log(`Dominant suit: ${dominantSuit}`);
 
+    // STEP 3: Calculate base damage/block from evaluation
     let damage = 0;
     let block = 0;
-
-    // New damage calculation is already done in evaluation
-    // evaluation.totalValue now contains the final calculated damage
     
     // Track relic bonuses for detailed display
     const relicBonuses: {name: string, amount: number}[] = [];
@@ -2972,6 +3051,7 @@ export class Combat extends Scene {
       case "attack":
         damage = evaluation.totalValue;
         
+        // STEP 4: Apply passive relic damage bonuses
         // Apply "Sigbin Heart" effect: +5 damage on all Attacks
         const sigbinHeartDamage = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
         if (sigbinHeartDamage > 0) {
@@ -2986,17 +3066,11 @@ export class Combat extends Scene {
           relicBonuses.push({name: "Bungisngis Grin", amount: bungisngisGrinDamage});
         }
         
-        // Apply "Kapre's Cigar" effect: First Attack deals double damage (once per combat)
+        // STEP 5: Apply Kapre's Cigar (first attack only)
         if (RelicManager.shouldApplyKapresCigarDouble(this.combatState.player, this)) {
           damage = damage * 2;
           relicBonuses.push({name: "Kapre's Cigar", amount: damage / 2}); // Show the doubled amount
           this.showActionResult("Kapre's Cigar empowered your strike!");
-        }
-        
-        // Apply "Amomongo Claw" effect: Apply 2 Vulnerable to enemy after damage
-        if (RelicManager.shouldApplyAmomongoVulnerable(this.combatState.player)) {
-          const vulnerableStacks = RelicManager.getAmomongoVulnerableStacks(this.combatState.player);
-          // Will be applied after damage is dealt
         }
         
         console.log(`Total attack damage: ${damage}`);
@@ -3010,6 +3084,7 @@ export class Combat extends Scene {
       case "defend":
         block = evaluation.totalValue;
         
+        // STEP 4: Apply Balete Root (after base calculation)
         // Apply "Balete Root" effect: +2 block per Lupa card
         // This is added as a flat bonus AFTER the main calculation
         const baleteRootBonus = RelicManager.calculateBaleteRootBlock(this.combatState.player, this.combatState.player.playedHand);
@@ -3050,19 +3125,26 @@ export class Combat extends Scene {
         return;
     }
 
-    // Apply elemental effects for attack/defend
+    // STEP 6: Apply elemental effects (if Special)
     this.applyElementalEffects(actionType, dominantSuit, evaluation.totalValue);
 
+    // STEP 7: Execute damage/block
     if (damage > 0) {
       console.log(`Animating player attack and dealing ${damage} damage`);
       this.animations.animatePlayerAttack(); // Add animation when attacking
       this.showFloatingDamage(damage); // Show floating damage counter like Prologue
       this.damageEnemy(damage);
       
-      // Apply "Amomongo Claw" effect: Apply 2 Vulnerable after Attack
+      // STEP 8: Apply Amomongo Claw AFTER damage (with source tracking)
       if (actionType === "attack" && RelicManager.shouldApplyAmomongoVulnerable(this.combatState.player)) {
         const vulnerableStacks = RelicManager.getAmomongoVulnerableStacks(this.combatState.player);
-        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'vulnerable', vulnerableStacks);
+        // Pass source info so enemy debuff shows relic icon
+        StatusEffectManager.applyStatusEffect(
+          this.combatState.enemy, 
+          'vulnerable', 
+          vulnerableStacks,
+          { type: 'relic', id: 'amomongo_claw', icon: '🐻' }
+        );
         this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'vulnerable', vulnerableStacks);
         this.showActionResult(`Amomongo Claw applied ${vulnerableStacks} Vulnerable!`);
         this.ui.updateEnemyUI();
@@ -3084,6 +3166,53 @@ export class Combat extends Scene {
     });
   }
   
+  /**
+   * PRIORITY 6: Show current enemy action during enemy turn
+   * This displays what the enemy is doing NOW (not next turn)
+   */
+  private showCurrentEnemyAction(action: string): void {
+    let actionText = "";
+    const enemyName = this.combatState.enemy.name;
+    
+    switch (action) {
+      case "attack":
+        actionText = `${enemyName} attacks!`;
+        break;
+      case "defend":
+        actionText = `${enemyName} defends!`;
+        break;
+      case "strengthen":
+        actionText = `${enemyName} grows stronger!`;
+        break;
+      case "poison":
+        actionText = `${enemyName} poisons you!`;
+        break;
+      case "weaken":
+        actionText = `${enemyName} weakens you!`;
+        break;
+      case "stun":
+      case "charm":
+      case "confuse":
+      case "disrupt_draw":
+      case "fear":
+        // SIMPLIFIED: All CC actions displayed as stun
+        actionText = `${enemyName} stuns you!`;
+        break;
+      case "heal":
+        actionText = `${enemyName} heals!`;
+        break;
+      case "charge":
+      case "wait":
+        actionText = `${enemyName} prepares...`;
+        break;
+      default:
+        actionText = `${enemyName} acts!`;
+        break;
+    }
+    
+    this.showActionResult(actionText);
+  }
+
   /** Process enemy turn - extracted for reuse */
   private processEnemyTurn(): void {
     console.log("Processing enemy turn");
@@ -3975,6 +4104,56 @@ export class Combat extends Scene {
     return handRanking[handType] / 11; // Normalize to 0-1 scale
   }
   /**
+   * Get accurate relic effect description based on BALANCED values from RelicManager.ts
+   */
+  /**
+   * Get accurate relic effect description from RelicManager.ts BALANCED values
+   * Updated to match exact implementation - all 20 relics verified
+   */
+  private getRelicEffectDescription(relicId: string): string {
+    const effectDescriptions: Record<string, string> = {
+      // === TIER 1: COMBAT START RELICS ===
+      'earthwardens_plate': '+5 Block at combat start, then +1 Block at the start of each turn',
+      'swift_wind_agimat': '+1 Discard charge (4 total). No card draw bonus',
+      'stone_golem_heart': '+8 Max HP permanently. +2 Block at combat start',
+      'diwatas_crown': 'Enables Five of a Kind hands. +5 Block at combat start. All Defend actions gain +3 Block',
+      
+      // === TIER 2: START OF TURN RELICS ===
+      'ember_fetish': '+4 Strength when Block = 0 (risky play), +2 Strength when Block > 0',
+      'tiyanak_tear': '+1 Strength at the start of each turn (stacks over combat)',
+      
+      // === TIER 3: HAND EVALUATION RELICS ===
+      'babaylans_talisman': 'All hands count as one tier higher (Pair → Two Pair, Straight → Flush, etc.)',
+      'ancestral_blade': '+2 Strength when playing a Flush or better',
+      'sarimanok_feather': '+1 Ginto when playing a Straight or better',
+      'lucky_charm': '+1 Ginto when playing a Straight or better',
+      
+      // === TIER 4: CARD PLAY RELICS ===
+      'umalagad_spirit': '+2 Block per card played. All Defend actions gain +4 Block',
+      'balete_root': '+2 Block per Lupa (Earth) card in your played hand',
+      
+      // === TIER 5: ATTACK ACTION RELICS ===
+      'sigbin_heart': 'All Attack actions deal +3 damage',
+      'amomongo_claw': 'Attack actions apply 1 Vulnerable (enemies take +50% damage)',
+      'bungisngis_grin': '+4 damage when attacking enemies with any debuff (Weak, Vulnerable, Burn)',
+      'kapres_cigar': 'First Attack of combat deals double damage (once per combat)',
+      
+      // === TIER 6: DEFEND ACTION RELICS ===
+      'duwende_charm': 'All Defend actions gain +3 Block',
+      
+      // === TIER 7: SPECIAL ACTION RELICS ===
+      'mangangaway_wand': 'All Special actions deal +5 damage',
+      
+      // === TIER 8: PASSIVE RELICS ===
+      'tikbalangs_hoof': '10% chance to completely dodge enemy attacks (1 in 10)',
+      
+      // === TIER 9: END OF TURN RELICS ===
+      'tidal_amulet': 'Heal +1 HP per card in hand at end of turn (max +8 with full hand)'
+    };
+    return effectDescriptions[relicId] || 'Unknown relic effect';
+  }
+
+  /**
    * Show Prologue-style relic tooltip
    */
   private showRelicTooltip(name: string, x: number, y: number): void {
@@ -4072,13 +4251,16 @@ export class Combat extends Scene {
       align: "center"
     }).setOrigin(0.5);
     
-    // Relic description with word wrap
-    const descText = this.add.text(0, -modalHeight/2 + 120, relic.description, {
+    // Relic description with word wrap - show accurate effect
+    const effectDescription = this.getRelicEffectDescription(relic.id);
+    const fullDescription = `${relic.description}\n\n⚡ EFFECT:\n${effectDescription}`;
+    const descText = this.add.text(0, -modalHeight/2 + 120, fullDescription, {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 12,
       color: "#77888C",
       align: "center",
-      wordWrap: { width: modalWidth - 40 }
+      wordWrap: { width: modalWidth - 40 },
+      lineSpacing: 4
     }).setOrigin(0.5);
     
     // Close button with Prologue styling
