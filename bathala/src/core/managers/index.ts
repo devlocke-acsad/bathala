@@ -13,3 +13,7 @@ export { RelicManager } from './RelicManager';
 export { VisualThemeManager } from './VisualThemeManager';
 
 export { EducationalEventManager } from './EducationalEventManager';
+
+// Act & Enemy Management (Phase 4)
+export { ActManager } from './ActManager';
+export { EnemyManager } from './EnemyManager';

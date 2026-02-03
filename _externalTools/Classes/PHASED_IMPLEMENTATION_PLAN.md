@@ -467,7 +467,7 @@ import { getRelicSpriteKey } from '../../utils/RelicSpriteUtils';
 **Duration**: 4-5 hours  
 **Risk**: ⬜ None  
 **Breaking Changes**: None (types only)  
-**Status**: ⏳ Not Started
+**Status**: ✅ Complete
 
 ### Objective
 Define ALL foundation interfaces and types that enable future extensibility. This includes:
@@ -791,12 +791,12 @@ import { FogOfWarSystem } from "../../systems/world/FogOfWarSystem";
 ```
 
 ### Verification
-- [ ] Overworld scene still works
-- [ ] No import errors
-- [ ] Maze generation works
-- [ ] Fog of war works
-- [ ] Tooltips work
-- [ ] Input handling works
+- [x] Overworld scene still works
+- [x] No import errors
+- [x] Maze generation works
+- [x] Fog of war works
+- [x] Tooltips work
+- [x] Input handling works
 
 ---
 
@@ -805,7 +805,7 @@ import { FogOfWarSystem } from "../../systems/world/FogOfWarSystem";
 **Duration**: 5-6 hours  
 **Risk**: 🟨 Medium  
 **Breaking Changes**: New dependencies (ActManager, EnemyManager)  
-**Status**: ⏳ Not Started
+**Status**: ✅ Complete
 
 > **ℹ️ Note**: GameState.ts already has `unlockChapter()`, `setCurrentChapter()`, `resetForNewChapter()` methods that can be leveraged.
 
@@ -1197,11 +1197,11 @@ export function registerAct1Enemies(): void {
 ```
 
 ### Verification
-- [ ] ActManager.getInstance() works
-- [ ] EnemyManager.getInstance() works
-- [ ] getCurrentActConfig() returns Act1 config
-- [ ] getEnemiesForCurrentAct() returns Act1 enemies
-- [ ] TypeScript compiles without errors
+- [x] ActManager.getInstance() works
+- [x] EnemyManager.getInstance() works
+- [x] getCurrentActConfig() returns Act1 config
+- [x] getEnemiesForCurrentAct() returns Act1 enemies
+- [x] TypeScript compiles without errors
 
 ---
 
