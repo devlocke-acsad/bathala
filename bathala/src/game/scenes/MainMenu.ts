@@ -37,13 +37,33 @@ export class MainMenu extends Scene {
     // Dev mode: Backtick (`) key to open Combat Debug Scene
     this.input.keyboard?.on('keydown-BACKTICK', () => {
       console.log('Opening Combat Debug Scene...');
-      this.scene.launch('CombatDebugScene');
+      if (!this.scene.isActive('CombatDebugScene')) {
+        const debugScene = this.scene.launch('CombatDebugScene');
+        // Use scene's create event to know when it's ready
+        this.scene.get('CombatDebugScene').events.once('create', () => {
+          const scene = this.scene.get('CombatDebugScene') as any;
+          if (scene && scene.show) scene.show();
+        });
+      } else {
+        const debugScene = this.scene.get('CombatDebugScene') as any;
+        if (debugScene && debugScene.show) debugScene.show();
+      }
     });
     
     // Dev mode: Also bind to "1" key for easier access
     this.input.keyboard?.on('keydown-ONE', () => {
       console.log('Opening Combat Debug Scene...');
-      this.scene.launch('CombatDebugScene');
+      if (!this.scene.isActive('CombatDebugScene')) {
+        this.scene.launch('CombatDebugScene');
+        // Use scene's create event to know when it's ready
+        this.scene.get('CombatDebugScene').events.once('create', () => {
+          const scene = this.scene.get('CombatDebugScene') as any;
+          if (scene && scene.show) scene.show();
+        });
+      } else {
+        const debugScene = this.scene.get('CombatDebugScene') as any;
+        if (debugScene && debugScene.show) debugScene.show();
+      }
     });
   }
 
@@ -233,14 +253,15 @@ export class MainMenu extends Scene {
         // Launch the scene if not already running
         if (!this.scene.isActive('CombatDebugScene')) {
           this.scene.launch('CombatDebugScene');
-        }
-        // Get the scene and make it visible
-        const debugScene = this.scene.get('CombatDebugScene') as any;
-        if (debugScene && debugScene.toggleVisibility) {
-          // If it's hidden, show it
-          if (!debugScene.isVisible) {
-            debugScene.toggleVisibility();
-          }
+          // Use scene's create event to know when it's ready
+          this.scene.get('CombatDebugScene').events.once('create', () => {
+            const scene = this.scene.get('CombatDebugScene') as any;
+            if (scene && scene.show) scene.show();
+          });
+        } else {
+          // Scene already active, show immediately
+          const debugScene = this.scene.get('CombatDebugScene') as any;
+          if (debugScene && debugScene.show) debugScene.show();
         }
       })
       .on("pointerover", function(this: Phaser.GameObjects.Text) {
@@ -264,12 +285,15 @@ export class MainMenu extends Scene {
         console.log('Opening Educational Events Debug Scene...');
         if (!this.scene.isActive('EducationalEventsDebugScene')) {
           this.scene.launch('EducationalEventsDebugScene');
-        }
-        const debugScene = this.scene.get('EducationalEventsDebugScene') as any;
-        if (debugScene && debugScene.toggleVisibility) {
-          if (!debugScene.isVisible) {
-            debugScene.toggleVisibility();
-          }
+          // Use scene's create event to know when it's ready
+          this.scene.get('EducationalEventsDebugScene').events.once('create', () => {
+            const scene = this.scene.get('EducationalEventsDebugScene') as any;
+            if (scene && scene.show) scene.show();
+          });
+        } else {
+          // Scene already active, show immediately
+          const debugScene = this.scene.get('EducationalEventsDebugScene') as any;
+          if (debugScene && debugScene.show) debugScene.show();
         }
       })
       .on("pointerover", function(this: Phaser.GameObjects.Text) {

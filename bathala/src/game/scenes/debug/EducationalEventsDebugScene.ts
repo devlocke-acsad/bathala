@@ -34,6 +34,33 @@ export class EducationalEventsDebugScene extends Scene {
     this.isVisible = false;
   }
 
+  /**
+   * Public method to show the debug UI
+   * Safe to call from other scenes
+   */
+  public show(): void {
+    if (!this.container) {
+      console.warn('EducationalEventsDebugScene: Container not yet created, cannot show');
+      return;
+    }
+    
+    this.isVisible = true;
+    this.container.setVisible(true);
+    this.updateEventListUI();
+  }
+
+  /**
+   * Public method to hide the debug UI
+   */
+  public hide(): void {
+    if (!this.container) {
+      return;
+    }
+    
+    this.isVisible = false;
+    this.container.setVisible(false);
+  }
+
   private updateEventListForAct(act: number): void {
     switch (act) {
       case 1: this.eventList = Act1EducationalEvents; break;
@@ -127,6 +154,12 @@ export class EducationalEventsDebugScene extends Scene {
   }
 
   private updateEventListUI(): void {
+    // Safety check for camera
+    if (!this.cameras || !this.cameras.main) {
+      console.warn('EducationalEventsDebugScene: Camera not ready, skipping UI update');
+      return;
+    }
+
     // Clear dynamic containers
     this.listContainer.removeAll(true);
     this.previewContainer.removeAll(true);
@@ -347,7 +380,12 @@ export class EducationalEventsDebugScene extends Scene {
   }
 
   public toggleVisibility(): void {
-      if (!this.container) return; // Prevent crash if called before create()
+      // Safety check: ensure container exists before toggling
+      if (!this.container) {
+        console.warn('EducationalEventsDebugScene: Container not yet created, cannot toggle visibility');
+        return;
+      }
+      
       this.isVisible = !this.isVisible;
       this.container.setVisible(this.isVisible);
       if (this.isVisible) {

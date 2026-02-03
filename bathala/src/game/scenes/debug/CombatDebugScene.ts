@@ -459,6 +459,28 @@ export class CombatDebugScene extends Scene {
     }
   }
 
+  /**
+   * Public method to show the debug scene
+   */
+  public show(): void {
+    if (!this.container) {
+      console.error('CombatDebugScene: Container not initialized yet');
+      return;
+    }
+    this.isVisible = true;
+    this.container.setVisible(true);
+    this.updateEnemyList();
+  }
+
+  /**
+   * Public method to hide the debug scene
+   */
+  public hide(): void {
+    if (!this.container) return;
+    this.isVisible = false;
+    this.container.setVisible(false);
+  }
+
   private startCombatWithEnemy(enemyKey: string): void {
     console.log(`Starting combat with: ${enemyKey}`);
     
