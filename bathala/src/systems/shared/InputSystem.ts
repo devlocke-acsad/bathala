@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 
 /**
- * Overworld_KeyInputManager
+ * InputSystem
  * 
  * Centralizes all keyboard and pointer/mouse input handling for the Overworld scene.
  * Manages:
@@ -12,7 +12,7 @@ import { Scene } from 'phaser';
  * 
  * Design: Provides a clean API for checking input states without direct keyboard access
  */
-export class Overworld_KeyInputManager {
+export class InputSystem {
   private scene: Scene;
   
   // Keyboard inputs
@@ -65,7 +65,7 @@ export class Overworld_KeyInputManager {
     this.debugCombatKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C);
     this.debugEliteKey = this.scene.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     
-    console.log('✅ KeyInputManager: Initialized');
+    console.log('✅ InputSystem: Initialized');
   }
 
   /**
@@ -92,7 +92,7 @@ export class Overworld_KeyInputManager {
       }
     });
     
-    console.log('✅ KeyInputManager: Pointer tracking enabled');
+    console.log('✅ InputSystem: Pointer tracking enabled');
   }
 
   // ============================================================================
@@ -201,7 +201,7 @@ export class Overworld_KeyInputManager {
   enableInput(): void {
     if (this.scene.input && this.scene.input.keyboard) {
       this.scene.input.keyboard.enabled = true;
-      console.log('✅ KeyInputManager: Input enabled');
+      console.log('✅ InputSystem: Input enabled');
     }
   }
 
@@ -211,7 +211,7 @@ export class Overworld_KeyInputManager {
   disableInput(): void {
     if (this.scene.input && this.scene.input.keyboard) {
       this.scene.input.keyboard.enabled = false;
-      console.log('⏸️ KeyInputManager: Input disabled');
+      console.log('⏸️ InputSystem: Input disabled');
     }
   }
 
@@ -237,6 +237,6 @@ export class Overworld_KeyInputManager {
       this.scene.input.off('pointerdown');
     }
     
-    console.log('🧹 KeyInputManager: Cleaned up');
+    console.log('🧹 InputSystem: Cleaned up');
   }
 }

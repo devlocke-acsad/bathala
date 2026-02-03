@@ -5,13 +5,13 @@ import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { GameState } from "../../core/managers/GameState";
 import { Player } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
-import { Overworld_KeyInputManager } from "./Overworld_KeyInputManager";
-import { Overworld_MazeGenManager } from "./Overworld_MazeGenManager";
-import { Overworld_TooltipManager } from "./Overworld_TooltipManager";
+import { InputSystem } from "../../systems/shared/InputSystem";
+import { MazeGenSystem } from "../../systems/generation/MazeGenSystem";
+import { TooltipSystem } from "../../systems/world/TooltipSystem";
 import { MusicManager } from "../../core/managers/MusicManager";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { getRelicSpriteKey } from "../../utils/RelicSpriteUtils";
-import { Overworld_FogOfWarManager } from "./Overworld_FogOfWarManager";
+import { FogOfWarSystem } from "../../systems/world/FogOfWarSystem";
 
 /**
  * === DEPTH LAYER CONFIGURATION ===
@@ -65,8 +65,8 @@ const DEPTH = {
 
 export class Overworld extends Scene {
   private player!: Phaser.GameObjects.Sprite;
-  private keyInputManager!: Overworld_KeyInputManager;
-  private mazeGenManager!: Overworld_MazeGenManager;
+  private keyInputManager!: InputSystem;
+  private mazeGenManager!: MazeGenSystem;
   private isMoving: boolean = false;
   private isTransitioningToCombat: boolean = false;
   private gameState: OverworldGameState;
@@ -90,7 +90,7 @@ export class Overworld extends Scene {
   private playerData: Player;
   
   // Tooltip Manager
-  private tooltipManager!: Overworld_TooltipManager;
+  private tooltipManager!: TooltipSystem;
   
   // Chapter tracking - to detect chapter changes on resume (e.g., after boss defeat)
   private sceneChapter: number = 1;
@@ -100,7 +100,7 @@ export class Overworld extends Scene {
   private chapterIndicatorContainer!: Phaser.GameObjects.Container;
   
   // Fog of War Manager
-  private fogOfWarManager!: Overworld_FogOfWarManager;
+  private fogOfWarManager!: FogOfWarSystem;
   
   // Music
   private music?: Phaser.Sound.BaseSound;
@@ -261,7 +261,7 @@ export class Overworld extends Scene {
     }
     
     // Initialize maze generation manager with dev mode flag
-    this.mazeGenManager = new Overworld_MazeGenManager(this, 32, this.testButtonsVisible);
+    this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible);
     
     // Check if we're returning from another scene
     const savedPosition = gameState.getPlayerPosition();
@@ -288,7 +288,7 @@ export class Overworld extends Scene {
     this.player.play("avatar_idle_down"); // Initial animation
 
     // Initialize keyboard input manager
-    this.keyInputManager = new Overworld_KeyInputManager(this);
+    this.keyInputManager = new InputSystem(this);
     this.keyInputManager.initialize();
     
     // Initialize pointer/mouse tracking with debug logging enabled
@@ -3281,7 +3281,7 @@ export class Overworld extends Scene {
    */
   private createEnemyTooltip(): void {
     console.log("Creating enemy tooltip system...");
-    this.tooltipManager = new Overworld_TooltipManager(this);
+    this.tooltipManager = new TooltipSystem(this);
     this.tooltipManager.initialize();
   }
 
@@ -3290,7 +3290,7 @@ export class Overworld extends Scene {
    */
   private createFogOfWar(): void {
     console.log("Creating fog of war system...");
-    this.fogOfWarManager = new Overworld_FogOfWarManager(this);
+    this.fogOfWarManager = new FogOfWarSystem(this);
     this.fogOfWarManager.initialize(this.player.x, this.player.y);
     
     // Configure fog depth (all other parameters are set in FogOfWarManager)
