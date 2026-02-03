@@ -3327,9 +3327,9 @@ export class CombatUI {
       modalContainer.destroy();
     });
     
-    // Modal window dimensions
-    const modalWidth = 450;
-    const modalHeight = 300;
+    // Modal window dimensions - increased height for better text display
+    const modalWidth = 480;
+    const modalHeight = 340;
     
     // Main modal background with Prologue styling
     const modalBg = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, 0x0f0a0b);
@@ -3338,22 +3338,22 @@ export class CombatUI {
     const innerBorder = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, undefined, 0);
     innerBorder.setStrokeStyle(2, 0x77888C, 0.8);
     
-    // Title section with relic icon
-    const titleY = -modalHeight/2 + 40;
-    const relicIcon = this.scene.add.text(-modalWidth/2 + 40, titleY, relic.emoji || "⚙️", {
-      fontSize: 32,
+    // Title section with relic icon - better aligned
+    const titleY = -modalHeight/2 + 45;
+    const relicIcon = this.scene.add.text(-modalWidth/2 + 50, titleY, relic.emoji || "⚙️", {
+      fontSize: 36,
       align: "center"
     }).setOrigin(0.5);
     
-    const relicName = this.scene.add.text(-modalWidth/2 + 80, titleY, relic.name, {
+    const relicName = this.scene.add.text(-modalWidth/2 + 100, titleY, relic.name, {
       fontFamily: "dungeon-mode",
-      fontSize: 18,
+      fontSize: 20,
       color: "#ffd93d",
       align: "left",
-      wordWrap: { width: modalWidth - 180 }
+      wordWrap: { width: modalWidth - 200 }
     }).setOrigin(0, 0.5);
     
-    // Rarity indicator (if available)
+    // Rarity indicator (if available) - better positioned
     let rarityColor = "#77888C";
     let rarityText = "COMMON";
     if (relic.rarity) {
@@ -3364,44 +3364,45 @@ export class CombatUI {
       }
     }
     
-    const rarityLabel = this.scene.add.text(modalWidth/2 - 20, titleY, rarityText, {
+    const rarityLabel = this.scene.add.text(modalWidth/2 - 25, titleY, rarityText, {
       fontFamily: "dungeon-mode",
-      fontSize: 11,
+      fontSize: 12,
       color: rarityColor,
       align: "right"
     }).setOrigin(1, 0.5);
     
-    // Description section
-    const descriptionY = titleY + 60;
+    // Description section - improved positioning
+    const descriptionY = titleY + 50;
     const description = this.scene.add.text(0, descriptionY, relic.description || "A mysterious relic with unknown powers.", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 15,
       color: "#e8eced",
       align: "center",
-      wordWrap: { width: modalWidth - 40 }
+      wordWrap: { width: modalWidth - 60 },
+      lineSpacing: 4
     }).setOrigin(0.5, 0);
     
     // Effect section - always show mechanical effect from BALANCED values
     const effectText = this.getRelicEffectDescription(relic);
     
-    const effectLabel = this.scene.add.text(0, descriptionY + 70, "⚡ EFFECT:", {
+    const effectLabel = this.scene.add.text(0, descriptionY + 80, "⚡ EFFECT:", {
       fontFamily: "dungeon-mode",
-      fontSize: 13,
+      fontSize: 14,
       color: "#feca57",
       align: "center"
     }).setOrigin(0.5);
     
-    const effectDescription = this.scene.add.text(0, descriptionY + 95, effectText, {
+    const effectDescription = this.scene.add.text(0, descriptionY + 105, effectText, {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 15,
       color: "#4ecdc4",
       align: "center",
-      wordWrap: { width: modalWidth - 50 },
-      lineSpacing: 4
+      wordWrap: { width: modalWidth - 60 },
+      lineSpacing: 5
     }).setOrigin(0.5, 0);
     
-    // Close button
-    const closeButton = this.createCloseButton(modalWidth/2 - 30, -modalHeight/2 + 30);
+    // Close button - better positioned
+    const closeButton = this.createCloseButton(modalWidth/2 - 35, -modalHeight/2 + 35);
     closeButton.on('pointerdown', () => {
       modalContainer.destroy();
     });
