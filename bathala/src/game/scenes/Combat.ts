@@ -135,6 +135,11 @@ export class Combat extends Scene {
   private lastUIUpdateTime: number = 0;
   private readonly UI_UPDATE_THROTTLE_MS: number = 16; // ~60fps
   
+  // PRIORITY 3: Turn flow timing constants
+  private readonly DELAY_AFTER_ACTION = 1500;        // 1.5s after player action
+  private readonly DELAY_ENEMY_TURN = 1500;          // 1.5s for enemy turn
+  private readonly DELAY_SHOW_RESULTS = 1000;        // 1s to show action results
+  
   // DDA tracking
   public dda!: CombatDDA;
   private preCombatDifficultyAdjustment!: DifficultyAdjustment; // Snapshot before combat results processed
@@ -1334,13 +1339,18 @@ export class Combat extends Scene {
 
   /**
    * End player turn
+   * 
+   * PRIORITY 4: Status Effect Processing Order
+   * ORDER 1: Status effects (END_OF_TURN) - Reduce stacks, triggers
+   * ORDER 2: Relic effects (END_OF_TURN)
+   * ORDER 3: Transition to enemy turn
    */
   private endPlayerTurn(): void {
-    // Apply end-of-turn relic effects
-    RelicManager.applyEndOfTurnEffects(this.combatState.player);
-    
-    // Process end-of-turn status effects for player
+    // ORDER 1: Status effects FIRST
     this.applyStatusEffects(this.combatState.player, 'end_of_turn');
+    
+    // ORDER 2: Relic effects SECOND
+    RelicManager.applyEndOfTurnEffects(this.combatState.player);
     
     this.combatState.phase = "enemy_turn";
     this.selectedCards = [];
@@ -1348,12 +1358,24 @@ export class Combat extends Scene {
     // Hide damage preview during enemy turn
     this.updateDamagePreview(false);
     
-    // Enemy's turn
+    // ORDER 3: Transition to enemy turn
     this.executeEnemyTurn();
   }
 
   /**
    * Execute enemy turn
+   * 
+   * PRIORITY 4: Status Effect Processing Order
+   * 
+   * ENEMY TURN START:
+   * 1. Check if stunned (skip if true)
+   * 2. Status Effects (START_OF_TURN) - Poison damage
+   * 3. Combat End Check - Enemy may die from Poison
+   * 4. Execute enemy action
+   * 
+   * ENEMY TURN END:
+   * 1. Status Effects (END_OF_TURN) - Reduce stacks
+   * 2. Update enemy intent
    */
   private executeEnemyTurn(): void {
     // Check if enemy is already defeated - if so, don't execute turn
@@ -1362,34 +1384,33 @@ export class Combat extends Scene {
       return;
     }
 
-    // Process start-of-turn status effects for enemy
-    this.applyStatusEffects(this.combatState.enemy, 'start_of_turn');
-
     const enemy = this.combatState.enemy;
 
-    // PRIORITY 1: Check if enemy died from status effects using centralized method
-    if (this.checkCombatEnd()) {
-      return;
-    }
-
-    // Check if enemy is stunned - if so, skip their turn
+    // ORDER 1: Check if enemy is stunned - skip turn if true
     const isStunned = enemy.statusEffects.some((e) => e.name === "Stunned");
     if (isStunned) {
       console.log("Enemy is stunned, skipping their turn");
       this.showActionResult("Enemy is Stunned - Turn Skipped!");
       
-      // Update enemy intent for next turn
+      // Still process end-of-turn and move to next turn
+      this.applyStatusEffects(enemy, 'end_of_turn');
       this.updateEnemyIntent();
       
-      // Process end-of-turn cleanup for enemy
-      this.applyStatusEffects(enemy, 'end_of_turn');
-      
-      // Start new player turn
-      this.time.delayedCall(1500, () => {
+      this.time.delayedCall(this.DELAY_ENEMY_TURN, () => {
         this.startPlayerTurn();
       });
       return;
     }
+    
+    // ORDER 2: Status effects FIRST
+    this.applyStatusEffects(this.combatState.enemy, 'start_of_turn');
+
+    // ORDER 3: Check if enemy died from status effects
+    if (this.checkCombatEnd()) {
+      return;
+    }
+
+
 
     // Execute enemy action based on attack pattern
     const currentAction = enemy.attackPattern[enemy.currentPatternIndex];
@@ -1457,20 +1478,29 @@ export class Combat extends Scene {
       this.damagePlayer(damage);
     }
 
-    // Process end-of-turn status effects for enemy
+    // ORDER 5: Process end-of-turn status effects for enemy
     this.applyStatusEffects(enemy, 'end_of_turn');
 
-    // Update enemy intent for next turn
+    // ORDER 6: Update enemy intent for next turn
     this.updateEnemyIntent();
 
-    // Start new player turn
-    this.time.delayedCall(1500, () => {
+    // ORDER 7: PRIORITY 3 - Transition to player turn with standardized delay
+    this.time.delayedCall(this.DELAY_ENEMY_TURN, () => {
       this.startPlayerTurn();
     });
   }
 
   /**
    * Start player turn (Balatro style)
+   * 
+   * PRIORITY 4: Status Effect and Relic Execution Order
+   * 
+   * PLAYER TURN START:
+   * 1. Relics (START_OF_TURN) - Earthwarden's Plate, Ember Fetish, etc.
+   * 2. Status Effects (START_OF_TURN) - Poison damage, Regeneration
+   * 3. Combat End Check - Player may die from Poison
+   * 4. Draw cards to hand
+   * 5. Enable player actions
    */
   private startPlayerTurn(): void {
     // Don't start player turn if combat has ended
@@ -1479,10 +1509,13 @@ export class Combat extends Scene {
       return;
     }
 
-    // Process start-of-turn status effects for player
+    // ORDER 1: Relic effects FIRST
+    RelicManager.applyStartOfTurnEffects(this.combatState.player);
+    
+    // ORDER 2: Status effects SECOND
     this.applyStatusEffects(this.combatState.player, 'start_of_turn');
 
-    // PRIORITY 1: Check if player died from status effects using centralized method
+    // ORDER 3: Check if player died from status effects
     if (this.checkCombatEnd()) {
       return;
     }
@@ -1530,16 +1563,13 @@ export class Combat extends Scene {
       this.drawCards(cardsNeeded);
     }
 
-    // Batch all UI updates together for better performance
+    // ORDER 4: Batch all UI updates together for better performance
     this.ui.updateHandDisplay();
     this.ui.updatePlayedHandDisplay(); // Clear the played hand display
     this.ui.updateActionButtons(); // Reset to card selection buttons
     this.scheduleUIUpdate(); // Batched update for turn UI and other elements
     
-    // Apply start-of-turn relic effects (handles ALL relics with START_OF_TURN effects)
-    RelicManager.applyStartOfTurnEffects(this.combatState.player);
-    
-    // PRIORITY 2: ALWAYS reset action processing flag at start of turn
+    // ORDER 5: ALWAYS reset action processing flag and enable actions
     this.isActionProcessing = false;
     this.setActionButtonsEnabled(true);
     
@@ -3000,18 +3030,18 @@ export class Combat extends Scene {
         this.specialUsedThisCombat = true;
         this.updateTurnUI();
         
-        // Start cinematic special action animation
+        // PRIORITY 3: Start cinematic special action animation with standardized timing
         this.animations.animateSpecialAction(dominantSuit);
         
         // Execute special action after animation
-        this.time.delayedCall(1500, () => {
+        this.time.delayedCall(this.DELAY_AFTER_ACTION, () => {
           this.showActionResult(this.getSpecialActionName(dominantSuit));
           console.log(`Special action executed: ${this.getSpecialActionName(dominantSuit)}`);
           // Special actions have unique effects based on suit
           this.applyElementalEffects(actionType, dominantSuit, evaluation.totalValue);
           
           // Process enemy turn after animation completes
-          this.time.delayedCall(1000, () => {
+          this.time.delayedCall(this.DELAY_SHOW_RESULTS, () => {
             this.processEnemyTurn();
           });
         });
@@ -3047,9 +3077,9 @@ export class Combat extends Scene {
       // Result already shown above with detailed calculation
     }
     
-    // PRIORITY 2: Process enemy turn after a short delay
+    // PRIORITY 2 & 3: Process enemy turn with standardized delay
     // Note: processing flag will be managed by enemy turn flow
-    this.time.delayedCall(1000, () => {
+    this.time.delayedCall(this.DELAY_SHOW_RESULTS, () => {
       this.processEnemyTurn();
     });
   }
