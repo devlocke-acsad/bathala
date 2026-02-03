@@ -59,7 +59,7 @@ const DEPTH = {
 };
 
 /**
- * Overworld_TooltipManager
+ * TooltipSystem
  * 
  * Manages all tooltip display and content for overworld nodes.
  * Handles:
@@ -71,7 +71,7 @@ const DEPTH = {
  * 
  * Design: Centralizes tooltip logic to keep Overworld scene clean
  */
-export class Overworld_TooltipManager {
+export class TooltipSystem {
   private scene: Scene;
   
   // Tooltip UI elements
@@ -101,7 +101,7 @@ export class Overworld_TooltipManager {
    * Creates all tooltip UI elements
    */
   initialize(): void {
-    console.log("🖱️ TooltipManager: Initializing tooltip system...");
+    console.log("🖱️ TooltipSystem: Initializing tooltip system...");
     
     // Create tooltip container (initially hidden) - FIXED TO CAMERA
     this.tooltipContainer = this.scene.add.container(0, 0).setVisible(false).setDepth(DEPTH.TOOLTIP).setScrollFactor(0).setAlpha(0);
@@ -190,7 +190,7 @@ export class Overworld_TooltipManager {
       this.tooltipDescriptionText
     ]);
     
-    console.log("✅ TooltipManager: Tooltip system initialized successfully");
+    console.log("✅ TooltipSystem: Tooltip system initialized successfully");
   }
 
   /**
@@ -198,20 +198,20 @@ export class Overworld_TooltipManager {
    */
   showEnemyTooltip(node: MapNode, mouseX?: number, mouseY?: number): void {
     if (!node || !this.tooltipContainer) {
-      console.warn("⚠️ TooltipManager: Cannot show tooltip - missing node or tooltip not initialized");
+      console.warn("⚠️ TooltipSystem: Cannot show tooltip - missing node or tooltip not initialized");
       return;
     }
     
     const enemyInfo = this.getEnemyInfoForNodeType(node.type, node.enemyId);
     if (!enemyInfo) {
-      console.warn("⚠️ TooltipManager: Cannot show tooltip - no enemy info for type", node.type);
+      console.warn("⚠️ TooltipSystem: Cannot show tooltip - no enemy info for type", node.type);
       return;
     }
     
     // Validate all tooltip elements exist
     if (!this.tooltipNameText || !this.tooltipTypeText || !this.tooltipSpriteContainer || 
         !this.tooltipStatsText || !this.tooltipDescriptionText || !this.tooltipBackground) {
-      console.warn("⚠️ TooltipManager: Cannot show tooltip - tooltip elements not properly initialized");
+      console.warn("⚠️ TooltipSystem: Cannot show tooltip - tooltip elements not properly initialized");
       return;
     }
     
@@ -267,13 +267,13 @@ export class Overworld_TooltipManager {
    */
   showNodeTooltip(node: MapNode, mouseX: number, mouseY: number): void {
     if (!this.tooltipContainer) {
-      console.warn("⚠️ TooltipManager: Tooltip container not available");
+      console.warn("⚠️ TooltipSystem: Tooltip container not available");
       return;
     }
     
     const nodeInfo = this.getNodeInfoForType(node.type);
     if (!nodeInfo) {
-      console.warn(`⚠️ TooltipManager: No info available for node type: ${node.type}`);
+      console.warn(`⚠️ TooltipSystem: No info available for node type: ${node.type}`);
       return;
     }
     
@@ -456,7 +456,7 @@ export class Overworld_TooltipManager {
     const uiScale = 1 / cameraZoom;
     this.tooltipContainer.setScale(uiScale);
     
-    // Calculate offset to compensate for zoom (same formula as FogOfWarManager)
+    // Calculate offset to compensate for zoom (same formula as FogOfWarSystem)
     const offsetX = (screenWidth * (cameraZoom - 1)) / (2 * cameraZoom);
     const offsetY = (screenHeight * (cameraZoom - 1)) / (2 * cameraZoom);
     

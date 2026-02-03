@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
 
 /**
- * Overworld_FogOfWarManager
+ * FogOfWarSystem
  * 
  * Manages fog of war visibility system for the Overworld scene.
  * Features:
@@ -12,7 +12,7 @@ import { Scene } from 'phaser';
  * 
  * Design: Creates a dynamic fog overlay that reveals areas as the player explores
  */
-export class Overworld_FogOfWarManager {
+export class FogOfWarSystem {
   private scene: Scene;
   private fogContainer: Phaser.GameObjects.Container;
   private fogGraphics: Phaser.GameObjects.Graphics;
@@ -84,7 +84,7 @@ export class Overworld_FogOfWarManager {
    */
   constructor(scene: Scene) {
     this.scene = scene;
-    console.log('🌫️ FogOfWarManager initialized');
+    console.log('🌫️ FogOfWarSystem initialized');
   }
 
   /**
@@ -108,7 +108,7 @@ export class Overworld_FogOfWarManager {
     // Initial fog render
     this.renderFog();
     
-    console.log('✅ FogOfWarManager: Fog of war initialized');
+    console.log('✅ FogOfWarSystem: Fog of war initialized');
   }
 
   /**
@@ -259,7 +259,7 @@ export class Overworld_FogOfWarManager {
   clearRevealedAreas(): void {
     this.revealedAreas.clear();
     this.renderFog();
-    console.log('🌫️ FogOfWarManager: Revealed areas cleared');
+    console.log('🌫️ FogOfWarSystem: Revealed areas cleared');
   }
 
   /**
@@ -304,7 +304,7 @@ export class Overworld_FogOfWarManager {
     // Re-render with new parameters
     this.renderFog();
     
-    console.log('🌫️ FogOfWarManager: Parameters updated', params);
+    console.log('🌫️ FogOfWarSystem: Parameters updated', params);
   }
 
   /**
@@ -400,11 +400,11 @@ export class Overworld_FogOfWarManager {
           this.renderFog();
           this.transitionTween = null;
           
-          console.log(`🌫️ FogOfWarManager: ${isDay ? 'Day' : 'Night'} fog transition complete (radius: ${this.currentVisibilityRadius}, zoom: ${targetZoom})`);
+          console.log(`🌫️ FogOfWarSystem: ${isDay ? 'Day' : 'Night'} fog transition complete (radius: ${this.currentVisibilityRadius}, zoom: ${targetZoom})`);
         }
       });
       
-      console.log(`🌫️ FogOfWarManager: Starting ${isDay ? 'Day' : 'Night'} fog transition (${this.transitionStartRadius} → ${targetRadius}, zoom: ${startZoom} → ${targetZoom})`);
+      console.log(`🌫️ FogOfWarSystem: Starting ${isDay ? 'Day' : 'Night'} fog transition (${this.transitionStartRadius} → ${targetRadius}, zoom: ${startZoom} → ${targetZoom})`);
     }
   }
 
@@ -540,6 +540,6 @@ export class Overworld_FogOfWarManager {
     }
     this.revealedAreas.clear();
     
-    console.log('🌫️ FogOfWarManager cleanup');
+    console.log('🌫️ FogOfWarSystem cleanup');
   }
 }

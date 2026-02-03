@@ -13,7 +13,7 @@ const DEPTH = {
 };
 
 /**
- * Overworld_MazeGenManager
+ * MazeGenSystem
  * 
  * Centralizes all maze generation, chunk management, and node placement logic for the Overworld scene.
  * Manages:
@@ -25,7 +25,7 @@ const DEPTH = {
  * 
  * Design: Provides a clean API for maze-related operations without exposing internal maze logic
  */
-export class Overworld_MazeGenManager {
+export class MazeGenSystem {
   private scene: Scene;
   private gridSize: number;
   
@@ -63,7 +63,7 @@ export class Overworld_MazeGenManager {
     this.gridSize = gridSize;
     this.devMode = devMode;
     
-    console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize, 'devMode:', devMode);
+    console.log('🗺️ MazeGenSystem initialized with gridSize:', gridSize, 'devMode:', devMode);
   }
 
   /**
@@ -1164,7 +1164,7 @@ export class Overworld_MazeGenManager {
    * Clean up resources
    */
   destroy(): void {
-    console.log('🗺️ MazeGenManager cleanup');
+    console.log('🗺️ MazeGenSystem cleanup');
     this.clearVisibleChunks();
   }
 }
