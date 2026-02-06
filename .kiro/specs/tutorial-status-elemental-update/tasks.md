@@ -8,7 +8,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
 
 ## Tasks
 
-- [ ] 1. Update TutorialManager to include Phase6_StatusEffects
+- [x] 1. Update TutorialManager to include Phase6_StatusEffects
   - Uncomment Phase6_StatusEffects import statement
   - Add Phase6_StatusEffects instantiation to phases array (between Phase5 and Phase7)
   - Update phaseNames array in showPhaseNavigation() to include "Status Effects & Elements"
