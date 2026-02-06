@@ -194,7 +194,7 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
                 this.container.removeAll(true);
                 
                 // Progress indicator
-                const progress = createProgressIndicator(this.scene, 8, 8);
+                const progress = createProgressIndicator(this.scene, 9, 9);
                 this.container.add(progress);
 
                 switch (this.sectionIndex) {

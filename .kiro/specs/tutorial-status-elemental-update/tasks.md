@@ -15,7 +15,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
   - Verify phase count is now 9 instead of 8
   - _Requirements: 5.1, 5.5, 9.3_
 
-- [ ] 2. Update progress indicators across all phases
+- [x] 2. Update progress indicators across all phases
   - Update Phase1_Welcome: change createProgressIndicator(scene, 1, 8) to (scene, 1, 9)
   - Update Phase2_UnderstandingCards: change to (scene, 2, 9)
   - Update Phase3_HandTypesAndBonuses: change to (scene, 3, 9)

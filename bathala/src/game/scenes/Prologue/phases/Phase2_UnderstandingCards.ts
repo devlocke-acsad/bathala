@@ -22,7 +22,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
         });
         
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 2, 8);
+        const progress = createProgressIndicator(this.scene, 2, 9);
         progress.setAlpha(0);
         this.container.add(progress);
 

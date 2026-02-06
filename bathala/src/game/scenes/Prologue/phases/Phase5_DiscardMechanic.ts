@@ -15,7 +15,7 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
 
     public start(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 5, 8);
+        const progress = createProgressIndicator(this.scene, 5, 9);
         this.container.add(progress);
 
         // Phase header

@@ -257,7 +257,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
         });
         
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 3, 8);
+        const progress = createProgressIndicator(this.scene, 3, 9);
         progress.setAlpha(0);
         this.container.add(progress);
 
