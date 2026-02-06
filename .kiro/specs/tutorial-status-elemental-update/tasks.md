@@ -50,7 +50,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
   - Update info box to mention Fire Special applying Burn
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 2.2_
 
-- [ ] 5. Add Phase6_StatusEffects Section 3 (Elemental Affinities)
+- [x] 5. Add Phase6_StatusEffects Section 3 (Elemental Affinities)
   - Add showElementalAffinities() method to Phase6_StatusEffects class
   - Create progress indicator: createProgressIndicator(scene, 6, 9)
   - Create phase header: "Elemental Affinities" / "Exploit weaknesses, avoid resistances"

@@ -4,7 +4,7 @@ import { showDialogue } from '../ui/Dialogue';
 import { createButton } from '../../../ui/Button';
 import { PlayingCard } from '../../../../core/types/CombatTypes';
 import { TutorialUI } from '../ui/TutorialUI';
-import { DUWENDE_TRICKSTER, TIYANAK_AMBUSHER } from '../../../../data/enemies/Act1Enemies';
+import { DUWENDE_TRICKSTER, TIYANAK_AMBUSHER, TIKBALANG_SCOUT } from '../../../../data/enemies/Act1Enemies';
 import { HandEvaluator } from '../../../../utils/HandEvaluator';
 import { createPhaseHeader } from '../ui/PhaseHeader';
 import { createProgressIndicator } from '../ui/ProgressIndicator';
@@ -47,6 +47,9 @@ export class Phase6_StatusEffects extends TutorialPhase {
                 break;
             case 2:
                 this.showDebuffsIntro();
+                break;
+            case 3:
+                this.showElementalAffinities();
                 break;
             default:
                 this.onComplete();
@@ -111,16 +114,83 @@ export class Phase6_StatusEffects extends TutorialPhase {
                 this.container.add(info);
 
                 this.scene.time.delayedCall(2500, () => {
-                    this.scene.tweens.add({
-                        targets: this.container.getAll(),
-                        alpha: 0,
-                        duration: 500,
-                        ease: 'Power2',
-                        onComplete: () => this.onComplete()
-                    });
+                    this.nextSection();
                 });
             });
             this.container.add(dialogueBox);
         });
+    }
+
+    private showElementalAffinities(): void {
+        // Progress indicator
+        const progress = createProgressIndicator(this.scene, 6, 9);
+        this.container.add(progress);
+
+        // Phase header
+        const header = createPhaseHeader(
+            this.scene,
+            'Elemental Affinities',
+            'Exploit weaknesses, avoid resistances'
+        );
+        this.container.add(header);
+
+        const dialogue = "Every enemy has elemental affinities:\n\nWEAKNESS: Enemy takes 1.5× damage from this element\nRESISTANCE: Enemy takes 0.75× damage from this element\n\n🔥 Apoy (Fire)  💧 Tubig (Water)\n🌿 Lupa (Earth)  💨 Hangin (Air)\n\nLook for symbols above enemy health bars!\nMatch your cards to exploit weaknesses for massive damage.";
+
+        this.scene.time.delayedCall(700, () => {
+            const dialogueBox = showDialogue(this.scene, dialogue, () => {
+                // Create a visual example showing enemy with weakness/resistance icons
+                const exampleContainer = this.createAffinityExample();
+                this.container.add(exampleContainer);
+
+                this.scene.time.delayedCall(3500, () => {
+                    this.nextSection();
+                });
+            });
+            this.container.add(dialogueBox);
+        });
+    }
+
+    private createAffinityExample(): Phaser.GameObjects.Container {
+        const screenWidth = this.scene.cameras.main.width;
+        const screenHeight = this.scene.cameras.main.height;
+        
+        const container = this.scene.add.container(screenWidth / 2, screenHeight * 0.55);
+        
+        // Example enemy sprite (Tikbalang Scout)
+        const enemySprite = this.scene.add.sprite(0, 0, 'tikbalang_combat');
+        enemySprite.setScale(1.5);
+        if (enemySprite.texture) {
+            enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+        }
+        container.add(enemySprite);
+        
+        // Weakness indicator (above enemy) - Tikbalang is weak to Fire
+        const weaknessText = this.scene.add.text(-80, -120, '🔥 Weak', {
+            fontFamily: 'dungeon-mode',
+            fontSize: 20,
+            color: '#ff6b6b',
+            align: 'center'
+        }).setOrigin(0.5);
+        container.add(weaknessText);
+        
+        // Resistance indicator (above enemy) - Tikbalang resists Air
+        const resistanceText = this.scene.add.text(80, -120, '💨 Resist', {
+            fontFamily: 'dungeon-mode',
+            fontSize: 20,
+            color: '#5BA3D0',
+            align: 'center'
+        }).setOrigin(0.5);
+        container.add(resistanceText);
+        
+        // Info box below
+        const infoText = this.scene.add.text(0, 100, 'Use Fire cards for 1.5× damage!\nAvoid Air cards (only 0.75× damage)', {
+            fontFamily: 'dungeon-mode',
+            fontSize: 18,
+            color: '#FFD700',
+            align: 'center'
+        }).setOrigin(0.5);
+        container.add(infoText);
+        
+        return container;
     }
 }
