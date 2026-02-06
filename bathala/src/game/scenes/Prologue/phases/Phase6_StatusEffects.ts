@@ -56,7 +56,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
 
     private showBuffsIntro(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 6, 11);
+        const progress = createProgressIndicator(this.scene, 6, 9);
         this.container.add(progress);
 
         // Phase header
@@ -67,13 +67,13 @@ export class Phase6_StatusEffects extends TutorialPhase {
         );
         this.container.add(header);
 
-        const dialogue = "Status effects shape battles. First, BUFFS:\n\nSTRENGTH: +[X] damage per stack\nDEXTERITY: +[X] block per stack\nBLOCK: Absorbs damage this turn (resets next turn)\n\nBuffs make you stronger! Use Lupa (Earth) Special to gain Strength.";
+        const dialogue = "Status effects shape battles. First, BUFFS:\n\n💪 STRENGTH: +3 damage per stack\n🛡️ PLATED ARMOR: Grants block at start of turn, reduces by 1\n💚 REGENERATION: Heals HP at start of turn, reduces by 1\n✨ RITUAL: Grants +1 Strength at end of turn\n\nBuffs stack up! Use them strategically to overpower enemies.";
 
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const tip = createInfoBox(
                     this.scene,
-                    'Buffs stack up! Use them to become powerful!',
+                    'Earth Special grants Plated Armor - perfect for defense!',
                     'tip'
                 );
                 this.container.add(tip);

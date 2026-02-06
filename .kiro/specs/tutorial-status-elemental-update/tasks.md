@@ -26,7 +26,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
   - Update Phase10_AdvancedConcepts: change from (scene, 8, 8) to (scene, 9, 9)
   - _Requirements: 5.3_
 
-- [ ] 3. Update Phase6_StatusEffects Section 1 (Buffs Introduction)
+- [x] 3. Update Phase6_StatusEffects Section 1 (Buffs Introduction)
   - Update progress indicator to createProgressIndicator(scene, 6, 9)
   - Update dialogue text to include accurate status effect descriptions:
     - 💪 Strength: +3 damage per stack
