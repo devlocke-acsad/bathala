@@ -88,24 +88,24 @@ export class Phase6_StatusEffects extends TutorialPhase {
 
     private showDebuffsIntro(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 6, 11);
+        const progress = createProgressIndicator(this.scene, 6, 9);
         this.container.add(progress);
 
         // Phase header
         const header = createPhaseHeader(
             this.scene,
             'Status Effects: Debuffs',
-            'Harmful effects enemies inflict on you'
+            'Harmful effects that weaken combatants'
         );
         this.container.add(header);
 
-        const dialogue = "Now DEBUFFS - enemies inflict these:\n\nWEAK: -25% damage dealt\nVULNERABLE: +50% damage taken\nBURN: [X] damage at turn end\nSTUN: Skip your next turn\nSEAL: Can't use Special abilities\n\nCleanse debuffs when possible! Some potions can help.";
+        const dialogue = "Now DEBUFFS - harmful effects:\n\n🔥 BURN: You inflict this on enemies with Fire Special\n   Deals damage at start of enemy's turn, reduces by 1\n\n☠️ POISON: Enemies inflict this on you\n   Deals damage at start of your turn, reduces by 1\n\n⚠️ WEAK: Reduces attack damage by 25% per stack\n🛡️💔 VULNERABLE: Take 50% more damage from all sources\n🔻 FRAIL: Defend actions grant 25% less block per stack\n\nBurn and Poison work the same way - just different names!";
 
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const info = createInfoBox(
                     this.scene,
-                    'Watch out for debuffs - they can turn the tide against you!',
+                    'Fire Special applies Burn to enemies - watch them suffer!',
                     'info'
                 );
                 this.container.add(info);

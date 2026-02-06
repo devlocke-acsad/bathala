@@ -37,7 +37,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
   - Remove references to non-existent status effects (Dexterity, generic Block)
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [ ] 4. Update Phase6_StatusEffects Section 2 (Debuffs Introduction)
+- [x] 4. Update Phase6_StatusEffects Section 2 (Debuffs Introduction)
   - Update progress indicator to createProgressIndicator(scene, 6, 9)
   - Update dialogue text with Burn vs Poison distinction:
     - 🔥 Burn: Player inflicts on enemies with Fire Special
