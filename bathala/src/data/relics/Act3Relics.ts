@@ -24,25 +24,33 @@ export const commonRelics: Relic[] = [
     id: "tigmamanukan_feather",
     name: "Tigmamanukan Feather",
     description: "A radiant feather from the celestial omen bird. Draw 1 additional card whenever you play a high-tier hand (Straight or better). Fortune favors the skilled.",
-    emoji: "🪶"
+    emoji: "🪶",
+    lore: "The Tigmamanukan are prophetic birds of Bathala, their flight patterns foretelling fortune and calamity. A single feather carries the weight of foresight, revealing paths hidden to mortal eyes.",
+    spriteKey: "relic_tigmamanukan_feather",
   },
   {
     id: "diwata_veil",
     name: "Diwata Veil",
     description: "A shimmering veil blessed by the benevolent nature spirits. Gain 10% dodge chance against all attacks. The Diwata's protection shields you from harm.",
-    emoji: "✨"
+    emoji: "✨",
+    lore: "Woven from moonbeams by the divine Diwata guardians who own the deer and the fish, this veil bends light around its wearer. Not even the keenest predator can strike what it cannot perceive.",
+    spriteKey: "relic_diwata_veil",
   },
   {
     id: "sarimanok_plumage",
     name: "Sarimanok Plumage",
     description: "Brilliant plumage from the legendary fortune bird. Gain 1 additional Special action charge at the start of combat. Good fortune empowers your elemental abilities.",
-    emoji: "🦚"
+    emoji: "🦚",
+    lore: "The Sarimanok is the ornate bird of the Maranao people, a symbol of prosperity perched between the mortal world and the heavens. Its plumage shimmers with elemental energy drawn from all four winds.",
+    spriteKey: "relic_sarimanok_plumage",
   },
   {
     id: "bulalakaw_spark",
     name: "Bulalakaw Spark",
     description: "A captured meteor fragment with fiery essence. Apply 3 Burn whenever you play a hand with multiple elements. The shooting star's flame ignites your combos.",
-    emoji: "☄️"
+    emoji: "☄️",
+    lore: "Bulalakaw are comet-like omen birds that streak across the sky, heralding illness or great change. This captured spark of their trail burns with celestial fire that intensifies when multiple elements collide.",
+    spriteKey: "relic_bulalakaw_spark",
   }
 ];
 
@@ -52,25 +60,33 @@ export const eliteRelics: Relic[] = [
     id: "minokawa_claw",
     name: "Minokawa Claw",
     description: "The talon of the eclipse-causing giant bird. Ignore the first card steal or discard effect from enemies each combat. The Minokawa guards what is yours.",
-    emoji: "🦅"
+    emoji: "🦅",
+    lore: "The Minokawa is the Bagobo cosmic devourer that swallows the sun and moon, causing eclipses. Its talon grips with absolute finality — what it claims, none can take back.",
+    spriteKey: "relic_minokawa_claw",
   },
   {
     id: "alan_wing",
     name: "Alan Wing",
     description: "The ethereal wing of a forest spirit. Deal +5 damage when you have summoned minions or allies in combat. The Alan empowers your companions.",
-    emoji: "🕊️"
+    emoji: "🕊️",
+    lore: "The Alan are half-human, half-bird spirits of Bikol who adopt lost children and raise them as their own. Their wings carry the protective fury of a parent — devastating when defending those in their care.",
+    spriteKey: "relic_alan_wing",
   },
   {
     id: "ekek_fang",
     name: "Ekek Fang",
     description: "The vampiric fang of the night creature. Deal +3 damage during the second half of combat (after turn 5). The Ekek's power grows with darkness.",
-    emoji: "🦇"
+    emoji: "🦇",
+    lore: "Ekek are nocturnal bird vampires that suck the tongues of sleeping victims. Their fangs grow sharper as night deepens — and in prolonged battles, this fang draws ever more blood.",
+    spriteKey: "relic_ekek_fang",
   },
   {
     id: "linti_bolt",
     name: "Linti Bolt",
     description: "A crystallized lightning bolt from the Ribung Linti spirits. Deal +5 damage whenever you play a hand with 3 or more different elements. The storm rewards diversity.",
-    emoji: "⚡"
+    emoji: "⚡",
+    lore: "The Ribung Linti are Ilocano lightning spirits that strike in tandem, their thunder shaking the heavens. This crystallized bolt resonates with elemental diversity — the more elements aligned, the fiercer it strikes.",
+    spriteKey: "relic_linti_bolt",
   }
 ];
 
@@ -80,7 +96,9 @@ export const bossRelics: Relic[] = [
     id: "apolaki_spear",
     name: "Apolaki's Spear",
     description: "The divine spear of the sun god himself. Deal +5 damage on all multi-element hands. Gain 2 Strength at the start of combat. The sun god's power flows through you.",
-    emoji: "🔱"
+    emoji: "🔱",
+    lore: "Apolaki, god of war and the sun, once feuded with his sister Mayari over dominion of the sky. His spear carries the blinding wrath of solar fire — multi-element hands mirror the balance his father Bathala sought.",
+    spriteKey: "relic_apolaki_spear",
   }
 ];
 
@@ -90,7 +108,9 @@ export const treasureRelics: Relic[] = [
     id: "coconut_diwa",
     name: "Coconut Diwa",
     description: "The sacred spirit essence contained in a blessed coconut. Ignore the first nullify or buff removal effect each combat. Your blessings cannot be easily stripped.",
-    emoji: "🥥"
+    emoji: "🥥",
+    lore: "In Tagalog myth, the coconut tree grew from the grave of a slain god — Bathala's gift of life from death. This diwa carries that sacred resilience: what is blessed by the supreme creator cannot be easily unmade.",
+    spriteKey: "relic_coconut_diwa",
   }
 ];
 

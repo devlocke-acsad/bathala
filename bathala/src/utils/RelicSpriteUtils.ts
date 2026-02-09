@@ -1,29 +1,27 @@
+import { allAct1Relics } from '../data/relics/Act1Relics';
+import { allAct2Relics } from '../data/relics/Act2Relics';
+import { allAct3Relics } from '../data/relics/Act3Relics';
+import { Relic } from '../core/types/CombatTypes';
+
 /**
- * Centralized relic sprite key mapping
- * Single source of truth - previously duplicated in multiple files
+ * Centralized relic sprite key mapping — derived from relic data.
+ * Each relic's `spriteKey` field is the single source of truth.
+ * Edit the relic definition to change its sprite; this map updates automatically.
  */
-const RELIC_SPRITE_MAP: Readonly<Record<string, string>> = {
-  "swift_wind_agimat": "relic_swift_wind_agimat",
-  "amomongo_claw": "relic_amomongo_claw",
-  "ancestral_blade": "relic_ancestral_blade",
-  "balete_root": "relic_balete_root",
-  "babaylans_talisman": "relic_babaylans_talisman",
-  "bungisngis_grin": "relic_bungisngis_grin",
-  "diwatas_crown": "relic_diwatas_crown",
-  "duwende_charm": "relic_duwende_charm",
-  "earthwardens_plate": "relic_earthwardens_plate",
-  "ember_fetish": "relic_ember_fetish",
-  "kapres_cigar": "relic_kapres_cigar",
-  "lucky_charm": "relic_lucky_charm",
-  "mangangaway_wand": "relic_mangangaway_wand",
-  "sarimanok_feather": "relic_sarimanok_feather",
-  "sigbin_heart": "relic_sigbin_heart",
-  "stone_golem_heart": "relic_stone_golem_heart",
-  "tidal_amulet": "relic_tidal_amulet",
-  "tikbalangs_hoof": "relic_tikbalangs_hoof",
-  "tiyanak_tear": "relic_tiyanak_tear",
-  "umalagad_spirit": "relic_umalagad_spirit"
-} as const;
+const ALL_RELICS: Relic[] = [
+  ...allAct1Relics,
+  ...allAct2Relics,
+  ...allAct3Relics,
+];
+
+const RELIC_SPRITE_MAP: Readonly<Record<string, string>> = Object.freeze(
+  ALL_RELICS.reduce<Record<string, string>>((map, relic) => {
+    if (relic.spriteKey) {
+      map[relic.id] = relic.spriteKey;
+    }
+    return map;
+  }, {})
+);
 
 export function getRelicSpriteKey(relicId: string): string {
   return RELIC_SPRITE_MAP[relicId] ?? "";

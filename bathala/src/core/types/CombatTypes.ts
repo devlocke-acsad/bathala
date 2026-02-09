@@ -103,6 +103,10 @@ export interface Relic {
   name: string;
   description: string;
   emoji: string;
+  /** Mythological background / narrative flavour text */
+  lore?: string;
+  /** Asset key for the relic sprite (e.g. "relic_earthwardens_plate") */
+  spriteKey?: string;
 }
 
 export interface EnemyIntent {

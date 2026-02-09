@@ -23,25 +23,33 @@ export const commonRelics: Relic[] = [
     id: "sirenas_scale",
     name: "Sirena's Scale",
     description: "A shimmering scale from the enchanting Sirena. Heal 2 HP whenever you play a Tubig (Water) card. The healing waters of the deep restore your vitality.",
-    emoji: "🐚"
+    emoji: "🐚",
+    lore: "The Sirena were once benevolent guardians of coral reefs, their songs guiding lost sailors home. Corrupted by false tides, their melodies now lure the unwary — but their scales still carry the old healing.",
+    spriteKey: "relic_sirenas_scale",
   },
   {
     id: "siyokoy_fin",
     name: "Siyokoy Fin",
     description: "The webbed fin of a fierce Siyokoy warrior. Gain 3 Block whenever you deal splash damage to multiple enemies. The ocean's fury protects you.",
-    emoji: "🦈"
+    emoji: "🦈",
+    lore: "Siyokoy are malevolent mermen with webbed digits and scaled bodies, dragging victims beneath the waves. This fin, severed in battle, retains the armored fury of the deep sea.",
+    spriteKey: "relic_siyokoy_fin",
   },
   {
     id: "santelmo_ember",
     name: "Santelmo Ember",
     description: "A ghostly flame that never extinguishes. Burn damage deals +2 additional damage per stack. St. Elmo's fire intensifies your flames.",
-    emoji: "👻"
+    emoji: "👻",
+    lore: "Santelmo are the soul fires that dance above the sea at night — assistants of the upper world who once aided the gods. Their flames never die, and this ember burns hotter with each soul it touches.",
+    spriteKey: "relic_santelmo_ember",
   },
   {
     id: "berberoka_tide",
     name: "Berberoka Tide",
     description: "Blessed by the water-swallowing Berberoka. Gain 10 Block whenever you play a hand containing only Tubig (Water) cards. The tide shields you from harm.",
-    emoji: "🌊"
+    emoji: "🌊",
+    lore: "The Berberoka are giants who drain entire rivers to lure fish and fishermen alike. When they release the water, the flood drowns all in its path. This relic channels that devastating deluge as a shield.",
+    spriteKey: "relic_berberoka_tide",
   }
 ];
 
@@ -51,25 +59,33 @@ export const eliteRelics: Relic[] = [
     id: "magindara_song",
     name: "Magindara Song",
     description: "The enchanting melody of the Magindara sirens. Draw 1 additional card whenever you heal HP during combat. Their song guides fortune to you.",
-    emoji: "🎵"
+    emoji: "🎵",
+    lore: "The Magindara are vicious mermaids of Bicolano legend whose beauty masks their hunger for flesh. Their songs once protected the coast; now the melody only brings fortune to those strong enough to claim it.",
+    spriteKey: "relic_magindara_song",
   },
   {
     id: "kataw_crown",
     name: "Kataw Crown",
     description: "The coral crown of the Kataw sea guardians. Deal +5 damage when facing enemies with minions or summons. The ocean's rulers empower your strikes against groups.",
-    emoji: "👑"
+    emoji: "👑",
+    lore: "The Kataw are merman kings commanding the waves, ruling vast underwater barangays. Their coral crowns are symbols of absolute dominion over the sea and all creatures within it.",
+    spriteKey: "relic_kataw_crown",
   },
   {
     id: "berbalang_spirit",
     name: "Berbalang Spirit",
     description: "The separated essence of a Berbalang vampire. Ignore the first Weak debuff applied to you each combat. Your spirit cannot be easily diminished.",
-    emoji: "🦇"
+    emoji: "🦇",
+    lore: "The Berbalang of Sulu can detach their spirits from their bodies to hunt the living. This captured essence resists all attempts to weaken it, for it has already been separated from mortal frailty.",
+    spriteKey: "relic_berbalang_spirit",
   },
   {
     id: "bangkilan_veil",
     name: "Bangkilan Veil",
     description: "A cursed veil from the sunken spirits. Gain 10% dodge chance when you have any curse or debuff active. Misfortune becomes your shield.",
-    emoji: "🌫️"
+    emoji: "🌫️",
+    lore: "Bangkilan were shape-shifting sorceresses of the drowned barangays, adapting to every danger. Their veils shimmer between forms, and those who wear them find that curses become armor.",
+    spriteKey: "relic_bangkilan_veil",
   }
 ];
 
@@ -79,7 +95,9 @@ export const bossRelics: Relic[] = [
     id: "bakunawa_fang",
     name: "Bakunawa Fang",
     description: "The legendary fang of the moon-eating dragon. Deal +5 damage whenever you activate a relic effect during combat. The dragon's power amplifies your artifacts.",
-    emoji: "🐉"
+    emoji: "🐉",
+    lore: "The Bakunawa is the colossal sea serpent who devours the moon, causing eclipses. Its fang carries the hunger of the abyss — an insatiable force that amplifies every artifact it touches.",
+    spriteKey: "relic_bakunawa_fang",
   }
 ];
 
@@ -89,7 +107,9 @@ export const treasureRelics: Relic[] = [
     id: "elemental_core",
     name: "Elemental Core",
     description: "A crystallized fusion of opposing elements. Deal +3 damage when playing Apoy (Fire) or Tubig (Water) cards. The balance of fire and water empowers you.",
-    emoji: "💎"
+    emoji: "💎",
+    lore: "Born from the eternal feud between fire and water spirits in Visayan cosmology, this core crystallized at the boundary where both elements meet. It channels the tension of their balance into raw power.",
+    spriteKey: "relic_elemental_core",
   }
 ];
 
