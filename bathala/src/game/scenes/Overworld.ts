@@ -3260,26 +3260,11 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Get lore text for a relic
+   * Get lore text for a relic.
+   * Reads from the relic's `lore` field (defined in data/relics/).
    */
   private getRelicLore(relic: any): string {
-    // Return lore based on relic ID or name
-    switch(relic.id) {
-      case "earthwardens_plate":
-        return "Forged by the ancient Earthwardens who protected the first settlements from natural disasters. This mystical armor channels the strength of the mountains themselves, providing unwavering protection to those who wear it.";
-      case "swift_wind_agimat":
-        return "An enchanted talisman blessed by the spirits of the wind. It enhances the agility of its bearer, allowing them to move with the swiftness of the breeze and react faster than the eye can see.";
-      case "ember_fetish":
-        return "A relic imbued with the essence of volcanic fire. When the bearer's defenses are low, the fetish awakens and grants the fury of the forge, empowering them with the strength of molten rock.";
-      case "babaylans_talisman":
-        return "Once worn by the most revered Babaylan of the ancient tribes. This sacred talisman enhances the spiritual connection of its bearer, allowing them to channel greater power through their rituals and incantations.";
-      case "echo_of_ancestors":
-        return "A mystical artifact that resonates with the wisdom of those who came before. It breaks the natural limitations of the physical world, allowing for impossible feats that should not exist.";
-      case "seafarers_compass":
-        return "A navigational tool blessed by Lakapati, goddess of fertility and navigation. It guides the bearer through the most treacherous waters and helps them find their way even in the darkest storms.";
-      default:
-        return "An ancient artifact of great power, its origins lost to time but its effects undeniable. Those who wield it are forever changed by its mystical properties.";
-    }
+    return relic.lore ?? "An ancient artifact of great power, its origins lost to time but its effects undeniable. Those who wield it are forever changed by its mystical properties.";
   }
   
   /**
