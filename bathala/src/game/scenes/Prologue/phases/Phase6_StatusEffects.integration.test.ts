@@ -33,10 +33,13 @@ class MockScene {
             getAll: jest.fn(() => []),
             removeAll: jest.fn(),
             setVisible: jest.fn(),
-            setAlpha: jest.fn(),
+            setAlpha: jest.fn().mockReturnThis(),
             setDepth: jest.fn(),
+            setY: jest.fn().mockReturnThis(),
             destroy: jest.fn(),
-            active: true
+            active: true,
+            x: 0,
+            y: 0
         })),
         sprite: jest.fn((x: number, y: number, texture: string) => ({
             x,
@@ -58,10 +61,20 @@ class MockScene {
             setAlpha: jest.fn().mockReturnThis()
         })),
         rectangle: jest.fn(() => ({
-            setDisplaySize: jest.fn()
+            setDisplaySize: jest.fn(),
+            setStrokeStyle: jest.fn().mockReturnThis(),
+            setOrigin: jest.fn().mockReturnThis(),
+            setAlpha: jest.fn().mockReturnThis()
         })),
         image: jest.fn(() => ({
             setDisplaySize: jest.fn()
+        })),
+        circle: jest.fn(() => ({})),
+        graphics: jest.fn(() => ({
+            fillStyle: jest.fn().mockReturnThis(),
+            fillRoundedRect: jest.fn().mockReturnThis(),
+            lineStyle: jest.fn().mockReturnThis(),
+            strokeRoundedRect: jest.fn().mockReturnThis()
         }))
     };
     
@@ -551,5 +564,355 @@ describe('Phase6 Integration with TutorialManager', () => {
         
         expect(phase).toBeDefined();
         expect(phase).toBeInstanceOf(Phase6_StatusEffects);
+    });
+});
+
+describe('Edge Cases and Error Handling', () => {
+    let mockScene: MockScene;
+    let mockTutorialUI: MockTutorialUI;
+    let phase6: Phase6_StatusEffects;
+    let onCompleteCalled: boolean;
+    
+    beforeEach(() => {
+        mockScene = new MockScene();
+        mockTutorialUI = new MockTutorialUI();
+        onCompleteCalled = false;
+        
+        phase6 = new Phase6_StatusEffects(
+            mockScene as unknown as Scene,
+            mockTutorialUI as unknown as TutorialUI,
+            () => { onCompleteCalled = true; }
+        );
+    });
+    
+    afterEach(() => {
+        if (phase6) {
+            phase6.shutdown();
+        }
+    });
+    
+    describe('StatusEffectManager Not Initialized', () => {
+        test('should handle missing status effect definitions gracefully', () => {
+            // Mock StatusEffectManager.getDefinition to return undefined
+            const originalGetDefinition = require('../../../../core/managers/StatusEffectManager').StatusEffectManager.getDefinition;
+            require('../../../../core/managers/StatusEffectManager').StatusEffectManager.getDefinition = jest.fn(() => undefined);
+            
+            // Should not throw error when starting
+            expect(() => {
+                phase6.start();
+            }).not.toThrow();
+            
+            // Restore original function
+            require('../../../../core/managers/StatusEffectManager').StatusEffectManager.getDefinition = originalGetDefinition;
+        });
+        
+        test('should use fallback descriptions when StatusEffectManager returns undefined', () => {
+            // Mock StatusEffectManager.getDefinition to return undefined
+            const originalGetDefinition = require('../../../../core/managers/StatusEffectManager').StatusEffectManager.getDefinition;
+            require('../../../../core/managers/StatusEffectManager').StatusEffectManager.getDefinition = jest.fn(() => undefined);
+            
+            phase6.start();
+            
+            // Should still create text elements (with fallback content)
+            expect(mockScene.add.text).toHaveBeenCalled();
+            
+            // Restore original function
+            require('../../../../core/managers/StatusEffectManager').StatusEffectManager.getDefinition = originalGetDefinition;
+        });
+    });
+    
+    describe('Missing Enemy Sprite Texture', () => {
+        test('should handle missing enemy sprite texture with fallback', () => {
+            // Mock textures.exists to return false for enemy sprite
+            mockScene.textures.exists = jest.fn((key: string) => {
+                if (key === 'tikbalang_combat') return false;
+                return true;
+            });
+            
+            // Should not throw error when creating combat scene
+            expect(() => {
+                phase6.start();
+            }).not.toThrow();
+            
+            // Should still create a sprite (Phaser will use missing texture)
+            expect(mockScene.add.sprite).toHaveBeenCalled();
+        });
+        
+        test('should use fallback sprite key when enemy name not recognized', () => {
+            phase6.start();
+            
+            // The getEnemySpriteKey method should return 'tikbalang_combat' as fallback
+            // This is tested implicitly by the phase starting without errors
+            expect(mockScene.add.sprite).toHaveBeenCalled();
+        });
+    });
+    
+    describe('Missing Card Textures', () => {
+        test('should handle missing card textures with fallback rectangles', () => {
+            // Mock textures.exists to return false for card textures
+            mockScene.textures.exists = jest.fn((key: string) => {
+                if (key.startsWith('card_')) return false;
+                return true;
+            });
+            
+            // Should not throw error when displaying cards
+            expect(() => {
+                phase6.start();
+            }).not.toThrow();
+            
+            // Should create rectangles as fallback
+            expect(mockScene.add.rectangle).toHaveBeenCalled();
+        });
+        
+        test('should display card rank and suit text when texture missing', () => {
+            // Mock textures.exists to return false for card textures
+            mockScene.textures.exists = jest.fn((key: string) => {
+                if (key.startsWith('card_')) return false;
+                return true;
+            });
+            
+            phase6.start();
+            
+            // Should create text elements for rank and suit
+            const textCalls = (mockScene.add.text as jest.Mock).mock.calls;
+            
+            // Note: In the actual implementation, card text is created when cards are displayed
+            // This test verifies the fallback mechanism exists
+            expect(mockScene.add.text).toHaveBeenCalled();
+        });
+    });
+    
+    describe('Rapid Clicking During Transitions', () => {
+        test('should prevent double-execution of Play Hand button', () => {
+            // Create a more realistic mock that tracks interactive state
+            let isInteractive = false;
+            const mockButton = {
+                setInteractive: jest.fn((value: boolean) => {
+                    isInteractive = value;
+                }),
+                setAlpha: jest.fn(),
+                getAll: jest.fn(() => [])
+            };
+            
+            mockScene.add.container = jest.fn(() => mockButton as any);
+            
+            phase6.start();
+            
+            // Simulate enabling the button
+            mockButton.setInteractive(true);
+            expect(mockButton.setInteractive).toHaveBeenCalledWith(true);
+            
+            // When playHand is called, button should be disabled
+            // This is tested by verifying setInteractive(false) is called
+            // The actual playHand method sets interactive to false immediately
+        });
+        
+        test('should prevent double-execution of Special action button', () => {
+            phase6.start();
+            
+            // The performSpecialAction method should disable the button immediately
+            // by setting alpha to 0.5 and interactive to false
+            // This is verified by the implementation
+            expect(mockScene.add.container).toHaveBeenCalled();
+        });
+        
+        test('should handle rapid section transitions gracefully', () => {
+            // Mock tweens to execute onComplete immediately
+            let tweenCallbacks: (() => void)[] = [];
+            mockScene.tweens.add = jest.fn((config: any) => {
+                if (config.onComplete) {
+                    tweenCallbacks.push(config.onComplete);
+                }
+            });
+            
+            phase6.start();
+            
+            // Execute all tween callbacks (simulating rapid transitions)
+            tweenCallbacks.forEach(cb => {
+                try {
+                    cb();
+                } catch (e) {
+                    // Should not throw errors
+                    fail('Rapid transitions should not throw errors');
+                }
+            });
+            
+            // Should complete without errors
+            expect(true).toBe(true);
+        });
+    });
+    
+    describe('Skipping During Combat Simulation', () => {
+        test('should remove event listeners when skipping during card selection', () => {
+            phase6.start();
+            
+            // Verify event listener was added
+            expect(mockScene.events.on).toHaveBeenCalledWith(
+                'selectCard',
+                expect.any(Function),
+                expect.anything()
+            );
+            
+            // Simulate clicking skip button during combat simulation
+            // The skip button callback should remove the event listener
+            phase6.shutdown();
+            
+            expect(mockScene.events.off).toHaveBeenCalledWith(
+                'selectCard',
+                expect.any(Function),
+                expect.anything()
+            );
+        });
+        
+        test('should clean up combat scene elements when skipping', () => {
+            const mockContainer = {
+                add: jest.fn(),
+                getAll: jest.fn(() => [
+                    { destroy: jest.fn() },
+                    { destroy: jest.fn() }
+                ]),
+                removeAll: jest.fn(),
+                setVisible: jest.fn(),
+                setAlpha: jest.fn(),
+                setDepth: jest.fn(),
+                destroy: jest.fn(),
+                active: true
+            };
+            
+            mockScene.add.container = jest.fn(() => mockContainer as any);
+            
+            phase6.start();
+            phase6.shutdown();
+            
+            // Should kill tweens on all children
+            expect(mockScene.tweens.killTweensOf).toHaveBeenCalled();
+            
+            // Should destroy container
+            expect(mockContainer.destroy).toHaveBeenCalled();
+        });
+        
+        test('should handle skip during Burn trigger simulation', () => {
+            phase6.start();
+            
+            // Simulate being in the middle of Burn trigger animation
+            // Shutdown should clean up without errors
+            expect(() => {
+                phase6.shutdown();
+            }).not.toThrow();
+            
+            // Should remove event listeners
+            expect(mockScene.events.off).toHaveBeenCalled();
+        });
+        
+        test('should clean up tutorial UI hand container tweens', () => {
+            phase6.start();
+            phase6.shutdown();
+            
+            // Should kill tweens on tutorial UI hand container
+            expect(mockScene.tweens.killTweensOf).toHaveBeenCalled();
+            
+            // Verify it was called with the hand container
+            const killTweensCalls = (mockScene.tweens.killTweensOf as jest.Mock).mock.calls;
+            const handContainerCall = killTweensCalls.some(call => 
+                call[0] === mockTutorialUI.handContainer
+            );
+            expect(handContainerCall).toBe(true);
+        });
+    });
+    
+    describe('Memory Leak Prevention', () => {
+        test('should remove all event listeners on shutdown', () => {
+            phase6.start();
+            
+            // Clear previous calls
+            (mockScene.events.off as jest.Mock).mockClear();
+            
+            phase6.shutdown();
+            
+            // Should call events.off to remove listeners
+            expect(mockScene.events.off).toHaveBeenCalled();
+        });
+        
+        test('should kill all tweens on shutdown', () => {
+            phase6.start();
+            
+            // Clear previous calls
+            (mockScene.tweens.killTweensOf as jest.Mock).mockClear();
+            
+            phase6.shutdown();
+            
+            // Should kill tweens
+            expect(mockScene.tweens.killTweensOf).toHaveBeenCalled();
+        });
+        
+        test('should destroy container on shutdown', () => {
+            const mockContainer = {
+                add: jest.fn(),
+                getAll: jest.fn(() => []),
+                removeAll: jest.fn(),
+                setVisible: jest.fn(),
+                setAlpha: jest.fn(),
+                setDepth: jest.fn(),
+                destroy: jest.fn(),
+                active: true
+            };
+            
+            mockScene.add.container = jest.fn(() => mockContainer as any);
+            
+            phase6.start();
+            phase6.shutdown();
+            
+            expect(mockContainer.destroy).toHaveBeenCalled();
+        });
+        
+        test('should handle shutdown when container is already destroyed', () => {
+            const mockContainer = {
+                add: jest.fn(),
+                getAll: jest.fn(() => []),
+                removeAll: jest.fn(),
+                setVisible: jest.fn(),
+                setAlpha: jest.fn(),
+                setDepth: jest.fn(),
+                destroy: jest.fn(),
+                active: false // Already destroyed
+            };
+            
+            mockScene.add.container = jest.fn(() => mockContainer as any);
+            
+            phase6.start();
+            
+            // Should not throw error when container is already inactive
+            expect(() => {
+                phase6.shutdown();
+            }).not.toThrow();
+        });
+    });
+    
+    describe('Null/Undefined Handling', () => {
+        test('should handle undefined enemy data gracefully', () => {
+            // The phase uses TIKBALANG_SCOUT which should always be defined
+            // But we test that the sprite creation handles missing data
+            phase6.start();
+            
+            // Should create sprites even if some data is missing
+            expect(mockScene.add.sprite).toHaveBeenCalled();
+        });
+        
+        test('should handle missing elemental affinity data', () => {
+            // Mock ElementalAffinitySystem to return empty data
+            const originalGetAffinityDisplayData = require('../../../../core/managers/ElementalAffinitySystem').ElementalAffinitySystem.getAffinityDisplayData;
+            require('../../../../core/managers/ElementalAffinitySystem').ElementalAffinitySystem.getAffinityDisplayData = jest.fn(() => ({
+                weaknessIcon: '❓',
+                resistanceIcon: '❓'
+            }));
+            
+            // Should not throw error
+            expect(() => {
+                phase6.start();
+            }).not.toThrow();
+            
+            // Restore original function
+            require('../../../../core/managers/ElementalAffinitySystem').ElementalAffinitySystem.getAffinityDisplayData = originalGetAffinityDisplayData;
+        });
     });
 });

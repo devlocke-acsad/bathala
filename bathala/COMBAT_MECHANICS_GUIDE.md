@@ -56,13 +56,18 @@ Status effects are stackable buffs and debuffs that modify combat behavior. Most
 
 ### Debuffs (Negative Effects)
 
-#### ☠️ Poison
+#### 🔥 Burn / ☠️ Poison
+
+**Note**: Burn and Poison function identically (deal damage at start of turn, reduce by 1 stack), but have different names based on who inflicts them:
+- **Burn (🔥)**: Applied BY PLAYER to ENEMIES via Fire (Apoy) Special actions
+- **Poison (☠️)**: Applied BY ENEMIES to PLAYER via enemy poison actions
+
 - **Effect**: Takes damage at start of turn (2 damage per stack), then reduces by 1 stack
 - **Duration**: Temporary (reduces each turn)
 - **Stackable**: Yes (no limit)
 - **How to Get**:
-  - Fire (Apoy) Special actions (applies to enemies)
-  - Enemy "poison" actions (applies to player)
+  - **Burn**: Fire (Apoy) Special actions (player inflicts on enemies)
+  - **Poison**: Enemy "poison" actions (enemies inflict on player)
 - **Strategy**: Excellent for dealing damage over time without using actions
 
 #### ⚠️ Weak
@@ -101,7 +106,7 @@ Each enemy has predefined elemental weaknesses and resistances. The dominant ele
 ### The Four Elements
 
 #### 🔥 Apoy (Fire)
-- **Special Action Effect**: Apply 3 stacks of Poison to enemy
+- **Special Action Effect**: Apply 3 stacks of Burn to enemy
 - **Thematic Enemies**: Fire creatures, volcanic beings
 - **Typical Weakness**: Water (Tubig)
 - **Typical Resistance**: Earth (Lupa)
@@ -217,7 +222,7 @@ Understanding this order helps you maximize damage:
 ### Status Effect Strategies
 
 #### Offensive Strategies
-1. **Poison Stacking**: Use Fire Special actions to apply Poison, then defend while it ticks
+1. **Burn Stacking**: Use Fire Special actions to apply Burn to enemies, then defend while it ticks
 2. **Strength Scaling**: Build Strength early with Ritual for exponential damage growth
 3. **Weakness Exploitation**: Apply Weak to enemies before they attack to reduce incoming damage
 4. **Vulnerable Burst**: Apply Vulnerable then unleash your strongest attack for massive damage
@@ -246,9 +251,9 @@ Understanding this order helps you maximize damage:
 
 ### Synergy Examples
 
-#### Fire + Poison Build
-- Use Fire Special actions to stack Poison
-- Defend while Poison deals damage over time
+#### Fire + Burn Build
+- Use Fire Special actions to stack Burn on enemies
+- Defend while Burn deals damage over time
 - Finish with strong Attack when enemy is low
 
 #### Earth + Plated Armor Build
@@ -307,7 +312,8 @@ Understanding this order helps you maximize damage:
 | 🛡️ | Plated Armor | Buff | +3 block per stack at turn start | Temporary |
 | 💚 | Regeneration | Buff | +2 HP per stack at turn start | Temporary |
 | ✨ | Ritual | Buff | +1 Strength at turn end | Permanent |
-| ☠️ | Poison | Debuff | 2 damage per stack at turn start | Temporary |
+| 🔥 | Burn | Debuff | 2 damage per stack at turn start (player → enemy) | Temporary |
+| ☠️ | Poison | Debuff | 2 damage per stack at turn start (enemy → player) | Temporary |
 | ⚠️ | Weak | Debuff | -25% attack damage per stack | Temporary |
 | 🛡️💔 | Vulnerable | Debuff | +50% damage taken | Temporary |
 | 🔻 | Frail | Debuff | -25% block per stack | Temporary |
@@ -316,7 +322,7 @@ Understanding this order helps you maximize damage:
 
 | Element | Icon | Special Effect | Typical Weakness | Typical Resistance |
 |---------|------|----------------|------------------|-------------------|
-| Fire | 🔥 | 3 Poison | Water | Earth |
+| Fire | 🔥 | 3 Burn (to enemies) | Water | Earth |
 | Water | 💧 | 8 HP heal | Earth | Fire |
 | Earth | 🌿 | 3 Plated Armor | Air | Water |
 | Air | 💨 | 2 Weak | Fire | Air |

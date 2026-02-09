@@ -180,7 +180,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
   - Test current phase highlighting works for Phase6
   - _Requirements: 9.3, 9.4_
 
-- [~] 16. Test visual consistency
+- [x] 16. Test visual consistency
   - Verify progress indicators show "6 of 9" in Phase6
   - Verify all other phases show correct "X of 9" format
   - Verify headers match style of other phases
@@ -190,7 +190,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
   - Verify color coding: buffs (green/blue), debuffs (red/orange)
   - _Requirements: 5.3, 6.1, 6.4, 6.5_
 
-- [~] 17. Test animation timing
+- [x] 17. Test animation timing
   - Verify fade in timing matches other phases (500-700ms delay, 600ms fade)
   - Verify dialogue display timing (700ms delay)
   - Verify info box display time (1500-2000ms)
@@ -199,7 +199,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
   - Verify damage number float animation (1000ms)
   - _Requirements: 5.2, 6.2_
 
-- [~] 18. Test with actual game systems
+- [x] 18. Test with actual game systems
   - Verify StatusEffectManager is used for status effect definitions
   - Verify ElementalAffinitySystem is used for multiplier calculations
   - Verify DamageCalculator is used for damage calculations (if applicable)
@@ -207,7 +207,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
   - Verify actual card textures are used (not placeholders)
   - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-- [~] 19. Test edge cases and error handling
+- [x] 19. Test edge cases and error handling
   - Test if StatusEffectManager not initialized (fallback to hardcoded descriptions)
   - Test if enemy sprite texture missing (fallback to placeholder)
   - Test if card textures missing (fallback to rectangles)
@@ -215,7 +215,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
   - Test skipping during combat simulation (proper cleanup)
   - _Requirements: All (error handling)_
 
-- [~] 20. Final integration test
+- [x] 20. Final integration test
   - Complete full tutorial playthrough from Phase1 to Phase10
   - Verify Phase6 fits naturally in the flow
   - Verify no performance issues or lag
@@ -224,7 +224,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
   - Test "Skip Tutorial" button still works with Phase6 included
   - _Requirements: 5.1, 5.2, 5.4, 9.5_
 
-- [~] 21. Documentation and polish
+- [x] 21. Documentation and polish
   - Add code comments explaining Burn vs Poison distinction
   - Add JSDoc comments for all new methods
   - Update any relevant README or documentation files

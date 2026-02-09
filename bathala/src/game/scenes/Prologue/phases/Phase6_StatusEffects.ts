@@ -10,6 +10,9 @@ import { createPhaseHeader } from '../ui/PhaseHeader';
 import { createProgressIndicator } from '../ui/ProgressIndicator';
 import { createInfoBox } from '../ui/InfoBox';
 import { DeckManager } from '../../../../utils/DeckManager';
+import { StatusEffectManager } from '../../../../core/managers/StatusEffectManager';
+import { ElementalAffinitySystem } from '../../../../core/managers/ElementalAffinitySystem';
+import { DamageCalculator } from '../../../../utils/DamageCalculator';
 
 export class Phase6_StatusEffects extends TutorialPhase {
     private currentSection: number = 0;
@@ -99,6 +102,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
     /**
      * Section 1: Display introduction to buff status effects.
      * Teaches players about beneficial status effects like Strength, Plated Armor, Regeneration, and Ritual.
+     * Uses actual StatusEffectManager definitions for accuracy.
      * 
      * @private
      */
@@ -129,7 +133,13 @@ export class Phase6_StatusEffects extends TutorialPhase {
             });
         });
 
-        const dialogue = "Status effects shape battles. First, BUFFS:\n\n💪 STRENGTH: +3 damage per stack\n🛡️ PLATED ARMOR: Grants block at start of turn, reduces by 1\n💚 REGENERATION: Heals HP at start of turn, reduces by 1\n✨ RITUAL: Grants +1 Strength at end of turn\n\nBuffs stack up! Use them strategically to overpower enemies.";
+        // Get actual status effect definitions from StatusEffectManager
+        const strength = StatusEffectManager.getDefinition('strength');
+        const platedArmor = StatusEffectManager.getDefinition('plated_armor');
+        const regeneration = StatusEffectManager.getDefinition('regeneration');
+        const ritual = StatusEffectManager.getDefinition('ritual');
+
+        const dialogue = `Status effects shape battles. First, BUFFS:\n\n${strength?.emoji} ${strength?.name.toUpperCase()}: ${strength?.description}\n${platedArmor?.emoji} ${platedArmor?.name.toUpperCase()}: ${platedArmor?.description}\n${regeneration?.emoji} ${regeneration?.name.toUpperCase()}: ${regeneration?.description}\n${ritual?.emoji} ${ritual?.name.toUpperCase()}: ${ritual?.description}\n\nBuffs stack up! Use them strategically to overpower enemies.`;
 
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
@@ -151,7 +161,13 @@ export class Phase6_StatusEffects extends TutorialPhase {
     /**
      * Section 2: Display introduction to debuff status effects.
      * Teaches players about harmful status effects like Burn, Poison, Weak, Vulnerable, and Frail.
-     * Emphasizes the distinction between Burn (player inflicts on enemies) and Poison (enemies inflict on player).
+     * 
+     * **IMPORTANT DISTINCTION**: 
+     * - Burn (🔥): Player inflicts on enemies via Fire Special actions
+     * - Poison (☠️): Enemies inflict on player via poison actions
+     * Both work identically (damage at start of turn, reduce by 1), just different names.
+     * 
+     * Uses actual StatusEffectManager definitions for accuracy.
      * 
      * @private
      */
@@ -182,7 +198,14 @@ export class Phase6_StatusEffects extends TutorialPhase {
             });
         });
 
-        const dialogue = "Now DEBUFFS - harmful effects:\n\n🔥 BURN: You inflict this on enemies with Fire Special\n   Deals damage at start of enemy's turn, reduces by 1\n\n☠️ POISON: Enemies inflict this on you\n   Deals damage at start of your turn, reduces by 1\n\n⚠️ WEAK: Reduces attack damage by 25% per stack\n🛡️💔 VULNERABLE: Take 50% more damage from all sources\n🔻 FRAIL: Defend actions grant 25% less block per stack\n\nBurn and Poison work the same way - just different names!";
+        // Get actual status effect definitions from StatusEffectManager
+        // Note: Burn uses the same definition as Poison (they work identically)
+        const poison = StatusEffectManager.getDefinition('poison');
+        const weak = StatusEffectManager.getDefinition('weak');
+        const vulnerable = StatusEffectManager.getDefinition('vulnerable');
+        const frail = StatusEffectManager.getDefinition('frail');
+
+        const dialogue = `Now DEBUFFS - harmful effects:\n\n🔥 BURN: You inflict this on enemies with Fire Special\n   ${poison?.description}\n\n${poison?.emoji} ${poison?.name.toUpperCase()}: Enemies inflict this on you\n   ${poison?.description}\n\n${weak?.emoji} ${weak?.name.toUpperCase()}: ${weak?.description}\n${vulnerable?.emoji} ${vulnerable?.name.toUpperCase()}: ${vulnerable?.description}\n${frail?.emoji} ${frail?.name.toUpperCase()}: ${frail?.description}\n\nBurn and Poison work the same way - just different names!`;
 
         this.scene.time.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
@@ -254,6 +277,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
     /**
      * Create a visual example showing enemy elemental affinities.
      * Displays a Tikbalang sprite with weakness and resistance indicators.
+     * Uses actual ElementalAffinitySystem for affinity display data.
      * 
      * @returns A Phaser container with the enemy sprite and affinity indicators
      * @private
@@ -272,8 +296,11 @@ export class Phase6_StatusEffects extends TutorialPhase {
         }
         container.add(enemySprite);
         
+        // Get actual affinity display data from ElementalAffinitySystem
+        const affinityData = ElementalAffinitySystem.getAffinityDisplayData(TIKBALANG_SCOUT.elementalAffinity);
+        
         // Weakness indicator (above enemy) - Tikbalang is weak to Fire
-        const weaknessText = this.scene.add.text(-80, -120, '🔥 Weak', {
+        const weaknessText = this.scene.add.text(-80, -120, `${affinityData.weaknessIcon} Weak`, {
             fontFamily: 'dungeon-mode',
             fontSize: 20,
             color: '#ff6b6b',
@@ -282,7 +309,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         container.add(weaknessText);
         
         // Resistance indicator (above enemy) - Tikbalang resists Air
-        const resistanceText = this.scene.add.text(80, -120, '💨 Resist', {
+        const resistanceText = this.scene.add.text(80, -120, `${affinityData.resistanceIcon} Resist`, {
             fontFamily: 'dungeon-mode',
             fontSize: 20,
             color: '#5BA3D0',
@@ -508,9 +535,10 @@ export class Phase6_StatusEffects extends TutorialPhase {
             }).setOrigin(0.5);
             this.container.add(enemyHPText);
 
-            // Display enemy elemental affinity indicators
-            // Tikbalang is weak to Fire, resists Air
-            const weaknessIcon = this.scene.add.text(enemyX - 60, enemyHealthY + 30, '🔥 Weak', {
+            // Display enemy elemental affinity indicators using ElementalAffinitySystem
+            const affinityData = ElementalAffinitySystem.getAffinityDisplayData(enemyData.elementalAffinity);
+            
+            const weaknessIcon = this.scene.add.text(enemyX - 60, enemyHealthY + 30, `${affinityData.weaknessIcon} Weak`, {
                 fontFamily: 'dungeon-mode',
                 fontSize: 16,
                 color: '#ff6b6b',
@@ -518,7 +546,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
             }).setOrigin(0.5);
             this.container.add(weaknessIcon);
 
-            const resistanceIcon = this.scene.add.text(enemyX + 60, enemyHealthY + 30, '💨 Resist', {
+            const resistanceIcon = this.scene.add.text(enemyX + 60, enemyHealthY + 30, `${affinityData.resistanceIcon} Resist`, {
                 fontFamily: 'dungeon-mode',
                 fontSize: 16,
                 color: '#5BA3D0',
@@ -875,8 +903,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
     /**
      * Execute the Special action with Fire cards.
      * Demonstrates Burn status effect application and elemental weakness multiplier.
-     * Evaluates the hand, calculates damage with elemental multiplier, applies Burn,
-     * and triggers the Burn effect simulation.
+     * Uses DamageCalculator and ElementalAffinitySystem for accurate damage calculation.
      * 
      * @private
      */
@@ -888,22 +915,28 @@ export class Phase6_StatusEffects extends TutorialPhase {
         // Evaluate hand
         const evaluation = HandEvaluator.evaluateHand(this.playedCards, 'special');
         
-        // Get dominant element from cards
-        const dominantElement = this.getDominantElementFromCards(this.playedCards);
+        // Create a mock enemy entity for DamageCalculator
+        const mockEnemy = {
+            ...TIKBALANG_SCOUT,
+            id: 'tutorial_tikbalang_burn',
+            currentHealth: this.enemyHP,
+            maxHealth: this.enemyMaxHP
+        };
         
-        // Calculate damage with elemental multiplier
-        // Tikbalang is weak to Fire (1.5× multiplier)
-        const baseDamage = evaluation.totalValue;
-        let elementalMultiplier = 1.0;
+        // Use DamageCalculator for complete damage calculation
+        const damageCalc = DamageCalculator.calculate(
+            this.playedCards,
+            evaluation.handType,
+            'special',
+            undefined, // No player entity needed for this tutorial
+            mockEnemy,
+            [] // No relic bonuses
+        );
         
-        if (dominantElement === 'fire') {
-            elementalMultiplier = 1.5; // Weakness
-        }
-        
-        const finalDamage = Math.floor(baseDamage * elementalMultiplier);
+        const finalDamage = damageCalc.finalValue;
         
         // Show damage calculation breakdown
-        this.showDamageBreakdown(baseDamage, elementalMultiplier, finalDamage);
+        this.showDamageBreakdown(damageCalc.baseValue, damageCalc.elementalMultiplier, finalDamage);
         
         // Apply damage after showing breakdown
         this.scene.time.delayedCall(1500, () => {
@@ -925,50 +958,6 @@ export class Phase6_StatusEffects extends TutorialPhase {
                 });
             });
         });
-    }
-
-    /**
-     * Get the dominant element from a set of cards.
-     * Counts cards by element and returns the element with the most cards.
-     * 
-     * @param cards - Array of playing cards to analyze
-     * @returns The dominant element ('fire', 'water', 'earth', 'air') or null if no cards
-     * @private
-     */
-    private getDominantElementFromCards(cards: PlayingCard[]): 'fire' | 'water' | 'earth' | 'air' | null {
-        const suitToElement: Record<string, 'fire' | 'water' | 'earth' | 'air'> = {
-            'Apoy': 'fire',
-            'Tubig': 'water',
-            'Lupa': 'earth',
-            'Hangin': 'air'
-        };
-        
-        const elementCounts: Record<string, number> = {
-            fire: 0,
-            water: 0,
-            earth: 0,
-            air: 0
-        };
-        
-        cards.forEach(card => {
-            const element = suitToElement[card.suit];
-            if (element) {
-                elementCounts[element]++;
-            }
-        });
-        
-        // Find the element with the most cards
-        let maxCount = 0;
-        let dominantElement: 'fire' | 'water' | 'earth' | 'air' | null = null;
-        
-        for (const [element, count] of Object.entries(elementCounts)) {
-            if (count > maxCount) {
-                maxCount = count;
-                dominantElement = element as 'fire' | 'water' | 'earth' | 'air';
-            }
-        }
-        
-        return dominantElement;
     }
 
     /**
@@ -997,7 +986,8 @@ export class Phase6_StatusEffects extends TutorialPhase {
         
         // Multiplier (if not 1.0)
         if (multiplier !== 1.0) {
-            const multiplierText = this.scene.add.text(0, 30, `🔥 Fire Weakness: ×${multiplier}`, {
+            const fireIcon = ElementalAffinitySystem.getElementIcon('fire');
+            const multiplierText = this.scene.add.text(0, 30, `${fireIcon} Fire Weakness: ×${multiplier}`, {
                 fontFamily: 'dungeon-mode',
                 fontSize: 24,
                 color: '#ff6b6b',
@@ -1033,6 +1023,13 @@ export class Phase6_StatusEffects extends TutorialPhase {
      * Apply Burn status effect to enemy (3 stacks).
      * Creates and animates the Burn icon and stack count above the enemy sprite.
      * 
+     * **BURN vs POISON**: Burn is what players inflict on enemies (via Fire Special).
+     * Poison is what enemies inflict on players. Both function identically:
+     * - Deal 2 damage per stack at start of turn
+     * - Reduce by 1 stack at end of turn
+     * 
+     * Uses fire emoji (🔥) for Burn representation in tutorial.
+     * 
      * @private
      */
     private applyBurnEffect(): void {
@@ -1047,8 +1044,12 @@ export class Phase6_StatusEffects extends TutorialPhase {
         // Position Burn icon above enemy
         const burnIconY = enemyY - (enemySpriteScaledHeight / 2) - 60;
         
+        // Get Burn emoji from StatusEffectManager (Burn uses same definition as Poison)
+        // Note: In the actual game, Burn would have its own definition, but for now we use the fire emoji
+        const burnEmoji = '🔥'; // Burn is represented by fire emoji in tutorial
+        
         // Create Burn icon
-        const burnIcon = this.scene.add.text(enemyX, burnIconY, '🔥', {
+        const burnIcon = this.scene.add.text(enemyX, burnIconY, burnEmoji, {
             fontFamily: 'dungeon-mode',
             fontSize: 32
         }).setOrigin(0.5);
@@ -1176,8 +1177,17 @@ export class Phase6_StatusEffects extends TutorialPhase {
     }
 
     /**
-     * Simulate enemy turn start and Burn status effect trigger
-     * Demonstrates how Burn deals damage at start of turn and reduces by 1 stack
+     * Simulate enemy turn start and Burn status effect trigger.
+     * Demonstrates how Burn deals damage at start of turn and reduces by 1 stack.
+     * 
+     * **BURN MECHANICS**: 
+     * - Triggers at start of enemy's turn (since player applied it to enemy)
+     * - Deals 2 damage per stack (3 stacks = 6 damage)
+     * - Reduces by 1 stack after triggering (3 → 2)
+     * 
+     * This is the same mechanic as Poison, just applied to enemies instead of player.
+     * 
+     * @private
      */
     private simulateBurnTrigger(): void {
         const screenWidth = this.scene.cameras.main.width;
