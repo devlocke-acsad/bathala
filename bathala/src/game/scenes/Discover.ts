@@ -11,6 +11,18 @@ import {
   TAWONG_LIPOD,
   MANGNANGAWAY
 } from "../../data/enemies/Act1Enemies";
+import {
+  TIKBALANG_SCOUT as TIKBALANG_CFG,
+  BALETE_WRAITH as BALETE_CFG,
+  SIGBIN_CHARGER as SIGBIN_CFG,
+  DUWENDE_TRICKSTER as DUWENDE_CFG,
+  TIYANAK_AMBUSHER as TIYANAK_CFG,
+  AMOMONGO as AMOMONGO_CFG,
+  BUNGISNGIS as BUNGISNGIS_CFG,
+  KAPRE_SHADE as KAPRE_CFG,
+  TAWONG_LIPOD as TAWONG_CFG,
+  MANGANGAWAY as MANGANGAWAY_CFG,
+} from "../../data/enemies/creatures";
 
 export class Discover extends Scene {
   private title: GameObjects.Text;
@@ -198,7 +210,7 @@ export class Discover extends Scene {
         health: TIKBALANG_SCOUT.maxHealth,
         attack: TIKBALANG_SCOUT.damage,
         abilities: ["Confuse", "Misdirection"],
-        lore: "Tagalog mountain spirits with horse heads and human bodies, Tikbalang once protected sacred forests for Bathala. Their backward footprints lead travelers in circles—tradition says wearing your shirt inside-out breaks their spell. Now corrupted by engkanto lies, these former guardians serve only deception."
+        lore: TIKBALANG_CFG.loreDescription
       },
       {
         id: "balete_wraith",
@@ -208,7 +220,7 @@ export class Discover extends Scene {
         health: BALETE_WRAITH.maxHealth,
         attack: BALETE_WRAITH.damage,
         abilities: ["Strengthen When Hurt", "Vulnerable"],
-        lore: "Balete strangler figs are revered as dwelling places of anito spirits, their aerial roots forming curtains between worlds. To cut a Balete without permission invites misfortune. Once benevolent guardians of these sacred portals, engkanto corruption has twisted them into wraiths that ensnare intruders in spectral roots."
+        lore: BALETE_CFG.loreDescription
       },
       {
         id: "sigbin_charger",
@@ -218,7 +230,7 @@ export class Discover extends Scene {
         health: SIGBIN_CHARGER.maxHealth,
         attack: SIGBIN_CHARGER.damage,
         abilities: ["Burst Attack (Every 3 Turns)", "Heart Steal"],
-        lore: "Visayan cryptids resembling hornless goats with large ears, Sigbin walk backward with heads lowered between hind legs. Legend says capturing one yields a heart that grants invisibility. Once loyal servants of Bathala, corruption turned them into vicious hunters harvesting hearts for the false god's rise."
+        lore: SIGBIN_CFG.loreDescription
       },
       {
         id: "duwende_trickster",
@@ -228,7 +240,7 @@ export class Discover extends Scene {
         health: DUWENDE_TRICKSTER.maxHealth,
         attack: DUWENDE_TRICKSTER.damage,
         abilities: ["Steal Block", "Disrupt Draw", "Fortune Reversal"],
-        lore: "Known as 'Nuno sa Punso' (old man of the mound), Duwende inhabit anthills and tree stumps. Tradition demands 'Tabi-tabi po' (Excuse me) when passing their homes—offending them brings illness and bad luck. Once neutral judges of kapwa (reciprocal respect), engkanto lies corrupted them into petty tricksters."
+        lore: DUWENDE_CFG.loreDescription
       },
       {
         id: "tiyanak_ambusher",
@@ -238,7 +250,7 @@ export class Discover extends Scene {
         health: TIYANAK_AMBUSHER.maxHealth,
         attack: TIYANAK_AMBUSHER.damage,
         abilities: ["Fear", "Critical First Strike", "Mimic Cry"],
-        lore: "Appearing as crying babies in the wilderness, Tiyanak are vampiric spirits of children who died before baptism. When picked up, they transform into fanged creatures with sharp claws. Once innocent souls awaiting Bathala's judgment, they've been corrupted into instruments of the false god's malice."
+        lore: TIYANAK_CFG.loreDescription
       },
       {
         id: "amomongo",
@@ -248,7 +260,7 @@ export class Discover extends Scene {
         health: AMOMONGO.maxHealth,
         attack: AMOMONGO.damage,
         abilities: ["Bleed", "Fast Attacks", "Rending Claws"],
-        lore: "Reported in Negros Occidental, Amomongo are large ape-like creatures with razor-sharp claws that attack livestock and leave deep claw marks. Legends connect them to guardian spirits of mountain sanctuaries and mineral veins. Engkanto influence drove these reclusive protectors into blood-rage, transforming them into frenzied predators."
+        lore: AMOMONGO_CFG.loreDescription
       },
       {
         id: "bungisngis",
@@ -258,7 +270,7 @@ export class Discover extends Scene {
         health: BUNGISNGIS.maxHealth,
         attack: BUNGISNGIS.damage,
         abilities: ["Laugh Debuff", "High Swing", "Intimidating Presence"],
-        lore: "Tagalog and Cebuano cyclops giants known for constant booming laughter, Bungisngis were portrayed as strong but foolish forest dwellers, easily tricked despite tremendous strength. Engkanto corruption twisted their jovial nature into a maddening weapon—their laughter now saps the will of all who hear it."
+        lore: BUNGISNGIS_CFG.loreDescription
       },
       {
         id: "kapre_shade",
@@ -268,7 +280,7 @@ export class Discover extends Scene {
         health: KAPRE_SHADE.maxHealth,
         attack: KAPRE_SHADE.damage,
         abilities: ["AoE Burn", "Summon Fire Minions", "Cigar Smoke Veil"],
-        lore: "Dark-skinned giants (7-9 feet tall) dwelling in large trees, Kapre are nocturnal beings visible only as glowing red eyes, perpetually smoking enormous cigars. Territorial but generally peaceful, they disorient disrespectful travelers. Once Bathala's appointed guardians of sacred groves, engkanto whispers ignited their ancient rage into infernos."
+        lore: KAPRE_CFG.loreDescription
       },
       {
         id: "tawong_lipod",
@@ -278,7 +290,7 @@ export class Discover extends Scene {
         health: TAWONG_LIPOD.maxHealth,
         attack: TAWONG_LIPOD.damage,
         abilities: ["Invisibility", "Wind Stun", "Air Affinity Bonus"],
-        lore: "Bikol's 'hidden people' are wind spirits existing beyond human perception, sometimes revealing themselves through inexplicable sounds or sudden breezes. Traditionally neutral or benevolent, they helped lost travelers and warned of danger. Engkanto corruption transformed these peaceful wind-folk into vindictive tormentors striking from nowhere."
+        lore: TAWONG_CFG.loreDescription
       },
       {
         id: "mangangaway",
@@ -288,7 +300,7 @@ export class Discover extends Scene {
         health: MANGNANGAWAY.maxHealth,
         attack: MANGNANGAWAY.damage,
         abilities: ["Mimic Elements", "Curse Cards", "Hex of Reversal"],
-        lore: "Dark practitioners of kulam (curse magic) and barang (hex casting), Mangangaway are the opposite of healing Babaylan—they bring illness and death through cursed objects and malevolent spirits. Wearing skull necklaces, their power grows with each life taken. Ancient outcasts who broke kapwa's sacred laws, they now serve the false god as hex-wielding enforcers."
+        lore: MANGANGAWAY_CFG.loreDescription
       }
     ];
   }

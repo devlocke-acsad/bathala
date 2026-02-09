@@ -167,8 +167,11 @@ export interface EnemyConfig {
   
   // === Visuals (for Artists) ===
   
-  /** Sprite key - Convention: chap{N}/{enemy_id} */
-  readonly spriteKey: string;
+  /** Texture key used for the combat scene sprite (must match Preloader key) */
+  readonly combatSpriteKey: string;
+  
+  /** Texture key used for the overworld map sprite (must match Preloader key) */
+  readonly overworldSpriteKey: string;
   
   /** Optional portrait key for dialogue */
   readonly portraitKey?: string;

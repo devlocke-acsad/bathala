@@ -42,7 +42,8 @@ export const TIKBALANG_SCOUT: EnemyConfig = {
   activeAtDay: false,
   
   // === Visuals ===
-  spriteKey: 'chap1/tikbalang_scout',
+  combatSpriteKey: 'tikbalang_combat',
+  overworldSpriteKey: 'tikbalang_overworld',
   
   // === Dialogue ===
   dialogueIntro: "Lost in my paths, seer? False one's whispers guide!",

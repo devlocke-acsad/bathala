@@ -13,6 +13,7 @@ import { HandEvaluator } from "../../../utils/HandEvaluator";
 import { getRelicSpriteKey } from "../../../utils/RelicSpriteUtils";
 import { Combat } from "../Combat";
 import { createButton } from "../../ui/Button";
+import { getEnemyCombatSprite } from "../../../data/enemies/Act1Enemies";
 import { StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
 import { ElementalAffinitySystem } from "../../../core/managers/ElementalAffinitySystem";
 
@@ -568,23 +569,7 @@ export class CombatUI {
    * Get enemy sprite key based on enemy name
    */
   private getEnemySpriteKey(enemyName: string): string {
-    const lowerCaseName = enemyName.toLowerCase();
-    
-    if (lowerCaseName.includes("tikbalang")) return "tikbalang_combat";
-    if (lowerCaseName.includes("balete")) return "balete_combat";
-    if (lowerCaseName.includes("sigbin")) return "sigbin_combat";
-    if (lowerCaseName.includes("duwende")) return "duwende_combat";
-    if (lowerCaseName.includes("tiyanak")) return "tiyanak_combat";
-    if (lowerCaseName.includes("amomongo")) return "amomongo_combat";
-    if (lowerCaseName.includes("bungisngis")) return "bungisngis_combat";
-    if (lowerCaseName.includes("kapre")) return "kapre_combat";
-    if (lowerCaseName.includes("tawong lipod") || lowerCaseName.includes("tawonglipod")) return "tawonglipod_combat";
-    if (lowerCaseName.includes("mangangaway")) return "mangangaway_combat";
-    
-    // Fallback
-    const spriteOptions = ["balete_combat", "sigbin_combat", "tikbalang_combat", "duwende_combat"];
-    const randomIndex = Math.floor(Math.random() * spriteOptions.length);
-    return spriteOptions[randomIndex];
+    return getEnemyCombatSprite(enemyName);
   }
   
   /**

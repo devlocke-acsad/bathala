@@ -19,7 +19,7 @@ import { EnemyConfig } from '../../../core/types/EnemyTypes';
 export const TAWONG_LIPOD: EnemyConfig = {
   // === Identity ===
   id: 'tawong_lipod',
-  name: 'Tawong Lipod',
+  name: 'Among Lipod',
   tier: 'elite',
   chapter: 1,
   
@@ -44,7 +44,8 @@ export const TAWONG_LIPOD: EnemyConfig = {
   speedMultiplier: 1.4,
   
   // === Visuals ===
-  spriteKey: 'chap1/tawong_lipod',
+  combatSpriteKey: 'tawonglipod_combat',
+  overworldSpriteKey: 'tawonglipod_overworld',
   
   // === Dialogue ===
   dialogueIntro: "Winds conceal—feel fury!",

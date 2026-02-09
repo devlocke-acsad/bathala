@@ -207,7 +207,7 @@ export class EnemyManager {
   getSpriteKey(enemyId: string): string {
     const config = Registry.getEnemy(enemyId);
     if (!config) return '';
-    return config.spriteKey || `chap${config.chapter}/${enemyId}`;
+    return config.combatSpriteKey || `chap${config.chapter}/${enemyId}`;
   }
   
   /**

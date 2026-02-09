@@ -12,3 +12,4 @@ export type { RewardInput, CombatReward, RewardEnemyTier } from './RewardSystem'
 export { EnemySelectionSystem } from './EnemySelectionSystem';
 export { ChapterProgressionSystem } from './ChapterProgressionSystem';
 export type { ProgressionResult, BossChapterMapping } from './ChapterProgressionSystem';
+export { ActContentProvider } from './ActContentProvider';

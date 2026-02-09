@@ -45,7 +45,8 @@ export const MANGANGAWAY: BossConfig = {
   activeAtDay: true,
   
   // === Visuals ===
-  spriteKey: 'chap1/boss_mangangaway',
+  combatSpriteKey: 'mangangaway_combat',
+  overworldSpriteKey: 'mangangaway_overworld',
   portraitKey: 'chap1/portrait_mangangaway',
   scale: 2.0,
   

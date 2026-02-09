@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { createButton } from '../../../ui/Button';
-import { TIKBALANG_SCOUT, BALETE_WRAITH, SIGBIN_CHARGER } from '../../../../data/enemies/Act1Enemies';
+import { TIKBALANG_SCOUT, BALETE_WRAITH, SIGBIN_CHARGER, getEnemyCombatSprite } from '../../../../data/enemies/Act1Enemies';
 import { Enemy, PlayingCard, HandType } from '../../../../core/types/CombatTypes';
 import { DeckManager } from '../../../../utils/DeckManager';
 import { HandEvaluator } from '../../../../utils/HandEvaluator';
@@ -748,18 +748,6 @@ export class Phase4_CombatActions extends TutorialPhase {
      * Get enemy sprite key (EXACT as real combat CombatUI.ts)
      */
     private getEnemySpriteKey(enemyName: string): string {
-        const lowerCaseName = enemyName.toLowerCase();
-        
-        if (lowerCaseName.includes("tikbalang")) return "tikbalang_combat";
-        if (lowerCaseName.includes("balete")) return "balete_combat";
-        if (lowerCaseName.includes("sigbin")) return "sigbin_combat";
-        if (lowerCaseName.includes("duwende")) return "duwende_combat";
-        if (lowerCaseName.includes("tiyanak")) return "tiyanak_combat";
-        if (lowerCaseName.includes("amomongo")) return "amomongo_combat";
-        if (lowerCaseName.includes("bungisngis")) return "bungisngis_combat";
-        if (lowerCaseName.includes("kapre")) return "kapre_combat";
-        if (lowerCaseName.includes("tawong")) return "tawong_lipod_combat";
-        
-        return "tikbalang_combat"; // fallback
+        return getEnemyCombatSprite(enemyName);
     }
 }

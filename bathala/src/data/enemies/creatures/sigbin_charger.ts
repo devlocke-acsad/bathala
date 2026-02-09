@@ -43,7 +43,8 @@ export const SIGBIN_CHARGER: EnemyConfig = {
   speedMultiplier: 1.2,
   
   // === Visuals ===
-  spriteKey: 'chap1/sigbin_charger',
+  combatSpriteKey: 'sigbin_combat',
+  overworldSpriteKey: 'sigbin_overworld',
   
   // === Dialogue ===
   dialogueIntro: "Charge for shadow throne!",

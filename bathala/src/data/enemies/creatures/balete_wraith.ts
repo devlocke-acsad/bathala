@@ -42,7 +42,8 @@ export const BALETE_WRAITH: EnemyConfig = {
   activeAtDay: true,
   
   // === Visuals ===
-  spriteKey: 'chap1/balete_wraith',
+  combatSpriteKey: 'balete_combat',
+  overworldSpriteKey: 'balete_overworld',
   
   // === Dialogue ===
   dialogueIntro: "Roots entwine your fate!",

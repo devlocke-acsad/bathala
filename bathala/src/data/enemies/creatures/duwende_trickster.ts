@@ -43,7 +43,8 @@ export const DUWENDE_TRICKSTER: EnemyConfig = {
   speedMultiplier: 0.8,
   
   // === Visuals ===
-  spriteKey: 'chap1/duwende_trickster',
+  combatSpriteKey: 'duwende_combat',
+  overworldSpriteKey: 'duwende_overworld',
   scale: 0.7,
   
   // === Dialogue ===

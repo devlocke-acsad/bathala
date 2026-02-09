@@ -10,7 +10,8 @@ import {
   BUNGISNGIS,
   KAPRE_SHADE,
   TAWONG_LIPOD,
-  MANGNANGAWAY
+  MANGNANGAWAY,
+  getEnemyOverworldSprite
 } from '../../data/enemies/Act1Enemies';
 import { 
   TIKBALANG_SCOUT_LORE,
@@ -516,53 +517,54 @@ export class TooltipSystem {
     if (!enemy) return null;
 
     // Map enemy names to their detailed information from GDD
+    // Keys use computed property names so they auto-update when creature names change
     const enemyDetailsMap: { [key: string]: { abilities: string, origin: string, corruption: string } } = {
-      "Tikbalang Scout": {
+      [TIKBALANG_SCOUT.name]: {
         abilities: "Confuses Targeting • Applies Weak",
         origin: "Tagalog mountain trickster with backward hooves",
         corruption: "Once forest protectors, now twisted by engkanto lies to mislead travelers through false paths."
       },
-      "Balete Wraith": {
+      [BALETE_WRAITH.name]: {
         abilities: "Applies Vulnerable • Gains Strength When Hurt",
         origin: "Spirit guardian of sacred balete trees",
         corruption: "Haunting the ancient fig portals to anito realms, corrupted by engkanto deceit into hostile wraiths."
       },
-      "Sigbin Charger": {
+      [SIGBIN_CHARGER.name]: {
         abilities: "High Damage Burst • Strikes Every 3 Turns",
         origin: "Visayan goat-like creature stealing hearts",
         corruption: "Once loyal to Bathala, now charges with stolen heart power for the shadow throne."
       },
-      "Duwende Trickster": {
+      [DUWENDE_TRICKSTER.name]: {
         abilities: "Disrupts Card Draw • Steals Block",
         origin: "Magical goblin granting boons or curses",
         corruption: "Their fortunes twisted by engkanto whispers, now dealing only misfortune to travelers."
       },
-      "Tiyanak Ambusher": {
+      [TIYANAK_AMBUSHER.name]: {
         abilities: "First Strike Criticals • Applies Fear",
         origin: "Lost infant spirit mimicking baby cries",
         corruption: "Demon babies luring victims with wails in the corrupted forest depths."
       },
-      "Amomongo": {
+      [AMOMONGO.name]: {
         abilities: "Bleeding Claws • Fast Attacks",
         origin: "Visayan ape-like terror with long nails",
         corruption: "Cave-dwelling beast driven to fury, its nails rending those deemed unworthy."
       },
-      "Bungisngis": {
+      [BUNGISNGIS.name]: {
         abilities: "Laugh Debuff • Heavy Swings",
         origin: "One-eyed laughing giant of Tagalog/Cebuano lore",
         corruption: "Once jovial, now its laughter masks rage fueled by engkanto's twisted mirth."
       },
-      "Kapre Shade": {
+      [KAPRE_SHADE.name]: {
         abilities: "AoE Burn Damage • Summons Fire Minions",
         origin: "Tree giant smoking magical cigars",
         corruption: "Ancient guardian loyal to Bathala, corrupted into a burning shadow that veils wrath in cigar smoke."
       },
-      "Tawong Lipod": {
+      [TAWONG_LIPOD.name]: {
         abilities: "Invisibility • Stuns • Benefits from Air",
         origin: "Bikol invisible wind fairy",
         corruption: "Once harmonious wind beings, now concealed tormentors wielding storms against intruders."
       },
-      "Mangangaway": {
+      [MANGNANGAWAY.name]: {
         abilities: "Mimics Elements • Curses Cards • Hex of Reversal",
         origin: "Tagalog sorcerer with skull necklace",
         corruption: "Powerful witch casting evil hexes, commanding fates to reverse at their twisted will."
@@ -571,29 +573,21 @@ export class TooltipSystem {
 
     const details = enemyDetailsMap[enemy.name];
     const loreMap: { [key: string]: any } = {
-      "Tikbalang Scout": TIKBALANG_SCOUT_LORE,
-      "Balete Wraith": BALETE_WRAITH_LORE,
-      "Sigbin Charger": SIGBIN_CHARGER_LORE,
-      "Duwende Trickster": DUWENDE_TRICKSTER_LORE,
-      "Tiyanak Ambusher": TIYANAK_AMBUSHER_LORE,
-      "Amomongo": AMOMONGO_LORE,
-      "Bungisngis": BUNGISNGIS_LORE,
-      "Kapre Shade": KAPRE_SHADE_LORE,
-      "Tawong Lipod": TAWONG_LIPOD_LORE,
-      "Mangangaway": MANGNANGAWAY_LORE
+      [TIKBALANG_SCOUT.name]: TIKBALANG_SCOUT_LORE,
+      [BALETE_WRAITH.name]: BALETE_WRAITH_LORE,
+      [SIGBIN_CHARGER.name]: SIGBIN_CHARGER_LORE,
+      [DUWENDE_TRICKSTER.name]: DUWENDE_TRICKSTER_LORE,
+      [TIYANAK_AMBUSHER.name]: TIYANAK_AMBUSHER_LORE,
+      [AMOMONGO.name]: AMOMONGO_LORE,
+      [BUNGISNGIS.name]: BUNGISNGIS_LORE,
+      [KAPRE_SHADE.name]: KAPRE_SHADE_LORE,
+      [TAWONG_LIPOD.name]: TAWONG_LIPOD_LORE,
+      [MANGNANGAWAY.name]: MANGNANGAWAY_LORE
     };
     
     const lore = loreMap[enemy.name];
 
-    let spriteKeyBase = enemy.name.toLowerCase().split(" ")[0];
-    if (spriteKeyBase === "tawong") {
-        spriteKeyBase = "tawonglipod";
-    }
-    // Additional check in case the enemy name is stored differently
-    if (enemy.name.toLowerCase().includes("tawong")) {
-        spriteKeyBase = "tawonglipod";
-    }
-    const spriteKey = spriteKeyBase + "_overworld";
+    const spriteKey = getEnemyOverworldSprite(enemy.name);
 
     return {
       name: enemy.name,

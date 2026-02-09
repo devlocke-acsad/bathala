@@ -44,7 +44,8 @@ export const BUNGISNGIS: EnemyConfig = {
   speedMultiplier: 0.9,
   
   // === Visuals ===
-  spriteKey: 'chap1/bungisngis',
+  combatSpriteKey: 'bungisngis_combat',
+  overworldSpriteKey: 'bungisngis_overworld',
   scale: 1.4,
   
   // === Dialogue ===

@@ -1,5 +1,9 @@
 import { Scene } from 'phaser';
-import * as Act1Enemies from '../../../data/enemies/Act1Enemies';
+import {
+  ACT1_COMMON_ENEMIES,
+  ACT1_ELITE_ENEMIES,
+  ACT1_BOSS_ENEMIES,
+} from '../../../data/enemies/Act1Enemies';
 import * as Act2Enemies from '../../../data/enemies/Act2Enemies';
 import * as Act3Enemies from '../../../data/enemies/Act3Enemies';
 import { GameState } from '../../../core/managers/GameState';
@@ -41,16 +45,9 @@ export class CombatDebugScene extends Scene {
     switch (chapter) {
       case 1:
         this.enemyList = [
-          { name: 'Tikbalang Scout', key: 'Tikbalang Scout' },
-          { name: 'Balete Wraith', key: 'Balete Wraith' },
-          { name: 'Sigbin Charger', key: 'Sigbin Charger' },
-          { name: 'Duwende Trickster', key: 'Duwende Trickster' },
-          { name: 'Tiyanak Ambusher', key: 'Tiyanak Ambusher' },
-          { name: 'Amomongo', key: 'Amomongo' },
-          { name: 'Bungisngis', key: 'Bungisngis' },
-          { name: 'Kapre Shade (Elite)', key: 'Kapre Shade' },
-          { name: 'Tawong Lipod (Elite)', key: 'Tawong Lipod' },
-          { name: 'Mangangaway (Boss)', key: 'Mangangaway' },
+          ...ACT1_COMMON_ENEMIES.map(e => ({ name: e.name, key: e.name })),
+          ...ACT1_ELITE_ENEMIES.map(e => ({ name: `${e.name} (Elite)`, key: e.name })),
+          ...ACT1_BOSS_ENEMIES.map(e => ({ name: `${e.name} (Boss)`, key: e.name })),
         ];
         break;
       case 2:
@@ -364,19 +361,9 @@ export class CombatDebugScene extends Scene {
     
     // Map enemy keys to enemy exports based on chapter
     if (currentChapter === 1) {
-      const enemyMap: Record<string, any> = {
-        'Tikbalang Scout': Act1Enemies.TIKBALANG_SCOUT,
-        'Balete Wraith': Act1Enemies.BALETE_WRAITH,
-        'Sigbin Charger': Act1Enemies.SIGBIN_CHARGER,
-        'Duwende Trickster': Act1Enemies.DUWENDE_TRICKSTER,
-        'Tiyanak Ambusher': Act1Enemies.TIYANAK_AMBUSHER,
-        'Amomongo': Act1Enemies.AMOMONGO,
-        'Bungisngis': Act1Enemies.BUNGISNGIS,
-        'Kapre Shade': Act1Enemies.KAPRE_SHADE,
-        'Tawong Lipod': Act1Enemies.TAWONG_LIPOD,
-        'Mangangaway': Act1Enemies.MANGNANGAWAY,
-      };
-      return enemyMap[enemyKey];
+      // Dynamic lookup: searches all Act 1 pools by name (reads from creatures)
+      const allCh1 = [...ACT1_COMMON_ENEMIES, ...ACT1_ELITE_ENEMIES, ...ACT1_BOSS_ENEMIES];
+      return allCh1.find(e => e.name === enemyKey) ?? null;
     } else if (currentChapter === 2) {
       const enemyMap: Record<string, any> = {
         'Sirena Illusionist': Act2Enemies.SIRENA_ILLUSIONIST,
