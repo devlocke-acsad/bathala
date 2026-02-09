@@ -51,6 +51,9 @@ export class Phase6_StatusEffects extends TutorialPhase {
             case 3:
                 this.showElementalAffinities();
                 break;
+            case 4:
+                this.showInteractivePractice();
+                break;
             default:
                 this.onComplete();
                 break;
@@ -192,5 +195,54 @@ export class Phase6_StatusEffects extends TutorialPhase {
         container.add(infoText);
         
         return container;
+    }
+
+    /**
+     * Section 4: Interactive Practice
+     * Demonstrates applying Burn status effect and exploiting elemental weakness
+     */
+    private showInteractivePractice(): void {
+        // Progress indicator
+        const progress = createProgressIndicator(this.scene, 6, 9);
+        this.container.add(progress);
+
+        // Phase header
+        const header = createPhaseHeader(
+            this.scene,
+            'Practice: Status Effects',
+            'Apply Burn and exploit elemental weakness'
+        );
+        this.container.add(header);
+
+        const dialogue = "Let's practice! You'll face a Tikbalang Scout.\n\nGOAL: Use Fire Special to apply Burn\nThe Tikbalang is WEAK to Fire (1.5× damage)!\n\nSelect 5 cards with Fire (Apoy) suits for maximum effect.";
+
+        this.scene.time.delayedCall(700, () => {
+            const dialogueBox = showDialogue(this.scene, dialogue, () => {
+                this.scene.time.delayedCall(1500, () => {
+                    this.scene.tweens.add({
+                        targets: [progress, header, dialogueBox],
+                        alpha: 0,
+                        duration: 400,
+                        ease: 'Power2',
+                        onComplete: () => {
+                            this.container.removeAll(true);
+                            this.startBurnPractice();
+                        }
+                    });
+                });
+            });
+            this.container.add(dialogueBox);
+        });
+    }
+
+    /**
+     * Starts the interactive Burn practice combat simulation
+     * Will be implemented in task 7
+     */
+    private startBurnPractice(): void {
+        // TODO: Implement in task 7
+        // For now, just complete the phase
+        console.log('[Phase6] startBurnPractice() - To be implemented in task 7');
+        this.onComplete();
     }
 }

@@ -66,7 +66,7 @@ This implementation plan integrates Phase6_StatusEffects into the tutorial to te
   - Add 3500ms delay before transitioning to next section
   - _Requirements: 3.1, 3.2, 3.3, 3.5_
 
-- [ ] 6. Add Phase6_StatusEffects Section 4 (Interactive Practice) - Setup
+- [x] 6. Add Phase6_StatusEffects Section 4 (Interactive Practice) - Setup
   - Add showInteractivePractice() method to Phase6_StatusEffects class
   - Create progress indicator: createProgressIndicator(scene, 6, 9)
   - Create phase header: "Practice: Status Effects" / "Apply Burn and exploit elemental weakness"
