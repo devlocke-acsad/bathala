@@ -7,6 +7,9 @@ import { Player } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { InputSystem } from "../../systems/shared/InputSystem";
 import { MazeGenSystem } from "../../systems/generation/MazeGenSystem";
+import { OverworldGenerator } from "../../systems/generation/OverworldGenerator";
+import { ActRegistry } from "../../core/acts/ActRegistry";
+import { ACT1 } from "../../acts/act1/Act1Definition";
 import { TooltipSystem } from "../../systems/world/TooltipSystem";
 import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
@@ -258,8 +261,14 @@ export class Overworld extends Scene {
       };
     }
     
-    // Initialize maze generation manager with dev mode flag
-    this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible);
+    // Initialize maze generation manager with act-aware overworld generator
+    // Register Act 1 in the registry (idempotent)
+    const actRegistry = ActRegistry.getInstance();
+    if (!actRegistry.has(ACT1.id)) {
+      actRegistry.register(ACT1);
+    }
+    const overworldGen = new OverworldGenerator(ACT1);
+    this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible, overworldGen);
     
     // Check if we're returning from another scene
     const savedPosition = gameState.getPlayerPosition();
