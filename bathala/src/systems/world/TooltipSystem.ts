@@ -10,32 +10,9 @@ import {
   BUNGISNGIS,
   KAPRE_SHADE,
   TAWONG_LIPOD,
-  MANGNANGAWAY
+  MANGNANGAWAY,
+  getEnemyOverworldSprite
 } from '../../data/enemies/Act1Enemies';
-import {
-  SIRENA_ILLUSIONIST,
-  SIYOKOY_RAIDER,
-  SANTELMO_FLICKER,
-  BERBEROKA_LURKER,
-  MAGINDARA_SWARM,
-  KATAW,
-  BERBALANG,
-  SUNKEN_BANGKILAN,
-  APOY_TUBIG_FURY,
-  BAKUNAWA
-} from '../../data/enemies/Act2Enemies';
-import {
-  TIGMAMANUKAN_WATCHER,
-  DIWATA_SENTINEL,
-  SARIMANOK_KEEPER,
-  BULALAKAW_FLAMEWINGS,
-  MINOKAWA_HARBINGER,
-  ALAN,
-  EKEK,
-  RIBUNG_LINTI_DUO,
-  APOLAKI_GODLING,
-  FALSE_BATHALA
-} from '../../data/enemies/Act3Enemies';
 import { 
   TIKBALANG_SCOUT_LORE,
   BALETE_WRAITH_LORE,
@@ -522,9 +499,8 @@ export class TooltipSystem {
       return null;
     }
 
-    // All enemies from all chapters
+    // Manually list all Act 1 enemies
     const allEnemies = [
-      // Act 1
       TIKBALANG_SCOUT,
       BALETE_WRAITH,
       SIGBIN_CHARGER,
@@ -534,226 +510,84 @@ export class TooltipSystem {
       BUNGISNGIS,
       KAPRE_SHADE,
       TAWONG_LIPOD,
-      MANGNANGAWAY,
-      // Act 2
-      SIRENA_ILLUSIONIST,
-      SIYOKOY_RAIDER,
-      SANTELMO_FLICKER,
-      BERBEROKA_LURKER,
-      MAGINDARA_SWARM,
-      KATAW,
-      BERBALANG,
-      SUNKEN_BANGKILAN,
-      APOY_TUBIG_FURY,
-      BAKUNAWA,
-      // Act 3
-      TIGMAMANUKAN_WATCHER,
-      DIWATA_SENTINEL,
-      SARIMANOK_KEEPER,
-      BULALAKAW_FLAMEWINGS,
-      MINOKAWA_HARBINGER,
-      ALAN,
-      EKEK,
-      RIBUNG_LINTI_DUO,
-      APOLAKI_GODLING,
-      FALSE_BATHALA
+      MANGNANGAWAY
     ];
     const enemy = allEnemies.find(e => e.name === enemyId);
 
     if (!enemy) return null;
 
     // Map enemy names to their detailed information from GDD
+    // Keys use computed property names so they auto-update when creature names change
     const enemyDetailsMap: { [key: string]: { abilities: string, origin: string, corruption: string } } = {
-      // Act 1 enemies
-      "Tikbalang Scout": {
+      [TIKBALANG_SCOUT.name]: {
         abilities: "Confuses Targeting • Applies Weak",
         origin: "Tagalog mountain trickster with backward hooves",
         corruption: "Once forest protectors, now twisted by engkanto lies to mislead travelers through false paths."
       },
-      "Balete Wraith": {
+      [BALETE_WRAITH.name]: {
         abilities: "Applies Vulnerable • Gains Strength When Hurt",
         origin: "Spirit guardian of sacred balete trees",
         corruption: "Haunting the ancient fig portals to anito realms, corrupted by engkanto deceit into hostile wraiths."
       },
-      "Sigbin Charger": {
+      [SIGBIN_CHARGER.name]: {
         abilities: "High Damage Burst • Strikes Every 3 Turns",
         origin: "Visayan goat-like creature stealing hearts",
         corruption: "Once loyal to Bathala, now charges with stolen heart power for the shadow throne."
       },
-      "Duwende Trickster": {
+      [DUWENDE_TRICKSTER.name]: {
         abilities: "Disrupts Card Draw • Steals Block",
         origin: "Magical goblin granting boons or curses",
         corruption: "Their fortunes twisted by engkanto whispers, now dealing only misfortune to travelers."
       },
-      "Tiyanak Ambusher": {
+      [TIYANAK_AMBUSHER.name]: {
         abilities: "First Strike Criticals • Applies Fear",
         origin: "Lost infant spirit mimicking baby cries",
         corruption: "Demon babies luring victims with wails in the corrupted forest depths."
       },
-      "Amomongo": {
+      [AMOMONGO.name]: {
         abilities: "Bleeding Claws • Fast Attacks",
         origin: "Visayan ape-like terror with long nails",
         corruption: "Cave-dwelling beast driven to fury, its nails rending those deemed unworthy."
       },
-      "Bungisngis": {
+      [BUNGISNGIS.name]: {
         abilities: "Laugh Debuff • Heavy Swings",
         origin: "One-eyed laughing giant of Tagalog/Cebuano lore",
         corruption: "Once jovial, now its laughter masks rage fueled by engkanto's twisted mirth."
       },
-      "Kapre Shade": {
+      [KAPRE_SHADE.name]: {
         abilities: "AoE Burn Damage • Summons Fire Minions",
         origin: "Tree giant smoking magical cigars",
         corruption: "Ancient guardian loyal to Bathala, corrupted into a burning shadow that veils wrath in cigar smoke."
       },
-      "Tawong Lipod": {
+      [TAWONG_LIPOD.name]: {
         abilities: "Invisibility • Stuns • Benefits from Air",
         origin: "Bikol invisible wind fairy",
         corruption: "Once harmonious wind beings, now concealed tormentors wielding storms against intruders."
       },
-      "Mangangaway": {
+      [MANGNANGAWAY.name]: {
         abilities: "Mimics Elements • Curses Cards • Hex of Reversal",
         origin: "Tagalog sorcerer with skull necklace",
         corruption: "Powerful witch casting evil hexes, commanding fates to reverse at their twisted will."
-      },
-      // Act 2 enemies
-      "Sirena Illusionist": {
-        abilities: "Heals • Stuns • Enchanting Magic",
-        origin: "Enchanting mermaids who use illusions and healing magic",
-        corruption: "Their songs once guided sailors safely; now they lure them to the depths."
-      },
-      "Siyokoy Raider": {
-        abilities: "Defends • Double Attack Pattern",
-        origin: "Aggressive male sea creatures, warriors of the deep",
-        corruption: "Guardians of submerged villages turned violent by the false god's whispers."
-      },
-      "Santelmo Flicker": {
-        abilities: "Fast Attacks • Flame Defense",
-        origin: "Fire spirits appearing as floating flames near water",
-        corruption: "Once guides for lost sailors, now leading them astray into darkness."
-      },
-      "Berberoka Lurker": {
-        abilities: "Weakens • Attack • Defense Pattern",
-        origin: "Water creature that swallows people whole",
-        corruption: "The river's hunger given form, consuming all who enter its domain."
-      },
-      "Magindara Swarm": {
-        abilities: "Swarm Attacks • Healing Songs",
-        origin: "Beautiful mermaids with enchanting voices",
-        corruption: "Their blessing songs twisted into drowning dirges."
-      },
-      "Kataw": {
-        abilities: "Heals • Strengthens • Guardian Pattern",
-        origin: "Half-human half-fish sea guardians",
-        corruption: "Ocean guardians defending corrupted waters against all intruders."
-      },
-      "Berbalang": {
-        abilities: "Weakens • Split Body Attack",
-        origin: "Vampire-like creature that can separate its body",
-        corruption: "Night hunters whose split forms stalk prey from multiple directions."
-      },
-      "Sunken Bangkilan": {
-        abilities: "Weakens • Heals • Strengthens • Heavy Attacks",
-        origin: "Cursed spirits from sunken villages",
-        corruption: "The vengeful dead of drowned settlements, seeking to add more to their numbers."
-      },
-      "Apoy-Tubig Fury": {
-        abilities: "Burns • Heals • Chaotic Elemental Attacks",
-        origin: "Elemental fusion of opposing fire and water forces",
-        corruption: "Elements that should never meet, raging with destructive chaos."
-      },
-      "Bakunawa": {
-        abilities: "Weakens • Strengthens • Poison • Moon Devourer",
-        origin: "Great serpent that devours the moon and causes eclipses",
-        corruption: "Promised eternal darkness by the false god in exchange for guarding the depths."
-      },
-      // Act 3 enemies
-      "Tigmamanukan Watcher": {
-        abilities: "Strengthens • Double Attack Pattern",
-        origin: "Celestial bird living at the world's edge",
-        corruption: "Watchers at creation's boundary, now casting down all who dare ascend."
-      },
-      "Diwata Sentinel": {
-        abilities: "Defensive Pattern • Nature Magic",
-        origin: "Divine nature spirits and guardians of sacred places",
-        corruption: "Sacred grove guardians corrupted to serve the false god's citadel."
-      },
-      "Sarimanok Keeper": {
-        abilities: "Weakens • Strengthens • Fortune Magic",
-        origin: "Legendary bird of good fortune",
-        corruption: "Blessings twisted into curses by the false god's corruption."
-      },
-      "Bulalakaw Flamewings": {
-        abilities: "Burns • Attack • Meteor Fire",
-        origin: "Meteor/shooting star spirits",
-        corruption: "Falling stars burning with celestial fire, reducing foes to ash."
-      },
-      "Minokawa Harbinger": {
-        abilities: "Eclipse • Moon Swallowing",
-        origin: "Giant bird that causes eclipses by swallowing the moon",
-        corruption: "Commanded by the false god to devour all light and hope."
-      },
-      "Alan": {
-        abilities: "Wing Attacks • Forest Magic",
-        origin: "Winged humanoid spirits from peaceful forests",
-        corruption: "Once peaceful forest dwellers, now striking down intruders from corrupted skies."
-      },
-      "Ekek": {
-        abilities: "Night Hunting • Blood Attacks",
-        origin: "Bird-like creature that hunts at night",
-        corruption: "Night hunters feeding the darkness with the blood of challengers."
-      },
-      "Ribung Linti Duo": {
-        abilities: "Lightning • Thunder • Synchronized Attacks",
-        origin: "Twin spirits of lightning and thunder",
-        corruption: "Storm twins whose synchronized strikes cannot be dodged."
-      },
-      "Apolaki Godling": {
-        abilities: "Sun Wrath • Divine Fire • War Magic",
-        origin: "Fragment of Apolaki, god of sun and war",
-        corruption: "Divine essence corrupted by the false Bathala, burning with twisted power."
-      },
-      "False Bathala": {
-        abilities: "Stuns • Weakens • Strengthens • Divine Attacks • Poison",
-        origin: "Impostor claiming the throne of the supreme deity",
-        corruption: "The usurper who took Bathala's throne, wielding stolen divine power."
       }
     };
 
     const details = enemyDetailsMap[enemy.name];
     const loreMap: { [key: string]: any } = {
-      "Tikbalang Scout": TIKBALANG_SCOUT_LORE,
-      "Balete Wraith": BALETE_WRAITH_LORE,
-      "Sigbin Charger": SIGBIN_CHARGER_LORE,
-      "Duwende Trickster": DUWENDE_TRICKSTER_LORE,
-      "Tiyanak Ambusher": TIYANAK_AMBUSHER_LORE,
-      "Amomongo": AMOMONGO_LORE,
-      "Bungisngis": BUNGISNGIS_LORE,
-      "Kapre Shade": KAPRE_SHADE_LORE,
-      "Tawong Lipod": TAWONG_LIPOD_LORE,
-      "Mangangaway": MANGNANGAWAY_LORE
+      [TIKBALANG_SCOUT.name]: TIKBALANG_SCOUT_LORE,
+      [BALETE_WRAITH.name]: BALETE_WRAITH_LORE,
+      [SIGBIN_CHARGER.name]: SIGBIN_CHARGER_LORE,
+      [DUWENDE_TRICKSTER.name]: DUWENDE_TRICKSTER_LORE,
+      [TIYANAK_AMBUSHER.name]: TIYANAK_AMBUSHER_LORE,
+      [AMOMONGO.name]: AMOMONGO_LORE,
+      [BUNGISNGIS.name]: BUNGISNGIS_LORE,
+      [KAPRE_SHADE.name]: KAPRE_SHADE_LORE,
+      [TAWONG_LIPOD.name]: TAWONG_LIPOD_LORE,
+      [MANGNANGAWAY.name]: MANGNANGAWAY_LORE
     };
     
     const lore = loreMap[enemy.name];
 
-    // Generate sprite key from enemy name
-    let spriteKeyBase = enemy.name.toLowerCase().split(" ")[0];
-    // Handle special cases for multi-word names
-    if (spriteKeyBase === "tawong") {
-        spriteKeyBase = "tawonglipod";
-    }
-    if (enemy.name.toLowerCase().includes("tawong")) {
-        spriteKeyBase = "tawonglipod";
-    }
-    if (enemy.name.toLowerCase().includes("apoy-tubig")) {
-        spriteKeyBase = "apoytubig";
-    }
-    if (enemy.name.toLowerCase().includes("ribung linti")) {
-        spriteKeyBase = "ribunglinti";
-    }
-    if (enemy.name.toLowerCase().includes("false bathala")) {
-        spriteKeyBase = "falsebathala";
-    }
-    const spriteKey = spriteKeyBase + "_overworld";
+    const spriteKey = getEnemyOverworldSprite(enemy.name);
 
     return {
       name: enemy.name,

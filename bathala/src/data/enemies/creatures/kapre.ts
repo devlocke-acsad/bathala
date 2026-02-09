@@ -43,7 +43,8 @@ export const KAPRE_SHADE: EnemyConfig = {
   activeAtDay: false,
   
   // === Visuals ===
-  spriteKey: 'chap1/kapre_shade',
+  combatSpriteKey: 'kapre_combat',
+  overworldSpriteKey: 'kapre_overworld',
   scale: 1.8,
   
   // === Dialogue ===

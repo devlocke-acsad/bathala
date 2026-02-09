@@ -42,7 +42,8 @@ export const TIYANAK_AMBUSHER: EnemyConfig = {
   activeAtDay: false,
   
   // === Visuals ===
-  spriteKey: 'chap1/tiyanak_ambusher',
+  combatSpriteKey: 'tiyanak_combat',
+  overworldSpriteKey: 'tiyanak_overworld',
   scale: 0.6,
   
   // === Dialogue ===

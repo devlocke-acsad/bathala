@@ -2,7 +2,7 @@ import { Scene } from 'phaser';
 import { TutorialPhase } from './TutorialPhase';
 import { showDialogue } from '../ui/Dialogue';
 import { TutorialUI } from '../ui/TutorialUI';
-import { TAWONG_LIPOD } from '../../../../data/enemies/Act1Enemies';
+import { TAWONG_LIPOD, getEnemyCombatSprite } from '../../../../data/enemies/Act1Enemies';
 import { createButton } from '../../../ui/Button';
 import { HandEvaluator } from '../../../../utils/HandEvaluator';
 import { PlayingCard } from '../../../../core/types/CombatTypes';
@@ -397,18 +397,6 @@ export class Phase11_FinalTrial extends TutorialPhase {
      * Get enemy sprite key (same as Phase4_CombatActions and Phase7_Items)
      */
     private getEnemySpriteKey(enemyName: string): string {
-        const lowerCaseName = enemyName.toLowerCase();
-        
-        if (lowerCaseName.includes("tikbalang")) return "tikbalang_combat";
-        if (lowerCaseName.includes("balete")) return "balete_combat";
-        if (lowerCaseName.includes("sigbin")) return "sigbin_combat";
-        if (lowerCaseName.includes("duwende")) return "duwende_combat";
-        if (lowerCaseName.includes("tiyanak")) return "tiyanak_combat";
-        if (lowerCaseName.includes("amomongo")) return "amomongo_combat";
-        if (lowerCaseName.includes("bungisngis")) return "bungisngis_combat";
-        if (lowerCaseName.includes("kapre")) return "kapre_combat";
-        if (lowerCaseName.includes("tawong")) return "tawong_lipod_combat";
-        
-        return "tikbalang_combat"; // fallback
+        return getEnemyCombatSprite(enemyName);
     }
 }

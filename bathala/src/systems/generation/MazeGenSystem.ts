@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 import { MazeOverworldGenerator } from '../../utils/MazeOverworldGenerator';
 import { MapNode } from '../../core/types/MapTypes';
+import { getEnemyOverworldSprite } from '../../data/enemies/Act1Enemies';
 
 /**
  * === DEPTH LAYER CONFIGURATION ===
@@ -646,26 +647,15 @@ export class MazeGenSystem {
       case "combat":
       case "elite":
         if (node.enemyId) {
-          let spriteKeyBase = node.enemyId.toLowerCase().split(" ")[0];
-          if (spriteKeyBase === "tawong") {
-            spriteKeyBase = "tawonglipod";
-          }
-          // Additional check in case the enemyId is stored differently
-          if (node.enemyId.toLowerCase().includes("tawong")) {
-            spriteKeyBase = "tawonglipod";
-          }
-          spriteKey = spriteKeyBase + "_overworld";
+          spriteKey = getEnemyOverworldSprite(node.enemyId);
         } else {
-          // Fallback to a generic sprite if no enemyId is present
           spriteKey = node.type === "elite" ? "big_demon_f0" : "chort_f0";
         }
         break;
       case "boss":
         if (node.enemyId) {
-          let spriteKeyBase = node.enemyId.toLowerCase().split(" ")[0];
-          spriteKey = spriteKeyBase + "_overworld";
+          spriteKey = getEnemyOverworldSprite(node.enemyId);
         } else {
-          // Fallback to a generic sprite if no enemyId is present
           spriteKey = "big_demon_f0";
         }
         break;

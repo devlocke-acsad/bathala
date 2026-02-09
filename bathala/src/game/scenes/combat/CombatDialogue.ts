@@ -1,6 +1,7 @@
 import { Combat } from "../Combat";
 import { CreatureDialogue } from "../../../core/types/CombatTypes";
 import { RELIC_REGISTRY } from "../../../data/relics/Act1Relics";
+import { getEnemyCombatSprite } from "../../../data/enemies/Act1Enemies";
 
 /**
  * CombatDialogue - Handles all dialogue display and management for combat
@@ -516,23 +517,6 @@ export class CombatDialogue {
    * Get enemy sprite key for dialogue display
    */
   public getEnemySpriteKey(enemyName: string): string {
-    const lowerCaseName = enemyName.toLowerCase();
-    
-    // Map enemy names to combat sprite keys
-    if (lowerCaseName.includes("tikbalang")) return "tikbalang_combat";
-    if (lowerCaseName.includes("balete")) return "balete_combat";
-    if (lowerCaseName.includes("sigbin")) return "sigbin_combat";
-    if (lowerCaseName.includes("duwende")) return "duwende_combat";
-    if (lowerCaseName.includes("tiyanak")) return "tiyanak_combat";
-    if (lowerCaseName.includes("amomongo")) return "amomongo_combat";
-    if (lowerCaseName.includes("bungisngis")) return "bungisngis_combat";
-    if (lowerCaseName.includes("kapre")) return "kapre_combat";
-    if (lowerCaseName.includes("tawong lipod") || lowerCaseName.includes("tawonglipod")) return "tawonglipod_combat";
-    if (lowerCaseName.includes("mangangaway")) return "mangangaway_combat";
-    
-    // Fallback for any other case - use available combat sprites
-    const spriteOptions = ["balete_combat", "sigbin_combat", "tikbalang_combat", "duwende_combat"];
-    const randomIndex = Math.floor(Math.random() * spriteOptions.length);
-    return spriteOptions[randomIndex];
+    return getEnemyCombatSprite(enemyName);
   }
 }

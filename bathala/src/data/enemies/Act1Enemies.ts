@@ -1,41 +1,57 @@
-import { Enemy } from "../../core/types/CombatTypes";
-
 /**
  * Act 1 Enemies - The Corrupted Ancestral Forests
- * Based on Filipino mythology creatures from the GDD
  * 
- * BALANCE UPDATE v2: Enemy stats scaled for new Balatro-inspired damage system
- * - Health multiplied by 8× for common enemies (was 5×, now 8×)
- * - Health multiplied by 6× for elites/boss (was 4×, now 6×)
- * - Damage multiplied by 3× to maintain challenge
- * - Elemental bonuses now only apply to Special attacks for better balance
+ * SINGLE SOURCE OF TRUTH for enemy names:
+ *   Enemy names are referenced from creature config files in
+ *   src/data/enemies/creatures/. To change an enemy's display name:
+ *     → Edit the creature file (e.g., creatures/amomongo.ts)
+ *     → The name automatically propagates everywhere in the game.
+ * 
+ * Runtime combat stats (HP, damage, patterns, elements, intents) are
+ * manually tuned here and are independent of creature base stats.
+ * 
+ * @module Act1Enemies
  */
+
+import { Enemy } from "../../core/types/CombatTypes";
+import {
+  TIKBALANG_SCOUT as TIKBALANG_CONFIG,
+  BALETE_WRAITH as BALETE_CONFIG,
+  SIGBIN_CHARGER as SIGBIN_CONFIG,
+  DUWENDE_TRICKSTER as DUWENDE_CONFIG,
+  TIYANAK_AMBUSHER as TIYANAK_CONFIG,
+  AMOMONGO as AMOMONGO_CONFIG,
+  BUNGISNGIS as BUNGISNGIS_CONFIG,
+  KAPRE_SHADE as KAPRE_CONFIG,
+  TAWONG_LIPOD as TAWONG_CONFIG,
+  MANGANGAWAY as MANGANGAWAY_CONFIG,
+} from "./creatures";
 
 // Common Enemies
 export const TIKBALANG_SCOUT: Omit<Enemy, "id"> = {
-  name: "Tikbalang Scout",
-  maxHealth: 180,        // Further reduced for better balance
+  name: TIKBALANG_CONFIG.name,
+  maxHealth: 180,
   currentHealth: 180,
   block: 0,
   statusEffects: [],
   intent: {
     type: "attack",
-    value: 21,           // Was 7, now 7 × 3 = 21
+    value: 21,
     description: "Attacks and weakens",
     icon: "†",
   },
   damage: 21,
-  attackPattern: ["attack", "weaken", "attack"], // Simplified: confusing = weakening
+  attackPattern: ["attack", "weaken", "attack"],
   currentPatternIndex: 0,
   elementalAffinity: {
-    weakness: "fire",      // Air creature: weak to Fire
-    resistance: "air",     // Air creature: resists Air
+    weakness: "fire",
+    resistance: "air",
   },
 };
 
 export const BALETE_WRAITH: Omit<Enemy, "id"> = {
-  name: "Balete Wraith",
-  maxHealth: 150,        // Further reduced for better balance
+  name: BALETE_CONFIG.name,
+  maxHealth: 150,
   currentHealth: 150,
   block: 0,
   statusEffects: [
@@ -50,7 +66,7 @@ export const BALETE_WRAITH: Omit<Enemy, "id"> = {
   ],
   intent: {
     type: "attack",
-    value: 15,           // Was 5, now 5 × 3 = 15
+    value: 15,
     description: "Gains Strength",
     icon: "†",
   },
@@ -58,14 +74,14 @@ export const BALETE_WRAITH: Omit<Enemy, "id"> = {
   attackPattern: ["attack", "strengthen", "attack"],
   currentPatternIndex: 0,
   elementalAffinity: {
-    weakness: "air",       // Earth creature (tree spirit): weak to Air
-    resistance: "water",   // Earth creature: resists Water
+    weakness: "air",
+    resistance: "water",
   },
 };
 
 export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
-  name: "Sigbin Charger",
-  maxHealth: 220,        // Further reduced for better balance
+  name: SIGBIN_CONFIG.name,
+  maxHealth: 220,
   currentHealth: 220,
   block: 0,
   statusEffects: [],
@@ -76,17 +92,17 @@ export const SIGBIN_CHARGER: Omit<Enemy, "id"> = {
     icon: "⛨",
   },
   damage: 30,
-  attackPattern: ["defend", "attack", "defend"], // Simplified: defensive then aggressive
+  attackPattern: ["defend", "attack", "defend"],
   currentPatternIndex: 0,
   elementalAffinity: {
-    weakness: "water",     // Fire creature (aggressive): weak to Water
-    resistance: "earth",   // Fire creature: resists Earth
+    weakness: "water",
+    resistance: "earth",
   },
 };
 
 export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
-  name: "Duwende Trickster",
-  maxHealth: 130,        // Further reduced for better balance
+  name: DUWENDE_CONFIG.name,
+  maxHealth: 130,
   currentHealth: 130,
   block: 0,
   statusEffects: [],
@@ -96,18 +112,18 @@ export const DUWENDE_TRICKSTER: Omit<Enemy, "id"> = {
     description: "Weakens repeatedly",
     icon: "⚠️",
   },
-  damage: 12,            // Was 4, now 4 × 3 = 12
-  attackPattern: ["weaken", "attack", "weaken"], // Simplified: tricky = weakens repeatedly
+  damage: 12,
+  attackPattern: ["weaken", "attack", "weaken"],
   currentPatternIndex: 0,
   elementalAffinity: {
-    weakness: "air",       // Earth creature (dwarf): weak to Air
-    resistance: "water",   // Earth creature: resists Water
+    weakness: "air",
+    resistance: "water",
   },
 };
 
 export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
-  name: "Tiyanak Ambusher",
-  maxHealth: 170,        // Further reduced for better balance
+  name: TIYANAK_CONFIG.name,
+  maxHealth: 170,
   currentHealth: 170,
   block: 0,
   statusEffects: [],
@@ -118,38 +134,38 @@ export const TIYANAK_AMBUSHER: Omit<Enemy, "id"> = {
     icon: "⚠️",
   },
   damage: 18,
-  attackPattern: ["weaken", "attack", "attack"], // Simplified: fear = weaken, then double attack
+  attackPattern: ["weaken", "attack", "attack"],
   currentPatternIndex: 0,
   elementalAffinity: {
-    weakness: "earth",     // Water creature (swamp spirit): weak to Earth
-    resistance: "fire",    // Water creature: resists Fire
+    weakness: "earth",
+    resistance: "fire",
   },
 };
 
 export const AMOMONGO: Omit<Enemy, "id"> = {
-  name: "Amomongo",
-  maxHealth: 160,        // Further reduced for better balance
+  name: AMOMONGO_CONFIG.name,
+  maxHealth: 160,
   currentHealth: 160,
   block: 0,
   statusEffects: [],
   intent: {
     type: "attack",
-    value: 15,           // Was 5, now 5 × 3 = 15
+    value: 15,
     description: "Fast attacks then defends",
     icon: "†",
   },
   damage: 15,
-  attackPattern: ["attack", "attack", "defend"], // Simplified: fast = attacks twice, then defends
+  attackPattern: ["attack", "attack", "defend"],
   currentPatternIndex: 0,
   elementalAffinity: {
-    weakness: "air",       // Earth creature (ape): weak to Air
-    resistance: "water",   // Earth creature: resists Water
+    weakness: "air",
+    resistance: "water",
   },
 };
 
 export const BUNGISNGIS: Omit<Enemy, "id"> = {
-  name: "Bungisngis",
-  maxHealth: 200,        // Further reduced for better balance
+  name: BUNGISNGIS_CONFIG.name,
+  maxHealth: 200,
   currentHealth: 200,
   block: 0,
   statusEffects: [],
@@ -159,19 +175,19 @@ export const BUNGISNGIS: Omit<Enemy, "id"> = {
     description: "Weakens, attacks, strengthens",
     icon: "⚠️",
   },
-  damage: 36,            // Was 12, now 12 × 3 = 36
-  attackPattern: ["weaken", "attack", "strengthen"], // Simplified: weakens you, attacks, gets stronger
+  damage: 36,
+  attackPattern: ["weaken", "attack", "strengthen"],
   currentPatternIndex: 0,
   elementalAffinity: {
-    weakness: "air",       // Earth creature (giant): weak to Air
-    resistance: "water",   // Earth creature: resists Water
+    weakness: "air",
+    resistance: "water",
   },
 };
 
 // Elite Enemies
 export const KAPRE_SHADE: Omit<Enemy, "id"> = {
-  name: "Kapre Shade",
-  maxHealth: 320,        // Elite enemy - further reduced for better balance
+  name: KAPRE_CONFIG.name,
+  maxHealth: 320,
   currentHealth: 320,
   block: 0,
   statusEffects: [],
@@ -182,17 +198,17 @@ export const KAPRE_SHADE: Omit<Enemy, "id"> = {
     icon: "☠️",
   },
   damage: 36,
-  attackPattern: ["poison", "strengthen", "attack"], // Simplified: burns (poison), gets stronger, attacks
+  attackPattern: ["poison", "strengthen", "attack"],
   currentPatternIndex: 0,
   elementalAffinity: {
-    weakness: "water",     // Fire creature (smoke/fire spirit): weak to Water
-    resistance: "earth",   // Fire creature: resists Earth
+    weakness: "water",
+    resistance: "earth",
   },
 };
 
 export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
-  name: "Tawong Lipod",
-  maxHealth: 300,        // Elite enemy - further reduced for better balance
+  name: TAWONG_CONFIG.name,
+  maxHealth: 300,
   currentHealth: 300,
   block: 0,
   statusEffects: [
@@ -212,18 +228,18 @@ export const TAWONG_LIPOD: Omit<Enemy, "id"> = {
     icon: "💫",
   },
   damage: 30,
-  attackPattern: ["stun", "attack", "defend"], // Simplified: stuns (frail), attacks, evades (defend)
+  attackPattern: ["stun", "attack", "defend"],
   currentPatternIndex: 0,
   elementalAffinity: {
-    weakness: "fire",      // Air creature (wind spirit): weak to Fire
-    resistance: "air",     // Air creature: resists Air
+    weakness: "fire",
+    resistance: "air",
   },
 };
 
 // Boss
 export const MANGNANGAWAY: Omit<Enemy, "id"> = {
-  name: "Mangangaway",
-  maxHealth: 600,        // Boss enemy - further reduced for better balance
+  name: MANGANGAWAY_CONFIG.name,
+  maxHealth: 600,
   currentHealth: 600,
   block: 0,
   statusEffects: [],
@@ -233,12 +249,12 @@ export const MANGNANGAWAY: Omit<Enemy, "id"> = {
     description: "Weakens, poisons, strengthens",
     icon: "⚠️",
   },
-  damage: 45,            // Was 15, now 15 × 3 = 45
-  attackPattern: ["weaken", "poison", "strengthen", "attack"], // Simplified: uses all debuffs/buffs, then attacks
+  damage: 45,
+  attackPattern: ["weaken", "poison", "strengthen", "attack"],
   currentPatternIndex: 0,
   elementalAffinity: {
-    weakness: "earth",     // Water creature (witch/sorcerer): weak to Earth
-    resistance: "fire",    // Water creature: resists Fire
+    weakness: "earth",
+    resistance: "fire",
   },
 };
 
@@ -284,15 +300,51 @@ export function getBossEnemy(): Omit<Enemy, "id"> {
  * Get a specific enemy by name
  */
 export function getEnemyByName(name: string): Omit<Enemy, "id"> | null {
-  // Create a map of all enemies for easy lookup
   const allEnemies = [
     ...ACT1_COMMON_ENEMIES,
     ...ACT1_ELITE_ENEMIES,
     ...ACT1_BOSS_ENEMIES,
   ];
   
-  // Find enemy by name (case-insensitive)
   const enemy = allEnemies.find(e => e.name.toLowerCase() === name.toLowerCase());
   
   return enemy ? { ...enemy } : null;
+}
+
+// ========================================================================
+// Sprite Key Mapping — auto-built from creature configs
+// ========================================================================
+// Each creature config defines its own combatSpriteKey and overworldSpriteKey.
+// This map is derived automatically so sprite keys are never duplicated.
+// To change an enemy's sprite: edit its creature file in creatures/*.ts.
+// ========================================================================
+
+const ALL_CONFIGS = [
+  TIKBALANG_CONFIG, BALETE_CONFIG, SIGBIN_CONFIG, DUWENDE_CONFIG,
+  TIYANAK_CONFIG, AMOMONGO_CONFIG, BUNGISNGIS_CONFIG,
+  KAPRE_CONFIG, TAWONG_CONFIG, MANGANGAWAY_CONFIG,
+];
+
+const ENEMY_SPRITE_MAP: Record<string, { overworld: string; combat: string }> =
+  Object.fromEntries(
+    ALL_CONFIGS.map(cfg => [
+      cfg.name,
+      { overworld: cfg.overworldSpriteKey, combat: cfg.combatSpriteKey },
+    ])
+  );
+
+/**
+ * Get combat sprite key for an enemy by display name.
+ * Decoupled from name parsing — works regardless of display name changes.
+ */
+export function getEnemyCombatSprite(name: string): string {
+  return ENEMY_SPRITE_MAP[name]?.combat ?? "tikbalang_combat";
+}
+
+/**
+ * Get overworld sprite key for an enemy by display name.
+ * Decoupled from name parsing — works regardless of display name changes.
+ */
+export function getEnemyOverworldSprite(name: string): string {
+  return ENEMY_SPRITE_MAP[name]?.overworld ?? "tikbalang_overworld";
 }

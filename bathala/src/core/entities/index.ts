@@ -1,27 +1,17 @@
 /**
- * Core Entities Module - Placeholder
- * Future home for NPC, Enemy, and Boss class implementations
+ * Core Entities Module
+ * Runtime entity classes with encapsulated behavior
  * 
- * @module entities
+ * @module core/entities
  * @description
- * This module will contain entity classes that use the types defined in EnemyTypes.ts.
- * The refactoring of NPC/Enemy logic into proper classes is planned for a future phase.
- * 
- * Planned exports (not yet implemented):
- * - NPC: Abstract base class for all NPCs
- * - Enemy: Extends NPC, implements combat behavior
- * - Boss: Extends Enemy, adds phase mechanics
+ * EnemyEntity: Bridges EnemyConfig (static data) → runtime combat enemy with behavior methods
+ * PlayerEntity: Wraps Player data with card management, damage, healing, status effect methods
  * 
  * @see EnemyTypes for configuration interfaces
- * @see Combat.ts for current enemy handling (to be refactored)
+ * @see CombatTypes for runtime data shapes
  */
 
-// Placeholder export to satisfy TypeScript module requirements
-// Classes will be added in the NPC refactoring phase
-
-// Future exports:
-// export { NPC } from './NPC';
-// export { Enemy } from './Enemy';
-// export { Boss } from './Boss';
-
-export {};
+export { EnemyEntity } from './EnemyEntity';
+export type { EnemyScalingOptions, DamageResult, ActionResult } from './EnemyEntity';
+export { PlayerEntity } from './PlayerEntity';
+export type { PlayerDamageResult } from './PlayerEntity';

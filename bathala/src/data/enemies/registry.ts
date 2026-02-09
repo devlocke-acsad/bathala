@@ -19,6 +19,8 @@
  */
 
 import { EnemyConfig, BossConfig, EnemyTier, isBossConfig } from '../../core/types/EnemyTypes';
+import { Enemy } from '../../core/types/CombatTypes';
+import { EnemyEntity, EnemyScalingOptions } from '../../core/entities/EnemyEntity';
 
 // Import all creatures
 import {
@@ -326,4 +328,39 @@ export function getRegistryStats(): {
     byTier,
     byChapter
   };
+}
+
+// =============================================================================
+// BRIDGE: EnemyConfig → Legacy Enemy Format
+// =============================================================================
+
+/**
+ * Convert an EnemyConfig to the legacy Omit<Enemy, 'id'> format.
+ * 
+ * This bridge applies tier-based HP/DMG scaling (common=8×HP/3×DMG, etc.)
+ * and produces the runtime Enemy shape expected by combat systems.
+ * 
+ * Use this when existing code expects `Omit<Enemy, 'id'>` but you want
+ * to source data from the creature config files (single source of truth).
+ * 
+ * @param config - The EnemyConfig from creatures/*.ts
+ * @param scaling - Optional DDA scaling overrides
+ * @returns A legacy enemy object without `id` (callers add their own)
+ * 
+ * @example
+ * ```typescript
+ * import { AMOMONGO } from './creatures';
+ * import { configToLegacyEnemy } from './registry';
+ * const enemy = configToLegacyEnemy(AMOMONGO);
+ * // enemy.name, enemy.maxHealth, enemy.damage, etc.
+ * ```
+ */
+export function configToLegacyEnemy(
+  config: EnemyConfig,
+  scaling?: EnemyScalingOptions
+): Omit<Enemy, 'id'> {
+  const entity = EnemyEntity.fromConfig(config, scaling);
+  const fullEnemy = entity.toEnemy();
+  const { id: _id, ...legacy } = fullEnemy;
+  return legacy;
 }

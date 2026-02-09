@@ -19,7 +19,7 @@ import { EnemyConfig } from '../../../core/types/EnemyTypes';
 export const AMOMONGO: EnemyConfig = {
   // === Identity ===
   id: 'amomongo',
-  name: 'Amomongo',
+  name: 'Among Us',
   tier: 'common',
   chapter: 1,
   
@@ -44,7 +44,8 @@ export const AMOMONGO: EnemyConfig = {
   speedMultiplier: 1.3,
   
   // === Visuals ===
-  spriteKey: 'chap1/amomongo',
+  combatSpriteKey: 'amomongo_combat',
+  overworldSpriteKey: 'amomongo_overworld',
   
   // === Dialogue ===
   dialogueIntro: "Nails rend unworthy!",
