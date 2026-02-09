@@ -11,30 +11,19 @@ import {
   HandType,
   StatusEffect,
   CombatEntity,
+  Chapter,
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
 import { DamageCalculator } from "../../utils/DamageCalculator";
 import { GameState } from "../../core/managers/GameState";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
-import {
-  getRandomCommonEnemy,
-  getRandomEliteEnemy,
-  getBossEnemy,
-  getEnemyByName,
-} from "../../data/enemies/Act1Enemies";
-import {
-  getRandomCommonEnemy as getAct2RandomCommonEnemy,
-  getRandomEliteEnemy as getAct2RandomEliteEnemy,
-  getBossEnemy as getAct2BossEnemy,
-  getEnemyByName as getAct2EnemyByName,
-} from "../../data/enemies/Act2Enemies";
-import {
-  getRandomCommonEnemy as getAct3RandomCommonEnemy,
-  getRandomEliteEnemy as getAct3RandomEliteEnemy,
-  getBossEnemy as getAct3BossEnemy,
-  getEnemyByName as getAct3EnemyByName,
-} from "../../data/enemies/Act3Enemies";
+// === Decoupled Systems ===
+import { EnemySelectionSystem } from "../../systems/combat/EnemySelectionSystem";
+import { ChapterProgressionSystem } from "../../systems/combat/ChapterProgressionSystem";
+import { TurnSystem } from "../../systems/combat/TurnSystem";
+import { CardSelectionSystem } from "../../systems/combat/CardSelectionSystem";
+import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
 import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 import { RelicManager } from "../../core/managers/RelicManager";
 import { RELIC_EFFECTS, hasRelicEffect } from "../../data/relics/Act1Relics";
@@ -48,10 +37,8 @@ import { CombatAnimations } from "./combat/CombatAnimations";
 import { CombatDDA } from "./combat/CombatDDA";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { DifficultyAdjustment } from "../../core/dda/DDATypes";
-import { act1CommonPotions as commonPotions } from "../../data/potions";
-import { MusicManager } from "../../core/managers/MusicManager";
+
 import { StatusEffectManager, StatusEffectTriggerResult } from "../../core/managers/StatusEffectManager";
-import { ElementalAffinitySystem } from "../../core/managers/ElementalAffinitySystem";
 import { VisualThemeManager } from "../../core/managers/VisualThemeManager";
 
 /**
@@ -79,6 +66,11 @@ import { VisualThemeManager } from "../../core/managers/VisualThemeManager";
  * @see DamageCalculator for damage/block calculations
  */
 export class Combat extends Scene {
+  // === Decoupled Systems ===
+  private turnSystem!: TurnSystem;
+  private cardSelectionSystem!: CardSelectionSystem;
+  private musicLifecycle!: MusicLifecycleSystem;
+
   public ui!: CombatUI;
   public dialogue!: CombatDialogue;
   public animations!: CombatAnimations;
@@ -146,7 +138,6 @@ export class Combat extends Scene {
   private relicInventory!: Phaser.GameObjects.Container;
   private currentRelicTooltip!: Phaser.GameObjects.Container | null;
   private pokerHandInfoButton!: Phaser.GameObjects.Container;
-  private music?: Phaser.Sound.BaseSound;
 
   constructor() {
     super({ key: "Combat" });
@@ -283,9 +274,13 @@ export class Combat extends Scene {
     // Initialize combat state
     this.initializeCombat(data.nodeType, data.enemyId);
     
-    // Start music for Combat scene
-    this.startMusic();
-    this.setupMusicLifecycle();
+    // === Start music via MusicLifecycleSystem (replaces boilerplate) ===
+    this.musicLifecycle = new MusicLifecycleSystem(this);
+    this.musicLifecycle.start();
+
+    // === Initialize Turn System ===
+    this.turnSystem = new TurnSystem();
+    this.cardSelectionSystem = new CardSelectionSystem(5);
 
     // Initialize managers
     this.enemyDialogueManager = new EnemyDialogueManager(this);
@@ -525,94 +520,29 @@ export class Combat extends Scene {
 
   /**
    * Get enemy based on node type and current chapter
+   * Delegates to EnemySelectionSystem for chapter-aware selection
    */
   private getEnemyForNodeType(nodeType: string): Omit<Enemy, "id"> {
-    // Get current chapter from GameState
     const gameState = GameState.getInstance();
     const currentChapter = gameState.getCurrentChapter();
-    
-    // Select enemy based on chapter and node type
-    switch (currentChapter) {
-      case 2:
-        // Act 2: The Submerged Barangays
-        switch (nodeType) {
-          case "elite":
-            return getAct2RandomEliteEnemy();
-          case "boss":
-            return getAct2BossEnemy();
-          case "common":
-          case "combat":
-          default:
-            return getAct2RandomCommonEnemy();
-        }
-      
-      case 3:
-        // Act 3: The Skyward Citadel
-        switch (nodeType) {
-          case "elite":
-            return getAct3RandomEliteEnemy();
-          case "boss":
-            return getAct3BossEnemy();
-          case "common":
-          case "combat":
-          default:
-            return getAct3RandomCommonEnemy();
-        }
-      
-      case 1:
-      default:
-        // Act 1: The Enchanted Forest (default)
-        switch (nodeType) {
-          case "elite":
-            return getRandomEliteEnemy();
-          case "boss":
-            return getBossEnemy();
-          case "common":
-          case "combat":
-          default:
-            return getRandomCommonEnemy();
-        }
-    }
+    return EnemySelectionSystem.getEnemyForNodeType(nodeType, currentChapter);
   }
 
   /**
    * Get specific enemy by ID (e.g., from overworld direct selection)
-   * Searches across all chapters
+   * Delegates to EnemySelectionSystem for cross-chapter search
    */
   private getSpecificEnemyById(enemyId: string): Omit<Enemy, "id"> {
-    // Try Act 1 first
-    let enemy = getEnemyByName(enemyId);
-    if (enemy) return enemy;
-    
-    // Try Act 2
-    enemy = getAct2EnemyByName(enemyId);
-    if (enemy) return enemy;
-    
-    // Try Act 3
-    enemy = getAct3EnemyByName(enemyId);
-    if (enemy) return enemy;
-    
-    // Not found in any chapter, fall back to current chapter's random common enemy
-    console.warn(`Enemy with id "${enemyId}" not found in any chapter, falling back to random common enemy`);
     const gameState = GameState.getInstance();
     const currentChapter = gameState.getCurrentChapter();
-    
-    switch (currentChapter) {
-      case 2:
-        return getAct2RandomCommonEnemy();
-      case 3:
-        return getAct3RandomCommonEnemy();
-      case 1:
-      default:
-        return getRandomCommonEnemy();
-    }
+    return EnemySelectionSystem.getEnemyByName(enemyId, currentChapter);
   }
 
   /**
    * Generate unique enemy ID
    */
   private generateEnemyId(enemyName: string): string {
-    return enemyName.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now();
+    return EnemySelectionSystem.generateEnemyId(enemyName);
   }
 
 
@@ -2536,27 +2466,27 @@ export class Combat extends Scene {
    * Detects boss defeats and unlocks the next chapter
    * Also resets all progress for the new chapter (fresh start)
    */
+  /**
+   * Handle chapter progression after boss defeat.
+   * Delegates to ChapterProgressionSystem for decoupled boss→chapter mapping.
+   */
   private handleChapterProgression(gameState: GameState): void {
     const currentChapter = gameState.getCurrentChapter();
     const defeatedEnemy = this.combatState.enemy.name;
     
     console.log(`Checking chapter progression: Current chapter ${currentChapter}, defeated ${defeatedEnemy}`);
     
-    // Check if a boss was defeated and unlock next chapter
-    if (defeatedEnemy === "Mangangaway" && currentChapter === 1) {
-      // Act 1 boss defeated - unlock Act 2
-      console.log("🎉 Act 1 boss defeated! Unlocking Chapter 2...");
-      this.performChapterTransitionReset(gameState, 2);
-      console.log("✅ Chapter 2 unlocked and set as current chapter");
-    } else if (defeatedEnemy === "Bakunawa" && currentChapter === 2) {
-      // Act 2 boss defeated - unlock Act 3
-      console.log("🎉 Act 2 boss defeated! Unlocking Chapter 3...");
-      this.performChapterTransitionReset(gameState, 3);
-      console.log("✅ Chapter 3 unlocked and set as current chapter");
-    } else if (defeatedEnemy === "False Bathala" && currentChapter === 3) {
-      // Act 3 boss defeated - game complete! Trigger epilogue
-      console.log("🎉 Act 3 boss defeated! Game complete! Triggering epilogue...");
+    const result = ChapterProgressionSystem.checkProgression(defeatedEnemy, currentChapter);
+    
+    if (!result.shouldTransition) return;
+    
+    if (result.isGameComplete) {
+      console.log("🎉 Final boss defeated! Game complete! Triggering epilogue...");
       this.triggerEpilogue();
+    } else if (result.nextChapter !== null) {
+      console.log(`🎉 Boss defeated! Unlocking Chapter ${result.nextChapter}...`);
+      this.performChapterTransitionReset(gameState, result.nextChapter);
+      console.log(`✅ Chapter ${result.nextChapter} unlocked and set as current chapter`);
     }
   }
 
@@ -2591,7 +2521,7 @@ export class Combat extends Scene {
     
     // 5. Apply visual theme for new chapter
     const themeManager = new VisualThemeManager(this);
-    themeManager.applyChapterTheme(newChapter);
+    themeManager.applyChapterTheme(newChapter as Chapter);
     
     console.log(`✅ All resets complete for Chapter ${newChapter}`);
   }
@@ -2640,10 +2570,9 @@ export class Combat extends Scene {
       const defeatedEnemy = this.combatState.enemy.name;
       
       // Check if this is a boss defeat that will trigger chapter progression
-      // If so, we need to handle things differently (fresh start for new chapter)
-      const isBossDefeatChapterTransition = 
-        (defeatedEnemy === "Mangangaway" && currentChapter === 1) ||
-        (defeatedEnemy === "Bakunawa" && currentChapter === 2);
+      // Uses ChapterProgressionSystem for decoupled boss→chapter mapping
+      const progression = ChapterProgressionSystem.checkProgression(defeatedEnemy, currentChapter);
+      const isBossDefeatChapterTransition = progression.shouldTransition && !progression.isGameComplete;
       
       if (isBossDefeatChapterTransition) {
         console.log("🎉 Boss defeated! Triggering chapter transition...");
@@ -2712,9 +2641,9 @@ export class Combat extends Scene {
       // Mark the current node as completed
       gameState.completeCurrentNode(true);
       
-      // Check for False Bathala defeat (epilogue trigger)
-      if (defeatedEnemy === "False Bathala" && currentChapter === 3) {
-        console.log("🎉 Act 3 boss defeated! Game complete! Triggering epilogue...");
+      // Check if this is the final boss (epilogue trigger)
+      if (progression.isGameComplete) {
+        console.log("🎉 Final boss defeated! Game complete! Triggering epilogue...");
         this.triggerEpilogue();
         return;
       }
@@ -4187,102 +4116,12 @@ export class Combat extends Scene {
   }
 
   /**
-   * Start music for Combat scene
-   * Uses MusicManager to get the correct music track and plays it using Phaser's sound API
-   */
-  private startMusic(): void {
-    try {
-      console.log(`🎵 ========== MUSIC START: Combat ==========`);
-      
-      // Stop any existing music first
-      if (this.music) {
-        console.log(`🎵 Combat: Stopping existing music before starting new track`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-
-      // Get music configuration from MusicManager
-      const musicManager = MusicManager.getInstance();
-      const musicConfig = musicManager.getMusicKeyForScene('Combat');
-      
-      if (!musicConfig) {
-        console.warn(`⚠️ Combat: No music configured for Combat scene`);
-        console.log(`🎵 ========== MUSIC START FAILED: Combat (no config) ==========`);
-        return;
-      }
-
-      console.log(`🎵 Combat: Music config found - Key: "${musicConfig.musicKey}", Volume: ${musicConfig.volume}`);
-
-      // Validate that the audio file exists in cache
-      if (!this.cache.audio.exists(musicConfig.musicKey)) {
-        console.error(`❌ Combat: Audio key '${musicConfig.musicKey}' not found in cache - skipping music playback`);
-        console.log(`🎵 ========== MUSIC START FAILED: Combat (not in cache) ==========`);
-        return;
-      }
-
-      // Create and play the music using Phaser's sound API
-      this.music = this.sound.add(musicConfig.musicKey, {
-        volume: musicConfig.volume ?? musicManager.getEffectiveMusicVolume(),
-        loop: true
-      });
-
-      this.music.play();
-      console.log(`✅ Combat: Music '${musicConfig.musicKey}' started successfully`);
-      console.log(`🎵 ========== MUSIC START SUCCESS: Combat ==========`);
-
-    } catch (error) {
-      console.error(`❌ Combat: Error starting music:`, error);
-      console.log(`🎵 ========== MUSIC START ERROR: Combat ==========`);
-      // Continue without music - game should still be playable
-    }
-  }
-
-  /**
-   * Setup music lifecycle listeners
-   * Automatically handles music on scene pause/resume/shutdown
-   */
-  private setupMusicLifecycle(): void {
-    // Stop music when scene is paused (e.g., when another scene is launched on top)
-    this.events.on('pause', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE PAUSE: Combat → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
-
-    // Restart music when scene is resumed (e.g., when launched scene stops and this scene becomes active again)
-    this.events.on('resume', () => {
-      console.log(`🎵 ========== SCENE RESUME: Combat → Restarting music ==========`);
-      this.startMusic();
-    });
-
-    // Stop music when scene is shut down (e.g., when scene.start() replaces it)
-    this.events.on('shutdown', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE SHUTDOWN: Combat → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
-  }
-
-  /**
    * Shutdown method - called when scene is stopped
    * Cleans up music and event listeners
    */
   shutdown(): void {
     try {
-      // Stop music when scene shuts down
-      if (this.music) {
-        console.log(`🎵 ========== MUSIC STOP: Combat (shutdown) ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
+      // Music cleanup is handled automatically by MusicLifecycleSystem's shutdown listener
 
       // Clean up resize listener
       this.scale.off('resize', this.handleResize, this);

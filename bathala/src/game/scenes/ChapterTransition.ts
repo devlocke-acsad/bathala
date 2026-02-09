@@ -1,8 +1,10 @@
 import { Scene } from "phaser";
+import { ActManager } from "../../core/managers/ActManager";
 
 /**
  * ChapterTransition Scene
- * Displays a cinematic chapter title screen when transitioning between chapters
+ * Displays a cinematic chapter title screen when transitioning between chapters.
+ * Uses ActManager for chapter-aware names, subtitles, and colors.
  */
 export class ChapterTransition extends Scene {
   private targetChapter: number = 1;
@@ -22,27 +24,21 @@ export class ChapterTransition extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
 
-    // Chapter names and subtitles
-    const chapterNames: Record<number, string> = {
-      1: "The Enchanted Forest",
-      2: "The Submerged Barangays",
-      3: "The Skyward Citadel"
-    };
+    // Get chapter configuration from ActManager
+    const actManager = ActManager.getInstance();
+    const actConfig = actManager.getActConfig(this.targetChapter);
 
-    const chapterSubtitles: Record<number, string> = {
-      1: "Where ancient spirits dwell",
-      2: "Depths of forgotten villages",
-      3: "Realm of the divine"
-    };
+    // Chapter name and subtitle from ActConfig (with fallbacks)
+    const chapterName = actConfig?.subtitle || `Act ${this.targetChapter}`;
+    const chapterSubtitleText = actConfig ? `Where ${actConfig.theme.primaryElements.join(' and ').toLowerCase()} converge` : "";
 
-    // Chapter-specific colors
-    const chapterColors: Record<number, { primary: string; secondary: string; bg: number }> = {
-      1: { primary: "#4ade80", secondary: "#166534", bg: 0x0d1f0d }, // Forest green
-      2: { primary: "#38bdf8", secondary: "#0369a1", bg: 0x0c1929 }, // Ocean blue
-      3: { primary: "#c084fc", secondary: "#7e22ce", bg: 0x1a0d29 }  // Sky purple
-    };
-
-    const colors = chapterColors[this.targetChapter] || chapterColors[1];
+    // Chapter-specific colors from ActConfig theme palette
+    const defaultColors = { primary: "#4ade80", secondary: "#166534", bg: 0x0d1f0d };
+    const colors = actConfig ? {
+      primary: `#${actConfig.theme.colorPalette.primary.toString(16).padStart(6, '0')}`,
+      secondary: `#${actConfig.theme.colorPalette.secondary.toString(16).padStart(6, '0')}`,
+      bg: actConfig.theme.colorPalette.secondary
+    } : defaultColors;
 
     // Set background color
     this.cameras.main.setBackgroundColor(colors.bg);
@@ -92,7 +88,7 @@ export class ChapterTransition extends Scene {
     const chapterTitle = this.add.text(
       screenWidth / 2,
       screenHeight / 2,
-      chapterNames[this.targetChapter] || `Act ${this.targetChapter}`,
+      chapterName,
       {
         fontFamily: "dungeon-mode",
         fontSize: "48px",
@@ -105,7 +101,7 @@ export class ChapterTransition extends Scene {
     const chapterSubtitle = this.add.text(
       screenWidth / 2,
       screenHeight / 2 + 60,
-      chapterSubtitles[this.targetChapter] || "",
+      chapterSubtitleText,
       {
         fontFamily: "dungeon-mode",
         fontSize: "18px",

@@ -3,7 +3,7 @@ import { GameState } from "../../core/managers/GameState";
 import { Player, PlayingCard } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { RelicManager } from "../../core/managers/RelicManager";
-import { MusicManager } from "../../core/managers/MusicManager";
+import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
 
 export class Campfire extends Scene {
   private player!: Player;
@@ -15,7 +15,7 @@ export class Campfire extends Scene {
   private actionText!: Phaser.GameObjects.Text;
   private cardSprites: Phaser.GameObjects.GameObject[] = [];
   private tooltipBox!: Phaser.GameObjects.Container;
-  private music?: Phaser.Sound.BaseSound;
+  private musicLifecycle!: MusicLifecycleSystem;
 
   // Pagination for deck view - improved UI with fewer cards per page
   private currentPage: number = 0;
@@ -36,9 +36,9 @@ export class Campfire extends Scene {
     if (!this.cameras.main) return;
     this.cameras.main.setBackgroundColor(0x0a0a0a);
 
-    // Start campfire music
-    this.startMusic();
-    this.setupMusicLifecycle();
+    // Start campfire music via MusicLifecycleSystem
+    this.musicLifecycle = new MusicLifecycleSystem(this);
+    this.musicLifecycle.start();
     
     // Add forest background image
     const forestBg = this.add.image(
@@ -2040,96 +2040,10 @@ export class Campfire extends Scene {
   }
 
   /**
-   * Start music for Campfire scene
-   */
-  private startMusic(): void {
-    try {
-      console.log(`🎵 ========== MUSIC START: Campfire ==========`);
-      
-      // Stop any existing music first
-      if (this.music) {
-        console.log(`🎵 Campfire: Stopping existing music before starting new track`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-
-      // Get music configuration from MusicManager
-      const musicManager = MusicManager.getInstance();
-      const musicConfig = musicManager.getMusicKeyForScene('Campfire');
-      
-      if (!musicConfig) {
-        console.warn(`⚠️ Campfire: No music configured for Campfire scene`);
-        console.log(`🎵 ========== MUSIC START FAILED: Campfire (no config) ==========`);
-        return;
-      }
-
-      console.log(`🎵 Campfire: Music config found - Key: "${musicConfig.musicKey}", Volume: ${musicConfig.volume}`);
-
-      // Validate that the audio file exists in cache
-      if (!this.cache.audio.exists(musicConfig.musicKey)) {
-        console.error(`❌ Campfire: Audio key '${musicConfig.musicKey}' not found in cache - skipping music playback`);
-        console.log(`🎵 ========== MUSIC START FAILED: Campfire (not in cache) ==========`);
-        return;
-      }
-
-      // Create and play the music using Phaser's sound API
-      this.music = this.sound.add(musicConfig.musicKey, {
-        volume: musicConfig.volume ?? musicManager.getEffectiveMusicVolume(),
-        loop: true
-      });
-
-      this.music.play();
-      console.log(`✅ Campfire: Music '${musicConfig.musicKey}' started successfully`);
-      console.log(`🎵 ========== MUSIC START SUCCESS: Campfire ==========`);
-
-    } catch (error) {
-      console.error(`❌ Campfire: Error starting music:`, error);
-      console.log(`🎵 ========== MUSIC START ERROR: Campfire ==========`);
-    }
-  }
-
-  /**
-   * Setup music lifecycle listeners
-   */
-  private setupMusicLifecycle(): void {
-    this.events.on('pause', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE PAUSE: Campfire → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
-
-    this.events.on('resume', () => {
-      console.log(`🎵 ========== SCENE RESUME: Campfire → Restarting music ==========`);
-      this.startMusic();
-    });
-
-    this.events.on('shutdown', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE SHUTDOWN: Campfire → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
-  }
-
-  /**
    * Shutdown method - called when scene is stopped
+   * Music cleanup is handled automatically by MusicLifecycleSystem
    */
   shutdown(): void {
-    try {
-      if (this.music) {
-        console.log(`🎵 ========== MUSIC STOP: Campfire (shutdown) ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    } catch (error) {
-      console.error(`❌ Campfire: Error in shutdown:`, error);
-    }
+    // Music cleanup handled by MusicLifecycleSystem
   }
 }
