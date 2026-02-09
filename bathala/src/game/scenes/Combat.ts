@@ -3085,7 +3085,23 @@ export class Combat extends Scene {
       case "defend":
         block = evaluation.totalValue;
         
-        // STEP 4: Apply Balete Root (after base calculation)
+        // STEP 4: Apply Defend-specific relic bonuses
+        // Apply "Umalagad's Spirit", "Diwata's Crown", and "Duwende Charm" Defend bonuses
+        const defendBlockBonus = RelicManager.calculateDefendBlockBonus(this.combatState.player);
+        if (defendBlockBonus > 0) {
+          block += defendBlockBonus;
+          // Add individual relic bonuses to the display
+          if (this.combatState.player.relics.find(r => r.id === "umalagad_spirit")) {
+            relicBonuses.push({name: "Umalagad's Spirit", amount: 4});
+          }
+          if (this.combatState.player.relics.find(r => r.id === "diwatas_crown")) {
+            relicBonuses.push({name: "Diwata's Crown", amount: 3});
+          }
+          if (this.combatState.player.relics.find(r => r.id === "duwende_charm")) {
+            relicBonuses.push({name: "Duwende Charm", amount: 3});
+          }
+        }
+        
         // Apply "Balete Root" effect: +2 block per Lupa card
         // This is added as a flat bonus AFTER the main calculation
         const baleteRootBonus = RelicManager.calculateBaleteRootBlock(this.combatState.player, this.combatState.player.playedHand);

@@ -10,7 +10,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
 
 ### Phase 1: Verification and Testing (Tasks 1-5)
 
-- [-] 1. Audit RelicManager.ts implementation
+- [x] 1. Audit RelicManager.ts implementation
   - Review all 20 Act 1 relic implementations in RelicManager.ts
   - Verify each relic has correct trigger point in RELIC_EFFECTS
   - Verify each relic has implementation in appropriate apply method
@@ -18,7 +18,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Document any missing or incomplete implementations
   - _Requirements: 2.1-2.20_
 
-- [~] 2. Verify Combat.ts integration points
+- [x] 2. Verify Combat.ts integration points
   - Check if startCombat() calls RelicManager.applyStartOfCombatEffects()
   - Check if startPlayerTurn() calls RelicManager.applyStartOfTurnEffects()
   - Check if afterHandPlayed() calls RelicManager.applyAfterHandPlayedEffects()
@@ -29,7 +29,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Document any missing integration points
   - _Requirements: 5.1-5.5_
 
-- [~] 3. Create unit tests for all relics
+- [x] 3. Create unit tests for all relics
   - Create test file: `bathala/src/core/managers/RelicManager.test.ts`
   - Write tests for START_OF_COMBAT relics (Earthwarden's Plate, Swift Wind Agimat, Diwata's Crown, Stone Golem Heart)
   - Write tests for START_OF_TURN relics (Ember Fetish, Earthwarden's Plate, Tiyanak Tear)
@@ -41,7 +41,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Run tests and verify all pass
   - _Requirements: 9.1-9.5_
 
-- [~] 4. Create integration tests for combat scenarios
+- [x] 4. Create integration tests for combat scenarios
   - Create test file: `bathala/src/game/scenes/Combat.relic.test.ts`
   - Test start-of-combat relic triggers in actual combat
   - Test start-of-turn relic triggers across multiple turns
@@ -52,7 +52,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Run tests and verify all pass
   - _Requirements: 9.1-9.5_
 
-- [~] 5. Document test results and gaps
+- [x] 5. Document test results and gaps
   - Create document: `bathala/RELIC_SYSTEM_TEST_RESULTS.md`
   - List all relics with test status (✅ Pass, ⚠️ Partial, ❌ Fail)
   - Document any bugs or issues found
@@ -62,7 +62,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
 
 ### Phase 2: Combat Integration (Tasks 6-10)
 
-- [~] 6. Add missing Combat.ts integration points
+- [x] 6. Add missing Combat.ts integration points
   - In startCombat(): Add RelicManager.registerRelicModifiers(this.player)
   - In startCombat(): Add RelicManager.applyStartOfCombatEffects(this.player)
   - In startPlayerTurn(): Add RelicManager.applyStartOfTurnEffects(this.player) after status effects
