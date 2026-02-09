@@ -1,7 +1,7 @@
 import { Scene } from 'phaser';
-import { MazeOverworldGenerator } from '../../utils/MazeOverworldGenerator';
 import { MapNode } from '../../core/types/MapTypes';
 import { getEnemyOverworldSprite } from '../../data/enemies/Act1Enemies';
+import { OverworldGenerator } from './OverworldGenerator';
 
 /**
  * === DEPTH LAYER CONFIGURATION ===
@@ -29,6 +29,7 @@ const DEPTH = {
 export class MazeGenSystem {
   private scene: Scene;
   private gridSize: number;
+  private overworldGen: OverworldGenerator;
   
   // Chunk and node tracking
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.GameObject }> = new Map();
@@ -54,15 +55,24 @@ export class MazeGenSystem {
   }> = new Map();
 
   /**
-   * Constructor
    * @param scene - The Overworld scene instance
    * @param gridSize - The size of each grid cell in pixels (default: 32)
    * @param devMode - Whether to show debug features like outer tile markers
+   * @param overworldGen - The act-aware overworld generator
    */
-  constructor(scene: Scene, gridSize: number = 32, devMode: boolean = false) {
+  constructor(scene: Scene, gridSize: number = 32, devMode: boolean = false, overworldGen?: OverworldGenerator) {
     this.scene = scene;
     this.gridSize = gridSize;
     this.devMode = devMode;
+    
+    // Use provided generator or create a default Act1 generator for backward compat
+    if (overworldGen) {
+      this.overworldGen = overworldGen;
+    } else {
+      // Lazy import to avoid circular deps — only used as fallback
+      const { ACT1 } = require('../../acts/act1/Act1Definition');
+      this.overworldGen = new OverworldGenerator(ACT1);
+    }
     
     console.log('🗺️ MazeGenSystem initialized with gridSize:', gridSize, 'devMode:', devMode);
   }
@@ -75,7 +85,7 @@ export class MazeGenSystem {
     console.log('🗺️ Initializing new game - clearing maze cache');
     
     // Reset the maze generator cache for a new game
-    MazeOverworldGenerator.clearCache();
+    this.overworldGen.clearCache();
     
     // Clear any existing data
     this.visibleChunks.clear();
@@ -96,11 +106,11 @@ export class MazeGenSystem {
     console.log('🗺️ Calculating player start position');
     
     // Get the initial chunk to ensure player starts in a valid position
-    const initialChunk = MazeOverworldGenerator.getChunk(0, 0, this.gridSize);
+    const initialChunk = this.overworldGen.getChunk(0, 0, this.gridSize);
     
     // Find a valid starting position in the center of the initial chunk
-    const chunkCenterX = Math.floor(MazeOverworldGenerator['chunkSize'] / 2);
-    const chunkCenterY = Math.floor(MazeOverworldGenerator['chunkSize'] / 2);
+    const chunkCenterX = Math.floor(this.overworldGen.chunkSize / 2);
+    const chunkCenterY = Math.floor(this.overworldGen.chunkSize / 2);
     
     // Ensure the center position is a path
     let startX = chunkCenterX * this.gridSize + this.gridSize / 2;
@@ -142,7 +152,7 @@ export class MazeGenSystem {
    */
   isValidPosition(x: number, y: number): boolean {
     // Convert world coordinates to chunk and grid coordinates
-    const chunkSize = MazeOverworldGenerator['chunkSize'];
+    const chunkSize = this.overworldGen.chunkSize;
     const chunkSizePixels = chunkSize * this.gridSize;
     
     const chunkX = Math.floor(x / chunkSizePixels);
@@ -153,7 +163,7 @@ export class MazeGenSystem {
     const gridY = Math.floor(localY / this.gridSize);
     
     // Get the chunk
-    const chunk = MazeOverworldGenerator.getChunk(chunkX, chunkY, this.gridSize);
+    const chunk = this.overworldGen.getChunk(chunkX, chunkY, this.gridSize);
     
     // Check bounds
     if (gridX < 0 || gridX >= chunk.maze[0].length || gridY < 0 || gridY >= chunk.maze.length) {
@@ -356,7 +366,7 @@ export class MazeGenSystem {
    */
   updateVisibleChunks(camera: Phaser.Cameras.Scene2D.Camera): void {
     // Determine which chunks are visible based on camera position
-    const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
+    const chunkSizePixels = this.overworldGen.chunkSize * this.gridSize;
     
     const startX = Math.floor((camera.scrollX - chunkSizePixels) / chunkSizePixels);
     const endX = Math.ceil((camera.scrollX + camera.width + chunkSizePixels) / chunkSizePixels);
@@ -371,7 +381,7 @@ export class MazeGenSystem {
         chunk.graphics.destroy();
         
         // Clean up node sprites from this chunk
-        const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
+        const chunkSizePixels = this.overworldGen.chunkSize * this.gridSize;
         const chunkStartX = chunkX * chunkSizePixels;
         const chunkEndX = (chunkX + 1) * chunkSizePixels;
         const chunkStartY = chunkY * chunkSizePixels;
@@ -407,7 +417,7 @@ export class MazeGenSystem {
       for (let y = startY; y <= endY; y++) {
         const key = `${x},${y}`;
         if (!this.visibleChunks.has(key)) {
-          const chunk = MazeOverworldGenerator.getChunk(x, y, this.gridSize);
+          const chunk = this.overworldGen.getChunk(x, y, this.gridSize);
           const graphics = this.renderChunk(x, y, chunk.maze);
           this.visibleChunks.set(key, { maze: chunk.maze, graphics });
           
@@ -450,7 +460,7 @@ export class MazeGenSystem {
   private renderChunk(chunkX: number, chunkY: number, maze: number[][]): Phaser.GameObjects.GameObject {
     // Create a container with tile sprites for better performance
     const container = this.scene.add.container(0, 0);
-    const chunkSize = MazeOverworldGenerator['chunkSize'];
+    const chunkSize = this.overworldGen.chunkSize;
     const chunkSizePixels = chunkSize * this.gridSize;
     const offsetX = chunkX * chunkSizePixels;
     const offsetY = chunkY * chunkSizePixels;
@@ -542,7 +552,7 @@ export class MazeGenSystem {
       // Find nodes associated with this chunk
       const chunkNodes = this.nodes.filter(node => {
         // Extract chunk coordinates from node position
-        const chunkSizePixels = MazeOverworldGenerator['chunkSize'] * this.gridSize;
+        const chunkSizePixels = this.overworldGen.chunkSize * this.gridSize;
         const nodeChunkX = Math.floor((node.x + this.gridSize / 2) / chunkSizePixels);
         const nodeChunkY = Math.floor((node.y + this.gridSize / 2) / chunkSizePixels);
         const [chunkX, chunkY] = key.split(',').map(Number);
@@ -791,7 +801,7 @@ export class MazeGenSystem {
    * @returns The size of a chunk in pixels
    */
   getChunkSizePixels(): number {
-    return MazeOverworldGenerator['chunkSize'] * this.gridSize;
+    return this.overworldGen.chunkSize * this.gridSize;
   }
 
   /**
