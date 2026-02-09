@@ -2,7 +2,7 @@ import { Scene, GameObjects } from "phaser";
 import { GameState } from "../../core/managers/GameState";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
-import { MusicManager } from "../../core/managers/MusicManager";
+import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
 
 export class MainMenu extends Scene {
   background: GameObjects.Image;
@@ -11,7 +11,7 @@ export class MainMenu extends Scene {
   menuTexts: GameObjects.Text[] = [];
   versionText: GameObjects.Text;
   footerText: GameObjects.Text;
-  private music?: Phaser.Sound.BaseSound;
+  private musicLifecycle!: MusicLifecycleSystem;
 
   constructor() {
     super("MainMenu");
@@ -21,9 +21,9 @@ export class MainMenu extends Scene {
     // Set camera background color to custom background color ONLY
     this.cameras.main.setBackgroundColor(0x150E10); // Updated background color (#150E10)
 
-    // Start main menu music
-    this.startMusic();
-    this.setupMusicLifecycle();
+    // Start main menu music via MusicLifecycleSystem
+    this.musicLifecycle = new MusicLifecycleSystem(this);
+    this.musicLifecycle.start();
 
     // Create background effects
     this.createBackgroundEffects();
@@ -350,88 +350,10 @@ export class MainMenu extends Scene {
   }
 
   /**
-   * Start music for this scene
-   */
-  private startMusic(): void {
-    try {
-      // Stop any existing music first
-      if (this.music) {
-        console.log(`MainMenu: Stopping existing music before starting new track`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-      
-      const manager = MusicManager.getInstance();
-      const musicConfig = manager.getMusicKeyForScene(this.scene.key);
-      
-      if (!musicConfig) {
-        console.warn(`MainMenu: No music configured for scene "${this.scene.key}"`);
-        return;
-      }
-
-      // Check if audio key exists in cache
-      if (!this.cache.audio.exists(musicConfig.musicKey)) {
-        console.warn(`MainMenu: Audio key "${musicConfig.musicKey}" not found in cache. Skipping music.`);
-        return;
-      }
-      
-      this.music = this.sound.add(musicConfig.musicKey, {
-        volume: manager.getEffectiveMusicVolume(),
-        loop: true
-      });
-      
-      this.music.play();
-      console.log(`✅ MainMenu: Started music "${musicConfig.musicKey}"`);
-    } catch (error) {
-      console.error(`MainMenu: Failed to start music:`, error);
-      // Game continues without music
-    }
-  }
-
-  /**
-   * Setup music lifecycle listeners
-   */
-  private setupMusicLifecycle(): void {
-    this.events.on('pause', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE PAUSE: MainMenu → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
-
-    this.events.on('resume', () => {
-      console.log(`🎵 ========== SCENE RESUME: MainMenu → Restarting music ==========`);
-      this.startMusic();
-    });
-
-    this.events.on('shutdown', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE SHUTDOWN: MainMenu → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
-  }
-
-  /**
-   * Stop music when leaving the scene
+   * Shutdown cleanup
+   * Music cleanup is handled automatically by MusicLifecycleSystem
    */
   shutdown(): void {
-    try {
-      if (this.music) {
-        console.log(`🎵 ========== MUSIC STOP: MainMenu (shutdown) ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    } catch (error) {
-      console.error(`❌ MainMenu: Error in shutdown:`, error);
-    }
-    
     // Clean up resize listener
     this.scale.off('resize', this.handleResize, this);
   }

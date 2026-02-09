@@ -3,9 +3,9 @@ import { Scene } from 'phaser';
 import { GameState } from '../../core/managers/GameState';
 import { Player } from '../../core/types/CombatTypes';
 import { GameEvent, EventChoice, EventContext, EducationalEvent } from '../../data/events/EventTypes';
-import { CombinedAct1Events } from '../../data/events';
+import { EventSelectionSystem } from '../../systems/world/EventSelectionSystem';
 import { OverworldGameState } from '../../core/managers/OverworldGameState';
-import { MusicManager } from '../../core/managers/MusicManager';
+import { MusicLifecycleSystem } from '../../systems/shared/MusicLifecycleSystem';
 import { EducationalEventManager } from '../../core/managers/EducationalEventManager';
 
 export class EventScene extends Scene {
@@ -21,7 +21,7 @@ export class EventScene extends Scene {
   private typingTimer?: Phaser.Time.TimerEvent;
   private illustration!: Phaser.GameObjects.Graphics;
   private continueIndicator!: Phaser.GameObjects.Text;
-  private music?: Phaser.Sound.BaseSound;
+  private musicLifecycle!: MusicLifecycleSystem;
 
 
   constructor() {
@@ -34,17 +34,16 @@ export class EventScene extends Scene {
         // Use injected event (Debug/Specific)
         this.currentEvent = data.event;
     } else {
-        // Fallback to random Act 1 event (Normal Gameplay loop if not specified)
-        const availableEvents = CombinedAct1Events;
-        this.currentEvent = availableEvents[Math.floor(Math.random() * availableEvents.length)];
+        // Use chapter-aware event selection
+        this.currentEvent = EventSelectionSystem.getRandomEvent();
     }
   }
 
   create() {
     console.log("🎵 ========== EventScene create() START ==========");
     
-    this.startMusic();
-    this.setupMusicLifecycle();
+    this.musicLifecycle = new MusicLifecycleSystem(this);
+    this.musicLifecycle.start();
 
     this.createBackground();
     this.createEventDisplay();
@@ -59,66 +58,6 @@ export class EventScene extends Scene {
     this.eventBackground = this.add.graphics();
     this.eventBackground.fillStyle(0x000000, 0.7);  // Match combat overlay opacity
     this.eventBackground.fillRect(0, 0, width, height);
-  }
-
-  /**
-   * Start the scene's music track
-   */
-  private startMusic(): void {
-    const musicManager = MusicManager.getInstance();
-    const musicConfig = musicManager.getMusicKeyForScene(this.scene.key);
-    
-    if (!musicConfig) {
-      console.warn(`🎵 EventScene: No music configured for scene "${this.scene.key}"`);
-      return;
-    }
-
-    const effectiveVolume = musicManager.getEffectiveMusicVolume();
-    const configVolume = musicConfig.volume;
-    const finalVolume = effectiveVolume * configVolume;
-
-    console.log(`🎵 EventScene: Starting music "${musicConfig.musicKey}" at volume ${finalVolume.toFixed(2)}`);
-
-    this.music = this.sound.add(musicConfig.musicKey, {
-      volume: finalVolume,
-      loop: true
-    });
-
-    this.music.play();
-  }
-
-  /**
-   * Setup automatic music lifecycle management
-   * - Stops music when scene is paused (scene.launch)
-   * - Restarts music when scene is resumed
-   * - Stops music when scene is shut down (scene.start/stop)
-   */
-  private setupMusicLifecycle(): void {
-    // Stop music when scene is paused (scene.launch from another scene)
-    this.events.on('pause', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE PAUSE: EventScene → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
-
-    // Restart music when scene is resumed (return from launched scene)
-    this.events.on('resume', () => {
-      console.log(`🎵 ========== SCENE RESUME: EventScene → Restarting music ==========`);
-      this.startMusic();
-    });
-
-    // Stop music when scene is shut down (scene.start or scene.stop)
-    this.events.on('shutdown', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE SHUTDOWN: EventScene → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
   }
 
   private createEventDisplay(): void {
@@ -527,17 +466,10 @@ export class EventScene extends Scene {
   }
 
   /**
-   * Shutdown cleanup - safety net to ensure music is stopped
-   * (Already handled by shutdown event listener, but included as backup)
+   * Shutdown cleanup
+   * Music cleanup is handled automatically by MusicLifecycleSystem
    */
   shutdown(): void {
-    console.log("🎵 EventScene: shutdown() method called");
-    
-    if (this.music) {
-      console.log("🎵 EventScene: Stopping music in shutdown()");
-      this.music.stop();
-      this.music.destroy();
-      this.music = undefined;
-    }
+    // Music cleanup handled by MusicLifecycleSystem
   }
 }

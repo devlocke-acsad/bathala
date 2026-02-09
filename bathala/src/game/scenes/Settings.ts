@@ -1,5 +1,6 @@
 import { Scene, GameObjects } from "phaser";
 import { MusicManager } from "../../core/managers/MusicManager";
+import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
 
 export class Settings extends Scene {
   background: GameObjects.Image;
@@ -10,7 +11,7 @@ export class Settings extends Scene {
   scanlines: GameObjects.TileSprite;
   scanlineTimer: number = 0;
   backButton: GameObjects.Text;
-  private music?: Phaser.Sound.BaseSound;
+  private musicLifecycle!: MusicLifecycleSystem;
 
   constructor() {
     super("Settings");
@@ -20,9 +21,9 @@ export class Settings extends Scene {
     // Set camera background color to custom background color ONLY
     this.cameras.main.setBackgroundColor(0x150E10); // Updated background color (#150E10)
 
-    // Start settings music
-    this.startMusic();
-    this.setupMusicLifecycle();
+    // Start settings music via MusicLifecycleSystem
+    this.musicLifecycle = new MusicLifecycleSystem(this);
+    this.musicLifecycle.start();
 
     // Create background effects
     this.createBackgroundEffects();
@@ -137,13 +138,7 @@ export class Settings extends Scene {
               this.showControls();
               break;
             case "Back to Main Menu":
-              // Stop music BEFORE transitioning
-              if (this.music) {
-                console.log(`Settings: Stopping music before transition to MainMenu`);
-                this.music.stop();
-                this.music.destroy();
-                this.music = undefined;
-              }
+              // Music cleanup handled by MusicLifecycleSystem on scene shutdown
               this.scene.start("MainMenu");
               break;
           }
@@ -621,87 +616,10 @@ export class Settings extends Scene {
   }
 
   /**
-   * Start music for this scene
-   */
-  private startMusic(): void {
-    try {
-      // Stop any existing music first
-      if (this.music) {
-        console.log(`Settings: Stopping existing music before starting new track`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-      
-      const manager = MusicManager.getInstance();
-      const musicConfig = manager.getMusicKeyForScene(this.scene.key);
-      
-      if (!musicConfig) {
-        console.warn(`Settings: No music configured for scene "${this.scene.key}"`);
-        return;
-      }
-
-      if (!this.cache.audio.exists(musicConfig.musicKey)) {
-        console.warn(`Settings: Audio key "${musicConfig.musicKey}" not found in cache. Skipping music.`);
-        return;
-      }
-      
-      this.music = this.sound.add(musicConfig.musicKey, {
-        volume: manager.getEffectiveMusicVolume(),
-        loop: true
-      });
-      
-      this.music.play();
-      console.log(`✅ Settings: Started music "${musicConfig.musicKey}"`);
-    } catch (error) {
-      console.error(`Settings: Failed to start music:`, error);
-      // Game continues without music
-    }
-  }
-
-  /**
-   * Setup music lifecycle listeners
-   */
-  private setupMusicLifecycle(): void {
-    this.events.on('pause', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE PAUSE: Settings → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
-
-    this.events.on('resume', () => {
-      console.log(`🎵 ========== SCENE RESUME: Settings → Restarting music ==========`);
-      this.startMusic();
-    });
-
-    this.events.on('shutdown', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE SHUTDOWN: Settings → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
-  }
-
-  /**
-   * Stop music when leaving the scene
+   * Shutdown cleanup
+   * Music cleanup is handled automatically by MusicLifecycleSystem
    */
   shutdown(): void {
-    try {
-      if (this.music) {
-        console.log(`🎵 ========== MUSIC STOP: Settings (shutdown) ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    } catch (error) {
-      console.error(`❌ Settings: Error in shutdown:`, error);
-    }
-    
     // Clean up resize listener
     this.scale.off('resize', this.handleResize, this);
   }
