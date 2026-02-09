@@ -103,7 +103,7 @@ export class Phase4_CombatActions extends TutorialPhase {
 
     private showThreeActions() {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 4, 8);
+        const progress = createProgressIndicator(this.scene, 4, 9);
         this.container.add(progress);
 
         // Phase header
@@ -351,10 +351,8 @@ export class Phase4_CombatActions extends TutorialPhase {
             
             // Draw cards - normal draw for all actions
             this.tutorialUI.drawHand(8);
-            console.log('[Phase4] Drew 8 cards, total cards:', this.tutorialUI.handContainer.length);
             
             this.tutorialUI.updateHandDisplay();
-            console.log('[Phase4] Updated hand display, sprites:', this.tutorialUI.cardSprites.length);
 
             // Card selection listener
             const selectCardHandler = (card: PlayingCard) => {

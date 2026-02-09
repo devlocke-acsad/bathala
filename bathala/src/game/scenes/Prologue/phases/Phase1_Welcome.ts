@@ -21,7 +21,7 @@ export class Phase1_Welcome extends TutorialPhase {
         });
         
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 1, 8);
+        const progress = createProgressIndicator(this.scene, 1, 9);
         progress.setAlpha(0);
         this.container.add(progress);
 

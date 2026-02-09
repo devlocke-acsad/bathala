@@ -159,7 +159,7 @@ export class Phase9_MoralChoice extends TutorialPhase {
         this.tutorialUI.cardSprites = [];
         
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 7, 8);
+        const progress = createProgressIndicator(this.scene, 8, 9);
         this.container.add(progress);
 
         // Phase header
@@ -214,7 +214,7 @@ export class Phase9_MoralChoice extends TutorialPhase {
 
     private presentChoice(): void {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 7, 8);
+        const progress = createProgressIndicator(this.scene, 8, 9);
         this.container.add(progress);
 
         const header = createPhaseHeader(
