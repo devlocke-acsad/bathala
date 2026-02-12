@@ -46,6 +46,10 @@ export class Phase6_StatusEffects extends TutorialPhase {
      * @public
      */
     public start(): void {
+        // Ensure StatusEffectManager is initialized (it's normally initialized in Combat scene,
+        // but Phase6 runs in Prologue scene and needs access to status effect definitions)
+        StatusEffectManager.initialize();
+        
         // Reset internal state for re-entry (when jumping back to this phase)
         this.currentSection = 0;
         this.selectedCards = [];
