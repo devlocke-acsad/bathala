@@ -15,7 +15,7 @@ export const KAPRE_SHADE_PATTERN = ["poison", "strengthen", "attack"];
 export const TAWONG_LIPOD_PATTERN = ["stun", "attack", "defend"];
 
 // Boss
-export const MANGNANGAWAY_PATTERN = ["weaken", "poison", "strengthen", "attack"];
+export const MANGANGAWAY_PATTERN = ["weaken", "poison", "strengthen", "attack"];
 
 /*
 USAGE:

@@ -909,7 +909,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         // Use DamageCalculator for complete damage calculation
         const damageCalc = DamageCalculator.calculate(
             this.playedCards,
-            evaluation.handType,
+            evaluation.type,
             'special',
             undefined, // No player entity needed for this tutorial
             mockEnemy,
