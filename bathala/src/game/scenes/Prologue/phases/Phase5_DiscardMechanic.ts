@@ -17,6 +17,9 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
      * Clean up event listeners and shared UI when leaving this phase.
      */
     public shutdown(): void {
+        // Cancel all pending delayed calls FIRST to prevent stale callbacks
+        this.cancelAllTimers();
+        
         this.scene.events.off('selectCard');
         
         if (this.tutorialUI && this.tutorialUI.handContainer) {
@@ -64,7 +67,7 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
 
         const dialogue = "Sometimes your hand lacks good combinations.\n\nDISCARD lets you redraw up to 5 cards once per combat.\n\nUse it wisely - you start with 1 discard charge.\nRelics can increase this!\n\nLet's practice:";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const info = createInfoBox(
                     this.scene,
@@ -73,7 +76,7 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
                 );
                 this.container.add(info);
 
-                this.scene.time.delayedCall(1800, () => {
+                this.delayedCall(1800, () => {
                     this.scene.tweens.add({
                         targets: [progress, header, dialogueBox, info],
                         alpha: 0,
@@ -102,7 +105,7 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
         );
         this.container.add(header);
 
-        this.scene.time.delayedCall(600, () => {
+        this.delayedCall(600, () => {
             // Clear any stale state from previous phases
             this.scene.events.off('selectCard'); // Remove old listeners to prevent stacking
             this.tutorialUI.selectedCards = []; // Clear stale selections
@@ -144,7 +147,7 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
                             this.scene.cameras.main.height - 180
                         );
                         this.container.add(warning);
-                        this.scene.time.delayedCall(2000, () => warning.destroy());
+                        this.delayedCall(2000, () => warning.destroy());
                         return;
                     }
 
@@ -159,7 +162,7 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
                     );
                     this.container.add(success);
 
-                    this.scene.time.delayedCall(2500, () => {
+                    this.delayedCall(2500, () => {
                         this.scene.events.off('selectCard');
                         this.scene.tweens.add({
                             targets: this.container.getAll(),

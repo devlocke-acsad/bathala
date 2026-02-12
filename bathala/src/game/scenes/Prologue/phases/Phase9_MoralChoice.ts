@@ -186,7 +186,7 @@ export class Phase9_MoralChoice extends TutorialPhase {
 
         const dialogue = "Victory! But now, a choice defines you:\n\nSLAY: The path of dominion beckons...\n     Power flows to those who seize it.\n     Gold and strength await the ruthless.\n\nSPARE: The path of wisdom whispers...\n     Knowledge endures beyond death.\n     Fragments of ancient truths await the merciful.\n\nEach path offers its own rewards.\nYour choice echoes through the realm.\nChoose wisely, for the spirits remember...";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 const info = createInfoBox(
                     this.scene,
@@ -195,7 +195,7 @@ export class Phase9_MoralChoice extends TutorialPhase {
                 );
                 this.container.add(info);
 
-                this.scene.time.delayedCall(1800, () => {
+                this.delayedCall(1800, () => {
                     this.scene.tweens.add({
                         targets: [progress, header, dialogueBox, info],
                         alpha: 0,
@@ -238,7 +238,7 @@ export class Phase9_MoralChoice extends TutorialPhase {
             });
         });
 
-        this.scene.time.delayedCall(600, () => {
+        this.delayedCall(600, () => {
             // Enemy sprite display (Kapre Shade) - centered, larger size, pushed to bottom
             const enemyX = this.scene.cameras.main.width / 2;
             const enemyY = this.scene.cameras.main.height * 0.5; // Centered vertically
@@ -306,7 +306,7 @@ export class Phase9_MoralChoice extends TutorialPhase {
         );
         this.container.add(feedback);
 
-        this.scene.time.delayedCall(2500, () => {
+        this.delayedCall(2500, () => {
             this.scene.tweens.add({
                 targets: this.container.getAll(),
                 alpha: 0,

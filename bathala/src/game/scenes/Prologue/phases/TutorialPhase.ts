@@ -10,6 +10,8 @@ export abstract class TutorialPhase {
     protected player: Player;
     protected skipPhaseButton?: Phaser.GameObjects.Container;
     protected isCleaningUp: boolean = false;
+    /** Tracks all pending delayed calls so they can be cancelled on cleanup */
+    protected pendingTimers: Phaser.Time.TimerEvent[] = [];
 
     constructor(scene: Scene, tutorialUI: TutorialUI) {
         this.scene = scene;
@@ -34,6 +36,29 @@ export abstract class TutorialPhase {
     }
 
     public abstract start(): void;
+
+    /**
+     * Wrapper around this.scene.time.delayedCall that tracks the timer
+     * so it can be cancelled during cleanup/shutdown.
+     */
+    protected delayedCall(delay: number, callback: () => void): Phaser.Time.TimerEvent {
+        const timer = this.scene.time.delayedCall(delay, callback);
+        this.pendingTimers.push(timer);
+        return timer;
+    }
+
+    /**
+     * Cancel all pending delayed calls to prevent stale callbacks from firing
+     * after a phase has been cleaned up (e.g. when skipping or jumping phases).
+     */
+    public cancelAllTimers(): void {
+        this.pendingTimers.forEach(timer => {
+            if (timer && !timer.hasDispatched) {
+                timer.remove(false);
+            }
+        });
+        this.pendingTimers = [];
+    }
 
     /**
      * Create a skip phase button (bottom right corner)
@@ -64,6 +89,9 @@ export abstract class TutorialPhase {
         if (this.isCleaningUp) return;
         this.isCleaningUp = true;
         
+        // Cancel all pending delayed calls FIRST to prevent stale callbacks
+        this.cancelAllTimers();
+        
         // Kill all tweens on container and its children
         if (this.container && this.container.active) {
             this.scene.tweens.killTweensOf(this.container);
@@ -89,6 +117,7 @@ export abstract class TutorialPhase {
      */
     public reset(): void {
         this.isCleaningUp = false;
+        this.pendingTimers = [];
         
         // Ensure container exists and is ready for re-use
         if (!this.container || !this.container.active) {

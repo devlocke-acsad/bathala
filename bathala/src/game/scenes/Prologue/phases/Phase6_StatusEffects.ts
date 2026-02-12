@@ -153,7 +153,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
 
         const dialogue = `Status effects shape battles. First, BUFFS:\n\n${strength?.emoji} ${strength?.name.toUpperCase()}: ${strength?.description}\n${platedArmor?.emoji} ${platedArmor?.name.toUpperCase()}: ${platedArmor?.description}\n${regeneration?.emoji} ${regeneration?.name.toUpperCase()}: ${regeneration?.description}\n${ritual?.emoji} ${ritual?.name.toUpperCase()}: ${ritual?.description}\n\nBuffs stack up! Use them strategically to overpower enemies.`;
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const tip = createInfoBox(
                     this.scene,
@@ -162,7 +162,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
                 );
                 this.container.add(tip);
 
-                this.scene.time.delayedCall(2000, () => {
+                this.delayedCall(2000, () => {
                     this.nextSection();
                 });
             });
@@ -219,7 +219,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
 
         const dialogue = `Now DEBUFFS - harmful effects:\n\n🔥 BURN: You inflict this on enemies with Fire Special\n   ${poison?.description}\n\n${poison?.emoji} ${poison?.name.toUpperCase()}: Enemies inflict this on you\n   ${poison?.description}\n\n${weak?.emoji} ${weak?.name.toUpperCase()}: ${weak?.description}\n${vulnerable?.emoji} ${vulnerable?.name.toUpperCase()}: ${vulnerable?.description}\n${frail?.emoji} ${frail?.name.toUpperCase()}: ${frail?.description}\n\nBurn and Poison work the same way - just different names!`;
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const info = createInfoBox(
                     this.scene,
@@ -228,7 +228,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
                 );
                 this.container.add(info);
 
-                this.scene.time.delayedCall(2500, () => {
+                this.delayedCall(2500, () => {
                     this.nextSection();
                 });
             });
@@ -272,13 +272,13 @@ export class Phase6_StatusEffects extends TutorialPhase {
 
         const dialogue = "Every enemy has elemental affinities:\n\nWEAKNESS: Enemy takes 1.5× damage from this element\nRESISTANCE: Enemy takes 0.75× damage from this element\n\n🔥 Apoy (Fire)  💧 Tubig (Water)\n🌿 Lupa (Earth)  💨 Hangin (Air)\n\nLook for symbols above enemy health bars!\nMatch your cards to exploit weaknesses for massive damage.";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 // Create a visual example showing enemy with weakness/resistance icons
                 const exampleContainer = this.createAffinityExample();
                 this.container.add(exampleContainer);
 
-                this.scene.time.delayedCall(3500, () => {
+                this.delayedCall(3500, () => {
                     this.nextSection();
                 });
             });
@@ -374,9 +374,9 @@ export class Phase6_StatusEffects extends TutorialPhase {
 
         const dialogue = "Let's practice! You'll face a Tikbalang Scout.\n\nGOAL: Use Fire Special to apply Burn\nThe Tikbalang is WEAK to Fire (1.5× damage)!\n\nSelect 5 cards with Fire (Apoy) suits for maximum effect.";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
-                this.scene.time.delayedCall(1500, () => {
+                this.delayedCall(1500, () => {
                     this.scene.tweens.add({
                         targets: [progress, header, dialogueBox],
                         alpha: 0,
@@ -452,7 +452,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
             });
         });
 
-        this.scene.time.delayedCall(600, () => {
+        this.delayedCall(600, () => {
             const screenWidth = this.scene.cameras.main.width;
             const screenHeight = this.scene.cameras.main.height;
 
@@ -765,7 +765,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         this.instructionText.setText('Step 2: Click "Special" to execute your action');
 
         // Show action buttons (only Special button for this tutorial)
-        this.scene.time.delayedCall(500, () => {
+        this.delayedCall(500, () => {
             this.showActionButtons();
         });
     }
@@ -951,7 +951,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         this.showDamageBreakdown(damageCalc.baseValue, damageCalc.elementalMultiplier, finalDamage);
         
         // Apply damage after showing breakdown
-        this.scene.time.delayedCall(1500, () => {
+        this.delayedCall(1500, () => {
             // Apply Burn status effect (3 stacks)
             this.applyBurnEffect();
             
@@ -959,13 +959,13 @@ export class Phase6_StatusEffects extends TutorialPhase {
             this.animateFireSpecial();
             
             // Apply damage to enemy
-            this.scene.time.delayedCall(800, () => {
+            this.delayedCall(800, () => {
                 this.enemyHP = Math.max(0, this.enemyHP - finalDamage);
                 this.updateEnemyHP();
                 this.showDamageNumber(finalDamage);
                 
                 // Continue to Burn trigger simulation after damage
-                this.scene.time.delayedCall(1500, () => {
+                this.delayedCall(1500, () => {
                     this.simulateBurnTrigger();
                 });
             });
@@ -1020,7 +1020,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         this.container.add(breakdownContainer);
         
         // Fade out after 1.5 seconds
-        this.scene.time.delayedCall(1500, () => {
+        this.delayedCall(1500, () => {
             this.scene.tweens.add({
                 targets: breakdownContainer,
                 alpha: 0,
@@ -1237,7 +1237,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         });
         
         // Wait 1 second, then trigger Burn effect
-        this.scene.time.delayedCall(1000, () => {
+        this.delayedCall(1000, () => {
             // Calculate Burn damage (3 stacks × 2 = 6 damage)
             const burnStacks = 3;
             const burnDamage = burnStacks * 2;
@@ -1301,7 +1301,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
             this.updateEnemyHP();
             
             // Reduce Burn stacks by 1 (3 → 2)
-            this.scene.time.delayedCall(800, () => {
+            this.delayedCall(800, () => {
                 if (stackCountText) {
                     stackCountText.setText('2');
                     
@@ -1316,7 +1316,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
                 }
                 
                 // Show success message explaining what happened
-                this.scene.time.delayedCall(500, () => {
+                this.delayedCall(500, () => {
                     // Fade out turn message
                     this.scene.tweens.add({
                         targets: turnMessage,
@@ -1351,7 +1351,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
                     });
                     
                     // Wait 2500ms before cleanup and transition
-                    this.scene.time.delayedCall(2500, () => {
+                    this.delayedCall(2500, () => {
                         // Fade out everything
                         this.scene.tweens.add({
                             targets: this.container.getAll(),
@@ -1379,6 +1379,9 @@ export class Phase6_StatusEffects extends TutorialPhase {
      * @public
      */
     public shutdown(): void {
+        // Cancel all pending delayed calls FIRST to prevent stale callbacks
+        this.cancelAllTimers();
+        
         // Remove event listeners
         this.scene.events.off('selectCard', this.onCardSelected, this);
         

@@ -222,7 +222,7 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
 
         const dialogue = "Master deck-sculpting to grow stronger:\n\nPURIFY (Shop): Remove unwanted cards\n     Slim down your deck for consistency\n\nATTUNE (Rest Sites): Upgrade card values\n     Make your cards more powerful\n\nINFUSE (Obtain rarely from Elites/Bosses): Add powerful cards\n     Expand your arsenal with rare cards\n\nA lean, upgraded deck is key to victory!";
 
-        this.scene.time.delayedCall(600, () => {
+        this.delayedCall(600, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 const tip = createInfoBox(
                     this.scene,
@@ -231,7 +231,7 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
                 );
                 this.container.add(tip);
 
-                this.scene.time.delayedCall(2500, () => {
+                this.delayedCall(2500, () => {
                     this.showNextSection();
                 });
             });
@@ -249,7 +249,7 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
 
         const dialogue = "The realm cycles between day and night:\n\nDAY (50 actions):\n   • Neutral, standard enemies\n   • Safer exploration\n   • Normal rewards\n\nNIGHT (50 actions):\n   • Aggressive, dangerous enemies\n   • Higher risk encounters\n   • Better rewards!\n\nBOSS: Appears after 5 complete cycles (~500 actions)";
 
-        this.scene.time.delayedCall(600, () => {
+        this.delayedCall(600, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 const info = createInfoBox(
                     this.scene,
@@ -258,7 +258,7 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
                 );
                 this.container.add(info);
 
-                this.scene.time.delayedCall(2500, () => {
+                this.delayedCall(2500, () => {
                     this.showNextSection();
                 });
             });
@@ -276,7 +276,7 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
 
         const dialogue = "THE PATH AHEAD:\n\nNavigate the overworld\n   Choose your route carefully\n\nGrow stronger\n   Collect relics, upgrade cards, master combos\n\nFace the corruption\n   Three realms writhe under dark influence...\n   • Ancient groves twisted by hexes and deception\n   • Sunken depths where a great hunger stirs\n   • A sky citadel where false divinity reigns\n\nRestore balance\n   The spirits cry out for salvation!";
 
-        this.scene.time.delayedCall(600, () => {
+        this.delayedCall(600, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 const success = createInfoBox(
                     this.scene,
@@ -285,7 +285,7 @@ export class Phase10_AdvancedConcepts extends TutorialPhase {
                 );
                 this.container.add(success);
 
-                this.scene.time.delayedCall(3000, () => {
+                this.delayedCall(3000, () => {
                     this.showNextSection();
                 });
             });

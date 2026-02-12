@@ -394,6 +394,11 @@ export class TutorialManager {
         const currentPhase = this.phases[this.currentPhaseIndex - 1];
         if (!currentPhase) return;
         
+        // Cancel all pending delayed calls FIRST to prevent stale callbacks from firing
+        if (currentPhase.cancelAllTimers && typeof currentPhase.cancelAllTimers === 'function') {
+            currentPhase.cancelAllTimers();
+        }
+        
         // Call phase-specific cleanup methods (shutdown handles event listeners, etc.)
         if (currentPhase.shutdown && typeof currentPhase.shutdown === 'function') {
             currentPhase.shutdown();

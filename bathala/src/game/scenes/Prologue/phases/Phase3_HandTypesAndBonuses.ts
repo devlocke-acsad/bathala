@@ -303,7 +303,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
             { id: 'ex5', rank: 'Datu', suit: 'Apoy' }
         ];
 
-        this.scene.time.delayedCall(900, () => {
+        this.delayedCall(900, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 const tip = createInfoBox(
                     this.scene,
@@ -352,7 +352,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                     });
                 });
 
-                this.scene.time.delayedCall(1500, () => {
+                this.delayedCall(1500, () => {
                     this.scene.tweens.add({
                         targets: this.container,
                         alpha: 0,
@@ -411,7 +411,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
         const dialogue = "Form a Pair (two cards with the same rank)\n\nSelect 5 cards total to form your hand.";
 
-        this.scene.time.delayedCall(800, () => {
+        this.delayedCall(800, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 dialogueBox.destroy();
                 
@@ -427,7 +427,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                         );
                         this.container.add(warning);
                         
-                        this.scene.time.delayedCall(2000, () => {
+                        this.delayedCall(2000, () => {
                             warning.destroy();
                             cardInteraction.destroy();
                             this.practicePair();
@@ -442,7 +442,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                     );
                     this.container.add(success);
 
-                    this.scene.time.delayedCall(2000, () => {
+                    this.delayedCall(2000, () => {
                         this.scene.tweens.add({
                             targets: this.container.getAll(),
                             alpha: 0,
@@ -480,7 +480,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
         const dialogue = "Form Two Pair (two separate pairs)\n\nSelect 5 cards total to form your hand.";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 dialogueBox.destroy();
                 
@@ -496,7 +496,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                         );
                         this.container.add(warning);
                         
-                        this.scene.time.delayedCall(2000, () => {
+                        this.delayedCall(2000, () => {
                             warning.destroy();
                             cardInteraction.destroy();
                             this.practiceTwoPair();
@@ -511,7 +511,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                     );
                     this.container.add(success);
 
-                    this.scene.time.delayedCall(2000, () => {
+                    this.delayedCall(2000, () => {
                         this.scene.tweens.add({
                             targets: this.container.getAll(),
                             alpha: 0,
@@ -549,7 +549,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
         const dialogue = "Form Three of a Kind (three cards with the same rank)\n\nSelect 5 cards total to form your hand.";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 dialogueBox.destroy();
                 
@@ -565,7 +565,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                         );
                         this.container.add(warning);
                         
-                        this.scene.time.delayedCall(2000, () => {
+                        this.delayedCall(2000, () => {
                             warning.destroy();
                             cardInteraction.destroy();
                             this.practiceThreeOfAKind();
@@ -580,7 +580,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                     );
                     this.container.add(success);
 
-                    this.scene.time.delayedCall(2000, () => {
+                    this.delayedCall(2000, () => {
                         this.scene.tweens.add({
                             targets: this.container.getAll(),
                             alpha: 0,
@@ -616,7 +616,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
         const dialogue = "Form a Straight (five cards in sequence)\n\nSelect 5 cards total to form your hand.";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 dialogueBox.destroy();
                 refContainer.setAlpha(1);
@@ -630,7 +630,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                         );
                         this.container.add(warning);
                         
-                        this.scene.time.delayedCall(2000, () => {
+                        this.delayedCall(2000, () => {
                             warning.destroy();
                             cardInteraction.destroy();
                             this.practiceStraight();
@@ -645,7 +645,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                     );
                     this.container.add(success);
 
-                    this.scene.time.delayedCall(2000, () => {
+                    this.delayedCall(2000, () => {
                         this.scene.tweens.add({
                             targets: this.container.getAll(),
                             alpha: 0,
@@ -681,7 +681,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
         const dialogue = "Form a Flush (five cards of the same element)\n\nA powerful hand that shines with elemental synergy! Select 5 cards total.";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 dialogueBox.destroy();
                 refContainer.setAlpha(1);
@@ -695,7 +695,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                         );
                         this.container.add(warning);
                         
-                        this.scene.time.delayedCall(2000, () => {
+                        this.delayedCall(2000, () => {
                             warning.destroy();
                             cardInteraction.destroy();
                             this.practiceFlush();
@@ -710,7 +710,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                     );
                     this.container.add(success);
 
-                    this.scene.time.delayedCall(2000, () => {
+                    this.delayedCall(2000, () => {
                         this.scene.tweens.add({
                             targets: this.container.getAll(),
                             alpha: 0,
@@ -746,7 +746,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
 
         const dialogue = "Form a Full House (three of a kind + a pair)\n\nSelect 5 cards total to form your hand.";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showLargeDialogue(this.scene, dialogue, () => {
                 dialogueBox.destroy();
                 refContainer.setAlpha(1);
@@ -760,7 +760,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                         );
                         this.container.add(warning);
                         
-                        this.scene.time.delayedCall(2000, () => {
+                        this.delayedCall(2000, () => {
                             warning.destroy();
                             cardInteraction.destroy();
                             this.practiceFullHouse();
@@ -775,7 +775,7 @@ export class Phase3_HandTypesAndBonuses extends TutorialPhase {
                     );
                     this.container.add(success);
 
-                    this.scene.time.delayedCall(2000, () => {
+                    this.delayedCall(2000, () => {
                         this.scene.tweens.add({
                             targets: this.container,
                             alpha: 0,
