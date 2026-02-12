@@ -93,7 +93,7 @@ export const TAWONG_LIPOD_LORE: EnemyLore = {
 };
 
 // Boss
-export const MANGNANGAWAY_LORE: EnemyLore = {
+export const MANGANGAWAY_LORE: EnemyLore = {
     id: "mangangaway",
     name: "Mangangaway",
     description: "A sorcerer who casts evil spells.",
@@ -113,5 +113,5 @@ export const ENEMY_LORE_DATA: Record<string, EnemyLore> = {
   "bungisngis": BUNGISNGIS_LORE,
   "kapre_shade": KAPRE_SHADE_LORE,
   "tawong_lipod": TAWONG_LIPOD_LORE,
-  "mangangaway": MANGNANGAWAY_LORE
+  "mangangaway": MANGANGAWAY_LORE
 };
