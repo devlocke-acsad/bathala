@@ -199,13 +199,18 @@ export class Overworld extends Scene {
     }
   }
 
-  create(): void {
+  create(data?: { fadeIn?: boolean }): void {
     // Reset movement and transition flags
     this.isMoving = false;
     this.isTransitioningToCombat = false;
     
     // Set camera background color to match forest theme
     this.cameras.main.setBackgroundColor(0x323C39);
+
+    // Fade in from black when arriving from the tutorial
+    if (data?.fadeIn) {
+      this.cameras.main.fadeIn(1200, 0, 0, 0);
+    }
     
     // Start music for Overworld scene
     this.startMusic();

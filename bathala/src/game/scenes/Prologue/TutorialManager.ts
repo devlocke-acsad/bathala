@@ -834,8 +834,8 @@ export class TutorialManager {
                 
                 // Keep the black screen for a moment before transitioning
                 this.scene.time.delayedCall(300, () => {
-                    // Start the overworld scene
-                    this.scene.scene.start('Overworld');
+                    // Start the overworld scene with fade-in flag
+                    this.scene.scene.start('Overworld', { fadeIn: true });
                     
                     // The fade overlay will be destroyed when the scene changes
                     fadeOverlay.destroy();
