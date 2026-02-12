@@ -67,6 +67,7 @@ export class TutorialUI {
         const { drawnCards, remainingDeck } = DeckManager.drawCards(this.deck, count);
         this.hand = drawnCards;
         this.deck = remainingDeck;
+        this.selectedCards = []; // Clear selections when drawing a new hand
         this.updateHandDisplay();
     }
 
@@ -132,8 +133,9 @@ export class TutorialUI {
             this.cardSprites.push(cardSprite);
         });
         
-        // Ensure hand container is visible
+        // Ensure hand container is fully visible (alpha may have been set to 0 by phase cleanup)
         this.handContainer.setVisible(true);
+        this.handContainer.setAlpha(1);
     }
 
     public createCardSprite(

@@ -47,7 +47,7 @@ export class Phase1_Welcome extends TutorialPhase {
         const dialogue = "Welcome, traveler. This tutorial will guide you through every skill needed to survive the corrupted realms.\n\nYou may skip at any time using the button in the corner, but knowledge is your greatest weapon.\n\nAre you ready to begin your training?";
 
         // Delay dialogue to appear after header animation
-        this.scene.time.delayedCall(900, () => {
+        this.delayedCall(900, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 // Show a tip before transitioning
                 const tip = createInfoBox(
@@ -65,7 +65,7 @@ export class Phase1_Welcome extends TutorialPhase {
                     ease: 'Power2'
                 });
                 
-                this.scene.time.delayedCall(2000, () => {
+                this.delayedCall(2000, () => {
                     this.scene.tweens.add({
                         targets: this.container,
                         alpha: 0,

@@ -68,7 +68,7 @@ export class Phase7_Items extends TutorialPhase {
 
         const dialogue = "Relics provide permanent passive bonuses:\n\n• Babaylan's Talisman: Treat hands as one tier higher\n• Agimat of Swift Wind: +1 discard charge\n• Earthwarden's Plate: Start combat with 5 Block\n\nYou can hold up to 6 relics. They activate automatically!\n\nHere, take this starter relic:";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const tutorialAmulet = { 
                     id: 'tutorial-amulet', 
@@ -86,7 +86,7 @@ export class Phase7_Items extends TutorialPhase {
                 );
                 this.container.add(success);
 
-                this.scene.time.delayedCall(2500, () => {
+                this.delayedCall(2500, () => {
                     this.scene.tweens.add({
                         targets: this.container.getAll(),
                         alpha: 0,
@@ -132,7 +132,7 @@ export class Phase7_Items extends TutorialPhase {
 
         const dialogue = "Potions are single-use combat items:\n\n• Potion of Clarity: Draw 3 cards\n• Elixir of Fortitude: Gain 15 Block\n• Phial of Elements: Choose dominant element\n\nYou can hold up to 3 potions. Use them strategically!\n\nHere's a potion to try:";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const info = createInfoBox(
                     this.scene,
@@ -141,7 +141,7 @@ export class Phase7_Items extends TutorialPhase {
                 );
                 this.container.add(info);
 
-                this.scene.time.delayedCall(1800, () => {
+                this.delayedCall(1800, () => {
                     this.scene.tweens.add({
                         targets: [progress, header, dialogueBox, info],
                         alpha: 0,
@@ -184,7 +184,7 @@ export class Phase7_Items extends TutorialPhase {
             });
         });
 
-        this.scene.time.delayedCall(600, () => {
+        this.delayedCall(600, () => {
             const enemyData = { ...AMOMONGO, id: 'tutorial_amomongo' };
 
             // Enemy sprite display (centered, moved down to avoid inventory)
@@ -274,7 +274,7 @@ export class Phase7_Items extends TutorialPhase {
                     );
                     this.container.add(success);
 
-                    this.scene.time.delayedCall(3000, () => {
+                    this.delayedCall(3000, () => {
                         this.scene.tweens.add({
                             targets: this.container.getAll(),
                             alpha: 0,

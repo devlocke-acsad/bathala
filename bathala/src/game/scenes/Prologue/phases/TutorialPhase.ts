@@ -10,6 +10,8 @@ export abstract class TutorialPhase {
     protected player: Player;
     protected skipPhaseButton?: Phaser.GameObjects.Container;
     protected isCleaningUp: boolean = false;
+    /** Tracks all pending delayed calls so they can be cancelled on cleanup */
+    protected pendingTimers: Phaser.Time.TimerEvent[] = [];
 
     constructor(scene: Scene, tutorialUI: TutorialUI) {
         this.scene = scene;
@@ -36,6 +38,29 @@ export abstract class TutorialPhase {
     public abstract start(): void;
 
     /**
+     * Wrapper around this.scene.time.delayedCall that tracks the timer
+     * so it can be cancelled during cleanup/shutdown.
+     */
+    protected delayedCall(delay: number, callback: () => void): Phaser.Time.TimerEvent {
+        const timer = this.scene.time.delayedCall(delay, callback);
+        this.pendingTimers.push(timer);
+        return timer;
+    }
+
+    /**
+     * Cancel all pending delayed calls to prevent stale callbacks from firing
+     * after a phase has been cleaned up (e.g. when skipping or jumping phases).
+     */
+    public cancelAllTimers(): void {
+        this.pendingTimers.forEach(timer => {
+            if (timer && !timer.hasDispatched) {
+                timer.remove(false);
+            }
+        });
+        this.pendingTimers = [];
+    }
+
+    /**
      * Create a skip phase button (bottom right corner)
      */
     protected createSkipPhaseButton(onSkip: () => void): void {
@@ -57,24 +82,54 @@ export abstract class TutorialPhase {
     }
 
     /**
-     * Cleanup method to properly dispose of phase resources
+     * Cleanup method to properly dispose of phase resources.
+     * Kills all tweens and removes all children from the container.
      */
     public cleanup(): void {
         if (this.isCleaningUp) return;
         this.isCleaningUp = true;
         
-        // Kill all tweens on container and its children
-        this.scene.tweens.killTweensOf(this.container);
-        this.container.getAll().forEach((child: any) => {
-            this.scene.tweens.killTweensOf(child);
-        });
+        // Cancel all pending delayed calls FIRST to prevent stale callbacks
+        this.cancelAllTimers();
         
-        // Remove all children
-        this.container.removeAll(true);
+        // Kill all tweens on container and its children
+        if (this.container && this.container.active) {
+            this.scene.tweens.killTweensOf(this.container);
+            this.container.getAll().forEach((child: any) => {
+                this.scene.tweens.killTweensOf(child);
+            });
+            
+            // Remove all children
+            this.container.removeAll(true);
+        }
+
+        // Hide shared TutorialUI hand container (used by Phase4, Phase6)
+        if (this.tutorialUI && this.tutorialUI.handContainer) {
+            this.scene.tweens.killTweensOf(this.tutorialUI.handContainer);
+            this.tutorialUI.handContainer.setVisible(false);
+            this.tutorialUI.handContainer.setAlpha(0);
+        }
+    }
+
+    /**
+     * Reset phase state so it can be re-entered after cleanup.
+     * Called before start() when jumping back to a previously visited phase.
+     */
+    public reset(): void {
+        this.isCleaningUp = false;
+        this.pendingTimers = [];
+        
+        // Ensure container exists and is ready for re-use
+        if (!this.container || !this.container.active) {
+            this.container = this.scene.add.container(0, 0);
+        }
+        this.container.setAlpha(0); // Ready for fade-in
     }
 
     public destroy(): void {
         this.cleanup();
-        this.container.destroy();
+        if (this.container && this.container.active) {
+            this.container.destroy();
+        }
     }
 }

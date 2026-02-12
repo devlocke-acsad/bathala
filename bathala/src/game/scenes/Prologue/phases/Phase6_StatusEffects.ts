@@ -41,10 +41,22 @@ export class Phase6_StatusEffects extends TutorialPhase {
     /**
      * Start the Phase 6 tutorial section.
      * Initiates the first section of the status effects and elemental affinities tutorial.
+     * Resets internal state for re-entry when jumping back to this phase.
      * 
      * @public
      */
     public start(): void {
+        // Ensure StatusEffectManager is initialized (it's normally initialized in Combat scene,
+        // but Phase6 runs in Prologue scene and needs access to status effect definitions)
+        StatusEffectManager.initialize();
+        
+        // Reset internal state for re-entry (when jumping back to this phase)
+        this.currentSection = 0;
+        this.selectedCards = [];
+        this.playedCards = [];
+        this.playerHP = 100;
+        this.playerBlock = 0;
+        
         this.nextSection();
     }
 
@@ -141,7 +153,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
 
         const dialogue = `Status effects shape battles. First, BUFFS:\n\n${strength?.emoji} ${strength?.name.toUpperCase()}: ${strength?.description}\n${platedArmor?.emoji} ${platedArmor?.name.toUpperCase()}: ${platedArmor?.description}\n${regeneration?.emoji} ${regeneration?.name.toUpperCase()}: ${regeneration?.description}\n${ritual?.emoji} ${ritual?.name.toUpperCase()}: ${ritual?.description}\n\nBuffs stack up! Use them strategically to overpower enemies.`;
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const tip = createInfoBox(
                     this.scene,
@@ -150,7 +162,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
                 );
                 this.container.add(tip);
 
-                this.scene.time.delayedCall(2000, () => {
+                this.delayedCall(2000, () => {
                     this.nextSection();
                 });
             });
@@ -207,7 +219,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
 
         const dialogue = `Now DEBUFFS - harmful effects:\n\n🔥 BURN: You inflict this on enemies with Fire Special\n   ${poison?.description}\n\n${poison?.emoji} ${poison?.name.toUpperCase()}: Enemies inflict this on you\n   ${poison?.description}\n\n${weak?.emoji} ${weak?.name.toUpperCase()}: ${weak?.description}\n${vulnerable?.emoji} ${vulnerable?.name.toUpperCase()}: ${vulnerable?.description}\n${frail?.emoji} ${frail?.name.toUpperCase()}: ${frail?.description}\n\nBurn and Poison work the same way - just different names!`;
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const info = createInfoBox(
                     this.scene,
@@ -216,7 +228,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
                 );
                 this.container.add(info);
 
-                this.scene.time.delayedCall(2500, () => {
+                this.delayedCall(2500, () => {
                     this.nextSection();
                 });
             });
@@ -260,13 +272,13 @@ export class Phase6_StatusEffects extends TutorialPhase {
 
         const dialogue = "Every enemy has elemental affinities:\n\nWEAKNESS: Enemy takes 1.5× damage from this element\nRESISTANCE: Enemy takes 0.75× damage from this element\n\n🔥 Apoy (Fire)  💧 Tubig (Water)\n🌿 Lupa (Earth)  💨 Hangin (Air)\n\nLook for symbols above enemy health bars!\nMatch your cards to exploit weaknesses for massive damage.";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 // Create a visual example showing enemy with weakness/resistance icons
                 const exampleContainer = this.createAffinityExample();
                 this.container.add(exampleContainer);
 
-                this.scene.time.delayedCall(3500, () => {
+                this.delayedCall(3500, () => {
                     this.nextSection();
                 });
             });
@@ -362,9 +374,9 @@ export class Phase6_StatusEffects extends TutorialPhase {
 
         const dialogue = "Let's practice! You'll face a Tikbalang Scout.\n\nGOAL: Use Fire Special to apply Burn\nThe Tikbalang is WEAK to Fire (1.5× damage)!\n\nSelect 5 cards with Fire (Apoy) suits for maximum effect.";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
-                this.scene.time.delayedCall(1500, () => {
+                this.delayedCall(1500, () => {
                     this.scene.tweens.add({
                         targets: [progress, header, dialogueBox],
                         alpha: 0,
@@ -440,7 +452,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
             });
         });
 
-        this.scene.time.delayedCall(600, () => {
+        this.delayedCall(600, () => {
             const screenWidth = this.scene.cameras.main.width;
             const screenHeight = this.scene.cameras.main.height;
 
@@ -753,7 +765,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         this.instructionText.setText('Step 2: Click "Special" to execute your action');
 
         // Show action buttons (only Special button for this tutorial)
-        this.scene.time.delayedCall(500, () => {
+        this.delayedCall(500, () => {
             this.showActionButtons();
         });
     }
@@ -939,7 +951,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         this.showDamageBreakdown(damageCalc.baseValue, damageCalc.elementalMultiplier, finalDamage);
         
         // Apply damage after showing breakdown
-        this.scene.time.delayedCall(1500, () => {
+        this.delayedCall(1500, () => {
             // Apply Burn status effect (3 stacks)
             this.applyBurnEffect();
             
@@ -947,13 +959,13 @@ export class Phase6_StatusEffects extends TutorialPhase {
             this.animateFireSpecial();
             
             // Apply damage to enemy
-            this.scene.time.delayedCall(800, () => {
+            this.delayedCall(800, () => {
                 this.enemyHP = Math.max(0, this.enemyHP - finalDamage);
                 this.updateEnemyHP();
                 this.showDamageNumber(finalDamage);
                 
                 // Continue to Burn trigger simulation after damage
-                this.scene.time.delayedCall(1500, () => {
+                this.delayedCall(1500, () => {
                     this.simulateBurnTrigger();
                 });
             });
@@ -1008,7 +1020,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         this.container.add(breakdownContainer);
         
         // Fade out after 1.5 seconds
-        this.scene.time.delayedCall(1500, () => {
+        this.delayedCall(1500, () => {
             this.scene.tweens.add({
                 targets: breakdownContainer,
                 alpha: 0,
@@ -1225,7 +1237,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         });
         
         // Wait 1 second, then trigger Burn effect
-        this.scene.time.delayedCall(1000, () => {
+        this.delayedCall(1000, () => {
             // Calculate Burn damage (3 stacks × 2 = 6 damage)
             const burnStacks = 3;
             const burnDamage = burnStacks * 2;
@@ -1289,7 +1301,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
             this.updateEnemyHP();
             
             // Reduce Burn stacks by 1 (3 → 2)
-            this.scene.time.delayedCall(800, () => {
+            this.delayedCall(800, () => {
                 if (stackCountText) {
                     stackCountText.setText('2');
                     
@@ -1304,7 +1316,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
                 }
                 
                 // Show success message explaining what happened
-                this.scene.time.delayedCall(500, () => {
+                this.delayedCall(500, () => {
                     // Fade out turn message
                     this.scene.tweens.add({
                         targets: turnMessage,
@@ -1339,7 +1351,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
                     });
                     
                     // Wait 2500ms before cleanup and transition
-                    this.scene.time.delayedCall(2500, () => {
+                    this.delayedCall(2500, () => {
                         // Fade out everything
                         this.scene.tweens.add({
                             targets: this.container.getAll(),
@@ -1359,32 +1371,34 @@ export class Phase6_StatusEffects extends TutorialPhase {
     }
 
     /**
-     * Cleanup method to remove event listeners and destroy objects.
+     * Cleanup method to remove event listeners and clean up objects.
      * Called when the phase is being shut down to prevent memory leaks.
-     * Removes all event listeners, kills active tweens, and destroys containers.
+     * Removes all event listeners, kills active tweens, and clears containers.
+     * Does NOT destroy the container so the phase can be re-entered.
      * 
      * @public
      */
     public shutdown(): void {
+        // Cancel all pending delayed calls FIRST to prevent stale callbacks
+        this.cancelAllTimers();
+        
         // Remove event listeners
         this.scene.events.off('selectCard', this.onCardSelected, this);
         
-        // Kill all tweens
-        if (this.container) {
+        // Hide the shared TutorialUI hand container (lives outside phase container)
+        if (this.tutorialUI && this.tutorialUI.handContainer) {
+            this.scene.tweens.killTweensOf(this.tutorialUI.handContainer);
+            this.tutorialUI.handContainer.setVisible(false);
+            this.tutorialUI.handContainer.setAlpha(0);
+        }
+        
+        // Kill all tweens and clean up container children (but don't destroy the container itself)
+        if (this.container && this.container.active) {
             this.scene.tweens.killTweensOf(this.container);
             this.container.getAll().forEach((child: any) => {
                 this.scene.tweens.killTweensOf(child);
             });
-        }
-        
-        // Kill tweens on tutorial UI hand container
-        if (this.tutorialUI && this.tutorialUI.handContainer) {
-            this.scene.tweens.killTweensOf(this.tutorialUI.handContainer);
-        }
-        
-        // Destroy container
-        if (this.container && this.container.active) {
-            this.container.destroy();
+            this.container.removeAll(true);
         }
     }
 }

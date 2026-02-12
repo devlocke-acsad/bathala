@@ -67,7 +67,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
             { id: '1-Hangin', rank: '1', suit: 'Hangin' }
         ];
 
-        this.scene.time.delayedCall(900, () => {
+        this.delayedCall(900, () => {
             this.displayUI('The Elements', dialogue, cardsToShow, () => {
                 // Add info box before transitioning
                 const info = createInfoBox(
@@ -85,7 +85,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
                     ease: 'Power2'
                 });
                 
-                this.scene.time.delayedCall(1800, () => {
+                this.delayedCall(1800, () => {
                     this.showCardValues();
                 });
             }, progress);
@@ -138,7 +138,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
                     { id: '13-Apoy', rank: 'Datu', suit: 'Apoy' }
                 ];
 
-                this.scene.time.delayedCall(800, () => {
+                this.delayedCall(800, () => {
                     this.displayUI('Card Ranks', dialogue, cardsToShow, () => {
                         const success = createInfoBox(
                             this.scene,
@@ -155,7 +155,7 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
                             ease: 'Power2'
                         });
                         
-                        this.scene.time.delayedCall(2000, () => {
+                        this.delayedCall(2000, () => {
                             this.scene.tweens.add({
                                 targets: this.container,
                                 alpha: 0,
@@ -187,14 +187,14 @@ export class Phase2_UnderstandingCards extends TutorialPhase {
         this.container.add(divider);
 
         // Dialogue box - positioned closer to cards
-        this.scene.time.delayedCall(400, () => {
+        this.delayedCall(400, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, onDialogueComplete);
             dialogueBox.setPosition(width / 2, height / 2 - 100);
             this.container.add(dialogueBox);
         });
 
         // Enhanced card display with stagger animation - moved up closer to dialogue
-        this.scene.time.delayedCall(600, () => {
+        this.delayedCall(600, () => {
             const cardContainer = this.scene.add.container(width / 2, height / 2 + 180);
             this.container.add(cardContainer);
 

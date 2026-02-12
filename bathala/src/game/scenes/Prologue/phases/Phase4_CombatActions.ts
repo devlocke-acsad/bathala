@@ -43,12 +43,39 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     start() {
+        // Reset internal state for re-entry (when jumping back to this phase)
+        this.currentSection = 0;
+        this.selectedCards = [];
+        this.playedCards = [];
+        this.playerHP = 100;
+        this.playerBlock = 0;
+        this.combatPhase = 'card_selection';
+        
         this.nextSection();
     }
 
     public shutdown() {
+        // Cancel all pending delayed calls FIRST to prevent stale callbacks
+        this.cancelAllTimers();
+        
+        // Remove all selectCard event listeners
         this.scene.events.off('selectCard');
-        this.container.destroy();
+        
+        // Hide the shared TutorialUI hand container (lives outside phase container)
+        if (this.tutorialUI && this.tutorialUI.handContainer) {
+            this.scene.tweens.killTweensOf(this.tutorialUI.handContainer);
+            this.tutorialUI.handContainer.setVisible(false);
+            this.tutorialUI.handContainer.setAlpha(0);
+        }
+        
+        // Kill all tweens and clean up container children (but don't destroy the container itself)
+        if (this.container && this.container.active) {
+            this.scene.tweens.killTweensOf(this.container);
+            this.container.getAll().forEach((child: any) => {
+                this.scene.tweens.killTweensOf(child);
+            });
+            this.container.removeAll(true);
+        }
     }
 
     private nextSection() {
@@ -131,7 +158,7 @@ export class Phase4_CombatActions extends TutorialPhase {
 
         const dialogue = "Three actions determine combat:\n\nATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus\n\nDEFEND: Gain Block to absorb damage\n   Base block = 5 + Hand Bonus\n\nSPECIAL: Elemental ability\n   Effect varies by dominant element";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const tip = createInfoBox(
                     this.scene,
@@ -140,7 +167,7 @@ export class Phase4_CombatActions extends TutorialPhase {
                 );
                 this.container.add(tip);
 
-                this.scene.time.delayedCall(1800, () => {
+                this.delayedCall(1800, () => {
                     this.scene.tweens.add({
                         targets: [progress, header, dialogueBox, tip],
                         alpha: 0,
@@ -215,7 +242,7 @@ export class Phase4_CombatActions extends TutorialPhase {
         );
         this.container.add(header);
 
-        this.scene.time.delayedCall(600, () => {
+        this.delayedCall(600, () => {
             const screenWidth = this.scene.cameras.main.width;
             const screenHeight = this.scene.cameras.main.height;
 
@@ -619,7 +646,7 @@ export class Phase4_CombatActions extends TutorialPhase {
             this.container.add(success);
 
             // Always proceed after delay
-            this.scene.time.delayedCall(2500, () => {
+            this.delayedCall(2500, () => {
                 this.scene.events.off('selectCard', selectCardHandler);
                 this.scene.tweens.add({
                     targets: this.container.getAll(),
@@ -664,7 +691,7 @@ export class Phase4_CombatActions extends TutorialPhase {
             );
             this.container.add(success);
 
-            this.scene.time.delayedCall(2500, () => {
+            this.delayedCall(2500, () => {
                 this.scene.events.off('selectCard', selectCardHandler);
                 this.scene.tweens.add({
                     targets: this.container.getAll(),
@@ -726,7 +753,7 @@ export class Phase4_CombatActions extends TutorialPhase {
             );
             this.container.add(success);
 
-            this.scene.time.delayedCall(3000, () => {
+            this.delayedCall(3000, () => {
                 this.scene.events.off('selectCard', selectCardHandler);
                 this.scene.tweens.add({
                     targets: this.container.getAll(),
