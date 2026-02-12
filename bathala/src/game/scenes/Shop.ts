@@ -1744,6 +1744,11 @@ export class Shop extends Scene {
   }
   
   private showPurchaseConfirmation(item: ShopItem): void {
+    const panelWidth = 440;
+    const panelHeight = 380;
+    const panelX = this.cameras.main.width / 2;
+    const panelY = this.cameras.main.height / 2;
+
     // Create overlay that blocks all interactions beneath it
     const overlay = this.add.rectangle(
       this.cameras.main.width / 2,
@@ -1751,142 +1756,324 @@ export class Shop extends Scene {
       this.cameras.main.width,
       this.cameras.main.height,
       0x000000
-    ).setAlpha(0.7).setScrollFactor(0).setDepth(1000);
+    ).setAlpha(0.8).setScrollFactor(0).setDepth(2000);
     overlay.setInteractive();
-    
-    // Create confirmation dialog
-    const dialogWidth = 400;
-    const dialogHeight = 200;
-    const dialog = this.add.container(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2
-    ).setScrollFactor(0).setDepth(1001);
-    
-    // Dialog background with enhanced styling
-    const dialogBg = this.add.graphics();
-    dialogBg.fillGradientStyle(0x1a1a1a, 0x1a1a1a, 0x0a0a0a, 0x0a0a0a, 0.95);
-    dialogBg.lineStyle(3, 0x57606f, 1);
-    dialogBg.fillRoundedRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 10);
-    dialogBg.strokeRoundedRect(-dialogWidth/2, -dialogHeight/2, dialogWidth, dialogHeight, 10);
-    
-    // Dialog title
-    const title = this.add.text(0, -dialogHeight/2 + 30, "Confirm Purchase", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 24,
-      color: "#e8eced",
-    }).setOrigin(0.5);
-    title.setShadow(2, 2, '#000000', 3, false, true);
-    
-    // Item name
-    const itemName = this.add.text(0, -20, item.name, {
-      fontFamily: "dungeon-mode-inverted",
+
+    // Click overlay (outside panel) to close
+    overlay.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      const bounds = {
+        left: panelX - panelWidth / 2,
+        right: panelX + panelWidth / 2,
+        top: panelY - panelHeight / 2,
+        bottom: panelY + panelHeight / 2
+      };
+      if (pointer.x < bounds.left || pointer.x > bounds.right ||
+          pointer.y < bounds.top || pointer.y > bounds.bottom) {
+        closePanel();
+      }
+    });
+
+    // Function to close the panel
+    const closePanel = () => {
+      this.tweens.add({
+        targets: panel,
+        scale: 0.8,
+        alpha: 0,
+        duration: 200,
+        ease: 'Back.easeIn',
+        onComplete: () => {
+          overlay.destroy();
+          panel.destroy();
+        }
+      });
+    };
+
+    const panel = this.add.container(panelX, panelY).setScrollFactor(0).setDepth(2001);
+
+    // --- Layout anchors (relative to panel center 0,0) ---
+    const top = -panelHeight / 2;   // -190
+    const bottom = panelHeight / 2;  // +190
+
+    // Panel shadow
+    const panelShadow = this.add.graphics();
+    panelShadow.fillStyle(0x000000, 0.4);
+    panelShadow.fillRoundedRect(-panelWidth/2 + 8, top + 8, panelWidth, panelHeight, 20);
+
+    // Main panel background
+    const panelBg = this.add.graphics();
+    panelBg.fillStyle(0x150E10, 0.95);
+    panelBg.lineStyle(3, 0x77888C, 0.9);
+    panelBg.fillRoundedRect(-panelWidth/2, top, panelWidth, panelHeight, 20);
+    panelBg.strokeRoundedRect(-panelWidth/2, top, panelWidth, panelHeight, 20);
+
+    // Inner highlight
+    const innerHighlight = this.add.graphics();
+    innerHighlight.lineStyle(2, 0x77888C, 0.4);
+    innerHighlight.strokeRoundedRect(-panelWidth/2 + 4, top + 4, panelWidth - 8, panelHeight - 8, 16);
+
+    // ===== ROW 1: HEADER (icon + item name) — 15px from top =====
+    const headerTop = top + 15;
+    const headerHeight = 80;
+    const headerBg = this.add.graphics();
+    headerBg.fillStyle(0x77888C, 0.2);
+    headerBg.lineStyle(1, 0x77888C, 0.6);
+    headerBg.fillRoundedRect(-panelWidth/2 + 14, headerTop, panelWidth - 28, headerHeight, 12);
+    headerBg.strokeRoundedRect(-panelWidth/2 + 14, headerTop, panelWidth - 28, headerHeight, 12);
+
+    // Icon — 60x60, vertically centered in header
+    const iconSize = 60;
+    const iconX = -panelWidth/2 + 28;
+    const iconY = headerTop + (headerHeight - iconSize) / 2;
+    const iconBg = this.add.graphics();
+    iconBg.fillStyle(0x150E10, 0.8);
+    iconBg.fillRoundedRect(iconX, iconY, iconSize, iconSize, 10);
+    iconBg.lineStyle(2, 0x77888C, 0.8);
+    iconBg.strokeRoundedRect(iconX, iconY, iconSize, iconSize, 10);
+
+    const iconCenterX = iconX + iconSize / 2;
+    const iconCenterY = iconY + iconSize / 2;
+    const spriteKey = getRelicSpriteKey(item.item.id);
+    let itemIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+    if (spriteKey && this.textures.exists(spriteKey)) {
+      itemIcon = this.add.image(iconCenterX, iconCenterY, spriteKey)
+        .setOrigin(0.5).setDisplaySize(52, 52);
+    } else {
+      itemIcon = this.add.text(iconCenterX, iconCenterY, item.emoji, {
+        fontSize: 40,
+      }).setOrigin(0.5, 0.5);
+    }
+
+    // Item name — vertically centered in header, right of icon
+    const textLeftX = iconX + iconSize + 18;
+    const headerCenterY = headerTop + headerHeight / 2;
+    const nameText = this.add.text(textLeftX, headerCenterY, item.name.toUpperCase(), {
+      fontFamily: "dungeon-mode",
       fontSize: 20,
-      color: "#ffd93d",
+      color: "#e8eced",
+      fontStyle: "bold",
+      wordWrap: { width: panelWidth - 160 }
+    }).setOrigin(0, 0.5);
+    nameText.setShadow(2, 2, '#000000', 4, false, true);
+
+    // ===== ROW 2: "Confirm Purchase?" — centered below header =====
+    const confirmLabelY = headerTop + headerHeight + 35;
+    const confirmLabel = this.add.text(0, confirmLabelY, "Confirm Purchase?", {
+      fontFamily: "dungeon-mode",
+      fontSize: 24,
+      color: "#77888C",
     }).setOrigin(0.5);
-    
-    // Calculate actual price with discounts
+    confirmLabel.setShadow(1, 1, '#000000', 2, false, true);
+
+    // ===== ROW 3: Price badge — centered below label =====
     const actualPrice = this.getActualPrice(item);
     const hasDiscount = actualPrice < item.price;
-    
-    // All items use gold now
-    const priceColor = "#ffd93d";
-    const priceEmoji = "�";
-    
-    // Show original price with strikethrough if discounted
-    const priceY = hasDiscount ? 0 : 10;
+    const priceEmoji = item.currency === "ginto" ? "♦" : "💎";
+
+    const priceBadgeY = confirmLabelY + 45;
+    const priceBadgeW = 180;
+    const priceBadgeH = hasDiscount ? 65 : 45;
+
+    const priceBg = this.add.graphics();
+    priceBg.fillStyle(0x150E10, 0.9);
+    priceBg.lineStyle(2, 0x77888C, 0.8);
+    priceBg.fillRoundedRect(-priceBadgeW/2, priceBadgeY - priceBadgeH/2, priceBadgeW, priceBadgeH, 12);
+    priceBg.strokeRoundedRect(-priceBadgeW/2, priceBadgeY - priceBadgeH/2, priceBadgeW, priceBadgeH, 12);
+
     let priceElements: Phaser.GameObjects.GameObject[] = [];
-    
+
     if (hasDiscount) {
-      const originalPrice = this.add.text(0, priceY, `${item.price} ${priceEmoji}`, {
+      const originalPrice = this.add.text(0, priceBadgeY - 15, `${item.price} ${priceEmoji}`, {
         fontFamily: "dungeon-mode",
         fontSize: 16,
         color: "#888888",
       }).setOrigin(0.5);
       originalPrice.setStroke("#666666", 2);
-      
-      const discountedPrice = this.add.text(0, priceY + 25, `${actualPrice} ${priceEmoji}`, {
+
+      const discountedPrice = this.add.text(0, priceBadgeY + 12, `${actualPrice} ${priceEmoji}`, {
         fontFamily: "dungeon-mode",
-        fontSize: 20,
+        fontSize: 24,
         color: "#2ed573",
+        fontStyle: "bold"
       }).setOrigin(0.5);
-      
-      const discountLabel = this.add.text(0, priceY + 45, `(Merchant's Scale!)`, {
-        fontFamily: "dungeon-mode",
-        fontSize: 12,
-        color: "#2ed573",
-      }).setOrigin(0.5);
-      
-      priceElements.push(originalPrice, discountedPrice, discountLabel);
+      discountedPrice.setShadow(1, 1, '#000000', 2, false, true);
+
+      priceElements.push(originalPrice, discountedPrice);
     } else {
-      const price = this.add.text(0, priceY, `Price: ${actualPrice} ${priceEmoji}`, {
+      const price = this.add.text(0, priceBadgeY, `${actualPrice} ${priceEmoji}`, {
         fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: priceColor,
+        fontSize: 26,
+        color: "#ffffff",
+        fontStyle: "bold"
       }).setOrigin(0.5);
-      
+      price.setShadow(1, 1, '#000000', 2, false, true);
+
       priceElements.push(price);
     }
-    
-    // Confirm button
-    const confirmBtn = this.add.container(-100, dialogHeight/2 - 40);
-    const confirmBg = this.add.graphics();
-    confirmBg.fillStyle(0x2ed573, 0.9);
-    confirmBg.fillRoundedRect(-60, -20, 120, 40, 5);
-    const confirmText = this.add.text(0, 0, "Buy", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 18,
-      color: "#ffffff",
+
+    // ===== ROW 4: Gold balance — below price badge =====
+    const goldInfoY = priceBadgeY + priceBadgeH/2 + 22;
+    const goldInfo = this.add.text(0, goldInfoY, `Your Gold: ${this.player.ginto} ♦`, {
+      fontFamily: "dungeon-mode",
+      fontSize: 15,
+      color: "#fbbf24",
     }).setOrigin(0.5);
-    confirmBtn.add([confirmBg, confirmText]);
-    confirmBtn.setInteractive(new Phaser.Geom.Rectangle(-60, -20, 120, 40), Phaser.Geom.Rectangle.Contains);
+    goldInfo.setShadow(1, 1, '#000000', 2, false, true);
+
+    // ===== CLOSE BUTTON (red X) — top-right, outside header =====
+    const closeBtn = this.add.container(panelWidth/2 - 30, top + 28);
+    const closeBg = this.add.graphics();
+    closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
+    closeBg.lineStyle(2, 0xfca5a5, 0.8);
+    closeBg.fillRoundedRect(-16, -16, 32, 32, 8);
+    closeBg.strokeRoundedRect(-16, -16, 32, 32, 8);
+    const closeText = this.add.text(0, 0, "✕", {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 15,
+      color: "#ffffff",
+    }).setOrigin(0.5, 0.5);
+    closeText.setShadow(1, 1, '#000000', 2, false, true);
+    closeBtn.add([closeBg, closeText]);
+    closeBtn.setSize(32, 32);
+    closeBtn.setInteractive();
+    closeBtn.on("pointerdown", () => closePanel());
+    closeBtn.on("pointerover", () => {
+      this.input.setDefaultCursor('pointer');
+      this.tweens.add({ targets: closeBtn, scale: 1.1, duration: 100, ease: 'Power2' });
+      closeBg.clear();
+      closeBg.fillGradientStyle(0xf87171, 0xef4444, 0xdc2626, 0xb91c1c, 0.95);
+      closeBg.lineStyle(2, 0xfca5a5, 1);
+      closeBg.fillRoundedRect(-16, -16, 32, 32, 8);
+      closeBg.strokeRoundedRect(-16, -16, 32, 32, 8);
+    });
+    closeBtn.on("pointerout", () => {
+      this.input.setDefaultCursor('default');
+      this.tweens.add({ targets: closeBtn, scale: 1, duration: 100, ease: 'Power2' });
+      closeBg.clear();
+      closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
+      closeBg.lineStyle(2, 0xfca5a5, 0.8);
+      closeBg.fillRoundedRect(-16, -16, 32, 32, 8);
+      closeBg.strokeRoundedRect(-16, -16, 32, 32, 8);
+    });
+
+    // ===== BUTTONS — 45px from bottom =====
+    const btnY = bottom - 48;
+    const btnWidth = 160;
+    const btnHeight = 50;
+    const btnGap = 20;
+
+    // Confirm button
+    const confirmBtn = this.add.container(-btnWidth/2 - btnGap/2, btnY);
+    const confirmBg = this.add.graphics();
+    confirmBg.fillStyle(0x150E10, 0.9);
+    confirmBg.lineStyle(3, 0x77888C, 0.8);
+    confirmBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+    confirmBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+    const confirmInnerGlow = this.add.graphics();
+    confirmInnerGlow.lineStyle(1, 0x77888C, 0.3);
+    confirmInnerGlow.strokeRoundedRect(-btnWidth/2 + 2, -btnHeight/2 + 2, btnWidth - 4, btnHeight - 4, 10);
+    const confirmText = this.add.text(0, 0, "CONFIRM", {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#77888C",
+      fontStyle: "bold"
+    }).setOrigin(0.5, 0.5);
+    confirmText.setShadow(2, 2, '#000000', 3, false, true);
+    confirmBtn.add([confirmBg, confirmInnerGlow, confirmText]);
+    confirmBtn.setSize(btnWidth, btnHeight);
+    confirmBtn.setInteractive();
     confirmBtn.on("pointerdown", () => {
-      // Clean up dialog
-      overlay.destroy();
-      dialog.destroy();
-      
-      // Proceed with purchase
-      this.proceedWithPurchase(item);
+      this.tweens.add({
+        targets: panel,
+        scale: 0.8,
+        alpha: 0,
+        duration: 200,
+        ease: 'Back.easeIn',
+        onComplete: () => {
+          overlay.destroy();
+          panel.destroy();
+          this.proceedWithPurchase(item);
+        }
+      });
     });
     confirmBtn.on("pointerover", () => {
+      this.input.setDefaultCursor('pointer');
+      this.tweens.add({ targets: confirmBtn, scale: 1.05, duration: 150, ease: 'Power2' });
       confirmBg.clear();
-      confirmBg.fillStyle(0x3ed583, 0.9);
-      confirmBg.fillRoundedRect(-60, -20, 120, 40, 5);
+      confirmBg.fillStyle(0x150E10, 1);
+      confirmBg.lineStyle(3, 0x77888C, 1);
+      confirmBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      confirmBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      confirmText.setColor("#ffffff");
     });
     confirmBtn.on("pointerout", () => {
+      this.input.setDefaultCursor('default');
+      this.tweens.add({ targets: confirmBtn, scale: 1, duration: 150, ease: 'Power2' });
       confirmBg.clear();
-      confirmBg.fillStyle(0x2ed573, 0.9);
-      confirmBg.fillRoundedRect(-60, -20, 120, 40, 5);
+      confirmBg.fillStyle(0x150E10, 0.9);
+      confirmBg.lineStyle(3, 0x77888C, 0.8);
+      confirmBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      confirmBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      confirmText.setColor("#77888C");
     });
-    
+
     // Cancel button
-    const cancelBtn = this.add.container(100, dialogHeight/2 - 40);
+    const cancelBtn = this.add.container(btnWidth/2 + btnGap/2, btnY);
     const cancelBg = this.add.graphics();
-    cancelBg.fillStyle(0xff4757, 0.9);
-    cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
-    const cancelText = this.add.text(0, 0, "Cancel", {
-      fontFamily: "dungeon-mode-inverted",
+    cancelBg.fillStyle(0x150E10, 0.9);
+    cancelBg.lineStyle(3, 0x77888C, 0.8);
+    cancelBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+    cancelBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+    const cancelInnerGlow = this.add.graphics();
+    cancelInnerGlow.lineStyle(1, 0x77888C, 0.3);
+    cancelInnerGlow.strokeRoundedRect(-btnWidth/2 + 2, -btnHeight/2 + 2, btnWidth - 4, btnHeight - 4, 10);
+    const cancelText = this.add.text(0, 0, "CANCEL", {
+      fontFamily: "dungeon-mode",
       fontSize: 18,
-      color: "#ffffff",
-    }).setOrigin(0.5);
-    cancelBtn.add([cancelBg, cancelText]);
-    cancelBtn.setInteractive(new Phaser.Geom.Rectangle(-60, -20, 120, 40), Phaser.Geom.Rectangle.Contains);
-    cancelBtn.on("pointerdown", () => {
-      // Clean up dialog
-      overlay.destroy();
-      dialog.destroy();
-    });
+      color: "#77888C",
+      fontStyle: "bold"
+    }).setOrigin(0.5, 0.5);
+    cancelText.setShadow(2, 2, '#000000', 3, false, true);
+    cancelBtn.add([cancelBg, cancelInnerGlow, cancelText]);
+    cancelBtn.setSize(btnWidth, btnHeight);
+    cancelBtn.setInteractive();
+    cancelBtn.on("pointerdown", () => closePanel());
     cancelBtn.on("pointerover", () => {
+      this.input.setDefaultCursor('pointer');
+      this.tweens.add({ targets: cancelBtn, scale: 1.05, duration: 150, ease: 'Power2' });
       cancelBg.clear();
-      cancelBg.fillStyle(0xff6b81, 0.9);
-      cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
+      cancelBg.fillStyle(0x150E10, 1);
+      cancelBg.lineStyle(3, 0x77888C, 1);
+      cancelBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      cancelBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      cancelText.setColor("#ffffff");
     });
     cancelBtn.on("pointerout", () => {
+      this.input.setDefaultCursor('default');
+      this.tweens.add({ targets: cancelBtn, scale: 1, duration: 150, ease: 'Power2' });
       cancelBg.clear();
-      cancelBg.fillStyle(0xff4757, 0.9);
-      cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
+      cancelBg.fillStyle(0x150E10, 0.9);
+      cancelBg.lineStyle(3, 0x77888C, 0.8);
+      cancelBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      cancelBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      cancelText.setColor("#77888C");
     });
-    
-    dialog.add([dialogBg, title, itemName, ...priceElements, confirmBtn, cancelBtn]);
+
+    // Assemble the panel
+    panel.add([
+      panelShadow, panelBg, innerHighlight, headerBg, iconBg, itemIcon,
+      nameText, confirmLabel, priceBg, ...priceElements, goldInfo,
+      closeBtn, confirmBtn, cancelBtn
+    ]);
+
+    // Entrance animation
+    panel.setScale(0.8).setAlpha(0);
+    this.tweens.add({
+      targets: panel,
+      scale: 1,
+      alpha: 1,
+      duration: 300,
+      ease: 'Back.easeOut'
+    });
   }
   
   /**
