@@ -3,14 +3,14 @@ import { Scene } from 'phaser';
 /**
  * Creates an elegant progress indicator for the tutorial
  * @param scene - The Phaser scene
- * @param currentPhase - Current phase number (1-11)
- * @param totalPhases - Total number of phases (11)
+ * @param currentPhase - Current phase number (1-9)
+ * @param totalPhases - Total number of phases (9)
  * @returns A container with the progress indicator
  */
 export function createProgressIndicator(
     scene: Scene, 
     currentPhase: number, 
-    totalPhases: number = 11
+    totalPhases: number = 9
 ): Phaser.GameObjects.Container {
     const { width } = scene.cameras.main;
     const container = scene.add.container(width / 2, 50);
@@ -19,13 +19,18 @@ export function createProgressIndicator(
     const barWidth = 400;
     const barHeight = 8;
     
+    // Dots are placed edge-to-edge with (totalPhases - 1) intervals,
+    // so the progress bar must use the same formula to stay aligned.
+    const dotSpacing = barWidth / (totalPhases - 1);
+    const startX = -barWidth / 2;
+
     const barBg = scene.add.rectangle(0, 0, barWidth, barHeight, 0x556065, 0.3);
     const barBgBorder = scene.add.rectangle(0, 0, barWidth + 4, barHeight + 4, undefined, 0)
         .setStrokeStyle(2, 0x556065, 0.5);
     
-    // Progress fill
-    const progressWidth = (currentPhase / totalPhases) * barWidth;
-    const progressBar = scene.add.rectangle(-barWidth/2, 0, 0, barHeight, 0x77888C)
+    // Progress fill — aligns with dot positions (currentPhase-1 intervals filled)
+    const progressWidth = ((currentPhase - 1) / (totalPhases - 1)) * barWidth;
+    const progressBar = scene.add.rectangle(startX, 0, 0, barHeight, 0x77888C)
         .setOrigin(0, 0.5);
 
     // Animate progress bar fill
@@ -36,10 +41,8 @@ export function createProgressIndicator(
         ease: 'Power2.easeOut'
     });
 
-    // Phase dots
-    const dotContainer = scene.add.container(0, 25);
-    const dotSpacing = barWidth / (totalPhases - 1);
-    const startX = -barWidth / 2;
+    // Phase dots — positioned on the bar from left edge to right edge
+    const dotContainer = scene.add.container(0, 0);
 
     for (let i = 0; i < totalPhases; i++) {
         const x = startX + (i * dotSpacing);
@@ -83,7 +86,7 @@ export function createProgressIndicator(
 export function updateProgressIndicator(
     container: Phaser.GameObjects.Container,
     newPhase: number,
-    totalPhases: number = 11
+    totalPhases: number = 9
 ): void {
     if (!container || !container.active) return;
 
