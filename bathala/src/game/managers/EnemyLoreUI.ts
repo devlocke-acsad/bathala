@@ -2,15 +2,14 @@
  * EnemyLoreUI Manager
  * 
  * Handles the display of enemy lore information in a modal overlay.
- * Self-contained system that only depends on ENEMY_LORE_DATA.
+ * Reads all data from EnemyEntity's lore and combat config (SSOT).
  * 
  * @responsibility Display enemy lore, mythology, abilities, and weaknesses
  * @extracted_from Combat.ts - showEnemyLore(), hideEnemyLore(), createEnemyInfoButton()
  */
 
 import { Scene } from "phaser";
-import { ENEMY_LORE_DATA } from "../../data/lore/EnemyLore";
-import { Enemy } from "../../core/types/CombatTypes";
+import { EnemyEntity } from "../../core/entities/EnemyEntity";
 
 export class EnemyLoreUI {
   private scene: Scene;
@@ -25,7 +24,7 @@ export class EnemyLoreUI {
    * @param y Y position for the info button
    * @param enemy The enemy to display lore for
    */
-  public createInfoButton(x: number, y: number, enemy: Enemy): void {
+  public createInfoButton(x: number, y: number, enemy: EnemyEntity): void {
     // Create a circular button with an "i" for information
     const infoButton = this.scene.add.circle(x + 100, y, 20, 0x2f3542);
     infoButton.setStrokeStyle(2, 0x57606f);
@@ -63,23 +62,29 @@ export class EnemyLoreUI {
   }
 
   /**
-   * Show enemy lore information in a modal overlay
-   * @param enemy The enemy to display lore for
+   * Show enemy lore information in a modal overlay.
+   * All data is read from the EnemyEntity's config (Single Source of Truth).
+   * @param enemy The EnemyEntity to display lore for
    */
-  public showLore(enemy: Enemy): void {
-    // Get the enemy name and convert to lowercase for lookup
-    const enemyName = enemy.name.toLowerCase();
-    
-    // Try to find the matching lore data
-    const loreKey = this.getLoreKeyFromEnemyName(enemyName);
-    
-    // Get lore data
-    const enemyLore = ENEMY_LORE_DATA[loreKey];
-    
-    if (!enemyLore) {
-      console.warn(`No lore found for enemy: ${enemyName}`);
+  public showLore(enemy: EnemyEntity): void {
+    const lore = enemy.lore;
+    if (!lore) {
+      console.warn(`No lore found for enemy: ${enemy.name}`);
       return;
     }
+
+    // Derive abilities from the attack pattern (unique actions)
+    const uniqueActions = [...new Set(enemy.attackPattern)];
+    const abilities = uniqueActions.map(action => this.formatAbilityName(action));
+
+    // Derive weakness/resistance from elemental affinity
+    const weaknessStr = enemy.elementalAffinity?.weakness
+      ? `${this.formatElementName(enemy.elementalAffinity.weakness)}-aligned attacks`
+      : 'No known elemental weakness';
+    const resistanceStr = enemy.elementalAffinity?.resistance
+      ? `Resists ${this.formatElementName(enemy.elementalAffinity.resistance)}-aligned attacks`
+      : '';
+    const weaknessDisplay = resistanceStr ? `${weaknessStr}\n${resistanceStr}` : weaknessStr;
     
     // Get screen dimensions
     const screenWidth = this.scene.cameras.main.width;
@@ -109,7 +114,7 @@ export class EnemyLoreUI {
     const title = this.scene.add.text(
       screenWidth / 2,
       screenHeight / 2 - loreBoxHeight / 2 + 30,
-      enemyLore.name,
+      enemy.name,
       {
         fontFamily: "dungeon-mode",
         fontSize: 28,
@@ -156,7 +161,7 @@ export class EnemyLoreUI {
     const descriptionText = this.scene.add.text(
       screenWidth / 2 - loreBoxWidth / 2 + 20,
       contentY + 30,
-      enemyLore.description,
+      lore.description,
       {
         fontFamily: "dungeon-mode",
         fontSize: 16,
@@ -165,11 +170,11 @@ export class EnemyLoreUI {
       }
     ).setScrollFactor(0).setDepth(6002);
     
-    // Mythology section
+    // Mythology/Origin section
     const mythologyTitle = this.scene.add.text(
       screenWidth / 2 - loreBoxWidth / 2 + 20,
       contentY + 100,
-      "Mythology:",
+      "Origin:",
       {
         fontFamily: "dungeon-mode",
         fontSize: 20,
@@ -180,7 +185,7 @@ export class EnemyLoreUI {
     const mythologyText = this.scene.add.text(
       screenWidth / 2 - loreBoxWidth / 2 + 20,
       contentY + 130,
-      enemyLore.mythology,
+      `${lore.origin}\n${lore.reference}`,
       {
         fontFamily: "dungeon-mode",
         fontSize: 16,
@@ -202,7 +207,7 @@ export class EnemyLoreUI {
     ).setScrollFactor(0).setDepth(6002);
     
     const abilityTexts: Phaser.GameObjects.Text[] = [];
-    enemyLore.abilities.forEach((ability, index) => {
+    abilities.forEach((ability, index) => {
       const abilityText = this.scene.add.text(
         screenWidth / 2 - loreBoxWidth / 2 + 30,
         contentY + 260 + (index * 25),
@@ -220,7 +225,7 @@ export class EnemyLoreUI {
     // Weakness section
     const weaknessTitle = this.scene.add.text(
       screenWidth / 2 - loreBoxWidth / 2 + 20,
-      contentY + 260 + (enemyLore.abilities.length * 25) + 30,
+      contentY + 260 + (abilities.length * 25) + 30,
       "Weakness:",
       {
         fontFamily: "dungeon-mode",
@@ -231,8 +236,8 @@ export class EnemyLoreUI {
     
     const weaknessText = this.scene.add.text(
       screenWidth / 2 - loreBoxWidth / 2 + 30,
-      contentY + 260 + (enemyLore.abilities.length * 25) + 60,
-      enemyLore.weakness,
+      contentY + 260 + (abilities.length * 25) + 60,
+      weaknessDisplay,
       {
         fontFamily: "dungeon-mode",
         fontSize: 16,
@@ -283,40 +288,37 @@ export class EnemyLoreUI {
   }
 
   /**
-   * Get the lore key from enemy name
-   * @param enemyName Lowercase enemy name
-   * @returns The key to use for ENEMY_LORE_DATA lookup
+   * Format a raw attack pattern action into a readable ability name.
    */
-  private getLoreKeyFromEnemyName(enemyName: string): string {
-    // Act 1 Chapter 1: The Corrupted Ancestral Forests
-    // Common Enemies
-    if (enemyName.includes("tikbalang")) {
-      return "tikbalang_scout";
-    } else if (enemyName.includes("balete")) {
-      return "balete_wraith";
-    } else if (enemyName.includes("sigbin")) {
-      return "sigbin_charger";
-    } else if (enemyName.includes("duwende") || enemyName.includes("dwende")) {
-      return "duwende_trickster";
-    } else if (enemyName.includes("tiyanak")) {
-      return "tiyanak_ambusher";
-    } else if (enemyName.includes("amomongo")) {
-      return "amomongo";
-    } else if (enemyName.includes("bungisngis")) {
-      return "bungisngis";
-    }
-    // Elite Enemies
-    else if (enemyName.includes("kapre")) {
-      return "kapre_shade";
-    } else if (enemyName.includes("tawong lipod") || enemyName.includes("tawonglipod")) {
-      return "tawong_lipod";
-    }
-    // Boss
-    else if (enemyName.includes("mangangaway") || enemyName.includes("mangnangaway")) {
-      return "mangangaway";
-    }
-    
-    return "";
+  private formatAbilityName(action: string): string {
+    const actionMap: Record<string, string> = {
+      attack: 'Physical Attack',
+      defend: 'Defensive Stance',
+      strengthen: 'Self-Strengthen',
+      weaken: 'Weaken debuff',
+      poison: 'Poison debuff',
+      stun: 'Stun (Skip turn)',
+      charm: 'Charm (Skip turn)',
+      confuse: 'Confuse (Skip turn)',
+      disrupt_draw: 'Disrupt Draw (Skip turn)',
+      fear: 'Fear (Skip turn)',
+      charge: 'Charge / Prepare',
+      wait: 'Wait / Prepare',
+    };
+    return actionMap[action] || action;
+  }
+
+  /**
+   * Format an element key into a readable name.
+   */
+  private formatElementName(element: string): string {
+    const elementMap: Record<string, string> = {
+      fire: 'Fire (Apoy)',
+      water: 'Water (Tubig)',
+      earth: 'Earth (Lupa)',
+      air: 'Air (Hangin)',
+    };
+    return elementMap[element] || element;
   }
 
   /**

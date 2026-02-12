@@ -2,7 +2,6 @@ import { Scene } from "phaser";
 import {
   CombatState,
   Player,
-  Enemy,
   PlayingCard,
   Suit,
   HandType,
@@ -10,12 +9,42 @@ import {
 } from "../../../core/types/CombatTypes";
 import { DeckManager } from "../../../utils/DeckManager";
 import { HandEvaluator } from "../../../utils/HandEvaluator";
-import { getRelicSpriteKey } from "../../../utils/RelicSpriteUtils";
 import { Combat } from "../Combat";
 import { createButton } from "../../ui/Button";
-import { getEnemyCombatSprite } from "../../../data/enemies/Act1Enemies";
 import { StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
 import { ElementalAffinitySystem } from "../../../core/managers/ElementalAffinitySystem";
+import { EnemyRegistry } from "../../../core/registries/EnemyRegistry";
+
+/**
+ * Helper function to get the sprite key for a relic based on its ID
+ */
+function getRelicSpriteKey(relicId: string): string {
+  // Map relic IDs to sprite keys
+  const spriteMap: Record<string, string> = {
+    'swift_wind_agimat': 'relic_swift_wind_agimat',
+    'amomongo_claw': 'relic_amomongo_claw',
+    'ancestral_blade': 'relic_ancestral_blade',
+    'balete_root': 'relic_balete_root',
+    'babaylans_talisman': 'relic_babaylans_talisman',
+    'bungisngis_grin': 'relic_bungisngis_grin',
+    'diwatas_crown': 'relic_diwatas_crown',
+    'duwende_charm': 'relic_duwende_charm',
+    'earthwardens_plate': 'relic_earthwardens_plate',
+    'ember_fetish': 'relic_ember_fetish',
+    'kapres_cigar': 'relic_kapres_cigar',
+    'lucky_charm': 'relic_lucky_charm',
+    'mangangaway_wand': 'relic_mangangaway_wand',
+    'sarimanok_feather': 'relic_sarimanok_feather',
+    'sigbin_heart': 'relic_sigbin_heart',
+    'stone_golem_heart': 'relic_stone_golem_heart',
+    'tidal_amulet': 'relic_tidal_amulet',
+    'tikbalangs_hoof': 'relic_tikbalangs_hoof',
+    'tiyanak_tear': 'relic_tiyanak_tear',
+    'umalagad_spirit': 'relic_umalagad_spirit'
+  };
+  
+  return spriteMap[relicId] || '';
+}
 
 /**
  * CombatUI - Handles all UI creation, updates, and management for Combat scene
@@ -260,7 +289,7 @@ export class CombatUI {
     const screenHeight = this.scene.cameras.main.height;
     
     const playerX = screenWidth * 0.25;
-    const playerY = screenHeight * 0.4;
+    const playerY = screenHeight * 0.38; // Slightly higher for better balance
 
     // Player sprite (static image - mc_combat.png)
     this.playerSprite = this.scene.add.sprite(playerX, playerY, "combat_player");
@@ -269,21 +298,19 @@ export class CombatUI {
     // Disable texture smoothing for pixel-perfect rendering
     this.playerSprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
 
-    // No animation needed - using static sprite
-
     // Calculate dynamic Y offset based on player sprite's scaled height
     const playerScale = 2;
     const playerSpriteScaledHeight = this.playerSprite.height * playerScale;
-    const playerNameYOffset = playerY - (playerSpriteScaledHeight / 2) - 20; // 20px padding above sprite
-    const playerHealthYOffset = playerY + (playerSpriteScaledHeight / 2) + 20; // 20px padding below sprite
-    const playerBlockYOffset = playerHealthYOffset + 25;
-    const playerStatusYOffset = playerBlockYOffset + 30;
+    const playerNameYOffset = playerY - (playerSpriteScaledHeight / 2) - 25; // 25px padding above sprite
+    const playerHealthYOffset = playerY + (playerSpriteScaledHeight / 2) + 25; // 25px padding below sprite
+    const playerBlockYOffset = playerHealthYOffset + 28;
+    const playerStatusYOffset = playerBlockYOffset + 40; // More space for status effects
 
     // Player name - dynamically positioned above sprite
     this.scene.add
       .text(playerX, playerNameYOffset, this.scene.getCombatState().player.name, {
         fontFamily: "dungeon-mode",
-        fontSize: 24,
+        fontSize: 26,
         color: "#77888C",
         align: "center"
       })
@@ -322,7 +349,7 @@ export class CombatUI {
     const screenHeight = this.scene.cameras.main.height;
     
     const enemyX = screenWidth * 0.75;
-    const enemyY = screenHeight * 0.4;
+    const enemyY = screenHeight * 0.38; // Match player Y for symmetry
     
     const combatState = this.scene.getCombatState();
     const enemyName = combatState.enemy.name;
@@ -349,12 +376,12 @@ export class CombatUI {
     const scale = Math.min(targetWidth / sprite.width, targetHeight / sprite.height);
     sprite.setScale(scale);
 
-    // Calculate dynamic Y offset based on sprite's scaled height
+    // Calculate dynamic Y offset based on sprite's scaled height - match player UI spacing
     const spriteScaledHeight = sprite.height * scale;
-    const nameYOffset = enemyY - (spriteScaledHeight / 2) - 20; // 20px padding above sprite
-    const healthYOffset = enemyY + (spriteScaledHeight / 2) + 20; // 20px padding below sprite
-    const blockYOffset = healthYOffset + 25;
-    const statusYOffset = blockYOffset + 30;
+    const nameYOffset = enemyY - (spriteScaledHeight / 2) - 25; // Match player 25px
+    const healthYOffset = enemyY + (spriteScaledHeight / 2) + 25; // Match player 25px
+    const blockYOffset = healthYOffset + 28;
+    const statusYOffset = blockYOffset + 40; // Match player 40px for status effects
 
     // Enemy name - dynamically positioned above sprite
     this.scene.add
@@ -386,14 +413,14 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Intent display - now visible with status effect support
+    // Intent display - positioned below status effects with proper spacing
     this.enemyIntentText = this.scene.add
-      .text(enemyX, statusYOffset + 30, "", {
+      .text(enemyX, statusYOffset + 55, "", { // Increased spacing for source icons
         fontFamily: "dungeon-mode",
-        fontSize: 20,
+        fontSize: 18,
         color: "#feca57",
         align: "center",
-        wordWrap: { width: 200 }
+        wordWrap: { width: 220 }
       })
       .setOrigin(0.5)
       .setVisible(true) // Now visible
@@ -566,10 +593,10 @@ export class CombatUI {
   }
   
   /**
-   * Get enemy sprite key based on enemy name
+   * Get enemy sprite key based on enemy name — delegates to centralized sprite map
    */
   private getEnemySpriteKey(enemyName: string): string {
-    return getEnemyCombatSprite(enemyName);
+    return EnemyRegistry.getCombatSprite(enemyName);
   }
   
   /**
@@ -709,14 +736,14 @@ export class CombatUI {
    */
   public createRelicInventory(): void {
     const screenWidth = this.scene.cameras.main.width;
-    this.relicInventory = this.scene.add.container(screenWidth / 2, 80);
+    this.relicInventory = this.scene.add.container(screenWidth / 2, 70); // Moved slightly higher
     this.relicInventory.setVisible(true);
     this.currentRelicTooltip = null;
     
-    console.log("Creating relic inventory container at:", screenWidth / 2, 80);
+    console.log("Creating relic inventory container at:", screenWidth / 2, 70);
     
-    const inventoryWidth = 640;
-    const inventoryHeight = 120;
+    const inventoryWidth = 580; // Slightly narrower for cleaner look
+    const inventoryHeight = 100; // More compact
     
     // Enhanced Prologue-style double border design
     const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
@@ -735,12 +762,12 @@ export class CombatUI {
       align: "left"
     }).setOrigin(0, 0.5);
     
-    // Grid layout parameters - improved spacing
-    const relicSlotSize = 70;
+    // Grid layout parameters - compact spacing for cleaner look
+    const relicSlotSize = 60; // Slightly smaller slots
     const relicsPerRow = 6;
-    const padding = 12;
+    const padding = 10;
     const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
-    const gridStartY = 8;
+    const gridStartY = 5;
     
     // Create 6 relic slots in a single row
     for (let i = 0; i < relicsPerRow; i++) {
@@ -752,13 +779,13 @@ export class CombatUI {
       const slotContainer = this.scene.add.container(slotX, slotY);
       
       // Outer border (subtle glow effect)
-      const outerBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 4, relicSlotSize + 4, undefined, 0);
-      outerBorder.setStrokeStyle(2, 0x444444, 0.8);
+      const outerSlotBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 4, relicSlotSize + 4, undefined, 0);
+      outerSlotBorder.setStrokeStyle(2, 0x444444, 0.8);
       
       // Inner background (darker for contrast)
       const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x1a1a1a);
       
-      slotContainer.add([bg, outerBorder]);
+      slotContainer.add([bg, outerSlotBorder]);
       (slotContainer as any).isRelicSlot = true;
       (slotContainer as any).slotIndex = i;
       
@@ -1153,13 +1180,16 @@ export class CombatUI {
     this.enemyHealthText.setText(`♥ ${enemy.currentHealth}/${enemy.maxHealth}`);
     this.enemyBlockText.setText(enemy.block > 0 ? `⛨ ${enemy.block}` : "");
     
-    // Display intent with status effect icon and information
-    let intentText = `${enemy.intent.icon} ${enemy.intent.description}`;
+    // PRIORITY 6: Display intent with "Next Turn:" prefix for clarity
+    let intentDescription = `${enemy.intent.icon} ${enemy.intent.description}`;
     
     // Add status effect stack count if it's a buff or debuff
     if ((enemy.intent.type === "buff" || enemy.intent.type === "debuff") && enemy.intent.value > 0) {
-      intentText = `${enemy.intent.icon} ${enemy.intent.description}`;
+      intentDescription = `${enemy.intent.icon} ${enemy.intent.description}`;
     }
+    
+    // Add "Next Turn:" prefix to make it clear this is future action
+    const intentText = `Next Turn: ${intentDescription}`;
     
     this.enemyIntentText.setText(intentText);
     
@@ -1332,8 +1362,9 @@ export class CombatUI {
       return 0;
     });
     
-    // Display each status effect
-    const spacing = 35;
+    // Display each status effect with improved spacing
+    const spacing = 42; // Increased for source icon below
+    const iconRadius = 18; // Slightly larger icons
     const startX = -(sortedEffects.length - 1) * spacing / 2;
     
     sortedEffects.forEach((effect, index) => {
@@ -1342,27 +1373,44 @@ export class CombatUI {
       // Create status effect icon with stack count
       const effectContainer = this.scene.add.container(x, 0);
       
-      // Background circle for the icon
-      const bg = this.scene.add.circle(0, 0, 16, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b, 0.3);
-      const border = this.scene.add.circle(0, 0, 16, undefined, 0).setStrokeStyle(2, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b);
+      // Background circle for the icon - larger and more visible
+      const bg = this.scene.add.circle(0, 0, iconRadius, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b, 0.25);
+      const border = this.scene.add.circle(0, 0, iconRadius, undefined, 0).setStrokeStyle(2.5, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b);
       
-      // Status effect emoji
+      // Status effect emoji - larger and centered
       const icon = this.scene.add.text(0, 0, effect.emoji, {
-        fontSize: '20px',
+        fontSize: '22px',
       }).setOrigin(0.5);
       
-      // Stack count
-      const stackText = this.scene.add.text(12, 12, effect.value.toString(), {
+      // Stack count - positioned at bottom-right corner
+      const stackText = this.scene.add.text(14, 14, effect.value.toString(), {
         fontFamily: "dungeon-mode",
-        fontSize: 14,
+        fontSize: 13,
         color: "#ffffff",
         stroke: "#000000",
         strokeThickness: 3,
       }).setOrigin(0.5);
       
       effectContainer.add([bg, border, icon, stackText]);
+      
+      // Show source relic icon below if available - better aligned
+      if (effect.source && effect.source.type === 'relic') {
+        // Source label container
+        const sourceContainer = this.scene.add.container(0, 28);
+        
+        // Small background for source
+        const sourceBg = this.scene.add.rectangle(0, 0, 26, 18, 0x1a1a1a, 0.8)
+          .setStrokeStyle(1, 0x555555);
+        
+        const sourceIcon = this.scene.add.text(0, 0, effect.source.icon, {
+          fontSize: '12px',
+        }).setOrigin(0.5);
+        
+        sourceContainer.add([sourceBg, sourceIcon]);
+        effectContainer.add(sourceContainer);
+      }
       effectContainer.setInteractive(
-        new Phaser.Geom.Circle(0, 0, 16),
+        new Phaser.Geom.Circle(0, 0, iconRadius),
         Phaser.Geom.Circle.Contains
       );
       
@@ -1370,11 +1418,12 @@ export class CombatUI {
       let tooltip: Phaser.GameObjects.Container | null = null;
       
       effectContainer.on('pointerover', () => {
-        // Create tooltip
-        const tooltipWidth = 200;
-        const tooltipHeight = 80;
+        // Create tooltip - improved sizing
+        const tooltipWidth = 220;
+        const hasSource = effect.source && effect.source.type === 'relic';
+        const tooltipHeight = hasSource ? 110 : 90;
         
-        tooltip = this.scene.add.container(x, 40);
+        tooltip = this.scene.add.container(x, 55);
         
         const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
           .setStrokeStyle(2, 0x77888C);
@@ -1382,19 +1431,31 @@ export class CombatUI {
           .setStrokeStyle(2, 0x77888C);
         const tooltipBg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
         
-        const titleText = this.scene.add.text(0, -20, `${effect.emoji} ${effect.name}`, {
+        const titleText = this.scene.add.text(0, -tooltipHeight/2 + 18, `${effect.emoji} ${effect.name}`, {
           fontFamily: "dungeon-mode",
           fontSize: 16,
           color: effect.type === 'buff' ? "#2ed573" : "#ff6b6b",
           align: "center",
         }).setOrigin(0.5);
         
-        const descText = this.scene.add.text(0, 10, `${effect.description}\nStacks: ${effect.value}`, {
+        // Add source info if available - show relic name
+        let descriptionWithSource = `${effect.description}\nStacks: ${effect.value}`;
+        if (hasSource) {
+          // Format relic ID to display name (e.g., "amomongo_claw" -> "Amomongo Claw")
+          const relicName = effect.source!.id
+            .split('_')
+            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+          descriptionWithSource += `\n\n${effect.source!.icon} From: ${relicName}`;
+        }
+        
+        const descText = this.scene.add.text(0, hasSource ? 10 : 5, descriptionWithSource, {
           fontFamily: "dungeon-mode",
-          fontSize: 12,
+          fontSize: 11,
           color: "#77888C",
           align: "center",
-          wordWrap: { width: tooltipWidth - 20 }
+          wordWrap: { width: tooltipWidth - 20 },
+          lineSpacing: 3
         }).setOrigin(0.5);
         
         tooltip.add([outerBorder, innerBorder, tooltipBg, titleText, descText]);
@@ -1481,12 +1542,12 @@ export class CombatUI {
     console.log("Updating relic inventory. Relics:", relics.length);
     console.log("Relic data:", relics);
     
-    // Grid configuration (matching createRelicInventory)
-    const relicSlotSize = 70;
+    // Grid configuration (matching createRelicInventory - MUST match!)
+    const relicSlotSize = 60; // Match createRelicInventory
     const relicsPerRow = 6;
-    const padding = 12;
+    const padding = 10; // Match createRelicInventory
     const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
-    const gridStartY = 8;
+    const gridStartY = 5; // Match createRelicInventory
     
     // Remove only the relic icons (keep the permanent slot frames)
     this.relicInventory.list.forEach(child => {
@@ -3250,9 +3311,9 @@ export class CombatUI {
       modalContainer.destroy();
     });
     
-    // Modal window dimensions
-    const modalWidth = 450;
-    const modalHeight = 300;
+    // Modal window dimensions - increased height for better text display
+    const modalWidth = 480;
+    const modalHeight = 340;
     
     // Main modal background with Prologue styling
     const modalBg = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, 0x0f0a0b);
@@ -3261,22 +3322,22 @@ export class CombatUI {
     const innerBorder = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, undefined, 0);
     innerBorder.setStrokeStyle(2, 0x77888C, 0.8);
     
-    // Title section with relic icon
-    const titleY = -modalHeight/2 + 40;
-    const relicIcon = this.scene.add.text(-modalWidth/2 + 40, titleY, relic.emoji || "⚙️", {
-      fontSize: 32,
+    // Title section with relic icon - better aligned
+    const titleY = -modalHeight/2 + 45;
+    const relicIcon = this.scene.add.text(-modalWidth/2 + 50, titleY, relic.emoji || "⚙️", {
+      fontSize: 36,
       align: "center"
     }).setOrigin(0.5);
     
-    const relicName = this.scene.add.text(-modalWidth/2 + 80, titleY, relic.name, {
+    const relicName = this.scene.add.text(-modalWidth/2 + 100, titleY, relic.name, {
       fontFamily: "dungeon-mode",
-      fontSize: 18,
+      fontSize: 20,
       color: "#ffd93d",
       align: "left",
-      wordWrap: { width: modalWidth - 180 }
+      wordWrap: { width: modalWidth - 200 }
     }).setOrigin(0, 0.5);
     
-    // Rarity indicator (if available)
+    // Rarity indicator (if available) - better positioned
     let rarityColor = "#77888C";
     let rarityText = "COMMON";
     if (relic.rarity) {
@@ -3287,46 +3348,45 @@ export class CombatUI {
       }
     }
     
-    const rarityLabel = this.scene.add.text(modalWidth/2 - 20, titleY, rarityText, {
+    const rarityLabel = this.scene.add.text(modalWidth/2 - 25, titleY, rarityText, {
       fontFamily: "dungeon-mode",
-      fontSize: 11,
+      fontSize: 12,
       color: rarityColor,
       align: "right"
     }).setOrigin(1, 0.5);
     
-    // Description section
-    const descriptionY = titleY + 60;
+    // Description section - improved positioning
+    const descriptionY = titleY + 50;
     const description = this.scene.add.text(0, descriptionY, relic.description || "A mysterious relic with unknown powers.", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 15,
       color: "#e8eced",
       align: "center",
-      wordWrap: { width: modalWidth - 40 }
+      wordWrap: { width: modalWidth - 60 },
+      lineSpacing: 4
     }).setOrigin(0.5, 0);
     
-    // Effect section (if available)
-    let effectText = "";
-    if (relic.effect) {
-      effectText = this.getRelicEffectDescription(relic);
-    }
+    // Effect section - always show mechanical effect from BALANCED values
+    const effectText = this.getRelicEffectDescription(relic);
     
-    const effectLabel = this.scene.add.text(0, descriptionY + 80, "EFFECT:", {
+    const effectLabel = this.scene.add.text(0, descriptionY + 80, "⚡ EFFECT:", {
       fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#77888C",
+      fontSize: 14,
+      color: "#feca57",
       align: "center"
     }).setOrigin(0.5);
     
-    const effectDescription = this.scene.add.text(0, descriptionY + 100, effectText, {
+    const effectDescription = this.scene.add.text(0, descriptionY + 105, effectText, {
       fontFamily: "dungeon-mode",
-      fontSize: 13,
+      fontSize: 15,
       color: "#4ecdc4",
       align: "center",
-      wordWrap: { width: modalWidth - 40 }
+      wordWrap: { width: modalWidth - 60 },
+      lineSpacing: 5
     }).setOrigin(0.5, 0);
     
-    // Close button
-    const closeButton = this.createCloseButton(modalWidth/2 - 30, -modalHeight/2 + 30);
+    // Close button - better positioned
+    const closeButton = this.createCloseButton(modalWidth/2 - 35, -modalHeight/2 + 35);
     closeButton.on('pointerdown', () => {
       modalContainer.destroy();
     });
@@ -3359,29 +3419,53 @@ export class CombatUI {
   }
   
   /**
-   * Get detailed effect description for relic
+   * Get detailed effect description for relic - uses BALANCED values from RelicManager.ts
    */
   private getRelicEffectDescription(relic: any): string {
-    // Map common relic effects to user-friendly descriptions
-    const effectDescriptions: { [key: string]: string } = {
-      "hand_tier_increase": "Your poker hands are evaluated as one tier higher.",
-      "extra_discard": "Gain +1 discard charge per combat.",
-      "persistent_block": "Start each combat with 5 block.",
-      "lupa_block_bonus": "Gain +2 block when playing Lupa (Earth) cards.",
-      "apoy_damage_bonus": "Deal +3 damage when playing Apoy (Fire) cards.",
-      "tubig_healing": "Heal 2 HP when playing Tubig (Water) cards.",
-      "hangin_draw": "Draw +1 card when playing Hangin (Air) cards.",
-      "five_of_a_kind_unlock": "Enables Five of a Kind poker hands.",
-      "start_with_strength": "Start each combat with 2 Strength.",
-      "burn_immunity": "Immune to Burn status effects."
+    // Map relic IDs to their exact mechanical effects (matching Combat.ts and RelicManager.ts)
+    const effectDescriptions: Record<string, string> = {
+      // === TIER 1: COMBAT START RELICS ===
+      'earthwardens_plate': '+5 Block at combat start, then +1 Block at the start of each turn',
+      'swift_wind_agimat': '+1 Discard charge (4 total). No card draw bonus',
+      'stone_golem_heart': '+8 Max HP permanently. +2 Block at combat start',
+      'diwatas_crown': 'Enables Five of a Kind hands. +5 Block at combat start. All Defend actions gain +3 Block',
+      
+      // === TIER 2: START OF TURN RELICS ===
+      'ember_fetish': '+4 Strength when Block = 0 (risky play), +2 Strength when Block > 0',
+      'tiyanak_tear': '+1 Strength at the start of each turn (stacks over combat)',
+      
+      // === TIER 3: HAND EVALUATION RELICS ===
+      'babaylans_talisman': 'All hands count as one tier higher (Pair → Two Pair, Straight → Flush, etc.)',
+      'ancestral_blade': '+2 Strength when playing a Flush or better',
+      'sarimanok_feather': '+1 Ginto when playing a Straight or better',
+      'lucky_charm': '+1 Ginto when playing a Straight or better',
+      
+      // === TIER 4: CARD PLAY RELICS ===
+      'umalagad_spirit': '+2 Block per card played. All Defend actions gain +4 Block',
+      'balete_root': '+2 Block per Lupa (Earth) card in your played hand',
+      
+      // === TIER 5: ATTACK ACTION RELICS ===
+      'sigbin_heart': 'All Attack actions deal +3 damage',
+      'amomongo_claw': 'Attack actions apply 1 Vulnerable (enemies take +50% damage)',
+      'bungisngis_grin': '+4 damage when attacking enemies with any debuff (Weak, Vulnerable, Burn)',
+      'kapres_cigar': 'First Attack of combat deals double damage (once per combat)',
+      
+      // === TIER 6: DEFEND ACTION RELICS ===
+      'duwende_charm': 'All Defend actions gain +3 Block',
+      
+      // === TIER 7: SPECIAL ACTION RELICS ===
+      'mangangaway_wand': 'All Special actions deal +5 damage',
+      
+      // === TIER 8: PASSIVE RELICS ===
+      'tikbalangs_hoof': '10% chance to completely dodge enemy attacks (1 in 10)',
+      
+      // === TIER 9: END OF TURN RELICS ===
+      'tidal_amulet': 'Heal +1 HP per card in hand at end of turn (max +8 with full hand)'
     };
     
-    if (relic.effect && effectDescriptions[relic.effect]) {
-      return effectDescriptions[relic.effect];
-    }
-    
-    // Fallback to generic description
-    return relic.effect || "This relic provides a powerful passive benefit during combat.";
+    // Use relic.id if available, otherwise try to parse from relic object
+    const relicId = relic.id || relic.name?.toLowerCase().replace(/[\s']/g, '_');
+    return effectDescriptions[relicId] || 'Unknown relic effect';
   }
   
   /**

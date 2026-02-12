@@ -1,17 +1,11 @@
-/**
- * Core Entities Module
- * Runtime entity classes with encapsulated behavior
- * 
- * @module core/entities
- * @description
- * EnemyEntity: Bridges EnemyConfig (static data) → runtime combat enemy with behavior methods
- * PlayerEntity: Wraps Player data with card management, damage, healing, status effect methods
- * 
- * @see EnemyTypes for configuration interfaces
- * @see CombatTypes for runtime data shapes
- */
-
+// Barrel exports — core/entities
+export { GameEntity } from './base/GameEntity';
+export { CombatEntity } from './base/CombatEntity';
 export { EnemyEntity } from './EnemyEntity';
-export type { EnemyScalingOptions, DamageResult, ActionResult } from './EnemyEntity';
+export type { EnemyConfig, EnemyTier, EnemyDialogue, EnemyLore } from './EnemyEntity';
 export { PlayerEntity } from './PlayerEntity';
-export type { PlayerDamageResult } from './PlayerEntity';
+export { ItemEntity } from './items/ItemEntity';
+export { RelicEntity } from './items/RelicEntity';
+export type { RelicConfig, RelicOwner, RelicEffectType, RelicTriggerCondition } from './items/RelicEntity';
+export { PotionEntity } from './items/PotionEntity';
+export type { PotionConfig, PotionTarget, PotionRarity } from './items/PotionEntity';

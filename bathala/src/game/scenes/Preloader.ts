@@ -1,5 +1,6 @@
 import { Scene, GameObjects } from "phaser";
 import { MusicManager } from "../../core/managers/MusicManager";
+import { bootstrapEnemies } from "../../data/enemies/EnemyBootstrap";
 
 export class Preloader extends Scene {
   progressBar: Phaser.GameObjects.Rectangle;
@@ -302,6 +303,8 @@ export class Preloader extends Scene {
   }
 
   create() {
+    bootstrapEnemies();
+
     // Set pixel-perfect rendering for sprite textures
     if (this.textures.exists("combat_player")) {
       this.textures.get("combat_player").setFilter(Phaser.Textures.FilterMode.NEAREST);

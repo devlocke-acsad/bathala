@@ -1,30 +1,7 @@
 import { Scene } from 'phaser';
 import { MapNode } from '../../core/types/MapTypes';
-import { 
-  TIKBALANG_SCOUT,
-  BALETE_WRAITH,
-  SIGBIN_CHARGER,
-  DUWENDE_TRICKSTER,
-  TIYANAK_AMBUSHER,
-  AMOMONGO,
-  BUNGISNGIS,
-  KAPRE_SHADE,
-  TAWONG_LIPOD,
-  MANGNANGAWAY,
-  getEnemyOverworldSprite
-} from '../../data/enemies/Act1Enemies';
-import { 
-  TIKBALANG_SCOUT_LORE,
-  BALETE_WRAITH_LORE,
-  SIGBIN_CHARGER_LORE,
-  DUWENDE_TRICKSTER_LORE,
-  TIYANAK_AMBUSHER_LORE,
-  AMOMONGO_LORE,
-  BUNGISNGIS_LORE,
-  KAPRE_SHADE_LORE,
-  TAWONG_LIPOD_LORE,
-  MANGNANGAWAY_LORE
-} from '../../data/lore/EnemyLore';
+import { EnemyRegistry } from '../../core/registries/EnemyRegistry';
+import { bootstrapEnemies } from '../../data/enemies/EnemyBootstrap';
 
 /**
  * === DEPTH LAYER CONFIGURATION ===
@@ -36,7 +13,7 @@ const DEPTH = {
 };
 
 /**
- * TooltipSystem
+ * Overworld_TooltipManager
  * 
  * Manages all tooltip display and content for overworld nodes.
  * Handles:
@@ -48,8 +25,9 @@ const DEPTH = {
  * 
  * Design: Centralizes tooltip logic to keep Overworld scene clean
  */
-export class TooltipSystem {
+export class Overworld_TooltipManager {
   private scene: Scene;
+  private enemyRegistryReady: boolean = false;
   
   // Tooltip UI elements
   private tooltipContainer!: Phaser.GameObjects.Container;
@@ -73,12 +51,19 @@ export class TooltipSystem {
     this.scene = scene;
   }
 
+  private ensureEnemyRegistryReady(): void {
+    if (!this.enemyRegistryReady) {
+      bootstrapEnemies();
+      this.enemyRegistryReady = true;
+    }
+  }
+
   /**
    * Initialize the tooltip system
    * Creates all tooltip UI elements
    */
   initialize(): void {
-    console.log("🖱️ TooltipSystem: Initializing tooltip system...");
+    console.log("🖱️ TooltipManager: Initializing tooltip system...");
     
     // Create tooltip container (initially hidden) - FIXED TO CAMERA
     this.tooltipContainer = this.scene.add.container(0, 0).setVisible(false).setDepth(DEPTH.TOOLTIP).setScrollFactor(0).setAlpha(0);
@@ -167,7 +152,7 @@ export class TooltipSystem {
       this.tooltipDescriptionText
     ]);
     
-    console.log("✅ TooltipSystem: Tooltip system initialized successfully");
+    console.log("✅ TooltipManager: Tooltip system initialized successfully");
   }
 
   /**
@@ -175,20 +160,20 @@ export class TooltipSystem {
    */
   showEnemyTooltip(node: MapNode, mouseX?: number, mouseY?: number): void {
     if (!node || !this.tooltipContainer) {
-      console.warn("⚠️ TooltipSystem: Cannot show tooltip - missing node or tooltip not initialized");
+      console.warn("⚠️ TooltipManager: Cannot show tooltip - missing node or tooltip not initialized");
       return;
     }
     
     const enemyInfo = this.getEnemyInfoForNodeType(node.type, node.enemyId);
     if (!enemyInfo) {
-      console.warn("⚠️ TooltipSystem: Cannot show tooltip - no enemy info for type", node.type);
+      console.warn("⚠️ TooltipManager: Cannot show tooltip - no enemy info for type", node.type);
       return;
     }
     
     // Validate all tooltip elements exist
     if (!this.tooltipNameText || !this.tooltipTypeText || !this.tooltipSpriteContainer || 
         !this.tooltipStatsText || !this.tooltipDescriptionText || !this.tooltipBackground) {
-      console.warn("⚠️ TooltipSystem: Cannot show tooltip - tooltip elements not properly initialized");
+      console.warn("⚠️ TooltipManager: Cannot show tooltip - tooltip elements not properly initialized");
       return;
     }
     
@@ -244,13 +229,13 @@ export class TooltipSystem {
    */
   showNodeTooltip(node: MapNode, mouseX: number, mouseY: number): void {
     if (!this.tooltipContainer) {
-      console.warn("⚠️ TooltipSystem: Tooltip container not available");
+      console.warn("⚠️ TooltipManager: Tooltip container not available");
       return;
     }
     
     const nodeInfo = this.getNodeInfoForType(node.type);
     if (!nodeInfo) {
-      console.warn(`⚠️ TooltipSystem: No info available for node type: ${node.type}`);
+      console.warn(`⚠️ TooltipManager: No info available for node type: ${node.type}`);
       return;
     }
     
@@ -433,7 +418,7 @@ export class TooltipSystem {
     const uiScale = 1 / cameraZoom;
     this.tooltipContainer.setScale(uiScale);
     
-    // Calculate offset to compensate for zoom (same formula as FogOfWarSystem)
+    // Calculate offset to compensate for zoom (same formula as FogOfWarManager)
     const offsetX = (screenWidth * (cameraZoom - 1)) / (2 * cameraZoom);
     const offsetY = (screenHeight * (cameraZoom - 1)) / (2 * cameraZoom);
     
@@ -498,96 +483,17 @@ export class TooltipSystem {
     if (!enemyId) {
       return null;
     }
+    this.ensureEnemyRegistryReady();
 
-    // Manually list all Act 1 enemies
-    const allEnemies = [
-      TIKBALANG_SCOUT,
-      BALETE_WRAITH,
-      SIGBIN_CHARGER,
-      DUWENDE_TRICKSTER,
-      TIYANAK_AMBUSHER,
-      AMOMONGO,
-      BUNGISNGIS,
-      KAPRE_SHADE,
-      TAWONG_LIPOD,
-      MANGNANGAWAY
-    ];
-    const enemy = allEnemies.find(e => e.name === enemyId);
+    const enemy = EnemyRegistry.resolve(enemyId);
+    if (!enemy) {
+      return null;
+    }
 
-    if (!enemy) return null;
-
-    // Map enemy names to their detailed information from GDD
-    // Keys use computed property names so they auto-update when creature names change
-    const enemyDetailsMap: { [key: string]: { abilities: string, origin: string, corruption: string } } = {
-      [TIKBALANG_SCOUT.name]: {
-        abilities: "Confuses Targeting • Applies Weak",
-        origin: "Tagalog mountain trickster with backward hooves",
-        corruption: "Once forest protectors, now twisted by engkanto lies to mislead travelers through false paths."
-      },
-      [BALETE_WRAITH.name]: {
-        abilities: "Applies Vulnerable • Gains Strength When Hurt",
-        origin: "Spirit guardian of sacred balete trees",
-        corruption: "Haunting the ancient fig portals to anito realms, corrupted by engkanto deceit into hostile wraiths."
-      },
-      [SIGBIN_CHARGER.name]: {
-        abilities: "High Damage Burst • Strikes Every 3 Turns",
-        origin: "Visayan goat-like creature stealing hearts",
-        corruption: "Once loyal to Bathala, now charges with stolen heart power for the shadow throne."
-      },
-      [DUWENDE_TRICKSTER.name]: {
-        abilities: "Disrupts Card Draw • Steals Block",
-        origin: "Magical goblin granting boons or curses",
-        corruption: "Their fortunes twisted by engkanto whispers, now dealing only misfortune to travelers."
-      },
-      [TIYANAK_AMBUSHER.name]: {
-        abilities: "First Strike Criticals • Applies Fear",
-        origin: "Lost infant spirit mimicking baby cries",
-        corruption: "Demon babies luring victims with wails in the corrupted forest depths."
-      },
-      [AMOMONGO.name]: {
-        abilities: "Bleeding Claws • Fast Attacks",
-        origin: "Visayan ape-like terror with long nails",
-        corruption: "Cave-dwelling beast driven to fury, its nails rending those deemed unworthy."
-      },
-      [BUNGISNGIS.name]: {
-        abilities: "Laugh Debuff • Heavy Swings",
-        origin: "One-eyed laughing giant of Tagalog/Cebuano lore",
-        corruption: "Once jovial, now its laughter masks rage fueled by engkanto's twisted mirth."
-      },
-      [KAPRE_SHADE.name]: {
-        abilities: "AoE Burn Damage • Summons Fire Minions",
-        origin: "Tree giant smoking magical cigars",
-        corruption: "Ancient guardian loyal to Bathala, corrupted into a burning shadow that veils wrath in cigar smoke."
-      },
-      [TAWONG_LIPOD.name]: {
-        abilities: "Invisibility • Stuns • Benefits from Air",
-        origin: "Bikol invisible wind fairy",
-        corruption: "Once harmonious wind beings, now concealed tormentors wielding storms against intruders."
-      },
-      [MANGNANGAWAY.name]: {
-        abilities: "Mimics Elements • Curses Cards • Hex of Reversal",
-        origin: "Tagalog sorcerer with skull necklace",
-        corruption: "Powerful witch casting evil hexes, commanding fates to reverse at their twisted will."
-      }
-    };
-
-    const details = enemyDetailsMap[enemy.name];
-    const loreMap: { [key: string]: any } = {
-      [TIKBALANG_SCOUT.name]: TIKBALANG_SCOUT_LORE,
-      [BALETE_WRAITH.name]: BALETE_WRAITH_LORE,
-      [SIGBIN_CHARGER.name]: SIGBIN_CHARGER_LORE,
-      [DUWENDE_TRICKSTER.name]: DUWENDE_TRICKSTER_LORE,
-      [TIYANAK_AMBUSHER.name]: TIYANAK_AMBUSHER_LORE,
-      [AMOMONGO.name]: AMOMONGO_LORE,
-      [BUNGISNGIS.name]: BUNGISNGIS_LORE,
-      [KAPRE_SHADE.name]: KAPRE_SHADE_LORE,
-      [TAWONG_LIPOD.name]: TAWONG_LIPOD_LORE,
-      [MANGNANGAWAY.name]: MANGNANGAWAY_LORE
-    };
-    
-    const lore = loreMap[enemy.name];
-
-    const spriteKey = getEnemyOverworldSprite(enemy.name);
+    const spriteKey = EnemyRegistry.getOverworldSprite(enemy.id);
+    const abilities = enemy.intent.description || enemy.attackPattern.join(" • ");
+    const origin = enemy.lore.origin;
+    const description = `${enemy.lore.description}\n\n${enemy.dialogue.intro}`;
 
     return {
       name: enemy.name,
@@ -596,9 +502,9 @@ export class TooltipSystem {
       animationKey: null,
       health: enemy.maxHealth,
       damage: enemy.damage,
-      abilities: details?.abilities || "Unknown Abilities",
-      origin: details?.origin || "",
-      description: details ? `${details.origin}\n\n${details.corruption}` : (lore ? lore.description : "A corrupted spirit blocks your path.")
+      abilities,
+      origin,
+      description,
     };
   }
 
@@ -620,3 +526,6 @@ export class TooltipSystem {
     return this.tooltipContainer;
   }
 }
+
+/** Alias for consumers that import by the system name. */
+export { Overworld_TooltipManager as TooltipSystem };

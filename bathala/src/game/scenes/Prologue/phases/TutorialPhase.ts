@@ -2,6 +2,10 @@ import { Scene } from 'phaser';
 import { Player } from '../../../../core/types/CombatTypes';
 import { TutorialUI } from '../ui/TutorialUI';
 import { createButton } from '../../../ui/Button';
+import { EnemyFactory } from '../../../../core/factories/EnemyFactory';
+import { EnemyRegistry } from '../../../../core/registries/EnemyRegistry';
+import { EnemyEntity } from '../../../../core/entities/EnemyEntity';
+import { bootstrapEnemies } from '../../../../data/enemies/EnemyBootstrap';
 
 export abstract class TutorialPhase {
     protected scene: Scene;
@@ -14,6 +18,7 @@ export abstract class TutorialPhase {
     constructor(scene: Scene, tutorialUI: TutorialUI) {
         this.scene = scene;
         this.tutorialUI = tutorialUI;
+        bootstrapEnemies();
         this.container = this.scene.add.container(0, 0);
         this.container.setAlpha(0); // Start hidden for smooth fade-in
         this.player = {
@@ -31,6 +36,21 @@ export abstract class TutorialPhase {
             discardPile: [],
             playedHand: [],
         };
+    }
+
+    /**
+     * Build a tutorial enemy from the class-based enemy registry.
+     * Returns a full EnemyEntity — the Single Source of Truth for enemy data.
+     */
+    protected createTutorialEnemy(enemyId: string, _runtimeId: string): EnemyEntity {
+        return EnemyFactory.create(enemyId);
+    }
+
+    /**
+     * Resolve combat sprite key from the centralized enemy registry.
+     */
+    protected getEnemyCombatSpriteKey(enemyIdOrName: string): string {
+        return EnemyRegistry.getCombatSprite(enemyIdOrName);
     }
 
     public abstract start(): void;

@@ -1,7 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { createButton } from '../../../ui/Button';
-import { TIKBALANG_SCOUT, BALETE_WRAITH, SIGBIN_CHARGER, getEnemyCombatSprite } from '../../../../data/enemies/Act1Enemies';
-import { Enemy, PlayingCard, HandType } from '../../../../core/types/CombatTypes';
+import { PlayingCard, HandType } from '../../../../core/types/CombatTypes';
 import { DeckManager } from '../../../../utils/DeckManager';
 import { HandEvaluator } from '../../../../utils/HandEvaluator';
 import { TutorialPhase } from './TutorialPhase';
@@ -43,12 +42,39 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     start() {
+        // Reset internal state for re-entry (when jumping back to this phase)
+        this.currentSection = 0;
+        this.selectedCards = [];
+        this.playedCards = [];
+        this.playerHP = 100;
+        this.playerBlock = 0;
+        this.combatPhase = 'card_selection';
+        
         this.nextSection();
     }
 
     public shutdown() {
+        // Cancel all pending delayed calls FIRST to prevent stale callbacks
+        this.cancelAllTimers();
+        
+        // Remove all selectCard event listeners
         this.scene.events.off('selectCard');
-        this.container.destroy();
+        
+        // Hide the shared TutorialUI hand container (lives outside phase container)
+        if (this.tutorialUI && this.tutorialUI.handContainer) {
+            this.scene.tweens.killTweensOf(this.tutorialUI.handContainer);
+            this.tutorialUI.handContainer.setVisible(false);
+            this.tutorialUI.handContainer.setAlpha(0);
+        }
+        
+        // Kill all tweens and clean up container children (but don't destroy the container itself)
+        if (this.container && this.container.active) {
+            this.scene.tweens.killTweensOf(this.container);
+            this.container.getAll().forEach((child: any) => {
+                this.scene.tweens.killTweensOf(child);
+            });
+            this.container.removeAll(true);
+        }
     }
 
     private nextSection() {
@@ -103,7 +129,7 @@ export class Phase4_CombatActions extends TutorialPhase {
 
     private showThreeActions() {
         // Progress indicator
-        const progress = createProgressIndicator(this.scene, 4, 8);
+        const progress = createProgressIndicator(this.scene, 4, 9);
         this.container.add(progress);
 
         // Phase header
@@ -131,7 +157,7 @@ export class Phase4_CombatActions extends TutorialPhase {
 
         const dialogue = "Three actions determine combat:\n\nATTACK: Deal damage to enemies\n   Base damage = 10 + Hand Bonus\n\nDEFEND: Gain Block to absorb damage\n   Base block = 5 + Hand Bonus\n\nSPECIAL: Elemental ability\n   Effect varies by dominant element";
 
-        this.scene.time.delayedCall(700, () => {
+        this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
                 const tip = createInfoBox(
                     this.scene,
@@ -140,7 +166,7 @@ export class Phase4_CombatActions extends TutorialPhase {
                 );
                 this.container.add(tip);
 
-                this.scene.time.delayedCall(1800, () => {
+                this.delayedCall(1800, () => {
                     this.scene.tweens.add({
                         targets: [progress, header, dialogueBox, tip],
                         alpha: 0,
@@ -158,7 +184,7 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     private attackPractice() {
-        const enemyData = { ...TIKBALANG_SCOUT, id: 'tutorial_tikbalang' };
+        const enemyData = this.createTutorialEnemy('tikbalang_scout', 'tutorial_tikbalang');
         this.enemyHP = enemyData.currentHealth;
         this.enemyMaxHP = enemyData.maxHealth;
         
@@ -171,7 +197,7 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     private defendPractice() {
-        const enemyData = { ...BALETE_WRAITH, id: 'tutorial_wraith' };
+        const enemyData = this.createTutorialEnemy('balete_wraith', 'tutorial_wraith');
         this.enemyHP = enemyData.currentHealth;
         this.enemyMaxHP = enemyData.maxHealth;
         
@@ -182,7 +208,7 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     private specialPractice() {
-        const enemyData = { ...SIGBIN_CHARGER, id: 'tutorial_sigbin' };
+        const enemyData = this.createTutorialEnemy('sigbin_charger', 'tutorial_sigbin');
         this.enemyHP = enemyData.currentHealth;
         this.enemyMaxHP = enemyData.maxHealth;
         
@@ -215,7 +241,7 @@ export class Phase4_CombatActions extends TutorialPhase {
         );
         this.container.add(header);
 
-        this.scene.time.delayedCall(600, () => {
+        this.delayedCall(600, () => {
             const screenWidth = this.scene.cameras.main.width;
             const screenHeight = this.scene.cameras.main.height;
 
@@ -265,7 +291,7 @@ export class Phase4_CombatActions extends TutorialPhase {
             const enemyX = screenWidth * 0.75;
             const enemyY = screenHeight * 0.4;
             
-            const enemySpriteKey = this.getEnemySpriteKey(enemyData.name);
+            const enemySpriteKey = this.getEnemyCombatSpriteKey(enemyData.name);
             this.enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
             
             // Scale adjustment
@@ -351,10 +377,8 @@ export class Phase4_CombatActions extends TutorialPhase {
             
             // Draw cards - normal draw for all actions
             this.tutorialUI.drawHand(8);
-            console.log('[Phase4] Drew 8 cards, total cards:', this.tutorialUI.handContainer.length);
             
             this.tutorialUI.updateHandDisplay();
-            console.log('[Phase4] Updated hand display, sprites:', this.tutorialUI.cardSprites.length);
 
             // Card selection listener
             const selectCardHandler = (card: PlayingCard) => {
@@ -621,7 +645,7 @@ export class Phase4_CombatActions extends TutorialPhase {
             this.container.add(success);
 
             // Always proceed after delay
-            this.scene.time.delayedCall(2500, () => {
+            this.delayedCall(2500, () => {
                 this.scene.events.off('selectCard', selectCardHandler);
                 this.scene.tweens.add({
                     targets: this.container.getAll(),
@@ -666,7 +690,7 @@ export class Phase4_CombatActions extends TutorialPhase {
             );
             this.container.add(success);
 
-            this.scene.time.delayedCall(2500, () => {
+            this.delayedCall(2500, () => {
                 this.scene.events.off('selectCard', selectCardHandler);
                 this.scene.tweens.add({
                     targets: this.container.getAll(),
@@ -728,7 +752,7 @@ export class Phase4_CombatActions extends TutorialPhase {
             );
             this.container.add(success);
 
-            this.scene.time.delayedCall(3000, () => {
+            this.delayedCall(3000, () => {
                 this.scene.events.off('selectCard', selectCardHandler);
                 this.scene.tweens.add({
                     targets: this.container.getAll(),
@@ -744,10 +768,4 @@ export class Phase4_CombatActions extends TutorialPhase {
         }
     }
 
-    /**
-     * Get enemy sprite key (EXACT as real combat CombatUI.ts)
-     */
-    private getEnemySpriteKey(enemyName: string): string {
-        return getEnemyCombatSprite(enemyName);
-    }
 }

@@ -1,5 +1,5 @@
 import { Scene } from "phaser";
-import { Enemy } from "../../core/types/CombatTypes";
+import { EnemyEntity } from "../../core/entities/EnemyEntity";
 
 /**
  * EnemyDialogueManager
@@ -19,7 +19,7 @@ export class EnemyDialogueManager {
    * @param enemy - The enemy to display dialogue for
    * @param onComplete - Callback when dialogue is dismissed
    */
-  public showBattleStartDialogue(enemy: Enemy, onComplete: () => void): void {
+  public showBattleStartDialogue(enemy: EnemyEntity, onComplete: () => void): void {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
@@ -118,7 +118,7 @@ export class EnemyDialogueManager {
    * Show Prologue-style enemy dialogue at top of screen
    * @param enemy - The enemy to display dialogue for
    */
-  public showEnemyDialogue(enemy: Enemy): void {
+  public showEnemyDialogue(enemy: EnemyEntity): void {
     const screenWidth = this.scene.cameras.main.width;
     
     // Create dialogue container positioned at top like a speech bubble
@@ -142,8 +142,8 @@ export class EnemyDialogueManager {
       }
     ).setOrigin(0, 0).setDepth(5002);
     
-    // Get the appropriate dialogue for this enemy
-    const dialogueText = this.getBattleStartDialogue(enemy.name);
+    // Get the appropriate dialogue from the enemy's config data
+    const dialogueText = this.getBattleStartDialogue(enemy);
     
     // Create enemy dialogue text with Prologue styling
     const enemyDialogueText = this.scene.add.text(
@@ -239,49 +239,24 @@ export class EnemyDialogueManager {
   }
 
   /**
-   * Get short combat intro dialogue based on enemy type
-   * @param enemyName - The name of the enemy
+   * Get short combat intro dialogue from the EnemyEntity's config.
+   * Falls back to a generic line if no dialogue is defined.
+   * @param enemy - The EnemyEntity instance
    * @returns The appropriate dialogue string
    */
-  public getEnemyDialogue(enemyName: string): string {
-    const name = enemyName.toLowerCase();
-    
-    if (name.includes("tikbalang")) return "Lost in my paths, seer? False one's whispers guide!";
-    if (name.includes("balete")) return "Roots entwine your fate!";
-    if (name.includes("sigbin")) return "Charge for shadow throne!";
-    if (name.includes("duwende")) return "Tricks abound in mounds!";
-    if (name.includes("tiyanak")) return "Wails lure to doom!";
-    if (name.includes("amomongo")) return "Nails rend unworthy!";
-    if (name.includes("bungisngis")) return "Laughter masks rage!";
-    if (name.includes("kapre")) return "Smoke veils my wrath!";
-    if (name.includes("tawong lipod")) return "Winds conceal—feel fury!";
-    if (name.includes("mangangaway")) return "Fates reverse at my command!";
-    
-    // Default dialogue
-    return "You have encountered a fearsome creature! Prepare for battle!";
+  public getEnemyDialogue(enemy: EnemyEntity): string {
+    return enemy.dialogue?.intro || "You have encountered a fearsome creature! Prepare for battle!";
   }
 
   /**
-   * Get extended battle start dialogue for the enemy
-   * @param enemyName - The name of the enemy
+   * Get extended battle start dialogue from the EnemyEntity's config.
+   * Uses the intro dialogue — for a longer variant, creature configs can
+   * be extended with an `introExtended` field in the future.
+   * @param enemy - The EnemyEntity instance
    * @returns The appropriate extended dialogue string
    */
-  public getBattleStartDialogue(enemyName: string): string {
-    const name = enemyName.toLowerCase();
-    
-    if (name.includes("tikbalang")) return "Hah! You dare enter my maze of paths? The false god's whispers have made me your obstacle, traveler. But your soul still seeks the light?";
-    if (name.includes("balete")) return "Sacred roots that once blessed Bathala's children now bind your fate! The engkanto's corruption runs deep through my bark!";
-    if (name.includes("sigbin")) return "I charge for the shadow throne! Once I served the divine, but now I serve the false god's dark purposes!";
-    if (name.includes("duwende")) return "Tricks? Oh yes, tricks abound in mounds where the old magic sleeps! But which are blessing and which are curse?";
-    if (name.includes("tiyanak")) return "My innocent wail lures you to doom! Once I was a babe, now I am a warning to the living!";
-    if (name.includes("amomongo")) return "My claws rend the unworthy! The mountain remembers when I only defended its people from true threats!";
-    if (name.includes("bungisngis")) return "Laughter masks the rage within! We were once merry giants, but the false god's corruption changed our song to a cackle of malice!";
-    if (name.includes("kapre")) return "Smoke veils my wrath! From my sacred tree I once watched over the forest paths with honor, not malice!";
-    if (name.includes("tawong lipod")) return "Winds conceal—feel fury! The invisible currents are my domain, and I bring the storm of retribution!";
-    if (name.includes("mangangaway")) return "Fates reverse at my command! I was once a healer of the people, now I am their curse-bearer!";
-    
-    // Default dialogue
-    return "You have encountered a fearsome creature! Prepare for battle!";
+  public getBattleStartDialogue(enemy: EnemyEntity): string {
+    return enemy.dialogue?.intro || "You have encountered a fearsome creature! Prepare for battle!";
   }
 
   /**

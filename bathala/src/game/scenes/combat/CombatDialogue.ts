@@ -1,7 +1,7 @@
 import { Combat } from "../Combat";
 import { CreatureDialogue } from "../../../core/types/CombatTypes";
 import { RELIC_REGISTRY } from "../../../data/relics/Act1Relics";
-import { getEnemyCombatSprite } from "../../../data/enemies/Act1Enemies";
+import { EnemyRegistry } from "../../../core/registries/EnemyRegistry";
 
 /**
  * CombatDialogue - Handles all dialogue display and management for combat
@@ -459,49 +459,22 @@ export class CombatDialogue {
   }
 
   /**
-   * Get enemy-specific dialogue based on enemy type
+   * Get enemy-specific intro dialogue from the EnemyEntity's config data.
+   * Falls back to a generic line if no dialogue is defined.
    */
   private getEnemyDialogue(): string {
     const combatState = this.scene.getCombatState();
-    const enemyKey = combatState.enemy.name.toLowerCase().replace(/\s+/g, '_');
-    
-    const dialogues: Record<string, string> = {
-      tikbalang_scout: "Lost in my paths, seer? The false one's whispers guide you now!",
-      balete_wraith: "These roots remember... before the corruption took hold...",
-      sigbin_charger: "Your heart will feed the shadow throne!",
-      duwende_trickster: "Tricks and trials await the unwary traveler!",
-      tiyanak_ambusher: "Wails echo through these cursed woods... will you join them?",
-      amomongo: "My claws hunger for those who threaten the mountain!",
-      bungisngis: "Ha ha ha! Let's see if you can survive my mirth!",
-      kapre_shade: "Smoke and shadows... the forest remembers its guardians!",
-      tawong_lipod: "The winds carry whispers of your fate, mortal!",
-      mangangaway: "My hexes shall twist your very essence!"
-    };
-    
-    return dialogues[enemyKey] || "Face me, challenger!";
+    const enemy = combatState.enemy;
+    return enemy.dialogue?.intro || "Face me, challenger!";
   }
 
   /**
-   * Get battle start dialogue for specific enemies
+   * Get battle start dialogue from the EnemyEntity's config data.
+   * Uses the same intro dialogue — creature configs can be extended
+   * with `introExtended` in the future for longer versions.
    */
   private getBattleStartDialogue(): string {
-    const combatState = this.scene.getCombatState();
-    const enemyKey = combatState.enemy.name.toLowerCase().replace(/\s+/g, '_');
-    
-    const battleDialogues: Record<string, string> = {
-      tikbalang_scout: "Beware, traveler! My hooves shall lead you astray, just as the false god's lies have twisted these sacred groves!",
-      balete_wraith: "The roots... they whisper of a time before corruption. Now they only know the impostor's dark influence!",
-      sigbin_charger: "Once we served Bathala with hearts of light! Now the shadow demands your essence!",
-      duwende_trickster: "Fortunes change like the wind, mortal. The engkanto's web has caught even spirits like me!",
-      tiyanak_ambusher: "Innocent cries mask twisted souls... the false god's corruption runs deep in these woods!",
-      amomongo: "The mountains weep as their protectors fall to shadow! Will you free me, or join the darkness?",
-      bungisngis: "My laughter once brought joy! Now it echoes with the impostor's malice!",
-      kapre_shade: "In my tree I waited, guardian of paths true. Now only smoke and lies remain!",
-      tawong_lipod: "We danced with the wind in harmony! The false god's whispers turned our grace to fury!",
-      mangangaway: "My curses were once blessings... until the shadow twisted everything!"
-    };
-    
-    return battleDialogues[enemyKey] || this.getEnemyDialogue();
+    return this.getEnemyDialogue();
   }
 
   /**
@@ -514,9 +487,9 @@ export class CombatDialogue {
   }
 
   /**
-   * Get enemy sprite key for dialogue display
+   * Get enemy sprite key for dialogue display — delegates to centralized sprite map
    */
   public getEnemySpriteKey(enemyName: string): string {
-    return getEnemyCombatSprite(enemyName);
+    return EnemyRegistry.getCombatSprite(enemyName);
   }
 }

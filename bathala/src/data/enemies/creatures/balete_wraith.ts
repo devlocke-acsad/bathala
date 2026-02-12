@@ -1,58 +1,44 @@
 /**
- * Balete Wraith - Haunted Tree Spirit
- * 
- * @module BaleteWraith
- * @description Spirit bound to the sacred balete tree
- * 
- * Mythological Source:
- * - Origin: General, haunted figs (Ramos, 1990)
- * - Reference: Aswang Project – Spirit gateways
- * 
- * Lore: Balete trees are believed to be portals to the spirit world,
- * home to various anito (ancestral spirits). The engkanto's corruption
- * has twisted these guardians into vengeful wraiths.
+ * Balete Wraith — Common Act 1 Enemy
+ * Lore: Spectral remnants bound to balete fig trees — ancient spirit portals.
+ * Source: Ramos, 1990; Jocano, 1969; Aswang Project
  */
-
-import { EnemyConfig } from '../../../core/types/EnemyTypes';
+import { EnemyConfig } from '../../../core/entities/EnemyEntity';
 
 export const BALETE_WRAITH: EnemyConfig = {
-  // === Identity ===
   id: 'balete_wraith',
   name: 'Balete Wraith',
   tier: 'common',
   chapter: 1,
-  
+
   // === Combat Stats ===
-  baseHealth: 22,
-  baseDamage: 6,
-  
-  // === Combat Behavior ===
-  attackPatternType: 'berserker',
-  attackPattern: ['attack', 'buff_strength', 'attack', 'attack'],
-  abilities: ['gain_strength_on_vulnerable'],
-  
-  // === Elemental ===
-  elementalWeakness: 'fire',
-  elementalResistance: 'earth',
-  
-  // === Overworld Behavior ===
-  pathingType: 'ambush',
-  detectionRange: 3,
-  activeAtNight: true,
-  activeAtDay: true,
-  
+  maxHealth: 150,
+  damage: 15,
+  attackPattern: ['attack', 'strengthen', 'attack'],
+  elementalAffinity: { weakness: 'air', resistance: 'water' },
+  initialStatusEffects: [
+    { id: 'vulnerable', name: 'Vulnerable', type: 'debuff', value: 1, description: 'Takes 50% more damage from all sources.', emoji: '🛡️💔' },
+  ],
+
   // === Visuals ===
   combatSpriteKey: 'balete_combat',
   overworldSpriteKey: 'balete_overworld',
-  
+
+  // === Intent ===
+  intent: { type: 'attack', value: 15, description: 'Gains Strength', icon: '†' },
+
   // === Dialogue ===
-  dialogueIntro: "Roots entwine your fate!",
-  dialogueDefeat: "Grave... calls...",
-  dialogueSpare: "Mercy reveals: Balete trees are anito portals, haunted by engkanto-twisted spirits.",
-  dialogueSlay: "Strike true—my form feeds impostor!",
-  
+  dialogue: {
+    intro: 'Roots entwine your fate!',
+    defeat: 'Grave... calls...',
+    spare: 'Mercy reveals: Balete trees are anito portals, haunted by engkanto-twisted spirits (Jocano, 1969).',
+    slay: 'Strike true—my form feeds impostor!',
+  },
+
   // === Lore ===
-  loreOrigin: "General, haunted figs",
-  loreReference: "Aswang Project – Spirit gateways",
-  loreDescription: "The balete tree (strangler fig) is sacred in Filipino folklore. Its tangled aerial roots are said to house supernatural beings. Cutting down a balete without proper rituals invites misfortune, as the displaced spirits may seek vengeance."
+  lore: {
+    description: "Spectral remnants bound to balete fig trees—ancient spirit portals now warped by the engkanto's lies.",
+    origin: 'General, haunted figs (Ramos, 1990)',
+    reference: 'Aswang Project – Spirit gateways',
+  },
 };

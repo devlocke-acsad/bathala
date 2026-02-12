@@ -2,7 +2,6 @@ import { Scene } from 'phaser';
 import { TutorialPhase } from './TutorialPhase';
 import { showDialogue } from '../ui/Dialogue';
 import { TutorialUI } from '../ui/TutorialUI';
-import { BUNGISNGIS } from '../../../../data/enemies/Act1Enemies';
 import { createButton } from '../../../ui/Button';
 import { HandEvaluator } from '../../../../utils/HandEvaluator';
 import { createPhaseHeader } from '../ui/PhaseHeader';
@@ -73,7 +72,7 @@ export class Phase8_EnemyIntents extends TutorialPhase {
         this.container.add(header);
 
         this.scene.time.delayedCall(600, () => {
-            const enemyData = { ...BUNGISNGIS, id: 'tutorial_bungisngis' };
+            const enemyData = this.createTutorialEnemy('bungisngis', 'tutorial_bungisngis');
             const intentPattern = ['Attack 8', 'Defend', 'Buff'];
             const currentIntent = intentPattern[(this.turn - 1) % intentPattern.length];
 

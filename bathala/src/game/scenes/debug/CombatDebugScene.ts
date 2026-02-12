@@ -1,13 +1,8 @@
 import { Scene } from 'phaser';
-import {
-  ACT1_COMMON_ENEMIES,
-  ACT1_ELITE_ENEMIES,
-  ACT1_BOSS_ENEMIES,
-} from '../../../data/enemies/Act1Enemies';
-import * as Act2Enemies from '../../../data/enemies/Act2Enemies';
-import * as Act3Enemies from '../../../data/enemies/Act3Enemies';
 import { GameState } from '../../../core/managers/GameState';
 import { Chapter } from '../../../core/types/CombatTypes';
+import { EnemyRegistry } from '../../../core/registries/EnemyRegistry';
+import { bootstrapEnemies } from '../../../data/enemies/EnemyBootstrap';
 
 /**
  * Combat Debug Scene
@@ -27,6 +22,8 @@ export class CombatDebugScene extends Scene {
   }
 
   create(): void {
+    bootstrapEnemies();
+
     // Build enemy list based on current chapter
     this.updateEnemyListForChapter(this.gameState.getCurrentChapter());
 
@@ -45,9 +42,16 @@ export class CombatDebugScene extends Scene {
     switch (chapter) {
       case 1:
         this.enemyList = [
-          ...ACT1_COMMON_ENEMIES.map(e => ({ name: e.name, key: e.name })),
-          ...ACT1_ELITE_ENEMIES.map(e => ({ name: `${e.name} (Elite)`, key: e.name })),
-          ...ACT1_BOSS_ENEMIES.map(e => ({ name: `${e.name} (Boss)`, key: e.name })),
+          { name: 'Tikbalang Scout', key: 'Tikbalang Scout' },
+          { name: 'Balete Wraith', key: 'Balete Wraith' },
+          { name: 'Sigbin Charger', key: 'Sigbin Charger' },
+          { name: 'Duwende Trickster', key: 'Duwende Trickster' },
+          { name: 'Tiyanak Ambusher', key: 'Tiyanak Ambusher' },
+          { name: 'Amomongo', key: 'Amomongo' },
+          { name: 'Bungisngis', key: 'Bungisngis' },
+          { name: 'Kapre Shade (Elite)', key: 'Kapre Shade' },
+          { name: 'Tawong Lipod (Elite)', key: 'Tawong Lipod' },
+          { name: 'Mangangaway (Boss)', key: 'Mangangaway' },
         ];
         break;
       case 2:
@@ -357,44 +361,7 @@ export class CombatDebugScene extends Scene {
   }
 
   private getEnemyData(enemyKey: string): any {
-    const currentChapter = this.gameState.getCurrentChapter();
-    
-    // Map enemy keys to enemy exports based on chapter
-    if (currentChapter === 1) {
-      // Dynamic lookup: searches all Act 1 pools by name (reads from creatures)
-      const allCh1 = [...ACT1_COMMON_ENEMIES, ...ACT1_ELITE_ENEMIES, ...ACT1_BOSS_ENEMIES];
-      return allCh1.find(e => e.name === enemyKey) ?? null;
-    } else if (currentChapter === 2) {
-      const enemyMap: Record<string, any> = {
-        'Sirena Illusionist': Act2Enemies.SIRENA_ILLUSIONIST,
-        'Siyokoy Raider': Act2Enemies.SIYOKOY_RAIDER,
-        'Santelmo Flicker': Act2Enemies.SANTELMO_FLICKER,
-        'Berberoka Lurker': Act2Enemies.BERBEROKA_LURKER,
-        'Magindara Swarm': Act2Enemies.MAGINDARA_SWARM,
-        'Kataw': Act2Enemies.KATAW,
-        'Berbalang': Act2Enemies.BERBALANG,
-        'Sunken Bangkilan': Act2Enemies.SUNKEN_BANGKILAN,
-        'Apoy-Tubig Fury': Act2Enemies.APOY_TUBIG_FURY,
-        'Bakunawa': Act2Enemies.BAKUNAWA,
-      };
-      return enemyMap[enemyKey];
-    } else if (currentChapter === 3) {
-      const enemyMap: Record<string, any> = {
-        'Tigmamanukan Watcher': Act3Enemies.TIGMAMANUKAN_WATCHER,
-        'Diwata Sentinel': Act3Enemies.DIWATA_SENTINEL,
-        'Sarimanok Keeper': Act3Enemies.SARIMANOK_KEEPER,
-        'Bulalakaw Flamewings': Act3Enemies.BULALAKAW_FLAMEWINGS,
-        'Minokawa Harbinger': Act3Enemies.MINOKAWA_HARBINGER,
-        'Alan': Act3Enemies.ALAN,
-        'Ekek': Act3Enemies.EKEK,
-        'Ribung Linti Duo': Act3Enemies.RIBUNG_LINTI_DUO,
-        'Apolaki Godling': Act3Enemies.APOLAKI_GODLING,
-        'False Bathala': Act3Enemies.FALSE_BATHALA,
-      };
-      return enemyMap[enemyKey];
-    }
-    
-    return null;
+    return EnemyRegistry.resolve(enemyKey) ?? null;
   }
 
   private setupKeyboardShortcuts(): void {
@@ -444,6 +411,28 @@ export class CombatDebugScene extends Scene {
     if (this.isVisible) {
       this.updateEnemyList();
     }
+  }
+
+  /**
+   * Public method to show the debug scene
+   */
+  public show(): void {
+    if (!this.container) {
+      console.error('CombatDebugScene: Container not initialized yet');
+      return;
+    }
+    this.isVisible = true;
+    this.container.setVisible(true);
+    this.updateEnemyList();
+  }
+
+  /**
+   * Public method to hide the debug scene
+   */
+  public hide(): void {
+    if (!this.container) return;
+    this.isVisible = false;
+    this.container.setVisible(false);
   }
 
   private startCombatWithEnemy(enemyKey: string): void {

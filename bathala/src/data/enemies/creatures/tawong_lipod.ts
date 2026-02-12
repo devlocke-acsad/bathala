@@ -1,61 +1,44 @@
 /**
- * Tawong Lipod - Invisible Wind Beings
- * 
- * @module TawongLipod
- * @description Invisible spirits that ride the wind
- * 
- * Mythological Source:
- * - Origin: Bikol, wind fairies (Ramos, 1990)
- * - Reference: Aswang Project – Invisible tormentors
- * 
- * Lore: Tawong Lipod (literally "wind people") are invisible beings from
- * Bikolano mythology. They travel on the wind and can cause illness or
- * misfortune to those who offend them. Once harmonious with nature, the
- * engkanto's corruption has made them hostile.
+ * Tawong Lipod — Elite Act 1 Enemy
+ * Lore: Invisible Bikol wind beings who torment travelers.
+ * Source: Ramos, 1990; Samar, 2019; Aswang Project
  */
-
-import { EnemyConfig } from '../../../core/types/EnemyTypes';
+import { EnemyConfig } from '../../../core/entities/EnemyEntity';
 
 export const TAWONG_LIPOD: EnemyConfig = {
-  // === Identity ===
   id: 'tawong_lipod',
-  name: 'Among Lipod',
+  name: 'Tawong Lipod',
   tier: 'elite',
   chapter: 1,
-  
+
   // === Combat Stats ===
-  baseHealth: 60,
-  baseDamage: 10,
-  
-  // === Combat Behavior ===
-  attackPatternType: 'tactical',
-  attackPattern: ['invisible_attack', 'stun', 'attack', 'invisible_attack', 'defend'],
-  abilities: ['invisibility', 'stun_attack', 'air_element_boost'],
-  
-  // === Elemental ===
-  elementalWeakness: 'earth',
-  elementalResistance: 'air',
-  
-  // === Overworld Behavior ===
-  pathingType: 'ambush',
-  detectionRange: 7,
-  activeAtNight: true,
-  activeAtDay: true,
-  speedMultiplier: 1.4,
-  
+  maxHealth: 300,
+  damage: 30,
+  attackPattern: ['stun', 'attack', 'defend'],
+  elementalAffinity: { weakness: 'fire', resistance: 'air' },
+  initialStatusEffects: [
+    { id: 'dexterity', name: 'Dexterity', type: 'buff', value: 2, description: 'Gain +2 block per stack when using Defend actions. Represents the elusive, wind-dancing nature of Tawong Lipod.', emoji: '💨' },
+  ],
+
   // === Visuals ===
   combatSpriteKey: 'tawonglipod_combat',
   overworldSpriteKey: 'tawonglipod_overworld',
-  
+
+  // === Intent ===
+  intent: { type: 'debuff', value: 2, description: 'Stuns, attacks, evades', icon: '💫' },
+
   // === Dialogue ===
-  dialogueIntro: "Winds conceal—feel fury!",
-  dialogueDefeat: "Our veil... tears...",
-  dialogueSpare: "Mercy whispers: Tawong Lipod, invisible Bikol wind beings, once harmonious.",
-  dialogueSlay: "Scatter us—impostor grows!",
-  dialogueHalfHealth: "The winds grow restless...",
-  
+  dialogue: {
+    intro: 'Winds conceal—feel fury!',
+    defeat: 'Our veil... tears...',
+    spare: 'Mercy whispers: Tawong Lipod, invisible Bikol wind beings, once harmonious (Samar, 2019).',
+    slay: 'Scatter us—impostor grows!',
+  },
+
   // === Lore ===
-  loreOrigin: "Bikol, wind fairies",
-  loreReference: "Aswang Project – Invisible tormentors",
-  loreDescription: "In the Bikol region, sudden gusts of wind are attributed to Tawong Lipod passing by. Illnesses without apparent cause, especially when caught outdoors, are blamed on accidentally offending these invisible beings."
+  lore: {
+    description: 'Invisible Bikol wind beings who were once harmonious with nature. Now they torment travelers with unseen assaults.',
+    origin: 'Bikol, wind fairies (Ramos, 1990)',
+    reference: 'Aswang Project – Invisible tormentors',
+  },
 };

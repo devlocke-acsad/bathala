@@ -1,60 +1,41 @@
 /**
- * Amomongo - Cave Ape Creature
- * 
- * @module Amomongo
- * @description Ape-like creature with long claws from Negros
- * 
- * Mythological Source:
- * - Origin: Visayan, cave-dweller (Ramos, 1990)
- * - Reference: Aswang Project – Negros terror
- * 
- * Lore: The Amomongo is a large, ape-like creature said to dwell in caves
- * on the island of Negros. It attacks livestock and occasionally humans,
- * using its long, sharp claws to rend flesh. Some believe it to be the
- * Philippine counterpart to Bigfoot.
+ * Amomongo — Common Act 1 Enemy
+ * Lore: Ape-like creature from Negros with razor-sharp nails.
+ * Source: Ramos, 1990; Samar, 2019; Aswang Project
  */
-
-import { EnemyConfig } from '../../../core/types/EnemyTypes';
+import { EnemyConfig } from '../../../core/entities/EnemyEntity';
 
 export const AMOMONGO: EnemyConfig = {
-  // === Identity ===
   id: 'amomongo',
-  name: 'Among Us',
+  name: 'Amomongo',
   tier: 'common',
   chapter: 1,
-  
+
   // === Combat Stats ===
-  baseHealth: 24,
-  baseDamage: 7,
-  
-  // === Combat Behavior ===
-  attackPatternType: 'aggressive',
-  attackPattern: ['claw_attack', 'claw_attack', 'attack', 'claw_attack'],
-  abilities: ['bleed_on_claw', 'fast_attacks'],
-  
-  // === Elemental ===
-  elementalWeakness: 'fire',
-  elementalResistance: 'earth',
-  
-  // === Overworld Behavior ===
-  pathingType: 'chase',
-  detectionRange: 4,
-  activeAtNight: true,
-  activeAtDay: true,
-  speedMultiplier: 1.3,
-  
+  maxHealth: 160,
+  damage: 15,
+  attackPattern: ['attack', 'attack', 'defend'],
+  elementalAffinity: { weakness: 'air', resistance: 'water' },
+
   // === Visuals ===
   combatSpriteKey: 'amomongo_combat',
   overworldSpriteKey: 'amomongo_overworld',
-  
+
+  // === Intent ===
+  intent: { type: 'attack', value: 15, description: 'Fast attacks then defends', icon: '†' },
+
   // === Dialogue ===
-  dialogueIntro: "Nails rend unworthy!",
-  dialogueDefeat: "My fury... breaks...",
-  dialogueSpare: "Grace spares: Amomongo, ape-like with long nails, attacking livestock.",
-  dialogueSlay: "Crush me—shadow lives on!",
-  
+  dialogue: {
+    intro: 'Nails rend unworthy!',
+    defeat: 'My fury... breaks...',
+    spare: 'Grace spares: Amomongo, ape-like with long nails, attacking livestock (Samar, 2019).',
+    slay: 'Crush me—shadow lives on!',
+  },
+
   // === Lore ===
-  loreOrigin: "Visayan, cave-dweller",
-  loreReference: "Aswang Project – Negros terror",
-  loreDescription: "In 2008, residents of La Castellana, Negros Occidental reported sightings of the Amomongo after livestock were found mutilated. The creature is described as standing over six feet tall, covered in dark fur, with claws capable of tearing through tin roofs."
+  lore: {
+    description: 'An ape-like creature from Negros with razor-sharp nails that attacks livestock and travelers from cave lairs.',
+    origin: 'Visayan, cave-dweller (Ramos, 1990)',
+    reference: 'Aswang Project – Negros terror',
+  },
 };

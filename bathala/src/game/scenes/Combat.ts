@@ -2,7 +2,6 @@ import { Scene } from "phaser";
 import {
   CombatState,
   Player,
-  Enemy,
   PlayingCard,
   Suit,
   CreatureDialogue,
@@ -11,22 +10,14 @@ import {
   HandType,
   StatusEffect,
   CombatEntity,
-  Chapter,
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
 import { DamageCalculator } from "../../utils/DamageCalculator";
 import { GameState } from "../../core/managers/GameState";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
-// === Decoupled Systems ===
 import { EnemySelectionSystem } from "../../systems/combat/EnemySelectionSystem";
-import { ChapterProgressionSystem } from "../../systems/combat/ChapterProgressionSystem";
-import { TurnSystem } from "../../systems/combat/TurnSystem";
-import { CardSelectionSystem } from "../../systems/combat/CardSelectionSystem";
-import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
-import { POKER_HAND_LIST, PokerHandInfo } from "../../data/poker/PokerHandReference";
 import { RelicManager } from "../../core/managers/RelicManager";
-import { RELIC_EFFECTS, hasRelicEffect } from "../../data/relics/Act1Relics";
 import { getRelicById } from "../../data/relics";
 import { commonRelics, eliteRelics, bossRelics } from "../../data/relics/Act1Relics";
 import { EnemyDialogueManager } from "../managers/EnemyDialogueManager";
@@ -37,8 +28,8 @@ import { CombatAnimations } from "./combat/CombatAnimations";
 import { CombatDDA } from "./combat/CombatDDA";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { DifficultyAdjustment } from "../../core/dda/DDATypes";
-
-import { StatusEffectManager, StatusEffectTriggerResult } from "../../core/managers/StatusEffectManager";
+import { MusicManager } from "../../core/managers/MusicManager";
+import { StatusEffectManager } from "../../core/managers/StatusEffectManager";
 import { VisualThemeManager } from "../../core/managers/VisualThemeManager";
 
 /**
@@ -66,11 +57,6 @@ import { VisualThemeManager } from "../../core/managers/VisualThemeManager";
  * @see DamageCalculator for damage/block calculations
  */
 export class Combat extends Scene {
-  // === Decoupled Systems ===
-  private turnSystem!: TurnSystem;
-  private cardSelectionSystem!: CardSelectionSystem;
-  private musicLifecycle!: MusicLifecycleSystem;
-
   public ui!: CombatUI;
   public dialogue!: CombatDialogue;
   public animations!: CombatAnimations;
@@ -127,6 +113,11 @@ export class Combat extends Scene {
   private lastUIUpdateTime: number = 0;
   private readonly UI_UPDATE_THROTTLE_MS: number = 16; // ~60fps
   
+  // PRIORITY 3: Turn flow timing constants
+  private readonly DELAY_AFTER_ACTION = 1500;        // 1.5s after player action
+  private readonly DELAY_ENEMY_TURN = 1500;          // 1.5s for enemy turn
+  private readonly DELAY_SHOW_RESULTS = 1000;        // 1s to show action results
+  
   // DDA tracking
   public dda!: CombatDDA;
   private preCombatDifficultyAdjustment!: DifficultyAdjustment; // Snapshot before combat results processed
@@ -138,6 +129,7 @@ export class Combat extends Scene {
   private relicInventory!: Phaser.GameObjects.Container;
   private currentRelicTooltip!: Phaser.GameObjects.Container | null;
   private pokerHandInfoButton!: Phaser.GameObjects.Container;
+  private music?: Phaser.Sound.BaseSound;
 
   constructor() {
     super({ key: "Combat" });
@@ -274,13 +266,9 @@ export class Combat extends Scene {
     // Initialize combat state
     this.initializeCombat(data.nodeType, data.enemyId);
     
-    // === Start music via MusicLifecycleSystem (replaces boilerplate) ===
-    this.musicLifecycle = new MusicLifecycleSystem(this);
-    this.musicLifecycle.start();
-
-    // === Initialize Turn System ===
-    this.turnSystem = new TurnSystem();
-    this.cardSelectionSystem = new CardSelectionSystem(5);
+    // Start music for Combat scene
+    this.startMusic();
+    this.setupMusicLifecycle();
 
     // Initialize managers
     this.enemyDialogueManager = new EnemyDialogueManager(this);
@@ -481,13 +469,12 @@ export class Combat extends Scene {
     player.drawPile = remainingDeck;
 
     // Get enemy based on specific enemyId if provided, otherwise use node type
-    const enemyData = enemyId 
-      ? this.getSpecificEnemyById(enemyId) 
-      : this.getEnemyForNodeType(nodeType);
-    const enemy: Enemy = {
-      ...enemyData,
-      id: this.generateEnemyId(enemyData.name),
-    };
+    const enemy = enemyId 
+      ? EnemySelectionSystem.getEnemyByName(enemyId, gameState.getCurrentChapter())
+      : EnemySelectionSystem.getEnemyForNodeType(nodeType, gameState.getCurrentChapter());
+
+    // Initialize combat lifecycle on the EnemyEntity
+    enemy.onCombatStart();
 
     this.combatState = {
       phase: "player_turn",
@@ -504,6 +491,7 @@ export class Combat extends Scene {
     this.totalDamageDealt = 0;
     this.bestHandAchieved = "high_card";
     this.isActionProcessing = false;
+    this.specialUsedThisCombat = false; // Reset Special usage for new combat
     
     // Initialize DDA tracking and apply adjustments
     this.dda.initializeDDA();
@@ -516,33 +504,6 @@ export class Combat extends Scene {
     
     // Initialize Kapre's Cigar flag
     this.kapresCigarUsed = false;
-  }
-
-  /**
-   * Get enemy based on node type and current chapter
-   * Delegates to EnemySelectionSystem for chapter-aware selection
-   */
-  private getEnemyForNodeType(nodeType: string): Omit<Enemy, "id"> {
-    const gameState = GameState.getInstance();
-    const currentChapter = gameState.getCurrentChapter();
-    return EnemySelectionSystem.getEnemyForNodeType(nodeType, currentChapter);
-  }
-
-  /**
-   * Get specific enemy by ID (e.g., from overworld direct selection)
-   * Delegates to EnemySelectionSystem for cross-chapter search
-   */
-  private getSpecificEnemyById(enemyId: string): Omit<Enemy, "id"> {
-    const gameState = GameState.getInstance();
-    const currentChapter = gameState.getCurrentChapter();
-    return EnemySelectionSystem.getEnemyByName(enemyId, currentChapter);
-  }
-
-  /**
-   * Generate unique enemy ID
-   */
-  private generateEnemyId(enemyName: string): string {
-    return EnemySelectionSystem.generateEnemyId(enemyName);
   }
 
 
@@ -709,9 +670,10 @@ export class Combat extends Scene {
 
       // Create Prologue-style tooltip container
       const tooltipContainer = this.add.container(x, spacing);
-      const tooltipText = `${relic.name}\n${relic.description}`;
-      const tooltipWidth = Math.min(tooltipText.length * 6 + 20, 200);
-      const tooltipHeight = 60;
+      const effectDescription = this.getRelicEffectDescription(relic.id);
+      const tooltipText = `${relic.name}\n${effectDescription}`;
+      const tooltipWidth = Math.min(300, Math.max(200, tooltipText.length * 4));
+      const tooltipHeight = Math.min(120, Math.max(60, tooltipText.split('\n').length * 20 + 20));
       
       // Prologue-style double border design
       const outerBorder = this.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
@@ -1264,13 +1226,18 @@ export class Combat extends Scene {
 
   /**
    * End player turn
+   * 
+   * PRIORITY 4: Status Effect Processing Order
+   * ORDER 1: Status effects (END_OF_TURN) - Reduce stacks, triggers
+   * ORDER 2: Relic effects (END_OF_TURN)
+   * ORDER 3: Transition to enemy turn
    */
   private endPlayerTurn(): void {
-    // Apply end-of-turn relic effects
-    RelicManager.applyEndOfTurnEffects(this.combatState.player);
-    
-    // Process end-of-turn status effects for player
+    // ORDER 1: Status effects FIRST
     this.applyStatusEffects(this.combatState.player, 'end_of_turn');
+    
+    // ORDER 2: Relic effects SECOND
+    RelicManager.applyEndOfTurnEffects(this.combatState.player);
     
     this.combatState.phase = "enemy_turn";
     this.selectedCards = [];
@@ -1278,12 +1245,24 @@ export class Combat extends Scene {
     // Hide damage preview during enemy turn
     this.updateDamagePreview(false);
     
-    // Enemy's turn
+    // ORDER 3: Transition to enemy turn
     this.executeEnemyTurn();
   }
 
   /**
    * Execute enemy turn
+   * 
+   * PRIORITY 4: Status Effect Processing Order
+   * 
+   * ENEMY TURN START:
+   * 1. Check if stunned (skip if true)
+   * 2. Status Effects (START_OF_TURN) - Poison damage
+   * 3. Combat End Check - Enemy may die from Poison
+   * 4. Execute enemy action
+   * 
+   * ENEMY TURN END:
+   * 1. Status Effects (END_OF_TURN) - Reduce stacks
+   * 2. Update enemy intent
    */
   private executeEnemyTurn(): void {
     // Check if enemy is already defeated - if so, don't execute turn
@@ -1292,38 +1271,39 @@ export class Combat extends Scene {
       return;
     }
 
-    // Process start-of-turn status effects for enemy
-    this.applyStatusEffects(this.combatState.enemy, 'start_of_turn');
-
     const enemy = this.combatState.enemy;
 
-    // Double-check enemy health after status effects
-    if (enemy.currentHealth <= 0 || this.combatEnded) {
-      console.log("Enemy defeated after status effects, skipping attack");
-      return;
-    }
-
-    // Check if enemy is stunned - if so, skip their turn
+    // ORDER 1: Check if enemy is stunned - skip turn if true
     const isStunned = enemy.statusEffects.some((e) => e.name === "Stunned");
     if (isStunned) {
       console.log("Enemy is stunned, skipping their turn");
       this.showActionResult("Enemy is Stunned - Turn Skipped!");
       
-      // Update enemy intent for next turn
+      // Still process end-of-turn and move to next turn
+      this.applyStatusEffects(enemy, 'end_of_turn');
       this.updateEnemyIntent();
       
-      // Process end-of-turn cleanup for enemy
-      this.applyStatusEffects(enemy, 'end_of_turn');
-      
-      // Start new player turn
-      this.time.delayedCall(1500, () => {
+      this.time.delayedCall(this.DELAY_ENEMY_TURN, () => {
         this.startPlayerTurn();
       });
       return;
     }
+    
+    // ORDER 2: Status effects FIRST
+    this.applyStatusEffects(this.combatState.enemy, 'start_of_turn');
+
+    // ORDER 3: Check if enemy died from status effects
+    if (this.checkCombatEnd()) {
+      return;
+    }
+
+
 
     // Execute enemy action based on attack pattern
     const currentAction = enemy.attackPattern[enemy.currentPatternIndex];
+    
+    // PRIORITY 6: Show what enemy is doing NOW
+    this.showCurrentEnemyAction(currentAction);
     
     if (currentAction === "attack") {
       // Calculate damage with Weak modifier
@@ -1360,10 +1340,10 @@ export class Combat extends Scene {
       this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'weak', 1);
       this.ui.updatePlayerUI();
     } else if (currentAction === "confuse" || currentAction === "disrupt_draw" || currentAction === "fear") {
-      // Enemy applies Weak (represents confusion/disruption)
-      StatusEffectManager.applyStatusEffect(this.combatState.player, 'weak', 1);
-      this.showActionResult(`${enemy.name} disrupts you!`);
-      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'weak', 1);
+      // SIMPLIFIED: All crowd control = Stunned (skip next turn)
+      StatusEffectManager.applyStatusEffect(this.combatState.player, 'stunned', 1);
+      this.showActionResult(`${enemy.name} stuns you! (Turn skipped)`);
+      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'stunned', 1);
       this.ui.updatePlayerUI();
     } else if (currentAction === "charge" || currentAction === "wait") {
       // Enemy prepares or waits (gains block)
@@ -1372,10 +1352,10 @@ export class Combat extends Scene {
       this.showActionResult(`${enemy.name} prepares...`);
       this.ui.updateEnemyUI();
     } else if (currentAction === "stun") {
-      // Enemy applies Frail (represents stun effect)
-      StatusEffectManager.applyStatusEffect(this.combatState.player, 'frail', 2);
-      this.showActionResult(`${enemy.name} stuns you!`);
-      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'frail', 2);
+      // SIMPLIFIED: All crowd control = Stunned (skip next turn)
+      StatusEffectManager.applyStatusEffect(this.combatState.player, 'stunned', 1);
+      this.showActionResult(`${enemy.name} stuns you! (Turn skipped)`);
+      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'stunned', 1);
       this.ui.updatePlayerUI();
     } else {
       // Unhandled action - enemy attacks as fallback
@@ -1388,20 +1368,29 @@ export class Combat extends Scene {
       this.damagePlayer(damage);
     }
 
-    // Process end-of-turn status effects for enemy
+    // ORDER 5: Process end-of-turn status effects for enemy
     this.applyStatusEffects(enemy, 'end_of_turn');
 
-    // Update enemy intent for next turn
+    // ORDER 6: Update enemy intent for next turn
     this.updateEnemyIntent();
 
-    // Start new player turn
-    this.time.delayedCall(1500, () => {
+    // ORDER 7: PRIORITY 3 - Transition to player turn with standardized delay
+    this.time.delayedCall(this.DELAY_ENEMY_TURN, () => {
       this.startPlayerTurn();
     });
   }
 
   /**
    * Start player turn (Balatro style)
+   * 
+   * PRIORITY 4: Status Effect and Relic Execution Order
+   * 
+   * PLAYER TURN START:
+   * 1. Relics (START_OF_TURN) - Earthwarden's Plate, Ember Fetish, etc.
+   * 2. Status Effects (START_OF_TURN) - Poison damage, Regeneration
+   * 3. Combat End Check - Player may die from Poison
+   * 4. Draw cards to hand
+   * 5. Enable player actions
    */
   private startPlayerTurn(): void {
     // Don't start player turn if combat has ended
@@ -1410,12 +1399,29 @@ export class Combat extends Scene {
       return;
     }
 
-    // Process start-of-turn status effects for player
+    // CHECK: If player is stunned, skip their turn
+    const isStunned = this.combatState.player.statusEffects.some((e) => e.name === "Stunned");
+    if (isStunned) {
+      console.log("Player is stunned, skipping their turn");
+      this.showActionResult("You are Stunned - Turn Skipped!");
+      
+      // Process end-of-turn status effects and move to next turn
+      this.applyStatusEffects(this.combatState.player, 'end_of_turn');
+      
+      this.time.delayedCall(this.DELAY_ENEMY_TURN, () => {
+        this.executeEnemyTurn();
+      });
+      return;
+    }
+
+    // ORDER 1: Relic effects FIRST
+    RelicManager.applyStartOfTurnEffects(this.combatState.player);
+    
+    // ORDER 2: Status effects SECOND
     this.applyStatusEffects(this.combatState.player, 'start_of_turn');
 
-    // Check if player died from status effects
-    if (this.combatState.player.currentHealth <= 0 || this.combatEnded) {
-      console.log("Player defeated after status effects");
+    // ORDER 3: Check if player died from status effects
+    if (this.checkCombatEnd()) {
       return;
     }
 
@@ -1462,16 +1468,13 @@ export class Combat extends Scene {
       this.drawCards(cardsNeeded);
     }
 
-    // Batch all UI updates together for better performance
+    // ORDER 4: Batch all UI updates together for better performance
     this.ui.updateHandDisplay();
     this.ui.updatePlayedHandDisplay(); // Clear the played hand display
     this.ui.updateActionButtons(); // Reset to card selection buttons
     this.scheduleUIUpdate(); // Batched update for turn UI and other elements
     
-    // Apply start-of-turn relic effects (handles ALL relics with START_OF_TURN effects)
-    RelicManager.applyStartOfTurnEffects(this.combatState.player);
-    
-    // Ensure action processing is reset
+    // ORDER 5: ALWAYS reset action processing flag and enable actions
     this.isActionProcessing = false;
     this.setActionButtonsEnabled(true);
     
@@ -1565,23 +1568,14 @@ export class Combat extends Scene {
       this.showEnhancedActionResult(message, "#ff6b6b");
     }
 
-
-
-    // Check if enemy is defeated
-    if (this.combatState.enemy.currentHealth <= 0) {
-      this.combatState.enemy.currentHealth = 0;
-      console.log("Enemy defeated!");
-      
+    // PRIORITY 1: Use centralized combat end check
+    if (this.checkCombatEnd()) {
       // Batch UI update instead of immediate call
       this.scheduleUIUpdate();
       
       // Play death animation
       this.animations.animateEnemyDeath();
-      
-      // Use shorter delay for better responsiveness
-      this.time.delayedCall(300, () => {
-        this.endCombat(true);
-      });
+      return;
     }
   }
 
@@ -1631,100 +1625,51 @@ export class Combat extends Scene {
     // Batch UI update instead of immediate call
     this.scheduleUIUpdate();
 
-    // Check if player is defeated
-    if (this.combatState.player.currentHealth <= 0) {
-      this.combatState.player.currentHealth = 0;
-      console.log("Player defeated!");
-      // Use shorter delay and batch UI update
-      this.time.delayedCall(300, () => {
-        this.endCombat(false);
-      });
-    }
+    // PRIORITY 1: Use centralized combat end check
+    this.checkCombatEnd();
   }
 
   /**
-   * Update enemy intent
+   * PRIORITY 1 FIX: Centralize combat end checks
+   * Check if combat should end based on health values
+   * Call this after ANY health change (player or enemy)
+   */
+  private checkCombatEnd(): boolean {
+    // Prevent multiple calls
+    if (this.combatEnded) {
+      return true;
+    }
+    
+    // Check enemy defeated
+    if (this.combatState.enemy.currentHealth <= 0) {
+      this.combatState.enemy.currentHealth = 0;
+      console.log("Enemy defeated - ending combat with victory");
+      this.endCombat(true);
+      return true;
+    }
+    
+    // Check player defeated
+    if (this.combatState.player.currentHealth <= 0) {
+      this.combatState.player.currentHealth = 0;
+      console.log("Player defeated - ending combat with defeat");
+      this.endCombat(false);
+      return true;
+    }
+    
+    return false;
+  }
+
+  /**
+   * PRIORITY 6: Update enemy intent for NEXT turn
+   * This shows what the enemy WILL do next turn (not current action)
+   */
+  /**
+   * Advance enemy to next action in pattern and update intent display.
+   * Delegates entirely to EnemyEntity.advancePattern() — the single
+   * source of truth for intent resolution.
    */
   private updateEnemyIntent(): void {
-    const enemy = this.combatState.enemy;
-    enemy.currentPatternIndex =
-      (enemy.currentPatternIndex + 1) % enemy.attackPattern.length;
-
-    const nextAction = enemy.attackPattern[enemy.currentPatternIndex];
-
-    if (nextAction === "attack") {
-      enemy.intent = {
-        type: "attack",
-        value: enemy.damage,
-        description: `Attacks for ${enemy.damage} damage`,
-        icon: "†",
-      };
-    } else if (nextAction === "defend") {
-      enemy.intent = {
-        type: "defend",
-        value: 5,
-        description: "Gains 5 block",
-        icon: "⛨",
-      };
-      // Block is gained in executeEnemyTurn(), not here (intent only shows what will happen)
-    } else if (nextAction === "strengthen") {
-      // Enemy will apply 2 stacks of Strength to itself
-      enemy.intent = {
-        type: "buff",
-        value: 2,
-        description: "Gains 2 Strength",
-        icon: "💪",
-      };
-    } else if (nextAction === "poison") {
-      // Enemy will apply 2 stacks of Poison to player
-      enemy.intent = {
-        type: "debuff",
-        value: 2,
-        description: "Applies 2 Poison",
-        icon: "☠️",
-      };
-    } else if (nextAction === "weaken") {
-      // Enemy will apply 1 stack of Weak to player
-      enemy.intent = {
-        type: "debuff",
-        value: 1,
-        description: "Applies 1 Weak",
-        icon: "⚠️",
-      };
-    } else if (nextAction === "confuse" || nextAction === "disrupt_draw" || nextAction === "fear") {
-      // Enemy will disrupt/confuse player
-      enemy.intent = {
-        type: "debuff",
-        value: 1,
-        description: "Disrupts (1 Weak)",
-        icon: "😵",
-      };
-    } else if (nextAction === "charge" || nextAction === "wait") {
-      // Enemy will prepare/wait
-      enemy.intent = {
-        type: "defend",
-        value: 3,
-        description: "Prepares (3 block)",
-        icon: "⏳",
-      };
-    } else if (nextAction === "stun") {
-      // Enemy will stun player
-      enemy.intent = {
-        type: "debuff",
-        value: 2,
-        description: "Stuns (2 Frail)",
-        icon: "💫",
-      };
-    } else {
-      // Unknown action - show as attack
-      enemy.intent = {
-        type: "attack",
-        value: enemy.damage,
-        description: `Special Attack (${enemy.damage})`,
-        icon: "†",
-      };
-    }
-
+    this.combatState.enemy.advancePattern();
     this.ui.updateEnemyUI();
   }
 
@@ -1814,16 +1759,17 @@ export class Combat extends Scene {
    * End combat with result
    */
   private endCombat(victory: boolean): void {
-    // Prevent multiple end combat calls
+    // PRIORITY 1 & 2: Prevent multiple end combat calls
     if (this.combatEnded) {
       console.log("Combat already ended, preventing duplicate call");
       return;
     }
     
-    
-    
     this.combatEnded = true;
     this.combatState.phase = "post_combat";
+    
+    // PRIORITY 2: Reset action processing flag (safety)
+    this.isActionProcessing = false;
     
     const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
     const screenHeight = this.cameras.main?.height || this.scale.height || 768;
@@ -2466,27 +2412,27 @@ export class Combat extends Scene {
    * Detects boss defeats and unlocks the next chapter
    * Also resets all progress for the new chapter (fresh start)
    */
-  /**
-   * Handle chapter progression after boss defeat.
-   * Delegates to ChapterProgressionSystem for decoupled boss→chapter mapping.
-   */
   private handleChapterProgression(gameState: GameState): void {
     const currentChapter = gameState.getCurrentChapter();
     const defeatedEnemy = this.combatState.enemy.name;
     
     console.log(`Checking chapter progression: Current chapter ${currentChapter}, defeated ${defeatedEnemy}`);
     
-    const result = ChapterProgressionSystem.checkProgression(defeatedEnemy, currentChapter);
-    
-    if (!result.shouldTransition) return;
-    
-    if (result.isGameComplete) {
-      console.log("🎉 Final boss defeated! Game complete! Triggering epilogue...");
+    // Check if a boss was defeated and unlock next chapter
+    if (defeatedEnemy === "Mangangaway" && currentChapter === 1) {
+      // Act 1 boss defeated - unlock Act 2
+      console.log("🎉 Act 1 boss defeated! Unlocking Chapter 2...");
+      this.performChapterTransitionReset(gameState, 2);
+      console.log("✅ Chapter 2 unlocked and set as current chapter");
+    } else if (defeatedEnemy === "Bakunawa" && currentChapter === 2) {
+      // Act 2 boss defeated - unlock Act 3
+      console.log("🎉 Act 2 boss defeated! Unlocking Chapter 3...");
+      this.performChapterTransitionReset(gameState, 3);
+      console.log("✅ Chapter 3 unlocked and set as current chapter");
+    } else if (defeatedEnemy === "False Bathala" && currentChapter === 3) {
+      // Act 3 boss defeated - game complete! Trigger epilogue
+      console.log("🎉 Act 3 boss defeated! Game complete! Triggering epilogue...");
       this.triggerEpilogue();
-    } else if (result.nextChapter !== null) {
-      console.log(`🎉 Boss defeated! Unlocking Chapter ${result.nextChapter}...`);
-      this.performChapterTransitionReset(gameState, result.nextChapter);
-      console.log(`✅ Chapter ${result.nextChapter} unlocked and set as current chapter`);
     }
   }
 
@@ -2521,7 +2467,7 @@ export class Combat extends Scene {
     
     // 5. Apply visual theme for new chapter
     const themeManager = new VisualThemeManager(this);
-    themeManager.applyChapterTheme(newChapter as Chapter);
+    themeManager.applyChapterTheme(newChapter as 1 | 2 | 3);
     
     console.log(`✅ All resets complete for Chapter ${newChapter}`);
   }
@@ -2570,9 +2516,10 @@ export class Combat extends Scene {
       const defeatedEnemy = this.combatState.enemy.name;
       
       // Check if this is a boss defeat that will trigger chapter progression
-      // Uses ChapterProgressionSystem for decoupled boss→chapter mapping
-      const progression = ChapterProgressionSystem.checkProgression(defeatedEnemy, currentChapter);
-      const isBossDefeatChapterTransition = progression.shouldTransition && !progression.isGameComplete;
+      // If so, we need to handle things differently (fresh start for new chapter)
+      const isBossDefeatChapterTransition = 
+        (defeatedEnemy === "Mangangaway" && currentChapter === 1) ||
+        (defeatedEnemy === "Bakunawa" && currentChapter === 2);
       
       if (isBossDefeatChapterTransition) {
         console.log("🎉 Boss defeated! Triggering chapter transition...");
@@ -2641,9 +2588,9 @@ export class Combat extends Scene {
       // Mark the current node as completed
       gameState.completeCurrentNode(true);
       
-      // Check if this is the final boss (epilogue trigger)
-      if (progression.isGameComplete) {
-        console.log("🎉 Final boss defeated! Game complete! Triggering epilogue...");
+      // Check for False Bathala defeat (epilogue trigger)
+      if (defeatedEnemy === "False Bathala" && currentChapter === 3) {
+        console.log("🎉 Act 3 boss defeated! Game complete! Triggering epilogue...");
         this.triggerEpilogue();
         return;
       }
@@ -2800,8 +2747,65 @@ export class Combat extends Scene {
     return specialActions[suit];
   }
 
+  /**
+   * PRIORITY 5: RELIC TRIGGER POINTS (in order of execution)
+   * Complete reference for ALL relics - reflects ACTUAL implementation in RelicManager.ts
+   * 
+   * 1. START_OF_COMBAT (initializeCombat - one-time setup):
+   *    - Earthwarden's Plate: +5 Block at combat start (BALANCED)
+   *    - Swift Wind Agimat: +1 discard charge (total: 3 base + 1 = 4)
+   *    - Diwata's Crown: +5 Block, +3 Block on all Defend actions, Enables Five of a Kind
+   *    - Stone Golem's Heart: +8 Max HP (permanent), +2 Block at start (BALANCED)
+   *    - Umalagad's Spirit: Enables +2 Block per card played effect
+   * 
+   * 2. HAND_EVALUATION (HandEvaluator - during hand type calculation):
+   *    - Babaylan's Talisman: Hand tier +1 (Pair → Two Pair, Flush → Full House, etc.)
+   *    - Diwata's Crown: Enables Five of a Kind hand type
+   * 
+   * 3. START_OF_TURN (startPlayerTurn - BEFORE status effects):
+   *    - Earthwarden's Plate: +1 Block per turn (BALANCED)
+   *    - Ember Fetish: +4 Strength (if block = 0 - risky) or +2 Strength (if block > 0 - safe) (BALANCED)
+   *    - Tiyanak Tear: +1 Strength per turn (BALANCED - adds ~3 damage with Attack)
+   * 
+   * 4. AFTER_HAND_PLAYED (executeAction - AFTER evaluation, BEFORE damage):
+   *    - Ancestral Blade: +2 Strength on Flush (BALANCED)
+   *    - Sarimanok Feather: +1 Ginto on Straight or better (BALANCED)
+   *    - Lucky Charm: +1 Ginto on Straight or better (BALANCED)
+   *    - Umalagad's Spirit: +2 Block per card played (BALANCED)
+   * 
+   * 5. PASSIVE_COMBAT (executeAction - calculated during damage/block):
+   *    ON ATTACK:
+   *    - Sigbin Heart: +3 damage on all Attack actions (BALANCED)
+   *    - Bungisngis Grin: +4 damage on Attack when enemy has any debuff (BALANCED)
+   *    - Kapre's Cigar: First Attack deals double damage (once per combat)
+   *    - Amomongo Claw: Apply 1 Vulnerable to enemy (after damage dealt) (BALANCED)
+   *    
+   *    ON DEFEND:
+   *    - Balete Root: +2 Block per Lupa (Earth) card in played hand (BALANCED)
+   *    - Duwende Charm: +3 Block on all Defend actions (BALANCED)
+   *    - Umalagad's Spirit: +4 Block on all Defend actions (BALANCED)
+   *    - Diwata's Crown: +3 Block on all Defend actions (from START_OF_COMBAT)
+   *    
+   *    ON SPECIAL:
+   *    - Mangangaway Wand: +5 damage on all Special actions (BALANCED)
+   *    
+   *    ALWAYS ACTIVE:
+   *    - Tikbalang's Hoof: +10% dodge chance on all incoming damage (BALANCED)
+   * 
+   * 6. END_OF_TURN (endPlayerTurn - AFTER status effects):
+   *    - Tidal Amulet: Heal +1 HP per card remaining in hand (max +8 HP with 8 cards) (BALANCED)
+   * 
+   * EXECUTION ORDER WITHIN EACH PHASE:
+   * - START_OF_COMBAT: All relics apply simultaneously at combat initialization
+   * - START_OF_TURN: Relics → Status Effects → Draw Cards → Enable Actions
+   * - ATTACK/DEFEND/SPECIAL: Evaluate Hand → Relics → Calculate Final Values → Apply
+   * - END_OF_TURN: Status Effects → Relics → Next Turn
+   * 
+   * NOTE: "(BALANCED)" indicates values were tuned during balance pass.
+   * These values reflect the actual code implementation, not design documents.
+   */
   public executeAction(actionType: "attack" | "defend" | "special"): void {
-    // Prevent action spamming
+    // PRIORITY 2: Prevent action spamming
     if (this.isActionProcessing) {
       console.log("Action already processing, ignoring input");
       return;
@@ -2814,7 +2818,7 @@ export class Combat extends Scene {
       return;
     }
     
-    // Set processing flag
+    // PRIORITY 2: Set processing flag (will be reset in try-finally or delayed call)
     this.isActionProcessing = true;
     
     // Visually disable action buttons
@@ -2822,6 +2826,7 @@ export class Combat extends Scene {
     
     console.log(`Executing action: ${actionType}`);
     
+    // STEP 1: Evaluate hand
     const evaluation = HandEvaluator.evaluateHand(
       this.combatState.player.playedHand,
       actionType,
@@ -2837,7 +2842,8 @@ export class Combat extends Scene {
       this.bestHandAchieved = evaluation.type;
     }
     
-    // Apply relic effects after playing a hand (handles ALL relics with AFTER_HAND_PLAYED effects)
+    // STEP 2: Apply relic effects AFTER hand evaluation
+    // This handles: Ancestral Blade, Babaylan's Talisman, Balete Root, etc.
     RelicManager.applyAfterHandPlayedEffects(this.combatState.player, this.combatState.player.playedHand, evaluation);
     
     const dominantSuit = this.getDominantSuit(
@@ -2845,11 +2851,9 @@ export class Combat extends Scene {
     );
     console.log(`Dominant suit: ${dominantSuit}`);
 
+    // STEP 3: Calculate base damage/block from evaluation
     let damage = 0;
     let block = 0;
-
-    // New damage calculation is already done in evaluation
-    // evaluation.totalValue now contains the final calculated damage
     
     // Track relic bonuses for detailed display
     const relicBonuses: {name: string, amount: number}[] = [];
@@ -2858,6 +2862,7 @@ export class Combat extends Scene {
       case "attack":
         damage = evaluation.totalValue;
         
+        // STEP 4: Apply passive relic damage bonuses
         // Apply "Sigbin Heart" effect: +5 damage on all Attacks
         const sigbinHeartDamage = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
         if (sigbinHeartDamage > 0) {
@@ -2872,17 +2877,11 @@ export class Combat extends Scene {
           relicBonuses.push({name: "Bungisngis Grin", amount: bungisngisGrinDamage});
         }
         
-        // Apply "Kapre's Cigar" effect: First Attack deals double damage (once per combat)
+        // STEP 5: Apply Kapre's Cigar (first attack only)
         if (RelicManager.shouldApplyKapresCigarDouble(this.combatState.player, this)) {
           damage = damage * 2;
           relicBonuses.push({name: "Kapre's Cigar", amount: damage / 2}); // Show the doubled amount
           this.showActionResult("Kapre's Cigar empowered your strike!");
-        }
-        
-        // Apply "Amomongo Claw" effect: Apply 2 Vulnerable to enemy after damage
-        if (RelicManager.shouldApplyAmomongoVulnerable(this.combatState.player)) {
-          const vulnerableStacks = RelicManager.getAmomongoVulnerableStacks(this.combatState.player);
-          // Will be applied after damage is dealt
         }
         
         console.log(`Total attack damage: ${damage}`);
@@ -2896,6 +2895,7 @@ export class Combat extends Scene {
       case "defend":
         block = evaluation.totalValue;
         
+        // STEP 4: Apply Balete Root (after base calculation)
         // Apply "Balete Root" effect: +2 block per Lupa card
         // This is added as a flat bonus AFTER the main calculation
         const baleteRootBonus = RelicManager.calculateBaleteRootBlock(this.combatState.player, this.combatState.player.playedHand);
@@ -2916,18 +2916,18 @@ export class Combat extends Scene {
         this.specialUsedThisCombat = true;
         this.updateTurnUI();
         
-        // Start cinematic special action animation
+        // PRIORITY 3: Start cinematic special action animation with standardized timing
         this.animations.animateSpecialAction(dominantSuit);
         
         // Execute special action after animation
-        this.time.delayedCall(1500, () => {
+        this.time.delayedCall(this.DELAY_AFTER_ACTION, () => {
           this.showActionResult(this.getSpecialActionName(dominantSuit));
           console.log(`Special action executed: ${this.getSpecialActionName(dominantSuit)}`);
           // Special actions have unique effects based on suit
           this.applyElementalEffects(actionType, dominantSuit, evaluation.totalValue);
           
           // Process enemy turn after animation completes
-          this.time.delayedCall(1000, () => {
+          this.time.delayedCall(this.DELAY_SHOW_RESULTS, () => {
             this.processEnemyTurn();
           });
         });
@@ -2936,19 +2936,24 @@ export class Combat extends Scene {
         return;
     }
 
-    // Apply elemental effects for attack/defend
+    // STEP 6: Apply elemental effects (if Special)
     this.applyElementalEffects(actionType, dominantSuit, evaluation.totalValue);
 
+    // STEP 7: Execute damage/block
     if (damage > 0) {
       console.log(`Animating player attack and dealing ${damage} damage`);
       this.animations.animatePlayerAttack(); // Add animation when attacking
       this.showFloatingDamage(damage); // Show floating damage counter like Prologue
       this.damageEnemy(damage);
       
-      // Apply "Amomongo Claw" effect: Apply 2 Vulnerable after Attack
+      // STEP 8: Apply Amomongo Claw AFTER damage (with source tracking)
       if (actionType === "attack" && RelicManager.shouldApplyAmomongoVulnerable(this.combatState.player)) {
         const vulnerableStacks = RelicManager.getAmomongoVulnerableStacks(this.combatState.player);
-        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'vulnerable', vulnerableStacks);
+        StatusEffectManager.applyStatusEffect(
+          this.combatState.enemy, 
+          'vulnerable', 
+          vulnerableStacks
+        );
         this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'vulnerable', vulnerableStacks);
         this.showActionResult(`Amomongo Claw applied ${vulnerableStacks} Vulnerable!`);
         this.ui.updateEnemyUI();
@@ -2963,12 +2968,60 @@ export class Combat extends Scene {
       // Result already shown above with detailed calculation
     }
     
-    // Process enemy turn after a short delay to allow player to see results
-    this.time.delayedCall(1000, () => {
+    // PRIORITY 2 & 3: Process enemy turn with standardized delay
+    // Note: processing flag will be managed by enemy turn flow
+    this.time.delayedCall(this.DELAY_SHOW_RESULTS, () => {
       this.processEnemyTurn();
     });
   }
   
+  /**
+   * PRIORITY 6: Show current enemy action during enemy turn
+   * This displays what the enemy is doing NOW (not next turn)
+   */
+  private showCurrentEnemyAction(action: string): void {
+    let actionText = "";
+    const enemyName = this.combatState.enemy.name;
+    
+    switch (action) {
+      case "attack":
+        actionText = `${enemyName} attacks!`;
+        break;
+      case "defend":
+        actionText = `${enemyName} defends!`;
+        break;
+      case "strengthen":
+        actionText = `${enemyName} grows stronger!`;
+        break;
+      case "poison":
+        actionText = `${enemyName} poisons you!`;
+        break;
+      case "weaken":
+        actionText = `${enemyName} weakens you!`;
+        break;
+      case "stun":
+      case "charm":
+      case "confuse":
+      case "disrupt_draw":
+      case "fear":
+        // SIMPLIFIED: All CC actions displayed as stun
+        actionText = `${enemyName} stuns you!`;
+        break;
+      case "heal":
+        actionText = `${enemyName} heals!`;
+        break;
+      case "charge":
+      case "wait":
+        actionText = `${enemyName} prepares...`;
+        break;
+      default:
+        actionText = `${enemyName} acts!`;
+        break;
+    }
+    
+    this.showActionResult(actionText);
+  }
+
   /** Process enemy turn - extracted for reuse */
   private processEnemyTurn(): void {
     console.log("Processing enemy turn");
@@ -3502,7 +3555,7 @@ export class Combat extends Scene {
     this.enemySprite.setFlipX(flip);
   }
 
-  private addStatusEffect(entity: Player | Enemy, effect: StatusEffect): void {
+  private addStatusEffect(entity: CombatEntity, effect: StatusEffect): void {
     // Check for relic effects that might prevent or modify status effects
     
     // Status effects are no longer blocked by relics in the simplified system
@@ -3512,7 +3565,7 @@ export class Combat extends Scene {
     this.updateStatusEffectUI(entity);
   }
 
-  private removeStatusEffect(entity: Player | Enemy, effectId: string): void {
+  private removeStatusEffect(entity: CombatEntity, effectId: string): void {
     entity.statusEffects = entity.statusEffects.filter(
       (effect) => effect.id !== effectId
     );
@@ -3521,7 +3574,7 @@ export class Combat extends Scene {
 
 
 
-  private updateStatusEffectUI(entity: Player | Enemy): void {
+  private updateStatusEffectUI(entity: CombatEntity): void {
     // Check if containers are initialized
     if (!this.playerStatusContainer || !this.enemyStatusContainer) {
       console.warn("Status containers not initialized");
@@ -3692,7 +3745,7 @@ export class Combat extends Scene {
     });
   }
 
-  private damage(entity: Player | Enemy, amount: number): void {
+  private damage(entity: CombatEntity, amount: number): void {
     if (entity.id === "player") {
       this.damagePlayer(amount);
     } else {
@@ -3734,7 +3787,7 @@ export class Combat extends Scene {
     }
   }
 
-  private heal(entity: Player | Enemy, amount: number): void {
+  private heal(entity: CombatEntity, amount: number): void {
     entity.currentHealth = Math.min(entity.maxHealth, entity.currentHealth + amount);
     if (entity.id === "player") {
       this.ui.updatePlayerUI();
@@ -3860,6 +3913,56 @@ export class Combat extends Scene {
     return handRanking[handType] / 11; // Normalize to 0-1 scale
   }
   /**
+   * Get accurate relic effect description based on BALANCED values from RelicManager.ts
+   */
+  /**
+   * Get accurate relic effect description from RelicManager.ts BALANCED values
+   * Updated to match exact implementation - all 20 relics verified
+   */
+  private getRelicEffectDescription(relicId: string): string {
+    const effectDescriptions: Record<string, string> = {
+      // === TIER 1: COMBAT START RELICS ===
+      'earthwardens_plate': '+5 Block at combat start, then +1 Block at the start of each turn',
+      'swift_wind_agimat': '+1 Discard charge (4 total). No card draw bonus',
+      'stone_golem_heart': '+8 Max HP permanently. +2 Block at combat start',
+      'diwatas_crown': 'Enables Five of a Kind hands. +5 Block at combat start. All Defend actions gain +3 Block',
+      
+      // === TIER 2: START OF TURN RELICS ===
+      'ember_fetish': '+4 Strength when Block = 0 (risky play), +2 Strength when Block > 0',
+      'tiyanak_tear': '+1 Strength at the start of each turn (stacks over combat)',
+      
+      // === TIER 3: HAND EVALUATION RELICS ===
+      'babaylans_talisman': 'All hands count as one tier higher (Pair → Two Pair, Straight → Flush, etc.)',
+      'ancestral_blade': '+2 Strength when playing a Flush or better',
+      'sarimanok_feather': '+1 Ginto when playing a Straight or better',
+      'lucky_charm': '+1 Ginto when playing a Straight or better',
+      
+      // === TIER 4: CARD PLAY RELICS ===
+      'umalagad_spirit': '+2 Block per card played. All Defend actions gain +4 Block',
+      'balete_root': '+2 Block per Lupa (Earth) card in your played hand',
+      
+      // === TIER 5: ATTACK ACTION RELICS ===
+      'sigbin_heart': 'All Attack actions deal +3 damage',
+      'amomongo_claw': 'Attack actions apply 1 Vulnerable (enemies take +50% damage)',
+      'bungisngis_grin': '+4 damage when attacking enemies with any debuff (Weak, Vulnerable, Burn)',
+      'kapres_cigar': 'First Attack of combat deals double damage (once per combat)',
+      
+      // === TIER 6: DEFEND ACTION RELICS ===
+      'duwende_charm': 'All Defend actions gain +3 Block',
+      
+      // === TIER 7: SPECIAL ACTION RELICS ===
+      'mangangaway_wand': 'All Special actions deal +5 damage',
+      
+      // === TIER 8: PASSIVE RELICS ===
+      'tikbalangs_hoof': '10% chance to completely dodge enemy attacks (1 in 10)',
+      
+      // === TIER 9: END OF TURN RELICS ===
+      'tidal_amulet': 'Heal +1 HP per card in hand at end of turn (max +8 with full hand)'
+    };
+    return effectDescriptions[relicId] || 'Unknown relic effect';
+  }
+
+  /**
    * Show Prologue-style relic tooltip
    */
   private showRelicTooltip(name: string, x: number, y: number): void {
@@ -3957,13 +4060,16 @@ export class Combat extends Scene {
       align: "center"
     }).setOrigin(0.5);
     
-    // Relic description with word wrap
-    const descText = this.add.text(0, -modalHeight/2 + 120, relic.description, {
+    // Relic description with word wrap - show accurate effect
+    const effectDescription = this.getRelicEffectDescription(relic.id);
+    const fullDescription = `${relic.description}\n\n⚡ EFFECT:\n${effectDescription}`;
+    const descText = this.add.text(0, -modalHeight/2 + 120, fullDescription, {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 12,
       color: "#77888C",
       align: "center",
-      wordWrap: { width: modalWidth - 40 }
+      wordWrap: { width: modalWidth - 40 },
+      lineSpacing: 4
     }).setOrigin(0.5);
     
     // Close button with Prologue styling
@@ -4116,12 +4222,102 @@ export class Combat extends Scene {
   }
 
   /**
+   * Start music for Combat scene
+   * Uses MusicManager to get the correct music track and plays it using Phaser's sound API
+   */
+  private startMusic(): void {
+    try {
+      console.log(`🎵 ========== MUSIC START: Combat ==========`);
+      
+      // Stop any existing music first
+      if (this.music) {
+        console.log(`🎵 Combat: Stopping existing music before starting new track`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+
+      // Get music configuration from MusicManager
+      const musicManager = MusicManager.getInstance();
+      const musicConfig = musicManager.getMusicKeyForScene('Combat');
+      
+      if (!musicConfig) {
+        console.warn(`⚠️ Combat: No music configured for Combat scene`);
+        console.log(`🎵 ========== MUSIC START FAILED: Combat (no config) ==========`);
+        return;
+      }
+
+      console.log(`🎵 Combat: Music config found - Key: "${musicConfig.musicKey}", Volume: ${musicConfig.volume}`);
+
+      // Validate that the audio file exists in cache
+      if (!this.cache.audio.exists(musicConfig.musicKey)) {
+        console.error(`❌ Combat: Audio key '${musicConfig.musicKey}' not found in cache - skipping music playback`);
+        console.log(`🎵 ========== MUSIC START FAILED: Combat (not in cache) ==========`);
+        return;
+      }
+
+      // Create and play the music using Phaser's sound API
+      this.music = this.sound.add(musicConfig.musicKey, {
+        volume: musicConfig.volume ?? musicManager.getEffectiveMusicVolume(),
+        loop: true
+      });
+
+      this.music.play();
+      console.log(`✅ Combat: Music '${musicConfig.musicKey}' started successfully`);
+      console.log(`🎵 ========== MUSIC START SUCCESS: Combat ==========`);
+
+    } catch (error) {
+      console.error(`❌ Combat: Error starting music:`, error);
+      console.log(`🎵 ========== MUSIC START ERROR: Combat ==========`);
+      // Continue without music - game should still be playable
+    }
+  }
+
+  /**
+   * Setup music lifecycle listeners
+   * Automatically handles music on scene pause/resume/shutdown
+   */
+  private setupMusicLifecycle(): void {
+    // Stop music when scene is paused (e.g., when another scene is launched on top)
+    this.events.on('pause', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE PAUSE: Combat → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+
+    // Restart music when scene is resumed (e.g., when launched scene stops and this scene becomes active again)
+    this.events.on('resume', () => {
+      console.log(`🎵 ========== SCENE RESUME: Combat → Restarting music ==========`);
+      this.startMusic();
+    });
+
+    // Stop music when scene is shut down (e.g., when scene.start() replaces it)
+    this.events.on('shutdown', () => {
+      if (this.music) {
+        console.log(`🎵 ========== SCENE SHUTDOWN: Combat → Stopping music ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
+    });
+  }
+
+  /**
    * Shutdown method - called when scene is stopped
    * Cleans up music and event listeners
    */
   shutdown(): void {
     try {
-      // Music cleanup is handled automatically by MusicLifecycleSystem's shutdown listener
+      // Stop music when scene shuts down
+      if (this.music) {
+        console.log(`🎵 ========== MUSIC STOP: Combat (shutdown) ==========`);
+        this.music.stop();
+        this.music.destroy();
+        this.music = undefined;
+      }
 
       // Clean up resize listener
       this.scale.off('resize', this.handleResize, this);

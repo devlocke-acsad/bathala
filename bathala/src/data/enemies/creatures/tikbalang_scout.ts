@@ -1,58 +1,41 @@
 /**
- * Tikbalang Scout - Forest Trickster
- * 
- * @module TikbalangScout
- * @description Horse-headed creature that confuses travelers
- * 
- * Mythological Source:
- * - Origin: Tagalog, mountain tricksters (Ramos, 1990)
- * - Reference: Aswang Project – Horse-headed deceivers
- * 
- * Lore: Tikbalang were once forest protectors who guided lost travelers.
- * Now corrupted by the engkanto's lies, they use their backward hooves
- * to mislead those who wander into their domains.
+ * Tikbalang Scout — Common Act 1 Enemy
+ * Lore: Tagalog mountain tricksters with backward hooves, once forest protectors.
+ * Source: Ramos, 1990; Samar, 2019; Aswang Project
  */
-
-import { EnemyConfig } from '../../../core/types/EnemyTypes';
+import { EnemyConfig } from '../../../core/entities/EnemyEntity';
 
 export const TIKBALANG_SCOUT: EnemyConfig = {
-  // === Identity ===
   id: 'tikbalang_scout',
   name: 'Tikbalang Scout',
   tier: 'common',
-  chapter: 1,  // First appearance, but can be used anywhere
-  
+  chapter: 1,
+
   // === Combat Stats ===
-  baseHealth: 28,
-  baseDamage: 8,
-  
-  // === Combat Behavior ===
-  attackPatternType: 'tactical',
-  attackPattern: ['attack', 'confuse', 'attack', 'defend'],
-  abilities: ['confuse_targeting'],
-  
-  // === Elemental ===
-  elementalWeakness: 'fire',
-  elementalResistance: 'air',
-  
-  // === Overworld Behavior ===
-  pathingType: 'wander',
-  detectionRange: 4,
-  activeAtNight: true,
-  activeAtDay: false,
-  
+  maxHealth: 180,
+  damage: 21,
+  attackPattern: ['attack', 'weaken', 'attack'],
+  elementalAffinity: { weakness: 'fire', resistance: 'air' },
+
   // === Visuals ===
   combatSpriteKey: 'tikbalang_combat',
   overworldSpriteKey: 'tikbalang_overworld',
-  
+
+  // === Intent ===
+  intent: { type: 'attack', value: 21, description: 'Attacks and weakens', icon: '†' },
+
   // === Dialogue ===
-  dialogueIntro: "Lost in my paths, seer? False one's whispers guide!",
-  dialogueDefeat: "My tricks... unravel...",
-  dialogueSpare: "Spare me: Tikbalang were forest protectors, now misleading with backward hooves.",
-  dialogueSlay: "End me—my essence feeds shadow!",
-  
+  dialogue: {
+    intro: "Lost in my paths, seer? False one's whispers guide!",
+    defeat: 'My tricks... unravel...',
+    spare: 'Spare me: Tikbalang were forest protectors, now misleading with backward hooves (Ramos, 1990).',
+    slay: 'End me—my essence feeds shadow!',
+  },
+
   // === Lore ===
-  loreOrigin: "Tagalog, mountain tricksters",
-  loreReference: "Aswang Project – Horse-headed deceivers",
-  loreDescription: "Tikbalang are tall, bony creatures with the head and hooves of a horse. They are said to lead travelers astray, causing them to lose their way in the forests and mountains. Wearing one's shirt inside out is believed to protect against their tricks."
+  lore: {
+    description: "Tikbalang are tall, bony humanoids with the head and hooves of a horse. Once protectors of mountain trails, they now confuse travelers with backward hooves under the engkanto's corruption.",
+    origin: 'Tagalog, mountain tricksters (Samar, 2019)',
+    reference: 'Aswang Project – Horse-headed deceivers',
+  },
 };

@@ -2,7 +2,6 @@ import { Scene } from 'phaser';
 import { TutorialPhase } from './TutorialPhase';
 import { showDialogue } from '../ui/Dialogue';
 import { TutorialUI } from '../ui/TutorialUI';
-import { TAWONG_LIPOD, getEnemyCombatSprite } from '../../../../data/enemies/Act1Enemies';
 import { createButton } from '../../../ui/Button';
 import { HandEvaluator } from '../../../../utils/HandEvaluator';
 import { PlayingCard } from '../../../../core/types/CombatTypes';
@@ -124,8 +123,8 @@ export class Phase11_FinalTrial extends TutorialPhase {
         const enemyX = screenWidth * 0.75;
         const enemyY = screenHeight * 0.4;
         
-        const enemyData = { ...TAWONG_LIPOD };
-        const enemySpriteKey = this.getEnemySpriteKey(enemyData.name);
+        const enemyData = this.createTutorialEnemy('tawong_lipod', 'tutorial_tawong_lipod');
+        const enemySpriteKey = this.getEnemyCombatSpriteKey(enemyData.name);
         const enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
         
         // Scale enemy sprite (EXACT as Combat.ts)
@@ -393,10 +392,4 @@ export class Phase11_FinalTrial extends TutorialPhase {
         });
     }
 
-    /**
-     * Get enemy sprite key (same as Phase4_CombatActions and Phase7_Items)
-     */
-    private getEnemySpriteKey(enemyName: string): string {
-        return getEnemyCombatSprite(enemyName);
-    }
 }
