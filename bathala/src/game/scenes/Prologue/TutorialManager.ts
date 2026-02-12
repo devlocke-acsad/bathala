@@ -198,35 +198,39 @@ export class TutorialManager {
             this.scene.cameras.main.height / 2
         );
 
-        const bg = this.scene.add.rectangle(0, 0, 500, 250, 0x150E10, 0.98);
+        const dialogWidth = 560;
+        const dialogHeight = 320;
+
+        const bg = this.scene.add.rectangle(0, 0, dialogWidth, dialogHeight, 0x150E10, 0.98);
         
         // Double border design
-        const outerBorder = this.scene.add.rectangle(0, 0, 508, 258, undefined, 0)
+        const outerBorder = this.scene.add.rectangle(0, 0, dialogWidth + 8, dialogHeight + 8, undefined, 0)
             .setStrokeStyle(3, 0xFF6B35, 0.8);
-        const innerBorder = this.scene.add.rectangle(0, 0, 502, 252, undefined, 0)
+        const innerBorder = this.scene.add.rectangle(0, 0, dialogWidth + 2, dialogHeight + 2, undefined, 0)
             .setStrokeStyle(2, 0x77888C, 0.6);
 
-        const warningText = this.scene.add.text(0, -60, 'Skip Tutorial?', {
+        const warningText = this.scene.add.text(0, -90, 'Skip Tutorial?', {
             fontFamily: 'dungeon-mode',
             fontSize: 32,
             color: '#77888C',
             align: 'center'
         }).setOrigin(0.5);
 
-        const descText = this.scene.add.text(0, -10, 'You will miss important lessons.\nAre you sure you want to skip?', {
+        const descText = this.scene.add.text(0, -25, 'You will miss important lessons.\nAre you sure you want to skip?', {
             fontFamily: 'dungeon-mode',
             fontSize: 18,
             color: '#77888C',
             align: 'center',
-            lineSpacing: 8
+            lineSpacing: 8,
+            wordWrap: { width: dialogWidth - 80 }
         }).setOrigin(0.5).setAlpha(0.8);
 
-        const yesButton = createButton(this.scene, -100, 60, 'Yes, Skip', () => {
+        const yesButton = createButton(this.scene, -120, 80, 'Yes, Skip', () => {
             confirmContainer.destroy();
             this.endTutorial(true);
-        });
+        }, 180);
 
-        const noButton = createButton(this.scene, 100, 60, 'Continue', () => {
+        const noButton = createButton(this.scene, 120, 80, 'Continue', () => {
             this.scene.tweens.add({
                 targets: confirmContainer,
                 alpha: 0,
@@ -235,7 +239,7 @@ export class TutorialManager {
                 ease: 'Power2',
                 onComplete: () => confirmContainer.destroy()
             });
-        });
+        }, 180);
 
         confirmContainer.add([outerBorder, bg, innerBorder, warningText, descText, yesButton, noButton]);
         confirmContainer.setDepth(3000).setAlpha(0).setScale(0.9);
