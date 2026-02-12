@@ -24,6 +24,10 @@ export class TutorialManager {
     private helpButton: GameObjects.Container;
     private particles?: Phaser.GameObjects.Particles.ParticleEmitter;
     private tutorialUI!: TutorialUI;
+    /** True while a phase transition is in progress — blocks new navigation actions */
+    private isTransitioning: boolean = false;
+    /** Pending delayed-call timers for the current transition so they can be cancelled */
+    private pendingTransitionTimers: Phaser.Time.TimerEvent[] = [];
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -160,6 +164,10 @@ export class TutorialManager {
             // Phase11_FinalTrial - Removed (transition directly to game)
         ];
         
+        // Lock navigation during initial fade-in to prevent premature clicks
+        this.isTransitioning = true;
+        this.setNavigationEnabled(false);
+
         // Fade in everything
         this.container.setAlpha(0);
         this.bgContainer.setAlpha(0);
@@ -242,6 +250,14 @@ export class TutorialManager {
     }
 
     private skipCurrentPhase() {
+        // Block if a transition is already in progress
+        if (this.isTransitioning) return;
+        this.isTransitioning = true;
+        this.setNavigationEnabled(false);
+
+        // Cancel any pending transition timers from a previous navigation action
+        this.cancelPendingTransitionTimers();
+
         // Use the standardized cleanup helper (handles shutdown, event listeners, handContainer, etc.)
         this.cleanupCurrentPhase();
         
@@ -277,12 +293,16 @@ export class TutorialManager {
         });
 
         // Move to next phase with proper delay
-        this.scene.time.delayedCall(1000, () => {
+        const timer = this.scene.time.delayedCall(1000, () => {
             this.startNextPhase();
         });
+        this.pendingTransitionTimers.push(timer);
     }
 
     private showPhaseNavigation() {
+        // Block opening the menu while a transition is in progress
+        if (this.isTransitioning) return;
+
         // Create phase navigation menu
         const navContainer = this.scene.add.container(
             this.scene.cameras.main.width / 2,
@@ -387,6 +407,31 @@ export class TutorialManager {
     }
 
     /**
+     * Cancel all pending transition timers to prevent stale phase starts from overlapping.
+     */
+    private cancelPendingTransitionTimers(): void {
+        for (const timer of this.pendingTransitionTimers) {
+            if (timer && !timer.hasDispatched) {
+                timer.remove(false);
+            }
+        }
+        this.pendingTransitionTimers = [];
+    }
+
+    /**
+     * Disable navigation buttons so they can't be pressed during a transition.
+     */
+    private setNavigationEnabled(enabled: boolean): void {
+        const alpha = enabled ? 1 : 0.4;
+        if (this.skipPhaseButton && this.skipPhaseButton.active) {
+            this.skipPhaseButton.setAlpha(alpha);
+        }
+        if (this.helpButton && this.helpButton.active) {
+            this.helpButton.setAlpha(alpha);
+        }
+    }
+
+    /**
      * Properly clean up the currently active phase.
      * Calls phase-specific cleanup methods (shutdown/cleanup) and resets the phase for potential re-entry.
      */
@@ -432,6 +477,14 @@ export class TutorialManager {
     }
 
     private jumpToPhase(phaseIndex: number, navContainer: GameObjects.Container) {
+        // Block if a transition is already in progress
+        if (this.isTransitioning) return;
+        this.isTransitioning = true;
+        this.setNavigationEnabled(false);
+
+        // Cancel any pending transition timers from a previous navigation action
+        this.cancelPendingTransitionTimers();
+
         // Close navigation menu
         this.scene.tweens.add({
             targets: navContainer,
@@ -487,9 +540,10 @@ export class TutorialManager {
         });
 
         // Start the selected phase (skip cleanup in startNextPhase since we already did it)
-        this.scene.time.delayedCall(500, () => {
+        const timer = this.scene.time.delayedCall(500, () => {
             this.startPhaseDirectly();
         });
+        this.pendingTransitionTimers.push(timer);
     }
 
     /**
@@ -497,6 +551,13 @@ export class TutorialManager {
      * and by skipCurrentPhase(). Handles cleanup of the previous phase.
      */
     private startNextPhase() {
+        // Cancel any leftover transition timers before starting a new transition
+        this.cancelPendingTransitionTimers();
+
+        // Mark transition in progress and disable nav buttons
+        this.isTransitioning = true;
+        this.setNavigationEnabled(false);
+
         if (this.currentPhaseIndex < this.phases.length) {
             // Clean up previous phase properly using the standardized cleanup helper
             this.cleanupCurrentPhase();
@@ -507,7 +568,7 @@ export class TutorialManager {
             this.skipPhaseButton.setVisible(true);
             
             // Subtle transition - remove flash, use gentle fade
-            this.scene.time.delayedCall(400, () => {
+            const timer = this.scene.time.delayedCall(400, () => {
                 // Start phase with container at 0 alpha
                 if (phase.container) {
                     phase.container.setAlpha(0);
@@ -516,18 +577,30 @@ export class TutorialManager {
                 phase.start();
                 
                 // Fade in new phase
-                this.scene.time.delayedCall(100, () => {
+                const fadeTimer = this.scene.time.delayedCall(100, () => {
                     if (phase.container && phase.container.active) {
                         this.scene.tweens.add({
                             targets: phase.container,
                             alpha: 1,
                             duration: 500,
-                            ease: 'Power2'
+                            ease: 'Power2',
+                            onComplete: () => {
+                                // Transition finished — unlock navigation
+                                this.isTransitioning = false;
+                                this.setNavigationEnabled(true);
+                            }
                         });
+                    } else {
+                        // Container not active (edge case) — still unlock
+                        this.isTransitioning = false;
+                        this.setNavigationEnabled(true);
                     }
                 });
+                this.pendingTransitionTimers.push(fadeTimer);
             });
+            this.pendingTransitionTimers.push(timer);
         } else {
+            this.isTransitioning = false;
             this.endTutorial();
         }
     }
@@ -544,7 +617,7 @@ export class TutorialManager {
             this.skipPhaseButton.setVisible(true);
             
             // Subtle transition - use gentle fade
-            this.scene.time.delayedCall(400, () => {
+            const timer = this.scene.time.delayedCall(400, () => {
                 // Start phase with container at 0 alpha
                 if (phase.container) {
                     phase.container.setAlpha(0);
@@ -553,18 +626,30 @@ export class TutorialManager {
                 phase.start();
                 
                 // Fade in new phase
-                this.scene.time.delayedCall(100, () => {
+                const fadeTimer = this.scene.time.delayedCall(100, () => {
                     if (phase.container && phase.container.active) {
                         this.scene.tweens.add({
                             targets: phase.container,
                             alpha: 1,
                             duration: 500,
-                            ease: 'Power2'
+                            ease: 'Power2',
+                            onComplete: () => {
+                                // Transition finished — unlock navigation
+                                this.isTransitioning = false;
+                                this.setNavigationEnabled(true);
+                            }
                         });
+                    } else {
+                        // Container not active (edge case) — still unlock
+                        this.isTransitioning = false;
+                        this.setNavigationEnabled(true);
                     }
                 });
+                this.pendingTransitionTimers.push(fadeTimer);
             });
+            this.pendingTransitionTimers.push(timer);
         } else {
+            this.isTransitioning = false;
             this.endTutorial();
         }
     }
