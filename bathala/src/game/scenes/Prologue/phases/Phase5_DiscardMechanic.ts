@@ -13,6 +13,27 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
         super(scene, tutorialUI);
     }
 
+    /**
+     * Clean up event listeners and shared UI when leaving this phase.
+     */
+    public shutdown(): void {
+        this.scene.events.off('selectCard');
+        
+        if (this.tutorialUI && this.tutorialUI.handContainer) {
+            this.scene.tweens.killTweensOf(this.tutorialUI.handContainer);
+            this.tutorialUI.handContainer.setVisible(false);
+            this.tutorialUI.handContainer.setAlpha(0);
+        }
+        
+        if (this.container && this.container.active) {
+            this.scene.tweens.killTweensOf(this.container);
+            this.container.getAll().forEach((child: any) => {
+                this.scene.tweens.killTweensOf(child);
+            });
+            this.container.removeAll(true);
+        }
+    }
+
     public start(): void {
         // Progress indicator
         const progress = createProgressIndicator(this.scene, 5, 9);
@@ -28,6 +49,7 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
 
         // Skip Phase button
         this.createSkipPhaseButton(() => {
+            this.scene.events.off('selectCard');
             this.scene.tweens.add({
                 targets: this.container.getAll(),
                 alpha: 0,
@@ -81,6 +103,10 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
         this.container.add(header);
 
         this.scene.time.delayedCall(600, () => {
+            // Clear any stale state from previous phases
+            this.scene.events.off('selectCard'); // Remove old listeners to prevent stacking
+            this.tutorialUI.selectedCards = []; // Clear stale selections
+
             this.tutorialUI.drawHand(0);
             const weakHand: PlayingCard[] = [
                 { id: '1-Apoy', rank: '1', suit: 'Apoy', element: 'fire', selected: false, playable: true },
@@ -92,6 +118,12 @@ export class Phase5_DiscardMechanic extends TutorialPhase {
             this.tutorialUI.addCardsToHand(weakHand);
             this.tutorialUI.updateHandDisplay();
 
+            // Ensure hand container is fully visible and ready for input
+            this.tutorialUI.handContainer.setVisible(true);
+            this.tutorialUI.handContainer.setAlpha(1);
+            this.tutorialUI.handContainer.setDepth(1500);
+
+            // Set up card selection handler
             this.scene.events.on('selectCard', (card: PlayingCard) => {
                 this.tutorialUI.selectCard(card);
             });

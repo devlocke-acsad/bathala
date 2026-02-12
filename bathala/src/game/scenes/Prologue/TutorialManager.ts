@@ -23,6 +23,7 @@ export class TutorialManager {
     private skipPhaseButton: GameObjects.Container;
     private helpButton: GameObjects.Container;
     private particles?: Phaser.GameObjects.Particles.ParticleEmitter;
+    private tutorialUI!: TutorialUI;
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -142,7 +143,8 @@ export class TutorialManager {
         this.skipPhaseButton.setAlpha(1);
         this.helpButton.setAlpha(1);
 
-        const tutorialUI = new TutorialUI(this.scene);
+        this.tutorialUI = new TutorialUI(this.scene);
+        const tutorialUI = this.tutorialUI;
 
         this.phases = [
             new Phase1_Welcome(this.scene, tutorialUI, this.startNextPhase.bind(this)),
@@ -240,30 +242,8 @@ export class TutorialManager {
     }
 
     private skipCurrentPhase() {
-        // Clean up current phase - try all possible cleanup methods
-        const currentPhase = this.phases[this.currentPhaseIndex - 1];
-        if (currentPhase) {
-            // Kill all tweens on phase container
-            if (currentPhase.container) {
-                this.scene.tweens.killTweensOf(currentPhase.container);
-                currentPhase.container.getAll().forEach((child: any) => {
-                    this.scene.tweens.killTweensOf(child);
-                });
-            }
-            
-            // Try cleanup() method first
-            if (currentPhase.cleanup && typeof currentPhase.cleanup === 'function') {
-                currentPhase.cleanup();
-            }
-            // Try shutdown() method
-            else if (currentPhase.shutdown && typeof currentPhase.shutdown === 'function') {
-                currentPhase.shutdown();
-            }
-            // Fall back to destroy() method
-            else if (currentPhase.destroy && typeof currentPhase.destroy === 'function') {
-                currentPhase.destroy();
-            }
-        }
+        // Use the standardized cleanup helper (handles shutdown, event listeners, handContainer, etc.)
+        this.cleanupCurrentPhase();
         
         // Show brief notification
         const notification = this.scene.add.text(
@@ -406,6 +386,46 @@ export class TutorialManager {
         });
     }
 
+    /**
+     * Properly clean up the currently active phase.
+     * Calls phase-specific cleanup methods (shutdown/cleanup) and resets the phase for potential re-entry.
+     */
+    private cleanupCurrentPhase(): void {
+        const currentPhase = this.phases[this.currentPhaseIndex - 1];
+        if (!currentPhase) return;
+        
+        // Call phase-specific cleanup methods (shutdown handles event listeners, etc.)
+        if (currentPhase.shutdown && typeof currentPhase.shutdown === 'function') {
+            currentPhase.shutdown();
+        } else if (currentPhase.cleanup && typeof currentPhase.cleanup === 'function') {
+            currentPhase.cleanup();
+        }
+        
+        // Ensure container is cleaned up even if phase methods missed something
+        if (currentPhase.container && currentPhase.container.active) {
+            this.scene.tweens.killTweensOf(currentPhase.container);
+            currentPhase.container.getAll().forEach((child: any) => {
+                this.scene.tweens.killTweensOf(child);
+            });
+            currentPhase.container.removeAll(true);
+            currentPhase.container.setAlpha(0);
+        }
+        
+        // Hide shared TutorialUI elements that live outside phase containers
+        if (this.tutorialUI) {
+            if (this.tutorialUI.handContainer) {
+                this.scene.tweens.killTweensOf(this.tutorialUI.handContainer);
+                this.tutorialUI.handContainer.setVisible(false);
+                this.tutorialUI.handContainer.setAlpha(0);
+            }
+        }
+        
+        // Reset the phase so it can be re-entered later
+        if (currentPhase.reset && typeof currentPhase.reset === 'function') {
+            currentPhase.reset();
+        }
+    }
+
     private jumpToPhase(phaseIndex: number, navContainer: GameObjects.Container) {
         // Close navigation menu
         this.scene.tweens.add({
@@ -417,28 +437,18 @@ export class TutorialManager {
             onComplete: () => navContainer.destroy()
         });
 
-        // Clean up current phase
-        const currentPhase = this.phases[this.currentPhaseIndex - 1];
-        if (currentPhase && currentPhase.container) {
-            this.scene.tweens.killTweensOf(currentPhase.container);
-            currentPhase.container.getAll().forEach((child: any) => {
-                this.scene.tweens.killTweensOf(child);
-            });
-            this.scene.tweens.add({
-                targets: currentPhase.container,
-                alpha: 0,
-                duration: 300,
-                ease: 'Power2',
-                onComplete: () => {
-                    if (currentPhase.container && currentPhase.container.active) {
-                        currentPhase.container.removeAll(true);
-                    }
-                }
-            });
-        }
+        // Properly clean up the current phase (calls shutdown/cleanup, removes event listeners, hides hand)
+        this.cleanupCurrentPhase();
 
-        // Jump to selected phase
+        // Set index so startNextPhase picks up the right phase
+        // startNextPhase does phases[currentPhaseIndex++], so set to target index
         this.currentPhaseIndex = phaseIndex;
+        
+        // Reset the TARGET phase for re-entry (in case it was previously visited)
+        const targetPhase = this.phases[phaseIndex];
+        if (targetPhase && targetPhase.reset && typeof targetPhase.reset === 'function') {
+            targetPhase.reset();
+        }
         
         // Show notification
         const notification = this.scene.add.text(
@@ -471,40 +481,20 @@ export class TutorialManager {
             }
         });
 
-        // Start the selected phase
+        // Start the selected phase (skip cleanup in startNextPhase since we already did it)
         this.scene.time.delayedCall(500, () => {
-            this.startNextPhase();
+            this.startPhaseDirectly();
         });
     }
 
+    /**
+     * Advance to the next phase. Called by phases when they complete (onComplete callback)
+     * and by skipCurrentPhase(). Handles cleanup of the previous phase.
+     */
     private startNextPhase() {
         if (this.currentPhaseIndex < this.phases.length) {
-            // Clean up previous phase properly
-            const prevPhaseIndex = this.currentPhaseIndex - 1;
-            if (prevPhaseIndex >= 0 && prevPhaseIndex < this.phases.length) {
-                const prevPhase = this.phases[prevPhaseIndex];
-                if (prevPhase && prevPhase.container) {
-                    // Kill all active tweens
-                    this.scene.tweens.killTweensOf(prevPhase.container);
-                    prevPhase.container.getAll().forEach((child: any) => {
-                        this.scene.tweens.killTweensOf(child);
-                    });
-                    
-                    // Fade out previous phase
-                    this.scene.tweens.add({
-                        targets: prevPhase.container,
-                        alpha: 0,
-                        duration: 300,
-                        ease: 'Power2',
-                        onComplete: () => {
-                            // Clean up after fade
-                            if (prevPhase.container && prevPhase.container.active) {
-                                prevPhase.container.removeAll(true);
-                            }
-                        }
-                    });
-                }
-            }
+            // Clean up previous phase properly using the standardized cleanup helper
+            this.cleanupCurrentPhase();
             
             const phase = this.phases[this.currentPhaseIndex++];
             
@@ -512,6 +502,43 @@ export class TutorialManager {
             this.skipPhaseButton.setVisible(true);
             
             // Subtle transition - remove flash, use gentle fade
+            this.scene.time.delayedCall(400, () => {
+                // Start phase with container at 0 alpha
+                if (phase.container) {
+                    phase.container.setAlpha(0);
+                }
+                
+                phase.start();
+                
+                // Fade in new phase
+                this.scene.time.delayedCall(100, () => {
+                    if (phase.container && phase.container.active) {
+                        this.scene.tweens.add({
+                            targets: phase.container,
+                            alpha: 1,
+                            duration: 500,
+                            ease: 'Power2'
+                        });
+                    }
+                });
+            });
+        } else {
+            this.endTutorial();
+        }
+    }
+
+    /**
+     * Start the phase at currentPhaseIndex directly, WITHOUT cleaning up a previous phase.
+     * Used by jumpToPhase() which handles its own cleanup separately.
+     */
+    private startPhaseDirectly() {
+        if (this.currentPhaseIndex < this.phases.length) {
+            const phase = this.phases[this.currentPhaseIndex++];
+            
+            // Skip phase button is always visible
+            this.skipPhaseButton.setVisible(true);
+            
+            // Subtle transition - use gentle fade
             this.scene.time.delayedCall(400, () => {
                 // Start phase with container at 0 alpha
                 if (phase.container) {

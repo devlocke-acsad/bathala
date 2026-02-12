@@ -43,12 +43,36 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     start() {
+        // Reset internal state for re-entry (when jumping back to this phase)
+        this.currentSection = 0;
+        this.selectedCards = [];
+        this.playedCards = [];
+        this.playerHP = 100;
+        this.playerBlock = 0;
+        this.combatPhase = 'card_selection';
+        
         this.nextSection();
     }
 
     public shutdown() {
+        // Remove all selectCard event listeners
         this.scene.events.off('selectCard');
-        this.container.destroy();
+        
+        // Hide the shared TutorialUI hand container (lives outside phase container)
+        if (this.tutorialUI && this.tutorialUI.handContainer) {
+            this.scene.tweens.killTweensOf(this.tutorialUI.handContainer);
+            this.tutorialUI.handContainer.setVisible(false);
+            this.tutorialUI.handContainer.setAlpha(0);
+        }
+        
+        // Kill all tweens and clean up container children (but don't destroy the container itself)
+        if (this.container && this.container.active) {
+            this.scene.tweens.killTweensOf(this.container);
+            this.container.getAll().forEach((child: any) => {
+                this.scene.tweens.killTweensOf(child);
+            });
+            this.container.removeAll(true);
+        }
     }
 
     private nextSection() {

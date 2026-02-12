@@ -57,24 +57,50 @@ export abstract class TutorialPhase {
     }
 
     /**
-     * Cleanup method to properly dispose of phase resources
+     * Cleanup method to properly dispose of phase resources.
+     * Kills all tweens and removes all children from the container.
      */
     public cleanup(): void {
         if (this.isCleaningUp) return;
         this.isCleaningUp = true;
         
         // Kill all tweens on container and its children
-        this.scene.tweens.killTweensOf(this.container);
-        this.container.getAll().forEach((child: any) => {
-            this.scene.tweens.killTweensOf(child);
-        });
+        if (this.container && this.container.active) {
+            this.scene.tweens.killTweensOf(this.container);
+            this.container.getAll().forEach((child: any) => {
+                this.scene.tweens.killTweensOf(child);
+            });
+            
+            // Remove all children
+            this.container.removeAll(true);
+        }
+
+        // Hide shared TutorialUI hand container (used by Phase4, Phase6)
+        if (this.tutorialUI && this.tutorialUI.handContainer) {
+            this.scene.tweens.killTweensOf(this.tutorialUI.handContainer);
+            this.tutorialUI.handContainer.setVisible(false);
+            this.tutorialUI.handContainer.setAlpha(0);
+        }
+    }
+
+    /**
+     * Reset phase state so it can be re-entered after cleanup.
+     * Called before start() when jumping back to a previously visited phase.
+     */
+    public reset(): void {
+        this.isCleaningUp = false;
         
-        // Remove all children
-        this.container.removeAll(true);
+        // Ensure container exists and is ready for re-use
+        if (!this.container || !this.container.active) {
+            this.container = this.scene.add.container(0, 0);
+        }
+        this.container.setAlpha(0); // Ready for fade-in
     }
 
     public destroy(): void {
         this.cleanup();
-        this.container.destroy();
+        if (this.container && this.container.active) {
+            this.container.destroy();
+        }
     }
 }
