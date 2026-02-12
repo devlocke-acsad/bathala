@@ -1,7 +1,6 @@
 import { Scene, GameObjects } from 'phaser';
 import { createButton } from '../../../ui/Button';
-import { TIKBALANG_SCOUT, BALETE_WRAITH, SIGBIN_CHARGER, getEnemyCombatSprite } from '../../../../data/enemies/Act1Enemies';
-import { Enemy, PlayingCard, HandType } from '../../../../core/types/CombatTypes';
+import { PlayingCard, HandType } from '../../../../core/types/CombatTypes';
 import { DeckManager } from '../../../../utils/DeckManager';
 import { HandEvaluator } from '../../../../utils/HandEvaluator';
 import { TutorialPhase } from './TutorialPhase';
@@ -185,7 +184,7 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     private attackPractice() {
-        const enemyData = { ...TIKBALANG_SCOUT, id: 'tutorial_tikbalang' };
+        const enemyData = this.createTutorialEnemy('tikbalang_scout', 'tutorial_tikbalang');
         this.enemyHP = enemyData.currentHealth;
         this.enemyMaxHP = enemyData.maxHealth;
         
@@ -198,7 +197,7 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     private defendPractice() {
-        const enemyData = { ...BALETE_WRAITH, id: 'tutorial_wraith' };
+        const enemyData = this.createTutorialEnemy('balete_wraith', 'tutorial_wraith');
         this.enemyHP = enemyData.currentHealth;
         this.enemyMaxHP = enemyData.maxHealth;
         
@@ -209,7 +208,7 @@ export class Phase4_CombatActions extends TutorialPhase {
     }
 
     private specialPractice() {
-        const enemyData = { ...SIGBIN_CHARGER, id: 'tutorial_sigbin' };
+        const enemyData = this.createTutorialEnemy('sigbin_charger', 'tutorial_sigbin');
         this.enemyHP = enemyData.currentHealth;
         this.enemyMaxHP = enemyData.maxHealth;
         
@@ -292,7 +291,7 @@ export class Phase4_CombatActions extends TutorialPhase {
             const enemyX = screenWidth * 0.75;
             const enemyY = screenHeight * 0.4;
             
-            const enemySpriteKey = this.getEnemySpriteKey(enemyData.name);
+            const enemySpriteKey = this.getEnemyCombatSpriteKey(enemyData.name);
             this.enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
             
             // Scale adjustment
@@ -769,10 +768,4 @@ export class Phase4_CombatActions extends TutorialPhase {
         }
     }
 
-    /**
-     * Get enemy sprite key (EXACT as real combat CombatUI.ts)
-     */
-    private getEnemySpriteKey(enemyName: string): string {
-        return getEnemyCombatSprite(enemyName);
-    }
 }

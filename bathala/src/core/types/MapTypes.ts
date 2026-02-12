@@ -22,6 +22,7 @@ export interface MapNode {
   visited: boolean;
   available: boolean;
   completed: boolean;
+  /** Enemy config ID (preferred) or legacy display name for backward compatibility. */
   enemyId?: string;
 }
 

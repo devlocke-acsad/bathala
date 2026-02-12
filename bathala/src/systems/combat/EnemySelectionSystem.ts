@@ -1,140 +1,123 @@
 /**
- * EnemySelectionSystem - Chapter-aware enemy selection
- * 
- * Replaces the hardcoded switch-case in Combat.ts that imports
- * from Act1Enemies, Act2Enemies, Act3Enemies separately.
- * 
- * Delegates to chapter-specific data modules through a unified interface.
- * 
- * @module systems/combat/EnemySelectionSystem
+ * EnemySelectionSystem — Chapter-aware enemy selection.
+ *
+ * Centralises the logic that was previously a sprawling switch-case inside
+ * Combat.ts. Each chapter registers a provider that knows how to return
+ * random common / elite / boss enemies and search by display name.
+ *
+ * Adding a new chapter (e.g. Act 4) is one line:
+ *   EnemySelectionSystem.registerChapter(4, act4Provider);
  */
+import { EnemyFactory } from "../../core/factories/EnemyFactory";
+import { EnemyRegistry } from "../../core/registries/EnemyRegistry";
+import { EnemyEntity, EnemyTier } from "../../core/entities/EnemyEntity";
+import { bootstrapEnemies } from "../../data/enemies/EnemyBootstrap";
 
-import { Enemy } from '../../core/types/CombatTypes';
-import {
-  getRandomCommonEnemy as getAct1Common,
-  getRandomEliteEnemy as getAct1Elite,
-  getBossEnemy as getAct1Boss,
-  getEnemyByName as getAct1ByName,
-} from '../../data/enemies/Act1Enemies';
-import {
-  getRandomCommonEnemy as getAct2Common,
-  getRandomEliteEnemy as getAct2Elite,
-  getBossEnemy as getAct2Boss,
-  getEnemyByName as getAct2ByName,
-} from '../../data/enemies/Act2Enemies';
-import {
-  getRandomCommonEnemy as getAct3Common,
-  getRandomEliteEnemy as getAct3Elite,
-  getBossEnemy as getAct3Boss,
-  getEnemyByName as getAct3ByName,
-} from '../../data/enemies/Act3Enemies';
+// ── Types ─────────────────────────────────────────────
 
-/** Functions to fetch enemies for a specific chapter */
-interface ChapterEnemyProvider {
-  getRandomCommon: () => Omit<Enemy, 'id'>;
-  getRandomElite: () => Omit<Enemy, 'id'>;
-  getBoss: () => Omit<Enemy, 'id'>;
-  getByName: (name: string) => Omit<Enemy, 'id'> | null;
-}
-
-/** Registry of chapter providers */
-const CHAPTER_PROVIDERS: Record<number, ChapterEnemyProvider> = {
-  1: {
-    getRandomCommon: getAct1Common,
-    getRandomElite: getAct1Elite,
-    getBoss: getAct1Boss,
-    getByName: getAct1ByName,
-  },
-  2: {
-    getRandomCommon: getAct2Common,
-    getRandomElite: getAct2Elite,
-    getBoss: getAct2Boss,
-    getByName: getAct2ByName,
-  },
-  3: {
-    getRandomCommon: getAct3Common,
-    getRandomElite: getAct3Elite,
-    getBoss: getAct3Boss,
-    getByName: getAct3ByName,
-  },
+type ChapterEnemyProvider = {
+  chapter: number;
 };
 
-/**
- * Provides chapter-aware enemy selection.
- * 
- * Centralizes the logic previously duplicated in Combat.ts
- * as switch-case statements over currentChapter.
- */
+const CHAPTER_PROVIDERS: Record<number, ChapterEnemyProvider> = {
+  1: { chapter: 1 },
+  2: { chapter: 2 },
+  3: { chapter: 3 },
+};
+
+// ── Public API ────────────────────────────────────────
+
 export class EnemySelectionSystem {
-  
-  /**
-   * Get a provider for the given chapter.
-   * Falls back to chapter 1 if unknown.
-   */
-  private static getProvider(chapter: number): ChapterEnemyProvider {
-    return CHAPTER_PROVIDERS[chapter] ?? CHAPTER_PROVIDERS[1];
+  private static registryInitialized = false;
+
+  private static ensureRegistryReady(): void {
+    if (!this.registryInitialized) {
+      bootstrapEnemies();
+      this.registryInitialized = true;
+    }
   }
 
   /**
-   * Get an enemy based on node type and chapter.
-   * Replaces the hardcoded getEnemyForNodeType() in Combat.ts.
+   * Register (or replace) the provider for a chapter number.
+   * Use this for Act 4+ or for test overrides.
+   */
+  static registerChapter(chapter: number, provider: ChapterEnemyProvider): void {
+    CHAPTER_PROVIDERS[chapter] = provider;
+  }
+
+  /**
+   * Get a random enemy matching the given node type for the chapter.
+   * Maps node types to tier: "elite" → elite, "boss" → boss, else → common.
+   * Returns a fresh EnemyEntity ready for combat.
    */
   static getEnemyForNodeType(
     nodeType: string,
     chapter: number
-  ): Omit<Enemy, 'id'> {
+  ): EnemyEntity {
+    this.ensureRegistryReady();
     const provider = this.getProvider(chapter);
-
-    switch (nodeType) {
-      case 'elite':
-        return provider.getRandomElite();
-      case 'boss':
-        return provider.getBoss();
-      case 'common':
-      case 'combat':
-      default:
-        return provider.getRandomCommon();
-    }
+    const tier = this.getTierFromNodeType(nodeType);
+    return EnemyFactory.createRandom(provider.chapter, tier);
   }
 
   /**
-   * Get a specific enemy by name, searching across all chapters.
-   * Replaces getSpecificEnemyById() in Combat.ts.
+   * Find an enemy across ALL chapters by display name or config ID.
+   * Used when the overworld passes a specific enemyId to combat.
+   * Falls back to a random common enemy from `fallbackChapter` if not found.
+   * Returns a fresh EnemyEntity ready for combat.
    */
   static getEnemyByName(
     enemyId: string,
     fallbackChapter: number = 1
-  ): Omit<Enemy, 'id'> {
-    // Search all chapters in order
-    for (const chapterNum of Object.keys(CHAPTER_PROVIDERS).map(Number)) {
-      const provider = CHAPTER_PROVIDERS[chapterNum];
-      const enemy = provider.getByName(enemyId);
-      if (enemy) return enemy;
+  ): EnemyEntity {
+    this.ensureRegistryReady();
+
+    const resolved = EnemyRegistry.resolve(enemyId);
+    if (resolved) {
+      return EnemyFactory.create(resolved.id);
     }
 
-    // Fallback to random common in the fallback chapter
     console.warn(
-      `Enemy "${enemyId}" not found in any chapter, falling back to random common`
+      `[EnemySelectionSystem] Enemy "${enemyId}" not found in registry, ` +
+        `falling back to random common for chapter ${fallbackChapter}`
     );
-    return this.getProvider(fallbackChapter).getRandomCommon();
+
+    return EnemyFactory.createRandom(this.getProvider(fallbackChapter).chapter, "common");
   }
 
   /**
-   * Generate a unique enemy ID from a name
+   * Create a unique runtime ID for an enemy instance.
+   * Format: `lowercase_name_timestamp`
    */
   static generateEnemyId(enemyName: string): string {
     return (
-      enemyName.toLowerCase().replace(/\s+/g, '_') + '_' + Date.now()
+      enemyName.toLowerCase().replace(/\s+/g, "_") + "_" + Date.now()
     );
   }
 
-  /**
-   * Register a new chapter provider (for extensibility)
-   */
-  static registerChapter(
-    chapter: number,
-    provider: ChapterEnemyProvider
-  ): void {
-    CHAPTER_PROVIDERS[chapter] = provider;
+  // ── Internal ──────────────────────────────────────
+
+  private static getProvider(chapter: number): ChapterEnemyProvider {
+    const provider = CHAPTER_PROVIDERS[chapter];
+    if (!provider) {
+      console.warn(
+        `[EnemySelectionSystem] No provider for chapter ${chapter}, defaulting to chapter 1`
+      );
+      return CHAPTER_PROVIDERS[1];
+    }
+    return provider;
+  }
+
+  private static getTierFromNodeType(nodeType: string): EnemyTier {
+    switch (nodeType) {
+      case "elite":
+        return "elite";
+      case "boss":
+        return "boss";
+      case "common":
+      case "combat":
+      default:
+        return "common";
+    }
   }
 }

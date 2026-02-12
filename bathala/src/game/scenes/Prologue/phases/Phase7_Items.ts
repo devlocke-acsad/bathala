@@ -2,7 +2,6 @@ import { Scene } from 'phaser';
 import { TutorialPhase } from './TutorialPhase';
 import { showDialogue } from '../ui/Dialogue';
 import { TutorialUI } from '../ui/TutorialUI';
-import { AMOMONGO, getEnemyCombatSprite } from '../../../../data/enemies/Act1Enemies';
 import { createButton } from '../../../ui/Button';
 import { createPhaseHeader, createSectionDivider } from '../ui/PhaseHeader';
 import { createProgressIndicator } from '../ui/ProgressIndicator';
@@ -185,13 +184,13 @@ export class Phase7_Items extends TutorialPhase {
         });
 
         this.delayedCall(600, () => {
-            const enemyData = { ...AMOMONGO, id: 'tutorial_amomongo' };
+            const enemyData = this.createTutorialEnemy('amomongo', 'tutorial_amomongo');
 
             // Enemy sprite display (centered, moved down to avoid inventory)
             const enemyX = this.scene.cameras.main.width / 2;
             const enemyY = 320;
             
-            const enemySpriteKey = this.getEnemySpriteKey(enemyData.name);
+            const enemySpriteKey = this.getEnemyCombatSpriteKey(enemyData.name);
             const enemySprite = this.scene.add.sprite(enemyX, enemyY, enemySpriteKey);
             
             // Scale the enemy sprite appropriately
@@ -290,10 +289,4 @@ export class Phase7_Items extends TutorialPhase {
         });
     }
 
-    /**
-     * Get enemy sprite key (same as Phase4_CombatActions)
-     */
-    private getEnemySpriteKey(enemyName: string): string {
-        return getEnemyCombatSprite(enemyName);
-    }
 }

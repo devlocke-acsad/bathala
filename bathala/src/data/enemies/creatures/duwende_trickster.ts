@@ -1,60 +1,41 @@
 /**
- * Duwende Trickster - Mound Goblin
- * 
- * @module DuwendeTrickster
- * @description Small earth spirit that grants boons or curses
- * 
- * Mythological Source:
- * - Origin: General, goblins (Ramos, 1990)
- * - Reference: Aswang Project – Magical omens
- * 
- * Lore: Duwende live in anthills, termite mounds, and the roots of large trees.
- * They can bestow good fortune or inflict illness on those who disturb their homes.
- * The engkanto's corruption has amplified their mischievous nature.
+ * Duwende Trickster — Common Act 1 Enemy
+ * Lore: Tiny mound-dwelling goblins who grant boons or curses.
+ * Source: Ramos, 1990; Samar, 2019; Aswang Project
  */
-
-import { EnemyConfig } from '../../../core/types/EnemyTypes';
+import { EnemyConfig } from '../../../core/entities/EnemyEntity';
 
 export const DUWENDE_TRICKSTER: EnemyConfig = {
-  // === Identity ===
   id: 'duwende_trickster',
   name: 'Duwende Trickster',
   tier: 'common',
   chapter: 1,
-  
+
   // === Combat Stats ===
-  baseHealth: 18,
-  baseDamage: 5,
-  
-  // === Combat Behavior ===
-  attackPatternType: 'debuffer',
-  attackPattern: ['disrupt_draw', 'steal_block', 'attack', 'disrupt_draw'],
-  abilities: ['disrupt_draw', 'steal_block'],
-  
-  // === Elemental ===
-  elementalWeakness: 'fire',
-  elementalResistance: 'earth',
-  
-  // === Overworld Behavior ===
-  pathingType: 'wander',
-  detectionRange: 3,
-  activeAtNight: true,
-  activeAtDay: true,
-  speedMultiplier: 0.8,
-  
+  maxHealth: 130,
+  damage: 12,
+  attackPattern: ['weaken', 'attack', 'weaken'],
+  elementalAffinity: { weakness: 'air', resistance: 'water' },
+
   // === Visuals ===
   combatSpriteKey: 'duwende_combat',
   overworldSpriteKey: 'duwende_overworld',
-  scale: 0.7,
-  
+
+  // === Intent ===
+  intent: { type: 'debuff', value: 1, description: 'Weakens repeatedly', icon: '⚠️' },
+
   // === Dialogue ===
-  dialogueIntro: "Tricks abound in mounds!",
-  dialogueDefeat: "My fortune... fades...",
-  dialogueSpare: "Spare, learn: Duwende grant boons/curses, warped by engkanto lies.",
-  dialogueSlay: "End my mischief—fuel for impostor!",
-  
+  dialogue: {
+    intro: 'Tricks abound in mounds!',
+    defeat: 'My fortune... fades...',
+    spare: 'Spare, learn: Duwende grant boons/curses, warped by engkanto lies (Samar, 2019).',
+    slay: 'End my mischief—fuel for impostor!',
+  },
+
   // === Lore ===
-  loreOrigin: "General, goblins",
-  loreReference: "Aswang Project – Magical omens",
-  loreDescription: "Duwende are small humanoid creatures, often classified as white (benevolent) or black (malevolent). Filipinos say 'Tabi tabi po' (excuse me) when passing areas where duwende might dwell, to avoid offending them."
+  lore: {
+    description: "Tiny mound-dwelling goblins who grant boons or curses. Once mischievous, now malicious under the engkanto's influence.",
+    origin: 'General, goblins (Ramos, 1990)',
+    reference: 'Aswang Project – Magical omens',
+  },
 };

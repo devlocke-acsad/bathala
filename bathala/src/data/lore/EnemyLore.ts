@@ -1,7 +1,4 @@
-/**
- * Enemy Lore Data for Bathala
- * Based on Filipino mythology creatures
- */
+/**\n * @deprecated — Lore data now lives in each creature config file under\n * `src/data/enemies/creatures/*.ts` as part of the EnemyConfig SSOT.\n * Use `EnemyRegistry.resolve(id).lore` or `EnemyEntity.lore` instead.\n *\n * This file is kept temporarily for backward compatibility with tests\n * that reference ENEMY_LORE_DATA directly.  Do NOT add new entries here.\n */
 
 export interface EnemyLore {
   id: string;

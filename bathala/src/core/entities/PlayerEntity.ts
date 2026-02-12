@@ -1,496 +1,237 @@
 /**
- * PlayerEntity - Runtime player instance with behavior methods
- * 
- * Encapsulates all player combat behavior: card management, damage,
- * healing, status effects, relics, potions
- * 
- * @module core/entities/PlayerEntity
- * 
- * @example
- * ```typescript
- * const player = PlayerEntity.fromGameState(gameState);
- * player.drawCards(8);
- * player.takeDamage(15);
- * player.applyStatus('strength', 2);
- * const hand = player.getHand();
- * ```
+ * PlayerEntity — Concrete class encapsulating all player state & behavior.
+ * Single instance per game session. Extends CombatEntity.
+ *
+ * Replaces the plain Player interface from CombatTypes for runtime use.
  */
-
+import { CombatEntity } from './base/CombatEntity';
 import {
-  Player,
   PlayingCard,
-  Relic,
-  StatusEffect,
-  CombatEntity,
 } from '../types/CombatTypes';
-import { StatusEffectManager } from '../managers/StatusEffectManager';
-import { DeckManager } from '../../utils/DeckManager';
+import { RelicEntity } from './items/RelicEntity';
+import { PotionEntity } from './items/PotionEntity';
 
-// =============================================================================
-// TYPES
-// =============================================================================
-
-export interface PlayerDamageResult {
-  blockedDamage: number;
-  hpDamage: number;
-  remainingBlock: number;
-  remainingHealth: number;
-  isDead: boolean;
-}
-
-export interface Potion {
-  id: string;
-  name: string;
-  description: string;
-  emoji: string;
-  effect: string;
-}
-
-// =============================================================================
-// PLAYER ENTITY
-// =============================================================================
-
-export class PlayerEntity {
-  // === Identity ===
-  public readonly id: string;
-  public readonly name: string;
-
-  // === Health ===
-  public maxHealth: number;
-  public currentHealth: number;
-  public block: number;
-
-  // === Cards ===
-  public hand: PlayingCard[];
+export class PlayerEntity extends CombatEntity {
+  // ── Card state ──────────────────────────────────────
   public deck: PlayingCard[];
+  public hand: PlayingCard[];
   public drawPile: PlayingCard[];
   public discardPile: PlayingCard[];
   public playedHand: PlayingCard[];
 
-  // === Combat Resources ===
-  public discardCharges: number;
-  public maxDiscardCharges: number;
-
-  // === Progression ===
-  public landasScore: number;
+  // ── Resources ───────────────────────────────────────
   public ginto: number;
   public diamante: number;
 
-  // === Equipment ===
-  public relics: Relic[];
-  public potions: Potion[];
+  // ── Morality ────────────────────────────────────────
+  public landasScore: number;
 
-  // === Status Effects ===
-  public statusEffects: StatusEffect[];
+  // ── Relics & Potions ────────────────────────────────
+  public relics: RelicEntity[];
+  public potions: PotionEntity[];
 
-  // === Educational ===
-  public educationalProgress?: Player['educationalProgress'];
+  /** Max number of potions the player can carry. */
+  public readonly maxPotions: number;
 
-  constructor(data: Player) {
-    this.id = data.id;
-    this.name = data.name;
-    this.maxHealth = data.maxHealth;
-    this.currentHealth = data.currentHealth;
-    this.block = data.block;
-    this.hand = [...data.hand];
-    this.deck = [...data.deck];
-    this.drawPile = [...data.drawPile];
-    this.discardPile = [...data.discardPile];
-    this.playedHand = [...data.playedHand];
-    this.discardCharges = data.discardCharges;
-    this.maxDiscardCharges = data.maxDiscardCharges;
-    this.landasScore = data.landasScore;
-    this.ginto = data.ginto;
-    this.diamante = data.diamante;
-    this.relics = [...data.relics];
-    this.potions = [...(data.potions as Potion[])];
-    this.statusEffects = [...data.statusEffects];
-    this.educationalProgress = data.educationalProgress;
-  }
+  // ── Discard charges ─────────────────────────────────
+  public discardCharges: number;
+  public maxDiscardCharges: number;
 
-  // ===========================================================================
-  // FACTORY
-  // ===========================================================================
+  // ── Educational progress ────────────────────────────
+  public educationalProgress: {
+    valuesLearned: Record<string, number>;
+    regionsEncountered: Record<string, number>;
+    culturalKnowledgeScore: number;
+    achievements: string[];
+  };
 
-  /**
-   * Create a PlayerEntity from a Player data object
-   */
-  static fromPlayer(player: Player): PlayerEntity {
-    return new PlayerEntity(player);
-  }
+  constructor(
+    id: string = 'player',
+    name: string = 'Bayani',
+    maxHealth: number = 80,
+  ) {
+    super(id, name, maxHealth);
 
-  /**
-   * Create a fresh PlayerEntity for a new combat
-   */
-  static createFresh(options: {
-    maxHealth: number;
-    currentHealth: number;
-    deck: PlayingCard[];
-    relics?: Relic[];
-    potions?: Potion[];
-    ginto?: number;
-    diamante?: number;
-    landasScore?: number;
-    discardCharges?: number;
-    maxDiscardCharges?: number;
-  }): PlayerEntity {
-    const player: Player = {
-      id: `player_${Date.now()}`,
-      name: 'Bathala Seer',
-      maxHealth: options.maxHealth,
-      currentHealth: options.currentHealth,
-      block: 0,
-      hand: [],
-      deck: [...options.deck],
-      drawPile: DeckManager.shuffleDeck([...options.deck]),
-      discardPile: [],
-      playedHand: [],
-      discardCharges: options.discardCharges ?? 1,
-      maxDiscardCharges: options.maxDiscardCharges ?? 1,
-      landasScore: options.landasScore ?? 0,
-      ginto: options.ginto ?? 0,
-      diamante: options.diamante ?? 0,
-      relics: options.relics ?? [],
-      potions: (options.potions ?? []) as any,
-      statusEffects: [],
+    this.deck = [];
+    this.hand = [];
+    this.drawPile = [];
+    this.discardPile = [];
+    this.playedHand = [];
+
+    this.ginto = 0;
+    this.diamante = 0;
+
+    this.landasScore = 0;
+
+    this.relics = [];
+    this.potions = [];
+    this.maxPotions = 3;
+
+    this.discardCharges = 1;
+    this.maxDiscardCharges = 1;
+
+    this.educationalProgress = {
+      valuesLearned: {},
+      regionsEncountered: {},
+      culturalKnowledgeScore: 0,
+      achievements: [],
     };
-    return new PlayerEntity(player);
   }
 
-  // ===========================================================================
-  // CARD MANAGEMENT
-  // ===========================================================================
+  // ── Landás helpers ──────────────────────────────────
 
-  /**
-   * Draw cards from draw pile into hand
-   * Shuffles discard pile into draw pile if needed
-   * @returns Number of cards actually drawn
-   */
+  get landas(): 'Mercy' | 'Balance' | 'Conquest' {
+    if (this.landasScore >= 5) return 'Mercy';
+    if (this.landasScore <= -5) return 'Conquest';
+    return 'Balance';
+  }
+
+  spareMorality(): void {
+    this.landasScore += 1;
+  }
+
+  slayMorality(): void {
+    this.landasScore -= 1;
+  }
+
+  // ── Card management ─────────────────────────────────
+
+  /** Draw N cards from drawPile into hand. */
   drawCards(count: number): PlayingCard[] {
     const drawn: PlayingCard[] = [];
-    
     for (let i = 0; i < count; i++) {
-      // If draw pile is empty, shuffle discard pile into draw pile
       if (this.drawPile.length === 0) {
-        if (this.discardPile.length === 0) break; // No cards anywhere
-        this.drawPile = DeckManager.shuffleDeck([...this.discardPile]);
-        this.discardPile = [];
+        this.reshuffleDiscardIntoDraw();
+        if (this.drawPile.length === 0) break;
       }
-      
-      const card = this.drawPile.pop();
-      if (card) {
-        card.selected = false;
-        card.playable = true;
-        this.hand.push(card);
-        drawn.push(card);
-      }
+      const card = this.drawPile.pop()!;
+      card.selected = false;
+      this.hand.push(card);
+      drawn.push(card);
     }
-    
     return drawn;
   }
 
-  /**
-   * Select a card from hand (toggle selection)
-   * @returns true if card is now selected, false if deselected
-   */
-  selectCard(cardId: string, maxSelected: number = 5): boolean | null {
-    const card = this.hand.find(c => c.id === cardId);
-    if (!card) return null;
+  /** Move all discard pile cards into draw pile and shuffle. */
+  reshuffleDiscardIntoDraw(): void {
+    this.drawPile.push(...this.discardPile);
+    this.discardPile = [];
+    this.shufflePile(this.drawPile);
+  }
 
-    if (card.selected) {
-      card.selected = false;
-      return false;
+  /** Fisher-Yates shuffle in-place. */
+  private shufflePile(pile: PlayingCard[]): void {
+    for (let i = pile.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [pile[i], pile[j]] = [pile[j], pile[i]];
     }
-
-    const selectedCount = this.hand.filter(c => c.selected).length;
-    if (selectedCount >= maxSelected) return null;
-
-    card.selected = true;
-    return true;
   }
 
-  /**
-   * Get currently selected cards from hand
-   */
-  getSelectedCards(): PlayingCard[] {
-    return this.hand.filter(c => c.selected);
-  }
-
-  /**
-   * Confirm hand — move selected cards to playedHand
-   * @returns The played cards, or null if not exactly 5 selected
-   */
-  confirmHand(): PlayingCard[] | null {
-    const selected = this.getSelectedCards();
-    if (selected.length !== 5) return null;
-
-    // Move selected to played, rest to discard
-    this.playedHand = [...selected];
-    this.hand = this.hand.filter(c => !c.selected);
-
-    // Deselect all
-    this.playedHand.forEach(c => c.selected = false);
-
-    return this.playedHand;
-  }
-
-  /**
-   * Discard and redraw (uses a discard charge)
-   * @returns New cards drawn, or null if no charges
-   */
-  discardAndRedraw(cardIds: string[]): PlayingCard[] | null {
-    if (this.discardCharges <= 0) return null;
-
+  /** Discard selected cards from hand (up to 5) using a discard charge. */
+  discardSelected(): PlayingCard[] {
+    if (this.discardCharges <= 0) return [];
     this.discardCharges--;
-
-    // Move specified cards from hand to discard
-    const toDiscard = this.hand.filter(c => cardIds.includes(c.id));
-    this.hand = this.hand.filter(c => !cardIds.includes(c.id));
-    this.discardPile.push(...toDiscard);
-
-    // Draw replacements
-    return this.drawCards(toDiscard.length);
+    const selected = this.hand.filter(c => c.selected);
+    this.hand = this.hand.filter(c => !c.selected);
+    this.discardPile.push(...selected);
+    return selected;
   }
 
-  /**
-   * End turn: move remaining hand cards to discard, clear played
-   */
-  endTurnCleanup(): void {
-    this.discardPile.push(...this.hand, ...this.playedHand);
-    this.hand = [];
-    this.playedHand = [];
-  }
+  // ── Relic management ────────────────────────────────
 
-  /**
-   * Reset discard charges for a new turn
-   */
-  resetDiscardCharges(): void {
-    this.discardCharges = this.maxDiscardCharges;
-  }
+  /** Max relics the player can hold. */
+  public readonly maxRelics: number = 6;
 
-  // ===========================================================================
-  // DAMAGE & HEALING
-  // ===========================================================================
-
-  /**
-   * Apply damage to this player (block absorbs first)
-   */
-  takeDamage(amount: number): PlayerDamageResult {
-    const effectiveAmount = Math.max(0, Math.round(amount));
-    let blockedDamage = 0;
-    let hpDamage = 0;
-
-    if (this.block > 0) {
-      blockedDamage = Math.min(this.block, effectiveAmount);
-      this.block -= blockedDamage;
-      hpDamage = effectiveAmount - blockedDamage;
-    } else {
-      hpDamage = effectiveAmount;
-    }
-
-    this.currentHealth = Math.max(0, this.currentHealth - hpDamage);
-
-    return {
-      blockedDamage,
-      hpDamage,
-      remainingBlock: this.block,
-      remainingHealth: this.currentHealth,
-      isDead: this.currentHealth <= 0,
-    };
-  }
-
-  /**
-   * Heal the player (capped at maxHealth)
-   */
-  heal(amount: number): number {
-    const before = this.currentHealth;
-    this.currentHealth = Math.min(this.maxHealth, this.currentHealth + Math.max(0, amount));
-    return this.currentHealth - before;
-  }
-
-  /**
-   * Add block
-   */
-  addBlock(amount: number): void {
-    this.block += Math.max(0, amount);
-  }
-
-  /**
-   * Reset block to zero (called at start of player turn)
-   */
-  resetBlock(): void {
-    this.block = 0;
-  }
-
-  // ===========================================================================
-  // STATUS EFFECTS
-  // ===========================================================================
-
-  /**
-   * Apply a status effect to this player
-   */
-  applyStatus(effectId: string, stacks: number): void {
-    StatusEffectManager.applyStatusEffect(this.toCombatEntity(), effectId, stacks);
-  }
-
-  /**
-   * Check if player has a specific status effect
-   */
-  hasStatus(effectId: string): boolean {
-    return this.statusEffects.some(e => e.id === effectId);
-  }
-
-  /**
-   * Get the stack count of a status effect
-   */
-  getStatusStacks(effectId: string): number {
-    return this.statusEffects.find(e => e.id === effectId)?.value ?? 0;
-  }
-
-  /**
-   * Remove a specific status effect
-   */
-  removeStatus(effectId: string): void {
-    this.statusEffects = this.statusEffects.filter(e => e.id !== effectId);
-  }
-
-  // ===========================================================================
-  // RELICS & POTIONS
-  // ===========================================================================
-
-  /**
-   * Add a relic to the player's inventory
-   */
-  addRelic(relic: Relic): boolean {
-    if (this.relics.length >= 6) return false; // Max 6 relics
-    if (this.relics.some(r => r.id === relic.id)) return false; // No duplicates
+  /** Add a relic if there is room. Returns true on success. */
+  gainRelic(relic: RelicEntity): boolean {
+    if (this.relics.length >= this.maxRelics) return false;
+    if (this.relics.some(r => r.id === relic.id)) return false; // no dupes
     this.relics.push(relic);
+    relic.onAcquire(this);
     return true;
   }
 
-  /**
-   * Check if player has a specific relic
-   */
+  /** Check if the player owns a relic by id. */
   hasRelic(relicId: string): boolean {
     return this.relics.some(r => r.id === relicId);
   }
 
-  /**
-   * Add a potion to the player's inventory
-   */
-  addPotion(potion: Potion): boolean {
-    if (this.potions.length >= 3) return false; // Max 3 potions
+  // ── Potion management ───────────────────────────────
+
+  /** Gain a potion if there is room. */
+  gainPotion(potion: PotionEntity): boolean {
+    if (this.potions.length >= this.maxPotions) return false;
     this.potions.push(potion);
     return true;
   }
 
-  /**
-   * Use a potion (removes from inventory)
-   * @returns The potion used, or null if not found
-   */
-  usePotion(potionId: string): Potion | null {
-    const index = this.potions.findIndex(p => p.id === potionId);
-    if (index === -1) return null;
-    return this.potions.splice(index, 1)[0];
+  /** Use a potion, removing it from inventory. */
+  usePotion(potionId: string): boolean {
+    const idx = this.potions.findIndex(p => p.id === potionId);
+    if (idx === -1) return false;
+    const potion = this.potions[idx];
+    potion.use(this);
+    this.potions.splice(idx, 1);
+    return true;
   }
 
-  // ===========================================================================
-  // QUERIES
-  // ===========================================================================
+  // ── Combat hooks ────────────────────────────────────
 
-  get isAlive(): boolean {
-    return this.currentHealth > 0;
-  }
-
-  get isDead(): boolean {
-    return this.currentHealth <= 0;
-  }
-
-  get healthPercent(): number {
-    return this.maxHealth > 0 ? this.currentHealth / this.maxHealth : 0;
-  }
-
-  get isWeak(): boolean {
-    return this.hasStatus('weak');
-  }
-
-  get isFrail(): boolean {
-    return this.hasStatus('frail');
-  }
-
-  /**
-   * Get the dominant element of the played hand
-   */
-  getDominantElement(): string {
-    if (this.playedHand.length === 0) return 'neutral';
-    
-    const counts: Record<string, number> = {};
-    for (const card of this.playedHand) {
-      counts[card.element] = (counts[card.element] || 0) + 1;
+  onCombatStart(): void {
+    this.block = 0;
+    this.discardCharges = this.maxDiscardCharges;
+    // Relic start-of-combat hooks
+    for (const relic of this.relics) {
+      relic.onCombatStart(this);
     }
-    
-    let maxElement = 'neutral';
-    let maxCount = 0;
-    for (const [element, count] of Object.entries(counts)) {
-      if (count > maxCount) {
-        maxCount = count;
-        maxElement = element;
-      }
-    }
-    return maxElement;
   }
 
-  // ===========================================================================
-  // CONVERSION
-  // ===========================================================================
+  onTurnStart(): void {
+    this.block = 0;
+    this.discardCharges = this.maxDiscardCharges;
+    for (const relic of this.relics) {
+      relic.onTurnStart(this);
+    }
+  }
+
+  onTurnEnd(): void {
+    for (const relic of this.relics) {
+      relic.onTurnEnd(this);
+    }
+  }
+
+  // ── Legacy adapter ──────────────────────────────────
 
   /**
-   * Convert back to legacy Player interface
+   * Convert to the plain Player interface shape for backward compat.
    */
-  toPlayer(): Player {
+  toLegacyPlayer(): Record<string, unknown> {
     return {
       id: this.id,
       name: this.name,
+      x: this.x,
+      y: this.y,
       maxHealth: this.maxHealth,
       currentHealth: this.currentHealth,
       block: this.block,
-      hand: [...this.hand],
-      deck: [...this.deck],
-      drawPile: [...this.drawPile],
-      discardPile: [...this.discardPile],
-      playedHand: [...this.playedHand],
-      discardCharges: this.discardCharges,
-      maxDiscardCharges: this.maxDiscardCharges,
+      statusEffects: this.statusEffects.map(e => ({ ...e })),
+      hand: this.hand,
+      deck: this.deck,
+      discardPile: this.discardPile,
+      drawPile: this.drawPile,
+      playedHand: this.playedHand,
       landasScore: this.landasScore,
       ginto: this.ginto,
       diamante: this.diamante,
-      relics: [...this.relics],
-      potions: [...this.potions] as any,
-      statusEffects: [...this.statusEffects],
+      relics: this.relics.map(r => r.toLegacy()),
+      potions: this.potions.map(p => p.toLegacy()),
+      discardCharges: this.discardCharges,
+      maxDiscardCharges: this.maxDiscardCharges,
       educationalProgress: this.educationalProgress,
     };
   }
 
-  /**
-   * Convert to CombatEntity for StatusEffectManager
-   */
-  toCombatEntity(): CombatEntity {
-    return {
-      id: this.id,
-      name: this.name,
-      maxHealth: this.maxHealth,
-      currentHealth: this.currentHealth,
-      block: this.block,
-      statusEffects: this.statusEffects,
-    };
-  }
-
-  /**
-   * Sync from CombatEntity (after StatusEffectManager modifies in-place)
-   */
-  syncFromCombatEntity(entity: CombatEntity): void {
-    this.currentHealth = entity.currentHealth;
-    this.block = entity.block;
-    this.statusEffects = entity.statusEffects;
+  override toJSON(): Record<string, unknown> {
+    return this.toLegacyPlayer();
   }
 }

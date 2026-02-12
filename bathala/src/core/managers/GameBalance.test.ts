@@ -9,18 +9,10 @@ import { ElementalAffinitySystem } from './ElementalAffinitySystem';
 import { StatusEffectManager } from './StatusEffectManager';
 import { DamageCalculator } from '../../utils/DamageCalculator';
 import type { Element, PlayingCard, Enemy, Player } from '../types/CombatTypes';
-import { 
-  TIKBALANG_SCOUT, 
-  BALETE_WRAITH, 
-  SIGBIN_CHARGER, 
-  DUWENDE_TRICKSTER, 
-  TIYANAK_AMBUSHER, 
-  AMOMONGO, 
-  BUNGISNGIS,
-  KAPRE_SHADE,
-  TAWONG_LIPOD,
-  MANGNANGAWAY 
-} from '../../data/enemies/Act1Enemies';
+import { EnemyRegistry } from '../registries/EnemyRegistry';
+import { bootstrapEnemies } from '../../data/enemies/EnemyBootstrap';
+
+bootstrapEnemies();
 
 describe('Game Balance Tests', () => {
   describe('Elemental Multiplier Balance', () => {
@@ -289,17 +281,18 @@ describe('Game Balance Tests', () => {
   });
 
   describe('Enemy Affinity Distribution', () => {
+    const getEnemyConfig = (id: string) => EnemyRegistry.getConfigOrThrow(id);
     const act1Enemies = [
-      TIKBALANG_SCOUT,
-      BALETE_WRAITH,
-      SIGBIN_CHARGER,
-      DUWENDE_TRICKSTER,
-      TIYANAK_AMBUSHER,
-      AMOMONGO,
-      BUNGISNGIS,
-      KAPRE_SHADE,
-      TAWONG_LIPOD,
-      MANGNANGAWAY
+      getEnemyConfig('tikbalang_scout'),
+      getEnemyConfig('balete_wraith'),
+      getEnemyConfig('sigbin_charger'),
+      getEnemyConfig('duwende_trickster'),
+      getEnemyConfig('tiyanak_ambusher'),
+      getEnemyConfig('amomongo'),
+      getEnemyConfig('bungisngis'),
+      getEnemyConfig('kapre_shade'),
+      getEnemyConfig('tawong_lipod'),
+      getEnemyConfig('mangangaway')
     ];
 
     it('should verify all enemies have elemental affinities defined', () => {

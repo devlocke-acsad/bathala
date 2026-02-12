@@ -4,6 +4,7 @@
  */
 
 import { Potion } from "../../data/potions";
+import { EnemyEntity } from '../entities/EnemyEntity';
 
 export type Suit = "Apoy" | "Tubig" | "Lupa" | "Hangin";
 export type Rank =
@@ -89,6 +90,11 @@ export interface Player extends CombatEntity {
   };
 }
 
+/**
+ * @deprecated Use EnemyEntity class from core/entities/EnemyEntity instead.
+ * Kept for backward compatibility with test mocks. All runtime enemy state
+ * should go through EnemyEntity which owns its own combat lifecycle.
+ */
 export interface Enemy extends CombatEntity {
   intent: EnemyIntent;
   damage: number;
@@ -159,7 +165,7 @@ export interface CombatState {
     | "post_combat";
   turn: number;
   player: Player;
-  enemy: Enemy;
+  enemy: EnemyEntity;
   selectedCards: PlayingCard[];
   lastAction: CombatAction | null;
 }

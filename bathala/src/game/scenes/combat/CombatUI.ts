@@ -2,7 +2,6 @@ import { Scene } from "phaser";
 import {
   CombatState,
   Player,
-  Enemy,
   PlayingCard,
   Suit,
   HandType,
@@ -10,12 +9,42 @@ import {
 } from "../../../core/types/CombatTypes";
 import { DeckManager } from "../../../utils/DeckManager";
 import { HandEvaluator } from "../../../utils/HandEvaluator";
-import { getRelicSpriteKey } from "../../../utils/RelicSpriteUtils";
 import { Combat } from "../Combat";
 import { createButton } from "../../ui/Button";
-import { getEnemyCombatSprite } from "../../../data/enemies/Act1Enemies";
 import { StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
 import { ElementalAffinitySystem } from "../../../core/managers/ElementalAffinitySystem";
+import { EnemyRegistry } from "../../../core/registries/EnemyRegistry";
+
+/**
+ * Helper function to get the sprite key for a relic based on its ID
+ */
+function getRelicSpriteKey(relicId: string): string {
+  // Map relic IDs to sprite keys
+  const spriteMap: Record<string, string> = {
+    'swift_wind_agimat': 'relic_swift_wind_agimat',
+    'amomongo_claw': 'relic_amomongo_claw',
+    'ancestral_blade': 'relic_ancestral_blade',
+    'balete_root': 'relic_balete_root',
+    'babaylans_talisman': 'relic_babaylans_talisman',
+    'bungisngis_grin': 'relic_bungisngis_grin',
+    'diwatas_crown': 'relic_diwatas_crown',
+    'duwende_charm': 'relic_duwende_charm',
+    'earthwardens_plate': 'relic_earthwardens_plate',
+    'ember_fetish': 'relic_ember_fetish',
+    'kapres_cigar': 'relic_kapres_cigar',
+    'lucky_charm': 'relic_lucky_charm',
+    'mangangaway_wand': 'relic_mangangaway_wand',
+    'sarimanok_feather': 'relic_sarimanok_feather',
+    'sigbin_heart': 'relic_sigbin_heart',
+    'stone_golem_heart': 'relic_stone_golem_heart',
+    'tidal_amulet': 'relic_tidal_amulet',
+    'tikbalangs_hoof': 'relic_tikbalangs_hoof',
+    'tiyanak_tear': 'relic_tiyanak_tear',
+    'umalagad_spirit': 'relic_umalagad_spirit'
+  };
+  
+  return spriteMap[relicId] || '';
+}
 
 /**
  * CombatUI - Handles all UI creation, updates, and management for Combat scene
@@ -564,10 +593,10 @@ export class CombatUI {
   }
   
   /**
-   * Get enemy sprite key based on enemy name
+   * Get enemy sprite key based on enemy name — delegates to centralized sprite map
    */
   private getEnemySpriteKey(enemyName: string): string {
-    return getEnemyCombatSprite(enemyName);
+    return EnemyRegistry.getCombatSprite(enemyName);
   }
   
   /**

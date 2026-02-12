@@ -5,7 +5,7 @@ import {
   Player,
   StatusEffect,
   Suit,
-  Enemy,
+  ElementalAffinity,
   CombatEntity,
 } from "../core/types/CombatTypes";
 import { ElementalAffinitySystem } from "../core/managers/ElementalAffinitySystem";
@@ -193,7 +193,7 @@ export class DamageCalculator {
     handType: HandType,
     actionType: "attack" | "defend" | "special",
     player?: Player,
-    enemy?: Enemy,
+    enemy?: { elementalAffinity?: ElementalAffinity },
     relicBonuses: { name: string; amount: number }[] = []
   ): DamageCalculation {
     const breakdown: string[] = [];
