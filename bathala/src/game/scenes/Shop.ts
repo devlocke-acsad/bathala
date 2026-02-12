@@ -1744,7 +1744,7 @@ export class Shop extends Scene {
   }
   
   private showPurchaseConfirmation(item: ShopItem): void {
-    // Create overlay
+    // Create overlay that blocks all interactions beneath it
     const overlay = this.add.rectangle(
       this.cameras.main.width / 2,
       this.cameras.main.height / 2,
@@ -1752,6 +1752,7 @@ export class Shop extends Scene {
       this.cameras.main.height,
       0x000000
     ).setAlpha(0.7).setScrollFactor(0).setDepth(1000);
+    overlay.setInteractive();
     
     // Create confirmation dialog
     const dialogWidth = 400;
@@ -1895,7 +1896,7 @@ export class Shop extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Create overlay
+    // Create overlay that blocks all interactions beneath it
     const overlay = this.add.rectangle(
       screenWidth / 2,
       screenHeight / 2,
@@ -1903,6 +1904,7 @@ export class Shop extends Scene {
       screenHeight,
       0x000000
     ).setAlpha(0.8).setScrollFactor(0).setDepth(10000);
+    overlay.setInteractive();
     
     // Create dialog container
     const dialogWidth = 700;
