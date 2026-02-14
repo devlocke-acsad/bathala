@@ -314,7 +314,7 @@ export class TutorialManager {
         );
 
         const menuWidth = 550;
-        const menuHeight = 740; // Increased to accommodate larger gaps
+        const menuHeight = 880; // Taller to give buttons breathing room
 
         const bg = this.scene.add.rectangle(0, 0, menuWidth, menuHeight, 0x150E10, 0.98);
         
@@ -356,7 +356,7 @@ export class TutorialManager {
         // Create phase buttons - single column, more compact
         const buttonWidth = 450;
         const buttonHeight = 45;
-        const buttonSpacing = 64; // Further increased gap between buttons
+        const buttonSpacing = 70; // Comfortable spacing between phase buttons
         const startY = -menuHeight/2 + 150; // More space from top
 
         phaseNames.forEach((phaseName, index) => {
