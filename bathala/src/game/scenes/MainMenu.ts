@@ -3,12 +3,13 @@ import { GameState } from "../../core/managers/GameState";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
+import { createButton } from "../ui/Button";
 
 export class MainMenu extends Scene {
   background: GameObjects.Image;
   logo: GameObjects.Image;
   title: GameObjects.Text;
-  menuTexts: GameObjects.Text[] = [];
+  menuButtons: GameObjects.Container[] = [];
   versionText: GameObjects.Text;
   footerText: GameObjects.Text;
   private musicLifecycle!: MusicLifecycleSystem;
@@ -160,32 +161,50 @@ export class MainMenu extends Scene {
    * Create UI elements
    */
   private createUI(): void {
-    // Clear existing menu texts
-    this.menuTexts = [];
+    // Clear existing menu buttons
+    this.menuButtons = [];
 
     // Get screen dimensions
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Add version text in top right with more margin using dungeon-mode font
+    // Add version text with fade-in (matching tutorial text style)
     this.versionText = this.add
       .text(screenWidth - 40, 40, "0.5.0", {
         fontFamily: "dungeon-mode",
         fontSize: 24,
-        color: "#77888C", // --primary
+        color: "#77888C",
         align: "right",
       })
-      .setOrigin(1, 0);
+      .setOrigin(1, 0)
+      .setAlpha(0);
 
-    // Add footer text with more margin using dungeon-mode font
+    this.tweens.add({
+      targets: this.versionText,
+      alpha: 1,
+      duration: 600,
+      delay: 200,
+      ease: 'Power2'
+    });
+
+    // Add footer text with fade-in
     this.footerText = this.add
       .text(screenWidth/2, screenHeight - 40, "Bathala. Developed by Devlocke. Copyright 2025.", {
         fontFamily: "dungeon-mode",
         fontSize: 16,
-        color: "#77888C", // --primary
+        color: "#77888C",
         align: "center",
       })
-      .setOrigin(0.5, 1);
+      .setOrigin(0.5, 1)
+      .setAlpha(0);
+
+    this.tweens.add({
+      targets: this.footerText,
+      alpha: 1,
+      duration: 600,
+      delay: 200,
+      ease: 'Power2'
+    });
 
     // Center the content vertically on the screen
     const centerY = screenHeight / 2;
@@ -193,30 +212,23 @@ export class MainMenu extends Scene {
     // Create "bathala" text with special handling for font loading
     this.createBathalaText(screenWidth/2, centerY - 150);
 
-    // Menu options - centered below the title with increased gap using dungeon-mode-inverted font
-    const menuOptions = ["Play", "Discover", "Credits", "Settings"]; // Updated options
-    const startY = centerY + 48; // Increased gap between title and menu options
-    const spacing = 64; // Increased spacing between options
+    // Menu buttons using createButton (matching tutorial phase button style)
+    const menuOptions = ["Play", "Discover", "Credits", "Settings"];
+    const startY = centerY + 30;
+    const spacing = 70;
+    const fixedWidth = 220;
     
     menuOptions.forEach((option, i) => {
-      const menuText = this.add
-        .text(screenWidth/2, startY + i * spacing, option, {
-          fontFamily: "dungeon-mode-inverted", // Updated font for menu
-          fontSize: 32,
-          color: "#77888C", // Updated color --primary
-          align: "center",
-        })
-        .setOrigin(0.5);
-        
-      // Add pointer interaction for all menu options
-      menuText
-        .setInteractive({ useHandCursor: true })
-        .on("pointerdown", () => {
-          // Music will auto-stop via shutdown() when scene.start() is called
-          
+      const targetY = startY + i * spacing;
+      
+      const btn = createButton(
+        this,
+        screenWidth / 2,
+        targetY + 20,
+        option,
+        () => {
           switch (option) {
             case "Play":
-              // Reset game state when starting a new game
               console.log('🎮 Starting new game - resetting all game state...');
               GameState.getInstance().reset();
               OverworldGameState.getInstance().reset();
@@ -233,9 +245,24 @@ export class MainMenu extends Scene {
               this.scene.start("Settings");
               break;
           }
-        });
+        },
+        fixedWidth
+      );
       
-      this.menuTexts.push(menuText);
+      // Start hidden for entrance animation
+      btn.setAlpha(0);
+      
+      // Staggered slide-up + fade-in (matching tutorial element animations)
+      this.tweens.add({
+        targets: btn,
+        alpha: 1,
+        y: targetY,
+        duration: 600,
+        delay: 500 + i * 150,
+        ease: 'Power3.easeOut'
+      });
+      
+      this.menuButtons.push(btn);
     });
     
     // Add Dev Mode button in bottom right corner
@@ -315,16 +342,28 @@ export class MainMenu extends Scene {
         fontSize: 250,
         color: "#77888C",
       })
-      .setOrigin(0.5);
+      .setOrigin(0.5)
+      .setAlpha(0)
+      .setY(y - 20);
     
-    // Add subtle pulsing glow effect (no shadow)
+    // Fade-in + slide-up entrance animation
+    this.tweens.add({
+      targets: titleText,
+      alpha: 1,
+      y: y,
+      duration: 800,
+      ease: 'Power3.easeOut'
+    });
+
+    // Add subtle pulsing glow effect (no shadow) — starts after entrance
     this.tweens.add({
       targets: titleText,
       alpha: 0.85,
       duration: 2000,
       yoyo: true,
       repeat: -1,
-      ease: 'Sine.easeInOut'
+      ease: 'Sine.easeInOut',
+      delay: 800
     });
     
     // Force refresh after a short delay
