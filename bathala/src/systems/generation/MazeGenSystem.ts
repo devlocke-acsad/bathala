@@ -4,13 +4,21 @@ import { MapNode } from '../../core/types/MapTypes';
 import { EnemyRegistry } from '../../core/registries/EnemyRegistry';
 
 /**
+ * === DEBUG FLAG ===
+ * Set to true to enable verbose enemy AI logging.
+ * Keep false in production to avoid console spam.
+ */
+const DEBUG_ENEMY_AI = false;
+
+/**
  * === DEPTH LAYER CONFIGURATION ===
  * Centralized depth values for easy editing
  */
 const DEPTH = {
   MAP_TILES: 0,
   MAP_NPCS: 49,          // Above fog of war (50)
-  FALLBACK_CIRCLE: 51
+  FALLBACK_CIRCLE: 51,
+  ENEMY_ALERT: 52        // Alert icons above NPCs
 };
 
 /**
@@ -45,13 +53,20 @@ export class Overworld_MazeGenManager {
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
   private devMode: boolean = false;
 
-  // Advanced Pathfinding System
+  // Advanced Pathfinding System — enhanced cache tracks enemy start position & waypoint progress
   private enemyPaths: Map<string, {
     path: Array<{x: number, y: number}>,
+    startX: number,
+    startY: number,
     targetX: number,
     targetY: number,
+    waypointIndex: number,  // how far along the path the enemy has progressed
     age: number
   }> = new Map();
+
+  // Visual alert system — tracks alert icon sprites above enemies
+  private enemyAlertSprites: Map<string, Phaser.GameObjects.Text> = new Map();
+  private enemyAlerted: Set<string> = new Set(); // enemies that have already shown their first alert
 
   /**
    * Constructor
@@ -64,7 +79,7 @@ export class Overworld_MazeGenManager {
     this.gridSize = gridSize;
     this.devMode = devMode;
     
-    console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize, 'devMode:', devMode);
+    if (DEBUG_ENEMY_AI) console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize, 'devMode:', devMode);
   }
 
   /**
@@ -72,7 +87,7 @@ export class Overworld_MazeGenManager {
    * Clears the cache and prepares the initial chunk
    */
   initializeNewGame(): void {
-    console.log('🗺️ Initializing new game - clearing maze cache');
+    if (DEBUG_ENEMY_AI) console.log('🗺️ Initializing new game - clearing maze cache');
     
     // Reset the maze generator cache for a new game
     MazeOverworldGenerator.clearCache();
@@ -85,6 +100,12 @@ export class Overworld_MazeGenManager {
     // Clear outer tile markers
     this.outerTileMarkers.forEach(marker => marker.destroy());
     this.outerTileMarkers = [];
+
+    // Clear enemy AI state
+    this.enemyPaths.clear();
+    this.enemyAlertSprites.forEach((s) => s.destroy());
+    this.enemyAlertSprites.clear();
+    this.enemyAlerted.clear();
   }
 
   /**
@@ -93,7 +114,7 @@ export class Overworld_MazeGenManager {
    * @returns {x, y} - World coordinates for player spawn
    */
   calculatePlayerStartPosition(): { x: number; y: number } {
-    console.log('🗺️ Calculating player start position');
+    if (DEBUG_ENEMY_AI) console.log('🗺️ Calculating player start position');
     
     // Get the initial chunk to ensure player starts in a valid position
     const initialChunk = MazeOverworldGenerator.getChunk(0, 0, this.gridSize);
@@ -108,7 +129,7 @@ export class Overworld_MazeGenManager {
     
     // If center is a wall, find the nearest path
     if (initialChunk.maze[chunkCenterY][chunkCenterX] === 1) {
-      console.log('🗺️ Center is a wall, searching for nearest path');
+      if (DEBUG_ENEMY_AI) console.log('🗺️ Center is a wall, searching for nearest path');
       
       // Search for nearby paths
       let foundPath = false;
@@ -123,14 +144,14 @@ export class Overworld_MazeGenManager {
               startX = newX * this.gridSize + this.gridSize / 2;
               startY = newY * this.gridSize + this.gridSize / 2;
               foundPath = true;
-              console.log('🗺️ Found valid path at offset:', { dx, dy });
+              if (DEBUG_ENEMY_AI) console.log('🗺️ Found valid path at offset:', { dx, dy });
             }
           }
         }
       }
     }
     
-    console.log('🗺️ Player start position:', { x: startX, y: startY });
+    if (DEBUG_ENEMY_AI) console.log('🗺️ Player start position:', { x: startX, y: startY });
     return { x: startX, y: startY };
   }
 
@@ -165,7 +186,62 @@ export class Overworld_MazeGenManager {
   }
 
   /**
-   * IMPROVEMENT #1: A* Pathfinding Algorithm
+   * Check if a world-center position is already occupied by another enemy node.
+   * @param x - World center X coordinate to test
+   * @param y - World center Y coordinate to test
+   * @param excludeId - The id of the enemy currently moving (so it doesn't collide with itself)
+   * @returns true if another enemy is on that tile
+   */
+  private isOccupiedByEnemy(x: number, y: number, excludeId: string): boolean {
+    const half = this.gridSize / 2;
+    for (const node of this.nodes) {
+      if (node.id === excludeId) continue;
+      if (node.type !== 'combat' && node.type !== 'elite') continue;
+      const nx = node.x + half;
+      const ny = node.y + half;
+      if (Math.abs(nx - x) < half && Math.abs(ny - y) < half) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ─── Min-Heap helper for A* (refinement #7) ───────────────────────
+  private static heapPush<T extends { f: number }>(heap: T[], node: T): void {
+    heap.push(node);
+    let i = heap.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (heap[parent].f <= heap[i].f) break;
+      [heap[parent], heap[i]] = [heap[i], heap[parent]];
+      i = parent;
+    }
+  }
+
+  private static heapPop<T extends { f: number }>(heap: T[]): T | undefined {
+    if (heap.length === 0) return undefined;
+    const top = heap[0];
+    const bottom = heap.pop()!;
+    if (heap.length > 0) {
+      heap[0] = bottom;
+      let i = 0;
+      const len = heap.length;
+      while (true) {
+        let smallest = i;
+        const left = 2 * i + 1;
+        const right = 2 * i + 2;
+        if (left < len && heap[left].f < heap[smallest].f) smallest = left;
+        if (right < len && heap[right].f < heap[smallest].f) smallest = right;
+        if (smallest === i) break;
+        [heap[i], heap[smallest]] = [heap[smallest], heap[i]];
+        i = smallest;
+      }
+    }
+    return top;
+  }
+
+  /**
+   * IMPROVEMENT #1: A* Pathfinding Algorithm (with min-heap for O(log n) extraction)
    * Find optimal path from enemy to player using A* algorithm
    * 
    * @param startX - Start X world coordinate
@@ -194,6 +270,8 @@ export class Overworld_MazeGenManager {
     
     const openSet: PathNode[] = [];
     const closedSet: Set<string> = new Set();
+    // Track best g-score per cell for faster duplicate detection
+    const bestG: Map<string, number> = new Map();
     
     // Helper to convert position to key
     const posKey = (x: number, y: number) => `${Math.round(x / this.gridSize)},${Math.round(y / this.gridSize)}`;
@@ -213,15 +291,20 @@ export class Overworld_MazeGenManager {
       parent: null
     };
     
-    openSet.push(startNode);
+    Overworld_MazeGenManager.heapPush(openSet, startNode);
+    bestG.set(posKey(startX, startY), 0);
     let iterations = 0;
     
     while (openSet.length > 0 && iterations < maxDepth * 10) {
       iterations++;
       
-      // Get node with lowest f score
-      openSet.sort((a, b) => a.f - b.f);
-      const current = openSet.shift()!;
+      // Get node with lowest f score — O(log n) via min-heap
+      const current = Overworld_MazeGenManager.heapPop(openSet)!;
+      const currentKey = posKey(current.x, current.y);
+      
+      // Skip if we already found a better route to this cell
+      if (closedSet.has(currentKey)) continue;
+      closedSet.add(currentKey);
       
       // Goal reached
       if (Math.abs(current.x - targetX) < this.gridSize && 
@@ -234,11 +317,9 @@ export class Overworld_MazeGenManager {
           node = node.parent;
         }
         
-        console.log(`🎯 A* found path with ${path.length} steps in ${iterations} iterations`);
+        if (DEBUG_ENEMY_AI) console.log(`🎯 A* found path with ${path.length} steps in ${iterations} iterations`);
         return path;
       }
-      
-      closedSet.add(posKey(current.x, current.y));
       
       // Check neighbors (4-directional + diagonals)
       const neighbors = [
@@ -274,19 +355,17 @@ export class Overworld_MazeGenManager {
         }
         
         const g = current.g + (neighbor.diagonal ? 1.414 : 1); // Diagonal costs more
+        
+        // Skip if we already have a better g-score for this cell
+        const prevG = bestG.get(key);
+        if (prevG !== undefined && prevG <= g) continue;
+        bestG.set(key, g);
+        
         const h = heuristic(neighbor.x, neighbor.y);
         const f = g + h;
         
-        // Check if neighbor is already in open set with lower cost
-        const existingNode = openSet.find(n => 
-          Math.abs(n.x - neighbor.x) < this.gridSize / 2 && 
-          Math.abs(n.y - neighbor.y) < this.gridSize / 2
-        );
-        
-        if (existingNode && existingNode.g <= g) continue;
-        
-        // Add to open set
-        openSet.push({
+        // Push to min-heap — O(log n)
+        Overworld_MazeGenManager.heapPush(openSet, {
           x: neighbor.x,
           y: neighbor.y,
           g, h, f,
@@ -295,21 +374,25 @@ export class Overworld_MazeGenManager {
       }
     }
     
-    console.log(`⚠️ A* no path found after ${iterations} iterations`);
+    if (DEBUG_ENEMY_AI) console.log(`⚠️ A* no path found after ${iterations} iterations`);
     // No path found - return empty
     return [];
   }
 
   /**
-   * IMPROVEMENT #3: Path Caching System
-   * Get or calculate path for enemy with caching
+   * IMPROVEMENT #3: Path Caching System (enhanced — tracks enemy position & waypoint progress)
+   * Get or calculate path for enemy with caching.
+   * The cache is invalidated when:
+   *   - The enemy has moved off its cached start position (it consumed waypoints)
+   *   - The player moved more than 2 grid squares from the cached target
+   *   - The cache is older than 5 turns
    * 
    * @param enemyId - Unique enemy identifier
    * @param currentX - Enemy current X coordinate
    * @param currentY - Enemy current Y coordinate
    * @param targetX - Player X coordinate
    * @param targetY - Player Y coordinate
-   * @returns Cached or newly calculated path
+   * @returns Remaining path waypoints from the enemy's current position
    */
   private getEnemyPath(
     enemyId: string,
@@ -322,31 +405,53 @@ export class Overworld_MazeGenManager {
     const cached = this.enemyPaths.get(enemyId);
     
     // Reuse cached path if:
-    // 1. Path exists
-    // 2. Target hasn't moved much (within 2 grid squares)
-    // 3. Path is recent (< 5 turns old)
-    if (cached && 
+    // 1. Path exists and has remaining waypoints
+    // 2. Enemy is still near where we expect it (hasn't teleported / been displaced)
+    // 3. Target hasn't moved much (within 2 grid squares)
+    // 4. Path is recent (< 5 turns old)
+    if (cached &&
+        cached.path.length > cached.waypointIndex &&
+        Math.abs(cached.startX - currentX) < this.gridSize &&
+        Math.abs(cached.startY - currentY) < this.gridSize &&
         Math.abs(cached.targetX - targetX) < this.gridSize * 2 &&
         Math.abs(cached.targetY - targetY) < this.gridSize * 2 &&
         cached.age < 5) {
       
       cached.age++;
-      console.log(`📦 Using cached path for ${enemyId} (age: ${cached.age})`);
-      return cached.path;
+      // Return only the remaining waypoints from waypointIndex onward
+      const remaining = cached.path.slice(cached.waypointIndex);
+      if (DEBUG_ENEMY_AI) console.log(`📦 Using cached path for ${enemyId} (age: ${cached.age}, remaining: ${remaining.length})`);
+      return remaining;
     }
     
     // Calculate new path using A*
-    console.log(`🔍 Calculating new path for ${enemyId}`);
+    if (DEBUG_ENEMY_AI) console.log(`🔍 Calculating new path for ${enemyId}`);
     const path = this.findPathToPlayer(currentX, currentY, targetX, targetY);
     
     this.enemyPaths.set(enemyId, {
       path,
+      startX: currentX,
+      startY: currentY,
       targetX,
       targetY,
+      waypointIndex: 0,
       age: 0
     });
     
     return path;
+  }
+
+  /**
+   * Advance the cached waypoint index after an enemy consumes movement steps.
+   * Also updates the cached start position to the enemy's new location.
+   */
+  private advanceEnemyPathCache(enemyId: string, stepsConsumed: number, newX: number, newY: number): void {
+    const cached = this.enemyPaths.get(enemyId);
+    if (cached) {
+      cached.waypointIndex += stepsConsumed;
+      cached.startX = newX;
+      cached.startY = newY;
+    }
   }
 
   /**
@@ -390,6 +495,8 @@ export class Overworld_MazeGenManager {
             sprite.destroy();
             this.nodeSprites.delete(node.id);
           }
+          // Also remove any nighttime alert icon for this node
+          this.removeEnemyAlert(node.id);
         });
         
         // Remove nodes from the main array
@@ -608,6 +715,19 @@ export class Overworld_MazeGenManager {
   }
 
   /**
+   * Remove the nighttime alert icon for an enemy node (e.g. after it is defeated in combat).
+   * Safe to call if the node has no alert.
+   */
+  removeEnemyAlert(nodeId: string): void {
+    const alertSprite = this.enemyAlertSprites.get(nodeId);
+    if (alertSprite) {
+      alertSprite.destroy();
+      this.enemyAlertSprites.delete(nodeId);
+    }
+    this.enemyAlerted.delete(nodeId);
+  }
+
+  /**
    * Get a node sprite by node ID
    * @param nodeId - The ID of the node
    * @returns The sprite for the node, or undefined if not found
@@ -797,42 +917,68 @@ export class Overworld_MazeGenManager {
   }
 
   /**
-   * Move enemy nodes toward the player during nighttime
+   * Move enemy nodes toward the player during nighttime.
+   * 
+   * Includes:
+   *  - Alert visuals: a "!" icon appears above an enemy the first time it
+   *    detects the player each night cycle.
+   *  - Debug logging gated behind DEBUG_ENEMY_AI flag.
    */
   moveEnemiesNighttime(gameState: any, playerX: number, playerY: number, gridSize: number, scene: Scene): void {
     // Only move enemies during nighttime
     if (gameState.isDay) {
+      // Day started — reset alert icons and path caches so next night is fresh
+      this.resetNighttimeState();
       return;
     }
 
     // Define proximity threshold for enemy movement (in pixels)
     const movementRange = gridSize * 10; // 10 grid squares for breathing room
 
-    // Find nearby enemy nodes based on distance only
+    // Find nearby enemy nodes based on distance
     const enemyNodes = this.nodes.filter((node: MapNode) => {
       if (node.type !== "combat" && node.type !== "elite") {
         return false;
       }
-      
+
       const enemyX = node.x + gridSize / 2;
       const enemyY = node.y + gridSize / 2;
       const distance = Phaser.Math.Distance.Between(playerX, playerY, enemyX, enemyY);
-      
-      // Only check: within movement range
+
       return distance <= movementRange;
     });
 
-    console.log(`🌙 Night: ${enemyNodes.length} enemies nearby player`);
+    if (DEBUG_ENEMY_AI) console.log(`🌙 Night: ${enemyNodes.length} enemies nearby player`);
 
-    // Move each enemy node with enhanced AI (now using A* pathfinding)
+    // Move each enemy node with enhanced AI
     enemyNodes.forEach((enemyNode: MapNode) => {
+      // Show alert icon on first detection
+      this.showEnemyAlert(enemyNode, gridSize, scene);
+
       this.moveEnemyWithEnhancedAI(enemyNode, playerX, playerY, gridSize, scene);
     });
   }
 
   /**
-   * Enhanced AI movement system for enemies with A* pathfinding
-   * IMPROVEMENT: Integrates A* pathfinding, line-of-sight, and path caching
+   * Reset nighttime state (called when day starts).
+   * Clears alert icons and path caches so next night is fresh.
+   */
+  private resetNighttimeState(): void {
+    if (this.enemyAlerted.size === 0) return;
+
+    this.enemyAlerted.clear();
+    this.enemyPaths.clear();
+
+    // Destroy all alert sprites
+    this.enemyAlertSprites.forEach((sprite) => {
+      sprite.destroy();
+    });
+    this.enemyAlertSprites.clear();
+  }
+
+  /**
+   * Enhanced AI movement system for enemies with A* pathfinding.
+   * Now also advances the path cache and moves alert icons with the enemy.
    */
   private moveEnemyWithEnhancedAI(enemyNode: MapNode, playerX: number, playerY: number, gridSize: number, scene: Scene): void {
     const currentX = enemyNode.x + gridSize / 2;
@@ -841,57 +987,60 @@ export class Overworld_MazeGenManager {
     
     // Check if enemy is already at collision distance before moving
     if (distance < gridSize) {
-      console.log(`💥 Enemy already at collision distance: ${distance.toFixed(2)}`);
+      if (DEBUG_ENEMY_AI) console.log(`💥 Enemy already at collision distance: ${distance.toFixed(2)}`);
       this.checkEnemyPlayerCollision(enemyNode, gridSize, scene);
       return; // Don't move, collision check will handle it
     }
     
     // Different movement strategies based on distance and enemy type
-    let movementSpeed = this.calculateEnemyMovementSpeed(enemyNode, distance);
-    let movements: {x: number, y: number}[] = [];
+    const movementSpeed = this.calculateEnemyMovementSpeed(enemyNode, distance);
+    const movements: {x: number, y: number}[] = [];
     
-    // IMPROVEMENT: Use A* pathfinding with path caching
+    // Use A* pathfinding with path caching
     const enemyId = enemyNode.id;
     const path = this.getEnemyPath(enemyId, currentX, currentY, playerX, playerY);
     
     if (path.length > 0) {
-      // Use A* calculated path
-      console.log(`🧭 Following A* path with ${path.length} waypoints`);
+      if (DEBUG_ENEMY_AI) console.log(`🧭 Following A* path with ${path.length} waypoints`);
       
       // Take as many steps from the path as movement speed allows
       for (let i = 0; i < Math.min(movementSpeed, path.length); i++) {
         const waypoint = path[i];
         
-        // Convert world coordinates to grid coordinates
         const stepPosition = {
           x: waypoint.x - gridSize / 2,
           y: waypoint.y - gridSize / 2
         };
+
+        const stepCX = stepPosition.x + gridSize / 2;
+        const stepCY = stepPosition.y + gridSize / 2;
+
+        // Block move if another enemy already occupies this tile
+        if (this.isOccupiedByEnemy(stepCX, stepCY, enemyId)) {
+          break; // Can't pass through — stop before the occupied tile
+        }
         
-        // Check if this movement would result in collision
-        const newDistance = Phaser.Math.Distance.Between(
-          playerX,
-          playerY,
-          stepPosition.x + gridSize / 2,
-          stepPosition.y + gridSize / 2
-        );
+        const newDistance = Phaser.Math.Distance.Between(playerX, playerY, stepCX, stepCY);
         
-        // If movement brings us within collision range, stop here and trigger collision
         if (newDistance < gridSize) {
           movements.push(stepPosition);
-          console.log(`💥 Movement will cause collision. Distance after move: ${newDistance.toFixed(2)}`);
-          break; // Stop movement chain, collision will trigger after animation
+          if (DEBUG_ENEMY_AI) console.log(`💥 Movement will cause collision. Distance after move: ${newDistance.toFixed(2)}`);
+          break;
         }
         
         movements.push(stepPosition);
       }
+
+      // Advance the cached path so next turn picks up where we left off
+      if (movements.length > 0) {
+        const lastMove = movements[movements.length - 1];
+        this.advanceEnemyPathCache(enemyId, movements.length, lastMove.x + gridSize / 2, lastMove.y + gridSize / 2);
+      }
     } else {
       // Fallback to greedy single-step pathfinding if A* fails
-      console.log(`⚠️ A* failed, falling back to greedy pathfinding`);
+      if (DEBUG_ENEMY_AI) console.log(`⚠️ A* failed, falling back to greedy pathfinding`);
       
-      // Calculate multiple movement steps for faster enemies
       for (let i = 0; i < movementSpeed; i++) {
-        // Calculate next position from current position (or last movement position)
         const lastX = movements.length > 0 ? movements[movements.length - 1].x + gridSize / 2 : currentX;
         const lastY = movements.length > 0 ? movements[movements.length - 1].y + gridSize / 2 : currentY;
         
@@ -900,29 +1049,30 @@ export class Overworld_MazeGenManager {
           lastY,
           playerX, 
           playerY,
-          gridSize
+          gridSize,
+          enemyId
         );
         
-        // calculateSingleEnemyStep now handles walkability validation internally
         if (stepPosition) {
-          // Check if this movement would result in collision
-          const newDistance = Phaser.Math.Distance.Between(
-            playerX,
-            playerY,
-            stepPosition.x + gridSize / 2,
-            stepPosition.y + gridSize / 2
-          );
+          const stepCX = stepPosition.x + gridSize / 2;
+          const stepCY = stepPosition.y + gridSize / 2;
+
+          // Block move if another enemy already occupies this tile
+          if (this.isOccupiedByEnemy(stepCX, stepCY, enemyId)) {
+            break;
+          }
+
+          const newDistance = Phaser.Math.Distance.Between(playerX, playerY, stepCX, stepCY);
           
-          // If movement brings us within collision range, stop here and trigger collision
           if (newDistance < gridSize) {
             movements.push(stepPosition);
-            console.log(`💥 Movement will cause collision. Distance after move: ${newDistance.toFixed(2)}`);
-            break; // Stop movement chain, collision will trigger after animation
+            if (DEBUG_ENEMY_AI) console.log(`💥 Movement will cause collision. Distance after move: ${newDistance.toFixed(2)}`);
+            break;
           }
           
           movements.push(stepPosition);
         } else {
-          break; // Stop if no valid movement found
+          break;
         }
       }
     }
@@ -934,34 +1084,20 @@ export class Overworld_MazeGenManager {
   }
 
   /**
-   * Calculate enemy movement speed based on type and distance
+   * Calculate enemy movement speed based on type and distance.
+   * Currently all enemies move exactly 1 tile per player step to keep
+   * pacing fair and predictable.
    */
-  private calculateEnemyMovementSpeed(enemyNode: MapNode, distanceToPlayer: number): number {
-    let baseSpeed = 1;
-    
-    // Elite enemies only get a small speed boost
-    if (enemyNode.type === "elite") {
-      baseSpeed = 1; // Reduced from 2 to 1
-    }
-    
-    // Much more conservative distance-based speed increases
-    const gridDistance = distanceToPlayer / this.gridSize;
-    if (gridDistance <= 2) {
-      baseSpeed += 1; // Only very close enemies (2 grids) get +1 speed
-    }
-    
-    // Reduced randomization chance and impact
-    if (Math.random() < 0.15) { // Reduced from 30% to 15%
-      baseSpeed += 1;
-    }
-    
-    return Math.min(baseSpeed, 2); // Cap at 2 movements per turn instead of 4
+  private calculateEnemyMovementSpeed(_enemyNode: MapNode, _distanceToPlayer: number): number {
+    // 1 tile per player action — keeps movement feeling fair and consistent
+    return 1;
   }
 
   /**
-   * Calculate a single movement step toward the player
+   * Calculate a single movement step toward the player.
+   * @param excludeId - If provided, tiles occupied by other enemies are also rejected.
    */
-  private calculateSingleEnemyStep(currentX: number, currentY: number, playerX: number, playerY: number, gridSize: number): { x: number, y: number } | null {
+  private calculateSingleEnemyStep(currentX: number, currentY: number, playerX: number, playerY: number, gridSize: number, excludeId?: string): { x: number, y: number } | null {
     // Calculate direction to player
     const deltaX = playerX - currentX;
     const deltaY = playerY - currentY;
@@ -1041,8 +1177,11 @@ export class Overworld_MazeGenManager {
     movementOptions.sort((a, b) => a.priority - b.priority);
     
     for (const option of movementOptions) {
-      // Check if this position is walkable
+      // Check if this position is walkable and not occupied by another enemy
       if (this.isValidPosition(option.x, option.y)) {
+        if (excludeId && this.isOccupiedByEnemy(option.x, option.y, excludeId)) {
+          continue; // Tile is taken by another enemy — try next option
+        }
         // Convert back to node coordinates (top-left corner)
         return {
           x: option.x - gridSize / 2,
@@ -1060,14 +1199,15 @@ export class Overworld_MazeGenManager {
    */
   private executeMultiStepMovement(enemyNode: MapNode, movements: {x: number, y: number}[], gridSize: number, scene: Scene): void {
     movements.forEach((movement, index) => {
-      scene.time.delayedCall(index * 300, () => { // Increased to 300ms delay between each step
+      scene.time.delayedCall(index * 300, () => { // 300ms delay between each step
         this.animateEnemyMovement(enemyNode, movement.x, movement.y, gridSize, scene);
       });
     });
   }
 
   /**
-   * Animate enemy movement to new position
+   * Animate enemy movement to new position.
+   * Also repositions the alert icon (if any) above the enemy.
    */
   private animateEnemyMovement(enemyNode: MapNode, newX: number, newY: number, gridSize: number, scene: Scene): void {
     // Update node position
@@ -1090,12 +1230,16 @@ export class Overworld_MazeGenManager {
           sprite.clearTint();
         });
       }
+
+      // Destination center
+      const destCX = newX + gridSize / 2;
+      const destCY = newY + gridSize / 2;
       
       // Animate sprite movement with dynamic timing
       scene.tweens.add({
         targets: sprite,
-        x: newX + gridSize / 2,
-        y: newY + gridSize / 2,
+        x: destCX,
+        y: destCY,
         duration: isAggressiveMove ? 120 : 180, // Faster movement for elite enemies
         ease: 'Power2',
         onStart: () => {
@@ -1110,6 +1254,18 @@ export class Overworld_MazeGenManager {
           this.checkEnemyPlayerCollision(enemyNode, gridSize, scene);
         }
       });
+
+      // Move the alert icon along with the enemy (if present)
+      const alertSprite = this.enemyAlertSprites.get(enemyNode.id);
+      if (alertSprite) {
+        scene.tweens.add({
+          targets: alertSprite,
+          x: destCX,
+          y: destCY - gridSize * 0.9,
+          duration: isAggressiveMove ? 120 : 180,
+          ease: 'Power2'
+        });
+      }
     }
   }
 
@@ -1122,7 +1278,6 @@ export class Overworld_MazeGenManager {
       return;
     }
     
-    // Get player position from the scene (assuming Overworld scene has a player sprite)
     const overworldScene = scene as any;
     if (!overworldScene.player) {
       return;
@@ -1131,7 +1286,6 @@ export class Overworld_MazeGenManager {
     const playerX = overworldScene.player.x;
     const playerY = overworldScene.player.y;
     
-    // Calculate distance between enemy node center and player
     const distance = Phaser.Math.Distance.Between(
       playerX,
       playerY,
@@ -1139,16 +1293,74 @@ export class Overworld_MazeGenManager {
       enemyNode.y + gridSize / 2
     );
     
-    // Use the same threshold as checkNodeInteraction for consistency
     const collisionThreshold = gridSize;
     
     if (distance < collisionThreshold) {
-      console.log(`💥 Enemy collision detected! Distance: ${distance.toFixed(2)}, Threshold: ${collisionThreshold}`);
+      if (DEBUG_ENEMY_AI) console.log(`💥 Enemy collision detected! Distance: ${distance.toFixed(2)}, Threshold: ${collisionThreshold}`);
       
-      // Trigger the node interaction in the overworld scene
       if (typeof overworldScene.checkNodeInteraction === 'function') {
         overworldScene.checkNodeInteraction();
       }
+    }
+  }
+
+  // ─── Visual alert system (refinement #9) ──────────────────────────
+
+  /**
+   * Show a "!" alert icon above an enemy the first time it detects the player
+   * during the current night cycle. The icon pulses once then stays visible
+   * (semi-transparent) until the enemy de-aggros or day returns.
+   */
+  private showEnemyAlert(enemyNode: MapNode, gridSize: number, scene: Scene): void {
+    // Only show alert once per enemy per night cycle
+    if (this.enemyAlerted.has(enemyNode.id)) return;
+    this.enemyAlerted.add(enemyNode.id);
+
+    const cx = enemyNode.x + gridSize / 2;
+    const cy = enemyNode.y + gridSize / 2;
+
+    // Create a bold "!" text above the enemy
+    const alert = scene.add.text(cx, cy - gridSize * 0.9, '!', {
+      fontFamily: 'Arial Black, Arial, sans-serif',
+      fontSize: '20px',
+      color: '#ff3333',
+      stroke: '#000000',
+      strokeThickness: 3,
+      align: 'center'
+    });
+    alert.setOrigin(0.5);
+    alert.setDepth(DEPTH.ENEMY_ALERT);
+    alert.setAlpha(0);
+
+    this.enemyAlertSprites.set(enemyNode.id, alert);
+
+    // Animate: pop-in → hold → fade to semi-transparent
+    scene.tweens.add({
+      targets: alert,
+      alpha: 1,
+      scaleX: { from: 2, to: 1 },
+      scaleY: { from: 2, to: 1 },
+      duration: 200,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // After holding briefly, fade to semi-transparent to stay visible but not distracting
+        scene.tweens.add({
+          targets: alert,
+          alpha: 0.5,
+          duration: 600,
+          delay: 400,
+          ease: 'Sine.easeInOut'
+        });
+      }
+    });
+
+    // Also briefly tint the enemy sprite red/orange regardless of type for the alert moment
+    const sprite = this.getNodeSprite(enemyNode.id);
+    if (sprite) {
+      sprite.setTint(0xff6600);
+      scene.time.delayedCall(300, () => {
+        sprite.clearTint();
+      });
     }
   }
 
@@ -1156,7 +1368,14 @@ export class Overworld_MazeGenManager {
    * Clean up resources
    */
   destroy(): void {
-    console.log('🗺️ MazeGenManager cleanup');
+    if (DEBUG_ENEMY_AI) console.log('🗺️ MazeGenManager cleanup');
+
+    // Clean up alert sprites
+    this.enemyAlertSprites.forEach((sprite) => sprite.destroy());
+    this.enemyAlertSprites.clear();
+    this.enemyAlerted.clear();
+    this.enemyPaths.clear();
+
     this.clearVisibleChunks();
   }
 }
