@@ -1029,6 +1029,12 @@ export class Overworld extends Scene {
     this.isMoving = false;
     this.isTransitioningToCombat = false;
     
+    // Remove nighttime alert icon from the enemy we just defeated (if any)
+    const lastCompletedNodeId = gameState.lastCompletedNodeId;
+    if (lastCompletedNodeId) {
+      this.mazeGenManager.removeEnemyAlert(lastCompletedNodeId);
+    }
+    
     // Restore player position if saved
     const savedPosition = gameState.getPlayerPosition();
     if (savedPosition) {
@@ -1693,6 +1699,9 @@ export class Overworld extends Scene {
             sprite.destroy();
           }
           
+          // Remove nighttime alert icon so it doesn't persist after combat
+          this.mazeGenManager.removeEnemyAlert(node.id);
+          
           // Hide tooltip if it's visible
           this.tooltipManager.hideTooltip();
           
@@ -1708,6 +1717,9 @@ export class Overworld extends Scene {
           if (bossSprite) {
             bossSprite.destroy();
           }
+          
+          // Remove nighttime alert icon if present
+          this.mazeGenManager.removeEnemyAlert(node.id);
           
           // Hide tooltip if it's visible
           this.tooltipManager.hideTooltip();
@@ -2267,6 +2279,11 @@ export class Overworld extends Scene {
    * Update method for animation effects and player movement
    */
   update(_time: number, _delta: number): void {
+    // Update fog of war every frame so it follows the player smoothly (no delay during movement)
+    if (this.fogOfWarManager && this.player) {
+      this.fogOfWarManager.update(this.player.x, this.player.y);
+    }
+
     // Skip input handling if player is currently moving or transitioning to combat
     if (this.isMoving || this.isTransitioningToCombat) {
       return;

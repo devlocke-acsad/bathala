@@ -65,8 +65,8 @@ export class FogOfWarSystem {
   /** Depth layer (above map tiles, below NPCs and all UI) */
   public fogDepth: number = 50;
   
-  /** Update frequency in milliseconds */
-  public updateInterval: number = 100;
+  /** Update frequency in milliseconds (0 = every call, for smooth follow) */
+  public updateInterval: number = 0;
   
   // === END EDITABLE PARAMETERS ===
   
@@ -104,6 +104,9 @@ export class FogOfWarSystem {
     // Create graphics for fog rendering
     this.fogGraphics = this.scene.add.graphics();
     this.fogContainer.add(this.fogGraphics);
+    
+    // Reveal area around starting position so the first frame isn't full black
+    this.revealAreasAroundPlayer();
     
     // Initial fog render
     this.renderFog();
