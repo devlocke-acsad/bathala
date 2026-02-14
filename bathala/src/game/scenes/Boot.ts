@@ -1,13 +1,7 @@
-import { Scene, GameObjects } from 'phaser';
+import { Scene } from 'phaser';
 
 export class Boot extends Scene
 {
-    loadingText: GameObjects.Text;
-    loadingBar: GameObjects.Rectangle;
-    loadingBarOutline: GameObjects.Rectangle;
-    scanlines: GameObjects.TileSprite;
-    scanlineTimer: number = 0;
-
     constructor ()
     {
         super('Boot');
@@ -35,71 +29,8 @@ export class Boot extends Scene
             this.cameras.main.setBackgroundColor(0x150E10);
         }
         
-        // Create loading UI with dark fantasy theme
-        this.createLoadingUI();
-        
-        // Start the preloader after a short delay to show the custom loading screen
-        this.time.delayedCall(500, () => {
-            this.scene.start("Preloader");
-        });
-    }
-    
-    private createLoadingUI(): void {
-        const width = this.cameras.main.width;
-        const height = this.cameras.main.height;
-        
-        // Add "BATHALA" text in the center using dungeon-mode-inverted font
-        this.loadingText = this.add.text(width/2, height/2 - 50, 'BATHALA', {
-            fontFamily: 'dungeon-mode-inverted, Arial, sans-serif',
-            fontSize: 48,
-            color: '#77888C',
-        }).setOrigin(0.5);
-        
-        // Add loading status text using dungeon-mode font
-        this.add.text(width/2, height/2 + 20, 'AWAKENING THE ANCIENTS...', {
-            fontFamily: 'dungeon-mode, Arial, sans-serif',
-            fontSize: 16,
-            color: '#77888C',
-        }).setOrigin(0.5);
-        
-        // Create loading bar outline
-        this.loadingBarOutline = this.add.rectangle(width/2, height/2 + 60, 300, 20)
-            .setStrokeStyle(2, 0x77888C);
-            
-        // Create loading bar (properly aligned inside the outline)
-        this.loadingBar = this.add.rectangle(width/2 - 148, height/2 + 52, 4, 16, 0x77888C)
-            .setOrigin(0, 0);
-            
-        // Create more subtle retro CRT scanline effect
-        this.scanlines = this.add.tileSprite(0, 0, width, height, '__WHITE')
-            .setOrigin(0)
-            .setAlpha(0.15) // More subtle opacity
-            .setTint(0x77888C);
-            
-        // Create a subtle scanline pattern
-        const graphics = this.make.graphics({ x: 0, y: 0, add: false });
-        graphics.fillStyle(0x000000, 1);
-        graphics.fillRect(0, 0, 4, 1);
-        graphics.fillStyle(0xffffff, 1);
-        graphics.fillRect(0, 1, 4, 1);
-        
-        const texture = graphics.generateTexture('boot_scanline', 4, 2);
-        this.scanlines.setTexture('boot_scanline');
-        
-        // Animate the loading bar (fill the entire outline)
-        this.tweens.add({
-            targets: this.loadingBar,
-            width: 296,
-            duration: 500,
-            ease: 'Linear'
-        });
-    }
-    
-    update(time: number, delta: number): void {
-        // Animate the scanlines
-        if (this.scanlines) {
-            this.scanlineTimer += delta;
-            this.scanlines.tilePositionY = this.scanlineTimer * 0.15; // Increased speed
-        }
+        // Start Preloader immediately — Boot only loads minimal assets (fonts, bg).
+        // Showing a separate loading screen here caused two loading screens to appear.
+        this.scene.start("Preloader");
     }
 }

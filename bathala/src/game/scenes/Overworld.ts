@@ -2279,6 +2279,11 @@ export class Overworld extends Scene {
    * Update method for animation effects and player movement
    */
   update(_time: number, _delta: number): void {
+    // Update fog of war every frame so it follows the player smoothly (no delay during movement)
+    if (this.fogOfWarManager && this.player) {
+      this.fogOfWarManager.update(this.player.x, this.player.y);
+    }
+
     // Skip input handling if player is currently moving or transitioning to combat
     if (this.isMoving || this.isTransitioningToCombat) {
       return;
