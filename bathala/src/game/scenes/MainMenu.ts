@@ -209,8 +209,8 @@ export class MainMenu extends Scene {
     // Center the content vertically on the screen
     const centerY = screenHeight / 2;
     
-    // Create title with tutorial-style entrance animation
-    this.createBathalaText(screenWidth/2, centerY - 120);
+    // Create "bathala" text with special handling for font loading
+    this.createBathalaText(screenWidth/2, centerY - 150);
 
     // Menu buttons using createButton (matching tutorial phase button style)
     const menuOptions = ["Play", "Discover", "Credits", "Settings"];
@@ -335,36 +335,40 @@ export class MainMenu extends Scene {
    * Create the "bathala" text with special font loading handling
    */
   private createBathalaText(x: number, y: number): void {
-    // Title text - matching tutorial phase header style (dungeon-mode font)
-    this.title = this.add
+    // Create the text
+    const titleText = this.add
       .text(x, y, "bathala", {
-        fontFamily: "dungeon-mode",
-        fontSize: 72,
+        fontFamily: "Pixeled English Font",
+        fontSize: 250,
         color: "#77888C",
-        align: "center",
       })
       .setOrigin(0.5)
       .setAlpha(0)
       .setY(y - 20);
-
-    // Entrance animation (slide-up + fade-in like tutorial phase headers)
+    
+    // Fade-in + slide-up entrance animation
     this.tweens.add({
-      targets: this.title,
+      targets: titleText,
       alpha: 1,
       y: y,
       duration: 800,
       ease: 'Power3.easeOut'
     });
-    
-    // Subtle pulsing effect
+
+    // Add subtle pulsing glow effect (no shadow) — starts after entrance
     this.tweens.add({
-      targets: this.title,
+      targets: titleText,
       alpha: 0.85,
       duration: 2000,
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
       delay: 800
+    });
+    
+    // Force refresh after a short delay
+    this.time.delayedCall(50, () => {
+      titleText.setText("bathala");
     });
   }
 
