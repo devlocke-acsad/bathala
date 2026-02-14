@@ -18,7 +18,7 @@ const DEPTH = {
   MAP_TILES: 0,
   MAP_NPCS: 49,          // Above fog of war (50)
   FALLBACK_CIRCLE: 51,
-  ENEMY_ALERT: 52        // Alert icons above NPCs
+  ENEMY_ALERT: 49        // Below fog (50) so the "!" is hidden when enemy is in unrevealed area
 };
 
 /**
