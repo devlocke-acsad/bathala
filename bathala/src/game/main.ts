@@ -35,12 +35,13 @@ const config: Phaser.Types.Core.GameConfig = {
   //   antialias: true,
   // },
 
-  // Scale settings - RESIZE mode for true fullscreen 16:9
+  // Scale settings - fixed 16:9 internal resolution, FIT to viewport.
+  // Browser/desktop zoom just scales the canvas uniformly instead of changing game resolution.
   scale: {
-    mode: Phaser.Scale.RESIZE, // Resize to fill entire screen
-    autoCenter: Phaser.Scale.CENTER_BOTH, // Center the game canvas
-    width: 1920, // Base 16:9 width
-    height: 1080, // Base 16:9 height
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: 1920,
+    height: 1080,
   },
   
   // Enable DOM elements for UI components
