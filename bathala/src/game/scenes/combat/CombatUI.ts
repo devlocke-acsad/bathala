@@ -3292,130 +3292,190 @@ export class CombatUI {
   }
   
   /**
-   * Show relic detail modal with comprehensive information
+   * Show relic detail modal with clean, readable layout matching game design
    */
   private showRelicDetailModal(relic: any): void {
     console.log("Showing relic detail modal for:", relic.name);
     
-    const screenWidth = this.scene.cameras.main.width;
-    const screenHeight = this.scene.cameras.main.height;
+    const screenW = this.scene.cameras.main.width;
+    const screenH = this.scene.cameras.main.height;
     
-    // Create modal container
-    const modalContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2);
-    modalContainer.setDepth(3000);
-    
-    // Semi-transparent overlay background
-    const overlay = this.scene.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7);
+    // --- Dim overlay (scene-level, full screen) ---
+    const overlay = this.scene.add.rectangle(screenW / 2, screenH / 2, screenW, screenH, 0x000000, 0.85);
+    overlay.setDepth(2900);
     overlay.setInteractive();
-    overlay.on('pointerdown', () => {
-      modalContainer.destroy();
-    });
     
-    // Modal window dimensions - increased height for better text display
-    const modalWidth = 480;
-    const modalHeight = 340;
-    
-    // Main modal background with Prologue styling
-    const modalBg = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, 0x0f0a0b);
-    const outerBorder = this.scene.add.rectangle(0, 0, modalWidth + 6, modalHeight + 6, undefined, 0);
-    outerBorder.setStrokeStyle(3, 0x77888C, 1.0);
-    const innerBorder = this.scene.add.rectangle(0, 0, modalWidth, modalHeight, undefined, 0);
-    innerBorder.setStrokeStyle(2, 0x77888C, 0.8);
-    
-    // Title section with relic icon - better aligned
-    const titleY = -modalHeight/2 + 45;
-    const relicIcon = this.scene.add.text(-modalWidth/2 + 50, titleY, relic.emoji || "⚙️", {
-      fontSize: 36,
-      align: "center"
-    }).setOrigin(0.5);
-    
-    const relicName = this.scene.add.text(-modalWidth/2 + 100, titleY, relic.name, {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#ffd93d",
-      align: "left",
-      wordWrap: { width: modalWidth - 200 }
-    }).setOrigin(0, 0.5);
-    
-    // Rarity indicator (if available) - better positioned
-    let rarityColor = "#77888C";
-    let rarityText = "COMMON";
-    if (relic.rarity) {
-      switch (relic.rarity.toLowerCase()) {
-        case "uncommon": rarityColor = "#4ecdc4"; rarityText = "UNCOMMON"; break;
-        case "rare": rarityColor = "#ffd93d"; rarityText = "RARE"; break;
-        case "legendary": rarityColor = "#ff6b6b"; rarityText = "LEGENDARY"; break;
-      }
+    // --- Modal panel ---
+    const pw = 440;
+    const ph = 480;
+    const modal = this.scene.add.container(screenW / 2, screenH / 2);
+    modal.setDepth(2901);
+
+    // Panel background with subtle shadow
+    const panelGfx = this.scene.add.graphics();
+    panelGfx.fillStyle(0x000000, 0.45);
+    panelGfx.fillRoundedRect(-pw / 2 + 5, -ph / 2 + 5, pw, ph, 10);
+    panelGfx.fillStyle(0x0e1318, 0.98);
+    panelGfx.fillRoundedRect(-pw / 2, -ph / 2, pw, ph, 10);
+    panelGfx.lineStyle(2, 0x4a6070, 0.85);
+    panelGfx.strokeRoundedRect(-pw / 2, -ph / 2, pw, ph, 10);
+    panelGfx.lineStyle(1, 0x6b8899, 0.2);
+    panelGfx.strokeRoundedRect(-pw / 2 + 3, -ph / 2 + 3, pw - 6, ph - 6, 8);
+    modal.add(panelGfx);
+
+    // --- Header row ---
+    const headerH = 64;
+    const headerTop = -ph / 2 + 12;
+    const headerGfx = this.scene.add.graphics();
+    headerGfx.fillStyle(0x16202a, 0.85);
+    headerGfx.fillRoundedRect(-pw / 2 + 12, headerTop, pw - 24, headerH, 8);
+    modal.add(headerGfx);
+
+    // Icon background
+    const iconCx = -pw / 2 + 46;
+    const iconCy = headerTop + headerH / 2;
+    const iconGfx = this.scene.add.graphics();
+    iconGfx.fillStyle(0x1a2832, 0.9);
+    iconGfx.lineStyle(1, 0x4a6070, 0.55);
+    iconGfx.fillRoundedRect(iconCx - 22, iconCy - 22, 44, 44, 8);
+    iconGfx.strokeRoundedRect(iconCx - 22, iconCy - 22, 44, 44, 8);
+    modal.add(iconGfx);
+
+    // Icon sprite or emoji
+    const spriteKey = getRelicSpriteKey(relic.id);
+    let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+    if (spriteKey && this.scene.textures.exists(spriteKey)) {
+      relicIcon = this.scene.add.image(iconCx, iconCy, spriteKey).setOrigin(0.5).setDisplaySize(36, 36);
+    } else {
+      relicIcon = this.scene.add.text(iconCx, iconCy, relic.emoji || "⚙️", { fontSize: 26 }).setOrigin(0.5);
     }
-    
-    const rarityLabel = this.scene.add.text(modalWidth/2 - 25, titleY, rarityText, {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: rarityColor,
-      align: "right"
-    }).setOrigin(1, 0.5);
-    
-    // Description section - improved positioning
-    const descriptionY = titleY + 50;
-    const description = this.scene.add.text(0, descriptionY, relic.description || "A mysterious relic with unknown powers.", {
-      fontFamily: "dungeon-mode",
-      fontSize: 15,
-      color: "#e8eced",
-      align: "center",
-      wordWrap: { width: modalWidth - 60 },
-      lineSpacing: 4
-    }).setOrigin(0.5, 0);
-    
-    // Effect section - always show mechanical effect from BALANCED values
-    const effectText = this.getRelicEffectDescription(relic);
-    
-    const effectLabel = this.scene.add.text(0, descriptionY + 80, "⚡ EFFECT:", {
+    modal.add(relicIcon);
+
+    // Name text (left-aligned next to icon)
+    const nameText = this.scene.add.text(iconCx + 36, iconCy, relic.name.toUpperCase(), {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 17,
+      color: "#dce8f0",
+      wordWrap: { width: pw - 180 }
+    }).setOrigin(0, 0.5);
+    nameText.setShadow(1, 1, '#000000', 3, false, true);
+    modal.add(nameText);
+
+    // Equipped badge (right side of header)
+    const badgeCx = pw / 2 - 70;
+    const badgeCy = headerTop + headerH / 2;
+    const badgeGfx = this.scene.add.graphics();
+    badgeGfx.fillStyle(0x276749, 0.9);
+    badgeGfx.fillRoundedRect(badgeCx - 38, badgeCy - 10, 76, 20, 5);
+    modal.add(badgeGfx);
+    const badgeLabel = this.scene.add.text(badgeCx, badgeCy, "EQUIPPED", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 9, color: "#a7f3d0"
+    }).setOrigin(0.5);
+    modal.add(badgeLabel);
+
+    // --- Close button (top-right corner) ---
+    const closeBtnX = pw / 2 - 24;
+    const closeBtnY = -ph / 2 + 24;
+    const closeBtn = this.scene.add.container(closeBtnX, closeBtnY);
+    const closeBgGfx = this.scene.add.graphics();
+
+    const drawCloseBtn = (hover: boolean) => {
+      closeBgGfx.clear();
+      closeBgGfx.fillStyle(hover ? 0xdc2626 : 0x8b1a1a, 0.95);
+      closeBgGfx.lineStyle(1, hover ? 0xfca5a5 : 0xc07070, 0.7);
+      closeBgGfx.fillRoundedRect(-13, -13, 26, 26, 6);
+      closeBgGfx.strokeRoundedRect(-13, -13, 26, 26, 6);
+    };
+    drawCloseBtn(false);
+
+    const closeLabel = this.scene.add.text(0, 0, "X", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 13, color: "#ffffff"
+    }).setOrigin(0.5);
+    closeBtn.add([closeBgGfx, closeLabel]);
+    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-13, -13, 26, 26), Phaser.Geom.Rectangle.Contains);
+    closeBtn.on("pointerdown", () => { overlay.destroy(); modal.destroy(); });
+    closeBtn.on("pointerover", () => { drawCloseBtn(true); closeBtn.setScale(1.1); });
+    closeBtn.on("pointerout", () => { drawCloseBtn(false); closeBtn.setScale(1.0); });
+    modal.add(closeBtn);
+
+    // --- Separator ---
+    const sepY = headerTop + headerH + 16;
+    const sepGfx = this.scene.add.graphics();
+    sepGfx.lineStyle(1, 0x3a5060, 0.4);
+    sepGfx.lineBetween(-pw / 2 + 24, sepY, pw / 2 - 24, sepY);
+    modal.add(sepGfx);
+
+    // --- Description section ---
+    const descTop = sepY + 12;
+    const descLabel = this.scene.add.text(-pw / 2 + 28, descTop, "DESCRIPTION", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#7a9aaa"
+    });
+    modal.add(descLabel);
+
+    const descBody = this.scene.add.text(0, descTop + 24, relic.description || "A mysterious relic of unknown power.", {
       fontFamily: "dungeon-mode",
       fontSize: 14,
-      color: "#feca57",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    const effectDescription = this.scene.add.text(0, descriptionY + 105, effectText, {
-      fontFamily: "dungeon-mode",
-      fontSize: 15,
-      color: "#4ecdc4",
+      color: "#d0dce4",
       align: "center",
-      wordWrap: { width: modalWidth - 60 },
+      wordWrap: { width: pw - 64 },
       lineSpacing: 5
     }).setOrigin(0.5, 0);
-    
-    // Close button - better positioned
-    const closeButton = this.createCloseButton(modalWidth/2 - 35, -modalHeight/2 + 35);
-    closeButton.on('pointerdown', () => {
-      modalContainer.destroy();
+    modal.add(descBody);
+
+    // --- Effect section ---
+    const effectTop = descTop + 90;
+    const effectSepGfx = this.scene.add.graphics();
+    effectSepGfx.lineStyle(1, 0x3a4a60, 0.35);
+    effectSepGfx.lineBetween(-pw / 2 + 24, effectTop, pw / 2 - 24, effectTop);
+    modal.add(effectSepGfx);
+
+    const effectLabel = this.scene.add.text(-pw / 2 + 28, effectTop + 10, "EFFECT", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#c8a040"
     });
-    
-    // Add all elements to modal
-    modalContainer.add([
-      overlay,
-      outerBorder,
-      innerBorder,
-      modalBg,
-      relicIcon,
-      relicName,
-      rarityLabel,
-      description,
-      effectLabel,
-      effectDescription,
-      closeButton
-    ]);
-    
-    // Add entrance animation
-    modalContainer.setScale(0.8);
-    modalContainer.setAlpha(0);
+    modal.add(effectLabel);
+
+    const effectText = this.getRelicEffectDescription(relic);
+    const effectBody = this.scene.add.text(0, effectTop + 34, effectText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 13,
+      color: "#5ccfb8",
+      align: "center",
+      wordWrap: { width: pw - 64 },
+      lineSpacing: 5
+    }).setOrigin(0.5, 0);
+    modal.add(effectBody);
+
+    // --- Lore section ---
+    const loreTop = effectTop + 90;
+    const loreSepGfx = this.scene.add.graphics();
+    loreSepGfx.lineStyle(1, 0x2e4a3a, 0.35);
+    loreSepGfx.lineBetween(-pw / 2 + 24, loreTop, pw / 2 - 24, loreTop);
+    modal.add(loreSepGfx);
+
+    const loreLabel = this.scene.add.text(-pw / 2 + 28, loreTop + 10, "LORE", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#6fb590"
+    });
+    modal.add(loreLabel);
+
+    const loreText = relic.lore || "An ancient artifact of great power, its origins lost to time.";
+    const loreBody = this.scene.add.text(0, loreTop + 34, loreText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#99b3a8",
+      align: "center",
+      wordWrap: { width: pw - 64 },
+      lineSpacing: 5
+    }).setOrigin(0.5, 0);
+    modal.add(loreBody);
+
+    // --- Entrance animation ---
+    modal.setScale(0.85).setAlpha(0);
     this.scene.tweens.add({
-      targets: modalContainer,
-      scale: 1,
-      alpha: 1,
-      duration: 200,
-      ease: 'Back.Out'
+      targets: modal, scale: 1, alpha: 1, duration: 220, ease: 'Back.Out'
     });
+
+    // Close on overlay click
+    overlay.on('pointerdown', () => { overlay.destroy(); modal.destroy(); });
   }
   
   /**

@@ -72,7 +72,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Test in actual combat to verify relics trigger
   - _Requirements: 1.1-1.5, 5.1-5.5_
 
-- [~] 7. Integrate relic damage calculators
+- [ ] 7. Integrate relic damage calculators
   - In calculateAttackDamage(): Add RelicManager.calculateSigbinHeartDamage(this.player)
   - In calculateAttackDamage(): Add RelicManager.calculateBungisngisGrinDamage(this.player, enemy)
   - In calculateAttackDamage(): Check RelicManager.shouldApplyKapresCigarDouble() for first attack
@@ -82,7 +82,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Test damage calculations with relics in combat
   - _Requirements: 2.13, 2.16, 2.17, 2.18, 2.19_
 
-- [~] 8. Integrate relic block calculators
+- [ ] 8. Integrate relic block calculators
   - In calculateDefendBlock(): Ensure RelicManager.calculateDefendBlockBonus() is called
   - Verify Umalagad's Spirit (+4 Block on Defend) works
   - Verify Diwata's Crown (+3 Block on Defend) works
@@ -91,7 +91,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Test in combat with various Defend relic combinations
   - _Requirements: 2.4, 2.9, 2.14_
 
-- [~] 9. Integrate special mechanics
+- [ ] 9. Integrate special mechanics
   - Verify Babaylan's Talisman hand tier upgrade in HandEvaluator
   - Verify Diwata's Crown enables Five of a Kind in HandEvaluator
   - Verify Tikbalang's Hoof dodge chance in enemy attack resolution
@@ -99,7 +99,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Test each special mechanic in combat
   - _Requirements: 2.5, 2.9, 2.11, 2.18_
 
-- [~] 10. Test all relics in actual combat
+- [ ] 10. Test all relics in actual combat
   - Create test combat scenario with each relic
   - Verify each relic triggers at correct time
   - Verify each relic applies correct effect
@@ -110,7 +110,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
 
 ### Phase 3: Visual Feedback (Tasks 11-15)
 
-- [~] 11. Create relic trigger notification system
+- [ ] 11. Create relic trigger notification system
   - In CombatUI.ts: Add showRelicTrigger(relicName: string, effectText: string) method
   - Create notification container with relic name and effect
   - Add fade-in animation (300ms, Back.easeOut)
@@ -120,7 +120,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Test notification appearance and timing
   - _Requirements: 5.1-5.5_
 
-- [~] 12. Add relic trigger calls in Combat.ts
+- [ ] 12. Add relic trigger calls in Combat.ts
   - Create showRelicTriggers(triggerPoint: string) method in Combat.ts
   - Call showRelicTriggers("START_OF_COMBAT") after applyStartOfCombatEffects()
   - Call showRelicTriggers("START_OF_TURN") after applyStartOfTurnEffects()
@@ -130,7 +130,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Test notifications appear for all trigger points
   - _Requirements: 5.1-5.5_
 
-- [~] 13. Add action-specific relic feedback
+- [ ] 13. Add action-specific relic feedback
   - When Sigbin Heart triggers: Show "Sigbin Heart: +3 Damage"
   - When Mangangaway Wand triggers: Show "Mangangaway Wand: +5 Damage"
   - When Bungisngis Grin triggers: Show "Bungisngis Grin: +4 Damage"
@@ -140,7 +140,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Test all action-specific notifications
   - _Requirements: 5.1-5.5_
 
-- [~] 14. Enhance damage breakdown display
+- [ ] 14. Enhance damage breakdown display
   - In CombatUI.ts: Update showDamageBreakdown() to include relic contribution
   - Add "Relics: +X" line to damage breakdown
   - Show which relics contributed to damage
@@ -148,7 +148,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Verify breakdown is accurate
   - _Requirements: 5.5_
 
-- [~] 15. Add floating text for stat changes
+- [ ] 15. Add floating text for stat changes
   - When Block increases from relic: Show "+X Block" floating text in blue
   - When Strength is gained from relic: Show "+X Strength" floating text in red
   - When HP is healed from relic: Show "+X HP" floating text in green
@@ -158,7 +158,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
 
 ### Phase 4: Status Effect & Elemental Modifiers (Tasks 16-18)
 
-- [~] 16. Implement status effect stack modifiers
+- [ ] 16. Implement status effect stack modifiers
   - In RelicManager.getStatusEffectStackBonus(): Add logic for relics that modify status stacks
   - Example: If a relic adds +1 to Poison applications, implement here
   - Verify StatusEffectManager.registerModifier() is called in registerRelicModifiers()
@@ -166,7 +166,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Verify modified stacks display correctly
   - _Requirements: 3.1-3.5_
 
-- [~] 17. Implement elemental damage modifiers
+- [ ] 17. Implement elemental damage modifiers
   - In RelicManager.getElementalDamageBonus(): Add logic for relics that modify elemental damage
   - Example: If a relic adds +0.25× to Fire damage, implement here
   - Verify ElementalAffinitySystem.registerModifier() is called in registerRelicModifiers()
@@ -174,7 +174,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Verify modified multipliers display correctly
   - _Requirements: 4.1-4.5_
 
-- [~] 18. Test modifier stacking
+- [ ] 18. Test modifier stacking
   - Test multiple relics affecting same status effect
   - Test multiple relics affecting same element
   - Verify bonuses stack additively (not multiplicatively)
@@ -184,7 +184,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
 
 ### Phase 5: Relic Acquisition (Tasks 19-21)
 
-- [~] 19. Verify relic acquisition effects
+- [ ] 19. Verify relic acquisition effects
   - Test Stone Golem Heart: Verify +8 Max HP and +8 Current HP on acquisition
   - Test acquisition in Shop scene
   - Test acquisition in Treasure scene
@@ -193,14 +193,14 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Verify visual feedback appears (if any)
   - _Requirements: 7.1-7.5_
 
-- [~] 20. Add acquisition feedback
+- [ ] 20. Add acquisition feedback
   - When Stone Golem Heart acquired: Show "+8 Max HP" notification
   - When combat-only relic acquired: Show "Active in Combat" message
   - Add relic acquisition animation (glow, scale up)
   - Test acquisition feedback in all scenes
   - _Requirements: 7.2_
 
-- [~] 21. Test relic stacking on acquisition
+- [ ] 21. Test relic stacking on acquisition
   - Acquire same relic multiple times
   - Verify effects stack correctly
   - Verify tooltips show total effect
@@ -210,7 +210,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
 
 ### Phase 6: Performance & Optimization (Tasks 22-24)
 
-- [~] 22. Implement relic lookup caching
+- [ ] 22. Implement relic lookup caching
   - Add relicCache Map to RelicManager
   - Implement caching in getPlayerRelicsWithEffect()
   - Add clearCache() method
@@ -218,7 +218,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Measure performance improvement
   - _Requirements: 10.1-10.5_
 
-- [~] 23. Optimize relic trigger execution
+- [ ] 23. Optimize relic trigger execution
   - Ensure relics process in deterministic order
   - Measure execution time for each trigger point
   - Verify no trigger point takes >100ms
@@ -226,7 +226,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Document performance metrics
   - _Requirements: 10.2-10.3_
 
-- [~] 24. Test performance with many relics
+- [ ] 24. Test performance with many relics
   - Test combat with 0 relics (baseline)
   - Test combat with 5 relics
   - Test combat with 10 relics
@@ -237,7 +237,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
 
 ### Phase 7: Act 2-3 Preparation (Tasks 25-27)
 
-- [~] 25. Design Act 2 relic system
+- [ ] 25. Design Act 2 relic system
   - Review Act 2 theme (Water/Fire)
   - Design 10 Act 2 relics with effects
   - Add Act 2 relics to RELIC_EFFECTS categorization
@@ -245,7 +245,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Ensure compatibility with existing system
   - _Requirements: 6.1-6.5_
 
-- [~] 26. Design Act 3 relic system
+- [ ] 26. Design Act 3 relic system
   - Review Act 3 theme (Celestial)
   - Design 10 Act 3 relics with effects
   - Add Act 3 relics to RELIC_EFFECTS categorization
@@ -253,7 +253,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Ensure compatibility with existing system
   - _Requirements: 6.1-6.5_
 
-- [~] 27. Test cross-act relic compatibility
+- [ ] 27. Test cross-act relic compatibility
   - Test Act 1 + Act 2 relic combinations
   - Test Act 1 + Act 3 relic combinations
   - Test Act 2 + Act 3 relic combinations
@@ -264,7 +264,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
 
 ### Phase 8: Documentation & Polish (Tasks 28-30)
 
-- [~] 28. Create relic reference guide
+- [ ] 28. Create relic reference guide
   - Create document: `bathala/RELIC_REFERENCE_GUIDE.md`
   - List all Act 1 relics with full descriptions
   - Include trigger points and exact values
@@ -272,7 +272,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Include screenshots of relic effects
   - _Requirements: All_
 
-- [~] 29. Update code documentation
+- [ ] 29. Update code documentation
   - Add JSDoc comments to all RelicManager methods
   - Document trigger point system
   - Document modifier system
@@ -280,7 +280,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Ensure all public methods have documentation
   - _Requirements: All_
 
-- [~] 30. Final integration test
+- [ ] 30. Final integration test
   - Complete full game run with various relic combinations
   - Test all 20 Act 1 relics in actual gameplay
   - Verify no bugs or issues

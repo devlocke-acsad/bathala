@@ -3,7 +3,7 @@ import { Scene } from "phaser";
 import { MapNode } from "../../core/types/MapTypes";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { GameState } from "../../core/managers/GameState";
-import { Player } from "../../core/types/CombatTypes";
+import { Player, Relic } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { InputSystem } from "../../systems/shared/InputSystem";
 import { MazeGenSystem } from "../../systems/generation/MazeGenSystem";
@@ -91,6 +91,7 @@ export class Overworld extends Scene {
   private potionsContainer!: Phaser.GameObjects.Container;
   private currencyText!: Phaser.GameObjects.Text;
   private playerData: Player;
+  private relicDetailsOpen: boolean = false;
   
   // Tooltip Manager
   private tooltipManager!: TooltipSystem;
@@ -2474,16 +2475,16 @@ export class Overworld extends Scene {
     const panelX = 20;
     const panelY = (screenHeight / 2) - (panelHeight / 2); // Center vertically
     
-    // Dark retro-style background with double border like reference
+    // Retro panel base with subtle depth and double border
     const panelBg = this.add.graphics();
-    panelBg.fillStyle(0x0a0a0a, 1.0);
-    panelBg.lineStyle(2, 0x888888, 1.0);
+    panelBg.fillStyle(0x080b0d, 1.0);
+    panelBg.lineStyle(2, 0x586670, 1.0);
     panelBg.fillRect(panelX, panelY, panelWidth, panelHeight);
     panelBg.strokeRect(panelX, panelY, panelWidth, panelHeight);
     
-    // Inner border exactly like reference
+    // Inner border
     const innerBorder = this.add.graphics();
-    innerBorder.lineStyle(1, 0x666666, 1.0);
+    innerBorder.lineStyle(1, 0x2f3940, 1.0);
     innerBorder.strokeRect(panelX + 6, panelY + 6, panelWidth - 12, panelHeight - 12);
     
     this.uiContainer.add([panelBg, innerBorder]);
@@ -2506,46 +2507,42 @@ export class Overworld extends Scene {
    * Create retro health section matching reference image exactly
    */
   private createRetroHealthSection(x: number, y: number, _width: number): void {
-    // Health label and value on same line
     const healthLabel = this.add.text(x, y, "Health", {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
-      color: "#888888"
+      color: "#8ea3b0"
     });
-    
-    const healthIcon = this.add.text(x, y + 20, "♥", {
+
+    const healthIcon = this.add.text(x, y + 20, "\u2665", {
       fontSize: "16px",
-      color: "#ff0000"
+      color: "#ff6b6b"
     });
-    
-    this.healthText = this.add.text(x + 25, y + 20, `${this.playerData.currentHealth}/${this.playerData.maxHealth}`, {
+
+    this.healthText = this.add.text(x + 30, y + 20, `${this.playerData.currentHealth}/${this.playerData.maxHealth}`, {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
       color: "#ffffff"
     });
-    
-    // Gold label and value
+
     const goldLabel = this.add.text(x, y + 45, "Gold", {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
-      color: "#888888"
+      color: "#8ea3b0"
     });
-    
-    const goldIcon = this.add.text(x, y + 65, "♦", {
+
+    const goldIcon = this.add.text(x, y + 65, "\u2666", {
       fontSize: "16px",
-      color: "#ffff00"
+      color: "#f7d774"
     });
-    
-    this.currencyText = this.add.text(x + 25, y + 65, `${this.playerData.ginto}`, {
+
+    this.currencyText = this.add.text(x + 30, y + 65, `${this.playerData.ginto}`, {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
       color: "#ffffff"
     });
-    
-    // Create health bar graphics (required for updateHealthBar method)
+
     this.healthBar = this.add.graphics();
     this.uiContainer.add(this.healthBar);
-    
     this.uiContainer.add([healthLabel, healthIcon, this.healthText, goldLabel, goldIcon, this.currencyText]);
   }
 
@@ -2557,7 +2554,7 @@ export class Overworld extends Scene {
     const relicsLabel = this.add.text(x, y, "Relics", {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
-      color: "#888888"
+      color: "#8ea3b0"
     });
     this.uiContainer.add(relicsLabel);
     
@@ -2575,10 +2572,10 @@ export class Overworld extends Scene {
         const slotY = gridStartY + row * (slotSize + slotSpacing);
         
         const slot = this.add.graphics();
-        slot.fillStyle(0x000000, 1.0);
-        slot.lineStyle(1, 0x666666, 1.0);
-        slot.fillRect(slotX, slotY, slotSize, slotSize);
-        slot.strokeRect(slotX, slotY, slotSize, slotSize);
+        slot.fillStyle(0x050607, 1.0);
+        slot.lineStyle(1, 0x374047, 1.0);
+        slot.fillRoundedRect(slotX, slotY, slotSize, slotSize, 6);
+        slot.strokeRoundedRect(slotX, slotY, slotSize, slotSize, 6);
         this.uiContainer.add(slot);
       }
     }
@@ -2596,7 +2593,7 @@ export class Overworld extends Scene {
     const potionsLabel = this.add.text(x, y, "Potions", {
       fontFamily: "dungeon-mode",
       fontSize: "14px",
-      color: "#888888"
+      color: "#8ea3b0"
     });
     this.uiContainer.add(potionsLabel);
     
@@ -2610,10 +2607,10 @@ export class Overworld extends Scene {
       const slotX = potionStartX + i * (slotSize + slotSpacing);
       
       const slot = this.add.graphics();
-      slot.fillStyle(0x000000, 1.0);
-      slot.lineStyle(1, 0x666666, 1.0);
-      slot.fillRect(slotX, potionStartY, slotSize, slotSize);
-      slot.strokeRect(slotX, potionStartY, slotSize, slotSize);
+      slot.fillStyle(0x050607, 1.0);
+      slot.lineStyle(1, 0x374047, 1.0);
+      slot.fillRoundedRect(slotX, potionStartY, slotSize, slotSize, 6);
+      slot.strokeRoundedRect(slotX, potionStartY, slotSize, slotSize, 6);
       this.uiContainer.add(slot);
     }
     
@@ -2697,293 +2694,134 @@ export class Overworld extends Scene {
     this.currencyText.setText(`${this.playerData.ginto}`);
   }
 
-  /**
-   * Update relics display with modern Persona-style design
+    /**
+   * Update relics display with interactive slots and details modal
    */
   private updateRelicsDisplay(): void {
-    console.log('🎯 updateRelicsDisplay called with', this.playerData.relics.length, 'relics');
-    console.log('🎯 Player relics:', this.playerData.relics.map(r => r.name || r.id));
+    if (!this.relicsContainer) return;
+
     this.relicsContainer.removeAll(true);
-    
-    const slotSize = 60; // Match the new retro slot size  
-    const slotSpacing = 10; // Match the new retro spacing
-    const slotsPerRow = 3; // 3x2 grid (3 columns, 2 rows)
-    const maxRelics = 6; // 3x2 grid total
-    
-    // Position relics relative to the container (which is already at gridStartX, gridStartY)
-    // No offset needed since container is positioned correctly
-    
+
+    const slotSize = 60;
+    const slotSpacing = 10;
+    const slotsPerRow = 3;
+    const maxRelics = 6;
+
     for (let i = 0; i < Math.min(this.playerData.relics.length, maxRelics); i++) {
       const relic = this.playerData.relics[i];
       const row = Math.floor(i / slotsPerRow);
       const col = i % slotsPerRow;
-      
-      // Position relative to container origin - matches slot positioning exactly
       const relicX = col * (slotSize + slotSpacing);
       const relicY = row * (slotSize + slotSpacing);
-      
-      // Create modern Persona-style relic container
+
       const relicContainer = this.add.container(relicX, relicY);
-      // Don't set depth here - let it inherit from parent uiContainer
-      
-      // Relic background with modern gradient (no border)
+
       const relicBg = this.add.graphics();
-      relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
+      relicBg.fillGradientStyle(0x1a2228, 0x1a2228, 0x0d1216, 0x0d1216, 0.95);
       relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-      
-      // Inner glow effect (subtle, no blue)
+
       const innerGlow = this.add.graphics();
-      innerGlow.lineStyle(1, 0x333344, 0.4);
+      innerGlow.lineStyle(1, 0x4b5f6b, 0.55);
       innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-      
-      // Get sprite key for this relic
+
       const spriteKey = getRelicSpriteKey(relic.id);
-      
-      // Relic icon with size adjusted for 45px slots
       let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
-      
+
       if (spriteKey && this.textures.exists(spriteKey)) {
-        // Use sprite if available
-        relicIcon = this.add.image(slotSize/2, slotSize/2, spriteKey)
+        relicIcon = this.add.image(slotSize / 2, slotSize / 2, spriteKey)
           .setOrigin(0.5)
-          .setDisplaySize(48, 48); // Fit within 60px slot with some padding
+          .setDisplaySize(48, 48);
       } else {
-        // Fallback to emoji if sprite not found
-        relicIcon = this.add.text(slotSize/2, slotSize/2, relic.emoji, {
+        relicIcon = this.add.text(slotSize / 2, slotSize / 2, relic.emoji, {
           fontSize: "24px",
           align: "center"
         }).setOrigin(0.5);
         (relicIcon as Phaser.GameObjects.Text).setShadow(1, 1, '#000000', 2, false, true);
       }
-      
+
       relicContainer.add([relicBg, innerGlow, relicIcon]);
-      
-      // Create hover tooltip container (initially hidden)
-      const tooltipContainer = this.add.container(slotSize/2, -50);
-      
+
+      const tooltipContainer = this.add.container(slotSize / 2, -60);
       const tooltipBg = this.add.graphics();
       tooltipBg.fillStyle(0x0a0a0a, 0.95);
-      tooltipBg.lineStyle(2, 0x00d4ff, 1);
-      
+      tooltipBg.lineStyle(1, 0x4b5f6b, 1);
+
       const tooltipText = this.add.text(0, 0, relic.name, {
         fontFamily: "dungeon-mode",
         fontSize: "12px",
-        color: "#00d4ff",
+        color: "#d8e8f2",
         fontStyle: "bold",
         align: "center",
         wordWrap: { width: 180 }
       }).setOrigin(0.5);
-      tooltipText.setShadow(1, 1, '#000000', 2, false, true);
-      
-      // Dynamically size tooltip based on text with max width constraint
+
       const textBounds = tooltipText.getBounds();
       const tooltipWidth = Math.min(Math.max(textBounds.width + 16, 80), 200);
       const tooltipHeight = textBounds.height + 12;
-      
-      tooltipBg.fillRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 6);
-      tooltipBg.strokeRoundedRect(-tooltipWidth/2, -tooltipHeight/2, tooltipWidth, tooltipHeight, 6);
-      
+      tooltipBg.fillRoundedRect(-tooltipWidth / 2, -tooltipHeight / 2, tooltipWidth, tooltipHeight, 6);
+      tooltipBg.strokeRoundedRect(-tooltipWidth / 2, -tooltipHeight / 2, tooltipWidth, tooltipHeight, 6);
+
       tooltipContainer.add([tooltipBg, tooltipText]);
       tooltipContainer.setVisible(false);
       tooltipContainer.setAlpha(0);
-      
       relicContainer.add(tooltipContainer);
-      
-      // Make the entire container interactive with proper hit area
+
       relicContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
-      
-      // Debug: Log interactive setup
-      console.log('🎯 Setting up interactive for:', relic.name, {
-        position: { x: relicX, y: relicY },
-        hitArea: { width: slotSize, height: slotSize },
-        inputEnabled: relicContainer.input?.enabled,
-        depth: relicContainer.depth
-      });
-      
-      // Enable input events
-      relicContainer.input!.enabled = true;
-      
-      // Set proper interactivity for the relic container
-      relicContainer.setInteractive(new Phaser.Geom.Rectangle(0, 0, slotSize, slotSize), Phaser.Geom.Rectangle.Contains);
-      relicContainer.setScrollFactor(0); // Ensure container stays screen-fixed
-      relicContainer.setDepth(15); // Higher than slots but lower than tooltips
-      
-      console.log(`🎯 Making relic container interactive at (${relicX}, ${relicY}) with size ${slotSize}x${slotSize}`);
+      relicContainer.setScrollFactor(0);
+      relicContainer.setDepth(15);
+
       relicContainer.on('pointerover', () => {
-        console.log('🔥 Relic hover START:', relic.name);
-        
-        // Enhanced background on hover
         relicBg.clear();
-        relicBg.fillGradientStyle(0x2a2a4e, 0x2a2a4e, 0x1f2439, 0x1f2439, 1);
+        relicBg.fillGradientStyle(0x26323a, 0x26323a, 0x111920, 0x111920, 1);
         relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-        
-        // Scale animation
+
         this.tweens.add({
           targets: relicContainer,
-          scale: 1.1,
-          duration: 200,
-          ease: 'Back.easeOut'
+          scale: 1.06,
+          duration: 120,
+          ease: 'Power2'
         });
-        
-        // Show tooltip
-        const tooltipY = -60;
-        tooltipContainer.setPosition(slotSize/2, tooltipY);
+
         tooltipContainer.setVisible(true);
         this.tweens.add({
           targets: tooltipContainer,
           alpha: 1,
-          duration: 200,
-          ease: 'Back.easeOut'
+          duration: 120,
+          ease: 'Power2'
         });
-        
+
         this.input.setDefaultCursor('pointer');
       });
-      
+
       relicContainer.on('pointerout', () => {
-        console.log('❄️ Relic hover END:', relic.name);
-        
-        // Restore original background
         relicBg.clear();
-        relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
+        relicBg.fillGradientStyle(0x1a2228, 0x1a2228, 0x0d1216, 0x0d1216, 0.95);
         relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-        
-        // Scale back to normal
+
         this.tweens.add({
           targets: relicContainer,
           scale: 1,
-          duration: 200,
+          duration: 120,
           ease: 'Power2'
         });
-        
-        // Hide tooltip
+
         this.tweens.add({
           targets: tooltipContainer,
           alpha: 0,
-          duration: 200,
+          duration: 120,
           ease: 'Power2',
           onComplete: () => {
             tooltipContainer.setVisible(false);
           }
         });
-        
+
         this.input.setDefaultCursor('default');
       });
-      
+
       relicContainer.on('pointerdown', () => {
-        console.log('�️ Relic CLICKED:', relic.name);
-        this.showRelicDetails(relic);
+        this.showRelicDetails(relic, i);
       });
-      
-      // Modern hover effects
-      relicContainer.on('pointerover', () => {
-        console.log('🔥 Relic hover START:', relic.name, 'at position:', relicX, relicY); // Enhanced debug log
-        
-        // Enhanced background on hover (no blue border)
-        relicBg.clear();
-        relicBg.fillGradientStyle(0x2a2a4e, 0x2a2a4e, 0x1f2439, 0x1f2439, 1);
-        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-        
-        // Enhanced glow (subtle highlight)
-        innerGlow.clear();
-        innerGlow.lineStyle(2, 0x555566, 0.8);
-        innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        
-        // Scale animation
-        this.tweens.add({
-          targets: relicContainer,
-          scale: 1.1,
-          duration: 200,
-          ease: 'Back.easeOut'
-        });
-        
-        // Position tooltip above the relic
-        tooltipContainer.y = -tooltipHeight - 10;
-        
-        // Show tooltip with fade in and slide up animation
-        tooltipContainer.setVisible(true);
-        tooltipContainer.y += 10; // Start slightly below the final position
-        this.tweens.add({
-          targets: tooltipContainer,
-          alpha: 1,
-          y: -tooltipHeight - 10,
-          duration: 200,
-          ease: 'Back.easeOut'
-        });
-        
-        // Change cursor
-        this.input.setDefaultCursor('pointer');
-      });
-      
-      relicContainer.on('pointerout', () => {
-        console.log('❄️ Relic hover END:', relic.name); // Enhanced debug log
-        
-        // Restore original background (no blue border)
-        relicBg.clear();
-        relicBg.fillGradientStyle(0x1a1a2e, 0x1a1a2e, 0x0f1419, 0x0f1419, 0.95);
-        relicBg.fillRoundedRect(0, 0, slotSize, slotSize, 8);
-        
-        // Restore glow (subtle)
-        innerGlow.clear();
-        innerGlow.lineStyle(1, 0x333344, 0.4);
-        innerGlow.strokeRoundedRect(2, 2, slotSize - 4, slotSize - 4, 6);
-        
-        // Scale back to normal
-        this.tweens.add({
-          targets: relicContainer,
-          scale: 1,
-          duration: 200,
-          ease: 'Power2'
-        });
-        
-        // Hide tooltip with fade out and slide down animation
-        this.tweens.add({
-          targets: tooltipContainer,
-          alpha: 0,
-          y: -tooltipHeight,
-          duration: 200,
-          ease: 'Power2',
-          onComplete: () => {
-            tooltipContainer.setVisible(false);
-          }
-        });
-        
-        // Reset cursor
-        this.input.setDefaultCursor('default');
-      });
-      
-      
-      // Removed duplicate click handler - keeping the main one at the end
-      
-      // Debug: Add visual indicator that container is interactive
-      relicContainer.on('pointerup', () => {
-        console.log('✋ Relic pointer UP:', relic.name);
-      });
-      
-      // Add simple test event to verify input works at all
-      relicContainer.on('pointermove', () => {
-        console.log('🚀 BASIC MOVE EVENT for:', relic.name);
-      });
-      
-      // Add subtle debug border to show interactive area (can be removed later)
-      const debugBorder = this.add.graphics();
-      debugBorder.lineStyle(1, 0x00ff00, 0.3);
-      debugBorder.strokeRoundedRect(0, 0, slotSize, slotSize, 8);
-      relicContainer.add(debugBorder);
-      
-      // Calculate world position for debugging
-      const worldPos = relicContainer.parentContainer ? 
-        relicContainer.parentContainer.getWorldTransformMatrix().transformPoint(relicX, relicY) :
-        { x: relicX, y: relicY };
-      
-      console.log('✅ Created interactive relic:', relic.name, {
-        localPos: { x: relicX, y: relicY },
-        worldPos: worldPos,
-        containerDepth: relicContainer.depth,
-        parentDepth: this.relicsContainer.depth,
-        uiContainerDepth: this.uiContainer.depth,
-        inputEnabled: relicContainer.input?.enabled
-      });
-      
+
       this.relicsContainer.add(relicContainer);
     }
   }
@@ -3040,247 +2878,375 @@ export class Overworld extends Scene {
     }
   }
 
-  /**
-   * Show detailed relic information in a popup similar to shop style
+    /**
+   * Show detailed relic information in a clean, readable popup
    */
-  private showRelicDetails(relic: any): void {
-    // Prevent multiple detail windows from opening
-    if ((this as any).relicDetailsOpen) {
-      console.log('🚫 Relic details already open, ignoring click');
+  private showRelicDetails(relic: Relic, relicIndex: number): void {
+    if (this.relicDetailsOpen) {
       return;
     }
-    
-    (this as any).relicDetailsOpen = true;
-    console.log('📖 Opening relic details for:', relic.name);
-    
-    // Create overlay
-    const overlay = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x000000
-    ).setAlpha(0.8).setScrollFactor(0).setDepth(2000);
-    
-    // Create relic details panel
-    const panelWidth = 480;
-    const panelHeight = 450;
-    const panelX = this.cameras.main.width / 2;
-    const panelY = this.cameras.main.height / 2;
-    
-    const panel = this.add.container(panelX, panelY).setScrollFactor(0).setDepth(2001);
-    
-    // Panel shadow for depth
-    const panelShadow = this.add.graphics();
-    panelShadow.fillStyle(0x000000, 0.4);
-    panelShadow.fillRoundedRect(-panelWidth/2 + 8, -panelHeight/2 + 8, panelWidth, panelHeight, 20);
-    
-    // Main panel background with dark blue theme (matching overworld)
-    const panelBg = this.add.graphics();
-    panelBg.fillGradientStyle(0x1a1a2e, 0x0f1419, 0x1a1a2e, 0x0a0a0f, 0.98);
-    panelBg.lineStyle(3, 0x00d4ff, 0.9);
-    panelBg.fillRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
-    panelBg.strokeRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
-    
-    // Inner highlight for modern look
-    const innerHighlight = this.add.graphics();
-    innerHighlight.lineStyle(2, 0x00ffff, 0.3);
-    innerHighlight.strokeRoundedRect(-panelWidth/2 + 3, -panelHeight/2 + 3, panelWidth - 6, panelHeight - 6, 17);
-    
-    // Header section with emoji and name
-    const headerBg = this.add.graphics();
-    headerBg.fillGradientStyle(0x2a2a4e, 0x1a1a2e, 0x1f2439, 0x2a2a4e, 0.9);
-    headerBg.fillRoundedRect(-panelWidth/2 + 10, -panelHeight/2 + 10, panelWidth - 20, 80, 15);
-    
-    const emojiContainer = this.add.graphics();
-    emojiContainer.fillStyle(0x00d4ff, 0.2);
-    emojiContainer.lineStyle(2, 0x00ffff, 0.6);
-    emojiContainer.fillRoundedRect(-panelWidth/2 + 25, -panelHeight/2 + 25, 60, 60, 12);
-    emojiContainer.strokeRoundedRect(-panelWidth/2 + 25, -panelHeight/2 + 25, 60, 60, 12);
-    
-    // Get sprite key for this relic
+
+    this.relicDetailsOpen = true;
+
+    const screenW = this.cameras.main.width;
+    const screenH = this.cameras.main.height;
+    const cx = screenW / 2;
+    const cy = screenH / 2;
+
+    // All modal elements stored for cleanup
+    const modalElements: Phaser.GameObjects.GameObject[] = [];
+
+    // --- Dim overlay (scene-level, interactive to close on click outside) ---
+    const overlay = this.add.rectangle(cx, cy, screenW, screenH, 0x000000)
+      .setAlpha(0.85).setScrollFactor(0).setDepth(2000).setInteractive();
+    modalElements.push(overlay);
+
+    // --- Panel blocker: invisible interactive rect that covers the panel area ---
+    // This prevents clicks inside the panel from reaching the overlay
+    const pw = 440;
+    const ph = 500;
+    const panelBlocker = this.add.rectangle(cx, cy, pw, ph, 0x000000, 0.001)
+      .setScrollFactor(0).setDepth(2001).setInteractive();
+    modalElements.push(panelBlocker);
+
+    // --- Visual panel container (NOT interactive — purely visual) ---
+    const panel = this.add.container(cx, cy).setScrollFactor(0).setDepth(2002);
+    modalElements.push(panel);
+
+    // Panel background with subtle shadow
+    const panelGfx = this.add.graphics();
+    panelGfx.fillStyle(0x000000, 0.45);
+    panelGfx.fillRoundedRect(-pw / 2 + 5, -ph / 2 + 5, pw, ph, 10);
+    panelGfx.fillStyle(0x0e1318, 0.98);
+    panelGfx.fillRoundedRect(-pw / 2, -ph / 2, pw, ph, 10);
+    panelGfx.lineStyle(2, 0x4a6070, 0.85);
+    panelGfx.strokeRoundedRect(-pw / 2, -ph / 2, pw, ph, 10);
+    panelGfx.lineStyle(1, 0x6b8899, 0.2);
+    panelGfx.strokeRoundedRect(-pw / 2 + 3, -ph / 2 + 3, pw - 6, ph - 6, 8);
+    panel.add(panelGfx);
+
+    // --- Header row ---
+    const headerH = 64;
+    const headerTop = -ph / 2 + 12;
+    const headerGfx = this.add.graphics();
+    headerGfx.fillStyle(0x16202a, 0.85);
+    headerGfx.fillRoundedRect(-pw / 2 + 12, headerTop, pw - 24, headerH, 8);
+    panel.add(headerGfx);
+
+    // Icon background
+    const iconCx = -pw / 2 + 46;
+    const iconCy = headerTop + headerH / 2;
+    const iconGfx = this.add.graphics();
+    iconGfx.fillStyle(0x1a2832, 0.9);
+    iconGfx.lineStyle(1, 0x4a6070, 0.55);
+    iconGfx.fillRoundedRect(iconCx - 22, iconCy - 22, 44, 44, 8);
+    iconGfx.strokeRoundedRect(iconCx - 22, iconCy - 22, 44, 44, 8);
+    panel.add(iconGfx);
+
+    // Icon sprite or emoji
     const spriteKey = getRelicSpriteKey(relic.id);
-    
-    // Create relic icon
     let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
-    
     if (spriteKey && this.textures.exists(spriteKey)) {
-      // Use sprite if available
-      relicIcon = this.add.image(-panelWidth/2 + 55, -panelHeight/2 + 55, spriteKey)
-        .setOrigin(0.5)
-        .setDisplaySize(48, 48); // Fit within 60px container
+      relicIcon = this.add.image(iconCx, iconCy, spriteKey).setOrigin(0.5).setDisplaySize(36, 36);
     } else {
-      // Fallback to emoji if sprite not found
-      relicIcon = this.add.text(-panelWidth/2 + 55, -panelHeight/2 + 55, relic.emoji, {
-        fontSize: 36,
-      }).setOrigin(0.5, 0.5);
-      (relicIcon as Phaser.GameObjects.Text).setShadow(2, 2, '#0a0a0f', 4, false, true);
+      relicIcon = this.add.text(iconCx, iconCy, relic.emoji, { fontSize: 26 }).setOrigin(0.5);
     }
-    
-    // Relic name
-    const name = this.add.text(-panelWidth/2 + 110, -panelHeight/2 + 45, relic.name.toUpperCase(), {
+    panel.add(relicIcon);
+
+    // Name text
+    const nameText = this.add.text(iconCx + 36, iconCy, relic.name.toUpperCase(), {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 24,
-      color: "#00d4ff",
-    }).setOrigin(0, 0);
-    name.setShadow(2, 2, '#0a0a0f', 4, false, true);
-    
-    // "EQUIPPED" badge
-    const equippedBadge = this.add.graphics();
-    equippedBadge.fillStyle(0x00ff00, 0.9);
-    equippedBadge.fillRoundedRect(panelWidth/2 - 120, -panelHeight/2 + 30, 90, 25, 12);
-    
-    const equippedText = this.add.text(panelWidth/2 - 75, -panelHeight/2 + 42, "EQUIPPED", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 12,
-      color: "#ffffff",
-      fontStyle: "bold"
-    }).setOrigin(0.5, 0.5);
-    
-    // Content sections
-    const contentStartY = -panelHeight/2 + 140;
-    
-    // Description section
-    const descSection = this.add.graphics();
-    descSection.fillStyle(0x1a1a2e, 0.3);
-    descSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 100, 8);
-    
-    const descTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 15, "DESCRIPTION", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 14,
-      color: "#00d4ff",
-      fontStyle: "bold"
-    }).setOrigin(0, 0);
-    
-    const description = this.add.text(0, contentStartY + 45, relic.description, {
+      fontSize: 17,
+      color: "#dce8f0",
+      wordWrap: { width: pw - 180 }
+    }).setOrigin(0, 0.5);
+    nameText.setShadow(1, 1, '#000000', 3, false, true);
+    panel.add(nameText);
+
+    // Equipped badge
+    const badgeCx = pw / 2 - 70;
+    const badgeCy = headerTop + headerH / 2;
+    const badgeGfx = this.add.graphics();
+    badgeGfx.fillStyle(0x276749, 0.9);
+    badgeGfx.fillRoundedRect(badgeCx - 38, badgeCy - 10, 76, 20, 5);
+    panel.add(badgeGfx);
+    const badgeLabel = this.add.text(badgeCx, badgeCy, "EQUIPPED", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 9, color: "#a7f3d0"
+    }).setOrigin(0.5);
+    panel.add(badgeLabel);
+
+    // --- Separator line ---
+    const sepY = headerTop + headerH + 16;
+    const sepGfx = this.add.graphics();
+    sepGfx.lineStyle(1, 0x3a5060, 0.4);
+    sepGfx.lineBetween(-pw / 2 + 24, sepY, pw / 2 - 24, sepY);
+    panel.add(sepGfx);
+
+    // --- Description section ---
+    const descTop = sepY + 12;
+    const descLabel = this.add.text(-pw / 2 + 28, descTop, "DESCRIPTION", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#7a9aaa"
+    });
+    panel.add(descLabel);
+
+    const descBody = this.add.text(0, descTop + 24, relic.description, {
       fontFamily: "dungeon-mode",
       fontSize: 14,
-      color: "#ffffff",
+      color: "#d0dce4",
       align: "center",
-      wordWrap: { width: panelWidth - 100 }
+      wordWrap: { width: pw - 64 },
+      lineSpacing: 5
     }).setOrigin(0.5, 0);
-    
-    // Lore section
-    const loreSection = this.add.graphics();
-    loreSection.fillStyle(0x1a1a2e, 0.2);
-    loreSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY + 120, panelWidth - 60, 110, 8);
-    
-    const loreTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 135, "LORE", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 14,
-      color: "#34d399",
-      fontStyle: "bold"
-    }).setOrigin(0, 0);
-    
+    panel.add(descBody);
+
+    // --- Lore section ---
+    const loreTop = descTop + 110;
+    const loreSepGfx = this.add.graphics();
+    loreSepGfx.lineStyle(1, 0x2e4a3a, 0.35);
+    loreSepGfx.lineBetween(-pw / 2 + 24, loreTop, pw / 2 - 24, loreTop);
+    panel.add(loreSepGfx);
+
+    const loreLabel = this.add.text(-pw / 2 + 28, loreTop + 10, "LORE", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#6fb590"
+    });
+    panel.add(loreLabel);
+
     const lore = this.getRelicLore(relic);
-    const loreText = this.add.text(0, contentStartY + 165, lore, {
+    const loreBody = this.add.text(0, loreTop + 34, lore, {
       fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#cccccc",
+      fontSize: 13,
+      color: "#99b3a8",
       align: "center",
-      wordWrap: { width: panelWidth - 100 }
+      wordWrap: { width: pw - 64 },
+      lineSpacing: 5
     }).setOrigin(0.5, 0);
-    
-    // Close button
-    const closeBtn = this.add.container(panelWidth/2 - 40, -panelHeight/2 + 40);
-    const closeBg = this.add.graphics();
-    closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
-    closeBg.lineStyle(2, 0xfca5a5, 0.8);
-    closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
-    closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
-    
-    const closeText = this.add.text(0, 0, "✕", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 16,
-      color: "#ffffff",
-    }).setOrigin(0.5, 0.5);
-    closeText.setShadow(1, 1, '#000000', 2, false, true);
-    
-    closeBtn.add([closeBg, closeText]);
-    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-15, -15, 30, 30), Phaser.Geom.Rectangle.Contains);
-    closeBtn.on("pointerdown", () => {
-      // Smooth exit animation
-      this.tweens.add({
-        targets: panel,
-        scale: 0.8,
-        alpha: 0,
-        duration: 200,
-        ease: 'Back.easeIn',
-        onComplete: () => {
-          (this as any).relicDetailsOpen = false;
-          overlay.destroy();
-          panel.destroy();
-        }
-      });
+    panel.add(loreBody);
+
+    // === CLOSE BUTTON (scene-level, NOT inside panel container) ===
+    const closeBtnW = 26;
+    const closeBtnH = 26;
+    const closeBtnWorldX = cx + pw / 2 - 24;
+    const closeBtnWorldY = cy - ph / 2 + 24;
+
+    const closeBtnBg = this.add.rectangle(closeBtnWorldX, closeBtnWorldY, closeBtnW, closeBtnH, 0x8b1a1a)
+      .setScrollFactor(0).setDepth(2003).setStrokeStyle(1, 0xc07070, 0.7);
+    modalElements.push(closeBtnBg);
+
+    const closeBtnLabel = this.add.text(closeBtnWorldX, closeBtnWorldY, "X", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 13, color: "#ffffff"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2004);
+    modalElements.push(closeBtnLabel);
+
+    closeBtnBg.setInteractive({ useHandCursor: true });
+    closeBtnBg.on("pointerover", () => {
+      closeBtnBg.setFillStyle(0xdc2626).setStrokeStyle(1, 0xfca5a5, 1);
     });
-    
-    // Close button hover effects
-    closeBtn.on("pointerover", () => {
-      this.tweens.add({
-        targets: closeBtn,
-        scale: 1.1,
-        duration: 100,
-        ease: 'Power2'
-      });
-      closeBg.clear();
-      closeBg.fillGradientStyle(0xf87171, 0xef4444, 0xdc2626, 0xb91c1c, 0.95);
-      closeBg.lineStyle(2, 0xfca5a5, 1);
-      closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
-      closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+    closeBtnBg.on("pointerout", () => {
+      closeBtnBg.setFillStyle(0x8b1a1a).setStrokeStyle(1, 0xc07070, 0.7);
     });
-    
-    closeBtn.on("pointerout", () => {
-      this.tweens.add({
-        targets: closeBtn,
-        scale: 1,
-        duration: 100,
-        ease: 'Power2'
-      });
-      closeBg.clear();
-      closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
-      closeBg.lineStyle(2, 0xfca5a5, 0.8);
-      closeBg.fillRoundedRect(-15, -15, 30, 30, 8);
-      closeBg.strokeRoundedRect(-15, -15, 30, 30, 8);
+    closeBtnBg.on("pointerdown", () => {
+      this.cleanupRelicDetails(modalElements);
     });
-    
-    // Assemble the panel
-    panel.add([panelShadow, panelBg, innerHighlight, headerBg, emojiContainer, relicIcon, name, 
-              equippedBadge, equippedText, descSection, descTitle, description, 
-              loreSection, loreTitle, loreText, closeBtn]);
-              
-    // Entrance animation
-    panel.setScale(0.8).setAlpha(0);
-    this.tweens.add({
-      targets: panel,
-      scale: 1,
-      alpha: 1,
-      duration: 300,
-      ease: 'Back.easeOut'
+
+    // === DISCARD RELIC BUTTON (scene-level, NOT inside panel container) ===
+    const discBtnW = 160;
+    const discBtnH = 32;
+    const discBtnWorldX = cx;
+    const discBtnWorldY = cy + ph / 2 - 38;
+
+    const discBtnBg = this.add.rectangle(discBtnWorldX, discBtnWorldY, discBtnW, discBtnH, 0x6e2020)
+      .setScrollFactor(0).setDepth(2003).setStrokeStyle(1, 0xa06060, 0.75);
+    modalElements.push(discBtnBg);
+
+    const discBtnLabel = this.add.text(discBtnWorldX, discBtnWorldY, "DISCARD RELIC", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 11, color: "#e8b0b0"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2004);
+    modalElements.push(discBtnLabel);
+
+    discBtnBg.setInteractive({ useHandCursor: true });
+    discBtnBg.on("pointerover", () => {
+      discBtnBg.setFillStyle(0x9a3030).setStrokeStyle(1, 0xe08080, 0.85);
+      discBtnLabel.setColor("#ffffff");
     });
-    
-    // Make overlay interactive to close when clicked
-    overlay.setInteractive();
+    discBtnBg.on("pointerout", () => {
+      discBtnBg.setFillStyle(0x6e2020).setStrokeStyle(1, 0xa06060, 0.75);
+      discBtnLabel.setColor("#e8b0b0");
+    });
+    discBtnBg.on("pointerdown", () => {
+      this.showDiscardRelicConfirm(relic, relicIndex, modalElements);
+    });
+
+    // --- Entrance animation ---
+    panel.setScale(0.85).setAlpha(0);
+    panelBlocker.setScale(0.85).setAlpha(0);
+    this.tweens.add({ targets: [panel, panelBlocker], scale: 1, alpha: { from: 0, to: 1 }, duration: 250, ease: 'Back.easeOut' });
+
+    // Close on overlay click (outside panel)
     overlay.on('pointerdown', () => {
-      this.tweens.add({
-        targets: panel,
-        scale: 0.8,
-        alpha: 0,
-        duration: 200,
-        ease: 'Back.easeIn',
-        onComplete: () => {
-          (this as any).relicDetailsOpen = false;
-          overlay.destroy();
-          panel.destroy();
+      this.cleanupRelicDetails(modalElements);
+    });
+
+    // Ignore clicks on the panel area (blocker absorbs them)
+    panelBlocker.on('pointerdown', () => { /* do nothing, just absorb the click */ });
+  }
+
+  /**
+   * Destroy all modal elements and reset state
+   */
+  private cleanupRelicDetails(elements: Phaser.GameObjects.GameObject[]): void {
+    this.relicDetailsOpen = false;
+    elements.forEach(el => {
+      if (el && el.active) el.destroy();
+    });
+    // Clear the array
+    elements.length = 0;
+  }
+
+  /**
+   * Show a confirmation dialog for discarding a relic.
+   * All elements are scene-level for reliable input handling.
+   */
+  private showDiscardRelicConfirm(
+    relic: Relic,
+    relicIndex: number,
+    parentModalElements: Phaser.GameObjects.GameObject[]
+  ): void {
+    const screenW = this.cameras.main.width;
+    const screenH = this.cameras.main.height;
+    const cx = screenW / 2;
+    const cy = screenH / 2;
+
+    // Disable parent modal interactive elements while confirm is open
+    parentModalElements.forEach(el => {
+      if (el && 'disableInteractive' in el && typeof (el as any).disableInteractive === 'function') {
+        (el as any).disableInteractive();
+      }
+    });
+
+    // Confirm elements for cleanup
+    const confirmElements: Phaser.GameObjects.GameObject[] = [];
+
+    // Confirm overlay
+    const confirmOverlay = this.add.rectangle(cx, cy, screenW, screenH, 0x000000)
+      .setAlpha(0.6).setScrollFactor(0).setDepth(2200).setInteractive();
+    confirmElements.push(confirmOverlay);
+
+    // Confirm box background
+    const boxW = 320;
+    const boxH = 170;
+    const boxBg = this.add.rectangle(cx, cy, boxW, boxH, 0x0e1318)
+      .setScrollFactor(0).setDepth(2201).setStrokeStyle(2, 0xd08080, 0.85).setInteractive();
+    confirmElements.push(boxBg);
+
+    // Title
+    const title = this.add.text(cx, cy - boxH / 2 + 30, "Discard this relic?", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 16, color: "#ffe4e4"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2202);
+    confirmElements.push(title);
+
+    // Body
+    const body = this.add.text(cx, cy - boxH / 2 + 58, relic.name, {
+      fontFamily: "dungeon-mode", fontSize: 14, color: "#c8d8e2"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2202);
+    confirmElements.push(body);
+
+    // Warning
+    const warn = this.add.text(cx, cy - boxH / 2 + 82, "This cannot be undone.", {
+      fontFamily: "dungeon-mode", fontSize: 11, color: "#887070"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2202);
+    confirmElements.push(warn);
+
+    // Helper to re-enable parent modal interactivity
+    const reEnableParent = () => {
+      parentModalElements.forEach(el => {
+        if (el && el.active && 'setInteractive' in el && typeof (el as any).setInteractive === 'function') {
+          (el as any).setInteractive();
         }
       });
+    };
+
+    // Helper to destroy confirm dialog
+    const closeConfirm = () => {
+      confirmElements.forEach(el => { if (el && el.active) el.destroy(); });
+      confirmElements.length = 0;
+      reEnableParent();
+    };
+
+    // Cancel button
+    const cancelBw = 110;
+    const cancelBh = 34;
+    const cancelBtnBg = this.add.rectangle(cx - 65, cy + boxH / 2 - 36, cancelBw, cancelBh, 0x3a4a52)
+      .setScrollFactor(0).setDepth(2203).setStrokeStyle(1, 0x6a7a82, 0.8)
+      .setInteractive({ useHandCursor: true });
+    confirmElements.push(cancelBtnBg);
+
+    const cancelBtnLabel = this.add.text(cx - 65, cy + boxH / 2 - 36, "Cancel", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 13, color: "#ffffff"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2204);
+    confirmElements.push(cancelBtnLabel);
+
+    cancelBtnBg.on("pointerover", () => { cancelBtnBg.setFillStyle(0x4a5a62); });
+    cancelBtnBg.on("pointerout", () => { cancelBtnBg.setFillStyle(0x3a4a52); });
+    cancelBtnBg.on("pointerdown", () => { closeConfirm(); });
+
+    // Discard button
+    const discardBtnBg = this.add.rectangle(cx + 65, cy + boxH / 2 - 36, cancelBw, cancelBh, 0x8b2020)
+      .setScrollFactor(0).setDepth(2203).setStrokeStyle(1, 0xd08080, 0.8)
+      .setInteractive({ useHandCursor: true });
+    confirmElements.push(discardBtnBg);
+
+    const discardBtnLabel = this.add.text(cx + 65, cy + boxH / 2 - 36, "Discard", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 13, color: "#ffffff"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2204);
+    confirmElements.push(discardBtnLabel);
+
+    discardBtnBg.on("pointerover", () => { discardBtnBg.setFillStyle(0xa33232); });
+    discardBtnBg.on("pointerout", () => { discardBtnBg.setFillStyle(0x8b2020); });
+    discardBtnBg.on("pointerdown", () => {
+      // Remove relic from player data
+      if (relicIndex >= 0 && relicIndex < this.playerData.relics.length) {
+        this.playerData.relics.splice(relicIndex, 1);
+      } else {
+        const idx = this.playerData.relics.findIndex(r => r.id === relic.id);
+        if (idx !== -1) this.playerData.relics.splice(idx, 1);
+      }
+
+      // Persist to GameState
+      const gameState = GameState.getInstance();
+      gameState.updatePlayerData({
+        ...this.playerData,
+        relics: [...this.playerData.relics],
+        potions: [...this.playerData.potions]
+      });
+
+      // Refresh overworld relics display
+      this.updateOverworldUI();
+
+      // Clean up everything
+      closeConfirm();
+      this.cleanupRelicDetails(parentModalElements);
     });
+
+    // Close confirm on clicking overlay outside the box
+    confirmOverlay.on('pointerdown', () => { closeConfirm(); });
+
+    // Prevent box background clicks from reaching confirm overlay
+    boxBg.on('pointerdown', () => { /* absorb click */ });
+  }
+
+  private truncateTextToLines(textObject: Phaser.GameObjects.Text, maxLines: number): void {
+    const wrapped = textObject.getWrappedText(textObject.text);
+    if (wrapped.length <= maxLines) return;
+    const truncated = wrapped.slice(0, maxLines);
+    truncated[maxLines - 1] = `${truncated[maxLines - 1]}...`;
+    textObject.setText(truncated.join("\n"));
   }
 
   /**
    * Get lore text for a relic.
    * Reads from the relic's `lore` field (defined in data/relics/).
    */
-  private getRelicLore(relic: any): string {
+  private getRelicLore(relic: Relic): string {
     return relic.lore ?? "An ancient artifact of great power, its origins lost to time but its effects undeniable. Those who wield it are forever changed by its mystical properties.";
   }
   
