@@ -28,6 +28,8 @@ type TreasureReward =
 
 
 export class Treasure extends Scene {
+  private readonly DUPLICATE_RELIC_GINTO = 60;
+  private readonly DUPLICATE_RELIC_HEAL = 40;
   private player!: Player;
   private treasureChest!: Phaser.GameObjects.Sprite;
   private rewardOptions: TreasureReward[] = [];
@@ -663,6 +665,12 @@ export class Treasure extends Scene {
     const gameState = GameState.getInstance();
 
     if (reward.type === "relic") {
+      // If player already owns this relic, offer conversion instead of duplicate
+      if (this.player.relics.some(relic => relic.id === reward.item.id)) {
+        this.showDuplicateRelicConversionDialog(reward.item);
+        return;
+      }
+
       // Check if player has 6 relics - need to discard one first
       if (this.player.relics.length >= 6) {
         this.showRelicDiscardDialog(reward, selectedButton);
@@ -731,6 +739,152 @@ export class Treasure extends Scene {
     }
     this.scene.stop();
     this.scene.resume("Overworld");
+  }
+
+  /**
+   * Show duplicate relic conversion dialog (+60 ginto or +40 HP)
+   */
+  private showDuplicateRelicConversionDialog(relic: Relic): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+
+    const overlay = this.add.rectangle(
+      screenWidth / 2,
+      screenHeight / 2,
+      screenWidth,
+      screenHeight,
+      0x000000
+    ).setAlpha(0.78).setScrollFactor(0).setDepth(10000);
+
+    const dialogWidth = 620;
+    const dialogHeight = 320;
+    const dialog = this.add.container(
+      screenWidth / 2,
+      screenHeight / 2
+    ).setScrollFactor(0).setDepth(10001);
+
+    const bg = this.add.graphics();
+    bg.fillGradientStyle(0x1a1a1a, 0x1a1a1a, 0x0a0a0a, 0x0a0a0a, 0.98);
+    bg.lineStyle(3, 0xfeca57, 1);
+    bg.fillRoundedRect(-dialogWidth / 2, -dialogHeight / 2, dialogWidth, dialogHeight, 10);
+    bg.strokeRoundedRect(-dialogWidth / 2, -dialogHeight / 2, dialogWidth, dialogHeight, 10);
+
+    const title = this.add.text(0, -110, "RELIC ALREADY OWNED", {
+      fontFamily: "dungeon-mode",
+      fontSize: 24,
+      color: "#feca57",
+      align: "center"
+    }).setOrigin(0.5);
+
+    const body = this.add.text(0, -55, `You already have ${relic.name}.`, {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#e8eced",
+      align: "center"
+    }).setOrigin(0.5);
+
+    const prompt = this.add.text(0, -20, "Choose conversion reward:", {
+      fontFamily: "dungeon-mode",
+      fontSize: 16,
+      color: "#aab5ba",
+      align: "center"
+    }).setOrigin(0.5);
+
+    const makeOptionButton = (
+      x: number,
+      y: number,
+      label: string,
+      fillColor: number,
+      onClick: () => void
+    ): Phaser.GameObjects.Container => {
+      const button = this.add.container(x, y);
+      const btnBg = this.add.graphics();
+      btnBg.fillStyle(fillColor, 0.92);
+      btnBg.lineStyle(2, 0xffffff, 0.9);
+      btnBg.fillRoundedRect(-120, -25, 240, 50, 8);
+      btnBg.strokeRoundedRect(-120, -25, 240, 50, 8);
+
+      const btnText = this.add.text(0, 0, label, {
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
+        color: "#ffffff",
+        align: "center"
+      }).setOrigin(0.5);
+
+      button.add([btnBg, btnText]);
+      button.setSize(240, 50);
+      button.setInteractive({ useHandCursor: true });
+
+      button.on("pointerover", () => {
+        this.tweens.add({ targets: button, scale: 1.04, duration: 120, ease: "Power2" });
+      });
+      button.on("pointerout", () => {
+        this.tweens.add({ targets: button, scale: 1, duration: 120, ease: "Power2" });
+      });
+      button.on("pointerdown", onClick);
+
+      return button;
+    };
+
+    const applyAndExit = (message: string, color: string): void => {
+      const gameState = GameState.getInstance();
+      gameState.updatePlayerData({
+        ...this.player,
+        relics: [...this.player.relics],
+        potions: [...this.player.potions]
+      });
+
+      this.descriptionText.setText(message);
+      this.descriptionText.setColor(color);
+      this.showMessage(message, color);
+
+      this.rewardButtons.forEach(button => {
+        button.disableInteractive();
+        button.setActive(false);
+      });
+
+      this.hideTooltip();
+
+      overlay.destroy();
+      dialog.destroy();
+
+      gameState.completeCurrentNode(true);
+      const overworldScene = this.scene.get("Overworld");
+      if (overworldScene) {
+        (overworldScene as any).resume();
+      }
+      this.scene.stop();
+      this.scene.resume("Overworld");
+    };
+
+    const gintoBtn = makeOptionButton(
+      -145,
+      55,
+      `+${this.DUPLICATE_RELIC_GINTO} Ginto`,
+      0xf39c12,
+      () => {
+        this.player.ginto += this.DUPLICATE_RELIC_GINTO;
+        applyAndExit(`Duplicate converted: +${this.DUPLICATE_RELIC_GINTO} Ginto`, "#feca57");
+      }
+    );
+
+    const healBtn = makeOptionButton(
+      145,
+      55,
+      `+${this.DUPLICATE_RELIC_HEAL} Health`,
+      0xff6b6b,
+      () => {
+        const before = this.player.currentHealth;
+        this.player.currentHealth = Math.min(
+          this.player.maxHealth,
+          this.player.currentHealth + this.DUPLICATE_RELIC_HEAL
+        );
+        const healedAmount = this.player.currentHealth - before;
+        applyAndExit(`Duplicate converted: +${healedAmount} Health`, "#ff6b6b");
+      }
+    );
+
+    dialog.add([bg, title, body, prompt, gintoBtn, healBtn]);
   }
 
   // (continue button removed: we auto-return after selection)
