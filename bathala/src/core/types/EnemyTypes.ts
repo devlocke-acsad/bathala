@@ -256,13 +256,13 @@ export interface BossPhase {
  * @interface BossConfig
  * @extends EnemyConfig
  * @example
- * export const MANGANGAWAY_CONFIG: BossConfig = {
- *   id: 'mangangaway',
- *   name: 'Mangangaway',
+ * export const KAPRE_SHADE_CONFIG: BossConfig = {
+ *   id: 'kapre_shade',
+ *   name: 'Kapre Shade',
  *   tier: 'boss',
  *   chapter: 1,
- *   baseHealth: 120,
- *   baseDamage: 12,
+ *   baseHealth: 600,
+ *   baseDamage: 42,
  *   // ... other EnemyConfig fields
  *   phases: [
  *     { id: 1, healthThreshold: 1.0, attackPattern: [...], abilities: [...] },

@@ -264,10 +264,10 @@ export class Discover extends Scene {
         id: "kapre_shade",
         name: kapreShade.name,
         description: "Towering tree giants perpetually smoking enormous cigars, their presence marked by the scent of tobacco and burnt leaves. They command flames and summon lesser spirits, defending their sacred trees with primal fury.",
-        type: "Elite",
+        type: "Boss",
         health: kapreShade.maxHealth,
         attack: kapreShade.damage,
-        abilities: ["AoE Burn", "Summon Fire Minions", "Cigar Smoke Veil"],
+        abilities: ["AoE Burn", "Summon Fire Minions", "Cigar Smoke Veil", "Strengthen"],
         lore: "Dark-skinned giants (7-9 feet tall) dwelling in large trees, Kapre are nocturnal beings visible only as glowing red eyes, perpetually smoking enormous cigars. Territorial but generally peaceful, they disorient disrespectful travelers. Once Bathala's appointed guardians of sacred groves, engkanto whispers ignited their ancient rage into infernos."
       },
       {
@@ -284,7 +284,7 @@ export class Discover extends Scene {
         id: "mangangaway",
         name: mangangaway.name,
         description: "Dark sorcerers who wield forbidden hexes and curses, capable of mimicking any elemental force turned against them. They wear necklaces of skulls and channel the spirits of the damned to reverse fate itself.",
-        type: "Boss",
+        type: "Elite",
         health: mangangaway.maxHealth,
         attack: mangangaway.damage,
         abilities: ["Mimic Elements", "Curse Cards", "Hex of Reversal"],

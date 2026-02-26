@@ -25,8 +25,8 @@ import { CombatMetrics, DifficultyTier } from './DDATypes';
  */
 const TEST_PLAYER_MAX_HP = 120;           // Player max health
 const TEST_COMMON_ENEMY_HP = 180;         // Tikbalang Scout (common enemy baseline)
-const TEST_ELITE_ENEMY_HP = 320;          // Kapre Shade (elite enemy)
-const TEST_BOSS_ENEMY_HP = 600;           // Mangangaway (boss enemy)
+const TEST_ELITE_ENEMY_HP = 300;          // Mangangaway (elite enemy)
+const TEST_BOSS_ENEMY_HP = 600;           // Kapre Shade (boss enemy)
 
 describe('RuleBasedDDA - Comprehensive Test Suite', () => {
   let dda: RuleBasedDDA;

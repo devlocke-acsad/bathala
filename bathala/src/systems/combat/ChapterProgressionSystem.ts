@@ -22,7 +22,7 @@ export interface BossChapterMapping {
  * Add new bosses here to support additional acts.
  */
 const BOSS_MAPPINGS: BossChapterMapping[] = [
-  { bossName: 'Mangangaway', chapter: 1, nextChapter: 2 },
+  { bossName: 'Kapre Shade', chapter: 1, nextChapter: 2 },
   { bossName: 'Bakunawa', chapter: 2, nextChapter: 3 },
   { bossName: 'False Bathala', chapter: 3, nextChapter: null },
 ];
