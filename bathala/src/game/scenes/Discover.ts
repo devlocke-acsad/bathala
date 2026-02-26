@@ -503,22 +503,22 @@ export class Discover extends Scene {
   }
   
   /**
-   * Get sprite key for a character
+   * Get sprite key for a character - uses Mythical Compendium (almanac) sprites
    */
   private getCharacterSpriteKey(id: string): string {
     const spriteMap: Record<string, string> = {
-      "tikbalang_scout": "tikbalang_combat",
-      "balete_wraith": "balete_combat",
-      "sigbin_charger": "sigbin_combat",
-      "duwende_trickster": "duwende_combat",
-      "tiyanak_ambusher": "tiyanak_combat",
-      "amomongo": "amomongo_combat",
-      "bungisngis": "bungisngis_combat",
-      "kapre_shade": "kapre_combat",
-      "tawong_lipod": "tawonglipod_combat",
-      "mangangaway": "mangangaway_combat"
+      "tikbalang_scout": "tikbalang_almanac",
+      "balete_wraith": "balete_almanac",
+      "sigbin_charger": "sigbin_almanac",
+      "duwende_trickster": "duwende_almanac",
+      "tiyanak_ambusher": "tiyanak_almanac",
+      "amomongo": "amomongo_almanac",
+      "bungisngis": "bungisngis_almanac",
+      "kapre_shade": "kapre_almanac",
+      "tawong_lipod": "tawonglipod_almanac",
+      "mangangaway": "mangangaway_almanac"
     };
-    return spriteMap[id] || "tikbalang_combat";
+    return spriteMap[id] || "tikbalang_almanac";
   }
   
   /**

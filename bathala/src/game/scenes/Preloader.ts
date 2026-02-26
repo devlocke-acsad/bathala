@@ -196,28 +196,40 @@ export class Preloader extends Scene {
     this.load.image("relic_umalagad_spirit", "relics/act1relics/Umalagad Spirit.png");
 
     // Enemy sprites for Combat
-    this.load.image("amomongo_combat", "sprites/combat/enemy/chap1/amomongo_combat.png");
-    this.load.image("balete_combat", "sprites/combat/enemy/chap1/balete_combat.png");
-    this.load.image("bungisngis_combat", "sprites/combat/enemy/chap1/bungisngis_combat.png");
-    this.load.image("duwende_combat", "sprites/combat/enemy/chap1/duwende_combat.png");
-    this.load.image("kapre_combat", "sprites/combat/enemy/chap1/kapre_combat.png");
-    this.load.image("mangangaway_combat", "sprites/combat/enemy/chap1/mangangaway_combat.png");
-    this.load.image("sigbin_combat", "sprites/combat/enemy/chap1/sigbin_combat.png");
-    this.load.image("tawonglipod_combat", "sprites/combat/enemy/chap1/tawonglipod_combat.png");
-    this.load.image("tikbalang_combat", "sprites/combat/enemy/chap1/tikbalang_combat.png");
-    this.load.image("tiyanak_combat", "sprites/combat/enemy/chap1/tiyanak_combat.png");
+    this.load.image("amomongo_combat", "sprites/combat/enemy/chapter1/amomongo_battle.png");
+    this.load.image("balete_combat", "sprites/combat/enemy/chapter1/balete_battle.png");
+    this.load.image("bungisngis_combat", "sprites/combat/enemy/chapter1/bungisngis_battle.png");
+    this.load.image("duwende_combat", "sprites/combat/enemy/chapter1/duwende_battle.png");
+    this.load.image("kapre_combat", "sprites/combat/enemy/chapter1/kapre_battle.png");
+    this.load.image("mangangaway_combat", "sprites/combat/enemy/chapter1/mangangaway_battle.png");
+    this.load.image("sigbin_combat", "sprites/combat/enemy/chapter1/sigbin_battle.png");
+    this.load.image("tawonglipod_combat", "sprites/combat/enemy/chapter1/tawonglipod_battle.png");
+    this.load.image("tikbalang_combat", "sprites/combat/enemy/chapter1/tikbalang_battle.png");
+    this.load.image("tiyanak_combat", "sprites/combat/enemy/chapter1/tiyanak_battle.png");
+
+    // Mythical Compendium (Discover scene) enemy sprites - almanac versions
+    this.load.image("amomongo_almanac", "sprites/combat/enemy/chapter1/almanac/amomongo_almanac.png");
+    this.load.image("balete_almanac", "sprites/combat/enemy/chapter1/almanac/balete_almanac.png");
+    this.load.image("bungisngis_almanac", "sprites/combat/enemy/chapter1/almanac/bungisngis_almanac.png");
+    this.load.image("duwende_almanac", "sprites/combat/enemy/chapter1/almanac/duwindi_almanac.png");
+    this.load.image("kapre_almanac", "sprites/combat/enemy/chapter1/almanac/kapre_almanac.png");
+    this.load.image("mangangaway_almanac", "sprites/combat/enemy/chapter1/almanac/mangangaway_almanac.png");
+    this.load.image("sigbin_almanac", "sprites/combat/enemy/chapter1/almanac/sigbin_almanac bg.png");
+    this.load.image("tawonglipod_almanac", "sprites/combat/enemy/chapter1/almanac/tawonglipod_almanac.png");
+    this.load.image("tikbalang_almanac", "sprites/combat/enemy/chapter1/almanac/tikbalang_almanac.png");
+    this.load.image("tiyanak_almanac", "sprites/combat/enemy/chapter1/almanac/tiyanak_almanac.png");
 
     // Legacy enemy sprite keys for backward compatibility
-    this.load.image("amomongo", "sprites/combat/enemy/chap1/amomongo_combat.png");
-    this.load.image("balete", "sprites/combat/enemy/chap1/balete_combat.png");
-    this.load.image("bungisngis", "sprites/combat/enemy/chap1/bungisngis_combat.png");
-    this.load.image("duwende", "sprites/combat/enemy/chap1/duwende_combat.png");
-    this.load.image("kapre", "sprites/combat/enemy/chap1/kapre_combat.png");
-    this.load.image("mangangaway", "sprites/combat/enemy/chap1/mangangaway_combat.png");
-    this.load.image("sigbin", "sprites/combat/enemy/chap1/sigbin_combat.png");
-    this.load.image("tawong_lipod", "sprites/combat/enemy/chap1/tawonglipod_combat.png");
-    this.load.image("tikbalang", "sprites/combat/enemy/chap1/tikbalang_combat.png");
-    this.load.image("tiyanak", "sprites/combat/enemy/chap1/tiyanak_combat.png");
+    this.load.image("amomongo", "sprites/combat/enemy/chapter1/amomongo_battle.png");
+    this.load.image("balete", "sprites/combat/enemy/chapter1/balete_battle.png");
+    this.load.image("bungisngis", "sprites/combat/enemy/chapter1/bungisngis_battle.png");
+    this.load.image("duwende", "sprites/combat/enemy/chapter1/duwende_battle.png");
+    this.load.image("kapre", "sprites/combat/enemy/chapter1/kapre_battle.png");
+    this.load.image("mangangaway", "sprites/combat/enemy/chapter1/mangangaway_battle.png");
+    this.load.image("sigbin", "sprites/combat/enemy/chapter1/sigbin_battle.png");
+    this.load.image("tawong_lipod", "sprites/combat/enemy/chapter1/tawonglipod_battle.png");
+    this.load.image("tikbalang", "sprites/combat/enemy/chapter1/tikbalang_battle.png");
+    this.load.image("tiyanak", "sprites/combat/enemy/chapter1/tiyanak_battle.png");
 
     // Overworld enemy sprites
     this.load.image("amomongo_overworld", "sprites/overworld/combat/chap1/amomongo_overworld.png");
