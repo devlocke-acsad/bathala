@@ -8,10 +8,11 @@ import {
   CombatEntity,
 } from "../../../core/types/CombatTypes";
 import { DeckManager } from "../../../utils/DeckManager";
+import { DamageCalculator } from "../../../utils/DamageCalculator";
 import { HandEvaluator } from "../../../utils/HandEvaluator";
 import { Combat } from "../Combat";
 import { createButton } from "../../ui/Button";
-import { StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
+import { StatusEffectManager, StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
 import { ElementalAffinitySystem } from "../../../core/managers/ElementalAffinitySystem";
 import { EnemyRegistry } from "../../../core/registries/EnemyRegistry";
 
@@ -2968,31 +2969,269 @@ export class CombatUI {
    */
   private usePotionInCombat(potion: any, index: number): void {
     console.log(`Using potion: ${potion.name}, Effect: ${potion.effect}`);
-    
     const combatState = this.scene.getCombatState();
-    const player = combatState.player;
-    
+    const player: any = combatState.player;
+    const enemy: any = combatState.enemy;
+
+    const effect: string = potion.effect;
+
+    const applyDirectDamage = (baseDamage: number, label: string): void => {
+      if (!enemy) {
+        console.warn("usePotionInCombat: no enemy present for damage effect");
+        this.showActionResult("No target to hit.", "#77888C");
+        return;
+      }
+
+      let damage = baseDamage;
+      try {
+        damage = DamageCalculator.applyVulnerableMultiplier(baseDamage, enemy);
+      } catch (e) {
+        console.error("usePotionInCombat: error applying vulnerable multiplier", e);
+        damage = baseDamage;
+      }
+
+      const enemyBlock = typeof enemy.block === "number" ? enemy.block : 0;
+      const actualDamage = Math.max(0, damage - enemyBlock);
+
+      enemy.currentHealth = Math.max(0, (enemy.currentHealth ?? 0) - actualDamage);
+      enemy.block = Math.max(0, enemyBlock - damage);
+
+      this.showActionResult(`${label} ${actualDamage} damage!`, "#ff6b6b");
+      this.updateEnemyUI();
+    };
+
     // Apply potion effect based on effect type
-    switch (potion.effect) {
+    switch (effect) {
+      // ── Healing variants ─────────────────────────────
+      case "heal_15_hp":
       case "heal_20_hp":
-        const healAmount = 20;
-        const oldHP = player.currentHealth;
-        player.currentHealth = Math.min(player.currentHealth + healAmount, player.maxHealth);
-        const actualHeal = player.currentHealth - oldHP;
-        
+      case "heal_25_hp":
+      case "gain_temp_max_hp":
+      case "heal_20_remove_curse":
+      case "heal_20_remove_debuffs": {
+        const healAmount =
+          effect === "heal_15_hp" ? 15 :
+          effect === "heal_25_hp" ? 25 :
+          effect === "gain_temp_max_hp" ? 10 :
+          20;
+
+        const oldHP = player.currentHealth ?? 0;
+        const maxHealth = player.maxHealth ?? oldHP;
+        player.currentHealth = Math.min(oldHP + healAmount, maxHealth);
+        const actualHeal = (player.currentHealth ?? 0) - oldHP;
+
+        // Optional debuff/curse removal
+        if (player.statusEffects && Array.isArray(player.statusEffects)) {
+          if (effect === "heal_20_remove_curse") {
+            player.statusEffects = player.statusEffects.filter((e: any) => e.id !== "curse");
+          } else if (effect === "heal_20_remove_debuffs") {
+            player.statusEffects = player.statusEffects.filter((e: any) => e.type !== "debuff");
+          }
+        }
+
         this.showActionResult(`Healed ${actualHeal} HP!`, "#2ed573");
         this.showPlayerHealingIndicator(actualHeal, false);
-        this.updatePlayerUI(); // Update player UI to reflect new health
+        this.updatePlayerUI();
         break;
-        
+      }
+
+      // ── Block gain ───────────────────────────────────
+      case "gain_10_block":
+      case "gain_15_block":
+      case "gain_10_block_when_weak": {
+        const baseAmount = effect === "gain_10_block" || effect === "gain_10_block_when_weak" ? 10 : 15;
+
+        if (effect === "gain_10_block_when_weak") {
+          const hasWeak = Array.isArray(player.statusEffects)
+            && player.statusEffects.some((e: any) => e.id === "weak" || e.type === "debuff");
+          if (!hasWeak) {
+            this.showActionResult("No effect (not Weakened).", "#77888C");
+            break;
+          }
+        }
+
+        player.block = (player.block ?? 0) + baseAmount;
+        this.showActionResult(`Gained ${baseAmount} Block!`, "#4ecdc4");
+        this.updatePlayerUI();
+        break;
+      }
+
+      // ── Debuff removal without healing ───────────────
+      case "remove_debuffs":
+      case "remove_1_debuff": {
+        if (player.statusEffects && Array.isArray(player.statusEffects)) {
+          if (effect === "remove_debuffs") {
+            const before = player.statusEffects.length;
+            player.statusEffects = player.statusEffects.filter((e: any) => e.type !== "debuff");
+            const removed = before - player.statusEffects.length;
+            this.showActionResult(
+              removed > 0 ? `Removed ${removed} debuff(s).` : "No debuffs to remove.",
+              "#4ecdc4"
+            );
+          } else {
+            const idx = player.statusEffects.findIndex((e: any) => e.type === "debuff");
+            if (idx >= 0) {
+              player.statusEffects.splice(idx, 1);
+              this.showActionResult("Removed 1 debuff.", "#4ecdc4");
+            } else {
+              this.showActionResult("No debuffs to remove.", "#77888C");
+            }
+          }
+        } else {
+          this.showActionResult("No debuffs to remove.", "#77888C");
+        }
+        this.updatePlayerUI();
+        break;
+      }
+
+      // ── Stat buffs & regeneration ────────────────────
+      case "gain_1_dexterity": {
+        if (!Array.isArray(player.statusEffects)) {
+          player.statusEffects = [];
+        }
+        let dex = player.statusEffects.find((e: any) => e.id === "dexterity" || e.name === "Dexterity");
+        if (!dex) {
+          dex = {
+            id: "dexterity",
+            name: "Dexterity",
+            type: "buff",
+            value: 0,
+            description: "+1 Block per stack on Defend.",
+            emoji: "⛨",
+          };
+          player.statusEffects.push(dex);
+        }
+        dex.value = (dex.value ?? 0) + 1;
+        this.showActionResult("Gained 1 Dexterity.", "#4ecdc4");
+        this.updatePlayerUI();
+        break;
+      }
+
+      case "gain_2_strength": {
+        StatusEffectManager.applyStatusEffect(player, "strength", 2, {
+          type: "other",
+          id: potion.id ?? "strength_potion",
+          icon: potion.emoji ?? "💪",
+        });
+        this.showActionResult("Gained 2 Strength.", "#4ecdc4");
+        this.updatePlayerUI();
+        break;
+      }
+
+      case "gain_regeneration": {
+        StatusEffectManager.applyStatusEffect(player, "regeneration", 2, {
+          type: "other",
+          id: potion.id ?? "regeneration_potion",
+          icon: potion.emoji ?? "♻️",
+        });
+        this.showActionResult("Gained Regeneration.", "#2ed573");
+        this.updatePlayerUI();
+        break;
+      }
+
+      // ── Card draw ────────────────────────────────────
       case "draw_3":
-        this.showActionResult(`Drew 3 cards!`, "#4ecdc4");
-        // Note: Drawing cards requires Combat scene method
+      case "draw_3_cards":
+      case "draw_2_cards": {
+        const drawCount = effect === "draw_2_cards" ? 2 : 3;
+
+        // If deck is low, reshuffle discard into draw first
+        if (player.drawPile && player.discardPile && player.drawPile.length < drawCount && player.discardPile.length > 0) {
+          player.drawPile = DeckManager.shuffleDeck(player.discardPile);
+          player.discardPile = [];
+        }
+
+        if (!player.drawPile || !player.hand) {
+          this.showActionResult("No cards to draw.", "#77888C");
+          break;
+        }
+
+        const { drawnCards, remainingDeck } = DeckManager.drawCards(player.drawPile, drawCount);
+        player.hand.push(...drawnCards);
+        player.drawPile = remainingDeck;
+
+        const actualDrawn = drawnCards.length;
+        if (actualDrawn > 0) {
+          this.showActionResult(`Drew ${actualDrawn} card${actualDrawn > 1 ? "s" : ""}!`, "#4ecdc4");
+        } else {
+          this.showActionResult("No cards to draw.", "#77888C");
+        }
+
+        this.updateHandDisplay();
+        this.updateDeckDisplay();
+        this.updateDiscardDisplay();
         break;
+      }
+
+      // ── Damage & burn ────────────────────────────────
+      case "apply_10_burn_all": {
+        applyDirectDamage(10, "Burned enemy for");
+        break;
+      }
+
+      case "deal_15_damage":
+        applyDirectDamage(15, "Dealt");
+        break;
+
+      case "deal_20_damage":
+        applyDirectDamage(20, "Dealt");
+        break;
+
+      case "deal_25_damage":
+        applyDirectDamage(25, "Dealt");
+        break;
+
+      case "deal_15_elemental_damage":
+        applyDirectDamage(20, "Elemental blast dealt");
+        break;
+
+      case "deal_20_elemental_damage":
+        applyDirectDamage(30, "Elemental surge dealt");
+        break;
+
+      // ── Element choice & random cards ────────────────
+      case "choose_element": {
+        this.showActionResult("You feel attuned to the elements (effect will be expanded in a future update).", "#4ecdc4");
+        break;
+      }
+
+      case "add_random_cards": {
+        try {
+          const pool = DeckManager.createFullDeck();
+          const added: any[] = [];
+          for (let i = 0; i < 3 && pool.length > 0; i++) {
+            const idx = Math.floor(Math.random() * pool.length);
+            const [card] = pool.splice(idx, 1);
+            if (card) added.push(card);
+          }
+
+          if (!Array.isArray(player.drawPile)) {
+            player.drawPile = [];
+          }
+
+          player.drawPile.push(...added);
+          player.drawPile = DeckManager.shuffleDeck(player.drawPile);
+
+          this.showActionResult(`Shuffled ${added.length} random card${added.length === 1 ? "" : "s"} into your draw pile.`, "#4ecdc4");
+          this.updateDeckDisplay();
+        } catch (e) {
+          console.error("usePotionInCombat: error adding random cards", e);
+          this.showActionResult("Could not add random cards.", "#ff6b6b");
+        }
+        break;
+      }
+
+      default: {
+        console.warn(`Unknown potion effect: ${effect}`);
+        this.showActionResult("Nothing happens...", "#77888C");
+        break;
+      }
     }
-    
+
     // Remove potion from inventory
-    player.potions.splice(index, 1);
+    if (Array.isArray(player.potions)) {
+      player.potions.splice(index, 1);
+    }
     this.updatePotionInventory();
   }
   
