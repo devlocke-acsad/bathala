@@ -8,10 +8,11 @@ import {
   CombatEntity,
 } from "../../../core/types/CombatTypes";
 import { DeckManager } from "../../../utils/DeckManager";
+import { DamageCalculator } from "../../../utils/DamageCalculator";
 import { HandEvaluator } from "../../../utils/HandEvaluator";
 import { Combat } from "../Combat";
 import { createButton } from "../../ui/Button";
-import { StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
+import { StatusEffectManager, StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
 import { ElementalAffinitySystem } from "../../../core/managers/ElementalAffinitySystem";
 import { EnemyRegistry } from "../../../core/registries/EnemyRegistry";
 
@@ -484,12 +485,9 @@ export class CombatUI {
       
       weaknessContainer.add([weaknessBg, weaknessBorder, weaknessIcon]);
       
-      // Make interactive for tooltip
-      weaknessContainer.setSize(iconSize, iconSize);
-      weaknessContainer.setInteractive(
-        new Phaser.Geom.Rectangle(-iconSize/2, -iconSize/2, iconSize, iconSize),
-        Phaser.Geom.Rectangle.Contains
-      );
+      // Make interactive for tooltip with a forgiving hit area
+      weaknessContainer.setSize(iconSize + 10, iconSize + 10);
+      weaknessContainer.setInteractive({ useHandCursor: true });
       
       weaknessContainer.on('pointerover', () => {
         weaknessBg.setFillStyle(0xff6b6b, 0.5);
@@ -522,12 +520,9 @@ export class CombatUI {
       
       resistanceContainer.add([resistanceBg, resistanceBorder, resistanceIcon]);
       
-      // Make interactive for tooltip
-      resistanceContainer.setSize(iconSize, iconSize);
-      resistanceContainer.setInteractive(
-        new Phaser.Geom.Rectangle(-iconSize/2, -iconSize/2, iconSize, iconSize),
-        Phaser.Geom.Rectangle.Contains
-      );
+      // Make interactive for tooltip with a forgiving hit area
+      resistanceContainer.setSize(iconSize + 10, iconSize + 10);
+      resistanceContainer.setInteractive({ useHandCursor: true });
       
       resistanceContainer.on('pointerover', () => {
         resistanceBg.setFillStyle(0x4ecdc4, 0.5);
@@ -1232,19 +1227,24 @@ export class CombatUI {
       tooltipTitle = "Defend";
       tooltipDescription = `The enemy will gain ${intent.value} block.`;
     } else if (intent.type === "buff") {
-      tooltipTitle = intent.description;
+      // Buff intents - title should be the buff name, description explains effect
       if (intent.description.includes("Strength")) {
+        tooltipTitle = "Strength";
         tooltipDescription = `The enemy will gain ${intent.value} Strength.\nAttack actions deal +3 damage per stack.`;
       } else {
+        tooltipTitle = "Buff";
         tooltipDescription = `The enemy will apply a buff with ${intent.value} stacks.`;
       }
     } else if (intent.type === "debuff") {
-      tooltipTitle = intent.description;
+      // Debuff intents - title should be the debuff name, not the full sentence
       if (intent.description.includes("Poison")) {
-        tooltipDescription = `The enemy will apply ${intent.value} Poison to you.\nTakes ${intent.value * 2} damage at start of turn, then reduces by 1.`;
+        tooltipTitle = "Poison";
+        tooltipDescription = `The enemy will apply ${intent.value} Poison to you.\nTakes ${intent.value * 2} damage at start of each turn, then reduces by 1.`;
       } else if (intent.description.includes("Weak")) {
-        tooltipDescription = `The enemy will apply ${intent.value} Weak to you.\nAttack actions deal 25% less damage per stack.`;
+        tooltipTitle = "Weak";
+        tooltipDescription = `The enemy will apply ${intent.value} Weak to you.\nYour attacks deal 25% less damage per stack.`;
       } else {
+        tooltipTitle = "Debuff";
         tooltipDescription = `The enemy will apply a debuff with ${intent.value} stacks.`;
       }
     } else {
@@ -1256,9 +1256,24 @@ export class CombatUI {
     const intentX = this.enemyIntentText.x;
     const intentY = this.enemyIntentText.y;
     
-    // Create tooltip container
+    // Create tooltip container with dynamic height so text never overflows
     const tooltipWidth = 280;
-    const tooltipHeight = 100;
+
+    // Measure wrapped description height first
+    const tempDesc = this.scene.add.text(0, 0, tooltipDescription, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#77888C",
+      align: "center",
+      wordWrap: { width: tooltipWidth - 20 }
+    }).setOrigin(0.5).setVisible(false);
+    const descBounds = tempDesc.getBounds();
+    const descHeight = descBounds.height;
+    tempDesc.destroy();
+
+    const basePadding = 72; // extra room for title + spacing
+    const tooltipHeight = descHeight + basePadding;
+
     const tooltipX = intentX;
     const tooltipY = intentY + 50; // Position below the intent text
     
@@ -1272,20 +1287,27 @@ export class CombatUI {
     const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
     
     // Title text
-    const titleText = this.scene.add.text(0, -30, tooltipTitle, {
+    const titleY = -tooltipHeight / 2 + 24;
+    const titleText = this.scene.add.text(0, titleY, tooltipTitle, {
       fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#feca57",
       align: "center",
     }).setOrigin(0.5);
     
-    // Description text
-    const descText = this.scene.add.text(0, 10, tooltipDescription, {
+    // Description text - position computed so its top starts below the title's bottom
+    const titleFontSize = 18;
+    const titleHalfHeight = titleFontSize / 2;
+    const gapBelowTitle = 6;
+    const descTop = titleY + titleHalfHeight + gapBelowTitle;
+    const descY = descTop + descHeight / 2;
+    const descText = this.scene.add.text(0, descY, tooltipDescription, {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 13,
       color: "#77888C",
       align: "center",
-      wordWrap: { width: tooltipWidth - 20 }
+      wordWrap: { width: tooltipWidth - 20 },
+      lineSpacing: 2
     }).setOrigin(0.5);
     
     this.enemyIntentTooltip.add([outerBorder, innerBorder, bg, titleText, descText]);
@@ -1409,47 +1431,68 @@ export class CombatUI {
         sourceContainer.add([sourceBg, sourceIcon]);
         effectContainer.add(sourceContainer);
       }
-      effectContainer.setInteractive(
-        new Phaser.Geom.Circle(0, 0, iconRadius),
-        Phaser.Geom.Circle.Contains
-      );
+      // Use a forgiving rectangular hit area that covers the full badge
+      effectContainer.setSize(iconRadius * 2 + 10, iconRadius * 2 + 20);
+      effectContainer.setInteractive({ useHandCursor: true });
       
       // Add tooltip on hover
       let tooltip: Phaser.GameObjects.Container | null = null;
       
       effectContainer.on('pointerover', () => {
-        // Create tooltip - improved sizing
+        // Create tooltip with dynamic height so text never overflows
         const tooltipWidth = 220;
         const hasSource = effect.source && effect.source.type === 'relic';
-        const tooltipHeight = hasSource ? 110 : 90;
-        
-        tooltip = this.scene.add.container(x, 55);
-        
-        const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
-          .setStrokeStyle(2, 0x77888C);
-        const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
-          .setStrokeStyle(2, 0x77888C);
-        const tooltipBg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
-        
-        const titleText = this.scene.add.text(0, -tooltipHeight/2 + 18, `${effect.emoji} ${effect.name}`, {
-          fontFamily: "dungeon-mode",
-          fontSize: 16,
-          color: effect.type === 'buff' ? "#2ed573" : "#ff6b6b",
-          align: "center",
-        }).setOrigin(0.5);
-        
-        // Add source info if available - show relic name
+
+        // Build full description text (including source info if present)
         let descriptionWithSource = `${effect.description}\nStacks: ${effect.value}`;
         if (hasSource) {
-          // Format relic ID to display name (e.g., "amomongo_claw" -> "Amomongo Claw")
           const relicName = effect.source!.id
             .split('_')
             .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
           descriptionWithSource += `\n\n${effect.source!.icon} From: ${relicName}`;
         }
-        
-        const descText = this.scene.add.text(0, hasSource ? 10 : 5, descriptionWithSource, {
+
+        // Measure description height with word wrap before creating the final tooltip
+        const tempDesc = this.scene.add.text(0, 0, descriptionWithSource, {
+          fontFamily: "dungeon-mode",
+          fontSize: 11,
+          color: "#77888C",
+          align: "center",
+          wordWrap: { width: tooltipWidth - 20 },
+          lineSpacing: 3
+        }).setOrigin(0.5).setVisible(false);
+        const descBounds = tempDesc.getBounds();
+        const descHeight = descBounds.height;
+        tempDesc.destroy();
+
+        const basePadding = hasSource ? 72 : 60; // extra room for title + spacing
+        const tooltipHeight = descHeight + basePadding;
+
+        // Position tooltip just above the status row, aligned with this circle
+        tooltip = this.scene.add.container(x, 55);
+
+        const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
+          .setStrokeStyle(2, 0x77888C);
+        const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
+          .setStrokeStyle(2, 0x77888C);
+        const tooltipBg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+
+        const titleTextY = -tooltipHeight / 2 + 24;
+        const titleText = this.scene.add.text(0, titleTextY, `${effect.emoji} ${effect.name}`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 16,
+          color: effect.type === 'buff' ? "#2ed573" : "#ff6b6b",
+          align: "center",
+        }).setOrigin(0.5);
+
+        // Position description so it starts below the title without overlap
+        const titleFontSize = 16;
+        const titleHalfHeight = titleFontSize / 2;
+        const gapBelowTitle = 6;
+        const descTop = titleTextY + titleHalfHeight + gapBelowTitle;
+        const descTextY = descTop + descHeight / 2;
+        const descText = this.scene.add.text(0, descTextY, descriptionWithSource, {
           fontFamily: "dungeon-mode",
           fontSize: 11,
           color: "#77888C",
@@ -1457,7 +1500,7 @@ export class CombatUI {
           wordWrap: { width: tooltipWidth - 20 },
           lineSpacing: 3
         }).setOrigin(0.5);
-        
+
         tooltip.add([outerBorder, innerBorder, tooltipBg, titleText, descText]);
         tooltip.setDepth(7000);
         container.add(tooltip);
@@ -1545,19 +1588,32 @@ export class CombatUI {
     // Grid configuration (matching createRelicInventory - MUST match!)
     const relicSlotSize = 60; // Match createRelicInventory
     const relicsPerRow = 6;
-    const padding = 10; // Match createRelicInventory
-    const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
-    const gridStartY = 5; // Match createRelicInventory
-    
-    // Remove only the relic icons (keep the permanent slot frames)
-    this.relicInventory.list.forEach(child => {
-      if ((child as any).isRelicIcon) {
-        child.destroy();
-      }
-    });
     
     // Get references to existing slot containers
     const relicSlots = this.relicInventory.list.filter(child => (child as any).isRelicSlot) as Phaser.GameObjects.Container[];
+
+    // Reset all slots and remove any existing relic icons
+    relicSlots.forEach(slot => {
+      // Remove any relic icon children that might exist in this slot
+      slot.list.forEach(child => {
+        if ((child as any).isRelicIcon) {
+          child.destroy();
+        }
+      });
+
+      // Clear interaction and restore default visuals
+      slot.removeAllListeners();
+      slot.disableInteractive();
+
+      const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
+      const bg = slotChildren[0];
+      const outerBorder = slotChildren[1];
+
+      if (bg && outerBorder) {
+        bg.setFillStyle(0x1a1a1a); // Default background
+        outerBorder.setStrokeStyle(2, 0x444444, 0.8); // Default border
+      }
+    });
     
     // Add relic icons to existing slots
     relics.forEach((relic, index) => {
@@ -1566,20 +1622,15 @@ export class CombatUI {
         
         console.log(`Adding relic ${index}:`, relic.name, "ID:", relic.id);
         
-        // Calculate absolute position for the icon (using grid layout)
-        const col = index;
-        const iconX = gridStartX + col * (relicSlotSize + padding);
-        const iconY = gridStartY;
-        
         // Get sprite key for this relic
         const spriteKey = getRelicSpriteKey(relic.id);
         
-        // Add relic icon DIRECTLY to relicInventory (not to slot)
+        // Add relic icon as a child of the slot so it stays centered in the frame
         let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
         
         if (spriteKey && this.scene.textures.exists(spriteKey)) {
           // Use sprite if available - properly scaled to fit slot
-          const sprite = this.scene.add.image(iconX, iconY, spriteKey);
+          const sprite = this.scene.add.image(0, 0, spriteKey);
           
           // Calculate scale to fit nicely within slot (leave small padding)
           const maxSize = relicSlotSize - 10; // 10px padding
@@ -1593,7 +1644,7 @@ export class CombatUI {
           console.log(`Using sprite for relic: ${spriteKey}, scale: ${scale}`);
         } else {
           // Fallback to emoji if sprite not found
-          relicIcon = this.scene.add.text(iconX, iconY, relic.emoji || "⚙️", {
+          relicIcon = this.scene.add.text(0, 0, relic.emoji || "⚙️", {
             fontSize: 42,
             color: "#ffffff",
             align: "center"
@@ -1603,17 +1654,11 @@ export class CombatUI {
         
         (relicIcon as any).isRelicIcon = true;
         (relicIcon as any).originalScale = relicIcon.scale; // Store original scale
-        this.relicInventory.add(relicIcon);
+        slot.add(relicIcon);
         
-        // Make slot interactive with hover effects
+        // Make slot interactive with hover effects (size-based hit area for forgiving clicks)
         slot.setSize(relicSlotSize + 4, relicSlotSize + 4);
-        slot.setInteractive(
-          new Phaser.Geom.Rectangle(-(relicSlotSize + 4)/2, -(relicSlotSize + 4)/2, relicSlotSize + 4, relicSlotSize + 4),
-          Phaser.Geom.Rectangle.Contains
-        );
-        
-        // Clear any existing event listeners to prevent memory leaks
-        slot.removeAllListeners();
+        slot.setInteractive({ useHandCursor: true });
         
         // Get border and bg references from slot
         const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
@@ -1637,7 +1682,12 @@ export class CombatUI {
             ease: 'Back.easeOut'
           });
           
-          this.showRelicTooltip(relic.name, iconX, iconY - 50);
+          // Position tooltip slightly above the relic slot, using local slot coordinates
+          this.showRelicTooltip(
+            relic.name,
+            slot.x,
+            slot.y - relicSlotSize
+          );
         });
         
         slot.on("pointerout", () => {
@@ -1703,18 +1753,32 @@ export class CombatUI {
     // Grid configuration - matching createPotionInventory
     const potionSlotSize = 70;
     const maxPotions = 3;
-    const padding = 12;
-    const gridStartY = -60;
-    
-    // Remove only the potion icons (keep the permanent slot frames)
-    this.potionInventory.list.forEach(child => {
-      if ((child as any).isPotionIcon) {
-        child.destroy();
-      }
-    });
     
     // Get references to existing slot containers
     const potionSlots = this.potionInventory.list.filter(child => (child as any).isPotionSlot) as Phaser.GameObjects.Container[];
+
+    // Reset all slots and remove any existing potion icons
+    potionSlots.forEach(slot => {
+      // Remove any potion icon children that might exist in this slot
+      slot.list.forEach(child => {
+        if ((child as any).isPotionIcon) {
+          child.destroy();
+        }
+      });
+
+      // Clear interaction and restore default visuals
+      slot.removeAllListeners();
+      slot.disableInteractive();
+
+      const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
+      const bg = slotChildren[0];
+      const outerBorder = slotChildren[1];
+
+      if (bg && outerBorder) {
+        bg.setFillStyle(0x1a1a1a); // Default background
+        outerBorder.setStrokeStyle(2, 0x444444, 0.8); // Default border
+      }
+    });
     
     // Add potion icons to existing slots
     potions.forEach((potion: any, index: number) => {
@@ -1723,28 +1787,20 @@ export class CombatUI {
         
         console.log(`Adding potion ${index}:`, potion.name, "ID:", potion.id);
         
-        // Calculate absolute position for the icon
-        const iconY = gridStartY + index * (potionSlotSize + padding);
-        
         // Add potion icon (emoji for now, can add sprites later)
-        const potionIcon = this.scene.add.text(0, iconY, potion.emoji || "🧪", {
+        // Icon is added as a child of the slot so it always stays centered in the frame
+        const potionIcon = this.scene.add.text(0, 0, potion.emoji || "🧪", {
           fontSize: 40,
           color: "#ffffff",
           align: "center"
         }).setOrigin(0.5).setDepth(100);
         
         (potionIcon as any).isPotionIcon = true;
-        this.potionInventory.add(potionIcon);
+        slot.add(potionIcon);
         
-        // Make slot interactive with hover effects
+        // Make slot interactive with hover effects (use size-based hit area for more forgiving clicks)
         slot.setSize(potionSlotSize + 4, potionSlotSize + 4);
-        slot.setInteractive(
-          new Phaser.Geom.Rectangle(-(potionSlotSize + 4)/2, -(potionSlotSize + 4)/2, potionSlotSize + 4, potionSlotSize + 4),
-          Phaser.Geom.Rectangle.Contains
-        );
-        
-        // Clear any existing event listeners to prevent memory leaks
-        slot.removeAllListeners();
+        slot.setInteractive({ useHandCursor: true });
         
         // Get border and bg references from slot
         const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
@@ -1766,7 +1822,12 @@ export class CombatUI {
             ease: 'Back.easeOut'
           });
           
-          this.showPotionTooltip(potion.name, this.potionInventory.x + 120, this.potionInventory.y + iconY);
+          // Position tooltip just to the right of the potion slot, using local slot coordinates
+          this.showPotionTooltip(
+            potion.name,
+            potionSlotSize, // a bit to the right of the slot center
+            slot.y
+          );
         });
         
         slot.on("pointerout", () => {
@@ -2807,7 +2868,10 @@ export class CombatUI {
     (tooltipContainer as any).isTooltip = true;
     
     this.currentRelicTooltip = tooltipContainer; // Reuse the same reference
-    this.relicInventory.add(tooltipContainer);
+    // Attach potion tooltip to the potion inventory so its position is relative
+    if (this.potionInventory) {
+      this.potionInventory.add(tooltipContainer);
+    }
   }
   
   /**
@@ -2830,9 +2894,8 @@ export class CombatUI {
     const modalContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2);
     modalContainer.setDepth(3000);
     
-    // Semi-transparent overlay background
+    // Semi-transparent overlay background (purely visual, does not capture input)
     const overlay = this.scene.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7);
-    overlay.setInteractive();
     
     // Modal window dimensions
     const modalWidth = 400;
@@ -2932,10 +2995,8 @@ export class CombatUI {
     
     button.add([bg, border, text]);
     button.setSize(buttonWidth, buttonHeight);
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
-      Phaser.Geom.Rectangle.Contains
-    );
+    // Use size-based hit area for more forgiving clicks
+    button.setInteractive({ useHandCursor: true });
     
     // Hover effects
     button.on('pointerover', () => {
@@ -2968,31 +3029,269 @@ export class CombatUI {
    */
   private usePotionInCombat(potion: any, index: number): void {
     console.log(`Using potion: ${potion.name}, Effect: ${potion.effect}`);
-    
     const combatState = this.scene.getCombatState();
-    const player = combatState.player;
-    
+    const player: any = combatState.player;
+    const enemy: any = combatState.enemy;
+
+    const effect: string = potion.effect;
+
+    const applyDirectDamage = (baseDamage: number, label: string): void => {
+      if (!enemy) {
+        console.warn("usePotionInCombat: no enemy present for damage effect");
+        this.showActionResult("No target to hit.", "#77888C");
+        return;
+      }
+
+      let damage = baseDamage;
+      try {
+        damage = DamageCalculator.applyVulnerableMultiplier(baseDamage, enemy);
+      } catch (e) {
+        console.error("usePotionInCombat: error applying vulnerable multiplier", e);
+        damage = baseDamage;
+      }
+
+      const enemyBlock = typeof enemy.block === "number" ? enemy.block : 0;
+      const actualDamage = Math.max(0, damage - enemyBlock);
+
+      enemy.currentHealth = Math.max(0, (enemy.currentHealth ?? 0) - actualDamage);
+      enemy.block = Math.max(0, enemyBlock - damage);
+
+      this.showActionResult(`${label} ${actualDamage} damage!`, "#ff6b6b");
+      this.updateEnemyUI();
+    };
+
     // Apply potion effect based on effect type
-    switch (potion.effect) {
+    switch (effect) {
+      // ── Healing variants ─────────────────────────────
+      case "heal_15_hp":
       case "heal_20_hp":
-        const healAmount = 20;
-        const oldHP = player.currentHealth;
-        player.currentHealth = Math.min(player.currentHealth + healAmount, player.maxHealth);
-        const actualHeal = player.currentHealth - oldHP;
-        
+      case "heal_25_hp":
+      case "gain_temp_max_hp":
+      case "heal_20_remove_curse":
+      case "heal_20_remove_debuffs": {
+        const healAmount =
+          effect === "heal_15_hp" ? 15 :
+          effect === "heal_25_hp" ? 25 :
+          effect === "gain_temp_max_hp" ? 10 :
+          20;
+
+        const oldHP = player.currentHealth ?? 0;
+        const maxHealth = player.maxHealth ?? oldHP;
+        player.currentHealth = Math.min(oldHP + healAmount, maxHealth);
+        const actualHeal = (player.currentHealth ?? 0) - oldHP;
+
+        // Optional debuff/curse removal
+        if (player.statusEffects && Array.isArray(player.statusEffects)) {
+          if (effect === "heal_20_remove_curse") {
+            player.statusEffects = player.statusEffects.filter((e: any) => e.id !== "curse");
+          } else if (effect === "heal_20_remove_debuffs") {
+            player.statusEffects = player.statusEffects.filter((e: any) => e.type !== "debuff");
+          }
+        }
+
         this.showActionResult(`Healed ${actualHeal} HP!`, "#2ed573");
         this.showPlayerHealingIndicator(actualHeal, false);
-        this.updatePlayerUI(); // Update player UI to reflect new health
+        this.updatePlayerUI();
         break;
-        
+      }
+
+      // ── Block gain ───────────────────────────────────
+      case "gain_10_block":
+      case "gain_15_block":
+      case "gain_10_block_when_weak": {
+        const baseAmount = effect === "gain_10_block" || effect === "gain_10_block_when_weak" ? 10 : 15;
+
+        if (effect === "gain_10_block_when_weak") {
+          const hasWeak = Array.isArray(player.statusEffects)
+            && player.statusEffects.some((e: any) => e.id === "weak" || e.type === "debuff");
+          if (!hasWeak) {
+            this.showActionResult("No effect (not Weakened).", "#77888C");
+            break;
+          }
+        }
+
+        player.block = (player.block ?? 0) + baseAmount;
+        this.showActionResult(`Gained ${baseAmount} Block!`, "#4ecdc4");
+        this.updatePlayerUI();
+        break;
+      }
+
+      // ── Debuff removal without healing ───────────────
+      case "remove_debuffs":
+      case "remove_1_debuff": {
+        if (player.statusEffects && Array.isArray(player.statusEffects)) {
+          if (effect === "remove_debuffs") {
+            const before = player.statusEffects.length;
+            player.statusEffects = player.statusEffects.filter((e: any) => e.type !== "debuff");
+            const removed = before - player.statusEffects.length;
+            this.showActionResult(
+              removed > 0 ? `Removed ${removed} debuff(s).` : "No debuffs to remove.",
+              "#4ecdc4"
+            );
+          } else {
+            const idx = player.statusEffects.findIndex((e: any) => e.type === "debuff");
+            if (idx >= 0) {
+              player.statusEffects.splice(idx, 1);
+              this.showActionResult("Removed 1 debuff.", "#4ecdc4");
+            } else {
+              this.showActionResult("No debuffs to remove.", "#77888C");
+            }
+          }
+        } else {
+          this.showActionResult("No debuffs to remove.", "#77888C");
+        }
+        this.updatePlayerUI();
+        break;
+      }
+
+      // ── Stat buffs & regeneration ────────────────────
+      case "gain_1_dexterity": {
+        if (!Array.isArray(player.statusEffects)) {
+          player.statusEffects = [];
+        }
+        let dex = player.statusEffects.find((e: any) => e.id === "dexterity" || e.name === "Dexterity");
+        if (!dex) {
+          dex = {
+            id: "dexterity",
+            name: "Dexterity",
+            type: "buff",
+            value: 0,
+            description: "+1 Block per stack on Defend.",
+            emoji: "⛨",
+          };
+          player.statusEffects.push(dex);
+        }
+        dex.value = (dex.value ?? 0) + 1;
+        this.showActionResult("Gained 1 Dexterity.", "#4ecdc4");
+        this.updatePlayerUI();
+        break;
+      }
+
+      case "gain_2_strength": {
+        StatusEffectManager.applyStatusEffect(player, "strength", 2, {
+          type: "other",
+          id: potion.id ?? "strength_potion",
+          icon: potion.emoji ?? "💪",
+        });
+        this.showActionResult("Gained 2 Strength.", "#4ecdc4");
+        this.updatePlayerUI();
+        break;
+      }
+
+      case "gain_regeneration": {
+        StatusEffectManager.applyStatusEffect(player, "regeneration", 2, {
+          type: "other",
+          id: potion.id ?? "regeneration_potion",
+          icon: potion.emoji ?? "♻️",
+        });
+        this.showActionResult("Gained Regeneration.", "#2ed573");
+        this.updatePlayerUI();
+        break;
+      }
+
+      // ── Card draw ────────────────────────────────────
       case "draw_3":
-        this.showActionResult(`Drew 3 cards!`, "#4ecdc4");
-        // Note: Drawing cards requires Combat scene method
+      case "draw_3_cards":
+      case "draw_2_cards": {
+        const drawCount = effect === "draw_2_cards" ? 2 : 3;
+
+        // If deck is low, reshuffle discard into draw first
+        if (player.drawPile && player.discardPile && player.drawPile.length < drawCount && player.discardPile.length > 0) {
+          player.drawPile = DeckManager.shuffleDeck(player.discardPile);
+          player.discardPile = [];
+        }
+
+        if (!player.drawPile || !player.hand) {
+          this.showActionResult("No cards to draw.", "#77888C");
+          break;
+        }
+
+        const { drawnCards, remainingDeck } = DeckManager.drawCards(player.drawPile, drawCount);
+        player.hand.push(...drawnCards);
+        player.drawPile = remainingDeck;
+
+        const actualDrawn = drawnCards.length;
+        if (actualDrawn > 0) {
+          this.showActionResult(`Drew ${actualDrawn} card${actualDrawn > 1 ? "s" : ""}!`, "#4ecdc4");
+        } else {
+          this.showActionResult("No cards to draw.", "#77888C");
+        }
+
+        this.updateHandDisplay();
+        this.updateDeckDisplay();
+        this.updateDiscardDisplay();
         break;
+      }
+
+      // ── Damage & burn ────────────────────────────────
+      case "apply_10_burn_all": {
+        applyDirectDamage(10, "Burned enemy for");
+        break;
+      }
+
+      case "deal_15_damage":
+        applyDirectDamage(15, "Dealt");
+        break;
+
+      case "deal_20_damage":
+        applyDirectDamage(20, "Dealt");
+        break;
+
+      case "deal_25_damage":
+        applyDirectDamage(25, "Dealt");
+        break;
+
+      case "deal_15_elemental_damage":
+        applyDirectDamage(20, "Elemental blast dealt");
+        break;
+
+      case "deal_20_elemental_damage":
+        applyDirectDamage(30, "Elemental surge dealt");
+        break;
+
+      // ── Element choice & random cards ────────────────
+      case "choose_element": {
+        this.showActionResult("You feel attuned to the elements (effect will be expanded in a future update).", "#4ecdc4");
+        break;
+      }
+
+      case "add_random_cards": {
+        try {
+          const pool = DeckManager.createFullDeck();
+          const added: any[] = [];
+          for (let i = 0; i < 3 && pool.length > 0; i++) {
+            const idx = Math.floor(Math.random() * pool.length);
+            const [card] = pool.splice(idx, 1);
+            if (card) added.push(card);
+          }
+
+          if (!Array.isArray(player.drawPile)) {
+            player.drawPile = [];
+          }
+
+          player.drawPile.push(...added);
+          player.drawPile = DeckManager.shuffleDeck(player.drawPile);
+
+          this.showActionResult(`Shuffled ${added.length} random card${added.length === 1 ? "" : "s"} into your draw pile.`, "#4ecdc4");
+          this.updateDeckDisplay();
+        } catch (e) {
+          console.error("usePotionInCombat: error adding random cards", e);
+          this.showActionResult("Could not add random cards.", "#ff6b6b");
+        }
+        break;
+      }
+
+      default: {
+        console.warn(`Unknown potion effect: ${effect}`);
+        this.showActionResult("Nothing happens...", "#77888C");
+        break;
+      }
     }
-    
+
     // Remove potion from inventory
-    player.potions.splice(index, 1);
+    if (Array.isArray(player.potions)) {
+      player.potions.splice(index, 1);
+    }
     this.updatePotionInventory();
   }
   
@@ -3422,8 +3721,10 @@ export class CombatUI {
     }).setOrigin(0.5, 0);
     modal.add(descBody);
 
-    // --- Effect section ---
-    const effectTop = descTop + 90;
+    const descHeight = descBody.getBounds().height;
+
+    // --- Effect section (positioned dynamically below description) ---
+    const effectTop = descTop + 24 + descHeight + 24;
     const effectSepGfx = this.scene.add.graphics();
     effectSepGfx.lineStyle(1, 0x3a4a60, 0.35);
     effectSepGfx.lineBetween(-pw / 2 + 24, effectTop, pw / 2 - 24, effectTop);
@@ -3445,8 +3746,10 @@ export class CombatUI {
     }).setOrigin(0.5, 0);
     modal.add(effectBody);
 
-    // --- Lore section ---
-    const loreTop = effectTop + 90;
+    const effectHeight = effectBody.getBounds().height;
+
+    // --- Lore section (positioned dynamically below effect) ---
+    const loreTop = effectTop + 34 + effectHeight + 24;
     const loreSepGfx = this.scene.add.graphics();
     loreSepGfx.lineStyle(1, 0x2e4a3a, 0.35);
     loreSepGfx.lineBetween(-pw / 2 + 24, loreTop, pw / 2 - 24, loreTop);

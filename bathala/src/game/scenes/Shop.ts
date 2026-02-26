@@ -25,6 +25,7 @@ export class Shop extends Scene {
   private merchantCharacter!: Phaser.GameObjects.Container;
   private typewriterTimer: Phaser.Time.TimerEvent | null = null;
   private autoDialogueTimer: Phaser.Time.TimerEvent | null = null;
+  private inputLockCount: number = 0;
 
   // Merchant dialogue for different relics - now using centralized relic system
   private getRelicDialogue(relicId: string): string[] {
@@ -90,6 +91,18 @@ export class Shop extends Scene {
       "This artifact holds ancient power from the mystical realms...",
       "The spirits themselves guided this item to my shop. Perhaps they meant it for you."
     ];
+  }
+
+  private lockInput(): void {
+    this.inputLockCount++;
+  }
+
+  private unlockInput(): void {
+    this.inputLockCount = Math.max(0, this.inputLockCount - 1);
+  }
+
+  private isInputLocked(): boolean {
+    return this.inputLockCount > 0;
   }
 
   constructor() {
@@ -392,7 +405,10 @@ export class Shop extends Scene {
     // Size based on sprite dimensions (approximate visible area)
     this.merchantCharacter.setSize(200, 300);
     this.merchantCharacter.setInteractive()
-      .on('pointerdown', () => this.showMerchantDialogue())
+      .on('pointerdown', () => {
+        if (this.isInputLocked()) return;
+        this.showMerchantDialogue();
+      })
       .on('pointerover', () => {
         merchantSprite.setTint(0xdddddd); // Slight tint on hover
         this.input.setDefaultCursor('pointer');
@@ -436,8 +452,11 @@ export class Shop extends Scene {
   }
 
   private showMerchantDialogue(isAuto: boolean = false): void {
-    // Safety check: don't run if scene is shutting down
+    // Safety check: don't run if scene is shutting down or input is locked by another modal
     if (!this.sys || !this.sys.isActive()) {
+      return;
+    }
+    if (this.isInputLocked()) {
       return;
     }
     
@@ -671,7 +690,8 @@ export class Shop extends Scene {
     const topY = 40; // Aligned below title panel
     
     // Background panel for stats (compact design)
-    const panelWidth = 160;
+    // Make panel wider so large gold values never overflow visually
+    const panelWidth = 220;
     const panelHeight = 70;
     const panelX = screenWidth - panelWidth / 2 - 20;
     const panelY = topY;
@@ -784,6 +804,7 @@ export class Shop extends Scene {
     
     // Mouse wheel scrolling - instant response
     this.input.on('wheel', (_pointer: any, _gameObjects: any, _deltaX: number, deltaY: number) => {
+      if (this.isInputLocked()) return;
       if (deltaY > 0) {
         targetScrollY = Math.min(targetScrollY + scrollSpeed, maxScroll);
       } else {
@@ -793,10 +814,12 @@ export class Shop extends Scene {
     
     // Keyboard scrolling (arrow keys)
     this.input.keyboard?.on('keydown-UP', () => {
+      if (this.isInputLocked()) return;
       targetScrollY = Math.max(targetScrollY - scrollSpeed, 0);
     });
     
     this.input.keyboard?.on('keydown-DOWN', () => {
+      if (this.isInputLocked()) return;
       targetScrollY = Math.min(targetScrollY + scrollSpeed, maxScroll);
     });
     
@@ -806,6 +829,7 @@ export class Shop extends Scene {
     let dragStartScrollY = 0;
     
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      if (this.isInputLocked()) return;
       isDragging = true;
       dragStartY = pointer.y;
       dragStartScrollY = targetScrollY;
@@ -813,6 +837,7 @@ export class Shop extends Scene {
     
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (isDragging) {
+        if (this.isInputLocked()) return;
         const dragDelta = dragStartY - pointer.y;
         targetScrollY = Phaser.Math.Clamp(dragStartScrollY + dragDelta, 0, maxScroll);
       }
@@ -1019,6 +1044,7 @@ export class Shop extends Scene {
       container.setSize(width, height);
       container.setInteractive()
         .on('pointerdown', () => {
+          if (this.isInputLocked()) return;
           // 40% chance to trigger merchant dialogue
           if (Math.random() < 0.4) {
             this.showRandomRelicDialogue(item);
@@ -1026,6 +1052,7 @@ export class Shop extends Scene {
           this.showItemDetails(item);
         })
         .on('pointerover', () => {
+          if (this.isInputLocked()) return;
           // Change cursor to pointer
           this.input.setDefaultCursor('pointer');
           
@@ -1054,6 +1081,7 @@ export class Shop extends Scene {
           });
         })
         .on('pointerout', () => {
+          if (this.isInputLocked()) return;
           // Reset cursor
           this.input.setDefaultCursor('default');
           
@@ -1215,6 +1243,7 @@ export class Shop extends Scene {
     
     // Enhanced hover effects with prologue/combat theme
     backButton.on("pointerover", () => {
+      if (this.isInputLocked()) return;
       this.input.setDefaultCursor('pointer');
       this.tweens.add({
         targets: backButton,
@@ -1234,6 +1263,7 @@ export class Shop extends Scene {
     });
     
     backButton.on("pointerout", () => {
+      if (this.isInputLocked()) return;
       this.input.setDefaultCursor('default');
       this.tweens.add({
         targets: backButton,
@@ -1253,6 +1283,7 @@ export class Shop extends Scene {
     });
     
     backButton.on("pointerdown", () => {
+      if (this.isInputLocked()) return;
       // Clean up any remaining tooltips
       this.hideItemTooltip();
       
@@ -1275,6 +1306,7 @@ export class Shop extends Scene {
   private showItemDetails(item: ShopItem): void {
     // Clean up any tooltips first
     this.hideItemTooltip();
+    this.lockInput();
     
     // Create overlay that blocks all interactions beneath it
     const overlay = this.add.rectangle(
@@ -1299,6 +1331,7 @@ export class Shop extends Scene {
         onComplete: () => {
           overlay.destroy();
           panel.destroy();
+          this.unlockInput();
         }
       });
     };
@@ -1568,7 +1601,7 @@ export class Shop extends Scene {
     buyBtn.setSize(240, 50); // Set proper size for interaction
     buyBtn.setInteractive();
     buyBtn.on("pointerdown", () => {
-      // Clean up panel with animation
+      // Clean up panel with animation and then proceed with purchase
       this.tweens.add({
         targets: panel,
         scale: 0.8,
@@ -1578,7 +1611,8 @@ export class Shop extends Scene {
         onComplete: () => {
           overlay.destroy();
           panel.destroy();
-          // Proceed with purchase
+          this.unlockInput();
+          // Proceed with purchase (which may open another locked modal)
           this.buyItem(item);
         }
       });
@@ -1716,6 +1750,8 @@ export class Shop extends Scene {
     const panelX = this.cameras.main.width / 2;
     const panelY = this.cameras.main.height / 2;
 
+    this.lockInput();
+
     // Create overlay that blocks all interactions beneath it
     const overlay = this.add.rectangle(
       this.cameras.main.width / 2,
@@ -1751,6 +1787,7 @@ export class Shop extends Scene {
         onComplete: () => {
           overlay.destroy();
           panel.destroy();
+          this.unlockInput();
         }
       });
     };
@@ -1902,7 +1939,9 @@ export class Shop extends Scene {
     closeBtn.add([closeBg, closeText]);
     closeBtn.setSize(32, 32);
     closeBtn.setInteractive();
-    closeBtn.on("pointerdown", () => closePanel());
+    closeBtn.on("pointerdown", () => {
+      closePanel();
+    });
     closeBtn.on("pointerover", () => {
       this.input.setDefaultCursor('pointer');
       this.tweens.add({ targets: closeBtn, scale: 1.1, duration: 100, ease: 'Power2' });
@@ -1958,6 +1997,7 @@ export class Shop extends Scene {
         onComplete: () => {
           overlay.destroy();
           panel.destroy();
+          this.unlockInput();
           this.proceedWithPurchase(item);
         }
       });
@@ -2050,6 +2090,8 @@ export class Shop extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
+    this.lockInput();
+
     // Create overlay that blocks all interactions beneath it
     const overlay = this.add.rectangle(
       screenWidth / 2,
@@ -2099,6 +2141,12 @@ export class Shop extends Scene {
     const startX = -((relicCardWidth + spacing) * 3 - spacing) / 2 + relicCardWidth / 2;
     const startY = -100;
     
+    const cleanupDialog = () => {
+      overlay.destroy();
+      dialog.destroy();
+      this.unlockInput();
+    };
+
     this.player.relics.forEach((relic, index) => {
       const row = Math.floor(index / 3);
       const col = index % 3;
@@ -2170,12 +2218,12 @@ export class Shop extends Scene {
         });
       });
       cardBg.on("pointerdown", () => {
+        if (this.isInputLocked()) return;
         // Discard this relic and proceed with purchase
         this.player.relics.splice(index, 1);
         
         // Clean up dialog
-        overlay.destroy();
-        dialog.destroy();
+        cleanupDialog();
         
         // Show purchase confirmation
         this.showPurchaseConfirmation(item);
@@ -2202,8 +2250,8 @@ export class Shop extends Scene {
     cancelBtn.setSize(120, 40);
     cancelBtn.setInteractive({ useHandCursor: true });
     cancelBtn.on("pointerdown", () => {
-      overlay.destroy();
-      dialog.destroy();
+      if (this.isInputLocked()) return;
+      cleanupDialog();
     });
     cancelBtn.on("pointerover", () => {
       cancelBg.clear();
@@ -2234,8 +2282,8 @@ export class Shop extends Scene {
       RelicManager.applyRelicAcquisitionEffect(item.item.id, this.player);
     }
     
-    // Update UI with new currency format
-    this.healthText.setText(`Health: ${this.player.currentHealth}/${this.player.maxHealth} ♥`);
+    // Update UI with new currency format (match compact header: value + separate icons)
+    this.healthText.setText(`${this.player.currentHealth}/${this.player.maxHealth}`);
     this.gintoText.setText(`${this.player.ginto}`);
     
     // Show success message with animation
