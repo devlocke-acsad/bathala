@@ -1749,12 +1749,9 @@ export class CombatUI {
         (potionIcon as any).isPotionIcon = true;
         slot.add(potionIcon);
         
-        // Make slot interactive with hover effects
+        // Make slot interactive with hover effects (use size-based hit area for more forgiving clicks)
         slot.setSize(potionSlotSize + 4, potionSlotSize + 4);
-        slot.setInteractive(
-          new Phaser.Geom.Rectangle(-(potionSlotSize + 4)/2, -(potionSlotSize + 4)/2, potionSlotSize + 4, potionSlotSize + 4),
-          Phaser.Geom.Rectangle.Contains
-        );
+        slot.setInteractive({ useHandCursor: true });
         
         // Get border and bg references from slot
         const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
@@ -2845,9 +2842,8 @@ export class CombatUI {
     const modalContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2);
     modalContainer.setDepth(3000);
     
-    // Semi-transparent overlay background
+    // Semi-transparent overlay background (purely visual, does not capture input)
     const overlay = this.scene.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7);
-    overlay.setInteractive();
     
     // Modal window dimensions
     const modalWidth = 400;
@@ -2947,10 +2943,8 @@ export class CombatUI {
     
     button.add([bg, border, text]);
     button.setSize(buttonWidth, buttonHeight);
-    button.setInteractive(
-      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
-      Phaser.Geom.Rectangle.Contains
-    );
+    // Use size-based hit area for more forgiving clicks
+    button.setInteractive({ useHandCursor: true });
     
     // Hover effects
     button.on('pointerover', () => {
