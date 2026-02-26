@@ -1704,18 +1704,32 @@ export class CombatUI {
     // Grid configuration - matching createPotionInventory
     const potionSlotSize = 70;
     const maxPotions = 3;
-    const padding = 12;
-    const gridStartY = -60;
-    
-    // Remove only the potion icons (keep the permanent slot frames)
-    this.potionInventory.list.forEach(child => {
-      if ((child as any).isPotionIcon) {
-        child.destroy();
-      }
-    });
     
     // Get references to existing slot containers
     const potionSlots = this.potionInventory.list.filter(child => (child as any).isPotionSlot) as Phaser.GameObjects.Container[];
+
+    // Reset all slots and remove any existing potion icons
+    potionSlots.forEach(slot => {
+      // Remove any potion icon children that might exist in this slot
+      slot.list.forEach(child => {
+        if ((child as any).isPotionIcon) {
+          child.destroy();
+        }
+      });
+
+      // Clear interaction and restore default visuals
+      slot.removeAllListeners();
+      slot.disableInteractive();
+
+      const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
+      const bg = slotChildren[0];
+      const outerBorder = slotChildren[1];
+
+      if (bg && outerBorder) {
+        bg.setFillStyle(0x1a1a1a); // Default background
+        outerBorder.setStrokeStyle(2, 0x444444, 0.8); // Default border
+      }
+    });
     
     // Add potion icons to existing slots
     potions.forEach((potion: any, index: number) => {
@@ -1724,18 +1738,16 @@ export class CombatUI {
         
         console.log(`Adding potion ${index}:`, potion.name, "ID:", potion.id);
         
-        // Calculate absolute position for the icon
-        const iconY = gridStartY + index * (potionSlotSize + padding);
-        
         // Add potion icon (emoji for now, can add sprites later)
-        const potionIcon = this.scene.add.text(0, iconY, potion.emoji || "🧪", {
+        // Icon is added as a child of the slot so it always stays centered in the frame
+        const potionIcon = this.scene.add.text(0, 0, potion.emoji || "🧪", {
           fontSize: 40,
           color: "#ffffff",
           align: "center"
         }).setOrigin(0.5).setDepth(100);
         
         (potionIcon as any).isPotionIcon = true;
-        this.potionInventory.add(potionIcon);
+        slot.add(potionIcon);
         
         // Make slot interactive with hover effects
         slot.setSize(potionSlotSize + 4, potionSlotSize + 4);
@@ -1743,9 +1755,6 @@ export class CombatUI {
           new Phaser.Geom.Rectangle(-(potionSlotSize + 4)/2, -(potionSlotSize + 4)/2, potionSlotSize + 4, potionSlotSize + 4),
           Phaser.Geom.Rectangle.Contains
         );
-        
-        // Clear any existing event listeners to prevent memory leaks
-        slot.removeAllListeners();
         
         // Get border and bg references from slot
         const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
@@ -1767,7 +1776,12 @@ export class CombatUI {
             ease: 'Back.easeOut'
           });
           
-          this.showPotionTooltip(potion.name, this.potionInventory.x + 120, this.potionInventory.y + iconY);
+          // Use the slot's Y so tooltip follows the visual box position
+          this.showPotionTooltip(
+            potion.name,
+            this.potionInventory.x + 120,
+            this.potionInventory.y + slot.y
+          );
         });
         
         slot.on("pointerout", () => {
