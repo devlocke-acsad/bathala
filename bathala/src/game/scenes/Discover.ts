@@ -305,12 +305,13 @@ export class Discover extends Scene {
     // Clear existing cards
     this.cards = [];
     
-    // Calculate grid positions - TALLER CARDS for full sprite display
+    // Calculate grid positions - centered layout with consistent card sizing
     const cardWidth = 260;
-    const cardHeight = 320; // Increased from 280 to 320 for more vertical space
-    const cardSpacing = 35;
-    const cardsPerRow = Math.floor((screenWidth - 100) / (cardWidth + cardSpacing));
-    const startX = (screenWidth - (cardsPerRow * cardWidth + (cardsPerRow - 1) * cardSpacing)) / 2;
+    const cardHeight = 320;
+    const cardSpacing = 40; // Increased for better breathing room
+    const cardsPerRow = Math.floor((screenWidth - 200) / (cardWidth + cardSpacing));
+    const totalGridWidth = cardsPerRow * cardWidth + (cardsPerRow - 1) * cardSpacing;
+    const startX = (screenWidth - totalGridWidth) / 2;
     const startY = 150;
     
     // Create a card for each entry
@@ -376,34 +377,21 @@ export class Discover extends Scene {
     // Get sprite key for this character
     const spriteKey = this.getCharacterSpriteKey(entry.id);
     
-    // Character sprite - NATURAL ASPECT RATIO with max width constraint
+    // Character sprite - CONSISTENT SIZING for all almanac images
     let characterVisual: Phaser.GameObjects.GameObject;
     if (this.textures.exists(spriteKey)) {
       const sprite = this.add.image(width/2, 160, spriteKey).setOrigin(0.5);
       
-      // Base scale to fit width while maintaining aspect ratio
-      const baseMaxWidth = 140;
-      let scaleX = baseMaxWidth / sprite.width;
+      // Consistent sizing: fit all sprites to the same dimensions
+      const targetWidth = 180;
+      const targetHeight = 180;
       
-      // Apply individual scale adjustments per enemy
-      const scaleAdjustments: Record<string, number> = {
-        "tikbalang_scout": 0.75,      // Small
-        "balete_wraith": 1.15,         // Slightly large
-        "sigbin_charger": 1.0,         // Normal
-        "duwende_trickster": 1.0,      // Normal
-        "tiyanak_ambusher": 0.75,      // Small
-        "amomongo": 0.7,               // Much smaller (was 0.9)
-        "bungisngis": 1.0,             // Normal
-        "kapre_shade": 1.15,           // Slightly large
-        "tawong_lipod": 0.5,           // Very small (was 0.65)
-        "mangangaway": 0.6             // Very small (was 0.75)
-      };
+      // Calculate scale to fit within target dimensions while maintaining aspect ratio
+      const scaleX = targetWidth / sprite.width;
+      const scaleY = targetHeight / sprite.height;
+      const scale = Math.min(scaleX, scaleY); // Use the smaller scale to ensure fit
       
-      // Apply custom scale if exists
-      const customScale = scaleAdjustments[entry.id] || 1.0;
-      scaleX = scaleX * customScale;
-      
-      sprite.setScale(scaleX);
+      sprite.setScale(scale);
       
       characterVisual = sprite;
     } else {
@@ -796,33 +784,20 @@ export class Discover extends Scene {
       // Hide emoji text
       this.detailSymbolText.setVisible(false);
       
-      // Create new sprite - NATURAL ASPECT RATIO for detail view
+      // Create new sprite - CONSISTENT SIZING for detail view
       this.detailSpriteImage = this.add.image(screenWidth/2, 280, spriteKey)
         .setOrigin(0.5);
       
-      // Base scale to fit width while maintaining aspect ratio
-      const baseMaxWidth = 180;
-      let scaleX = baseMaxWidth / this.detailSpriteImage.width;
+      // Consistent sizing for detail view
+      const targetWidth = 200;
+      const targetHeight = 200;
       
-      // Apply individual scale adjustments per enemy (same as card view)
-      const scaleAdjustments: Record<string, number> = {
-        "tikbalang_scout": 0.75,      // Small
-        "balete_wraith": 1.15,         // Slightly large
-        "sigbin_charger": 1.0,         // Normal
-        "duwende_trickster": 1.0,      // Normal
-        "tiyanak_ambusher": 0.75,      // Small
-        "amomongo": 0.7,               // Much smaller (was 0.9)
-        "bungisngis": 1.0,             // Normal
-        "kapre_shade": 1.15,           // Slightly large
-        "tawong_lipod": 0.5,           // Very small (was 0.65)
-        "mangangaway": 0.6             // Very small (was 0.75)
-      };
+      // Calculate scale to fit within target dimensions while maintaining aspect ratio
+      const scaleX = targetWidth / this.detailSpriteImage.width;
+      const scaleY = targetHeight / this.detailSpriteImage.height;
+      const scale = Math.min(scaleX, scaleY); // Use the smaller scale to ensure fit
       
-      // Apply custom scale if exists
-      const customScale = scaleAdjustments[entry.id] || 1.0;
-      scaleX = scaleX * customScale;
-      
-      this.detailSpriteImage.setScale(scaleX);
+      this.detailSpriteImage.setScale(scale);
       
       // Add to detail view container (move to front)
       this.detailViewContainer.add(this.detailSpriteImage);
