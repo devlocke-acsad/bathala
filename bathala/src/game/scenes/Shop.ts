@@ -690,7 +690,8 @@ export class Shop extends Scene {
     const topY = 40; // Aligned below title panel
     
     // Background panel for stats (compact design)
-    const panelWidth = 160;
+    // Make panel wider so large gold values never overflow visually
+    const panelWidth = 220;
     const panelHeight = 70;
     const panelX = screenWidth - panelWidth / 2 - 20;
     const panelY = topY;
@@ -2281,8 +2282,8 @@ export class Shop extends Scene {
       RelicManager.applyRelicAcquisitionEffect(item.item.id, this.player);
     }
     
-    // Update UI with new currency format
-    this.healthText.setText(`Health: ${this.player.currentHealth}/${this.player.maxHealth} ♥`);
+    // Update UI with new currency format (match compact header: value + separate icons)
+    this.healthText.setText(`${this.player.currentHealth}/${this.player.maxHealth}`);
     this.gintoText.setText(`${this.player.ginto}`);
     
     // Show success message with animation
