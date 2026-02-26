@@ -1546,19 +1546,32 @@ export class CombatUI {
     // Grid configuration (matching createRelicInventory - MUST match!)
     const relicSlotSize = 60; // Match createRelicInventory
     const relicsPerRow = 6;
-    const padding = 10; // Match createRelicInventory
-    const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
-    const gridStartY = 5; // Match createRelicInventory
-    
-    // Remove only the relic icons (keep the permanent slot frames)
-    this.relicInventory.list.forEach(child => {
-      if ((child as any).isRelicIcon) {
-        child.destroy();
-      }
-    });
     
     // Get references to existing slot containers
     const relicSlots = this.relicInventory.list.filter(child => (child as any).isRelicSlot) as Phaser.GameObjects.Container[];
+
+    // Reset all slots and remove any existing relic icons
+    relicSlots.forEach(slot => {
+      // Remove any relic icon children that might exist in this slot
+      slot.list.forEach(child => {
+        if ((child as any).isRelicIcon) {
+          child.destroy();
+        }
+      });
+
+      // Clear interaction and restore default visuals
+      slot.removeAllListeners();
+      slot.disableInteractive();
+
+      const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
+      const bg = slotChildren[0];
+      const outerBorder = slotChildren[1];
+
+      if (bg && outerBorder) {
+        bg.setFillStyle(0x1a1a1a); // Default background
+        outerBorder.setStrokeStyle(2, 0x444444, 0.8); // Default border
+      }
+    });
     
     // Add relic icons to existing slots
     relics.forEach((relic, index) => {
@@ -1567,20 +1580,15 @@ export class CombatUI {
         
         console.log(`Adding relic ${index}:`, relic.name, "ID:", relic.id);
         
-        // Calculate absolute position for the icon (using grid layout)
-        const col = index;
-        const iconX = gridStartX + col * (relicSlotSize + padding);
-        const iconY = gridStartY;
-        
         // Get sprite key for this relic
         const spriteKey = getRelicSpriteKey(relic.id);
         
-        // Add relic icon DIRECTLY to relicInventory (not to slot)
+        // Add relic icon as a child of the slot so it stays centered in the frame
         let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
         
         if (spriteKey && this.scene.textures.exists(spriteKey)) {
           // Use sprite if available - properly scaled to fit slot
-          const sprite = this.scene.add.image(iconX, iconY, spriteKey);
+          const sprite = this.scene.add.image(0, 0, spriteKey);
           
           // Calculate scale to fit nicely within slot (leave small padding)
           const maxSize = relicSlotSize - 10; // 10px padding
@@ -1594,7 +1602,7 @@ export class CombatUI {
           console.log(`Using sprite for relic: ${spriteKey}, scale: ${scale}`);
         } else {
           // Fallback to emoji if sprite not found
-          relicIcon = this.scene.add.text(iconX, iconY, relic.emoji || "⚙️", {
+          relicIcon = this.scene.add.text(0, 0, relic.emoji || "⚙️", {
             fontSize: 42,
             color: "#ffffff",
             align: "center"
@@ -1604,17 +1612,11 @@ export class CombatUI {
         
         (relicIcon as any).isRelicIcon = true;
         (relicIcon as any).originalScale = relicIcon.scale; // Store original scale
-        this.relicInventory.add(relicIcon);
+        slot.add(relicIcon);
         
-        // Make slot interactive with hover effects
+        // Make slot interactive with hover effects (size-based hit area for forgiving clicks)
         slot.setSize(relicSlotSize + 4, relicSlotSize + 4);
-        slot.setInteractive(
-          new Phaser.Geom.Rectangle(-(relicSlotSize + 4)/2, -(relicSlotSize + 4)/2, relicSlotSize + 4, relicSlotSize + 4),
-          Phaser.Geom.Rectangle.Contains
-        );
-        
-        // Clear any existing event listeners to prevent memory leaks
-        slot.removeAllListeners();
+        slot.setInteractive({ useHandCursor: true });
         
         // Get border and bg references from slot
         const slotChildren = slot.list as Phaser.GameObjects.Rectangle[];
@@ -1638,7 +1640,12 @@ export class CombatUI {
             ease: 'Back.easeOut'
           });
           
-          this.showRelicTooltip(relic.name, iconX, iconY - 50);
+          // Position tooltip slightly above the relic slot, using local slot coordinates
+          this.showRelicTooltip(
+            relic.name,
+            slot.x,
+            slot.y - relicSlotSize
+          );
         });
         
         slot.on("pointerout", () => {
