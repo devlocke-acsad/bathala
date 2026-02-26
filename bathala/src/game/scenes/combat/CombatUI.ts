@@ -1773,11 +1773,11 @@ export class CombatUI {
             ease: 'Back.easeOut'
           });
           
-          // Use the slot's Y so tooltip follows the visual box position
+          // Position tooltip just to the right of the potion slot, using local slot coordinates
           this.showPotionTooltip(
             potion.name,
-            this.potionInventory.x + 120,
-            this.potionInventory.y + slot.y
+            potionSlotSize, // a bit to the right of the slot center
+            slot.y
           );
         });
         
@@ -2819,7 +2819,10 @@ export class CombatUI {
     (tooltipContainer as any).isTooltip = true;
     
     this.currentRelicTooltip = tooltipContainer; // Reuse the same reference
-    this.relicInventory.add(tooltipContainer);
+    // Attach potion tooltip to the potion inventory so its position is relative
+    if (this.potionInventory) {
+      this.potionInventory.add(tooltipContainer);
+    }
   }
   
   /**
