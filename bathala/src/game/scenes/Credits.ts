@@ -28,9 +28,6 @@ export class Credits extends Scene {
     // Create back button
     this.createBackButton();
 
-    // Listen for resize events
-    this.scale.on('resize', this.handleResize, this);
-
     // Handle keyboard input for scrolling
     this.input.keyboard?.on('keydown-UP', () => {
       this.scrollY += 10;
@@ -259,17 +256,6 @@ export class Credits extends Scene {
         this.isScrolling = false;
       }
     }
-  }
-
-  /**
-   * Handle scene resize
-   */
-  private handleResize(): void {
-    // Clear and recreate UI
-    this.children.removeAll();
-    this.createBackgroundEffects();
-    this.createCreditsContent();
-    this.createBackButton();
   }
 
   /**

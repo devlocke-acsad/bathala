@@ -66,9 +66,6 @@ export class Preloader extends Scene {
     
     // Move scanlines to the back
     this.scanlines.setDepth(-10);
-
-    // Listen for resize events
-    this.scale.on('resize', this.handleResize, this);
   }
 
   preload() {
@@ -419,28 +416,6 @@ export class Preloader extends Scene {
       //  Move to the Disclaimer scene
       this.scene.start("Disclaimer");
     });
-  }
-
-  /**
-   * Handle scene resize
-   */
-  private handleResize(): void {
-    // Reposition progress bar on resize
-    const screenWidth = this.game.config.width as number;
-    const screenHeight = this.game.config.height as number;
-    
-    if (this.progressBox) {
-      this.progressBox.setPosition(screenWidth/2, screenHeight/2);
-    }
-    
-    if (this.progressBar) {
-      this.progressBar.setPosition((screenWidth/2) - 195, screenHeight/2);
-    }
-    
-    // Resize scanlines
-    if (this.scanlines) {
-      this.scanlines.setSize(screenWidth, screenHeight);
-    }
   }
 
   /**

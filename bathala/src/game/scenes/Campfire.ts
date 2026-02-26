@@ -121,9 +121,6 @@ export class Campfire extends Scene {
 
     // Create back button with responsive positioning
     this.createResponsiveBackButton();
-
-    // Listen for resize events
-    this.scale.on('resize', this.handleResize, this);
     
     // Ensure tooltips are cleaned up when scene shuts down
     this.events.on('shutdown', () => {
@@ -1986,57 +1983,6 @@ export class Campfire extends Scene {
     
     // Hide tooltip
     this.hideTooltip();
-  }
-
-  /**
-   * Handle scene resize
-   */
-  private handleResize(): void {
-    // Clear and recreate UI
-    this.children.removeAll();
-    
-    // Recreate all elements with responsive sizing
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Responsive title
-    const titleFontSize = Math.min(36, screenWidth * 0.035);
-    this.add.text(
-      screenWidth / 2,
-      screenHeight * 0.08,
-      "REST AT BONFIRE",
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: titleFontSize,
-        color: "#d4af37",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: Math.max(2, titleFontSize / 18),
-        wordWrap: { width: screenWidth * 0.8 }
-      }
-    ).setOrigin(0.5);
-    
-    // Responsive subtitle
-    const subtitleFontSize = Math.min(18, screenWidth * 0.018);
-    this.add.text(
-      screenWidth / 2,
-      screenHeight * 0.13,
-      "The bonfire's warmth restores your spirit",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: subtitleFontSize,
-        color: "#cccccc",
-        align: "center",
-        wordWrap: { width: screenWidth * 0.9 }
-      }
-    ).setOrigin(0.5);
-    
-    this.createBonfireWithGlow(screenWidth / 2, screenHeight / 2);
-    this.createPlayerHealthDisplay();
-    this.createResponsiveActionButtons();
-    this.createTooltipBox();
-    this.createResponsiveBackButton();
-    this.createAtmosphericParticles();
   }
 
   /**

@@ -56,9 +56,6 @@ export class GameOver extends Scene
         // Create UI elements
         this.createUI();
 
-        // Listen for resize events
-        this.scale.on('resize', this.handleResize, this);
-
         // Allow click to return to main menu (with visual feedback)
         this.input.once('pointerdown', () => {
             // Fade out effect
@@ -576,28 +573,6 @@ export class GameOver extends Scene
     }
 
     /**
-     * Handle scene resize
-     */
-    private handleResize(): void {
-        // Only resize if scene is active and cameras are ready
-        if (!this.scene.isActive() || !this.cameras.main) {
-            return;
-        }
-        
-        // Clear and recreate UI
-        if (this.uiContainer) {
-            this.uiContainer.destroy();
-        }
-        if (this.enemySpriteContainer) {
-            this.enemySpriteContainer.destroy();
-        }
-        if (this.statsContainer) {
-            this.statsContainer.destroy();
-        }
-        this.createUI();
-    }
-
-    /**
      * Create enemy sprite display (separate container on left side)
      */
     private createEnemySpriteDisplay(screenWidth: number, screenHeight: number, scaleFactor: number): void {
@@ -724,7 +699,6 @@ export class GameOver extends Scene
     }
 
     shutdown() {
-        // Clean up event listeners
-        this.scale.off('resize', this.handleResize, this);
+        // No resize listener cleanup needed — Scale.FIT handles zoom uniformly
     }
 }

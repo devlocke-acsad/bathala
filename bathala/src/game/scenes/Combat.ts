@@ -302,7 +302,6 @@ export class Combat extends Scene {
     
     // IMPORTANT: Call handleResize() immediately after UI initialization
     // to ensure containers are properly positioned BEFORE drawing cards
-    this.scale.on('resize', this.handleResize, this);
     this.handleResize();
     
     // Relic inventory is now created by CombatUI.initialize()
@@ -4319,8 +4318,7 @@ export class Combat extends Scene {
         this.music = undefined;
       }
 
-      // Clean up resize listener
-      this.scale.off('resize', this.handleResize, this);
+      // No resize listener cleanup needed — Scale.FIT handles zoom uniformly
       
     } catch (error) {
       console.error(`❌ Combat: Error in shutdown:`, error);

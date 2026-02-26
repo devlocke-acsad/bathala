@@ -243,9 +243,6 @@ export class Treasure extends Scene {
 
     // Create back button
     this.createBackButton();
-
-    // Listen for resize events
-    this.scale.on('resize', this.handleResize, this);
   }
 
   private shuffleArray<T>(array: T[]): T[] {
@@ -1126,17 +1123,4 @@ export class Treasure extends Scene {
     });
   }
 
-  /**
-   * Handle scene resize
-   */
-  private handleResize(): void {
-    // Safety check for camera
-    if (!this.cameras.main) {
-      return;
-    }
-
-    // Rebuild UI with the same logic used in create()
-    this.children.removeAll();
-    this.create();
-  }
 }

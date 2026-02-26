@@ -224,9 +224,6 @@ export class Shop extends Scene {
     // Create back button
     this.createBackButton();
 
-    // Listen for resize events
-    this.scale.on('resize', this.handleResize, this);
-
     // Listen for scene shutdown to clean up tooltips
     this.events.on('shutdown', this.cleanup, this);
   }
@@ -254,7 +251,6 @@ export class Shop extends Scene {
     this.hideItemTooltip();
     
     // Remove event listeners
-    this.scale.off('resize', this.handleResize, this);
     this.events.off('shutdown', this.cleanup, this);
   }
 
@@ -2466,20 +2462,6 @@ export class Shop extends Scene {
         }
       });
     }
-  }
-
-  /**
-   * Handle scene resize
-   */
-  private handleResize(): void {
-    // Clear and recreate UI
-    this.children.removeAll();
-    this.createBackgroundElements();
-    this.createMerchantCharacter(); // Add this missing call!
-    this.createCurrencyDisplay();
-    this.createCategorizedInventoryUI();
-    this.createTooltipBox();
-    this.createBackButton();
   }
 
   /**
