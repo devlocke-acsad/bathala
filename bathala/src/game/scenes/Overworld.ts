@@ -2988,8 +2988,10 @@ export class Overworld extends Scene {
     }).setOrigin(0.5, 0);
     panel.add(descBody);
 
-    // --- Lore section ---
-    const loreTop = descTop + 110;
+    const descHeight = descBody.getBounds().height;
+
+    // --- Lore section (positioned dynamically below description) ---
+    const loreTop = descTop + 24 + descHeight + 24;
     const loreSepGfx = this.add.graphics();
     loreSepGfx.lineStyle(1, 0x2e4a3a, 0.35);
     loreSepGfx.lineBetween(-pw / 2 + 24, loreTop, pw / 2 - 24, loreTop);

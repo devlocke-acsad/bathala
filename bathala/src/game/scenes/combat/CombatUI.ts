@@ -3721,8 +3721,10 @@ export class CombatUI {
     }).setOrigin(0.5, 0);
     modal.add(descBody);
 
-    // --- Effect section ---
-    const effectTop = descTop + 90;
+    const descHeight = descBody.getBounds().height;
+
+    // --- Effect section (positioned dynamically below description) ---
+    const effectTop = descTop + 24 + descHeight + 24;
     const effectSepGfx = this.scene.add.graphics();
     effectSepGfx.lineStyle(1, 0x3a4a60, 0.35);
     effectSepGfx.lineBetween(-pw / 2 + 24, effectTop, pw / 2 - 24, effectTop);
@@ -3744,8 +3746,10 @@ export class CombatUI {
     }).setOrigin(0.5, 0);
     modal.add(effectBody);
 
-    // --- Lore section ---
-    const loreTop = effectTop + 90;
+    const effectHeight = effectBody.getBounds().height;
+
+    // --- Lore section (positioned dynamically below effect) ---
+    const loreTop = effectTop + 34 + effectHeight + 24;
     const loreSepGfx = this.scene.add.graphics();
     loreSepGfx.lineStyle(1, 0x2e4a3a, 0.35);
     loreSepGfx.lineBetween(-pw / 2 + 24, loreTop, pw / 2 - 24, loreTop);
