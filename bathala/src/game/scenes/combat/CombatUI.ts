@@ -485,12 +485,9 @@ export class CombatUI {
       
       weaknessContainer.add([weaknessBg, weaknessBorder, weaknessIcon]);
       
-      // Make interactive for tooltip
-      weaknessContainer.setSize(iconSize, iconSize);
-      weaknessContainer.setInteractive(
-        new Phaser.Geom.Rectangle(-iconSize/2, -iconSize/2, iconSize, iconSize),
-        Phaser.Geom.Rectangle.Contains
-      );
+      // Make interactive for tooltip with a forgiving hit area
+      weaknessContainer.setSize(iconSize + 10, iconSize + 10);
+      weaknessContainer.setInteractive({ useHandCursor: true });
       
       weaknessContainer.on('pointerover', () => {
         weaknessBg.setFillStyle(0xff6b6b, 0.5);
@@ -523,12 +520,9 @@ export class CombatUI {
       
       resistanceContainer.add([resistanceBg, resistanceBorder, resistanceIcon]);
       
-      // Make interactive for tooltip
-      resistanceContainer.setSize(iconSize, iconSize);
-      resistanceContainer.setInteractive(
-        new Phaser.Geom.Rectangle(-iconSize/2, -iconSize/2, iconSize, iconSize),
-        Phaser.Geom.Rectangle.Contains
-      );
+      // Make interactive for tooltip with a forgiving hit area
+      resistanceContainer.setSize(iconSize + 10, iconSize + 10);
+      resistanceContainer.setInteractive({ useHandCursor: true });
       
       resistanceContainer.on('pointerover', () => {
         resistanceBg.setFillStyle(0x4ecdc4, 0.5);
@@ -1233,19 +1227,24 @@ export class CombatUI {
       tooltipTitle = "Defend";
       tooltipDescription = `The enemy will gain ${intent.value} block.`;
     } else if (intent.type === "buff") {
-      tooltipTitle = intent.description;
+      // Buff intents - title should be the buff name, description explains effect
       if (intent.description.includes("Strength")) {
+        tooltipTitle = "Strength";
         tooltipDescription = `The enemy will gain ${intent.value} Strength.\nAttack actions deal +3 damage per stack.`;
       } else {
+        tooltipTitle = "Buff";
         tooltipDescription = `The enemy will apply a buff with ${intent.value} stacks.`;
       }
     } else if (intent.type === "debuff") {
-      tooltipTitle = intent.description;
+      // Debuff intents - title should be the debuff name, not the full sentence
       if (intent.description.includes("Poison")) {
-        tooltipDescription = `The enemy will apply ${intent.value} Poison to you.\nTakes ${intent.value * 2} damage at start of turn, then reduces by 1.`;
+        tooltipTitle = "Poison";
+        tooltipDescription = `The enemy will apply ${intent.value} Poison to you.\nTakes ${intent.value * 2} damage at start of each turn, then reduces by 1.`;
       } else if (intent.description.includes("Weak")) {
-        tooltipDescription = `The enemy will apply ${intent.value} Weak to you.\nAttack actions deal 25% less damage per stack.`;
+        tooltipTitle = "Weak";
+        tooltipDescription = `The enemy will apply ${intent.value} Weak to you.\nYour attacks deal 25% less damage per stack.`;
       } else {
+        tooltipTitle = "Debuff";
         tooltipDescription = `The enemy will apply a debuff with ${intent.value} stacks.`;
       }
     } else {
@@ -1257,9 +1256,24 @@ export class CombatUI {
     const intentX = this.enemyIntentText.x;
     const intentY = this.enemyIntentText.y;
     
-    // Create tooltip container
+    // Create tooltip container with dynamic height so text never overflows
     const tooltipWidth = 280;
-    const tooltipHeight = 100;
+
+    // Measure wrapped description height first
+    const tempDesc = this.scene.add.text(0, 0, tooltipDescription, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#77888C",
+      align: "center",
+      wordWrap: { width: tooltipWidth - 20 }
+    }).setOrigin(0.5).setVisible(false);
+    const descBounds = tempDesc.getBounds();
+    const descHeight = descBounds.height;
+    tempDesc.destroy();
+
+    const basePadding = 72; // extra room for title + spacing
+    const tooltipHeight = descHeight + basePadding;
+
     const tooltipX = intentX;
     const tooltipY = intentY + 50; // Position below the intent text
     
@@ -1273,20 +1287,27 @@ export class CombatUI {
     const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
     
     // Title text
-    const titleText = this.scene.add.text(0, -30, tooltipTitle, {
+    const titleY = -tooltipHeight / 2 + 24;
+    const titleText = this.scene.add.text(0, titleY, tooltipTitle, {
       fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#feca57",
       align: "center",
     }).setOrigin(0.5);
     
-    // Description text
-    const descText = this.scene.add.text(0, 10, tooltipDescription, {
+    // Description text - position computed so its top starts below the title's bottom
+    const titleFontSize = 18;
+    const titleHalfHeight = titleFontSize / 2;
+    const gapBelowTitle = 6;
+    const descTop = titleY + titleHalfHeight + gapBelowTitle;
+    const descY = descTop + descHeight / 2;
+    const descText = this.scene.add.text(0, descY, tooltipDescription, {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
+      fontSize: 13,
       color: "#77888C",
       align: "center",
-      wordWrap: { width: tooltipWidth - 20 }
+      wordWrap: { width: tooltipWidth - 20 },
+      lineSpacing: 2
     }).setOrigin(0.5);
     
     this.enemyIntentTooltip.add([outerBorder, innerBorder, bg, titleText, descText]);
@@ -1410,47 +1431,68 @@ export class CombatUI {
         sourceContainer.add([sourceBg, sourceIcon]);
         effectContainer.add(sourceContainer);
       }
-      effectContainer.setInteractive(
-        new Phaser.Geom.Circle(0, 0, iconRadius),
-        Phaser.Geom.Circle.Contains
-      );
+      // Use a forgiving rectangular hit area that covers the full badge
+      effectContainer.setSize(iconRadius * 2 + 10, iconRadius * 2 + 20);
+      effectContainer.setInteractive({ useHandCursor: true });
       
       // Add tooltip on hover
       let tooltip: Phaser.GameObjects.Container | null = null;
       
       effectContainer.on('pointerover', () => {
-        // Create tooltip - improved sizing
+        // Create tooltip with dynamic height so text never overflows
         const tooltipWidth = 220;
         const hasSource = effect.source && effect.source.type === 'relic';
-        const tooltipHeight = hasSource ? 110 : 90;
-        
-        tooltip = this.scene.add.container(x, 55);
-        
-        const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
-          .setStrokeStyle(2, 0x77888C);
-        const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
-          .setStrokeStyle(2, 0x77888C);
-        const tooltipBg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
-        
-        const titleText = this.scene.add.text(0, -tooltipHeight/2 + 18, `${effect.emoji} ${effect.name}`, {
-          fontFamily: "dungeon-mode",
-          fontSize: 16,
-          color: effect.type === 'buff' ? "#2ed573" : "#ff6b6b",
-          align: "center",
-        }).setOrigin(0.5);
-        
-        // Add source info if available - show relic name
+
+        // Build full description text (including source info if present)
         let descriptionWithSource = `${effect.description}\nStacks: ${effect.value}`;
         if (hasSource) {
-          // Format relic ID to display name (e.g., "amomongo_claw" -> "Amomongo Claw")
           const relicName = effect.source!.id
             .split('_')
             .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(' ');
           descriptionWithSource += `\n\n${effect.source!.icon} From: ${relicName}`;
         }
-        
-        const descText = this.scene.add.text(0, hasSource ? 10 : 5, descriptionWithSource, {
+
+        // Measure description height with word wrap before creating the final tooltip
+        const tempDesc = this.scene.add.text(0, 0, descriptionWithSource, {
+          fontFamily: "dungeon-mode",
+          fontSize: 11,
+          color: "#77888C",
+          align: "center",
+          wordWrap: { width: tooltipWidth - 20 },
+          lineSpacing: 3
+        }).setOrigin(0.5).setVisible(false);
+        const descBounds = tempDesc.getBounds();
+        const descHeight = descBounds.height;
+        tempDesc.destroy();
+
+        const basePadding = hasSource ? 72 : 60; // extra room for title + spacing
+        const tooltipHeight = descHeight + basePadding;
+
+        // Position tooltip just above the status row, aligned with this circle
+        tooltip = this.scene.add.container(x, 55);
+
+        const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
+          .setStrokeStyle(2, 0x77888C);
+        const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
+          .setStrokeStyle(2, 0x77888C);
+        const tooltipBg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
+
+        const titleTextY = -tooltipHeight / 2 + 24;
+        const titleText = this.scene.add.text(0, titleTextY, `${effect.emoji} ${effect.name}`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 16,
+          color: effect.type === 'buff' ? "#2ed573" : "#ff6b6b",
+          align: "center",
+        }).setOrigin(0.5);
+
+        // Position description so it starts below the title without overlap
+        const titleFontSize = 16;
+        const titleHalfHeight = titleFontSize / 2;
+        const gapBelowTitle = 6;
+        const descTop = titleTextY + titleHalfHeight + gapBelowTitle;
+        const descTextY = descTop + descHeight / 2;
+        const descText = this.scene.add.text(0, descTextY, descriptionWithSource, {
           fontFamily: "dungeon-mode",
           fontSize: 11,
           color: "#77888C",
@@ -1458,7 +1500,7 @@ export class CombatUI {
           wordWrap: { width: tooltipWidth - 20 },
           lineSpacing: 3
         }).setOrigin(0.5);
-        
+
         tooltip.add([outerBorder, innerBorder, tooltipBg, titleText, descText]);
         tooltip.setDepth(7000);
         container.add(tooltip);
