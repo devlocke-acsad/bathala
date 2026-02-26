@@ -30,9 +30,6 @@ export class Settings extends Scene {
 
     // Create UI elements
     this.createUI();
-
-    // Listen for resize events
-    this.scale.on('resize', this.handleResize, this);
   }
 
   /**
@@ -152,16 +149,6 @@ export class Settings extends Scene {
       
       this.menuTexts.push(menuText);
     });
-  }
-
-  /**
-   * Handle scene resize
-   */
-  private handleResize(): void {
-    // Clear and recreate UI
-    this.children.removeAll();
-    this.createBackgroundEffects();
-    this.createUI();
   }
 
   /**
@@ -620,7 +607,6 @@ export class Settings extends Scene {
    * Music cleanup is handled automatically by MusicLifecycleSystem
    */
   shutdown(): void {
-    // Clean up resize listener
-    this.scale.off('resize', this.handleResize, this);
+    // No resize listener cleanup needed — Scale.FIT handles zoom uniformly
   }
 }

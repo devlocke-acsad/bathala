@@ -67,9 +67,6 @@ export class Discover extends Scene {
 
     // Create scroll mask
     this.createScrollMask();
-
-    // Listen for resize events
-    this.scale.on('resize', this.handleResize, this);
     
     // Add input listeners for scrolling
     this.input.on('pointerdown', this.startDrag, this);
@@ -1001,19 +998,6 @@ export class Discover extends Scene {
     } else {
       this.scrollVelocity = 0;
     }
-  }
-
-  /**
-   * Handle scene resize
-   */
-  private handleResize(): void {
-    // Clear and recreate UI
-    this.children.removeAll();
-    this.createBackgroundEffects();
-    this.createUI();
-    this.createCharacterCards();
-    this.createDetailView();
-    this.createScrollMask();
   }
 
   /**

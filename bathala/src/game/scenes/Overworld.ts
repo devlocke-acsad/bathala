@@ -334,9 +334,6 @@ export class Overworld extends Scene {
     
     // Render initial chunks around player with a slight delay to ensure camera is ready
     this.time.delayedCall(20, this.updateVisibleChunks, [], this);
-
-    // Listen for resize events
-    this.scale.on('resize', this.handleResize, this);
     
     // Debug: Log final state after scene is fully created
     this.time.delayedCall(100, () => {
@@ -2247,14 +2244,6 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Handle scene resize
-   */
-  private handleResize(): void {
-    // Update UI elements on resize
-    this.updateUI();
-  }
-
-  /**
    * Shutdown method to clean up scene state
    */
   shutdown(): void {
@@ -2271,7 +2260,7 @@ export class Overworld extends Scene {
     }
     
     // Clean up event listeners
-    this.scale.off('resize', this.handleResize, this);
+    // No resize listener cleanup needed — Scale.FIT handles zoom uniformly
     
     console.log('✅ Overworld: Shutdown complete');
   }

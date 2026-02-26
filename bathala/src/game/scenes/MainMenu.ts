@@ -31,9 +31,6 @@ export class MainMenu extends Scene {
 
     // Create UI elements
     this.createUI();
-
-    // Listen for resize events
-    this.scale.on('resize', this.handleResize, this);
     
     // Dev mode: Backtick (`) key to open Combat Debug Scene
     this.input.keyboard?.on('keydown-BACKTICK', () => {
@@ -373,28 +370,11 @@ export class MainMenu extends Scene {
   }
 
   /**
-   * Handle scene resize
-   */
-  private handleResize(): void {
-    // Safety check for cameras before clearing
-    if (!this.cameras || !this.cameras.main) {
-      console.warn("Cameras not available during resize, skipping");
-      return;
-    }
-    
-    // Clear and recreate UI
-    this.children.removeAll();
-    this.createBackgroundEffects();
-    this.createUI();
-  }
-
-  /**
    * Shutdown cleanup
    * Music cleanup is handled automatically by MusicLifecycleSystem
    */
   shutdown(): void {
-    // Clean up resize listener
-    this.scale.off('resize', this.handleResize, this);
+    // No resize listener cleanup needed — Scale.FIT handles zoom uniformly
   }
 
   /**

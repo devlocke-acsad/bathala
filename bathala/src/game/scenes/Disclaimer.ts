@@ -31,9 +31,6 @@ export class Disclaimer extends Scene {
 
     // Show first page
     this.showPage(0);
-
-    // Listen for resize events
-    this.scale.on('resize', this.handleResize, this);
   }
 
   /**
@@ -304,36 +301,10 @@ export class Disclaimer extends Scene {
   }
 
   /**
-   * Handle scene resize
-   */
-  private handleResize(): void {
-    // Don't attempt resize if scene is not fully initialized
-    if (!this.cameras || !this.cameras.main) {
-      return;
-    }
-    
-    // Clear and recreate everything on resize
-    this.children.removeAll();
-    this.tweens.killAll();
-    this.canContinue = false;
-    this.isTransitioning = false;
-    
-    this.createBackgroundEffects();
-    
-    // Recreate container
-    this.contentContainer = this.add.container(0, 0);
-    this.contentContainer.setAlpha(0);
-    
-    // Show current page again
-    this.showPage(this.currentPage);
-  }
-
-  /**
    * Shutdown cleanup
    * Music cleanup is handled automatically by MusicLifecycleSystem
    */
   shutdown(): void {
-    // Clean up resize listener
-    this.scale.off('resize', this.handleResize, this);
+    // No resize listener cleanup needed — Scale.FIT handles zoom uniformly
   }
 }
