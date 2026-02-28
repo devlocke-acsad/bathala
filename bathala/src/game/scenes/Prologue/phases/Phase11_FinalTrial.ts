@@ -79,7 +79,6 @@ export class Phase11_FinalTrial extends TutorialPhase {
 
         // Player sprite
         const playerSprite = this.scene.add.sprite(playerX, playerY, 'combat_player');
-        playerSprite.setScale(2);
         if (playerSprite.texture) {
             playerSprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
         }

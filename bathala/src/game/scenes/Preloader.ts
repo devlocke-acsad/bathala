@@ -136,30 +136,8 @@ export class Preloader extends Scene {
       this.load.image(`slash_${frameNum}`, `animation/attack/skash_${frameNum}.png`);
     }
 
-    // Avatar sprite sheets for Overworld - separated by direction (16x16 per frame)
-    // Down: 3 frames (48x16)
-    this.load.spritesheet("player_down", "sprites/overworld/player/mc_down.png", {
-      frameWidth: 16,
-      frameHeight: 16,
-    });
-    
-    // Up: 3 frames (48x16)
-    this.load.spritesheet("player_up", "sprites/overworld/player/mc_up.png", {
-      frameWidth: 16,
-      frameHeight: 16,
-    });
-    
-    // Left: 2 frames (32x16)
-    this.load.spritesheet("player_left", "sprites/overworld/player/mc_left.png", {
-      frameWidth: 16,
-      frameHeight: 16,
-    });
-    
-    // Right: 2 frames (32x16)
-    this.load.spritesheet("player_right", "sprites/overworld/player/mc_right.png", {
-      frameWidth: 16,
-      frameHeight: 16,
-    });
+    // Player sprite for Overworld - static image
+    this.load.image("player_overworld", "sprites/overworld/player/mc_overworld.png");
 
     // Mysterious Merchant sprite frames for Shop - 7 individual frames
     this.load.image("merchant_f01", "sprites/merchant/merchant_f01.png");
@@ -348,17 +326,8 @@ export class Preloader extends Scene {
     if (this.textures.exists("tiyanak")) {
       this.textures.get("tiyanak").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
-    if (this.textures.exists("player_down")) {
-      this.textures.get("player_down").setFilter(Phaser.Textures.FilterMode.NEAREST);
-    }
-    if (this.textures.exists("player_up")) {
-      this.textures.get("player_up").setFilter(Phaser.Textures.FilterMode.NEAREST);
-    }
-    if (this.textures.exists("player_left")) {
-      this.textures.get("player_left").setFilter(Phaser.Textures.FilterMode.NEAREST);
-    }
-    if (this.textures.exists("player_right")) {
-      this.textures.get("player_right").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    if (this.textures.exists("player_overworld")) {
+      this.textures.get("player_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
     
     // Apply NEAREST filtering to overworld node sprites for crisp pixel art
@@ -461,81 +430,10 @@ export class Preloader extends Scene {
 
   /**
    * Create avatar animations for Overworld
+   * Note: Using static sprite, no animations needed
    */
   private createAvatarAnimations(): void {
-    console.log("Creating avatar animations");
-    
-    // Avatar idle down animation (middle frame - frame 1 of 3)
-    this.anims.create({
-      key: "avatar_idle_down",
-      frames: [{ key: "player_down", frame: 1 }],
-      frameRate: 1,
-      repeat: -1,
-    });
-    console.log("Created avatar_idle_down animation");
-
-    // Avatar walk down animation (all 3 frames: 0, 1, 2)
-    this.anims.create({
-      key: "avatar_walk_down",
-      frames: this.anims.generateFrameNumbers("player_down", { start: 0, end: 2 }),
-      frameRate: 6,
-      repeat: -1,
-    });
-    console.log("Created avatar_walk_down animation");
-
-    // Avatar idle up animation (middle frame - frame 1 of 3)
-    this.anims.create({
-      key: "avatar_idle_up",
-      frames: [{ key: "player_up", frame: 1 }],
-      frameRate: 1,
-      repeat: -1,
-    });
-    console.log("Created avatar_idle_up animation");
-
-    // Avatar walk up animation (all 3 frames: 0, 1, 2)
-    this.anims.create({
-      key: "avatar_walk_up",
-      frames: this.anims.generateFrameNumbers("player_up", { start: 0, end: 2 }),
-      frameRate: 6,
-      repeat: -1,
-    });
-    console.log("Created avatar_walk_up animation");
-
-    // Avatar idle left animation (first frame - frame 0 of 2)
-    this.anims.create({
-      key: "avatar_idle_left",
-      frames: [{ key: "player_left", frame: 0 }],
-      frameRate: 1,
-      repeat: -1,
-    });
-    console.log("Created avatar_idle_left animation");
-
-    // Avatar walk left animation (both 2 frames: 0, 1)
-    this.anims.create({
-      key: "avatar_walk_left",
-      frames: this.anims.generateFrameNumbers("player_left", { start: 0, end: 1 }),
-      frameRate: 6,
-      repeat: -1,
-    });
-    console.log("Created avatar_walk_left animation");
-
-    // Avatar idle right animation (first frame - frame 0 of 2)
-    this.anims.create({
-      key: "avatar_idle_right",
-      frames: [{ key: "player_right", frame: 0 }],
-      frameRate: 1,
-      repeat: -1,
-    });
-    console.log("Created avatar_idle_right animation");
-
-    // Avatar walk right animation (both 2 frames: 0, 1)
-    this.anims.create({
-      key: "avatar_walk_right",
-      frames: this.anims.generateFrameNumbers("player_right", { start: 0, end: 1 }),
-      frameRate: 6,
-      repeat: -1,
-    });
-    console.log("Created avatar_walk_right animation");
+    console.log("Using static overworld sprite - no animations");
   }
 
 
