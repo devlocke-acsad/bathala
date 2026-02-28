@@ -447,15 +447,15 @@ export class PokerHandReference extends Scene {
       { suit: "Hangin", icon: "💨", name: "Air", effect: "Weak", effectDesc: "Applies 2 stacks of Weak (50% attack reduction)", description: "Survivability element. Air Special reduces enemy attack power with Weak.", color: "#A29BFE" }
     ];
 
-    let yPos = -220;
-    const entrySpacing = 130;
+    let yPos = -210;
+    const entrySpacing = 140;
     
     elementalInfo.forEach(info => {
       // Clean single-layer background
-      const bg = this.add.rectangle(0, yPos, 880, 110, 0x1a1a1a, 0.92);
+      const bg = this.add.rectangle(0, yPos, 880, 124, 0x1a1a1a, 0.92);
       bg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(info.color).color, 0.6);
       
-      const innerAccent = this.add.rectangle(0, yPos, 870, 100, undefined, 0);
+      const innerAccent = this.add.rectangle(0, yPos, 870, 114, undefined, 0);
       innerAccent.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(info.color).color, 0.3);
       
       // Icon with subtle background
@@ -467,15 +467,15 @@ export class PokerHandReference extends Scene {
       }).setOrigin(0.5);
       
       // Element name - clean, no stroke
-      const name = this.add.text(-320, yPos - 35, info.suit.toUpperCase(), { 
+      const name = this.add.text(-320, yPos - 40, info.suit.toUpperCase(), { 
         fontFamily: "dungeon-mode", 
         fontSize: 22, 
         color: info.color
       }).setOrigin(0, 0.5);
       
-      const subName = this.add.text(-320, yPos - 14, info.name, { 
+      const subName = this.add.text(-320, yPos - 18, info.name, { 
         fontFamily: "dungeon-mode", 
-        fontSize: 13, 
+        fontSize: 12, 
         color: "#888888"
       }).setOrigin(0, 0.5);
       
@@ -489,10 +489,10 @@ export class PokerHandReference extends Scene {
       }).setOrigin(0, 0.5);
       
       // Description - clean, well-spaced
-      const description = this.add.text(-320, yPos + 30, info.description, { 
+      const description = this.add.text(-320, yPos + 34, info.description, { 
         fontFamily: "dungeon-mode", 
-        fontSize: 13, 
-        color: "#E8ECED", 
+        fontSize: 12, 
+        color: "#C8CCCE", 
         wordWrap: { width: 650 },
         lineSpacing: 2
       }).setOrigin(0, 0.5);
@@ -539,14 +539,14 @@ export class PokerHandReference extends Scene {
     ];
 
     // Section header: Buffs
-    const buffsHeader = this.add.text(0, -260, "BUFFS", {
+    const buffsHeader = this.add.text(0, -270, "BUFFS", {
       fontFamily: "dungeon-mode",
-      fontSize: 20,
+      fontSize: 22,
       color: "#2ed573",
       align: "center"
     }).setOrigin(0.5);
     
-    const buffsSubheader = this.add.text(0, -238, "Beneficial effects that enhance your power", {
+    const buffsSubheader = this.add.text(0, -245, "Beneficial effects that enhance your power", {
       fontFamily: "dungeon-mode",
       fontSize: 12,
       color: "#888888",
@@ -555,26 +555,26 @@ export class PokerHandReference extends Scene {
 
     this.statusEffectsContainer.add([buffsHeader, buffsSubheader]);
 
-    let yPos = -200;
-    const entryHeight = 62;
+    let yPos = -210;
+    const entryHeight = 58;
 
     buffs.forEach(info => {
-      const bg = this.add.rectangle(0, yPos, 880, 56, 0x1a1a1a, 0.92);
+      const bg = this.add.rectangle(0, yPos, 880, 50, 0x1a1a1a, 0.92);
       bg.setStrokeStyle(1, 0x2ed573, 0.4);
       
-      const emoji = this.add.text(-400, yPos, info.emoji, { fontSize: 28 }).setOrigin(0.5);
+      const emoji = this.add.text(-410, yPos, info.emoji, { fontSize: 24 }).setOrigin(0.5);
       
-      const name = this.add.text(-360, yPos - 10, info.name, {
+      const name = this.add.text(-370, yPos - 12, info.name, {
         fontFamily: "dungeon-mode",
-        fontSize: 16,
+        fontSize: 15,
         color: info.color
       }).setOrigin(0, 0.5);
       
-      const desc = this.add.text(-360, yPos + 12, info.desc, {
+      const desc = this.add.text(-370, yPos + 12, info.desc, {
         fontFamily: "dungeon-mode",
-        fontSize: 12,
-        color: "#E8ECED",
-        wordWrap: { width: 720 }
+        fontSize: 11,
+        color: "#C8CCCE",
+        wordWrap: { width: 730 }
       }).setOrigin(0, 0.5);
 
       this.statusEffectsContainer.add([bg, emoji, name, desc]);
@@ -582,15 +582,15 @@ export class PokerHandReference extends Scene {
     });
 
     // Section header: Debuffs
-    yPos += 20;
+    yPos += 28;
     const debuffsHeader = this.add.text(0, yPos, "DEBUFFS", {
       fontFamily: "dungeon-mode",
-      fontSize: 20,
+      fontSize: 22,
       color: "#ff4757",
       align: "center"
     }).setOrigin(0.5);
     
-    const debuffsSubheader = this.add.text(0, yPos + 22, "Harmful effects that weaken combatants", {
+    const debuffsSubheader = this.add.text(0, yPos + 25, "Harmful effects that weaken combatants", {
       fontFamily: "dungeon-mode",
       fontSize: 12,
       color: "#888888",
@@ -598,25 +598,25 @@ export class PokerHandReference extends Scene {
     }).setOrigin(0.5);
 
     this.statusEffectsContainer.add([debuffsHeader, debuffsSubheader]);
-    yPos += 52;
+    yPos += 58;
 
     debuffs.forEach(info => {
-      const bg = this.add.rectangle(0, yPos, 880, 56, 0x1a1a1a, 0.92);
+      const bg = this.add.rectangle(0, yPos, 880, 50, 0x1a1a1a, 0.92);
       bg.setStrokeStyle(1, 0xff4757, 0.4);
       
-      const emoji = this.add.text(-400, yPos, info.emoji, { fontSize: 28 }).setOrigin(0.5);
+      const emoji = this.add.text(-410, yPos, info.emoji, { fontSize: 24 }).setOrigin(0.5);
       
-      const name = this.add.text(-360, yPos - 10, info.name, {
+      const name = this.add.text(-370, yPos - 12, info.name, {
         fontFamily: "dungeon-mode",
-        fontSize: 16,
+        fontSize: 15,
         color: info.color
       }).setOrigin(0, 0.5);
       
-      const desc = this.add.text(-360, yPos + 12, info.desc, {
+      const desc = this.add.text(-370, yPos + 12, info.desc, {
         fontFamily: "dungeon-mode",
-        fontSize: 12,
-        color: "#E8ECED",
-        wordWrap: { width: 720 }
+        fontSize: 11,
+        color: "#C8CCCE",
+        wordWrap: { width: 730 }
       }).setOrigin(0, 0.5);
 
       this.statusEffectsContainer.add([bg, emoji, name, desc]);
@@ -624,8 +624,8 @@ export class PokerHandReference extends Scene {
     });
 
     // Timing note
-    yPos += 15;
-    const noteBg = this.add.rectangle(0, yPos, 750, 56, 0x1a1a1a, 0.92);
+    yPos += 22;
+    const noteBg = this.add.rectangle(0, yPos, 750, 60, 0x1a1a1a, 0.92);
     noteBg.setStrokeStyle(2, 0xFFD700, 0.7);
     
     const note = this.add.text(0, yPos,
@@ -636,7 +636,7 @@ export class PokerHandReference extends Scene {
         color: "#FFD700",
         wordWrap: { width: 700 },
         align: "center",
-        lineSpacing: 3
+        lineSpacing: 5
       }).setOrigin(0.5);
     this.statusEffectsContainer.add([noteBg, note]);
   }
@@ -645,14 +645,14 @@ export class PokerHandReference extends Scene {
     this.affinitiesContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2 + 20).setDepth(10).setVisible(false);
 
     // Title
-    const title = this.add.text(0, -260, "ELEMENTAL WEAKNESS & RESISTANCE", {
+    const title = this.add.text(0, -270, "ELEMENTAL WEAKNESS & RESISTANCE", {
       fontFamily: "dungeon-mode",
-      fontSize: 20,
+      fontSize: 22,
       color: "#FFD700",
       align: "center"
     }).setOrigin(0.5);
 
-    const subtitle = this.add.text(0, -236, "Every enemy has one weakness and one resistance", {
+    const subtitle = this.add.text(0, -244, "Every enemy has one weakness and one resistance", {
       fontFamily: "dungeon-mode",
       fontSize: 13,
       color: "#888888",
@@ -662,34 +662,34 @@ export class PokerHandReference extends Scene {
     this.affinitiesContainer.add([title, subtitle]);
 
     // Explanation cards
-    const weaknessBg = this.add.rectangle(-220, -180, 410, 70, 0x1a1a1a, 0.92);
+    const weaknessBg = this.add.rectangle(-225, -185, 420, 80, 0x1a1a1a, 0.92);
     weaknessBg.setStrokeStyle(2, 0xff6b6b, 0.6);
     
-    const weaknessTitle = this.add.text(-220, -196, "⚔️  WEAKNESS  (1.5× Damage)", {
+    const weaknessTitle = this.add.text(-225, -204, "⚔️  WEAKNESS  (1.5× Damage)", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#ff6b6b",
       align: "center"
     }).setOrigin(0.5);
     
-    const weaknessDesc = this.add.text(-220, -170, "Deal 50% MORE damage with this element", {
+    const weaknessDesc = this.add.text(-225, -174, "Deal 50% MORE damage with this element", {
       fontFamily: "dungeon-mode",
       fontSize: 12,
       color: "#E8ECED",
       align: "center"
     }).setOrigin(0.5);
 
-    const resistBg = this.add.rectangle(220, -180, 410, 70, 0x1a1a1a, 0.92);
+    const resistBg = this.add.rectangle(225, -185, 420, 80, 0x1a1a1a, 0.92);
     resistBg.setStrokeStyle(2, 0x54A0FF, 0.6);
     
-    const resistTitle = this.add.text(220, -196, "🛡️  RESISTANCE  (0.75× Damage)", {
+    const resistTitle = this.add.text(225, -204, "🛡️  RESISTANCE  (0.75× Damage)", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#54A0FF",
       align: "center"
     }).setOrigin(0.5);
     
-    const resistDesc = this.add.text(220, -170, "Deal 25% LESS damage with this element", {
+    const resistDesc = this.add.text(225, -174, "Deal 25% LESS damage with this element", {
       fontFamily: "dungeon-mode",
       fontSize: 12,
       color: "#E8ECED",
@@ -699,9 +699,9 @@ export class PokerHandReference extends Scene {
     this.affinitiesContainer.add([weaknessBg, weaknessTitle, weaknessDesc, resistBg, resistTitle, resistDesc]);
 
     // Common affinity patterns header
-    const patternHeader = this.add.text(0, -120, "COMMON AFFINITY PATTERNS", {
+    const patternHeader = this.add.text(0, -116, "COMMON AFFINITY PATTERNS", {
       fontFamily: "dungeon-mode",
-      fontSize: 16,
+      fontSize: 17,
       color: "#FFD700",
       align: "center"
     }).setOrigin(0.5);
@@ -715,8 +715,8 @@ export class PokerHandReference extends Scene {
       { icon: "💨", name: "Air Creatures", weak: "🔥 Fire", resist: "💨 Air", color: "#A29BFE" },
     ];
 
-    let yPos = -80;
-    const rowHeight = 56;
+    let yPos = -76;
+    const rowHeight = 60;
 
     // Column headers
     const colNameX = -260;
@@ -724,20 +724,20 @@ export class PokerHandReference extends Scene {
     const colResistX = 300;
     
     const headerName = this.add.text(colNameX, yPos, "CREATURE TYPE", {
-      fontFamily: "dungeon-mode", fontSize: 11, color: "#888888"
+      fontFamily: "dungeon-mode", fontSize: 12, color: "#888888"
     }).setOrigin(0, 0.5);
     const headerWeak = this.add.text(colWeakX, yPos, "WEAK TO", {
-      fontFamily: "dungeon-mode", fontSize: 11, color: "#ff6b6b"
+      fontFamily: "dungeon-mode", fontSize: 12, color: "#ff6b6b"
     }).setOrigin(0, 0.5);
     const headerResist = this.add.text(colResistX, yPos, "RESISTS", {
-      fontFamily: "dungeon-mode", fontSize: 11, color: "#54A0FF"
+      fontFamily: "dungeon-mode", fontSize: 12, color: "#54A0FF"
     }).setOrigin(0, 0.5);
     this.affinitiesContainer.add([headerName, headerWeak, headerResist]);
     
-    yPos += 30;
+    yPos += 36;
 
     affinityPatterns.forEach(info => {
-      const bg = this.add.rectangle(0, yPos, 880, 48, 0x1a1a1a, 0.92);
+      const bg = this.add.rectangle(0, yPos, 880, 50, 0x1a1a1a, 0.92);
       bg.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(info.color).color, 0.3);
 
       const icon = this.add.text(colNameX - 40, yPos, info.icon, { fontSize: 26 }).setOrigin(0.5);
@@ -759,7 +759,7 @@ export class PokerHandReference extends Scene {
     });
 
     // How to identify section
-    yPos += 20;
+    yPos += 28;
     const identifyBg = this.add.rectangle(0, yPos + 20, 750, 90, 0x1a1a1a, 0.92);
     identifyBg.setStrokeStyle(2, 0xFFD700, 0.7);
     
@@ -770,7 +770,7 @@ export class PokerHandReference extends Scene {
       align: "center"
     }).setOrigin(0.5);
     
-    const identifyText = this.add.text(0, yPos + 26,
+    const identifyText = this.add.text(0, yPos + 28,
       "Look for element symbols above enemy health bars in combat.\nExploit weaknesses and avoid resistances for optimal damage!",
       {
         fontFamily: "dungeon-mode",
@@ -778,7 +778,7 @@ export class PokerHandReference extends Scene {
         color: "#E8ECED",
         wordWrap: { width: 700 },
         align: "center",
-        lineSpacing: 3
+        lineSpacing: 5
       }).setOrigin(0.5);
     this.affinitiesContainer.add([identifyBg, identifyTitle, identifyText]);
   }
