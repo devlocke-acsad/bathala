@@ -165,20 +165,20 @@ export class CombatDialogue {
       spareDialogue: "In my tree, I once smoked in peace, guardian of the forest paths. The false god's corruption has made me a shadow of my former self. Your mercy stirs the old honor. Take this blessing of forest protection.",
       killDialogue: "Burn me down, but the smoke carries the impostor's whispers! Your violence only feeds the growing shadow!",
       spareReward: { 
-        ginto: 80, 
-        diamante: 1, 
-        healthHealing: 20, 
+        ginto: 150, 
+        diamante: 3, 
+        healthHealing: 30, 
         bonusEffect: "Forest protection",
         relics: [RELIC_REGISTRY.getById("kapres_cigar")!],
-        relicDropChance: 0.75
+        relicDropChance: 1.0
       },
       killReward: { 
-        ginto: 120, 
-        diamante: 2, 
+        ginto: 200, 
+        diamante: 5, 
         healthHealing: 0, 
         bonusEffect: "Smoke whispers",
         relics: [RELIC_REGISTRY.getById("kapres_cigar")!],
-        relicDropChance: 0.75
+        relicDropChance: 1.0
       },
     },
     tawong_lipod: {
@@ -207,20 +207,20 @@ export class CombatDialogue {
       spareDialogue: "Wise traveler... you see through my curses to the spirit beneath. I was once a healer, a protector of the people. Take this gift of protection against the false god's influence.",
       killDialogue: "My curses may end, but the shadow you serve grows stronger! Your power feeds the impostor's corruption!",
       spareReward: { 
-        ginto: 150, 
-        diamante: 3, 
-        healthHealing: 30, 
+        ginto: 80, 
+        diamante: 1, 
+        healthHealing: 20, 
         bonusEffect: "Hex protection",
         relics: [RELIC_REGISTRY.getById("mangangaway_wand")!],
-        relicDropChance: 1.0
+        relicDropChance: 0.75
       },
       killReward: { 
-        ginto: 200, 
-        diamante: 5, 
+        ginto: 120, 
+        diamante: 2, 
         healthHealing: 0, 
         bonusEffect: "Curse mastery",
         relics: [RELIC_REGISTRY.getById("mangangaway_wand")!],
-        relicDropChance: 1.0
+        relicDropChance: 0.75
       },
     },
   };

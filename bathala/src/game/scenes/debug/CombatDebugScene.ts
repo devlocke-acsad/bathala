@@ -49,9 +49,9 @@ export class CombatDebugScene extends Scene {
           { name: 'Tiyanak Ambusher', key: 'Tiyanak Ambusher' },
           { name: 'Amomongo', key: 'Amomongo' },
           { name: 'Bungisngis', key: 'Bungisngis' },
-          { name: 'Kapre Shade (Elite)', key: 'Kapre Shade' },
           { name: 'Tawong Lipod (Elite)', key: 'Tawong Lipod' },
-          { name: 'Mangangaway (Boss)', key: 'Mangangaway' },
+          { name: 'Mangangaway (Elite)', key: 'Mangangaway' },
+          { name: 'Kapre Shade (Boss)', key: 'Kapre Shade' },
         ];
         break;
       case 2:

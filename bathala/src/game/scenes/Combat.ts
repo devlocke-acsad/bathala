@@ -2418,7 +2418,7 @@ export class Combat extends Scene {
     console.log(`Checking chapter progression: Current chapter ${currentChapter}, defeated ${defeatedEnemy}`);
     
     // Check if a boss was defeated and unlock next chapter
-    if (defeatedEnemy === "Mangangaway" && currentChapter === 1) {
+    if (defeatedEnemy === "Kapre Shade" && currentChapter === 1) {
       // Act 1 boss defeated - unlock Act 2
       console.log("🎉 Act 1 boss defeated! Unlocking Chapter 2...");
       this.performChapterTransitionReset(gameState, 2);
@@ -2517,7 +2517,7 @@ export class Combat extends Scene {
       // Check if this is a boss defeat that will trigger chapter progression
       // If so, we need to handle things differently (fresh start for new chapter)
       const isBossDefeatChapterTransition = 
-        (defeatedEnemy === "Mangangaway" && currentChapter === 1) ||
+        (defeatedEnemy === "Kapre Shade" && currentChapter === 1) ||
         (defeatedEnemy === "Bakunawa" && currentChapter === 2);
       
       if (isBossDefeatChapterTransition) {

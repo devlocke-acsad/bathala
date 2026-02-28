@@ -136,30 +136,8 @@ export class Preloader extends Scene {
       this.load.image(`slash_${frameNum}`, `animation/attack/skash_${frameNum}.png`);
     }
 
-    // Avatar sprite sheets for Overworld - separated by direction (16x16 per frame)
-    // Down: 3 frames (48x16)
-    this.load.spritesheet("player_down", "sprites/overworld/player/mc_down.png", {
-      frameWidth: 16,
-      frameHeight: 16,
-    });
-    
-    // Up: 3 frames (48x16)
-    this.load.spritesheet("player_up", "sprites/overworld/player/mc_up.png", {
-      frameWidth: 16,
-      frameHeight: 16,
-    });
-    
-    // Left: 2 frames (32x16)
-    this.load.spritesheet("player_left", "sprites/overworld/player/mc_left.png", {
-      frameWidth: 16,
-      frameHeight: 16,
-    });
-    
-    // Right: 2 frames (32x16)
-    this.load.spritesheet("player_right", "sprites/overworld/player/mc_right.png", {
-      frameWidth: 16,
-      frameHeight: 16,
-    });
+    // Player sprite for Overworld - static image
+    this.load.image("player_overworld", "sprites/overworld/player/mc_overworld.png");
 
     // Mysterious Merchant sprite frames for Shop - 7 individual frames
     this.load.image("merchant_f01", "sprites/merchant/merchant_f01.png");
@@ -196,28 +174,40 @@ export class Preloader extends Scene {
     this.load.image("relic_umalagad_spirit", "relics/act1relics/Umalagad Spirit.png");
 
     // Enemy sprites for Combat
-    this.load.image("amomongo_combat", "sprites/combat/enemy/chap1/amomongo_combat.png");
-    this.load.image("balete_combat", "sprites/combat/enemy/chap1/balete_combat.png");
-    this.load.image("bungisngis_combat", "sprites/combat/enemy/chap1/bungisngis_combat.png");
-    this.load.image("duwende_combat", "sprites/combat/enemy/chap1/duwende_combat.png");
-    this.load.image("kapre_combat", "sprites/combat/enemy/chap1/kapre_combat.png");
-    this.load.image("mangangaway_combat", "sprites/combat/enemy/chap1/mangangaway_combat.png");
-    this.load.image("sigbin_combat", "sprites/combat/enemy/chap1/sigbin_combat.png");
-    this.load.image("tawonglipod_combat", "sprites/combat/enemy/chap1/tawonglipod_combat.png");
-    this.load.image("tikbalang_combat", "sprites/combat/enemy/chap1/tikbalang_combat.png");
-    this.load.image("tiyanak_combat", "sprites/combat/enemy/chap1/tiyanak_combat.png");
+    this.load.image("amomongo_combat", "sprites/combat/enemy/chapter1/amomongo_battle.png");
+    this.load.image("balete_combat", "sprites/combat/enemy/chapter1/balete_battle.png");
+    this.load.image("bungisngis_combat", "sprites/combat/enemy/chapter1/bungisngis_battle.png");
+    this.load.image("duwende_combat", "sprites/combat/enemy/chapter1/duwende_battle.png");
+    this.load.image("kapre_combat", "sprites/combat/enemy/chapter1/kapre_battle.png");
+    this.load.image("mangangaway_combat", "sprites/combat/enemy/chapter1/mangangaway_battle.png");
+    this.load.image("sigbin_combat", "sprites/combat/enemy/chapter1/sigbin_battle.png");
+    this.load.image("tawonglipod_combat", "sprites/combat/enemy/chapter1/tawonglipod_battle.png");
+    this.load.image("tikbalang_combat", "sprites/combat/enemy/chapter1/tikbalang_battle.png");
+    this.load.image("tiyanak_combat", "sprites/combat/enemy/chapter1/tiyanak_battle.png");
+
+    // Mythical Compendium (Discover scene) enemy sprites - almanac versions
+    this.load.image("amomongo_almanac", "sprites/combat/enemy/chapter1/almanac/amomongo_almanac.png");
+    this.load.image("balete_almanac", "sprites/combat/enemy/chapter1/almanac/balete_almanac.png");
+    this.load.image("bungisngis_almanac", "sprites/combat/enemy/chapter1/almanac/bungisngis_almanac.png");
+    this.load.image("duwende_almanac", "sprites/combat/enemy/chapter1/almanac/duwindi_almanac.png");
+    this.load.image("kapre_almanac", "sprites/combat/enemy/chapter1/almanac/kapre_almanac.png");
+    this.load.image("mangangaway_almanac", "sprites/combat/enemy/chapter1/almanac/mangangaway_almanac.png");
+    this.load.image("sigbin_almanac", "sprites/combat/enemy/chapter1/almanac/sigbin_almanac bg.png");
+    this.load.image("tawonglipod_almanac", "sprites/combat/enemy/chapter1/almanac/tawonglipod_almanac.png");
+    this.load.image("tikbalang_almanac", "sprites/combat/enemy/chapter1/almanac/tikbalang_almanac.png");
+    this.load.image("tiyanak_almanac", "sprites/combat/enemy/chapter1/almanac/tiyanak_almanac.png");
 
     // Legacy enemy sprite keys for backward compatibility
-    this.load.image("amomongo", "sprites/combat/enemy/chap1/amomongo_combat.png");
-    this.load.image("balete", "sprites/combat/enemy/chap1/balete_combat.png");
-    this.load.image("bungisngis", "sprites/combat/enemy/chap1/bungisngis_combat.png");
-    this.load.image("duwende", "sprites/combat/enemy/chap1/duwende_combat.png");
-    this.load.image("kapre", "sprites/combat/enemy/chap1/kapre_combat.png");
-    this.load.image("mangangaway", "sprites/combat/enemy/chap1/mangangaway_combat.png");
-    this.load.image("sigbin", "sprites/combat/enemy/chap1/sigbin_combat.png");
-    this.load.image("tawong_lipod", "sprites/combat/enemy/chap1/tawonglipod_combat.png");
-    this.load.image("tikbalang", "sprites/combat/enemy/chap1/tikbalang_combat.png");
-    this.load.image("tiyanak", "sprites/combat/enemy/chap1/tiyanak_combat.png");
+    this.load.image("amomongo", "sprites/combat/enemy/chapter1/amomongo_battle.png");
+    this.load.image("balete", "sprites/combat/enemy/chapter1/balete_battle.png");
+    this.load.image("bungisngis", "sprites/combat/enemy/chapter1/bungisngis_battle.png");
+    this.load.image("duwende", "sprites/combat/enemy/chapter1/duwende_battle.png");
+    this.load.image("kapre", "sprites/combat/enemy/chapter1/kapre_battle.png");
+    this.load.image("mangangaway", "sprites/combat/enemy/chapter1/mangangaway_battle.png");
+    this.load.image("sigbin", "sprites/combat/enemy/chapter1/sigbin_battle.png");
+    this.load.image("tawong_lipod", "sprites/combat/enemy/chapter1/tawonglipod_battle.png");
+    this.load.image("tikbalang", "sprites/combat/enemy/chapter1/tikbalang_battle.png");
+    this.load.image("tiyanak", "sprites/combat/enemy/chapter1/tiyanak_battle.png");
 
     // Overworld enemy sprites
     this.load.image("amomongo_overworld", "sprites/overworld/combat/chap1/amomongo_overworld.png");
@@ -336,17 +326,8 @@ export class Preloader extends Scene {
     if (this.textures.exists("tiyanak")) {
       this.textures.get("tiyanak").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
-    if (this.textures.exists("player_down")) {
-      this.textures.get("player_down").setFilter(Phaser.Textures.FilterMode.NEAREST);
-    }
-    if (this.textures.exists("player_up")) {
-      this.textures.get("player_up").setFilter(Phaser.Textures.FilterMode.NEAREST);
-    }
-    if (this.textures.exists("player_left")) {
-      this.textures.get("player_left").setFilter(Phaser.Textures.FilterMode.NEAREST);
-    }
-    if (this.textures.exists("player_right")) {
-      this.textures.get("player_right").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    if (this.textures.exists("player_overworld")) {
+      this.textures.get("player_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
     
     // Apply NEAREST filtering to overworld node sprites for crisp pixel art
@@ -449,81 +430,10 @@ export class Preloader extends Scene {
 
   /**
    * Create avatar animations for Overworld
+   * Note: Using static sprite, no animations needed
    */
   private createAvatarAnimations(): void {
-    console.log("Creating avatar animations");
-    
-    // Avatar idle down animation (middle frame - frame 1 of 3)
-    this.anims.create({
-      key: "avatar_idle_down",
-      frames: [{ key: "player_down", frame: 1 }],
-      frameRate: 1,
-      repeat: -1,
-    });
-    console.log("Created avatar_idle_down animation");
-
-    // Avatar walk down animation (all 3 frames: 0, 1, 2)
-    this.anims.create({
-      key: "avatar_walk_down",
-      frames: this.anims.generateFrameNumbers("player_down", { start: 0, end: 2 }),
-      frameRate: 6,
-      repeat: -1,
-    });
-    console.log("Created avatar_walk_down animation");
-
-    // Avatar idle up animation (middle frame - frame 1 of 3)
-    this.anims.create({
-      key: "avatar_idle_up",
-      frames: [{ key: "player_up", frame: 1 }],
-      frameRate: 1,
-      repeat: -1,
-    });
-    console.log("Created avatar_idle_up animation");
-
-    // Avatar walk up animation (all 3 frames: 0, 1, 2)
-    this.anims.create({
-      key: "avatar_walk_up",
-      frames: this.anims.generateFrameNumbers("player_up", { start: 0, end: 2 }),
-      frameRate: 6,
-      repeat: -1,
-    });
-    console.log("Created avatar_walk_up animation");
-
-    // Avatar idle left animation (first frame - frame 0 of 2)
-    this.anims.create({
-      key: "avatar_idle_left",
-      frames: [{ key: "player_left", frame: 0 }],
-      frameRate: 1,
-      repeat: -1,
-    });
-    console.log("Created avatar_idle_left animation");
-
-    // Avatar walk left animation (both 2 frames: 0, 1)
-    this.anims.create({
-      key: "avatar_walk_left",
-      frames: this.anims.generateFrameNumbers("player_left", { start: 0, end: 1 }),
-      frameRate: 6,
-      repeat: -1,
-    });
-    console.log("Created avatar_walk_left animation");
-
-    // Avatar idle right animation (first frame - frame 0 of 2)
-    this.anims.create({
-      key: "avatar_idle_right",
-      frames: [{ key: "player_right", frame: 0 }],
-      frameRate: 1,
-      repeat: -1,
-    });
-    console.log("Created avatar_idle_right animation");
-
-    // Avatar walk right animation (both 2 frames: 0, 1)
-    this.anims.create({
-      key: "avatar_walk_right",
-      frames: this.anims.generateFrameNumbers("player_right", { start: 0, end: 1 }),
-      frameRate: 6,
-      repeat: -1,
-    });
-    console.log("Created avatar_walk_right animation");
+    console.log("Using static overworld sprite - no animations");
   }
 
 

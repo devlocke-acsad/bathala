@@ -76,12 +76,12 @@ export class Act1Definition extends ActDefinition {
   ];
 
   readonly eliteEnemies: readonly EnemyPoolEntry[] = [
-    { name: KAPRE_SHADE.name },
     { name: TAWONG_LIPOD.name },
+    { name: MANGANGAWAY.name },
   ];
 
   readonly bossEnemy: EnemyPoolEntry = {
-    name: MANGANGAWAY.name,
+    name: KAPRE_SHADE.name,
   };
 
   // === Events ===

@@ -45,12 +45,12 @@ export const ACT1_COMMON_ENEMIES: EnemyConfig[] = [
 ];
 
 export const ACT1_ELITE_ENEMIES: EnemyConfig[] = [
-  KAPRE_SHADE,
   TAWONG_LIPOD,
+  MANGANGAWAY,
 ];
 
 export const ACT1_BOSS_ENEMIES: EnemyConfig[] = [
-  MANGANGAWAY,
+  KAPRE_SHADE,
 ];
 
 /** All Act 1 enemy configs in a single flat array. */

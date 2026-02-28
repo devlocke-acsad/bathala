@@ -250,7 +250,7 @@ export class Phase4_CombatActions extends TutorialPhase {
             const playerY = screenHeight * 0.4;
             
             this.playerSprite = this.scene.add.sprite(playerX, playerY, 'combat_player');
-            this.playerSprite.setScale(2);
+            // Using default scale
             if (this.playerSprite.texture) {
                 this.playerSprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
             }

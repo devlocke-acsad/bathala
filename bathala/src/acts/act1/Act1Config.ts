@@ -58,14 +58,14 @@ export const ACT1_CONFIG: ActConfig = {
     'bungisngis'          // HP: 30, Laugh debuff, high swings
   ],
   
-  // Elite enemies: HP 60-65, special mechanics
+  // Elite enemies: HP 60-300, special mechanics
   eliteEnemyIds: [
-    'kapre_shade',   // HP: 65, AoE Burn, minions
-    'tawong_lipod'   // HP: 60, Invisible stuns, Air benefits
+    'tawong_lipod',   // HP: 60, Invisible stuns, Air benefits
+    'mangangaway'     // HP: 300, Mimics elements, curses cards
   ],
   
-  // Boss: HP 120, Hex of Reversal mechanic
-  bossId: 'mangangaway',
+  // Boss: HP 600, AoE Burn, summon minions
+  bossId: 'kapre_shade',
   
   // === Event References ===
   eventIds: [

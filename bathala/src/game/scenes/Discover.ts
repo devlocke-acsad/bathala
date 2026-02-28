@@ -25,6 +25,9 @@ export class Discover extends Scene {
   
   // Detailed view elements
   private detailViewContainer: GameObjects.Container;
+  private detailContentContainer: GameObjects.Container; // Scrollable content
+  private detailScrollY: number = 0;
+  private detailMaxScroll: number = 0;
   private isDetailViewOpen: boolean = false;
   
   // Text elements for detail view
@@ -264,10 +267,10 @@ export class Discover extends Scene {
         id: "kapre_shade",
         name: kapreShade.name,
         description: "Towering tree giants perpetually smoking enormous cigars, their presence marked by the scent of tobacco and burnt leaves. They command flames and summon lesser spirits, defending their sacred trees with primal fury.",
-        type: "Elite",
+        type: "Boss",
         health: kapreShade.maxHealth,
         attack: kapreShade.damage,
-        abilities: ["AoE Burn", "Summon Fire Minions", "Cigar Smoke Veil"],
+        abilities: ["AoE Burn", "Summon Fire Minions", "Cigar Smoke Veil", "Strengthen"],
         lore: "Dark-skinned giants (7-9 feet tall) dwelling in large trees, Kapre are nocturnal beings visible only as glowing red eyes, perpetually smoking enormous cigars. Territorial but generally peaceful, they disorient disrespectful travelers. Once Bathala's appointed guardians of sacred groves, engkanto whispers ignited their ancient rage into infernos."
       },
       {
@@ -284,7 +287,7 @@ export class Discover extends Scene {
         id: "mangangaway",
         name: mangangaway.name,
         description: "Dark sorcerers who wield forbidden hexes and curses, capable of mimicking any elemental force turned against them. They wear necklaces of skulls and channel the spirits of the damned to reverse fate itself.",
-        type: "Boss",
+        type: "Elite",
         health: mangangaway.maxHealth,
         attack: mangangaway.damage,
         abilities: ["Mimic Elements", "Curse Cards", "Hex of Reversal"],
@@ -305,12 +308,13 @@ export class Discover extends Scene {
     // Clear existing cards
     this.cards = [];
     
-    // Calculate grid positions - TALLER CARDS for full sprite display
+    // Calculate grid positions - centered layout with consistent card sizing
     const cardWidth = 260;
-    const cardHeight = 320; // Increased from 280 to 320 for more vertical space
-    const cardSpacing = 35;
-    const cardsPerRow = Math.floor((screenWidth - 100) / (cardWidth + cardSpacing));
-    const startX = (screenWidth - (cardsPerRow * cardWidth + (cardsPerRow - 1) * cardSpacing)) / 2;
+    const cardHeight = 420;
+    const cardSpacing = 50; // Increased for better breathing room
+    const cardsPerRow = Math.floor((screenWidth - 200) / (cardWidth + cardSpacing));
+    const totalGridWidth = cardsPerRow * cardWidth + (cardsPerRow - 1) * cardSpacing;
+    const startX = (screenWidth - totalGridWidth) / 2;
     const startY = 150;
     
     // Create a card for each entry
@@ -369,47 +373,34 @@ export class Discover extends Scene {
     }).setOrigin(0.5);
     
     // Sprite container frame with subtle shadow - NO HEIGHT LIMIT
-    const spriteFrame = this.add.rectangle(width/2, 160, 200, 200, 0x0f0a0d)
+    const spriteFrame = this.add.rectangle(width/2, 200, 240, 240, 0x0f0a0d)
       .setStrokeStyle(1, typeColor, 0.4)
       .setOrigin(0.5);
     
     // Get sprite key for this character
     const spriteKey = this.getCharacterSpriteKey(entry.id);
     
-    // Character sprite - NATURAL ASPECT RATIO with max width constraint
+    // Character sprite - CONSISTENT SIZING for all almanac images
     let characterVisual: Phaser.GameObjects.GameObject;
     if (this.textures.exists(spriteKey)) {
-      const sprite = this.add.image(width/2, 160, spriteKey).setOrigin(0.5);
+      const sprite = this.add.image(width/2, 200, spriteKey).setOrigin(0.5);
       
-      // Base scale to fit width while maintaining aspect ratio
-      const baseMaxWidth = 140;
-      let scaleX = baseMaxWidth / sprite.width;
+      // Consistent sizing: fit all sprites to the same dimensions
+      const targetWidth = 220;
+      const targetHeight = 220;
       
-      // Apply individual scale adjustments per enemy
-      const scaleAdjustments: Record<string, number> = {
-        "tikbalang_scout": 0.75,      // Small
-        "balete_wraith": 1.15,         // Slightly large
-        "sigbin_charger": 1.0,         // Normal
-        "duwende_trickster": 1.0,      // Normal
-        "tiyanak_ambusher": 0.75,      // Small
-        "amomongo": 0.7,               // Much smaller (was 0.9)
-        "bungisngis": 1.0,             // Normal
-        "kapre_shade": 1.15,           // Slightly large
-        "tawong_lipod": 0.5,           // Very small (was 0.65)
-        "mangangaway": 0.6             // Very small (was 0.75)
-      };
+      // Calculate scale to fit within target dimensions while maintaining aspect ratio
+      const scaleX = targetWidth / sprite.width;
+      const scaleY = targetHeight / sprite.height;
+      const scale = Math.min(scaleX, scaleY); // Use the smaller scale to ensure fit
       
-      // Apply custom scale if exists
-      const customScale = scaleAdjustments[entry.id] || 1.0;
-      scaleX = scaleX * customScale;
-      
-      sprite.setScale(scaleX);
+      sprite.setScale(scale);
       
       characterVisual = sprite;
     } else {
       // Fallback to emoji if sprite not found
       const symbol = this.getCharacterSymbol(entry.id);
-      characterVisual = this.add.text(width/2, 160, symbol, {
+      characterVisual = this.add.text(width/2, 200, symbol, {
         fontFamily: "dungeon-mode-inverted",
         fontSize: 100,
         color: typeColorHex
@@ -417,8 +408,8 @@ export class Discover extends Scene {
     }
     
     // Character name with better visibility - MOVED DOWN MORE
-    const nameText = this.add.text(width/2, 270, entry.name, {
-      fontFamily: "dungeon-mode-inverted",
+    const nameText = this.add.text(width/2, 330, entry.name, {
+      fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#e8eced",
       wordWrap: { width: width - 30 },
@@ -426,32 +417,32 @@ export class Discover extends Scene {
     }).setOrigin(0.5);
     
     // Stats display panel at bottom - MOVED DOWN MORE
-    const statsPanel = this.add.rectangle(width/2, 300, width - 16, 35, 0x0f0a0d)
+    const statsPanel = this.add.rectangle(width/2, 370, width - 16, 35, 0x0f0a0d)
       .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0.5);
     
     // HP stat - ADJUSTED POSITION
-    const hpLabel = this.add.text(width/4, 290, "HP", {
+    const hpLabel = this.add.text(width/4, 360, "HP", {
       fontFamily: "dungeon-mode",
       fontSize: 11,
       color: "#77888C"
     }).setOrigin(0.5);
     
-    const hpValue = this.add.text(width/4, 308, entry.health.toString(), {
-      fontFamily: "dungeon-mode-inverted",
+    const hpValue = this.add.text(width/4, 378, entry.health.toString(), {
+      fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#ff6b6b"
     }).setOrigin(0.5);
     
     // ATK stat - ADJUSTED POSITION
-    const atkLabel = this.add.text((width * 3) / 4, 290, "ATK", {
+    const atkLabel = this.add.text((width * 3) / 4, 360, "ATK", {
       fontFamily: "dungeon-mode",
       fontSize: 11,
       color: "#77888C"
     }).setOrigin(0.5);
     
-    const atkValue = this.add.text((width * 3) / 4, 308, entry.attack.toString(), {
-      fontFamily: "dungeon-mode-inverted",
+    const atkValue = this.add.text((width * 3) / 4, 378, entry.attack.toString(), {
+      fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#ffd93d"
     }).setOrigin(0.5);
@@ -503,22 +494,22 @@ export class Discover extends Scene {
   }
   
   /**
-   * Get sprite key for a character
+   * Get sprite key for a character - uses Mythical Compendium (almanac) sprites
    */
   private getCharacterSpriteKey(id: string): string {
     const spriteMap: Record<string, string> = {
-      "tikbalang_scout": "tikbalang_combat",
-      "balete_wraith": "balete_combat",
-      "sigbin_charger": "sigbin_combat",
-      "duwende_trickster": "duwende_combat",
-      "tiyanak_ambusher": "tiyanak_combat",
-      "amomongo": "amomongo_combat",
-      "bungisngis": "bungisngis_combat",
-      "kapre_shade": "kapre_combat",
-      "tawong_lipod": "tawonglipod_combat",
-      "mangangaway": "mangangaway_combat"
+      "tikbalang_scout": "tikbalang_almanac",
+      "balete_wraith": "balete_almanac",
+      "sigbin_charger": "sigbin_almanac",
+      "duwende_trickster": "duwende_almanac",
+      "tiyanak_ambusher": "tiyanak_almanac",
+      "amomongo": "amomongo_almanac",
+      "bungisngis": "bungisngis_almanac",
+      "kapre_shade": "kapre_almanac",
+      "tawong_lipod": "tawonglipod_almanac",
+      "mangangaway": "mangangaway_almanac"
     };
-    return spriteMap[id] || "tikbalang_combat";
+    return spriteMap[id] || "tikbalang_almanac";
   }
   
   /**
@@ -541,13 +532,13 @@ export class Discover extends Scene {
   }
   
   /**
-   * Create detailed view for character information - PREMIUM REDESIGN
+   * Create detailed view for character information - SCROLLABLE REDESIGN
    */
   private createDetailView(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Create container for detailed view
+    // Create main container for detailed view
     this.detailViewContainer = this.add.container(0, 0);
     this.detailViewContainer.setVisible(false);
     
@@ -570,7 +561,7 @@ export class Discover extends Scene {
       .setOrigin(0.5)
       .setAlpha(0.7);
       
-    // Close button with better styling
+    // Close button with better styling (stays fixed)
     const closeButton = this.add.text(screenWidth - 80, 80, "✕", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 24,
@@ -588,9 +579,15 @@ export class Discover extends Scene {
         closeButton.setScale(1);
         closeButton.setColor("#ff6b6b");
       });
-      
+    
+    // Add fixed elements to main container
+    this.detailViewContainer.add([overlay, this.detailOuterGlow, detailBackground, this.detailTopAccent, closeButton]);
+    
+    // Create scrollable content container
+    this.detailContentContainer = this.add.container(0, 100);
+    
     // Character name with enhanced styling
-    this.detailNameText = this.add.text(screenWidth/2, 100, "", {
+    this.detailNameText = this.add.text(screenWidth/2, 0, "", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 36,
       color: "#e8eced",
@@ -599,52 +596,52 @@ export class Discover extends Scene {
     }).setOrigin(0.5);
     
     // Character type badge with enhanced design
-    const typeBadgeGlow = this.add.rectangle(screenWidth/2, 155, 140, 36, 0x4a3a40)
+    const typeBadgeGlow = this.add.rectangle(screenWidth/2, 55, 140, 36, 0x4a3a40)
       .setOrigin(0.5)
       .setAlpha(0.4);
       
-    this.detailTypeBadge = this.add.rectangle(screenWidth/2, 155, 136, 32, 0x2a1f24)
+    this.detailTypeBadge = this.add.rectangle(screenWidth/2, 55, 136, 32, 0x2a1f24)
       .setStrokeStyle(2, 0x77888C)
       .setOrigin(0.5);
     
-    this.detailTypeText = this.add.text(screenWidth/2, 155, "", {
+    this.detailTypeText = this.add.text(screenWidth/2, 55, "", {
       fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#77888C"
     }).setOrigin(0.5);
     
     // Sprite frame with premium border
-    const spriteFrameGlow = this.add.rectangle(screenWidth/2, 280, 224, 224, 0x0f0a0d)
+    const spriteFrameGlow = this.add.rectangle(screenWidth/2, 180, 224, 224, 0x0f0a0d)
       .setOrigin(0.5)
       .setAlpha(0.5);
       
-    const spriteFrame = this.add.rectangle(screenWidth/2, 280, 220, 220, 0x0f0a0d)
+    const spriteFrame = this.add.rectangle(screenWidth/2, 180, 220, 220, 0x0f0a0d)
       .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0.5);
     
     // Character symbol placeholder
-    this.detailSymbolText = this.add.text(screenWidth/2, 280, "", {
+    this.detailSymbolText = this.add.text(screenWidth/2, 180, "", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 90,
       color: "#e8eced"
     }).setOrigin(0.5);
     
     // Stats section with enhanced design
-    const statsTitle = this.add.text(screenWidth/2 - 200, 410, "COMBAT STATS", {
+    const statsTitle = this.add.text(screenWidth/2 - 200, 310, "COMBAT STATS", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 18,
       color: "#e8eced"
     }).setOrigin(0);
     
-    const statsGlow = this.add.rectangle(screenWidth/2 - 200, 445, 168, 78, 0x4a3a40)
+    const statsGlow = this.add.rectangle(screenWidth/2 - 200, 345, 168, 78, 0x4a3a40)
       .setOrigin(0)
       .setAlpha(0.3);
       
-    const statsContainer = this.add.rectangle(screenWidth/2 - 200, 445, 164, 74, 0x2a1f24)
+    const statsContainer = this.add.rectangle(screenWidth/2 - 200, 345, 164, 74, 0x2a1f24)
       .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0);
     
-    this.detailStatsText = this.add.text(screenWidth/2 - 185, 462, "", {
+    this.detailStatsText = this.add.text(screenWidth/2 - 185, 362, "", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#a9b4b8",
@@ -653,21 +650,21 @@ export class Discover extends Scene {
     }).setOrigin(0);
     
     // Abilities section with enhanced design
-    const abilitiesTitle = this.add.text(screenWidth/2 + 40, 410, "SPECIAL ABILITIES", {
+    const abilitiesTitle = this.add.text(screenWidth/2 + 40, 310, "SPECIAL ABILITIES", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 18,
       color: "#e8eced"
     }).setOrigin(0);
     
-    const abilitiesGlow = this.add.rectangle(screenWidth/2 + 40, 445, 228, 78, 0x4a3a40)
+    const abilitiesGlow = this.add.rectangle(screenWidth/2 + 40, 345, 228, 78, 0x4a3a40)
       .setOrigin(0)
       .setAlpha(0.3);
       
-    const abilitiesContainer = this.add.rectangle(screenWidth/2 + 40, 445, 224, 74, 0x2a1f24)
+    const abilitiesContainer = this.add.rectangle(screenWidth/2 + 40, 345, 224, 74, 0x2a1f24)
       .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0);
     
-    this.detailAbilitiesText = this.add.text(screenWidth/2 + 55, 462, "", {
+    this.detailAbilitiesText = this.add.text(screenWidth/2 + 55, 362, "", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#c9a74a",
@@ -676,7 +673,7 @@ export class Discover extends Scene {
     }).setOrigin(0);
     
     // Description section with premium design
-    const descriptionTitle = this.add.text(screenWidth/2, 550, "━━━ TACTICAL OVERVIEW ━━━", {
+    const descriptionTitle = this.add.text(screenWidth/2, 450, "━━━ TACTICAL OVERVIEW ━━━", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 22,
       color: "#e8eced",
@@ -684,23 +681,23 @@ export class Discover extends Scene {
       strokeThickness: 1
     }).setOrigin(0.5);
     
-    const descriptionGlow = this.add.rectangle(screenWidth/2, 600, screenWidth - 180, 108, 0x4a3a40)
+    const descriptionGlow = this.add.rectangle(screenWidth/2, 500, screenWidth - 180, 108, 0x4a3a40)
       .setOrigin(0.5, 0)
       .setAlpha(0.3);
       
-    const descriptionContainer = this.add.rectangle(screenWidth/2, 600, screenWidth - 186, 104, 0x2a1f24)
+    const descriptionContainer = this.add.rectangle(screenWidth/2, 500, screenWidth - 186, 104, 0x2a1f24)
       .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0.5, 0);
       
     // Decorative corner accents for description
-    const descCornerTL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 600, 12, 12, 0x06d6a0)
+    const descCornerTL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 500, 12, 12, 0x06d6a0)
       .setOrigin(0.5)
       .setAlpha(0.6);
-    const descCornerTR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 600, 12, 12, 0x06d6a0)
+    const descCornerTR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 500, 12, 12, 0x06d6a0)
       .setOrigin(0.5)
       .setAlpha(0.6);
     
-    this.detailDescriptionText = this.add.text(screenWidth/2, 618, "", {
+    this.detailDescriptionText = this.add.text(screenWidth/2, 518, "", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#c4d1d6",
@@ -710,7 +707,7 @@ export class Discover extends Scene {
     }).setOrigin(0.5, 0);
     
     // Lore section with premium mythological design
-    const loreTitle = this.add.text(screenWidth/2, 730, "━━━ MYTHOLOGY & ANCIENT LORE ━━━", {
+    const loreTitle = this.add.text(screenWidth/2, 630, "━━━ MYTHOLOGY & ANCIENT LORE ━━━", {
       fontFamily: "dungeon-mode-inverted",
       fontSize: 22,
       color: "#ffd93d",
@@ -718,29 +715,29 @@ export class Discover extends Scene {
       strokeThickness: 1
     }).setOrigin(0.5);
     
-    const loreGlow = this.add.rectangle(screenWidth/2, 780, screenWidth - 180, 148, 0x4a3a40)
+    const loreGlow = this.add.rectangle(screenWidth/2, 680, screenWidth - 180, 148, 0x4a3a40)
       .setOrigin(0.5, 0)
       .setAlpha(0.3);
       
-    const loreContainer = this.add.rectangle(screenWidth/2, 780, screenWidth - 186, 144, 0x2a1f24)
+    const loreContainer = this.add.rectangle(screenWidth/2, 680, screenWidth - 186, 144, 0x2a1f24)
       .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0.5, 0);
       
     // Decorative corner accents for lore (golden theme)
-    const loreCornerTL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 780, 12, 12, 0xffd93d)
+    const loreCornerTL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 680, 12, 12, 0xffd93d)
       .setOrigin(0.5)
       .setAlpha(0.6);
-    const loreCornerTR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 780, 12, 12, 0xffd93d)
+    const loreCornerTR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 680, 12, 12, 0xffd93d)
       .setOrigin(0.5)
       .setAlpha(0.6);
-    const loreCornerBL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 924, 12, 12, 0xffd93d)
+    const loreCornerBL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 824, 12, 12, 0xffd93d)
       .setOrigin(0.5)
       .setAlpha(0.6);
-    const loreCornerBR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 924, 12, 12, 0xffd93d)
+    const loreCornerBR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 824, 12, 12, 0xffd93d)
       .setOrigin(0.5)
       .setAlpha(0.6);
     
-    this.detailLoreText = this.add.text(screenWidth/2, 798, "", {
+    this.detailLoreText = this.add.text(screenWidth/2, 698, "", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#d4b878",
@@ -750,8 +747,8 @@ export class Discover extends Scene {
       align: "center"
     }).setOrigin(0.5, 0);
     
-    this.detailViewContainer.add([
-      overlay, this.detailOuterGlow, detailBackground, this.detailTopAccent, closeButton, 
+    // Add all scrollable elements to content container
+    this.detailContentContainer.add([
       this.detailNameText, typeBadgeGlow, this.detailTypeBadge, this.detailTypeText, 
       spriteFrameGlow, spriteFrame, this.detailSymbolText,
       statsTitle, statsGlow, statsContainer, this.detailStatsText, 
@@ -759,6 +756,24 @@ export class Discover extends Scene {
       descriptionTitle, descriptionGlow, descriptionContainer, descCornerTL, descCornerTR, this.detailDescriptionText, 
       loreTitle, loreGlow, loreContainer, loreCornerTL, loreCornerTR, loreCornerBL, loreCornerBR, this.detailLoreText
     ]);
+    
+    // Add content container to main container
+    this.detailViewContainer.add(this.detailContentContainer);
+    
+    // Set up scroll zone for detail view
+    const scrollZone = this.add.zone(screenWidth/2, screenHeight/2, screenWidth - 100, screenHeight - 100)
+      .setOrigin(0.5)
+      .setInteractive();
+    
+    scrollZone.on('wheel', (pointer: any, deltaX: number, deltaY: number) => {
+      if (this.isDetailViewOpen) {
+        this.detailScrollY += deltaY * 0.5;
+        this.detailScrollY = Phaser.Math.Clamp(this.detailScrollY, 0, this.detailMaxScroll);
+        this.detailContentContainer.y = 100 - this.detailScrollY;
+      }
+    });
+    
+    this.detailViewContainer.add(scrollZone);
   }
   
   /**
@@ -766,6 +781,7 @@ export class Discover extends Scene {
    */
   private showCharacterDetails(entry: any): void {
     this.isDetailViewOpen = true;
+    this.detailScrollY = 0; // Reset scroll position
     
     // Determine type-based colors
     const typeColorHex = entry.type === "Boss" ? "#ff6b6b" : entry.type === "Elite" ? "#ffd93d" : "#06d6a0";
@@ -796,37 +812,24 @@ export class Discover extends Scene {
       // Hide emoji text
       this.detailSymbolText.setVisible(false);
       
-      // Create new sprite - NATURAL ASPECT RATIO for detail view
-      this.detailSpriteImage = this.add.image(screenWidth/2, 280, spriteKey)
+      // Create new sprite - CONSISTENT SIZING for detail view
+      this.detailSpriteImage = this.add.image(screenWidth/2, 180, spriteKey)
         .setOrigin(0.5);
       
-      // Base scale to fit width while maintaining aspect ratio
-      const baseMaxWidth = 180;
-      let scaleX = baseMaxWidth / this.detailSpriteImage.width;
+      // Consistent sizing for detail view
+      const targetWidth = 200;
+      const targetHeight = 200;
       
-      // Apply individual scale adjustments per enemy (same as card view)
-      const scaleAdjustments: Record<string, number> = {
-        "tikbalang_scout": 0.75,      // Small
-        "balete_wraith": 1.15,         // Slightly large
-        "sigbin_charger": 1.0,         // Normal
-        "duwende_trickster": 1.0,      // Normal
-        "tiyanak_ambusher": 0.75,      // Small
-        "amomongo": 0.7,               // Much smaller (was 0.9)
-        "bungisngis": 1.0,             // Normal
-        "kapre_shade": 1.15,           // Slightly large
-        "tawong_lipod": 0.5,           // Very small (was 0.65)
-        "mangangaway": 0.6             // Very small (was 0.75)
-      };
+      // Calculate scale to fit within target dimensions while maintaining aspect ratio
+      const scaleX = targetWidth / this.detailSpriteImage.width;
+      const scaleY = targetHeight / this.detailSpriteImage.height;
+      const scale = Math.min(scaleX, scaleY); // Use the smaller scale to ensure fit
       
-      // Apply custom scale if exists
-      const customScale = scaleAdjustments[entry.id] || 1.0;
-      scaleX = scaleX * customScale;
+      this.detailSpriteImage.setScale(scale);
       
-      this.detailSpriteImage.setScale(scaleX);
-      
-      // Add to detail view container (move to front)
-      this.detailViewContainer.add(this.detailSpriteImage);
-      this.detailViewContainer.bringToTop(this.detailSpriteImage);
+      // Add to scrollable content container
+      this.detailContentContainer.add(this.detailSpriteImage);
+      this.detailContentContainer.bringToTop(this.detailSpriteImage);
     } else {
       // Remove sprite if exists
       if (this.detailSpriteImage) {
@@ -844,6 +847,14 @@ export class Discover extends Scene {
     this.detailAbilitiesText.setText(entry.abilities ? entry.abilities.join("\n") : "None");
     this.detailDescriptionText.setText(entry.description);
     this.detailLoreText.setText(entry.lore);
+    
+    // Calculate max scroll based on content height
+    const contentHeight = 850; // Approximate total content height
+    const viewportHeight = this.cameras.main.height - 200; // Visible area minus padding
+    this.detailMaxScroll = Math.max(0, contentHeight - viewportHeight);
+    
+    // Reset content position
+    this.detailContentContainer.y = 100;
     
     // Hide main content
     this.title.setVisible(false);
@@ -866,6 +877,7 @@ export class Discover extends Scene {
    */
   private hideCharacterDetails(): void {
     this.isDetailViewOpen = false;
+    this.detailScrollY = 0; // Reset scroll
     
     // Animate detail view exit
     this.tweens.add({

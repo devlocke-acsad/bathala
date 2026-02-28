@@ -74,15 +74,6 @@ export const BUNGISNGIS_LORE: EnemyLore = {
 };
 
 // Elite Enemies
-export const KAPRE_SHADE_LORE: EnemyLore = {
-    id: "kapre_shade",
-    name: "Kapre Shade",
-    description: "A tree giant that smokes a large cigar.",
-    mythology: "Kapre, tree giants smoking cigars, loyal to Bathala.",
-    abilities: ["AoE Burn", "Summon Minions"],
-    weakness: "Offerings of tobacco."
-};
-
 export const TAWONG_LIPOD_LORE: EnemyLore = {
     id: "tawong_lipod",
     name: "Tawong Lipod",
@@ -92,7 +83,6 @@ export const TAWONG_LIPOD_LORE: EnemyLore = {
     weakness: "Concentrated smoke."
 };
 
-// Boss
 export const MANGANGAWAY_LORE: EnemyLore = {
     id: "mangangaway",
     name: "Mangangaway",
@@ -100,6 +90,16 @@ export const MANGANGAWAY_LORE: EnemyLore = {
     mythology: "Mangangaway, sorcerers casting evil spells.",
     abilities: ["Mimic Elements", "Curse Cards"],
     weakness: "Pure faith."
+};
+
+// Boss
+export const KAPRE_SHADE_LORE: EnemyLore = {
+    id: "kapre_shade",
+    name: "Kapre Shade",
+    description: "A tree giant that smokes a large cigar.",
+    mythology: "Kapre, tree giants smoking cigars, loyal to Bathala.",
+    abilities: ["AoE Burn", "Summon Minions", "Strengthen", "Poison"],
+    weakness: "Offerings of tobacco."
 };
 
 // Lore data structure

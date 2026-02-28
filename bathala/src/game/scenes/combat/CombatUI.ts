@@ -294,13 +294,12 @@ export class CombatUI {
 
     // Player sprite (static image - mc_combat.png)
     this.playerSprite = this.scene.add.sprite(playerX, playerY, "combat_player");
-    this.playerSprite.setScale(2);
     
     // Disable texture smoothing for pixel-perfect rendering
     this.playerSprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
 
     // Calculate dynamic Y offset based on player sprite's scaled height
-    const playerScale = 2;
+    const playerScale = 1;
     const playerSpriteScaledHeight = this.playerSprite.height * playerScale;
     const playerNameYOffset = playerY - (playerSpriteScaledHeight / 2) - 25; // 25px padding above sprite
     const playerHealthYOffset = playerY + (playerSpriteScaledHeight / 2) + 25; // 25px padding below sprite

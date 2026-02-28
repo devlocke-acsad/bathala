@@ -280,8 +280,8 @@ export class Overworld extends Scene {
     const savedPosition = gameState.getPlayerPosition();
     
     if (savedPosition) {
-      // Restore player at saved position - use down sprite as default
-      this.player = this.add.sprite(savedPosition.x, savedPosition.y, "player_down");
+      // Restore player at saved position
+      this.player = this.add.sprite(savedPosition.x, savedPosition.y, "player_overworld");
       // Clear the saved position so it's not used again
       gameState.clearPlayerPosition();
     } else {
@@ -290,15 +290,11 @@ export class Overworld extends Scene {
       
       // Calculate player start position using manager
       const startPos = this.mazeGenManager.calculatePlayerStartPosition();
-      this.player = this.add.sprite(startPos.x, startPos.y, "player_down");
+      this.player = this.add.sprite(startPos.x, startPos.y, "player_overworld");
     }
     
-    this.player.setScale(2); // Scale up from 16x16 to 32x32
     this.player.setOrigin(0.5); // Center the sprite
     this.player.setDepth(1000); // Ensure player is above everything
-    
-    console.log("Playing avatar_idle_down animation");
-    this.player.play("avatar_idle_down"); // Initial animation
 
     // Initialize keyboard input manager
     this.keyInputManager = new InputSystem(this);
@@ -1212,47 +1208,8 @@ export class Overworld extends Scene {
     // Set moving flag to prevent input during movement
     this.isMoving = true;
     
-    // Play walking animation with error checking
-    let walkAnimation = "avatar_walk_down";
-    let idleAnimation = "avatar_idle_down";
-    let textureKey = "player_down";
-    
-    switch (direction) {
-      case "up":
-        walkAnimation = "avatar_walk_up";
-        idleAnimation = "avatar_idle_up";
-        textureKey = "player_up";
-        break;
-      case "down":
-        walkAnimation = "avatar_walk_down";
-        idleAnimation = "avatar_idle_down";
-        textureKey = "player_down";
-        break;
-      case "left":
-        walkAnimation = "avatar_walk_left";
-        idleAnimation = "avatar_idle_left";
-        textureKey = "player_left";
-        break;
-      case "right":
-        walkAnimation = "avatar_walk_right";
-        idleAnimation = "avatar_idle_right";
-        textureKey = "player_right";
-        break;
-    }
-    
-    // Switch texture to match the direction
-    this.player.setTexture(textureKey);
-    
-    console.log("Playing walk animation:", walkAnimation);
-    if (this.anims.exists(walkAnimation)) {
-      try {
-        this.player.play(walkAnimation, true);
-      } catch (error) {
-        console.warn("Failed to play walk animation:", walkAnimation, error);
-      }
-    } else {
-      console.warn("Walk animation not found:", walkAnimation);
-    }
+    // Static sprite - no animation needed
+    console.log("Moving player in direction:", direction);
 
     // Check if the new position is valid (not a wall)
     if (this.isValidPosition(targetX, targetY)) {
@@ -1277,18 +1234,6 @@ export class Overworld extends Scene {
           // Update UI to reflect day/night cycle changes
           this.updateUI();
           
-          // Play idle animation after movement
-          console.log("Playing idle animation:", idleAnimation);
-          if (this.anims.exists(idleAnimation)) {
-            try {
-              this.player.play(idleAnimation);
-            } catch (error) {
-              console.warn("Failed to play idle animation:", idleAnimation, error);
-            }
-          } else {
-            console.warn("Idle animation not found:", idleAnimation);
-          }
-          
           // Update visible chunks as player moves
           this.updateVisibleChunks();
           
@@ -1305,18 +1250,6 @@ export class Overworld extends Scene {
       console.log("Position is invalid (wall or out of bounds)");
       // Invalid move, just reset the moving flag
       this.isMoving = false;
-      console.log("Invalid move, playing idle animation");
-      // Play appropriate idle animation based on last movement direction
-      console.log("Playing idle animation:", idleAnimation);
-      if (this.anims.exists(idleAnimation)) {
-        try {
-          this.player.play(idleAnimation);
-        } catch (error) {
-          console.warn("Failed to play idle animation:", idleAnimation, error);
-        }
-      } else {
-        console.warn("Idle animation not found:", idleAnimation);
-      }
     }
   }
 
