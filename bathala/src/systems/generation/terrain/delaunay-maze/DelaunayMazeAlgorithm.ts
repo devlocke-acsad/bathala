@@ -1,13 +1,13 @@
-import { IntGrid } from './IntGrid';
+import { IntGrid } from '../../shared/IntGrid';
 
 /** Immutable 2D point used for region seeds and triangulation. */
 export class Point {
-    constructor(public x: number, public y: number) {}
+    constructor(public x: number, public y: number) { }
 }
 
 /** Undirected edge (p <-> q) produced from Delaunay triangulation. */
 export class Edge {
-    constructor(public p: Point, public q: Point) {}
+    constructor(public p: Point, public q: Point) { }
 }
 
 /*
@@ -57,7 +57,7 @@ export class PathNode {
                  - Place PATH tiles along returned coordinates.
         5. fixDoubleWidePaths()    -> Enforce no 2x2 PATH blocks invariant (iterative pruning of one tile per block).
         6. reduceDeadEnds()        -> Simple dead-end extension to improve connectivity.
-        7. Return final IntGrid    -> Consumed by MazeOverworldGenerator.
+        7. Return final IntGrid    -> Consumed by OverworldGenerator.
 
     Key invariants / constraints:
         - PATH tiles should not form 2x2 squares (visual preference + corridor feel).
@@ -71,7 +71,7 @@ export class DelaunayMazeGenerator {
     // =============================
     // Tunable Generation Constants
     // =============================
-    
+
     // A* pathfinding costs
     private readonly BASE_TILE_COST = 1.2;          // Nominal movement cost.
     private readonly DIRECTION_CHANGE_PENALTY = 0.1;// Added when turning a corner.
@@ -93,7 +93,7 @@ export class DelaunayMazeGenerator {
     // =============================
     // Configurable Generation Parameters
     // =============================
-    
+
     // Dimensions of generated grid (width, height).
     public levelSize: [number, number] = [50, 50];
     // Number of region seed points attempted (subject to minRegionDistance pruning).
@@ -105,10 +105,19 @@ export class DelaunayMazeGenerator {
     public edges: Edge[] = [];
 
     /**
+     * Injectable RNG function. Defaults to Math.random.
+     * Replaced per-call via generateLayout(rng?) for deterministic output.
+     */
+    private rng: () => number = Math.random;
+
+    /**
      * Primary entry: build and post-process a grid layout.
      * Returns populated IntGrid.
+     *
+     * @param rng  Optional RNG function returning [0, 1). If omitted, uses Math.random.
      */
-    generateLayout(): IntGrid {
+    generateLayout(rng?: () => number): IntGrid {
+        if (rng) this.rng = rng;
         this.edges = [];
 
         // 1) Region seeds with spacing guard.
@@ -172,8 +181,8 @@ export class DelaunayMazeGenerator {
 
         while (points.length < this.regionCount && attempts < this.MAX_REGION_POINT_ATTEMPTS) {
             attempts++;
-            const centerX = Math.floor(Math.random() * this.levelSize[0]);
-            const centerY = Math.floor(Math.random() * this.levelSize[1]);
+            const centerX = Math.floor(this.rng() * this.levelSize[0]);
+            const centerY = Math.floor(this.rng() * this.levelSize[1]);
             const newPoint = new Point(centerX, centerY);
 
             // Check minimum distance constraint
@@ -200,11 +209,11 @@ export class DelaunayMazeGenerator {
      */
     private createSimpleTriangulation(points: Point[]): Edge[] {
         const edges: Edge[] = [];
-        
+
         // Connect each point to its nearest neighbors
         for (let i = 0; i < points.length; i++) {
             const point1 = points[i];
-            
+
             // Find the 3 nearest points
             const distances: { index: number; distance: number }[] = [];
             for (let j = 0; j < points.length; j++) {
@@ -213,30 +222,30 @@ export class DelaunayMazeGenerator {
                     distances.push({ index: j, distance });
                 }
             }
-            
+
             // Sort by distance and take the 3 closest
             distances.sort((a, b) => a.distance - b.distance);
-            
+
             // Connect to the 3 nearest points
             for (let k = 0; k < Math.min(3, distances.length); k++) {
                 const point2 = points[distances[k].index];
-                
+
                 // Create edge (ensure consistent ordering to avoid duplicates)
                 const p1 = point1.x < point2.x || (point1.x === point2.x && point1.y < point2.y) ? point1 : point2;
                 const p2 = point1.x < point2.x || (point1.x === point2.x && point1.y < point2.y) ? point2 : point1;
-                
+
                 // Check if edge already exists
-                const exists = edges.some(edge => 
+                const exists = edges.some(edge =>
                     (edge.p.x === p1.x && edge.p.y === p1.y && edge.q.x === p2.x && edge.q.y === p2.y) ||
                     (edge.p.x === p2.x && edge.p.y === p2.y && edge.q.x === p1.x && edge.q.y === p1.y)
                 );
-                
+
                 if (!exists) {
                     edges.push(new Edge(p1, p2));
                 }
             }
         }
-        
+
         return edges;
     }
 
@@ -295,11 +304,11 @@ export class DelaunayMazeGenerator {
 
         // Decide on path style randomly
         const pathStyles = ['L_shape', 'step', 'zigzag'];
-        const pathStyle = pathStyles[Math.floor(Math.random() * pathStyles.length)];
+        const pathStyle = pathStyles[Math.floor(this.rng() * pathStyles.length)];
 
         if (pathStyle === 'L_shape') {
             // Create L-shaped path
-            if (Math.random() < this.L_SHAPE_FIRST_AXIS_PROB) {
+            if (this.rng() < this.L_SHAPE_FIRST_AXIS_PROB) {
                 // Horizontal first, then vertical
                 waypoints.push([end[0], start[1]]);
             } else {
@@ -312,8 +321,8 @@ export class DelaunayMazeGenerator {
             let midY = start[1] + Math.floor(dy / 2);
 
             // Add some randomness to the midpoint
-            const offsetX = Math.floor(Math.random() * (this.STEP_MIDPOINT_JITTER * 2 + 1)) - this.STEP_MIDPOINT_JITTER;
-            const offsetY = Math.floor(Math.random() * (this.STEP_MIDPOINT_JITTER * 2 + 1)) - this.STEP_MIDPOINT_JITTER;
+            const offsetX = Math.floor(this.rng() * (this.STEP_MIDPOINT_JITTER * 2 + 1)) - this.STEP_MIDPOINT_JITTER;
+            const offsetY = Math.floor(this.rng() * (this.STEP_MIDPOINT_JITTER * 2 + 1)) - this.STEP_MIDPOINT_JITTER;
 
             midX = Math.max(0, Math.min(this.levelSize[0] - 1, midX + offsetX));
             midY = Math.max(0, Math.min(this.levelSize[1] - 1, midY + offsetY));
@@ -625,12 +634,12 @@ export class DelaunayMazeGenerator {
         const deadEnds: [number, number][] = [];
         for (const tile of pathTiles) {
             const neighbors = this.getNeighbors(tile);
-            const pathNeighbors = neighbors.filter(n => 
+            const pathNeighbors = neighbors.filter(n =>
                 n[0] >= 0 && n[0] < this.levelSize[0] &&
                 n[1] >= 0 && n[1] < this.levelSize[1] &&
                 intGrid.getTile(n[0], n[1]) === this.PATH_TILE
             );
-            
+
             if (pathNeighbors.length === 1) {
                 deadEnds.push(tile);
             }
@@ -648,41 +657,41 @@ export class DelaunayMazeGenerator {
     private extendDeadEnd(deadEnd: [number, number], intGrid: IntGrid): void {
         // Get the direction of the connection
         const neighbors = this.getNeighbors(deadEnd);
-        const pathNeighbors = neighbors.filter(n => 
+        const pathNeighbors = neighbors.filter(n =>
             n[0] >= 0 && n[0] < this.levelSize[0] &&
             n[1] >= 0 && n[1] < this.levelSize[1] &&
             intGrid.getTile(n[0], n[1]) === this.PATH_TILE
         );
-        
+
         if (pathNeighbors.length !== 1) return;
-        
+
         const connection = pathNeighbors[0];
         const direction: [number, number] = [
             deadEnd[0] - connection[0],
             deadEnd[1] - connection[1]
         ];
-        
+
         // Try to extend in the same direction
         let current: [number, number] = [
             deadEnd[0] + direction[0],
             deadEnd[1] + direction[1]
         ];
-        
+
         // Extend up to 5 tiles
         for (let i = 0; i < 5; i++) {
             if (current[0] < 0 || current[0] >= this.levelSize[0] ||
                 current[1] < 0 || current[1] >= this.levelSize[1]) {
                 break;
             }
-            
+
             // If we hit another path, connect to it
             if (intGrid.getTile(current[0], current[1]) === this.PATH_TILE) {
                 break;
             }
-            
+
             // Carve the path
             intGrid.setTile(current[0], current[1], this.PATH_TILE);
-            
+
             // Move to next position
             current = [
                 current[0] + direction[0],

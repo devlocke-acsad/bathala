@@ -13,14 +13,14 @@
     1 : REGION tile (wall/unwalkable)
 */
 export class IntGrid {
-  // =============================
-  // Tile Type Constants
-  // =============================
-  
-  public static readonly PATH_TILE = 0;    // Walkable corridor
-  public static readonly REGION_TILE = 1;  // Wall / uncarved area
-  
-  private grid: number[][];
+    // =============================
+    // Tile Type Constants
+    // =============================
+
+    public static readonly PATH_TILE = 0;    // Walkable corridor
+    public static readonly REGION_TILE = 1;  // Wall / uncarved area
+
+    private grid: number[][];
 
     constructor(public width: number, public height: number) {
         // Allocate width columns each holding height entries

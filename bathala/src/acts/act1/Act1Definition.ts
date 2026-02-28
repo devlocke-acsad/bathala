@@ -13,7 +13,7 @@
 import { Suit } from '../../core/types/CombatTypes';
 import { IChunkGenerator, EnemyPoolEntry, NodeDistributionConfig, DEFAULT_NODE_DISTRIBUTION } from '../../core/types/GenerationTypes';
 import { ActDefinition, ActTheme, ActAssets, ActProgression } from '../../core/acts/ActDefinition';
-import { MazeChunkGenerator } from '../../systems/generation/generators/MazeChunkGenerator';
+import { DelaunayMazeChunkGenerator } from '../../systems/generation/terrain/delaunay-maze/DelaunayMazeGenerator';
 
 // Creature configs — single source of truth for names / sprites
 import {
@@ -129,7 +129,7 @@ export class Act1Definition extends ActDefinition {
 
   // === Generator factory ===
   createGenerator(): IChunkGenerator {
-    return new MazeChunkGenerator({
+    return new DelaunayMazeChunkGenerator({
       chunkSize: 20,
       regionCountMultiplier: 2,
       minRegionDistance: 3,
