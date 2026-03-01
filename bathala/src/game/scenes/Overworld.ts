@@ -7,7 +7,6 @@ import { Player, Relic } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { InputSystem } from "../../systems/shared/InputSystem";
 import { MazeGenSystem } from "../../systems/generation/MazeGenSystem";
-import { OverworldGenerator } from "../../systems/generation/OverworldGenerator";
 import { ActRegistry } from "../../core/acts/ActRegistry";
 import { ACT1 } from "../../acts/act1/Act1Definition";
 import { TooltipSystem } from "../../systems/world/TooltipSystem";
@@ -67,6 +66,13 @@ const DEPTH = {
 };
 
 export class Overworld extends Scene {
+  private bossPreparationContext?: {
+    readiness: number;
+    healthMultiplier: number;
+    damageMultiplier: number;
+    label: string;
+    notes: string[];
+  };
   private player!: Phaser.GameObjects.Sprite;
   private keyInputManager!: InputSystem;
   private mazeGenManager!: MazeGenSystem;
@@ -142,8 +148,8 @@ export class Overworld extends Scene {
         diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : 0,
         relics: savedPlayerData.relics || [],
         potions: savedPlayerData.potions || [],
-        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 1,
-        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 1
+        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 3,
+        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 3
       };
     } else {
       // Initialize player data with default values
@@ -165,8 +171,8 @@ export class Overworld extends Scene {
         diamante: 20,
         relics: [], // No test relics - will be empty until player finds them
         potions: [], // Start with no potions - gain from treasure chests
-        discardCharges: 1,
-        maxDiscardCharges: 1
+        discardCharges: 3,
+        maxDiscardCharges: 3
       };
       
       // Save initial player data to GameState
@@ -243,8 +249,8 @@ export class Overworld extends Scene {
         diamante: 20,
         relics: [], // Start with no relics
         potions: [], // Start with no potions - gain from treasure chests
-        discardCharges: 1,
-        maxDiscardCharges: 1
+        discardCharges: 3,
+        maxDiscardCharges: 3
       };
       
       // Save fresh player data to GameState
@@ -268,8 +274,8 @@ export class Overworld extends Scene {
         diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : 0,
         relics: savedPlayerData.relics || [],
         potions: savedPlayerData.potions || [],
-        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 1,
-        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 1
+        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 3,
+        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 3
       };
     }
     
@@ -279,8 +285,7 @@ export class Overworld extends Scene {
     if (!actRegistry.has(ACT1.id)) {
       actRegistry.register(ACT1);
     }
-    const overworldGen = new OverworldGenerator(ACT1);
-    this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible, overworldGen);
+    this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible);
     
     // Check if we're returning from another scene
     const savedPosition = gameState.getPlayerPosition();
@@ -431,8 +436,8 @@ export class Overworld extends Scene {
         diamante: 0,
         relics: [],
         potions: [],
-        discardCharges: 1,
-        maxDiscardCharges: 1
+        discardCharges: 3,
+        maxDiscardCharges: 3
       };
       
       // Save player position before transitioning
@@ -617,8 +622,8 @@ export class Overworld extends Scene {
         diamante: 0,
         relics: [],
         potions: [],
-        discardCharges: 1,
-        maxDiscardCharges: 1
+        discardCharges: 3,
+        maxDiscardCharges: 3
       };
       
       // Save player position before transitioning
@@ -1857,8 +1862,8 @@ export class Overworld extends Scene {
             diamante: 0,
             relics: [],
             potions: [],
-            discardCharges: 1,
-            maxDiscardCharges: 1
+            discardCharges: 3,
+            maxDiscardCharges: 3
           };
           
           // Save player position before transitioning
@@ -1952,8 +1957,13 @@ export class Overworld extends Scene {
     
     // Check if this is a boss fight for special animation
     if (nodeType === "boss") {
+      this.gameState.recordCombatStart("boss");
       this.startBossCombat(enemyId);
       return;
+    }
+
+    if (nodeType === "combat" || nodeType === "elite") {
+      this.gameState.recordCombatStart(nodeType);
     }
     
     // Get camera dimensions
@@ -2196,6 +2206,27 @@ export class Overworld extends Scene {
     gameState.savePlayerPosition(this.player.x, this.player.y);
     
     // Get camera dimensions
+    // Build boss preparation context (independent from DDA).
+    try {
+      const relicCount = this.playerData?.relics?.length ?? 0;
+      const potionCount = this.playerData?.potions?.length ?? 0;
+      const bossPreparation = this.gameState.getBossPreparationContext(relicCount, potionCount);
+      console.log("⚖️ Boss preparation context:", {
+        readiness: bossPreparation.readiness.toFixed(2),
+        label: bossPreparation.label,
+        healthMultiplier: bossPreparation.healthMultiplier,
+        damageMultiplier: bossPreparation.damageMultiplier,
+        actionsTaken: this.gameState.actionsTaken,
+        combatsStarted: this.gameState.combatsStarted,
+        relicCount,
+        potionCount,
+      });
+
+      this.bossPreparationContext = bossPreparation;
+    } catch (error) {
+      console.warn("Could not calculate boss preparation context:", error);
+    }
+
     const camera = this.cameras.main;
     const cameraWidth = camera.width;
     const cameraHeight = camera.height;
@@ -2258,7 +2289,8 @@ export class Overworld extends Scene {
             this.scene.launch("Combat", { 
               nodeType: "boss",
               enemyId: enemyId,
-              transitionOverlay: overlay
+              transitionOverlay: overlay,
+              bossPreparation: this.bossPreparationContext
             });
           }
         });

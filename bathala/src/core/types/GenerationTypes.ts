@@ -125,8 +125,9 @@ export const DEFAULT_NODE_DISTRIBUTION: NodeDistributionConfig = {
   minOpenNeighbors: 5,
   minDistanceFactor: 4,
   typeWeights: {
-    combat: 3,
-    elite: 1,
+    // Keep elites meaningfully rarer than common encounters.
+    combat: 5,
+    elite: 0.5,
     shop: 1,
     event: 2,
     campfire: 1,

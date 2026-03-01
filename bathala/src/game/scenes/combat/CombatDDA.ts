@@ -135,6 +135,7 @@ export class CombatDDA {
     }
 
     const combatState = this.scene.getCombatState();
+    const enemyType = combatState.enemy.tier ?? "common";
     
     const combatMetrics: CombatMetrics = {
       combatId: `combat_${Date.now()}`,
@@ -164,7 +165,7 @@ export class CombatDDA {
       combatDuration: Date.now() - this.combatStartTime,
       
       // Enemy information
-      enemyType: "common" as const,
+      enemyType,
       enemyName: combatState.enemy.name,
       enemyStartHealth: combatState.enemy.maxHealth,
     };

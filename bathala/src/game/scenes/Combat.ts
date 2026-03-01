@@ -246,7 +246,18 @@ export class Combat extends Scene {
     return this.bestHandAchieved;
   }
 
-  create(data: { nodeType: string, enemyId?: string, transitionOverlay?: any }): void {
+  create(data: {
+    nodeType: string;
+    enemyId?: string;
+    transitionOverlay?: any;
+    bossPreparation?: {
+      readiness: number;
+      healthMultiplier: number;
+      damageMultiplier: number;
+      label: string;
+      notes: string[];
+    };
+  }): void {
     // Safety check for camera
     if (!this.cameras.main) {
       return;
@@ -272,7 +283,7 @@ export class Combat extends Scene {
     this.dda = new CombatDDA(this);
 
     // Initialize combat state
-    this.initializeCombat(data.nodeType, data.enemyId);
+    this.initializeCombat(data.nodeType, data.enemyId, data.bossPreparation);
     
     // Start music for Combat scene
     this.startMusic();
@@ -371,7 +382,17 @@ export class Combat extends Scene {
   /**
    * Initialize combat state with player and enemy
    */
-  private initializeCombat(nodeType: string, enemyId?: string): void {
+  private initializeCombat(
+    nodeType: string,
+    enemyId?: string,
+    bossPreparation?: {
+      readiness: number;
+      healthMultiplier: number;
+      damageMultiplier: number;
+      label: string;
+      notes: string[];
+    }
+  ): void {
     // Get existing player data from GameState or create new player if none exists
     const gameState = GameState.getInstance();
     const existingPlayerData = gameState.getPlayerData();
@@ -479,6 +500,20 @@ export class Combat extends Scene {
     const enemy = enemyId 
       ? EnemySelectionSystem.getEnemyByName(enemyId, gameState.getCurrentChapter())
       : EnemySelectionSystem.getEnemyForNodeType(nodeType, gameState.getCurrentChapter());
+
+    // Boss prep scaling is intentionally independent from DDA.
+    // Players who rush to boss with weak preparation face a stronger baseline boss.
+    if (nodeType === "boss" && bossPreparation) {
+      enemy.maxHealth = Math.max(1, Math.round(enemy.maxHealth * bossPreparation.healthMultiplier));
+      enemy.currentHealth = enemy.maxHealth;
+      enemy.damage = Math.max(1, Math.round(enemy.damage * bossPreparation.damageMultiplier));
+      console.log("👑 Boss Preparation Scaling:", {
+        readiness: bossPreparation.readiness.toFixed(2),
+        label: bossPreparation.label,
+        healthMultiplier: bossPreparation.healthMultiplier,
+        damageMultiplier: bossPreparation.damageMultiplier,
+      });
+    }
 
     // Initialize combat lifecycle on the EnemyEntity
     enemy.onCombatStart();
