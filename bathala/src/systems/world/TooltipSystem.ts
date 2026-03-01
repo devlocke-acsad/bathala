@@ -189,13 +189,17 @@ export class Overworld_TooltipManager {
     
     // Clear previous sprite and add new one
     this.tooltipSpriteContainer.removeAll(true);
+    const isPortraitTooltip = !!enemyInfo.spriteKey && enemyInfo.spriteKey.includes("_almanac");
+    this.tooltipContainer.setData("isPortraitTooltip", isPortraitTooltip);
+
     if (enemyInfo.spriteKey) {
       const sprite = this.scene.add.sprite(0, 0, enemyInfo.spriteKey);
       sprite.setOrigin(0.5, 0.5);
       
-      // Scale to fit the container
-      const targetSize = 48;
-      const scale = targetSize / Math.max(sprite.width, sprite.height);
+      // Match Discover detail-view portrait sizing for almanac art.
+      const scale = isPortraitTooltip
+        ? Math.min(200 / sprite.width, 200 / sprite.height)
+        : (56 / Math.max(sprite.width, sprite.height));
       sprite.setScale(scale);
       
       // If it's an animated sprite, play the idle animation
@@ -247,6 +251,7 @@ export class Overworld_TooltipManager {
     this.tooltipTypeText.setColor("#77888C");
     
     // Clear previous sprite and add new one
+    this.tooltipContainer.setData("isPortraitTooltip", false);
     this.tooltipSpriteContainer.removeAll(true);
     if (nodeInfo.spriteKey) {
       const sprite = this.scene.add.sprite(0, 0, nodeInfo.spriteKey);
@@ -353,11 +358,13 @@ export class Overworld_TooltipManager {
       return;
     }
     
-    // Calculate dynamic tooltip size based on content - Prologue/Combat style
+    // Calculate dynamic tooltip size based on content - Prologue/Combat style.
+    // Enemy portrait tooltips need a larger header area and width for Discover assets.
+    const isPortraitTooltip = !!this.tooltipContainer.getData("isPortraitTooltip");
     const padding = 26; // Internal padding
-    const headerHeight = 70;
-    const minWidth = 420;
-    const maxWidth = 550;
+    const headerHeight = isPortraitTooltip ? 236 : 74;
+    const minWidth = isPortraitTooltip ? 560 : 420;
+    const maxWidth = isPortraitTooltip ? 760 : 550;
     
     // Get actual text bounds (only description now)
     const descHeight = this.tooltipDescriptionText?.height || 80;
@@ -369,10 +376,10 @@ export class Overworld_TooltipManager {
     // Calculate required width
     const nameWidth = this.tooltipNameText?.width || 100;
     const descWidth = this.tooltipDescriptionText?.width || 100;
-    const spriteAreaWidth = 80;
+    const spriteAreaWidth = isPortraitTooltip ? 250 : 95;
     const maxContentWidth = Math.max(nameWidth + spriteAreaWidth, descWidth);
     const tooltipWidth = Math.max(minWidth, Math.min(maxWidth, maxContentWidth + padding * 2));
-    const tooltipHeight = Math.max(200, totalHeight);
+    const tooltipHeight = Math.max(isPortraitTooltip ? 390 : 210, totalHeight);
     
     // Get dynamic elements from container data
     const outerBorder = this.tooltipContainer.getData('outerBorder') as Phaser.GameObjects.Rectangle;
@@ -388,13 +395,14 @@ export class Overworld_TooltipManager {
     
     // Update separator widths and positions
     headerSeparator?.setSize(tooltipWidth - 20, 2);
-    headerSeparator?.setPosition(18, 68);
+    headerSeparator?.setPosition(18, headerHeight - 12);
     
     // Hide the stats separator (no longer needed)
     statsSeparator?.setVisible(false);
     
     // Reposition sprite container
-    this.tooltipSpriteContainer?.setPosition(tooltipWidth - 60, 35);
+    this.tooltipSpriteContainer?.setSize(isPortraitTooltip ? 220 : 70, isPortraitTooltip ? 220 : 70);
+    this.tooltipSpriteContainer?.setPosition(tooltipWidth - (isPortraitTooltip ? 130 : 60), isPortraitTooltip ? 122 : 35);
     
     // Update text wrapping (only description now)
     const textWidth = tooltipWidth - 40;
@@ -490,7 +498,23 @@ export class Overworld_TooltipManager {
       return null;
     }
 
-    const spriteKey = EnemyRegistry.getOverworldSprite(enemy.id);
+    // Use Discover/Compendium portraits when available, otherwise fallback to overworld sprites.
+    const discoverSpriteMapById: Record<string, string> = {
+      "tikbalang_scout": "tikbalang_almanac",
+      "balete_wraith": "balete_almanac",
+      "sigbin_charger": "sigbin_almanac",
+      "duwende_trickster": "duwende_almanac",
+      "tiyanak_ambusher": "tiyanak_almanac",
+      "amomongo": "amomongo_almanac",
+      "bungisngis": "bungisngis_almanac",
+      "kapre_shade": "kapre_almanac",
+      "tawong_lipod": "tawonglipod_almanac",
+      "mangangaway": "mangangaway_almanac"
+    };
+    const discoverSpriteKey = discoverSpriteMapById[enemy.id];
+    const spriteKey = discoverSpriteKey && this.scene.textures.exists(discoverSpriteKey)
+      ? discoverSpriteKey
+      : EnemyRegistry.getOverworldSprite(enemy.id);
     const abilities = enemy.intent.description || enemy.attackPattern.join(" • ");
     const origin = enemy.lore.origin;
     const description = `${enemy.lore.description}\n\n${enemy.dialogue.intro}`;
