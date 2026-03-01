@@ -34,7 +34,7 @@ export class Campfire extends Scene {
 
   create(): void {
     if (!this.cameras.main) return;
-    this.cameras.main.setBackgroundColor(0x0a0a0a);
+    this.cameras.main.setBackgroundColor(0x150E10);
 
     // Start campfire music via MusicLifecycleSystem
     this.musicLifecycle = new MusicLifecycleSystem(this);
@@ -70,10 +70,8 @@ export class Campfire extends Scene {
       }
     });
     
-    // Add dark gradient background
-    const gradient = this.add.graphics();
-    gradient.fillStyle(0x0a0a0a, 1);
-    gradient.fillRect(0, 0, screenWidth, screenHeight);
+    // Add subtle atmospheric tint to unify with menu/shop style
+    this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x150E10, 0.45).setDepth(1);
     
     // Add subtle particles for atmosphere
     this.createAtmosphericParticles();
@@ -81,15 +79,18 @@ export class Campfire extends Scene {
     // Create bonfire animation with glow effect
     this.createBonfireWithGlow(screenWidth / 2, screenHeight * 0.4);
     
+    // Show the player as part of the scene composition
+    this.createPlayerShowcase(screenWidth, screenHeight);
+    
     // Create responsive title with proper scaling
     this.add.text(
       screenWidth / 2,
       Math.max(60, screenHeight * 0.08),
       "REST AT BONFIRE",
       {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: Math.min(36, screenWidth * 0.03),
-        color: "#d4af37",
+        fontFamily: "dungeon-mode",
+        fontSize: Math.min(34, screenWidth * 0.029),
+        color: "#e8eced",
         align: "center",
         stroke: "#000000",
         strokeThickness: 3
@@ -104,7 +105,7 @@ export class Campfire extends Scene {
       {
         fontFamily: "dungeon-mode",
         fontSize: Math.min(18, screenWidth * 0.015),
-        color: "#cccccc",
+        color: "#77888C",
         align: "center",
         wordWrap: { width: screenWidth * 0.8 }
       }
@@ -200,41 +201,106 @@ export class Campfire extends Scene {
       }
     });
     
+    const panelX = screenWidth * 0.22;
+    const panelY = screenHeight * 0.58;
+    const panelW = 320;
+    const panelH = 92;
+
+    const healthPanelBg = this.add.rectangle(panelX, panelY, panelW, panelH, 0x150E10, 0.96);
+    const healthPanelOuter = this.add.rectangle(panelX, panelY, panelW + 6, panelH + 6, undefined, 0);
+    healthPanelOuter.setStrokeStyle(3, 0x77888C, 0.9);
+    const healthPanelInner = this.add.rectangle(panelX, panelY, panelW + 2, panelH + 2, undefined, 0);
+    healthPanelInner.setStrokeStyle(2, 0x556065, 0.75);
+    healthPanelBg.setName('healthBarPanelBg');
+    healthPanelOuter.setName('healthBarPanelOuter');
+    healthPanelInner.setName('healthBarPanelInner');
+
     // Create health bar background
-    const healthBarBg = this.add.rectangle(
-      screenWidth / 2,
-      screenHeight / 2 - 100,
-      300,
-      20,
-      0x333333
-    );
-    healthBarBg.setStrokeStyle(2, 0x555555);
+    const healthBarBg = this.add.rectangle(panelX, panelY + 16, 260, 22, 0x1b2327);
+    healthBarBg.setStrokeStyle(1, 0x77888C, 0.65);
     healthBarBg.setName('healthBarBg');
     
     // Create health bar fill
     const healthPercent = this.player.currentHealth / this.player.maxHealth;
     const healthBarFill = this.add.rectangle(
-      screenWidth / 2 - (300 * (1 - healthPercent)) / 2,
-      screenHeight / 2 - 100,
-      300 * healthPercent,
-      20,
+      panelX - (260 * (1 - healthPercent)) / 2,
+      panelY + 16,
+      260 * healthPercent,
+      18,
       healthPercent > 0.5 ? 0x2ed573 : healthPercent > 0.25 ? 0xff9f43 : 0xff4757
     );
     healthBarFill.setName('healthBarFill');
     
     // Create health text
     const healthText = this.add.text(
-      screenWidth / 2,
-      screenHeight / 2 - 130,
-      `Health: ${this.player.currentHealth}/${this.player.maxHealth}`,
+      panelX,
+      panelY - 16,
+      `HP ${this.player.currentHealth}/${this.player.maxHealth}`,
       {
         fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#ffffff",
+        fontSize: 18,
+        color: "#77888C",
         align: "center",
       }
     ).setOrigin(0.5);
     healthText.setName('healthText');
+  }
+
+  private createPlayerShowcase(screenWidth: number, screenHeight: number): void {
+    const panelX = screenWidth * 0.22;
+    const panelY = screenHeight * 0.36;
+    const panelW = 320;
+    const panelH = 260;
+
+    const panelBg = this.add.rectangle(panelX, panelY, panelW, panelH, 0x150E10, 0.95);
+    const panelOuter = this.add.rectangle(panelX, panelY, panelW + 6, panelH + 6, undefined, 0);
+    panelOuter.setStrokeStyle(3, 0x77888C, 0.9);
+    const panelInner = this.add.rectangle(panelX, panelY, panelW + 2, panelH + 2, undefined, 0);
+    panelInner.setStrokeStyle(2, 0x556065, 0.75);
+
+    const headerBg = this.add.rectangle(panelX, panelY - panelH / 2 + 24, panelW - 22, 38, 0x1b2327, 0.72);
+    headerBg.setStrokeStyle(1, 0x77888C, 0.5);
+    const headerText = this.add.text(panelX, panelY - panelH / 2 + 24, "HERO", {
+      fontFamily: "dungeon-mode",
+      fontSize: 16,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5);
+
+    // Always use the same player asset as combat.
+    const playerKey = this.textures.exists("combat_player") ? "combat_player" : "";
+
+    if (playerKey) {
+      const spriteBackdrop = this.add.rectangle(panelX, panelY + 10, 180, 170, 0x1b2327, 0.35)
+        .setOrigin(0.5)
+        .setDepth(41);
+      spriteBackdrop.setStrokeStyle(1, 0x556065, 0.55);
+
+      const playerSprite = this.add.image(panelX, panelY + 10, playerKey).setOrigin(0.5);
+      const maxW = 170;
+      const maxH = 165;
+      const scale = Math.min(maxW / playerSprite.width, maxH / playerSprite.height);
+      playerSprite.setScale(scale).setDepth(42).setAlpha(1);
+      this.tweens.add({
+        targets: playerSprite,
+        y: panelY + 6,
+        duration: 1800,
+        ease: "Sine.easeInOut",
+        yoyo: true,
+        repeat: -1
+      });
+    } else {
+      this.add.text(panelX, panelY + 10, "🧙", { fontSize: 64 }).setOrigin(0.5).setDepth(42);
+    }
+
+    this.add.text(panelX, panelY + panelH / 2 - 24, "Rest. Reflect. Prepare.", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5).setDepth(41);
+
+    [panelBg, panelOuter, panelInner, headerBg, headerText].forEach(obj => obj.setDepth(40));
   }
 
   private createResponsiveActionButtons(): void {
@@ -242,8 +308,8 @@ export class Campfire extends Scene {
     const screenHeight = this.cameras.main.height;
     
     // Calculate responsive positioning and sizing for improved UI
-    const buttonWidth = Math.min(200, screenWidth * 0.18);
-    const buttonHeight = Math.min(80, screenHeight * 0.1);
+    const buttonWidth = Math.min(240, screenWidth * 0.2);
+    const buttonHeight = Math.min(76, screenHeight * 0.09);
     const fontSize = Math.min(16, screenWidth * 0.014);
     
     // Create action buttons with improved layout (2x2 grid for better UI)
@@ -281,11 +347,11 @@ export class Campfire extends Scene {
     // Position buttons in a 2x2 grid for better visual balance
     const gridCols = 2;
     const gridRows = 2;
-    const spacingX = buttonWidth + 40;
-    const spacingY = buttonHeight + 30;
+    const spacingX = buttonWidth + 34;
+    const spacingY = buttonHeight + 24;
     
-    const startX = screenWidth / 2 - (spacingX * (gridCols - 1)) / 2;
-    const startY = screenHeight * 0.65;
+    const startX = screenWidth * 0.62;
+    const startY = screenHeight * 0.58;
 
     actions.forEach((data, index) => {
       const row = Math.floor(index / gridCols);
@@ -295,24 +361,24 @@ export class Campfire extends Scene {
 
       const button = this.add.container(x, y);
       
-      // Enhanced button background with gradient-like effect
-      const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, data.color);
-      background.setStrokeStyle(3, 0xd4af37);
-      background.setAlpha(0.8);
+      // Main menu/tutorial style button body
+      const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10, 0.95);
+      background.setStrokeStyle(3, 0x77888C, 0.9);
       
-      // Add inner glow effect
-      const innerGlow = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, data.color);
-      innerGlow.setAlpha(0.3);
+      const innerGlow = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, 0x1b2327, 0.65);
+      innerGlow.setStrokeStyle(1, 0x556065, 0.7);
+      
+      const actionAccent = this.add.rectangle(-buttonWidth / 2 + 7, 0, 8, buttonHeight - 10, data.color, 0.85);
       
       const text = this.add.text(0, 0, data.text, {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: fontSize,
-        color: data.textColor,
+        color: "#77888C",
         align: "center",
         wordWrap: { width: buttonWidth - 20 }
       }).setOrigin(0.5);
       
-      button.add([background, innerGlow, text]);
+      button.add([background, innerGlow, actionAccent, text]);
       button.setDepth(100);
       
       button.setInteractive(
@@ -333,9 +399,10 @@ export class Campfire extends Scene {
       });
       
       button.on("pointerover", () => {
-        background.setFillStyle(data.color);
-        background.setAlpha(1.0);
-        innerGlow.setAlpha(0.6);
+        background.setFillStyle(0x1f1410, 1);
+        innerGlow.setAlpha(0.9);
+        text.setColor("#e8eced");
+        actionAccent.setAlpha(1);
         
         // Enhanced tooltip positioning
         const tooltipX = x;
@@ -344,9 +411,10 @@ export class Campfire extends Scene {
       });
       
       button.on("pointerout", () => {
-        background.setFillStyle(data.color);
-        background.setAlpha(0.8);
-        innerGlow.setAlpha(0.3);
+        background.setFillStyle(0x150E10, 0.95);
+        innerGlow.setAlpha(0.65);
+        text.setColor("#77888C");
+        actionAccent.setAlpha(0.85);
         this.hideTooltip();
       });
       
@@ -371,18 +439,20 @@ export class Campfire extends Scene {
     
     const backButton = this.add.container(screenWidth / 2, screenHeight - Math.max(60, screenHeight * 0.1));
     
-    // Create responsive button with bonfire styling
-    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x332222);
-    background.setStrokeStyle(3, 0xd4af37);
+    // Create responsive button with shared UI style
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10, 0.95);
+    background.setStrokeStyle(3, 0x77888C, 0.9);
+    const innerBorder = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, 0x1b2327, 0.65);
+    innerBorder.setStrokeStyle(1, 0x556065, 0.7);
     
     const text = this.add.text(0, 0, "LEAVE BONFIRE", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: fontSize,
-      color: "#d4af37",
+      color: "#77888C",
       wordWrap: { width: buttonWidth - 20 }
     }).setOrigin(0.5);
     
-    backButton.add([background, text]);
+    backButton.add([background, innerBorder, text]);
     
     backButton.setInteractive(
       new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
@@ -405,14 +475,14 @@ export class Campfire extends Scene {
     });
     
     backButton.on("pointerover", () => {
-      background.setFillStyle(0x443333);
-      text.setColor("#ffd700");
+      background.setFillStyle(0x1f1410);
+      text.setColor("#e8eced");
       this.showResponsiveTooltip("Return to your journey", screenWidth / 2, screenHeight - Math.max(120, screenHeight * 0.15));
     });
     
     backButton.on("pointerout", () => {
-      background.setFillStyle(0x332222);
-      text.setColor("#d4af37");
+      background.setFillStyle(0x150E10, 0.95);
+      text.setColor("#77888C");
       this.hideTooltip();
     });
   }
