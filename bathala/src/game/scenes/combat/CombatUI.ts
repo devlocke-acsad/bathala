@@ -15,6 +15,7 @@ import { createButton } from "../../ui/Button";
 import { StatusEffectManager, StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
 import { ElementalAffinitySystem } from "../../../core/managers/ElementalAffinitySystem";
 import { EnemyRegistry } from "../../../core/registries/EnemyRegistry";
+import type { EnemyTier } from "../../../core/entities/EnemyEntity";
 
 /**
  * Helper function to get the sprite key for a relic based on its ID
@@ -361,18 +362,13 @@ export class CombatUI {
     // Disable texture smoothing for pixel-perfect rendering
     this.enemySprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
 
-    // Scale the sprite - adjust for smaller enemies (Tiyanak and Duwende)
+    // Scale the sprite by enemy tier, with tiny-enemy overrides
     const sprite = this.enemySprite;
-    const lowerCaseName = enemyName.toLowerCase();
-    let targetWidth = 250;
-    let targetHeight = 250;
-    
-    // Smaller enemies should be scaled down to emphasize size difference
-    if (lowerCaseName.includes("tiyanak") || lowerCaseName.includes("duwende")) {
-      targetWidth = 150;  // Smaller target for baby-sized enemies
-      targetHeight = 150;
-    }
-    
+    const { targetWidth, targetHeight } = this.getEnemySpriteTargetSize(
+      combatState.enemy.tier,
+      enemyName,
+    );
+
     const scale = Math.min(targetWidth / sprite.width, targetHeight / sprite.height);
     sprite.setScale(scale);
 
@@ -445,9 +441,41 @@ export class CombatUI {
     this.createElementalAffinityIndicators(enemyX, healthYOffset);
 
     // Information button for enemy lore
-    this.createEnemyInfoButton(enemyX, enemyY - 200);
+    const infoButtonY = enemyY - (spriteScaledHeight / 2) - 44;
+    this.createEnemyInfoButton(enemyX, infoButtonY);
 
     this.updateEnemyUI();
+  }
+
+  /**
+   * Determine target sprite bounds from enemy tier.
+   * Bosses are intentionally much larger than the player silhouette.
+   */
+  private getEnemySpriteTargetSize(
+    tier: EnemyTier,
+    enemyName: string,
+  ): { targetWidth: number; targetHeight: number } {
+    const normalizedName = enemyName.toLowerCase();
+    const playerReferenceHeight = this.playerSprite?.displayHeight || 250;
+
+    const tierSizeMultiplier: Record<EnemyTier, number> = {
+      common: 0.95,
+      elite: 1.3,
+      boss: 1.65,
+    };
+
+    let multiplier = tierSizeMultiplier[tier];
+
+    if (normalizedName.includes("tiyanak") || normalizedName.includes("duwende")) {
+      multiplier = 0.65;
+    }
+
+    const targetSize = Math.max(140, Math.round(playerReferenceHeight * multiplier));
+
+    return {
+      targetWidth: targetSize,
+      targetHeight: targetSize,
+    };
   }
   
   /**

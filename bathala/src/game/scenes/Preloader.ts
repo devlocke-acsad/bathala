@@ -220,6 +220,52 @@ export class Preloader extends Scene {
     this.load.image("tawonglipod_overworld", "sprites/overworld/combat/chap1/tawonglipod_overworld.png");
     this.load.image("tikbalang_overworld", "sprites/overworld/combat/chap1/tikbalang_overworld.png");
     this.load.image("tiyanak_overworld", "sprites/overworld/combat/chap1/tiyanak_overworld.png");
+
+    // Chapter 2 enemy sprites (combat + overworld)
+    this.load.image("sirena_combat", "sprites/overworld/combat/chap2/sirena_battle.png");
+    this.load.image("siyokoy_combat", "sprites/overworld/combat/chap2/siyokoy_battle.png");
+    this.load.image("santelmo_combat", "sprites/overworld/combat/chap2/santelmo_battle.png");
+    this.load.image("berberoka_combat", "sprites/overworld/combat/chap2/berberoka_battle.png");
+    this.load.image("magindara_combat", "sprites/overworld/combat/chap2/magindara_battle.png");
+    this.load.image("kataw_combat", "sprites/overworld/combat/chap2/kataw_battle.png");
+    this.load.image("berbalang_combat", "sprites/overworld/combat/chap2/berbalang_battle.png");
+    this.load.image("sunkenbangkilan_combat", "sprites/overworld/combat/chap2/bangkilan_battle.png");
+    this.load.image("apoytubig_combat", "sprites/overworld/combat/chap2/apoy_tubig_battle.png");
+    this.load.image("bakunawa_combat", "sprites/overworld/combat/chap2/bakunawa_battle.png");
+
+    this.load.image("sirena_overworld", "sprites/overworld/combat/chap2/sirena_battle.png");
+    this.load.image("siyokoy_overworld", "sprites/overworld/combat/chap2/siyokoy_battle.png");
+    this.load.image("santelmo_overworld", "sprites/overworld/combat/chap2/santelmo_battle.png");
+    this.load.image("berberoka_overworld", "sprites/overworld/combat/chap2/berberoka_battle.png");
+    this.load.image("magindara_overworld", "sprites/overworld/combat/chap2/magindara_battle.png");
+    this.load.image("kataw_overworld", "sprites/overworld/combat/chap2/kataw_battle.png");
+    this.load.image("berbalang_overworld", "sprites/overworld/combat/chap2/berbalang_battle.png");
+    this.load.image("sunkenbangkilan_overworld", "sprites/overworld/combat/chap2/bangkilan_battle.png");
+    this.load.image("apoytubig_overworld", "sprites/overworld/combat/chap2/apoy_tubig_battle.png");
+    this.load.image("bakunawa_overworld", "sprites/overworld/combat/chap2/bakunawa_battle.png");
+
+    // Chapter 3 enemy sprites (combat + overworld)
+    this.load.image("tigmamanukan_combat", "sprites/overworld/combat/chap3/tigmanukan_battle.png");
+    this.load.image("diwata_combat", "sprites/overworld/combat/chap3/diwata_battle.png");
+    this.load.image("sarimanok_combat", "sprites/overworld/combat/chap3/sarimanok_battle.png");
+    this.load.image("bulalakaw_combat", "sprites/overworld/combat/chap3/bulalakaw_battle.png");
+    this.load.image("minokawa_combat", "sprites/overworld/combat/chap3/minokawa_battle.png");
+    this.load.image("alan_combat", "sprites/overworld/combat/chap3/alan_battle.png");
+    this.load.image("ekek_combat", "sprites/overworld/combat/chap3/ekek_battle.png");
+    this.load.image("ribunglinti_combat", "sprites/overworld/combat/chap3/ribung_linti_battle.png");
+    this.load.image("apolaki_combat", "sprites/overworld/combat/chap3/apolaki_battle.png");
+    this.load.image("falsebathala_combat", "sprites/overworld/combat/chap3/false_bathala_battle.png");
+
+    this.load.image("tigmamanukan_overworld", "sprites/overworld/combat/chap3/tigmanukan_battle.png");
+    this.load.image("diwata_overworld", "sprites/overworld/combat/chap3/diwata_battle.png");
+    this.load.image("sarimanok_overworld", "sprites/overworld/combat/chap3/sarimanok_battle.png");
+    this.load.image("bulalakaw_overworld", "sprites/overworld/combat/chap3/bulalakaw_battle.png");
+    this.load.image("minokawa_overworld", "sprites/overworld/combat/chap3/minokawa_battle.png");
+    this.load.image("alan_overworld", "sprites/overworld/combat/chap3/alan_battle.png");
+    this.load.image("ekek_overworld", "sprites/overworld/combat/chap3/ekek_battle.png");
+    this.load.image("ribunglinti_overworld", "sprites/overworld/combat/chap3/ribung_linti_battle.png");
+    this.load.image("apolaki_overworld", "sprites/overworld/combat/chap3/apolaki_battle.png");
+    this.load.image("falsebathala_overworld", "sprites/overworld/combat/chap3/false_bathala_battle.png");
     
     // Overworld node sprites
     // Combat node sprites (chort)
