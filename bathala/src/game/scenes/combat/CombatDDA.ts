@@ -368,6 +368,9 @@ export class CombatDDA {
         this.updateDDADebugOverlay();
       }
     }
+    if (this.autoWinButtonsContainer) {
+      this.autoWinButtonsContainer.setVisible(this.ddaDebugVisible);
+    }
   }
   
   /**
@@ -444,76 +447,68 @@ export class CombatDDA {
       return;
     }
 
-    const screenWidth = this.scene.cameras.main.width;
-    const screenHeight = this.scene.cameras.main.height;
-    
-    // Create container for auto-win buttons - position at bottom left, above DDA toggle
-    this.autoWinButtonsContainer = this.scene.add.container(10, screenHeight - 180);
+    const padding = 12;
+    const panelWidth = 230;
+    const buttonHeight = 32;
+    const buttonSpacing = 6;
+    const buttonWidth = panelWidth - padding * 2;
+
+    this.autoWinButtonsContainer = this.scene.add.container(10, 10);
     this.autoWinButtonsContainer.setDepth(1001);
-    
-    // Background panel
-    const panelWidth = 180;
-    const panelHeight = 140;
-    const bg = this.scene.add.rectangle(0, 0, panelWidth, panelHeight, 0x000000, 0.85);
-    bg.setOrigin(0, 0);
-    bg.setStrokeStyle(1, 0x4ecdc4);
-    this.autoWinButtonsContainer.add(bg);
-    
-    // Title
-    const title = this.scene.add.text(panelWidth / 2, 8, "🎮 DDA Test Wins", {
+    this.autoWinButtonsContainer.setVisible(false);
+
+    let yPos = padding;
+
+    const title = this.scene.add.text(panelWidth / 2, yPos, "DDA Test Wins", {
       fontFamily: "dungeon-mode",
-      fontSize: 12,
+      fontSize: 14,
       color: "#4ecdc4",
       align: "center"
     }).setOrigin(0.5, 0);
     this.autoWinButtonsContainer.add(title);
-    
-    // Subtitle
-    const subtitle = this.scene.add.text(panelWidth / 2, 24, "(Auto-win with preset outcomes)", {
+    yPos += title.height + 2;
+
+    const subtitle = this.scene.add.text(panelWidth / 2, yPos, "Auto-win with preset outcomes", {
       fontFamily: "dungeon-mode",
-      fontSize: 8,
+      fontSize: 10,
       color: "#888888",
-      align: "center"
+      align: "center",
+      wordWrap: { width: panelWidth - padding * 2 }
     }).setOrigin(0.5, 0);
     this.autoWinButtonsContainer.add(subtitle);
-    
-    // Button configs
+    yPos += subtitle.height + 10;
+
     const buttonConfigs: Array<{
       scenario: AutoWinScenario;
       label: string;
+      shortcut: string;
       color: string;
       hoverColor: string;
-      description: string;
     }> = [
       {
         scenario: "bad",
-        label: "😰 Bad Win",
+        label: "Bad Win",
+        shortcut: "1",
         color: "#ff4757",
-        hoverColor: "#ff6b81",
-        description: "Low HP, slow, weak hands"
+        hoverColor: "#ff6b81"
       },
       {
         scenario: "good",
-        label: "😊 Good Win",
+        label: "Good Win",
+        shortcut: "2",
         color: "#ffa502",
-        hoverColor: "#ffbe3d",
-        description: "Decent HP, moderate speed"
+        hoverColor: "#ffbe3d"
       },
       {
         scenario: "spectacular",
-        label: "🌟 Spectacular",
+        label: "Spectacular",
+        shortcut: "3",
         color: "#2ed573",
-        hoverColor: "#7bed9f",
-        description: "Full HP, fast, strong hands"
+        hoverColor: "#7bed9f"
       }
     ];
-    
-    let yPos = 42;
-    const buttonHeight = 28;
-    const buttonWidth = panelWidth - 20;
-    
+
     buttonConfigs.forEach((config) => {
-      // Button background
       const btnBg = this.scene.add.rectangle(
         panelWidth / 2,
         yPos + buttonHeight / 2,
@@ -524,55 +519,53 @@ export class CombatDDA {
       );
       btnBg.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(config.color).color);
       btnBg.setInteractive({ useHandCursor: true });
-      
-      // Button text
-      const btnText = this.scene.add.text(panelWidth / 2, yPos + buttonHeight / 2, config.label, {
-        fontFamily: "dungeon-mode",
-        fontSize: 11,
-        color: config.color,
-        align: "center"
-      }).setOrigin(0.5);
-      
-      // Description tooltip (shown on hover)
-      const descText = this.scene.add.text(panelWidth / 2, yPos + buttonHeight + 1, config.description, {
-        fontFamily: "dungeon-mode",
-        fontSize: 7,
-        color: "#666666",
-        align: "center"
-      }).setOrigin(0.5, 0).setVisible(false);
-      
-      // Hover effects
+
+      const btnLabel = this.scene.add.text(
+        panelWidth / 2,
+        yPos + buttonHeight / 2,
+        `[${config.shortcut}] ${config.label}`,
+        {
+          fontFamily: "dungeon-mode",
+          fontSize: 13,
+          color: config.color
+        }
+      ).setOrigin(0.5, 0.5);
+
       btnBg.on('pointerover', () => {
         btnBg.setFillStyle(Phaser.Display.Color.HexStringToColor(config.hoverColor).color, 0.5);
-        btnText.setColor(config.hoverColor);
-        descText.setVisible(true);
+        btnLabel.setColor(config.hoverColor);
       });
-      
+
       btnBg.on('pointerout', () => {
         btnBg.setFillStyle(Phaser.Display.Color.HexStringToColor(config.color).color, 0.3);
-        btnText.setColor(config.color);
-        descText.setVisible(false);
+        btnLabel.setColor(config.color);
       });
-      
-      // Click handler
+
       btnBg.on('pointerdown', () => {
         this.executeAutoWin(config.scenario);
       });
-      
-      this.autoWinButtonsContainer!.add([btnBg, btnText, descText]);
-      yPos += buttonHeight + 4;
+
+      this.autoWinButtonsContainer!.add([btnBg, btnLabel]);
+      yPos += buttonHeight + buttonSpacing;
     });
-    
-    // Keyboard shortcuts hint
-    const shortcutHint = this.scene.add.text(panelWidth / 2, panelHeight - 8, "[1] Bad  [2] Good  [3] Spectacular", {
+
+    yPos += 2;
+
+    const shortcutHint = this.scene.add.text(panelWidth / 2, yPos, "Press 1/2/3 to quick-trigger", {
       fontFamily: "dungeon-mode",
-      fontSize: 7,
+      fontSize: 9,
       color: "#555555",
-      align: "center"
-    }).setOrigin(0.5, 1);
+      align: "center",
+      wordWrap: { width: panelWidth - padding * 2 }
+    }).setOrigin(0.5, 0);
     this.autoWinButtonsContainer.add(shortcutHint);
-    
-    // Add keyboard shortcuts
+    yPos += shortcutHint.height + padding;
+
+    const bg = this.scene.add.rectangle(0, 0, panelWidth, yPos, 0x000000, 0.85);
+    bg.setOrigin(0, 0);
+    bg.setStrokeStyle(1, 0x4ecdc4);
+    this.autoWinButtonsContainer.addAt(bg, 0);
+
     this.scene.input.keyboard?.on('keydown-ONE', () => this.executeAutoWin("bad"));
     this.scene.input.keyboard?.on('keydown-TWO', () => this.executeAutoWin("good"));
     this.scene.input.keyboard?.on('keydown-THREE', () => this.executeAutoWin("spectacular"));
@@ -698,46 +691,55 @@ export class CombatDDA {
       spectacular: "🌟 SPECTACULAR WIN"
     };
     
-    // Create feedback container
+    const boxPadding = 16;
+    const boxWidth = 240;
+    const contentWidth = boxWidth - boxPadding * 2;
+
     const feedbackContainer = this.scene.add.container(screenWidth / 2, screenHeight / 2 - 50);
     feedbackContainer.setDepth(2000);
-    
-    // Background
-    const bg = this.scene.add.rectangle(0, 0, 300, 120, 0x000000, 0.9);
-    bg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(colors[scenario]).color);
-    feedbackContainer.add(bg);
-    
-    // Title
-    const titleText = this.scene.add.text(0, -40, labels[scenario], {
+
+    const titleText = this.scene.add.text(0, 0, labels[scenario], {
       fontFamily: "dungeon-mode",
-      fontSize: 20,
+      fontSize: 18,
       color: colors[scenario],
-      align: "center"
-    }).setOrigin(0.5);
-    feedbackContainer.add(titleText);
-    
-    // Stats
+      align: "center",
+      wordWrap: { width: contentWidth }
+    }).setOrigin(0.5, 0);
+
     const statsText = this.scene.add.text(0, 0, [
       `HP: ${Math.round(config.healthPercentage * 100)}%`,
       `Turns: ${config.turnCount}`,
-      `Best Hand: ${config.bestHand.replace(/_/g, " ")}`,
+      `Hand: ${config.bestHand.replace(/_/g, " ")}`,
       `Discards: ${config.discardsUsed}`
-    ].join("  |  "), {
+    ].join("\n"), {
       fontFamily: "dungeon-mode",
       fontSize: 10,
       color: "#aaaaaa",
-      align: "center"
-    }).setOrigin(0.5);
-    feedbackContainer.add(statsText);
-    
-    // Description
-    const descText = this.scene.add.text(0, 30, config.description, {
+      align: "center",
+      lineSpacing: 2
+    }).setOrigin(0.5, 0);
+
+    const descText = this.scene.add.text(0, 0, config.description, {
       fontFamily: "dungeon-mode",
-      fontSize: 11,
+      fontSize: 10,
       color: "#888888",
-      align: "center"
-    }).setOrigin(0.5);
-    feedbackContainer.add(descText);
+      align: "center",
+      wordWrap: { width: contentWidth }
+    }).setOrigin(0.5, 0);
+
+    const totalHeight = boxPadding + titleText.height + 8 + statsText.height + 8 + descText.height + boxPadding;
+
+    let cy = -totalHeight / 2 + boxPadding;
+    titleText.setY(cy);
+    cy += titleText.height + 8;
+    statsText.setY(cy);
+    cy += statsText.height + 8;
+    descText.setY(cy);
+
+    const bg = this.scene.add.rectangle(0, 0, boxWidth, totalHeight, 0x000000, 0.9);
+    bg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(colors[scenario]).color);
+
+    feedbackContainer.add([bg, titleText, statsText, descText]);
     
     // Animate in and out
     feedbackContainer.setAlpha(0);

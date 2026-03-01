@@ -2399,6 +2399,13 @@ export class Overworld extends Scene {
     // Create main UI container positioned at top-left
     this.uiContainer = this.add.container(0, 0);
     this.uiContainer.setScrollFactor(0).setDepth(1500);
+
+    // Put tooltip on the same UI layer as inventory so it inherits
+    // the exact same zoom compensation during day/night transitions.
+    const tooltipContainer = this.tooltipManager?.getTooltipContainer?.();
+    if (tooltipContainer && tooltipContainer.parentContainer !== this.uiContainer) {
+      this.uiContainer.add(tooltipContainer);
+    }
     
     // Create compact left panel for all UI elements
     this.createCompactLeftPanel(screenHeight);
@@ -2909,200 +2916,233 @@ export class Overworld extends Scene {
     // All modal elements stored for cleanup
     const modalElements: Phaser.GameObjects.GameObject[] = [];
 
-    // --- Dim overlay (scene-level, interactive to close on click outside) ---
+    // Dim overlay
     const overlay = this.add.rectangle(cx, cy, screenW, screenH, 0x000000)
-      .setAlpha(0.85).setScrollFactor(0).setDepth(2000).setInteractive();
+      .setAlpha(0.82).setScrollFactor(0).setDepth(2000).setInteractive();
     modalElements.push(overlay);
 
-    // --- Panel blocker: invisible interactive rect that covers the panel area ---
-    // This prevents clicks inside the panel from reaching the overlay
-    const pw = 440;
-    const ph = 500;
-    const panelBlocker = this.add.rectangle(cx, cy, pw, ph, 0x000000, 0.001)
-      .setScrollFactor(0).setDepth(2001).setInteractive();
-    modalElements.push(panelBlocker);
+    // Measure content first so panel hugs relic text.
+    const descriptionText = relic.description || "A mysterious relic of unknown power.";
+    const lore = this.getRelicLore(relic);
+    const measureWrappedText = (
+      text: string,
+      style: Phaser.Types.GameObjects.Text.TextStyle
+    ): Phaser.Types.Math.Vector2Like => {
+      const temp = this.add.text(-9999, -9999, text, style);
+      const bounds = temp.getBounds();
+      temp.destroy();
+      return { x: Math.ceil(bounds.width), y: Math.ceil(bounds.height) };
+    };
 
-    // --- Visual panel container (NOT interactive — purely visual) ---
+    const nameMeasure = measureWrappedText(relic.name.toUpperCase(), {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#e8eced"
+    });
+    const descMeasure = measureWrappedText(descriptionText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 15,
+      color: "#e8eced",
+      wordWrap: { width: 520 }
+    });
+    const loreMeasure = measureWrappedText(lore, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e8eced",
+      wordWrap: { width: 520 }
+    });
+
+    const contentWidth = Math.max(280, Math.min(520, Math.max(descMeasure.x, loreMeasure.x, nameMeasure.x + 170)));
+    const pw = contentWidth + 68;
+    const headerH = 72;
+    const sectionLabelH = 18;
+    const sectionGap = 16;
+    const buttonAreaH = 68;
+    const ph = 28 + headerH + 14 + sectionLabelH + descMeasure.y + 10 + sectionGap + sectionLabelH + loreMeasure.y + 18 + buttonAreaH;
+
     const panel = this.add.container(cx, cy).setScrollFactor(0).setDepth(2002);
     modalElements.push(panel);
 
-    // Panel background with subtle shadow
-    const panelGfx = this.add.graphics();
-    panelGfx.fillStyle(0x000000, 0.45);
-    panelGfx.fillRoundedRect(-pw / 2 + 5, -ph / 2 + 5, pw, ph, 10);
-    panelGfx.fillStyle(0x0e1318, 0.98);
-    panelGfx.fillRoundedRect(-pw / 2, -ph / 2, pw, ph, 10);
-    panelGfx.lineStyle(2, 0x4a6070, 0.85);
-    panelGfx.strokeRoundedRect(-pw / 2, -ph / 2, pw, ph, 10);
-    panelGfx.lineStyle(1, 0x6b8899, 0.2);
-    panelGfx.strokeRoundedRect(-pw / 2 + 3, -ph / 2 + 3, pw - 6, ph - 6, 8);
-    panel.add(panelGfx);
+    const shadow = this.add.rectangle(4, 4, pw, ph, 0x000000, 0.45).setOrigin(0.5);
+    const bg = this.add.rectangle(0, 0, pw, ph, 0x150E10, 0.98).setOrigin(0.5);
+    const outerBorder = this.add.rectangle(0, 0, pw + 6, ph + 6, undefined, 0).setOrigin(0.5);
+    outerBorder.setStrokeStyle(3, 0x77888C, 0.9);
+    const innerBorder = this.add.rectangle(0, 0, pw + 2, ph + 2, undefined, 0).setOrigin(0.5);
+    innerBorder.setStrokeStyle(2, 0x556065, 0.75);
+    panel.add([shadow, outerBorder, innerBorder, bg]);
 
-    // --- Header row ---
-    const headerH = 64;
-    const headerTop = -ph / 2 + 12;
-    const headerGfx = this.add.graphics();
-    headerGfx.fillStyle(0x16202a, 0.85);
-    headerGfx.fillRoundedRect(-pw / 2 + 12, headerTop, pw - 24, headerH, 8);
-    panel.add(headerGfx);
+    const headerY = -ph / 2 + 14;
+    const headerBg = this.add.rectangle(0, headerY + headerH / 2, pw - 22, headerH, 0x1b2327, 0.72).setOrigin(0.5);
+    const headerBorder = this.add.rectangle(0, headerY + headerH / 2, pw - 22, headerH, undefined, 0).setOrigin(0.5);
+    headerBorder.setStrokeStyle(1, 0x77888C, 0.5);
+    panel.add([headerBg, headerBorder]);
 
-    // Icon background
-    const iconCx = -pw / 2 + 46;
-    const iconCy = headerTop + headerH / 2;
-    const iconGfx = this.add.graphics();
-    iconGfx.fillStyle(0x1a2832, 0.9);
-    iconGfx.lineStyle(1, 0x4a6070, 0.55);
-    iconGfx.fillRoundedRect(iconCx - 22, iconCy - 22, 44, 44, 8);
-    iconGfx.strokeRoundedRect(iconCx - 22, iconCy - 22, 44, 44, 8);
-    panel.add(iconGfx);
+    const iconX = -pw / 2 + 40;
+    const iconY = headerY + headerH / 2;
+    const iconBg = this.add.rectangle(iconX, iconY, 46, 46, 0x150E10, 0.95).setOrigin(0.5);
+    iconBg.setStrokeStyle(2, 0x77888C, 0.85);
+    const iconInner = this.add.rectangle(iconX, iconY, 42, 42, undefined, 0).setOrigin(0.5);
+    iconInner.setStrokeStyle(1, 0x556065, 0.75);
+    panel.add([iconBg, iconInner]);
 
-    // Icon sprite or emoji
     const spriteKey = getRelicSpriteKey(relic.id);
     let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
     if (spriteKey && this.textures.exists(spriteKey)) {
-      relicIcon = this.add.image(iconCx, iconCy, spriteKey).setOrigin(0.5).setDisplaySize(36, 36);
+      relicIcon = this.add.image(iconX, iconY, spriteKey).setOrigin(0.5).setDisplaySize(34, 34);
     } else {
-      relicIcon = this.add.text(iconCx, iconCy, relic.emoji, { fontSize: 26 }).setOrigin(0.5);
+      relicIcon = this.add.text(iconX, iconY, relic.emoji || "⚙️", { fontSize: 24 }).setOrigin(0.5);
     }
     panel.add(relicIcon);
 
-    // Name text
-    const nameText = this.add.text(iconCx + 36, iconCy, relic.name.toUpperCase(), {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 17,
-      color: "#dce8f0",
+    const nameText = this.add.text(iconX + 34, iconY - 6, relic.name.toUpperCase(), {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#e8eced",
       wordWrap: { width: pw - 180 }
     }).setOrigin(0, 0.5);
-    nameText.setShadow(1, 1, '#000000', 3, false, true);
-    panel.add(nameText);
+    const equippedText = this.add.text(iconX + 34, iconY + 16, "EQUIPPED", {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: "#6fb590"
+    }).setOrigin(0, 0.5);
+    panel.add([nameText, equippedText]);
 
-    // Equipped badge
-    const badgeCx = pw / 2 - 70;
-    const badgeCy = headerTop + headerH / 2;
-    const badgeGfx = this.add.graphics();
-    badgeGfx.fillStyle(0x276749, 0.9);
-    badgeGfx.fillRoundedRect(badgeCx - 38, badgeCy - 10, 76, 20, 5);
-    panel.add(badgeGfx);
-    const badgeLabel = this.add.text(badgeCx, badgeCy, "EQUIPPED", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 9, color: "#a7f3d0"
-    }).setOrigin(0.5);
-    panel.add(badgeLabel);
-
-    // --- Separator line ---
-    const sepY = headerTop + headerH + 16;
-    const sepGfx = this.add.graphics();
-    sepGfx.lineStyle(1, 0x3a5060, 0.4);
-    sepGfx.lineBetween(-pw / 2 + 24, sepY, pw / 2 - 24, sepY);
-    panel.add(sepGfx);
-
-    // --- Description section ---
-    const descTop = sepY + 12;
-    const descLabel = this.add.text(-pw / 2 + 28, descTop, "DESCRIPTION", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#7a9aaa"
-    });
-    panel.add(descLabel);
-
-    const descBody = this.add.text(0, descTop + 24, relic.description, {
+    // Scene-level close button for reliable pointer hit testing
+    const closeBtnX = cx + pw / 2 - 22;
+    const closeBtnY = cy - ph / 2 + 22;
+    const closeBg = this.add.rectangle(closeBtnX, closeBtnY, 30, 30, 0x150E10, 1)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2004);
+    closeBg.setStrokeStyle(2, 0x77888C, 0.95);
+    const closeLabel = this.add.text(closeBtnX, closeBtnY, "X", {
       fontFamily: "dungeon-mode",
       fontSize: 14,
+      color: "#e8eced"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2005);
+    modalElements.push(closeBg, closeLabel);
+    closeBg.setInteractive({ useHandCursor: true });
+
+    closeBg.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      pointer.event.stopPropagation();
+      this.cleanupRelicDetails(modalElements);
+    });
+    closeBg.on("pointerover", () => {
+      closeBg.setFillStyle(0x2a343a, 1);
+      closeLabel.setColor("#ffffff");
+      this.tweens.add({ targets: [closeBg, closeLabel], scale: 1.08, duration: 100, ease: "Power2" });
+    });
+    closeBg.on("pointerout", () => {
+      closeBg.setFillStyle(0x150E10, 1);
+      closeLabel.setColor("#e8eced");
+      this.tweens.add({ targets: [closeBg, closeLabel], scale: 1, duration: 100, ease: "Power2" });
+    });
+
+    let currentY = -ph / 2 + 14 + headerH + 14;
+    const sep1 = this.add.rectangle(0, currentY - 6, pw - 30, 1, 0x556065, 0.8).setOrigin(0.5);
+    panel.add(sep1);
+
+    const leftX = -pw / 2 + 24;
+    const descLabel = this.add.text(leftX, currentY, "DESCRIPTION", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C"
+    }).setOrigin(0, 0);
+    panel.add(descLabel);
+    currentY += sectionLabelH;
+
+    const descBody = this.add.text(0, currentY, descriptionText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 15,
       color: "#d0dce4",
       align: "center",
-      wordWrap: { width: pw - 64 },
-      lineSpacing: 5
+      wordWrap: { width: contentWidth },
+      lineSpacing: 4
     }).setOrigin(0.5, 0);
     panel.add(descBody);
+    currentY += descBody.getBounds().height + 10;
 
-    const descHeight = descBody.getBounds().height;
+    const sep2 = this.add.rectangle(0, currentY + 4, pw - 30, 1, 0x556065, 0.8).setOrigin(0.5);
+    panel.add(sep2);
+    currentY += sectionGap;
 
-    // --- Lore section (positioned dynamically below description) ---
-    const loreTop = descTop + 24 + descHeight + 24;
-    const loreSepGfx = this.add.graphics();
-    loreSepGfx.lineStyle(1, 0x2e4a3a, 0.35);
-    loreSepGfx.lineBetween(-pw / 2 + 24, loreTop, pw / 2 - 24, loreTop);
-    panel.add(loreSepGfx);
-
-    const loreLabel = this.add.text(-pw / 2 + 28, loreTop + 10, "LORE", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#6fb590"
-    });
-    panel.add(loreLabel);
-
-    const lore = this.getRelicLore(relic);
-    const loreBody = this.add.text(0, loreTop + 34, lore, {
+    const loreLabel = this.add.text(leftX, currentY, "LORE", {
       fontFamily: "dungeon-mode",
-      fontSize: 13,
-      color: "#99b3a8",
+      fontSize: 12,
+      color: "#77888C"
+    }).setOrigin(0, 0);
+    panel.add(loreLabel);
+    currentY += sectionLabelH;
+
+    const loreBody = this.add.text(0, currentY, lore, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#9eb1b8",
       align: "center",
-      wordWrap: { width: pw - 64 },
-      lineSpacing: 5
+      wordWrap: { width: contentWidth },
+      lineSpacing: 4
     }).setOrigin(0.5, 0);
     panel.add(loreBody);
 
-    // === CLOSE BUTTON (scene-level, NOT inside panel container) ===
-    const closeBtnW = 26;
-    const closeBtnH = 26;
-    const closeBtnWorldX = cx + pw / 2 - 24;
-    const closeBtnWorldY = cy - ph / 2 + 24;
+    // Scene-level discard button for reliable pointer hit testing
+    const discBtnX = cx;
+    const discBtnY = cy + ph / 2 - 38;
+    const discBg = this.add.rectangle(discBtnX, discBtnY, 188, 40, 0x150E10, 0.95)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2004);
+    discBg.setStrokeStyle(3, 0x77888C, 0.9);
+    const discInner = this.add.rectangle(discBtnX, discBtnY, 184, 36, 0x1b2327, 0.65)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2004);
+    discInner.setStrokeStyle(1, 0x556065, 0.7);
+    const discLabel = this.add.text(discBtnX, discBtnY, "DISCARD RELIC", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2005);
+    modalElements.push(discBg, discInner, discLabel);
+    discBg.setInteractive({ useHandCursor: true });
 
-    const closeBtnBg = this.add.rectangle(closeBtnWorldX, closeBtnWorldY, closeBtnW, closeBtnH, 0x8b1a1a)
-      .setScrollFactor(0).setDepth(2003).setStrokeStyle(1, 0xc07070, 0.7);
-    modalElements.push(closeBtnBg);
-
-    const closeBtnLabel = this.add.text(closeBtnWorldX, closeBtnWorldY, "X", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 13, color: "#ffffff"
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(2004);
-    modalElements.push(closeBtnLabel);
-
-    closeBtnBg.setInteractive({ useHandCursor: true });
-    closeBtnBg.on("pointerover", () => {
-      closeBtnBg.setFillStyle(0xdc2626).setStrokeStyle(1, 0xfca5a5, 1);
+    discBg.on("pointerover", () => {
+      discBg.setFillStyle(0x1f1410, 1);
+      discLabel.setColor("#e8eced");
+      this.tweens.add({ targets: [discBg, discInner, discLabel], scale: 1.03, duration: 100, ease: "Power2" });
     });
-    closeBtnBg.on("pointerout", () => {
-      closeBtnBg.setFillStyle(0x8b1a1a).setStrokeStyle(1, 0xc07070, 0.7);
+    discBg.on("pointerout", () => {
+      discBg.setFillStyle(0x150E10, 0.95);
+      discLabel.setColor("#77888C");
+      this.tweens.add({ targets: [discBg, discInner, discLabel], scale: 1, duration: 100, ease: "Power2" });
     });
-    closeBtnBg.on("pointerdown", () => {
-      this.cleanupRelicDetails(modalElements);
-    });
-
-    // === DISCARD RELIC BUTTON (scene-level, NOT inside panel container) ===
-    const discBtnW = 160;
-    const discBtnH = 32;
-    const discBtnWorldX = cx;
-    const discBtnWorldY = cy + ph / 2 - 38;
-
-    const discBtnBg = this.add.rectangle(discBtnWorldX, discBtnWorldY, discBtnW, discBtnH, 0x6e2020)
-      .setScrollFactor(0).setDepth(2003).setStrokeStyle(1, 0xa06060, 0.75);
-    modalElements.push(discBtnBg);
-
-    const discBtnLabel = this.add.text(discBtnWorldX, discBtnWorldY, "DISCARD RELIC", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 11, color: "#e8b0b0"
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(2004);
-    modalElements.push(discBtnLabel);
-
-    discBtnBg.setInteractive({ useHandCursor: true });
-    discBtnBg.on("pointerover", () => {
-      discBtnBg.setFillStyle(0x9a3030).setStrokeStyle(1, 0xe08080, 0.85);
-      discBtnLabel.setColor("#ffffff");
-    });
-    discBtnBg.on("pointerout", () => {
-      discBtnBg.setFillStyle(0x6e2020).setStrokeStyle(1, 0xa06060, 0.75);
-      discBtnLabel.setColor("#e8b0b0");
-    });
-    discBtnBg.on("pointerdown", () => {
+    discBg.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      pointer.event.stopPropagation();
       this.showDiscardRelicConfirm(relic, relicIndex, modalElements);
     });
 
-    // --- Entrance animation ---
-    panel.setScale(0.85).setAlpha(0);
-    panelBlocker.setScale(0.85).setAlpha(0);
-    this.tweens.add({ targets: [panel, panelBlocker], scale: 1, alpha: { from: 0, to: 1 }, duration: 250, ease: 'Back.easeOut' });
-
-    // Close on overlay click (outside panel)
-    overlay.on('pointerdown', () => {
-      this.cleanupRelicDetails(modalElements);
+    // Entrance animation
+    panel.setScale(0.9).setAlpha(0);
+    this.tweens.add({
+      targets: panel,
+      scale: 1,
+      alpha: { from: 0, to: 1 },
+      duration: 240,
+      ease: "Back.easeOut"
     });
 
-    // Ignore clicks on the panel area (blocker absorbs them)
-    panelBlocker.on('pointerdown', () => { /* do nothing, just absorb the click */ });
+    overlay.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      const left = cx - pw / 2;
+      const right = cx + pw / 2;
+      const top = cy - ph / 2;
+      const bottom = cy + ph / 2;
+      const clickedInsidePanel =
+        pointer.x >= left && pointer.x <= right &&
+        pointer.y >= top && pointer.y <= bottom;
+
+      if (!clickedInsidePanel) {
+        this.cleanupRelicDetails(modalElements);
+      }
+    });
   }
 
   /**
@@ -3131,13 +3171,6 @@ export class Overworld extends Scene {
     const cx = screenW / 2;
     const cy = screenH / 2;
 
-    // Disable parent modal interactive elements while confirm is open
-    parentModalElements.forEach(el => {
-      if (el && 'disableInteractive' in el && typeof (el as any).disableInteractive === 'function') {
-        (el as any).disableInteractive();
-      }
-    });
-
     // Confirm elements for cleanup
     const confirmElements: Phaser.GameObjects.GameObject[] = [];
 
@@ -3147,106 +3180,255 @@ export class Overworld extends Scene {
     confirmElements.push(confirmOverlay);
 
     // Confirm box background
-    const boxW = 320;
-    const boxH = 170;
-    const boxBg = this.add.rectangle(cx, cy, boxW, boxH, 0x0e1318)
-      .setScrollFactor(0).setDepth(2201).setStrokeStyle(2, 0xd08080, 0.85).setInteractive();
+    const boxW = 380;
+    const boxH = 200;
+    const boxShadow = this.add.rectangle(cx + 4, cy + 4, boxW, boxH, 0x000000, 0.45)
+      .setScrollFactor(0).setDepth(2201);
+    confirmElements.push(boxShadow);
+
+    const boxBg = this.add.rectangle(cx, cy, boxW, boxH, 0x150E10, 0.98)
+      .setScrollFactor(0).setDepth(2202);
+    const boxOuter = this.add.rectangle(cx, cy, boxW + 6, boxH + 6, undefined, 0)
+      .setScrollFactor(0).setDepth(2202);
+    boxOuter.setStrokeStyle(3, 0x77888C, 0.9);
+    const boxInner = this.add.rectangle(cx, cy, boxW + 2, boxH + 2, undefined, 0)
+      .setScrollFactor(0).setDepth(2202);
+    boxInner.setStrokeStyle(2, 0x556065, 0.75);
+    const boxHeader = this.add.rectangle(cx, cy - boxH / 2 + 26, boxW - 20, 40, 0x1b2327, 0.72)
+      .setScrollFactor(0).setDepth(2203);
+    boxHeader.setStrokeStyle(1, 0x77888C, 0.5);
+    confirmElements.push(boxOuter, boxInner, boxHeader);
+    boxBg.setInteractive();
     confirmElements.push(boxBg);
 
     // Title
-    const title = this.add.text(cx, cy - boxH / 2 + 30, "Discard this relic?", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 16, color: "#ffe4e4"
+    const title = this.add.text(cx, cy - boxH / 2 + 26, "DISCARD THIS RELIC?", {
+      fontFamily: "dungeon-mode", fontSize: 16, color: "#e8eced"
     }).setOrigin(0.5).setScrollFactor(0).setDepth(2202);
     confirmElements.push(title);
 
     // Body
-    const body = this.add.text(cx, cy - boxH / 2 + 58, relic.name, {
+    const body = this.add.text(cx, cy - boxH / 2 + 68, relic.name, {
       fontFamily: "dungeon-mode", fontSize: 14, color: "#c8d8e2"
     }).setOrigin(0.5).setScrollFactor(0).setDepth(2202);
     confirmElements.push(body);
 
     // Warning
-    const warn = this.add.text(cx, cy - boxH / 2 + 82, "This cannot be undone.", {
-      fontFamily: "dungeon-mode", fontSize: 11, color: "#887070"
+    const warn = this.add.text(cx, cy - boxH / 2 + 92, "This action cannot be undone.", {
+      fontFamily: "dungeon-mode", fontSize: 11, color: "#a07c7c"
     }).setOrigin(0.5).setScrollFactor(0).setDepth(2202);
     confirmElements.push(warn);
-
-    // Helper to re-enable parent modal interactivity
-    const reEnableParent = () => {
-      parentModalElements.forEach(el => {
-        if (el && el.active && 'setInteractive' in el && typeof (el as any).setInteractive === 'function') {
-          (el as any).setInteractive();
-        }
-      });
-    };
 
     // Helper to destroy confirm dialog
     const closeConfirm = () => {
       confirmElements.forEach(el => { if (el && el.active) el.destroy(); });
       confirmElements.length = 0;
-      reEnableParent();
     };
+    let discardInProgress = false;
 
     // Cancel button
-    const cancelBw = 110;
-    const cancelBh = 34;
-    const cancelBtnBg = this.add.rectangle(cx - 65, cy + boxH / 2 - 36, cancelBw, cancelBh, 0x3a4a52)
-      .setScrollFactor(0).setDepth(2203).setStrokeStyle(1, 0x6a7a82, 0.8)
-      .setInteractive({ useHandCursor: true });
-    confirmElements.push(cancelBtnBg);
+    const btnW = 132;
+    const btnH = 40;
+    const btnY = cy + boxH / 2 - 42;
 
-    const cancelBtnLabel = this.add.text(cx - 65, cy + boxH / 2 - 36, "Cancel", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 13, color: "#ffffff"
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(2204);
-    confirmElements.push(cancelBtnLabel);
+    const cancelX = cx - 78;
+    const cancelBg = this.add.rectangle(cancelX, btnY, btnW, btnH, 0x150E10, 0.95)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2204);
+    cancelBg.setStrokeStyle(3, 0x77888C, 0.9);
+    const cancelInner = this.add.rectangle(cancelX, btnY, btnW - 4, btnH - 4, 0x1b2327, 0.65)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2204);
+    cancelInner.setStrokeStyle(1, 0x556065, 0.7);
+    const cancelBtnLabel = this.add.text(cancelX, btnY, "CANCEL", {
+      fontFamily: "dungeon-mode",
+      fontSize: 13,
+      color: "#77888C"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2205);
+    confirmElements.push(cancelBg, cancelInner, cancelBtnLabel);
+    cancelBg.setInteractive({ useHandCursor: true });
 
-    cancelBtnBg.on("pointerover", () => { cancelBtnBg.setFillStyle(0x4a5a62); });
-    cancelBtnBg.on("pointerout", () => { cancelBtnBg.setFillStyle(0x3a4a52); });
-    cancelBtnBg.on("pointerdown", () => { closeConfirm(); });
+    cancelBg.on("pointerover", () => {
+      cancelBg.setFillStyle(0x1f1410, 1);
+      cancelBtnLabel.setColor("#e8eced");
+      cancelBg.setScale(1.04);
+      cancelInner.setScale(1.04);
+      cancelBtnLabel.setScale(1.04);
+    });
+    cancelBg.on("pointerout", () => {
+      cancelBg.setFillStyle(0x150E10, 0.95);
+      cancelBtnLabel.setColor("#77888C");
+      cancelBg.setScale(1);
+      cancelInner.setScale(1);
+      cancelBtnLabel.setScale(1);
+    });
+    cancelBg.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      pointer.event.stopPropagation();
+      closeConfirm();
+    });
 
     // Discard button
-    const discardBtnBg = this.add.rectangle(cx + 65, cy + boxH / 2 - 36, cancelBw, cancelBh, 0x8b2020)
-      .setScrollFactor(0).setDepth(2203).setStrokeStyle(1, 0xd08080, 0.8)
-      .setInteractive({ useHandCursor: true });
-    confirmElements.push(discardBtnBg);
+    const discardX = cx + 78;
+    const discardBg = this.add.rectangle(discardX, btnY, btnW, btnH, 0x150E10, 0.95)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2204);
+    discardBg.setStrokeStyle(3, 0x77888C, 0.9);
+    const discardInner = this.add.rectangle(discardX, btnY, btnW - 4, btnH - 4, 0x1b2327, 0.65)
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(2204);
+    discardInner.setStrokeStyle(1, 0x556065, 0.7);
+    const discardBtnLabel = this.add.text(discardX, btnY, "DISCARD", {
+      fontFamily: "dungeon-mode",
+      fontSize: 13,
+      color: "#77888C"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2205);
+    confirmElements.push(discardBg, discardInner, discardBtnLabel);
+    discardBg.setInteractive({ useHandCursor: true });
 
-    const discardBtnLabel = this.add.text(cx + 65, cy + boxH / 2 - 36, "Discard", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 13, color: "#ffffff"
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(2204);
-    confirmElements.push(discardBtnLabel);
+    discardBg.on("pointerover", () => {
+      discardBg.setFillStyle(0x1f1410, 1);
+      discardBtnLabel.setColor("#e8eced");
+      discardBg.setScale(1.04);
+      discardInner.setScale(1.04);
+      discardBtnLabel.setScale(1.04);
+    });
+    discardBg.on("pointerout", () => {
+      discardBg.setFillStyle(0x150E10, 0.95);
+      discardBtnLabel.setColor("#77888C");
+      discardBg.setScale(1);
+      discardInner.setScale(1);
+      discardBtnLabel.setScale(1);
+    });
+    discardBg.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      pointer.event.stopPropagation();
+      if (discardInProgress) return;
+      discardInProgress = true;
 
-    discardBtnBg.on("pointerover", () => { discardBtnBg.setFillStyle(0xa33232); });
-    discardBtnBg.on("pointerout", () => { discardBtnBg.setFillStyle(0x8b2020); });
-    discardBtnBg.on("pointerdown", () => {
-      // Remove relic from player data
-      if (relicIndex >= 0 && relicIndex < this.playerData.relics.length) {
-        this.playerData.relics.splice(relicIndex, 1);
-      } else {
-        const idx = this.playerData.relics.findIndex(r => r.id === relic.id);
-        if (idx !== -1) this.playerData.relics.splice(idx, 1);
-      }
+      // Lock confirm controls while discard animation plays
+      cancelBg.disableInteractive();
+      discardBg.disableInteractive();
+      confirmOverlay.disableInteractive();
 
-      // Persist to GameState
-      const gameState = GameState.getInstance();
-      gameState.updatePlayerData({
-        ...this.playerData,
-        relics: [...this.playerData.relics],
-        potions: [...this.playerData.potions]
-      });
-
-      // Refresh overworld relics display
-      this.updateOverworldUI();
-
-      // Clean up everything
+      // Close confirmation + parent modal first, then animate in the actual inventory slot.
       closeConfirm();
       this.cleanupRelicDetails(parentModalElements);
+
+      this.playRelicDiscardInventoryAnimation(relic, relicIndex, () => {
+        // Remove relic from player data after slot animation
+        if (relicIndex >= 0 && relicIndex < this.playerData.relics.length) {
+          this.playerData.relics.splice(relicIndex, 1);
+        } else {
+          const idx = this.playerData.relics.findIndex(r => r.id === relic.id);
+          if (idx !== -1) this.playerData.relics.splice(idx, 1);
+        }
+
+        // Persist to GameState
+        const gameState = GameState.getInstance();
+        gameState.updatePlayerData({
+          ...this.playerData,
+          relics: [...this.playerData.relics],
+          potions: [...this.playerData.potions]
+        });
+
+        // Refresh overworld relics display
+        this.updateOverworldUI();
+      });
     });
 
     // Close confirm on clicking overlay outside the box
-    confirmOverlay.on('pointerdown', () => { closeConfirm(); });
+    confirmOverlay.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      const left = cx - boxW / 2;
+      const right = cx + boxW / 2;
+      const top = cy - boxH / 2;
+      const bottom = cy + boxH / 2;
+      const clickedInsideBox =
+        pointer.x >= left && pointer.x <= right &&
+        pointer.y >= top && pointer.y <= bottom;
+      if (!clickedInsideBox) {
+        closeConfirm();
+      }
+    });
 
     // Prevent box background clicks from reaching confirm overlay
-    boxBg.on('pointerdown', () => { /* absorb click */ });
+    boxBg.on("pointerdown", (pointer: Phaser.Input.Pointer) => { pointer.event.stopPropagation(); });
+  }
+
+  /**
+   * Play relic discard animation at the relic's actual inventory slot.
+   * Runs after confirmation modal closes.
+   */
+  private playRelicDiscardInventoryAnimation(
+    relic: Relic,
+    relicIndex: number,
+    onComplete: () => void
+  ): void {
+    const slotSize = 60;
+    const slotSpacing = 10;
+    const slotsPerRow = 3;
+
+    let centerX = this.cameras.main.width / 2;
+    let centerY = this.cameras.main.height / 2;
+
+    if (this.relicsContainer) {
+      const row = Math.floor(relicIndex / slotsPerRow);
+      const col = relicIndex % slotsPerRow;
+      const localX = col * (slotSize + slotSpacing) + slotSize / 2;
+      const localY = row * (slotSize + slotSpacing) + slotSize / 2;
+
+      const matrix = this.relicsContainer.getWorldTransformMatrix();
+      const worldPoint = new Phaser.Math.Vector2();
+      matrix.transformPoint(localX, localY, worldPoint);
+      centerX = worldPoint.x;
+      centerY = worldPoint.y;
+    }
+
+    const spriteKey = getRelicSpriteKey(relic.id);
+    let relicFx: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+    if (spriteKey && this.textures.exists(spriteKey)) {
+      relicFx = this.add.image(centerX, centerY, spriteKey).setOrigin(0.5).setDepth(2602).setScrollFactor(0);
+      relicFx.setDisplaySize(48, 48);
+    } else {
+      relicFx = this.add.text(centerX, centerY, relic.emoji || "✦", { fontSize: 34 }).setOrigin(0.5).setDepth(2602).setScrollFactor(0);
+    }
+
+    const burst = this.add.circle(centerX, centerY, 8, 0xff6b6b, 0.9).setDepth(2601).setScrollFactor(0);
+    burst.setBlendMode(Phaser.BlendModes.ADD);
+    const ring = this.add.circle(centerX, centerY, 12, 0xff9f43, 0).setDepth(2601).setScrollFactor(0);
+    ring.setStrokeStyle(3, 0xff9f43, 0.9);
+
+    this.tweens.add({
+      targets: burst,
+      scale: 5.4,
+      alpha: 0,
+      duration: 280,
+      ease: "Cubic.easeOut"
+    });
+    this.tweens.add({
+      targets: ring,
+      scale: 2.4,
+      alpha: 0,
+      duration: 300,
+      ease: "Sine.easeOut"
+    });
+    this.tweens.add({
+      targets: relicFx,
+      y: centerY - 34,
+      angle: 180,
+      scale: 0.12,
+      alpha: 0,
+      duration: 360,
+      ease: "Back.easeIn",
+      onComplete: () => {
+        relicFx.destroy();
+        burst.destroy();
+        ring.destroy();
+        onComplete();
+      }
+    });
   }
 
   private truncateTextToLines(textObject: Phaser.GameObjects.Text, maxLines: number): void {

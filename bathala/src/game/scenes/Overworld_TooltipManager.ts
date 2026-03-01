@@ -232,7 +232,7 @@ export class Overworld_TooltipManager {
       sprite.setOrigin(0.5, 0.5);
       
       // Scale to fit the container
-      const targetSize = 48;
+      const targetSize = enemyInfo.spriteKey.includes("_almanac") ? 54 : 48;
       const scale = targetSize / Math.max(sprite.width, sprite.height);
       sprite.setScale(scale);
       
@@ -558,7 +558,8 @@ export class Overworld_TooltipManager {
       APOLAKI_GODLING,
       FALSE_BATHALA
     ];
-    const enemy = allEnemies.find(e => e.name === enemyId);
+    // `enemyId` may be either config id (preferred) or legacy display name.
+    const enemy = allEnemies.find(e => e.id === enemyId || e.name === enemyId);
 
     if (!enemy) return null;
 
@@ -735,25 +736,36 @@ export class Overworld_TooltipManager {
     
     const lore = loreMap[enemy.name];
 
-    // Generate sprite key from enemy name
-    let spriteKeyBase = enemy.name.toLowerCase().split(" ")[0];
-    // Handle special cases for multi-word names
-    if (spriteKeyBase === "tawong") {
-        spriteKeyBase = "tawonglipod";
+    // Prefer Discover (almanac/compendium) portraits for hover info box.
+    // Match Discover scene mapping by enemy config id.
+    const discoverSpriteMapById: Record<string, string> = {
+      "tikbalang_scout": "tikbalang_almanac",
+      "balete_wraith": "balete_almanac",
+      "sigbin_charger": "sigbin_almanac",
+      "duwende_trickster": "duwende_almanac",
+      "tiyanak_ambusher": "tiyanak_almanac",
+      "amomongo": "amomongo_almanac",
+      "bungisngis": "bungisngis_almanac",
+      "kapre_shade": "kapre_almanac",
+      "tawong_lipod": "tawonglipod_almanac",
+      "mangangaway": "mangangaway_almanac"
+    };
+
+    const discoverSpriteKey = discoverSpriteMapById[enemy.id];
+    let spriteKey = discoverSpriteKey && this.scene.textures.exists(discoverSpriteKey)
+      ? discoverSpriteKey
+      : enemy.overworldSpriteKey;
+
+    // Last-resort fallback for any malformed/missing sprite key.
+    if (!spriteKey || !this.scene.textures.exists(spriteKey)) {
+      let spriteKeyBase = enemy.name.toLowerCase().split(" ")[0];
+      if (spriteKeyBase === "tawong") spriteKeyBase = "tawonglipod";
+      if (enemy.name.toLowerCase().includes("tawong")) spriteKeyBase = "tawonglipod";
+      if (enemy.name.toLowerCase().includes("apoy-tubig")) spriteKeyBase = "apoytubig";
+      if (enemy.name.toLowerCase().includes("ribung linti")) spriteKeyBase = "ribunglinti";
+      if (enemy.name.toLowerCase().includes("false bathala")) spriteKeyBase = "falsebathala";
+      spriteKey = `${spriteKeyBase}_overworld`;
     }
-    if (enemy.name.toLowerCase().includes("tawong")) {
-        spriteKeyBase = "tawonglipod";
-    }
-    if (enemy.name.toLowerCase().includes("apoy-tubig")) {
-        spriteKeyBase = "apoytubig";
-    }
-    if (enemy.name.toLowerCase().includes("ribung linti")) {
-        spriteKeyBase = "ribunglinti";
-    }
-    if (enemy.name.toLowerCase().includes("false bathala")) {
-        spriteKeyBase = "falsebathala";
-    }
-    const spriteKey = spriteKeyBase + "_overworld";
 
     return {
       name: enemy.name,

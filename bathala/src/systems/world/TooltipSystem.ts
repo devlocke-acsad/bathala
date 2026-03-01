@@ -189,13 +189,17 @@ export class Overworld_TooltipManager {
     
     // Clear previous sprite and add new one
     this.tooltipSpriteContainer.removeAll(true);
+    const isPortraitTooltip = !!enemyInfo.spriteKey && enemyInfo.spriteKey.includes("_almanac");
+    this.tooltipContainer.setData("isPortraitTooltip", isPortraitTooltip);
+
     if (enemyInfo.spriteKey) {
       const sprite = this.scene.add.sprite(0, 0, enemyInfo.spriteKey);
       sprite.setOrigin(0.5, 0.5);
       
-      // Scale to fit the container
-      const targetSize = 48;
-      const scale = targetSize / Math.max(sprite.width, sprite.height);
+      // Match Discover detail-view portrait sizing for almanac art.
+      const scale = isPortraitTooltip
+        ? Math.min(200 / sprite.width, 200 / sprite.height)
+        : (56 / Math.max(sprite.width, sprite.height));
       sprite.setScale(scale);
       
       // If it's an animated sprite, play the idle animation
@@ -247,6 +251,7 @@ export class Overworld_TooltipManager {
     this.tooltipTypeText.setColor("#77888C");
     
     // Clear previous sprite and add new one
+    this.tooltipContainer.setData("isPortraitTooltip", false);
     this.tooltipSpriteContainer.removeAll(true);
     if (nodeInfo.spriteKey) {
       const sprite = this.scene.add.sprite(0, 0, nodeInfo.spriteKey);
@@ -352,12 +357,23 @@ export class Overworld_TooltipManager {
     if (!this.tooltipContainer || !this.tooltipBackground) {
       return;
     }
+
+    const baseNameFontSize = 16;
+    const baseTypeFontSize = 11;
+    const baseDescFontSize = 11;
+
+    // Reset to base first so sizing doesn't compound across repeated hover updates.
+    this.tooltipNameText?.setFontSize(baseNameFontSize);
+    this.tooltipTypeText?.setFontSize(baseTypeFontSize);
+    this.tooltipDescriptionText?.setFontSize(baseDescFontSize);
     
-    // Calculate dynamic tooltip size based on content - Prologue/Combat style
+    // Calculate dynamic tooltip size based on content - Prologue/Combat style.
+    // Enemy portrait tooltips need a larger header area and width for Discover assets.
+    const isPortraitTooltip = !!this.tooltipContainer.getData("isPortraitTooltip");
     const padding = 26; // Internal padding
-    const headerHeight = 70;
-    const minWidth = 420;
-    const maxWidth = 550;
+    const headerHeight = isPortraitTooltip ? 236 : 74;
+    const minWidth = isPortraitTooltip ? 560 : 420;
+    const maxWidth = isPortraitTooltip ? 760 : 550;
     
     // Get actual text bounds (only description now)
     const descHeight = this.tooltipDescriptionText?.height || 80;
@@ -369,10 +385,10 @@ export class Overworld_TooltipManager {
     // Calculate required width
     const nameWidth = this.tooltipNameText?.width || 100;
     const descWidth = this.tooltipDescriptionText?.width || 100;
-    const spriteAreaWidth = 80;
+    const spriteAreaWidth = isPortraitTooltip ? 250 : 95;
     const maxContentWidth = Math.max(nameWidth + spriteAreaWidth, descWidth);
     const tooltipWidth = Math.max(minWidth, Math.min(maxWidth, maxContentWidth + padding * 2));
-    const tooltipHeight = Math.max(200, totalHeight);
+    const tooltipHeight = Math.max(isPortraitTooltip ? 390 : 210, totalHeight);
     
     // Get dynamic elements from container data
     const outerBorder = this.tooltipContainer.getData('outerBorder') as Phaser.GameObjects.Rectangle;
@@ -388,13 +404,14 @@ export class Overworld_TooltipManager {
     
     // Update separator widths and positions
     headerSeparator?.setSize(tooltipWidth - 20, 2);
-    headerSeparator?.setPosition(18, 68);
+    headerSeparator?.setPosition(18, headerHeight - 12);
     
     // Hide the stats separator (no longer needed)
     statsSeparator?.setVisible(false);
     
     // Reposition sprite container
-    this.tooltipSpriteContainer?.setPosition(tooltipWidth - 60, 35);
+    this.tooltipSpriteContainer?.setSize(isPortraitTooltip ? 220 : 70, isPortraitTooltip ? 220 : 70);
+    this.tooltipSpriteContainer?.setPosition(tooltipWidth - (isPortraitTooltip ? 130 : 60), isPortraitTooltip ? 122 : 35);
     
     // Update text wrapping (only description now)
     const textWidth = tooltipWidth - 40;
@@ -403,32 +420,52 @@ export class Overworld_TooltipManager {
     // Position description text directly after header
     const descY = headerHeight + 10;
     this.tooltipDescriptionText?.setPosition(18, descY);
+
+    // Dynamically increase font sizes when tooltip is spacious relative to text.
+    // This keeps short descriptions readable in larger portrait tooltips.
+    const maxDescHeight = tooltipHeight - descY - 18;
+    const descTextLength = this.tooltipDescriptionText?.text?.length ?? 0;
+    const isShortText = descTextLength > 0 && descTextLength <= 220;
+    const hasLargePanel = tooltipWidth >= 560 || tooltipHeight >= 360;
+    if (isPortraitTooltip && hasLargePanel && isShortText) {
+      let boostedName = 20;
+      let boostedType = 13;
+      let boostedDesc = 15;
+
+      this.tooltipNameText?.setFontSize(boostedName);
+      this.tooltipTypeText?.setFontSize(boostedType);
+      this.tooltipDescriptionText?.setFontSize(boostedDesc);
+      this.tooltipDescriptionText?.setWordWrapWidth(textWidth);
+
+      // Guardrail: if boosted text overflows, step down until it fits.
+      while ((this.tooltipDescriptionText?.height ?? 0) > maxDescHeight && boostedDesc > baseDescFontSize) {
+        boostedDesc -= 1;
+        boostedName = Math.max(baseNameFontSize, boostedName - 1);
+        boostedType = Math.max(baseTypeFontSize, boostedType - 1);
+        this.tooltipNameText?.setFontSize(boostedName);
+        this.tooltipTypeText?.setFontSize(boostedType);
+        this.tooltipDescriptionText?.setFontSize(boostedDesc);
+        this.tooltipDescriptionText?.setWordWrapWidth(textWidth);
+      }
+    }
     
     // Hide the description separator (cleaner look)
     descSeparator?.setVisible(false);
     
-    // Position tooltip on the RIGHT side of the screen (fixed position)
-    // Account for camera zoom to keep position stable during day/night transitions
+    // Position tooltip on the RIGHT side of the screen (fixed position).
+    // Keep this in pure screen space so camera zoom/day-night transitions
+    // never shift the tooltip container.
     const camera = this.scene.cameras.main;
     const screenWidth = camera.width;
     const screenHeight = camera.height;
-    const cameraZoom = camera.zoom;
-    
-    // Scale tooltip inversely to compensate for zoom (like other UI elements)
-    const uiScale = 1 / cameraZoom;
-    this.tooltipContainer.setScale(uiScale);
-    
-    // Calculate offset to compensate for zoom (same formula as FogOfWarManager)
-    const offsetX = (screenWidth * (cameraZoom - 1)) / (2 * cameraZoom);
-    const offsetY = (screenHeight * (cameraZoom - 1)) / (2 * cameraZoom);
+    this.tooltipContainer.setScale(1);
     
     // Always position on the right side of the screen
     const rightMargin = 20;
-    // Position from right edge, accounting for zoom offset
-    const tooltipX = screenWidth - tooltipWidth - rightMargin - offsetX;
+    const tooltipX = screenWidth - tooltipWidth - rightMargin;
     
-    // Vertically center the tooltip, accounting for zoom offset
-    const tooltipY = (screenHeight - tooltipHeight) / 2 + offsetY;
+    // Vertically center the tooltip
+    const tooltipY = (screenHeight - tooltipHeight) / 2;
     
     // Position tooltip (fixed to right side, doesn't follow mouse)
     this.tooltipContainer.setPosition(tooltipX, tooltipY);
@@ -490,7 +527,23 @@ export class Overworld_TooltipManager {
       return null;
     }
 
-    const spriteKey = EnemyRegistry.getOverworldSprite(enemy.id);
+    // Use Discover/Compendium portraits when available, otherwise fallback to overworld sprites.
+    const discoverSpriteMapById: Record<string, string> = {
+      "tikbalang_scout": "tikbalang_almanac",
+      "balete_wraith": "balete_almanac",
+      "sigbin_charger": "sigbin_almanac",
+      "duwende_trickster": "duwende_almanac",
+      "tiyanak_ambusher": "tiyanak_almanac",
+      "amomongo": "amomongo_almanac",
+      "bungisngis": "bungisngis_almanac",
+      "kapre_shade": "kapre_almanac",
+      "tawong_lipod": "tawonglipod_almanac",
+      "mangangaway": "mangangaway_almanac"
+    };
+    const discoverSpriteKey = discoverSpriteMapById[enemy.id];
+    const spriteKey = discoverSpriteKey && this.scene.textures.exists(discoverSpriteKey)
+      ? discoverSpriteKey
+      : EnemyRegistry.getOverworldSprite(enemy.id);
     const abilities = enemy.intent.description || enemy.attackPattern.join(" • ");
     const origin = enemy.lore.origin;
     const description = `${enemy.lore.description}\n\n${enemy.dialogue.intro}`;
