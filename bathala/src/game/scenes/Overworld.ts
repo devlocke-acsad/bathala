@@ -106,6 +106,12 @@ export class Overworld extends Scene {
   // Fog of War Manager
   private fogOfWarManager!: FogOfWarSystem;
   
+  /** Tracks last known day/night state so transition text only fires once per change */
+  private lastKnownIsDay: boolean | null = null;
+  
+  /** Active day/night transition text container (for zoom compensation) */
+  dayNightTransitionContainer: Phaser.GameObjects.Container | null = null;
+  
   // Music
   private musicLifecycle!: MusicLifecycleSystem;
 
@@ -983,6 +989,12 @@ export class Overworld extends Scene {
     if (this.fogOfWarManager) {
       this.fogOfWarManager.updateDayNight(this.gameState.isDay);
     }
+
+    // Show transition text only when the day/night state actually changes
+    if (this.lastKnownIsDay !== null && this.lastKnownIsDay !== this.gameState.isDay) {
+      this.showDayNightTransitionText(this.gameState.isDay);
+    }
+    this.lastKnownIsDay = this.gameState.isDay;
   }
 
   // No need for resume method since we handle state restoration in create()
@@ -1264,6 +1276,94 @@ export class Overworld extends Scene {
     if (this.fogOfWarManager) {
       this.fogOfWarManager.updateDayNight(this.gameState.isDay);
     }
+
+    // Show transition text only when the day/night state actually changes
+    if (this.lastKnownIsDay !== null && this.lastKnownIsDay !== this.gameState.isDay) {
+      this.showDayNightTransitionText(this.gameState.isDay);
+    }
+    this.lastKnownIsDay = this.gameState.isDay;
+  }
+
+  /**
+   * Display a cinematic text overlay during day/night transitions.
+   * Night: foreboding "Night / Gabi", Day: uplifting "Morning / Umaga"
+   */
+  private showDayNightTransitionText(isDay: boolean): void {
+    const cx = this.cameras.main.width / 2;
+    const cy = this.cameras.main.height / 2;
+
+    const mainLabel = isDay ? 'Morning' : 'Night';
+    const subLabel  = isDay ? 'Umaga'   : 'Gabi';
+    const mainColor = isDay ? '#FFD368' : '#7144FF';
+    const subColor  = isDay ? '#FFF0C8' : '#B8A0FF';
+
+    // Destroy any existing transition container
+    if (this.dayNightTransitionContainer) {
+      this.dayNightTransitionContainer.destroy();
+      this.dayNightTransitionContainer = null;
+    }
+
+    const screenW = this.cameras.main.width;
+    const offLeft = -250;
+    const offRight = screenW + 250;
+
+    const container = this.add.container(offLeft, cy)
+      .setAlpha(1)
+      .setScrollFactor(0)
+      .setDepth(DEPTH.TRANSITION_EFFECTS);
+    this.dayNightTransitionContainer = container;
+
+    // Background box matching inventory panel style
+    const boxW = 400;
+    const boxH = 160;
+    const panelGfx = this.add.graphics();
+    panelGfx.fillStyle(0x080b0d, 1.0);
+    panelGfx.lineStyle(2, 0x586670, 1.0);
+    panelGfx.fillRect(-boxW / 2, -boxH / 2, boxW, boxH);
+    panelGfx.strokeRect(-boxW / 2, -boxH / 2, boxW, boxH);
+
+    const innerBorder = this.add.graphics();
+    innerBorder.lineStyle(1, 0x2f3940, 1.0);
+    innerBorder.strokeRect(-boxW / 2 + 6, -boxH / 2 + 6, boxW - 12, boxH - 12);
+
+    const mainText = this.add.text(0, -16, mainLabel, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '42px',
+      color: mainColor,
+      align: 'center',
+    }).setOrigin(0.5);
+
+    const subText = this.add.text(0, 28, subLabel, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '18px',
+      color: subColor,
+      align: 'center',
+    }).setOrigin(0.5);
+
+    container.add([panelGfx, innerBorder, mainText, subText]);
+
+    // Swoop in from the left to center
+    this.tweens.add({
+      targets: container,
+      x: cx,
+      duration: 400,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Hold in center, then swoop out to the right
+        this.time.delayedCall(1200, () => {
+          this.tweens.add({
+            targets: container,
+            x: offRight,
+            duration: 400,
+            ease: 'Back.easeIn',
+            onComplete: () => {
+              container.destroy();
+              this.dayNightTransitionContainer = null;
+            }
+          });
+        });
+      }
+    });
   }
 
   /**
@@ -2197,8 +2297,9 @@ export class Overworld extends Scene {
       this.fogOfWarManager.update(this.player.x, this.player.y);
     }
 
-    // Skip input handling if player is currently moving or transitioning to combat
-    if (this.isMoving || this.isTransitioningToCombat) {
+    // Skip input handling if player is currently moving, transitioning to combat,
+    // or fog of war is transitioning (prevents light-source bugs during visibility changes)
+    if (this.isMoving || this.isTransitioningToCombat || this.fogOfWarManager?.isTransitioning) {
       return;
     }
     
@@ -3186,8 +3287,9 @@ export class Overworld extends Scene {
       fogDepth: DEPTH.FOG_OF_WAR      // Above map tiles, below NPCs and UI
     });
     
-    // Set initial fog state based on current day/night
+    // Set initial fog state based on current day/night (no transition text on init)
     this.fogOfWarManager.updateDayNight(this.gameState.isDay);
+    this.lastKnownIsDay = this.gameState.isDay;
     
     console.log("✅ Fog of war system initialized");
   }
