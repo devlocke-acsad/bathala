@@ -415,28 +415,20 @@ export class Overworld_TooltipManager {
     // Hide the description separator (cleaner look)
     descSeparator?.setVisible(false);
     
-    // Position tooltip on the RIGHT side of the screen (fixed position)
-    // Account for camera zoom to keep position stable during day/night transitions
+    // Position tooltip on the RIGHT side of the screen (fixed position).
+    // Keep this in pure screen space so camera zoom/day-night transitions
+    // never shift the tooltip container.
     const camera = this.scene.cameras.main;
     const screenWidth = camera.width;
     const screenHeight = camera.height;
-    const cameraZoom = camera.zoom;
-    
-    // Scale tooltip inversely to compensate for zoom (like other UI elements)
-    const uiScale = 1 / cameraZoom;
-    this.tooltipContainer.setScale(uiScale);
-    
-    // Calculate offset to compensate for zoom (same formula as FogOfWarManager)
-    const offsetX = (screenWidth * (cameraZoom - 1)) / (2 * cameraZoom);
-    const offsetY = (screenHeight * (cameraZoom - 1)) / (2 * cameraZoom);
+    this.tooltipContainer.setScale(1);
     
     // Always position on the right side of the screen
     const rightMargin = 20;
-    // Position from right edge, accounting for zoom offset
-    const tooltipX = screenWidth - tooltipWidth - rightMargin - offsetX;
+    const tooltipX = screenWidth - tooltipWidth - rightMargin;
     
-    // Vertically center the tooltip, accounting for zoom offset
-    const tooltipY = (screenHeight - tooltipHeight) / 2 + offsetY;
+    // Vertically center the tooltip
+    const tooltipY = (screenHeight - tooltipHeight) / 2;
     
     // Position tooltip (fixed to right side, doesn't follow mouse)
     this.tooltipContainer.setPosition(tooltipX, tooltipY);

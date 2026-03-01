@@ -832,11 +832,17 @@ export class Overworld_MazeGenManager {
     // Add hover functionality for all interactive nodes
     if (node.type === "combat" || node.type === "elite" || node.type === "boss" || 
         node.type === "shop" || node.type === "event" || node.type === "campfire" || node.type === "treasure") {
-      // Set interactive with explicit hit area to prevent cursor issues
-      const hitAreaSize = targetSize;
+      // Make the entire rendered node asset hoverable (not just a small center circle).
+      const hitAreaWidth = nodeSprite.displayWidth + 8;
+      const hitAreaHeight = nodeSprite.displayHeight + 8;
       nodeSprite.setInteractive(
-        new Phaser.Geom.Circle(0, 0, hitAreaSize / 2),
-        Phaser.Geom.Circle.Contains
+        new Phaser.Geom.Rectangle(
+          -hitAreaWidth / 2,
+          -hitAreaHeight / 2,
+          hitAreaWidth,
+          hitAreaHeight
+        ),
+        Phaser.Geom.Rectangle.Contains
       );
       
       if (onHoverStart) {

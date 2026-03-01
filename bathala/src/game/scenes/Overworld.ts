@@ -2399,6 +2399,13 @@ export class Overworld extends Scene {
     // Create main UI container positioned at top-left
     this.uiContainer = this.add.container(0, 0);
     this.uiContainer.setScrollFactor(0).setDepth(1500);
+
+    // Put tooltip on the same UI layer as inventory so it inherits
+    // the exact same zoom compensation during day/night transitions.
+    const tooltipContainer = this.tooltipManager?.getTooltipContainer?.();
+    if (tooltipContainer && tooltipContainer.parentContainer !== this.uiContainer) {
+      this.uiContainer.add(tooltipContainer);
+    }
     
     // Create compact left panel for all UI elements
     this.createCompactLeftPanel(screenHeight);
