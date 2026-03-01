@@ -161,7 +161,7 @@ export class Treasure extends Scene {
       return;
     }
 
-    this.cameras.main.setBackgroundColor(0x0e1112);
+    this.cameras.main.setBackgroundColor(0x150E10);
 
     // Add forest background image
     const forestBg = this.add.image(
@@ -178,30 +178,53 @@ export class Treasure extends Scene {
 
     // Dim only the background image (not the whole screen)
     forestBg.setAlpha(0.45); // 45% visible = balanced dimming for treasure
+    this.add.rectangle(
+      this.cameras.main.width / 2,
+      this.cameras.main.height / 2,
+      this.cameras.main.width,
+      this.cameras.main.height,
+      0x150E10,
+      0.46
+    ).setDepth(1);
 
     // Create title
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
 
     const titleY = Math.max(24, screenHeight * 0.06);
+    // Header panel matching updated scene style
+    const titlePanel = this.add.rectangle(screenWidth / 2, titleY, 560, 56, 0x150E10, 0.95).setDepth(20);
+    const titleOuter = this.add.rectangle(screenWidth / 2, titleY, 566, 62, undefined, 0).setDepth(20);
+    titleOuter.setStrokeStyle(3, 0x77888C, 0.9);
+    const titleInner = this.add.rectangle(screenWidth / 2, titleY, 562, 58, undefined, 0).setDepth(20);
+    titleInner.setStrokeStyle(2, 0x556065, 0.75);
+
     const title = this.add.text(
       screenWidth / 2,
       titleY,
       "Treasure Chest",
       {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 32,
         color: "#e8eced",
         align: "center",
       }
-    ).setOrigin(0.5);
+    ).setOrigin(0.5).setDepth(21);
     // Add a soft shadow like in Shop for better readability
     title.setShadow(2, 2, '#000000', 3, false, true);
 
-    // Create treasure chest
-    const chestY = Math.min(screenHeight * 0.42, screenHeight / 2 - 80);
-    this.treasureChest = this.add.sprite(screenWidth / 2, chestY, "chest");
-    this.treasureChest.setScale(2);
+    // Create treasure chest composition
+    const chestY = Math.min(screenHeight * 0.3, screenHeight / 2 - 150);
+    const chestX = screenWidth * 0.5;
+    this.treasureChest = this.add.sprite(chestX, chestY, "chest");
+    this.treasureChest.setScale(4);
+    this.treasureChest.setDepth(40);
+
+    // Add warm chest glow to make treasure the scene focal point.
+    const chestGlowOuter = this.add.circle(chestX, chestY + 14, 92, 0xf6c358, 0.17).setDepth(36);
+    chestGlowOuter.setBlendMode(Phaser.BlendModes.ADD);
+    const chestGlowInner = this.add.circle(chestX, chestY + 14, 56, 0xf6c358, 0.22).setDepth(37);
+    chestGlowInner.setBlendMode(Phaser.BlendModes.ADD);
 
     // Try to play animation, fallback if it fails
     try {
@@ -211,29 +234,43 @@ export class Treasure extends Scene {
     }
 
     // Entrance animation to match Shop feel
-    this.treasureChest.setScale(1.8).setAlpha(0.85);
+    this.treasureChest.setScale(3.7).setAlpha(0.85);
     this.tweens.add({
       targets: this.treasureChest,
-      scale: 2,
+      scale: 4,
       alpha: 1,
       duration: 300,
       ease: 'Back.easeOut'
     });
 
-    // Create description text
-    const descY = Math.min(chestY + 110, screenHeight * 0.6);
+    // Mid-screen callout between chest and reward choices.
+    this.add.text(
+      screenWidth / 2,
+      Math.min(chestY + 120, screenHeight * 0.52),
+      "Claim your reward — choose only one.",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 16,
+        color: "#77888C",
+        align: "center"
+      }
+    ).setOrigin(0.5).setDepth(31);
+
+    // Create description text in the lower-center gap (between choices and leave button)
+    const descY = screenHeight - 190;
     this.descriptionText = this.add.text(
       screenWidth / 2,
       descY,
-      "Choose a relic to add to your collection",
+      "Hover a reward to preview its description",
       {
         fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#ffd93d",
+        fontSize: 16,
+        color: "#d0dce4",
         align: "center",
-        wordWrap: { width: Math.max(240, Math.floor(screenWidth * 0.8)) }
+        wordWrap: { width: Math.max(300, Math.floor(screenWidth * 0.7)) },
+        lineSpacing: 4
       }
-    ).setOrigin(0.5);
+    ).setOrigin(0.5).setDepth(30);
 
     // Create relic options
     this.createRelicOptions();
@@ -278,7 +315,6 @@ export class Treasure extends Scene {
     return pool[pool.length - 1].relic;
   }
 
-
   private createRelicOptions(): void {
     // Debug: check if heal_potion texture is loaded
     if (!this.textures.exists("heal_potion")) {
@@ -286,13 +322,19 @@ export class Treasure extends Scene {
     }
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    const isNarrow = screenWidth < 520;
-    const buttonWidth = isNarrow ? 84 : 100;
-    const buttonHeight = isNarrow ? 84 : 100;
-    const spacing = isNarrow ? 28 : 50;
+    const isNarrow = screenWidth < 700;
+    const buttonWidth = isNarrow ? 116 : 132;
+    const buttonHeight = isNarrow ? 132 : 150;
+    const spacing = isNarrow ? 22 : 34;
     const totalWidth = this.rewardOptions.length * buttonWidth + (this.rewardOptions.length - 1) * spacing;
     const startX = (screenWidth - totalWidth) / 2 + buttonWidth / 2;
-    const y = Math.min(this.descriptionText.y + (isNarrow ? 110 : 130), screenHeight - (isNarrow ? 90 : 110));
+    const y = Math.min(screenHeight * 0.6, screenHeight - 300);
+    const defaultDescription = "Hover a reward to preview its description";
+    this.descriptionText.setY(
+      Math.min(y + buttonHeight / 2 + 64, screenHeight - 188)
+    );
+    this.descriptionText.setText(defaultDescription);
+    this.descriptionText.setColor("#d0dce4");
 
     this.rewardButtons = [];
 
@@ -303,40 +345,64 @@ export class Treasure extends Scene {
 
       // Background color depends on reward type
       const isPotionSlot = reward.type === "potion";
-      const gradientTop = isPotionSlot ? 0x3d2f42 : 0x2f3542;
-      const gradientBottom = isPotionSlot ? 0x26192d : 0x1a1d26;
-      const borderColor = isPotionSlot ? 0x4ecdc4 : 0x57606f;
+      const accentColor = isPotionSlot ? 0x4ecdc4 : 0x77888C;
+      const typeLabel = isPotionSlot ? "POTION" : "RELIC";
 
-      // Background styled similar to Shop's slots (gradient and rounded corners via Graphics)
+      // Background styled with same UI language as updated scenes
       const slotBg = this.add.graphics();
-      slotBg.fillGradientStyle(gradientTop, gradientTop, gradientBottom, gradientBottom, 0.95);
-      slotBg.lineStyle(2, borderColor, 0.9);
-      slotBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
-      slotBg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+      slotBg.fillStyle(0x24333d, 0.98);
+      slotBg.lineStyle(3, 0x8da3b2, 0.95);
+      slotBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 12);
+      slotBg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 12);
+      slotBg.lineStyle(2, 0x6f8694, 0.85);
+      slotBg.strokeRoundedRect(-buttonWidth / 2 + 2, -buttonHeight / 2 + 2, buttonWidth - 4, buttonHeight - 4, 10);
+
+      const accentBar = this.add.rectangle(-buttonWidth / 2 + 6, 0, 8, buttonHeight - 14, accentColor, 0.9).setOrigin(0.5);
 
       // Visual display (sprite for relics, image for potions)
       let visual: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+      let itemName = "";
       if (reward.type === "relic") {
         const relic = reward.item;
+        itemName = relic.name;
         const spriteKey = getRelicSpriteKey(relic.id);
         if (this.textures.exists(spriteKey)) {
-          visual = this.add.image(0, 0, spriteKey).setOrigin(0.5);
-          const spriteSize = isNarrow ? 70 : 80;
+          visual = this.add.image(0, -16, spriteKey).setOrigin(0.5);
+          const spriteSize = isNarrow ? 72 : 84;
           const scale = Math.min(spriteSize / visual.width, spriteSize / visual.height);
           visual.setScale(scale);
         } else {
-          visual = this.add.text(0, 0, relic.emoji, {
-            fontSize: isNarrow ? 40 : 48,
+          visual = this.add.text(0, -16, relic.emoji, {
+            fontSize: isNarrow ? 42 : 50,
           }).setOrigin(0.5);
         }
       } else {
         // Potion - use heal_potion image asset
-        visual = this.add.image(0, 0, "heal_potion").setOrigin(0.5);
-        const spriteSize = isNarrow ? 70 : 80;
+        itemName = reward.item.name;
+        visual = this.add.image(0, -16, "heal_potion").setOrigin(0.5);
+        const spriteSize = isNarrow ? 72 : 84;
         const scale = Math.min(spriteSize / visual.width, spriteSize / visual.height);
         visual.setScale(scale);
       }
-      button.add([slotBg, visual]);
+
+      const itemNameText = this.add.text(0, buttonHeight / 2 - 30, itemName, {
+        fontFamily: "dungeon-mode",
+        fontSize: isNarrow ? 10 : 11,
+        color: "#d0dce4",
+        align: "center",
+        wordWrap: { width: buttonWidth - 18 }
+      }).setOrigin(0.5);
+
+      const itemTypeText = this.add.text(0, buttonHeight / 2 - 12, typeLabel, {
+        fontFamily: "dungeon-mode",
+        fontSize: 9,
+        color: isPotionSlot ? "#4ecdc4" : "#77888C",
+        align: "center"
+      }).setOrigin(0.5);
+
+      button.add([slotBg, accentBar, visual, itemNameText, itemTypeText]);
+      (button as any).slotWidth = buttonWidth;
+      (button as any).slotHeight = buttonHeight;
 
       // Make interactive
       button.setInteractive(
@@ -350,24 +416,34 @@ export class Treasure extends Scene {
           // Hover glow and scale
           this.tweens.add({ targets: button, scale: 1.05, duration: 120, ease: 'Power2' });
           slotBg.clear();
-          const hoverGradTop = isPotionSlot ? 0x4d3f52 : 0x3d4454;
-          const hoverGradBottom = isPotionSlot ? 0x36293d : 0x232735;
-          const hoverBorder = isPotionSlot ? 0x4ecdc4 : 0xa78bfa;
-          slotBg.fillGradientStyle(hoverGradTop, hoverGradTop, hoverGradBottom, hoverGradBottom, 1);
-          slotBg.lineStyle(3, hoverBorder, 0.9);
-          slotBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
-          slotBg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
-          this.showRewardTooltip(reward, x + buttonWidth / 2 + 10, y);
+          slotBg.fillStyle(0x2d3f4b, 1);
+          slotBg.lineStyle(3, 0xaac1d0, 1);
+          slotBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 12);
+          slotBg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 12);
+          slotBg.lineStyle(2, 0x7f97a6, 0.95);
+          slotBg.strokeRoundedRect(-buttonWidth / 2 + 2, -buttonHeight / 2 + 2, buttonWidth - 4, buttonHeight - 4, 10);
+          accentBar.setAlpha(1);
+
+          const itemName = reward.item.name;
+          const itemDesc = reward.item.description;
+          const typePrefix = reward.type === "potion" ? "Potion" : "Relic";
+          this.descriptionText.setText(`${typePrefix}: ${itemName}\n${itemDesc}`);
+          this.descriptionText.setColor(reward.type === "potion" ? "#4ecdc4" : "#d0dce4");
         }
       });
       button.on("pointerout", () => {
         if (button.active) {
           this.tweens.add({ targets: button, scale: 1, duration: 150, ease: 'Power2' });
           slotBg.clear();
-          slotBg.fillGradientStyle(gradientTop, gradientTop, gradientBottom, gradientBottom, 0.95);
-          slotBg.lineStyle(2, borderColor, 0.9);
-          slotBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
-          slotBg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+          slotBg.fillStyle(0x24333d, 0.98);
+          slotBg.lineStyle(3, 0x8da3b2, 0.95);
+          slotBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 12);
+          slotBg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 12);
+          slotBg.lineStyle(2, 0x6f8694, 0.85);
+          slotBg.strokeRoundedRect(-buttonWidth / 2 + 2, -buttonHeight / 2 + 2, buttonWidth - 4, buttonHeight - 4, 10);
+          accentBar.setAlpha(0.9);
+          this.descriptionText.setText(defaultDescription);
+          this.descriptionText.setColor("#d0dce4");
           this.hideTooltip();
         }
       });
@@ -549,19 +625,21 @@ export class Treasure extends Scene {
 
     // Create text first to measure its width
     const text = this.add.text(0, 0, buttonText, {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: fontSize,
-      color: "#ffffff",
+      color: "#77888C",
     }).setOrigin(0.5);
 
     const measuredTextWidth = Math.ceil(text.width);
     const buttonWidth = Math.max(baseWidth, measuredTextWidth + horizontalPadding);
 
-    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0xff4757);
-    background.setStrokeStyle(2, 0xffffff);
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10, 0.95);
+    background.setStrokeStyle(3, 0x77888C, 0.9);
+    const innerBorder = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, 0x1b2327, 0.65);
+    innerBorder.setStrokeStyle(1, 0x556065, 0.7);
 
     // Add to container with background behind text
-    backButton.add([background, text]);
+    backButton.add([background, innerBorder, text]);
 
     backButton.setInteractive(
       new Phaser.Geom.Rectangle(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight),
@@ -583,8 +661,14 @@ export class Treasure extends Scene {
       this.scene.resume("Overworld");
     });
 
-    backButton.on("pointerover", () => background.setFillStyle(0xff6b81));
-    backButton.on("pointerout", () => background.setFillStyle(0xff4757));
+    backButton.on("pointerover", () => {
+      background.setFillStyle(0x1f1410, 1);
+      text.setColor("#e8eced");
+    });
+    backButton.on("pointerout", () => {
+      background.setFillStyle(0x150E10, 0.95);
+      text.setColor("#77888C");
+    });
   }
 
   private selectRelic(relic: Relic, selectedButton: Phaser.GameObjects.Container): void {
@@ -625,19 +709,21 @@ export class Treasure extends Scene {
     this.descriptionText.setColor("#2ed573");
 
     // Disable all relic buttons to prevent multiple selections
-    this.relicButtons.forEach(button => {
+    this.rewardButtons.forEach(button => {
       button.disableInteractive();
       button.setActive(false);
       // Redraw slot background (Graphics) to a dimmed state
       const slotBg = button.getAt(0) as Phaser.GameObjects.Graphics | undefined;
       if (slotBg && slotBg.clear) {
+        const buttonWidth = (button as any).slotWidth || 100;
+        const buttonHeight = (button as any).slotHeight || 100;
         slotBg.clear();
-        const buttonWidth = 100;
-        const buttonHeight = 100;
-        slotBg.fillGradientStyle(0x1a1d26, 0x1a1d26, 0x0a0d16, 0x0a0d16, 0.8);
-        slotBg.lineStyle(2, 0x3a3d3f, 1);
-        slotBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
-        slotBg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        slotBg.fillStyle(0x1a1d26, 0.86);
+        slotBg.lineStyle(3, 0x3a3d3f, 0.9);
+        slotBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 12);
+        slotBg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 12);
+        slotBg.lineStyle(2, 0x2b2f35, 0.75);
+        slotBg.strokeRoundedRect(-buttonWidth / 2 + 2, -buttonHeight / 2 + 2, buttonWidth - 4, buttonHeight - 4, 10);
       }
     });
 
@@ -715,13 +801,15 @@ export class Treasure extends Scene {
       // Redraw slot background (Graphics) to a dimmed state
       const slotBg = button.getAt(0) as Phaser.GameObjects.Graphics | undefined;
       if (slotBg && slotBg.clear) {
+        const buttonWidth = (button as any).slotWidth || 100;
+        const buttonHeight = (button as any).slotHeight || 100;
         slotBg.clear();
-        const buttonWidth = 100;
-        const buttonHeight = 100;
-        slotBg.fillGradientStyle(0x1a1d26, 0x1a1d26, 0x0a0d16, 0x0a0d16, 0.8);
-        slotBg.lineStyle(2, 0x3a3d3f, 1);
-        slotBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
-        slotBg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+        slotBg.fillStyle(0x1a1d26, 0.86);
+        slotBg.lineStyle(3, 0x3a3d3f, 0.9);
+        slotBg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 12);
+        slotBg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 12);
+        slotBg.lineStyle(2, 0x2b2f35, 0.75);
+        slotBg.strokeRoundedRect(-buttonWidth / 2 + 2, -buttonHeight / 2 + 2, buttonWidth - 4, buttonHeight - 4, 10);
       }
     });
 
