@@ -10,6 +10,7 @@ import {
   HandType,
   StatusEffect,
   CombatEntity,
+  EnemyIntent,
 } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { HandEvaluator } from "../../utils/HandEvaluator";
@@ -31,6 +32,7 @@ import { DifficultyAdjustment } from "../../core/dda/DDATypes";
 import { MusicManager } from "../../core/managers/MusicManager";
 import { StatusEffectManager } from "../../core/managers/StatusEffectManager";
 import { VisualThemeManager } from "../../core/managers/VisualThemeManager";
+import { RewardSystem } from "../../systems/combat/RewardSystem";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -121,6 +123,8 @@ export class Combat extends Scene {
   // DDA tracking
   public dda!: CombatDDA;
   private preCombatDifficultyAdjustment!: DifficultyAdjustment; // Snapshot before combat results processed
+  private currentEnemyAIComplexity: number = 1.0;
+  private readonly rewardSystem: RewardSystem = new RewardSystem();
   
   // UI properties
   private playerShadow!: Phaser.GameObjects.Graphics;
@@ -154,6 +158,10 @@ export class Combat extends Scene {
 
   public getCombatEnded(): boolean {
     return this.combatEnded;
+  }
+
+  public setEnemyAIComplexity(complexity: number): void {
+    this.currentEnemyAIComplexity = Phaser.Math.Clamp(complexity, 0.5, 2.0);
   }
 
   public getIsSorting(): boolean {
@@ -1298,8 +1306,9 @@ export class Combat extends Scene {
 
 
 
-    // Execute enemy action based on attack pattern
-    const currentAction = enemy.attackPattern[enemy.currentPatternIndex];
+    // Execute enemy action based on DDA-adjusted AI complexity
+    const baseAction = enemy.attackPattern[enemy.currentPatternIndex];
+    const currentAction = this.getComplexityAdjustedEnemyAction(baseAction);
     
     // PRIORITY 6: Show what enemy is doing NOW
     this.showCurrentEnemyAction(currentAction);
@@ -1669,7 +1678,82 @@ export class Combat extends Scene {
    */
   private updateEnemyIntent(): void {
     this.combatState.enemy.advancePattern();
+
+    // Reflect DDA AI complexity in the shown intent so previews stay accurate.
+    const enemy = this.combatState.enemy;
+    const baseAction = enemy.attackPattern[enemy.currentPatternIndex];
+    const adjustedAction = this.getComplexityAdjustedEnemyAction(baseAction);
+    if (adjustedAction !== baseAction) {
+      enemy.intent = this.buildEnemyIntentFromAction(adjustedAction);
+    }
+
     this.ui.updateEnemyUI();
+  }
+
+  private getComplexityAdjustedEnemyAction(baseAction: string): string {
+    const complexity = this.currentEnemyAIComplexity;
+
+    // Low complexity: reduce crowd-control/debuff pressure for struggling players.
+    if (complexity <= 0.8) {
+      const advancedActions = new Set([
+        "poison",
+        "weaken",
+        "confuse",
+        "disrupt_draw",
+        "fear",
+        "stun",
+        "strengthen",
+        "curse_card",
+        "hex_reversal",
+        "aoe_burn",
+        "smoke_attack",
+      ]);
+
+      if (advancedActions.has(baseAction)) {
+        return "defend";
+      }
+    }
+
+    // High complexity: enemies convert passive turns into pressure windows.
+    if (complexity >= 1.25) {
+      if (baseAction === "wait" || baseAction === "charge") {
+        return "attack";
+      }
+      if (
+        baseAction === "defend" &&
+        this.combatState.player.currentHealth <= this.combatState.player.maxHealth * 0.5
+      ) {
+        return "attack";
+      }
+    }
+
+    return baseAction;
+  }
+
+  private buildEnemyIntentFromAction(action: string): EnemyIntent {
+    const enemy = this.combatState.enemy;
+    switch (action) {
+      case "attack":
+        return { type: "attack", value: enemy.damage, description: `Attacks for ${enemy.damage} damage`, icon: "†" };
+      case "defend":
+        return { type: "defend", value: 5, description: "Gains 5 block", icon: "⛨" };
+      case "strengthen":
+        return { type: "buff", value: 2, description: "Gains 2 Strength", icon: "💪" };
+      case "weaken":
+      case "poison":
+      case "stun":
+      case "confuse":
+      case "disrupt_draw":
+      case "fear":
+      case "curse_card":
+      case "hex_reversal":
+        return { type: "debuff", value: 1, description: "Applies a status effect", icon: "⚠️" };
+      case "charge":
+      case "wait":
+        return { type: "defend", value: 3, description: "Prepares (3 block)", icon: "⏳" };
+      default:
+        return { type: "attack", value: enemy.damage, description: `Special Attack (${enemy.damage})`, icon: "†" };
+    }
   }
 
 
@@ -2070,7 +2154,10 @@ export class Combat extends Scene {
 
       // Apply DDA gold multiplier using PRE-COMBAT difficulty (fair reward scaling)
       // Rewards are based on the tier active DURING combat, not the tier AFTER combat results are processed
-      const scaledGold = Math.round(reward.ginto * this.preCombatDifficultyAdjustment.goldRewardMultiplier);
+      const scaledGold = this.rewardSystem.scaleGoldReward(
+        reward.ginto,
+        this.preCombatDifficultyAdjustment.goldRewardMultiplier
+      );
       
       // Apply scaled rewards
       this.combatState.player.ginto += scaledGold;

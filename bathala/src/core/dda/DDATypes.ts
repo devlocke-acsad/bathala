@@ -56,6 +56,7 @@ export interface DifficultyAdjustment {
   tier: DifficultyTier;
   enemyHealthMultiplier: number;
   enemyDamageMultiplier: number;
+  aiComplexity: number;
   shopPriceMultiplier: number;
   goldRewardMultiplier: number;
   restNodeBias: number;

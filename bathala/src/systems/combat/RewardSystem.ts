@@ -64,6 +64,13 @@ const POTION_DROP_CHANCE: Record<RewardEnemyTier, number> = {
  * Pure logic - no Phaser or singleton dependency.
  */
 export class RewardSystem {
+  /**
+   * Scale an existing gold reward by DDA multiplier.
+   * Useful when rewards are authored externally (e.g. dialogue rewards).
+   */
+  scaleGoldReward(baseGold: number, ddaGoldMultiplier: number): number {
+    return Math.round(baseGold * ddaGoldMultiplier);
+  }
 
   /**
    * Calculate rewards for a combat victory

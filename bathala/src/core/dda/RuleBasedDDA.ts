@@ -381,14 +381,15 @@ export class RuleBasedDDA {
     
     let calculatedTier: DifficultyTier;
     
-    if (pps >= tiers.mastering.min && pps <= tiers.mastering.max) {
-      calculatedTier = "mastering";
-    } else if (pps >= tiers.thriving.min && pps <= tiers.thriving.max) {
-      calculatedTier = "thriving";
-    } else if (pps >= tiers.learning.min && pps <= tiers.learning.max) {
-      calculatedTier = "learning";
-    } else {
+    // Use ordered upper-bound checks to avoid tier "gaps" caused by decimal boundaries.
+    if (pps <= tiers.struggling.max) {
       calculatedTier = "struggling";
+    } else if (pps <= tiers.learning.max) {
+      calculatedTier = "learning";
+    } else if (pps <= tiers.thriving.max) {
+      calculatedTier = "thriving";
+    } else {
+      calculatedTier = "mastering";
     }
     
     // Debug logging to catch tier calculation issues
@@ -417,6 +418,7 @@ export class RuleBasedDDA {
       tier,
       enemyHealthMultiplier: enemyScaling.healthMultiplier,
       enemyDamageMultiplier: enemyScaling.damageMultiplier,
+      aiComplexity: enemyScaling.aiComplexity,
       shopPriceMultiplier: economicScaling.shopPriceMultiplier,
       goldRewardMultiplier: economicScaling.goldRewardMultiplier,
       restNodeBias: mapBias.restNodeChance,
