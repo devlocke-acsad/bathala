@@ -578,6 +578,11 @@ export class GameOver extends Scene
     private createEnemySpriteDisplay(screenWidth: number, screenHeight: number, scaleFactor: number): void {
         this.enemySpriteContainer = this.add.container(0, 0);
 
+        const defeatedEnemyConfig = this.defeatData.defeatedBy
+            ? EnemyRegistry.resolve(this.defeatData.defeatedBy)
+            : undefined;
+        const defeatedEnemyTier = defeatedEnemyConfig?.tier ?? 'common';
+
         // Position on left side
         const spriteX = screenWidth * 0.2;
         const spriteY = screenHeight * 0.58; // Match middle panel position
@@ -605,9 +610,16 @@ export class GameOver extends Scene
                 this.defeatData.enemySpriteKey
             );
             
-            // Scale sprite to fit panel
-            const maxWidth = 150 * scaleFactor;
-            const maxHeight = 180 * scaleFactor;
+            // Scale sprite to fit panel, relative to enemy tier
+            const tierSizeMultiplier: Record<'common' | 'elite' | 'boss', number> = {
+                common: 1.0,
+                elite: 1.18,
+                boss: 1.35,
+            };
+            const sizeMultiplier = tierSizeMultiplier[defeatedEnemyTier];
+
+            const maxWidth = 150 * scaleFactor * sizeMultiplier;
+            const maxHeight = 180 * scaleFactor * sizeMultiplier;
             const spriteScale = Math.min(
                 maxWidth / enemySprite.width,
                 maxHeight / enemySprite.height
