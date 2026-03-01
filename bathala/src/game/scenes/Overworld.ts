@@ -73,7 +73,7 @@ export class Overworld extends Scene {
   private isMoving: boolean = false;
   private isTransitioningToCombat: boolean = false;
   private gameState: OverworldGameState;
-  private dayNightProgressFill!: Phaser.GameObjects.Rectangle;
+  private dayNightProgressFill?: Phaser.GameObjects.Rectangle;
   private dayNightIndicator!: Phaser.GameObjects.Text;
   private dayNightProgressContainer!: Phaser.GameObjects.Container;
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
@@ -764,17 +764,7 @@ export class Overworld extends Scene {
     const bossIcon = this.add.image(bossIconX, bossIconY, "bathala_boss_icon");
     bossIcon.setScale(2.0);
     this.dayNightProgressContainer.add(bossIcon);
-    
-    // Create progress fill (initially empty)
-    this.dayNightProgressFill = this.add.rectangle(
-      progressBarX,
-      progressBarY,
-      0, // Width will be updated in updateDayNightProgressBar
-      8, // Height of the progress fill
-      0xFFFFFF // White color, can be changed
-    ).setOrigin(0, 0.5);
-    this.dayNightProgressContainer.add(this.dayNightProgressFill);
-    
+
     // Create player indicator (▲ symbol pointing up from below the axis line)
     this.dayNightIndicator = this.add.text(0, 0, "▲", {
       fontFamily: 'dungeon-mode-inverted',
