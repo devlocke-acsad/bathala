@@ -26,10 +26,10 @@ export const FALSE_BATHALA: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Bow to merged god—serpent and wings as one!',
-    defeat: 'My fusion... fractures...',
-    spare: "Grace unmasks: False Bathala, engkanto-revived Ulilang Kaluluwa and Galang Kaluluwa, twisted from grave into impostor, perverting coconut tree's life gift (Treasury of Tagalog).",
-    slay: "Shatter my form—coconut tree's dark roots feed shadow!",
+    intro: 'Bow to the merged god! Serpent and wings as one! The dead do not stay silent. We rose. We are GOD.',
+    defeat: 'We are— …still two. Two souls forced together. We are not Bathala. We never were.',
+    spare: 'You were never the enemy. Kapwa encompasses all.',
+    slay: 'Gods win through power, not stories. The throne is yours.',
   },
 
   // === Lore ===

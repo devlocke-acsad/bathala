@@ -26,10 +26,10 @@ export const MANGANGAWAY: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Fates reverse at my command!',
+    intro: "Your ancestors' stories are my weapons now!",
     defeat: 'My hexes... unravel...',
-    spare: 'Grace spares: Mangangaway, sorcerers casting evil spells (Ramos, 1990).',
-    slay: 'End my curses—fuel for false god!',
+    spare: 'My hexes fade… mangangaway were healers once. The engkanto turned cures into curses. Take the Shard — the earth sings again.',
+    slay: 'Your strength mirrors the impostor\'s. The Shard is yours… but its soul weeps.',
   },
 
   // === Lore ===

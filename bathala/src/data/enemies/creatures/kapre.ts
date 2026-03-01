@@ -28,10 +28,10 @@ export const KAPRE_SHADE: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'My smoke veils the grove—none leave unclaimed!',
-    defeat: 'My tree... crumbles... the cigar... fades...',
-    spare: 'Compassion unlocks: Kapre, tree giants smoking cigars, once loyal to Bathala. Their smoke once guided the lost; now it chokes the defiant (Ramos, 1990).',
-    slay: 'Burn me down—the ashes feed the shadow!',
+    intro: 'You smell that smoke? That is the stench of a forest that forgot its purpose. I AM its purpose. Come — burn with me.',
+    defeat: 'My tree... my ancient tree... the cigar dims... I remember now... I was their guardian...',
+    spare: 'My smoke clears. I was their guardian. The engkanto made me forget. The grove is yours — protect it.',
+    slay: 'You burned my tree. The forest screams. The roots will remember your violence.',
   },
 
   // === Lore ===

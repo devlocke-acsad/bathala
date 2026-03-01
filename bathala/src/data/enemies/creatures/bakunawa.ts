@@ -26,10 +26,10 @@ export const BAKUNAWA: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Moons fall to my maw!',
+    intro: 'Seven moons devoured! The impostor promised freedom — but there is only hunger!',
     defeat: 'My hunger... sated...',
-    spare: 'Grace spares: Bakunawa, moon-eater causing eclipses (Ramos, 1990).',
-    slay: 'Devour my essence—false god thrives!',
+    spare: 'You didn\'t kill me? Bakunawa guarded the night once. The engkanto promised moon-eating meant freedom. Lies. Take the Shard — let the waters remember.',
+    slay: 'You killed the moon-eater. But my hunger becomes yours now. The Shard is yours. Its price, too.',
   },
 
   // === Lore ===

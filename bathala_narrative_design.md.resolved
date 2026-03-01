@@ -1,0 +1,393 @@
+# Bathala — Narrative Design (Simplified)
+
+> Story is told through **enemy dialogue**, **short overworld text**, and **chapter transition cards**. No cutscenes.
+
+---
+
+## How Story is Delivered
+
+| Method | Where | Example |
+|--------|-------|---------|
+| **Overworld Text Card** | On entering a new chapter / after a boss | 2–3 sentence text overlay on the map |
+| **Enemy Dialogue** | Before & after combat (spare/slay) | Short speech bubbles, 1–2 lines max |
+| **Event Node Text** | Mysterious event encounters | Brief NPC line + reward |
+| **Transition Card** | Between chapters | Fading text on black screen, 1–2 sentences |
+
+---
+
+## Prologue — Opening Text Card
+
+> Appears as text overlay when the game starts, before the player enters the Chapter 1 overworld.
+
+**TEXT CARD**:
+> *"Bathala is silenced. An impostor wears his face — born from the grave of a serpent and a winged spirit, twisted by engkanto lies. You are the last hope. Find the three Diwa Shards. Restore the truth."*
+
+**First overworld prompt** (tutorial):
+> *"The anito wait. Your path — your Landás — will decide if the stories live or die."*
+
+---
+
+## Chapter 1 — The Corrupted Ancestral Forests
+
+> **Overworld**: Balete groves, twisted roots, mist. Lupa/Hangin focus.
+
+### Chapter Entry Text
+> *"The forest guardians have turned. Tikbalang mislead. Kapre burn. The engkanto's lies run deep in these roots."*
+
+### Enemy Dialogue (Short)
+
+**Tikbalang Scout** — Before:
+> *"Lost, seer? The false one guides you now!"*
+
+- **Spare**: *"We were protectors… the engkanto reversed our hooves. We are captives, not enemies."*
+- **Slay**: *"My death feeds the shadow…"*
+
+**Balete Wraith** — Before:
+> *"The roots claim you!"*
+
+- **Spare**: *"Balete trees were anito portals. The engkanto twisted us into haunters."*
+- **Slay**: *"My form feeds the impostor…"*
+
+**Sigbin Charger** — Before:
+> *"I charge for the shadow throne!"*
+
+- **Spare**: *"Sigbin once guarded Bathala's amulets. Now we steal hearts for the false one."*
+- **Slay**: *"Claim my power — it was never mine to keep."*
+
+**Duwende Trickster** — Before:
+> *"Tricks from the mound!"*
+
+- **Spare**: *"Duwende gave blessings and curses alike. The engkanto made us forget the blessings."*
+- **Slay**: *"My mischief ends — but his grows."*
+
+**Tiyanak Ambusher** — Before:
+> *"My cries lure the lost!"*
+
+- **Spare**: *"We are lost children, not monsters. The engkanto gave us fangs instead of peace."*
+- **Slay**: *"Another innocent shape destroyed…"*
+
+**Kapre Shade** *(Elite)* — Before:
+> *"Smoke hides my rage!"*
+
+- **Spare**: *"Kapre tended Bathala's trees. The engkanto set fire to our hearts. The Diwa Shard cries beneath the roots — seek the mangangaway."*
+- **Slay**: *"Burn the tree, burn the story…"*
+
+### Boss — Mangangaway
+
+**Before**:
+> *"Your ancestors' stories are my weapons now!"*
+
+**At 50% HP**:
+> *"Every blessing becomes a curse. This is how the impostor rules — by twisting truth!"*
+
+**Defeat** (adapts to Landás):
+- **Mercy**: *"My hexes fade… mangangaway were healers once. The engkanto turned cures into curses. Take the Shard — the earth sings again."*
+- **Balance**: *"Hexes unravel. Balance restores order. The Lupa Diwa Shard awaits."*
+- **Conquest**: *"Your strength mirrors the impostor's. The Shard is yours… but its soul weeps."*
+
+### Transition Card → Chapter 2
+> *"The forest exhales. The Lupa Diwa Shard is yours. But floodwaters stir below — the drowned barangays call."*
+
+---
+
+## Chapter 2 — The Submerged Barangays
+
+> **Overworld**: Sunken villages, coral ruins, bioluminescent depths. Tubig/Apoy focus.
+
+### Chapter Entry Text
+> *"Beneath the tides, sea spirits war. Sirena fights siyokoy. The engkanto's betrayals have drowned kapwa in these waters."*
+
+### Enemy Dialogue (Short)
+
+**Sirena Illusionist** — Before:
+> *"My song calls you to the deep!"*
+
+- **Spare**: *"Our songs once healed storms. The engkanto soured our voices. We are caretakers who lost our way."*
+- **Slay**: *"Silence my voice — the impostor needs no music."*
+
+**Siyokoy Raider** — Before:
+> *"The drowned belong to me!"*
+
+- **Spare**: *"Siyokoy dragged the wicked down — not the innocent. The engkanto removed our judgment."*
+- **Slay**: *"My scales crack… another guardian gone."*
+
+**Santelmo Flicker** — Before:
+> *"Flames in the tide!"*
+
+- **Spare**: *"Santelmo were soul-fires guiding sailors home. Now we burn them instead."*
+- **Slay**: *"My light dims… the dark spreads."*
+
+**Berberoka Lurker** — Before:
+> *"The swamp swells!"*
+
+- **Spare**: *"Berberoka guarded sacred freshwaters. The engkanto made us drown instead of protect."*
+- **Slay**: *"My waters drain — his power floods."*
+
+**Kataw** — Before:
+> *"The sea obeys my crown!"*
+
+- **Spare**: *"Kataw were kings who kept peace between shore and deep. The engkanto shattered our crowns."*
+- **Slay**: *"My throne sinks… the impostor rises."*
+
+**Apoy-Tubig Fury** *(Elite)* — Before:
+> *"Fire and water war — like Bathala's children who split the sky!"*
+
+- **Spare**: *"Fire and water are siblings, not enemies. Like Apolaki and Mayari, they must reconcile, not war."*
+- **Slay**: *"Quench the elements — fuel for the false one."*
+
+### Boss — Bakunawa
+
+**Before**:
+> *"Seven moons devoured! The impostor promised freedom — but there is only hunger!"*
+
+**At 50% HP** (Lunar Eclipse):
+> *"No light left! In darkness, all promises are hollow — like the one who chained me!"*
+
+**Defeat** (adapts to Landás):
+- **Mercy**: *"You didn't kill me? Bakunawa guarded the night once. The engkanto promised moon-eating meant freedom. Lies. Take the Shard — let the waters remember."*
+- **Balance**: *"The tides settle. Neither mercy nor vengeance — just the turning of the sea. The Tubig Diwa Shard is yours."*
+- **Conquest**: *"You killed the moon-eater. But my hunger becomes yours now. The Shard is yours. Its price, too."*
+
+### Transition Card → Chapter 3
+> *"The waters calm. The Tubig Diwa Shard is yours. Above, the skies darken. The impostor's citadel awaits — and with it, the final truth."*
+
+---
+
+## Chapter 3 — The Skyward Citadel (Final Chapter)
+
+> **Overworld**: Cloud citadel, celestial ruins, fractured sky. Multi-element focus. This chapter ends the game — no separate epilogue.
+
+### Chapter Entry Text
+> *"The impostor sits on a throne of stolen myths. Serpent and wing, fused into a false god. Your Landás ends here — in the sky, where gods remember."*
+
+### Enemy Dialogue (Short)
+
+**Tigmamanukan Watcher** — Before:
+> *"The omens warn of your path!"*
+
+- **Spare**: *"Our flight patterns told fortunes. The engkanto made us lie. You broke the curse — the omens are true again."*
+- **Slay**: *"Without omens, travelers walk blind…"*
+
+**Diwata Sentinel** — Before:
+> *"The sky wards against you!"*
+
+- **Spare**: *"Diwata guarded nature's balance. The engkanto turned our protection into imprisonment."*
+- **Slay**: *"My guard falls… who protects the stories now?"*
+
+**Sarimanok Keeper** — Before:
+> *"My plumage shields the false one!"*
+
+- **Spare**: *"Sarimanok brought fortune to the worthy. The engkanto chained our luck to the impostor."*
+- **Slay**: *"Plucked feathers… scattered fortune."*
+
+**Minokawa Harbinger** — Before:
+> *"Eclipses devour the light!"*
+
+- **Spare**: *"Minokawa swallowed moons to test mortals, not to destroy. The engkanto removed the test — left only hunger."*
+- **Slay**: *"My maw closes forever… the sky stays dark."*
+
+**Apolaki Godling** *(Elite)* — Before:
+> *"My father is silenced! Prove you're worthy to face the impostor!"*
+
+- **Spare**: *"My sister Mayari and I fought over moon and sun. I was too proud — she was right. The sky needs two lights. Remember that against the impostor."*
+- **Slay**: *"Even a god falls… what chance does a false one have?"*
+
+### Mid-Chapter Event — The Mirror of Kapwa
+
+> Overworld node. A polished obsidian mirror reflects your journey.
+
+- **Mercy (Landás ≥ +5)**: Mirror shows spared creatures returning to their roles. *"Kapwa: every creature is part of you."* → Grants special card.
+- **Balance**: Mirror shows a balanced scale. *"Life and death are siblings."* → Grants adaptive card.
+- **Conquest (Landás ≤ -5)**: Mirror shows a throne of bones. *"Power is the language of gods. Are you the god, or the monster?"* → Grants damage card.
+
+---
+
+### Final Boss — False Bathala
+
+**Before**:
+> *"Bow to the merged god! Serpent and wings as one! The dead do not stay silent. We rose. We are GOD."*
+
+**At 50% HP**:
+> *"Your relics are nothing! The stories are mine to rewrite!"*
+
+**At 25% HP** (mask cracks):
+> *"We are one! We are— …still two. Two souls forced together. We are not Bathala. We never were. We are… victims too."*
+
+---
+
+### Ending — The Mended Bamboo
+
+> Plays as a final **text card sequence** after boss defeat. Determined by cumulative Landás.
+
+---
+
+#### 🌿 Mercy Ending (Landás ≥ +5) — *"Ang Pagbabalik ng Liwanag"*
+
+*The fusion dissolves gently. Serpent slithers to peace. Wings rise to the sun.*
+
+**Your character** *(first and only spoken line)*:
+> *"You were never the enemy. Kapwa encompasses all."*
+
+**Bathala's voice**:
+> *"You chose mercy. The tikbalang guards again. The sirena sings again. You discovered the monsters were never monsters."*
+
+**Final text**:
+> *"The bamboo is whole — every crack filled with story. The myths live in the hearts of those who love."*
+
+---
+
+#### ⚖️ Balance Ending (Landás -4 to +4) — *"Ang Pag-ikot ng Mundo"*
+
+*The False Bathala separates. Serpent sleeps below. Wings watch above. Order restored — not perfection.*
+
+**Bathala's voice**:
+> *"You chose balance. The tikbalang is both guardian and trickster. You did not change the stories — you understood them."*
+
+**Final text**:
+> *"The bamboo bends but does not break. No beginning, no end — only the turning. The myths endure because they are true."*
+
+---
+
+#### 🔥 Conquest Ending (Landás ≤ -5) — *"Ang Bagong Trono"*
+
+*You shatter the False Bathala. The Diwa Shards orbit you. The throne is empty. You sit.*
+
+**Your character**:
+> *"Gods win through power, not stories. I am real. I am strong."*
+
+**Bathala's voice** *(sorrowful)*:
+> *"You won — but the tikbalang are dead. The sirena silent. You killed the monsters — and with them, the stories. A world without stories is a world of monsters."*
+
+**Final text**:
+> *"The bamboo is cut — weapon, not life. The throne is high, but cold. In the silence, one question remains: who was the real impostor?"*
+
+---
+
+## Event Node Dialogue (Landás-Reactive)
+
+> Short NPC lines at mysterious event nodes across all chapters. Adapt based on current Landás.
+
+| Landás | NPC Greeting | Reward | Parting Line |
+|--------|-------------|--------|-------------|
+| **Mercy** | *"Welcome, savior."* | Rare relic + lore | *"The anito walk with you."* |
+| **Balance** | *"Traveler. Your path takes no side."* | Standard reward | *"Balance guides you."* |
+| **Conquest** | *"Your blood is heavy, conqueror."* | Gold / offense item | *"The anito worry."* |
+
+---
+
+## Dramatic Dialogue Presentation Plan
+
+> These are **visual effects for narrative moments only** — they never interrupt or overlap with combat. All animations happen in dedicated dialogue/transition states, separate from the combat scene.
+
+### When Animations Trigger
+
+| Moment | When It Plays | Combat Running? |
+|--------|--------------|----------------|
+| Chapter text card | Before overworld loads | ❌ No |
+| Enemy intro line | Before combat starts (pre-fight screen) | ❌ Not yet |
+| Spare/Slay dialogue | After combat ends (post-fight screen) | ❌ Already over |
+| Boss phase lines | Combat pauses briefly at HP threshold | ⏸️ Paused |
+| Boss defeat dialogue | After boss HP hits 0 | ❌ Over |
+| Transition card | Between chapters on overworld | ❌ No |
+| Ending sequence | After final boss, game state = ending | ❌ No |
+
+### Animation Ideas by Moment
+
+#### Text Cards (Chapter Entry / Transitions)
+
+- **Fade from black** — text fades in word-by-word or line-by-line (typewriter effect)
+- **Subtle particle drift** — floating embers (Ch.1), bubbles (Ch.2), clouds/feathers (Ch.3) behind the text
+- **Screen tint** — slight color wash matching the chapter element (green/earth, blue/water, gold/sky)
+- **Hold 3–5 seconds** → player taps/clicks to dismiss
+
+#### Enemy Intro (Pre-Combat)
+
+- **Enemy sprite slides in** from the side or fades from shadow
+- **Brief screen darken** — vignette effect around the enemy
+- **Dialogue box appears** at bottom with a quick **text pop-in** (not typewriter — just snappy fade-in)
+- **Optional: small screen shake** for aggressive enemies (elites, bosses)
+- Player taps → combat begins
+
+#### Spare / Slay (Post-Combat)
+
+**On Spare:**
+- **Soft golden glow** radiates from the defeated enemy sprite
+- Enemy sprite **fades gently** (dissolves into light particles)
+- Dialogue box slides in with lore text — **warm color border** (gold/white)
+- **Landás +1 indicator** pulses briefly on screen (small, non-intrusive)
+
+**On Slay:**
+- **Dark red flash** on the enemy sprite
+- Enemy sprite **shatters / dissolves into dark particles**
+- Dialogue box slides in — **dark border** (red/black tint)
+- **Landás -1 indicator** pulses briefly
+
+#### Boss Phase Lines (Mid-Combat Pause)
+
+- At HP threshold → **combat freezes** for 2–3 seconds
+- **Screen zoom slightly** toward the boss sprite
+- **Boss dialogue box** appears with a **heavier text effect** (larger font, slight glow)
+- Optional: **screen shake** or **flash** to match the boss ability activating
+- Player taps → combat resumes
+- **Keep it fast** — max 3 seconds of pause so it feels dramatic, not annoying
+
+#### Boss Defeat (Post-Combat)
+
+- Boss sprite **cracks / fractures** (sprite splits into pieces)
+- **Slow fade to dark** with boss's final dialogue overlaid
+- Landás-reactive text fades in after boss line
+- **Diwa Shard visual** — a glowing crystal floats to center screen, pulses, then absorbed
+- Transition to chapter card
+
+#### Ending Sequence (Chapter 3 Finale)
+
+**Mercy Ending:**
+- **Warm light floods the screen** from the center outward
+- Text fades in gently — golden particles around each line
+- Final line holds → slow fade to white → credits/menu
+
+**Balance Ending:**
+- **Day/night cycle plays** — screen gently shifts between warm and cool tones
+- Text fades in with a **steady, neutral glow**
+- Final line holds → slow fade to twilight → credits/menu
+
+**Conquest Ending:**
+- **Screen darkens** — cold blue/black tint
+- Text appears with a **harsh, sharp fade** (faster than other endings)
+- Final line holds → hard cut to black (no gentle fade) → credits/menu
+
+### Implementation Notes (Phaser.js)
+
+| Effect | Phaser Method |
+|--------|--------------|
+| Fade in/out | `cameras.main.fadeIn()` / `fadeOut()` |
+| Screen shake | `cameras.main.shake(duration, intensity)` |
+| Vignette | Post-processing pipeline or overlay sprite with alpha |
+| Typewriter text | Timed `setText()` with character index loop |
+| Particle drift | `this.add.particles()` with slow velocity emitters |
+| Sprite dissolve | Tween `alpha` to 0 + particle burst emitter |
+| Screen tint | `cameras.main.setBackgroundColor()` or tinted overlay |
+| Zoom | `cameras.main.zoomTo(value, duration)` |
+| Text pop-in | Tween `scale` from 0.8→1 + `alpha` 0→1, ~200ms |
+
+> **Key rule**: All these effects live in a `DialogueState` or `TransitionState` scene — completely separate from `CombatState`. Combat never runs during narrative animations.
+
+---
+
+## Summary — How Story Flows
+
+```
+Game Start → Opening text card (fade in) → Chapter 1 overworld
+  ↓
+Enemy slides in → intro line → tap → COMBAT → post-combat spare/slay dialogue
+  ↓
+Event nodes → NPC line → reward
+  ↓
+Boss intro → COMBAT (pauses at phase thresholds for boss lines) → boss defeat dialogue
+  ↓
+Diwa Shard visual → transition card (fade) → next chapter overworld
+  ↓
+Chapter 3 → Mirror of Kapwa → Final Boss → Ending text sequence
+```
+
+> **No cutscenes. No cinematics.** Just dialogue with dramatic flair, text cards, and clean transitions — all outside of combat.

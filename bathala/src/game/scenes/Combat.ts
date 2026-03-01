@@ -29,6 +29,7 @@ import { CombatDDA } from "./combat/CombatDDA";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { DifficultyAdjustment } from "../../core/dda/DDATypes";
 import { MusicManager } from "../../core/managers/MusicManager";
+import { BOSS_NARRATIVES, getEnding } from "../../data/NarrativeData";
 import { StatusEffectManager } from "../../core/managers/StatusEffectManager";
 import { VisualThemeManager } from "../../core/managers/VisualThemeManager";
 
@@ -98,6 +99,7 @@ export class Combat extends Scene {
   private isDrawingCards: boolean = false;
   private isActionProcessing: boolean = false;
   private combatEnded: boolean = false;
+  private bossPhaseTriggered: Set<number> = new Set(); // Track which HP% phases have been shown
   private isSorting: boolean = false; // Track if cards are currently being sorted
   private turnCount: number = 0;
   private totalDamageDealt: number = 0; // Track total damage dealt to enemy
@@ -107,21 +109,21 @@ export class Combat extends Scene {
   private shopKey!: Phaser.Input.Keyboard.Key;
   private bestHandAchieved: HandType = "high_card";
   private battleStartDialogueContainer!: Phaser.GameObjects.Container | null;
-  
+
   // Performance optimization flags
   private uiUpdatePending: boolean = false;
   private lastUIUpdateTime: number = 0;
   private readonly UI_UPDATE_THROTTLE_MS: number = 16; // ~60fps
-  
+
   // PRIORITY 3: Turn flow timing constants
   private readonly DELAY_AFTER_ACTION = 1500;        // 1.5s after player action
   private readonly DELAY_ENEMY_TURN = 1500;          // 1.5s for enemy turn
   private readonly DELAY_SHOW_RESULTS = 1000;        // 1s to show action results
-  
+
   // DDA tracking
   public dda!: CombatDDA;
   private preCombatDifficultyAdjustment!: DifficultyAdjustment; // Snapshot before combat results processed
-  
+
   // UI properties
   private playerShadow!: Phaser.GameObjects.Graphics;
   private enemyShadow!: Phaser.GameObjects.Graphics;
@@ -165,10 +167,10 @@ export class Combat extends Scene {
    */
   private scheduleUIUpdate(): void {
     if (this.uiUpdatePending) return;
-    
+
     const now = this.time.now;
     const timeSinceLastUpdate = now - this.lastUIUpdateTime;
-    
+
     if (timeSinceLastUpdate >= this.UI_UPDATE_THROTTLE_MS) {
       // Update immediately if enough time has passed
       this.performUIUpdate();
@@ -186,10 +188,10 @@ export class Combat extends Scene {
    */
   private performUIUpdate(): void {
     if (this.combatEnded || !this.ui) return;
-    
+
     this.uiUpdatePending = false;
     this.lastUIUpdateTime = this.time.now;
-    
+
     // Batch all UI updates together
     this.ui.updatePlayerUI();
     this.ui.updateEnemyUI();
@@ -243,14 +245,14 @@ export class Combat extends Scene {
     if (!this.cameras.main) {
       return;
     }
-    
+
     // Add forest background
     const bg = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, "forest_bg");
     bg.setDisplaySize(this.cameras.main.width, this.cameras.main.height);
 
     // Add 50% opacity overlay with #150E10 to dim the background (Prologue style)
     const overlay = this.add.rectangle(this.cameras.main.centerX, this.cameras.main.centerY, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.50);
-    
+
     // Apply chapter-specific visual theme
     const gameState = GameState.getInstance();
     const currentChapter = gameState.getCurrentChapter();
@@ -265,7 +267,7 @@ export class Combat extends Scene {
 
     // Initialize combat state
     this.initializeCombat(data.nodeType, data.enemyId);
-    
+
     // Start music for Combat scene
     this.startMusic();
     this.setupMusicLifecycle();
@@ -299,33 +301,33 @@ export class Combat extends Scene {
 
     // UI is now fully initialized by CombatUI
     // No need to call createCombatUI() separately
-    
+
     // IMPORTANT: Call handleResize() immediately after UI initialization
     // to ensure containers are properly positioned BEFORE drawing cards
     this.handleResize();
-    
+
     // Relic inventory is now created by CombatUI.initialize()
     // (no longer needed here - removed to prevent duplicate UI)
-    
+
     // Create deck sprite
     this.createDeckSprite();
-    
+
     // Discard pile is created in CombatUI.ts with proper stacking effect
     // this.createDiscardSprite();
 
     // Create deck and discard views
     this.createDeckView();
     this.createDiscardView();
-    
+
     // Create DDA debug overlay
     this.dda.createDDADebugOverlay();
-    
+
     // Create auto-win test buttons for DDA scenario testing
     this.dda.createAutoWinButtons();
 
     // Draw initial hand
     this.drawInitialHand();
-    
+
     // Force update relic inventory to ensure relics are visible
     // (scheduleRelicInventoryUpdate in createRelicInventory might be too early)
     this.time.delayedCall(100, () => {
@@ -367,21 +369,21 @@ export class Combat extends Scene {
     // Get existing player data from GameState or create new player if none exists
     const gameState = GameState.getInstance();
     const existingPlayerData = gameState.getPlayerData();
-    
+
     // Get and apply next combat buffs from events
     const overworldState = OverworldGameState.getInstance();
     const nextCombatBuffs = overworldState.consumeNextCombatBuffs();
-    
+
     let player: Player;
-    
+
     if (existingPlayerData && Object.keys(existingPlayerData).length > 0) {
       // Use existing player data and ensure all required fields are present
-      
+
       // Ensure relics have all properties (especially emoji) by looking them up from registry
       const relicsWithEmoji = (existingPlayerData.relics || []).map(relic => {
         // If relic already has emoji, use it
         if (relic.emoji) return relic;
-        
+
         // Otherwise, look it up from the registry to get the full relic data
         try {
           const fullRelic = getRelicById(relic.id);
@@ -392,7 +394,7 @@ export class Combat extends Scene {
           return { ...relic, emoji: relic.emoji || "⚙️" };
         }
       });
-      
+
       player = {
         id: existingPlayerData.id || "player",
         name: existingPlayerData.name || "Hero",
@@ -413,12 +415,12 @@ export class Combat extends Scene {
         discardCharges: existingPlayerData.discardCharges || 3,  // Changed from 1 to 3
         maxDiscardCharges: existingPlayerData.maxDiscardCharges || 3,  // Changed from 1 to 3
       };
-      
+
       // Apply event-granted health bonus (healing)
       if (nextCombatBuffs.health > 0) {
         player.currentHealth = Math.min(player.maxHealth, player.currentHealth + nextCombatBuffs.health);
       }
-      
+
       // Always start each combat with a fresh shuffled deck from player.deck
       // This ensures randomization every combat and respects purify/attune changes
       player.drawPile = DeckManager.shuffleDeck([...player.deck]);
@@ -452,7 +454,7 @@ export class Combat extends Scene {
         discardCharges: 3,  // Changed from 1 to 3
         maxDiscardCharges: 3,  // Changed from 1 to 3
       };
-      
+
       // Apply event-granted health bonus (healing) for new player too
       if (nextCombatBuffs.health > 0) {
         player.currentHealth = Math.min(player.maxHealth, player.currentHealth + nextCombatBuffs.health);
@@ -468,7 +470,7 @@ export class Combat extends Scene {
     player.drawPile = remainingDeck;
 
     // Get enemy based on specific enemyId if provided, otherwise use node type
-    const enemy = enemyId 
+    const enemy = enemyId
       ? EnemySelectionSystem.getEnemyByName(enemyId, gameState.getCurrentChapter())
       : EnemySelectionSystem.getEnemyForNodeType(nodeType, gameState.getCurrentChapter());
 
@@ -483,7 +485,7 @@ export class Combat extends Scene {
       selectedCards: [],
       lastAction: null,
     };
-    
+
     // Reset combat tracking variables
     this.combatEnded = false;
     this.turnCount = 0;
@@ -491,16 +493,16 @@ export class Combat extends Scene {
     this.bestHandAchieved = "high_card";
     this.isActionProcessing = false;
     this.specialUsedThisCombat = false; // Reset Special usage for new combat
-    
+
     // Initialize DDA tracking and apply adjustments
     this.dda.initializeDDA();
-    
+
     // Capture pre-combat difficulty for fair reward scaling (before combat results update DDA)
     this.preCombatDifficultyAdjustment = RuleBasedDDA.getInstance().getCurrentDifficultyAdjustment();
-    
+
     // Apply start-of-combat relic effects
     RelicManager.applyStartOfCombatEffects(this.combatState.player);
-    
+
     // Initialize Kapre's Cigar flag
     this.kapresCigarUsed = false;
   }
@@ -514,8 +516,8 @@ export class Combat extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     // Position played hand container much higher to avoid overlap with hand
-    this.playedHandContainer = this.add.container(screenWidth/2, screenHeight - 450);
-    
+    this.playedHandContainer = this.add.container(screenWidth / 2, screenHeight - 450);
+
     // Initialize hand evaluation text
     this.handEvaluationText = this.add
       .text(0, -80, "", {
@@ -571,18 +573,18 @@ export class Combat extends Scene {
       "Mandirigma": "11", "Babaylan": "12", "Datu": "13", "King": "13" // Added King as placeholder for 5 of a kind
     };
     const spriteRank = rankMap[rank] || "1";
-    
+
     // Convert suit to lowercase for sprite naming following the actual file naming convention
     const suitMap: Record<string, string> = {
       "Apoy": "apoy", "Tubig": "tubig", "Lupa": "lupa", "Hangin": "hangin"
     };
     const spriteSuit = suitMap[suit] || "apoy";
-    
+
     // The actual file names follow the pattern <rank><suit>.png (e.g., 1apoy.png)
     const textureKey = `${spriteRank}${spriteSuit}`;
-    
+
     let cardSprite;
-    
+
     // Check if texture exists, fallback to generated card if not
     if (this.textures.exists(textureKey)) {
       cardSprite = this.add.image(x, y, textureKey);
@@ -594,7 +596,7 @@ export class Combat extends Scene {
       cardSprite = this.add.rectangle(x, y, 80 * scale, 112 * scale, 0xffffff);
       cardSprite.setStrokeStyle(3 * scale, 0x444444); // Add border for visibility
       cardSprite.setDepth(6060); // Ensure card is visible
-      
+
       // Add rank text at top-left
       const rankText = this.add.text(x - 30 * scale, y - 40 * scale, rank, {
         fontFamily: "dungeon-mode",
@@ -602,20 +604,20 @@ export class Combat extends Scene {
         color: "#000000",
       }).setOrigin(0, 0).setDepth(6061);
       container.add(rankText);
-      
+
       // Add suit symbol next to rank
       const suitSymbolMap: Record<string, string> = {
         "Apoy": "🔥", "Tubig": "💧", "Lupa": "🌿", "Hangin": "💨"
       };
       const suitSymbol = suitSymbolMap[suit] || "🔥";
-      
+
       const suitText = this.add.text(x + 25 * scale, y - 40 * scale, suitSymbol, {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(18 * scale),
         color: "#000000",
       }).setOrigin(1, 0).setDepth(6061);
       container.add(suitText);
-      
+
       // Add rank text at bottom-right (rotated 180)
       const bottomRankText = this.add.text(x + 25 * scale, y + 40 * scale, rank, {
         fontFamily: "dungeon-mode",
@@ -623,7 +625,7 @@ export class Combat extends Scene {
         color: "#000000",
       }).setOrigin(1, 1).setRotation(Math.PI).setDepth(6061); // Rotate 180 degrees
       container.add(bottomRankText);
-      
+
       // Add suit symbol at bottom-right (rotated 180)
       const bottomSuitText = this.add.text(x - 30 * scale, y + 40 * scale, suitSymbol, {
         fontFamily: "dungeon-mode",
@@ -631,7 +633,7 @@ export class Combat extends Scene {
         color: "#000000",
       }).setOrigin(0, 1).setRotation(Math.PI).setDepth(6061); // Rotate 180 degrees
       container.add(bottomSuitText);
-      
+
       container.add(cardSprite);
     }
   }
@@ -673,14 +675,14 @@ export class Combat extends Scene {
       const tooltipText = `${relic.name}\n${effectDescription}`;
       const tooltipWidth = Math.min(300, Math.max(200, tooltipText.length * 4));
       const tooltipHeight = Math.min(120, Math.max(60, tooltipText.split('\n').length * 20 + 20));
-      
+
       // Prologue-style double border design
       const outerBorder = this.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
         .setStrokeStyle(2, 0x77888C);
       const innerBorder = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
         .setStrokeStyle(2, 0x77888C);
       const bg = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
-      
+
       const tooltip = this.add.text(0, 0, tooltipText, {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(14 * scaleFactor),
@@ -688,7 +690,7 @@ export class Combat extends Scene {
         align: "center",
         wordWrap: { width: tooltipWidth - 10 }
       }).setOrigin(0.5);
-      
+
       tooltipContainer.add([outerBorder, innerBorder, bg, tooltip]);
       tooltipContainer.setVisible(false).setAlpha(0);
 
@@ -735,10 +737,10 @@ export class Combat extends Scene {
     const screenWidth = this.cameras.main.width;
     const baseButtonWidth = 140; // Slightly wider for Balatro style
     const baseButtonHeight = 45; // Taller for better visibility
-    
+
     // Scale button size based on screen width
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    
+
     // Create a temporary text object to measure the actual text width
     const tempText = this.add.text(0, 0, text, {
       fontFamily: "dungeon-mode",
@@ -746,12 +748,12 @@ export class Combat extends Scene {
       color: "#77888C",
       align: "center"
     });
-    
+
     // Get the actual width of the text
     const textWidth = tempText.width;
     const textHeight = tempText.height;
     tempText.destroy(); // Remove the temporary text
-    
+
     // Set button dimensions with proper padding (Balatro style - more padding)
     const padding = 30; // More padding for Balatro style
     const buttonWidth = Math.max(baseButtonWidth, textWidth + padding);
@@ -777,10 +779,10 @@ export class Combat extends Scene {
 
     button.add([outerBorder, innerBorder, bg, buttonText]);
     button.setInteractive(
-      new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
+      new Phaser.Geom.Rectangle(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
-    
+
     // Balatro-style interactions with Prologue colors
     button.on("pointerdown", () => {
       // Check if action processing is active
@@ -805,7 +807,7 @@ export class Combat extends Scene {
       });
       callback();
     });
-    
+
     // Balatro-style hover effects with Prologue colors
     button.on("pointerover", () => {
       bg.setFillStyle(0x1f1410); // Prologue hover color
@@ -817,7 +819,7 @@ export class Combat extends Scene {
         ease: 'Back.easeOut'
       });
     });
-    
+
     button.on("pointerout", () => {
       bg.setFillStyle(0x150E10); // Prologue normal color
       buttonText.setColor("#77888C"); // Normal text color
@@ -839,7 +841,7 @@ export class Combat extends Scene {
     // Clear any existing hand display
     this.ui.cardSprites.forEach((sprite) => sprite.destroy());
     this.ui.cardSprites = [];
-    
+
     // Animate drawing cards from deck one by one
     this.animations.animateDrawCardsFromDeck(this.combatState.player.hand.length);
   }
@@ -854,7 +856,7 @@ export class Combat extends Scene {
     const cardSprites = this.ui.cardSprites;
     if (cardIndex !== -1 && cardSprites[cardIndex]) {
       const cardSprite = cardSprites[cardIndex];
-      
+
       // Update border visibility only
       const border = cardSprite.getByName('cardBorder') as Phaser.GameObjects.Rectangle;
       if (border) {
@@ -871,19 +873,19 @@ export class Combat extends Scene {
     if (this.isActionProcessing || this.isDrawingCards || this.combatEnded || this.isSorting) {
       return;
     }
-    
+
     // BUGFIX: Only allow card selection during player_turn phase
     if (this.combatState.phase !== "player_turn") {
       return;
     }
-    
+
     // Find the card in hand to ensure it still exists
     const cardInHand = this.combatState.player.hand.find(c => c.id === card.id);
     if (!cardInHand) {
       console.warn("Card not found in hand, ignoring selection");
       return;
     }
-    
+
     // If trying to select a new card when already 5 are selected, ignore
     if (!card.selected && this.selectedCards.length >= 5) {
       this.showActionResult("Cannot select more than 5 cards!");
@@ -892,7 +894,7 @@ export class Combat extends Scene {
 
     // Toggle selection state
     card.selected = !card.selected;
-    
+
     // BUGFIX: Synchronize selectedCards array with card state
     const selIndex = this.selectedCards.findIndex(c => c.id === card.id);
     if (card.selected) {
@@ -912,20 +914,20 @@ export class Combat extends Scene {
       console.warn("Card sprite not found for selection animation");
       return;
     }
-    
+
     const cardSprite = cardSprites[cardIndex];
-    
+
     // CRITICAL: Kill any existing tweens on this sprite to prevent conflicts
     this.tweens.killTweensOf(cardSprite);
-    
+
     // Get the base Y position that was stored when the card was created
     const storedBaseY = (card as any).baseY;
-    
+
     if (storedBaseY === undefined) {
       console.warn("Card baseY not found, cannot animate properly");
       return;
     }
-    
+
     // Balatro-style selection animation
     if (card.selected) {
       // SELECT: Move card UP
@@ -935,16 +937,16 @@ export class Combat extends Scene {
         duration: 200,
         ease: 'Back.easeOut'
       });
-      
+
       // Yellow tint for selected cards
       const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
       if (cardImage && 'setTint' in cardImage) {
         cardImage.setTint(0xffdd44);
       }
-      
+
       // Bring to front
       cardSprite.setDepth(500 + cardIndex);
-      
+
     } else {
       // DESELECT: Return to EXACT base position
       this.tweens.add({
@@ -953,13 +955,13 @@ export class Combat extends Scene {
         duration: 200,
         ease: 'Back.easeOut'
       });
-      
+
       // Remove tint
       const cardImage = cardSprite.list[0] as Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
       if (cardImage && 'clearTint' in cardImage) {
         cardImage.clearTint();
       }
-      
+
       // Return to normal depth
       cardSprite.setDepth(100 + cardIndex);
     }
@@ -985,31 +987,31 @@ export class Combat extends Scene {
 
     // Remove card from played hand
     this.combatState.player.playedHand.splice(playedIndex, 1);
-    
+
     // Add card back to regular hand
     this.combatState.player.hand.push(card);
-    
+
     // Reset card selection state
     card.selected = false;
-    
+
     // Remove from selected cards if it was there
     this.selectedCards = this.selectedCards.filter(c => c.id !== card.id);
     this.combatState.selectedCards = this.combatState.selectedCards.filter(c => c.id !== card.id);
-    
+
     // If no cards left in played hand, return to card selection phase
     if (this.combatState.player.playedHand.length === 0) {
       this.combatState.phase = "player_turn";
       this.ui.updateActionButtons();
     }
-    
+
     // Batch UI updates for better performance
     this.ui.updateHandDisplay();
     this.ui.updatePlayedHandDisplay();
     this.scheduleUIUpdate(); // Use batched update instead of individual calls
-    
+
     // Update damage preview based on current phase
     this.updateDamagePreview(this.combatState.phase === "action_selection");
-    
+
     // Show feedback
     this.showActionResult(`Unplayed ${card.rank} of ${card.suit}`);
   }
@@ -1051,10 +1053,10 @@ export class Combat extends Scene {
     this.ui.updateHandDisplay();
     this.ui.updatePlayedHandDisplay();
     this.ui.updateActionButtons();
-    
+
     // Update damage preview for the new hand
     this.updateDamagePreview(true);
-    
+
     // Schedule UI update instead of immediate individual updates
     this.scheduleUIUpdate();
   }
@@ -1068,22 +1070,22 @@ export class Combat extends Scene {
       console.log("Already sorting, ignoring sort request");
       return;
     }
-    
+
     // BUGFIX: Don't sort during combat transitions or when processing actions
     if (this.isActionProcessing || this.isDrawingCards || this.combatEnded) {
       console.log("Cannot sort during combat transitions");
       return;
     }
-    
+
     // BUGFIX: Only allow sorting during player's turn
     if (this.combatState.phase !== "player_turn") {
       console.log("Can only sort during player turn");
       return;
     }
-    
+
     // Set sorting flag
     this.isSorting = true;
-    
+
     // BUGFIX: Store which cards are currently selected BEFORE sorting
     // We need to track by card identity (suit + rank) not by reference
     const selectedCardIdentities = this.selectedCards.map(card => ({
@@ -1091,12 +1093,12 @@ export class Combat extends Scene {
       rank: card.rank,
       id: card.id
     }));
-    
+
     // Disable card interactions during sorting
     this.ui.cardSprites.forEach(sprite => {
       sprite.disableInteractive();
     });
-    
+
     // Create shuffling animation before sorting
     this.animations.animateCardShuffle(sortBy, () => {
       // BUGFIX: After sorting, restore selection state to the cards
@@ -1111,15 +1113,15 @@ export class Combat extends Scene {
           this.selectedCards.push(card);
         }
       });
-      
+
       // BUGFIX: Update hand display to refresh card sprites and listeners
       // This will now show the correct selection state
       this.ui.updateHandDisplay();
-      
+
       // Update UI elements that depend on selection
       this.updateSelectionCounter();
       this.ui.updateHandIndicator();
-      
+
       // Clear sorting flag AFTER hand display is updated
       this.isSorting = false;
     });
@@ -1187,20 +1189,20 @@ export class Combat extends Scene {
   ): void {
     // Store effects before processing to detect expirations
     const effectsBefore = target.statusEffects.map(e => ({ id: e.id, emoji: e.emoji, type: e.type }));
-    
+
     // Process status effects at the specified timing
     const results = StatusEffectManager.processStatusEffects(target, timing);
-    
+
     // Display feedback for each triggered effect with visual animations
     results.forEach(result => {
       this.showActionResult(result.message);
       // Show floating text for the effect trigger
       this.ui.showStatusEffectFeedback(result, target);
     });
-    
+
     // Clean up expired effects (those with 0 stacks)
     StatusEffectManager.cleanupExpiredEffects(target);
-    
+
     // Detect and show expiration animations for removed effects
     const effectsAfter = target.statusEffects.map(e => e.id);
     effectsBefore.forEach(effectBefore => {
@@ -1214,7 +1216,7 @@ export class Combat extends Scene {
         );
       }
     });
-    
+
     // Update UI to reflect changes
     if (target === this.combatState.player) {
       this.ui.updatePlayerUI();
@@ -1234,16 +1236,16 @@ export class Combat extends Scene {
   private endPlayerTurn(): void {
     // ORDER 1: Status effects FIRST
     this.applyStatusEffects(this.combatState.player, 'end_of_turn');
-    
+
     // ORDER 2: Relic effects SECOND
     RelicManager.applyEndOfTurnEffects(this.combatState.player);
-    
+
     this.combatState.phase = "enemy_turn";
     this.selectedCards = [];
 
     // Hide damage preview during enemy turn
     this.updateDamagePreview(false);
-    
+
     // ORDER 3: Transition to enemy turn
     this.executeEnemyTurn();
   }
@@ -1277,17 +1279,17 @@ export class Combat extends Scene {
     if (isStunned) {
       console.log("Enemy is stunned, skipping their turn");
       this.showActionResult("Enemy is Stunned - Turn Skipped!");
-      
+
       // Still process end-of-turn and move to next turn
       this.applyStatusEffects(enemy, 'end_of_turn');
       this.updateEnemyIntent();
-      
+
       this.time.delayedCall(this.DELAY_ENEMY_TURN, () => {
         this.startPlayerTurn();
       });
       return;
     }
-    
+
     // ORDER 2: Status effects FIRST
     this.applyStatusEffects(this.combatState.enemy, 'start_of_turn');
 
@@ -1300,17 +1302,17 @@ export class Combat extends Scene {
 
     // Execute enemy action based on attack pattern
     const currentAction = enemy.attackPattern[enemy.currentPatternIndex];
-    
+
     // PRIORITY 6: Show what enemy is doing NOW
     this.showCurrentEnemyAction(currentAction);
-    
+
     if (currentAction === "attack") {
       // Calculate damage with Weak modifier
       let damage = enemy.damage || enemy.intent.value || 12;
       if (enemy.statusEffects.some((e) => e.name === "Weak")) {
         damage = Math.floor(damage * 0.5);
       }
-      
+
       console.log(`Enemy attacking for ${damage} damage`);
       this.animations.animateEnemyAttack();
       this.damagePlayer(damage);
@@ -1403,10 +1405,10 @@ export class Combat extends Scene {
     if (isStunned) {
       console.log("Player is stunned, skipping their turn");
       this.showActionResult("You are Stunned - Turn Skipped!");
-      
+
       // Process end-of-turn status effects and move to next turn
       this.applyStatusEffects(this.combatState.player, 'end_of_turn');
-      
+
       this.time.delayedCall(this.DELAY_ENEMY_TURN, () => {
         this.executeEnemyTurn();
       });
@@ -1415,7 +1417,7 @@ export class Combat extends Scene {
 
     // ORDER 1: Relic effects FIRST
     RelicManager.applyStartOfTurnEffects(this.combatState.player);
-    
+
     // ORDER 2: Status effects SECOND
     this.applyStatusEffects(this.combatState.player, 'start_of_turn');
 
@@ -1425,13 +1427,13 @@ export class Combat extends Scene {
     }
 
     this.combatState.phase = "player_turn";
-    
+
     // Only increment turn after the first turn (turn starts at 1)
     if (this.turnCount > 0) {
       this.combatState.turn++;
     }
     this.turnCount++; // Track total turns for DDA
-    
+
     // Update DDA debug overlay with current turn count
     this.dda.updateDDADebugOverlay();
 
@@ -1443,7 +1445,7 @@ export class Combat extends Scene {
       card.selected = false;
     });
     this.selectedCards = [];
-    
+
     // Also ensure all cards in hand have selected flag cleared
     this.combatState.player.hand.forEach(card => {
       card.selected = false;
@@ -1458,10 +1460,10 @@ export class Combat extends Scene {
 
     // Draw cards to ensure player has 8 cards at start of turn
     let targetHandSize = 8;
-    
+
     // Apply "Wind Veil" effect: Additional cards drawn based on Hangin cards played in last action
     // (this would apply if in a continuous combat system where Hangin cards from last turn matter)
-    
+
     const cardsNeeded = targetHandSize - this.combatState.player.hand.length;
     if (cardsNeeded > 0) {
       this.drawCards(cardsNeeded);
@@ -1472,11 +1474,11 @@ export class Combat extends Scene {
     this.ui.updatePlayedHandDisplay(); // Clear the played hand display
     this.ui.updateActionButtons(); // Reset to card selection buttons
     this.scheduleUIUpdate(); // Batched update for turn UI and other elements
-    
+
     // ORDER 5: ALWAYS reset action processing flag and enable actions
     this.isActionProcessing = false;
     this.setActionButtonsEnabled(true);
-    
+
     // Update damage preview visibility - hide at start of turn
     this.updateDamagePreview(false);
   }
@@ -1507,7 +1509,7 @@ export class Combat extends Scene {
         this.combatState.player.discardPile = [];
       });
     }
-    
+
     // Animate only the newly drawn cards
     this.animations.animateNewCards(drawnCards, previousHandSize);
     this.updateDeckDisplay();
@@ -1522,7 +1524,7 @@ export class Combat extends Scene {
     let finalDamage = damage;
     let vulnerableBonus = 0;
     let bakunawaBonus = 0;
-    
+
     // Apply Vulnerable multiplier using DamageCalculator
     const damageAfterVulnerable = DamageCalculator.applyVulnerableMultiplier(damage, this.combatState.enemy);
     if (damageAfterVulnerable > damage) {
@@ -1530,26 +1532,26 @@ export class Combat extends Scene {
       finalDamage = damageAfterVulnerable;
       console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
     }
-    
+
     // Apply "Bakunawa Fang" effect: +5 additional damage when using any relic
     const bakunawaFang = this.combatState.player.relics.find(r => r.id === "bakunawa_fang");
     if (bakunawaFang) {
       finalDamage += 5;
       bakunawaBonus = 5;
     }
-    
+
     const actualDamage = Math.max(0, finalDamage - this.combatState.enemy.block);
     console.log(`Enemy has ${this.combatState.enemy.block} block, taking ${actualDamage} actual damage`);
-    
+
     // Track total damage dealt
     this.totalDamageDealt += actualDamage;
-    
+
     this.combatState.enemy.currentHealth -= actualDamage;
     this.combatState.enemy.block = Math.max(
       0,
       this.combatState.enemy.block - finalDamage
     );
-    
+
     console.log(`Enemy health: ${this.combatState.enemy.currentHealth}/${this.combatState.enemy.maxHealth}`);
 
     // Add visual feedback for enemy taking damage
@@ -1563,15 +1565,18 @@ export class Combat extends Scene {
       if (vulnerableBonus > 0) message += ` + ${vulnerableBonus} (Vulnerable)`;
       if (bakunawaBonus > 0) message += ` + ${bakunawaBonus} (Bakunawa Fang)`;
       message += ` = ${finalDamage}`;
-      
+
       this.showEnhancedActionResult(message, "#ff6b6b");
     }
+
+    // Check for boss phase dialogue (before death check)
+    this.checkBossPhaseDialogue();
 
     // PRIORITY 1: Use centralized combat end check
     if (this.checkCombatEnd()) {
       // Batch UI update instead of immediate call
       this.scheduleUIUpdate();
-      
+
       // Play death animation
       this.animations.animateEnemyDeath();
       return;
@@ -1583,7 +1588,7 @@ export class Combat extends Scene {
    */
   private damagePlayer(damage: number): void {
     console.log(`Applying ${damage} damage to player`);
-    
+
     // Check for dodge chance from "Tikbalang's Hoof"
     const dodgeChance = RelicManager.calculateDodgeChance(this.combatState.player);
     if (Math.random() < dodgeChance) {
@@ -1591,13 +1596,13 @@ export class Combat extends Scene {
       this.showActionResult("Tikbalang's Dodge!");
       return; // Player dodged, take no damage
     }
-    
+
     // Apply Vulnerable multiplier using DamageCalculator
     let finalDamage = DamageCalculator.applyVulnerableMultiplier(damage, this.combatState.player);
     if (finalDamage > damage) {
       console.log(`Vulnerable effect applied, damage increased to ${finalDamage}`);
     }
-    
+
     // Apply damage reduction from relics (Bakunawa Scale, etc.)
     const originalDamage = finalDamage;
     finalDamage = RelicManager.calculateDamageReduction(finalDamage, this.combatState.player);
@@ -1605,22 +1610,22 @@ export class Combat extends Scene {
       console.log(`Damage reduced from ${originalDamage} to ${finalDamage} by relic effects`);
       this.showActionResult(`Scale Protection!`);
     }
-    
+
     const actualDamage = Math.max(0, finalDamage - this.combatState.player.block);
     console.log(`Player has ${this.combatState.player.block} block, taking ${actualDamage} actual damage`);
-    
+
     // Apply damage and clamp health to valid range
     this.combatState.player.currentHealth = Math.max(0, Math.floor(this.combatState.player.currentHealth - actualDamage));
     this.combatState.player.block = Math.max(
       0,
       this.combatState.player.block - finalDamage
     );
-    
+
     console.log(`Player health: ${this.combatState.player.currentHealth}/${this.combatState.player.maxHealth}`);
 
     // Add visual feedback for player taking damage
     this.animations.animateSpriteDamage(this.playerSprite);
-    
+
     // Batch UI update instead of immediate call
     this.scheduleUIUpdate();
 
@@ -1638,7 +1643,7 @@ export class Combat extends Scene {
     if (this.combatEnded) {
       return true;
     }
-    
+
     // Check enemy defeated
     if (this.combatState.enemy.currentHealth <= 0) {
       this.combatState.enemy.currentHealth = 0;
@@ -1646,7 +1651,7 @@ export class Combat extends Scene {
       this.endCombat(true);
       return true;
     }
-    
+
     // Check player defeated
     if (this.combatState.player.currentHealth <= 0) {
       this.combatState.player.currentHealth = 0;
@@ -1654,7 +1659,7 @@ export class Combat extends Scene {
       this.endCombat(false);
       return true;
     }
-    
+
     return false;
   }
 
@@ -1682,28 +1687,28 @@ export class Combat extends Scene {
     if (this.combatEnded) {
       return;
     }
-    
+
     try {
       // Cache text values to avoid unnecessary setText calls
       const turnText = `Turn: ${this.combatState.turn}`;
       const specialStatus = this.specialUsedThisCombat ? "USED" : "READY";
       const actionsText = `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`;
-      
+
       // Only update if text has actually changed
       if (this.turnText.text !== turnText) {
         this.turnText.setText(turnText);
       }
-      
+
       if (this.actionsText.text !== actionsText) {
         this.actionsText.setText(actionsText);
-        
+
         // Color code the special status within the text - only when text changes
         const newColor = this.specialUsedThisCombat ? "#cccccc" : "#ffd93d";
         if (this.actionsText.style.color !== newColor) {
           this.actionsText.setColor(newColor);
         }
       }
-      
+
       // Only update hand indicator if needed (this can be expensive)
       if (this.ui && this.ui.updateHandIndicator) {
         this.ui.updateHandIndicator();
@@ -1719,9 +1724,9 @@ export class Combat extends Scene {
    */
   private updateSelectionCounter(): void {
     if (!this.selectionCounterText) return;
-    
+
     const count = this.selectedCards.length;
-    
+
     // Show hand type if we have selected cards
     if (count > 0) {
       const evaluation = HandEvaluator.evaluateHand(this.selectedCards, "attack");
@@ -1763,22 +1768,22 @@ export class Combat extends Scene {
       console.log("Combat already ended, preventing duplicate call");
       return;
     }
-    
+
     this.combatEnded = true;
     this.combatState.phase = "post_combat";
-    
+
     // PRIORITY 2: Reset action processing flag (safety)
     this.isActionProcessing = false;
-    
+
     const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
     const screenHeight = this.cameras.main?.height || this.scale.height || 768;
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    
+
     console.log(`Combat ended with victory: ${victory}`);
-    
+
     // Submit combat metrics to DDA system
     this.dda.submitCombatResults(victory, this.turnCount, this.maxDiscardsPerTurn, this.bestHandAchieved);
-    
+
     if (victory) {
       const gameState = GameState.getInstance();
       const currentNode = gameState.getCurrentNode();
@@ -1792,7 +1797,7 @@ export class Combat extends Scene {
         this.updateRelicsUI();
         this.ui.forceRelicInventoryUpdate(); // Force update after adding relic
       }
-      
+
       // Victory - show post-combat dialogue with delay to prevent double calls
       this.time.delayedCall(100, () => {
         this.showPostCombatDialogue();
@@ -1803,7 +1808,7 @@ export class Combat extends Scene {
       const color = "#ff4757";
 
       this.add
-        .text(screenWidth/2, screenHeight/2, resultText, {
+        .text(screenWidth / 2, screenHeight / 2, resultText, {
           fontFamily: "dungeon-mode",
           fontSize: Math.floor(48 * scaleFactor),
           color: color,
@@ -1815,17 +1820,17 @@ export class Combat extends Scene {
       this.time.delayedCall(2000, () => {
         // Reset cursor before transitioning
         this.input.setDefaultCursor('default');
-        
+
         // Stop the Overworld scene if it's running (paused from combat launch)
         if (this.scene.isActive('Overworld') || this.scene.isPaused('Overworld')) {
           this.scene.stop('Overworld');
         }
-        
+
         // Get enemy sprite key using the dialogue manager method
         const enemySpriteKey = this.dialogue.getEnemySpriteKey(this.combatState.enemy.name);
-        
+
         // Music will auto-stop via shutdown() when scene.start() is called
-        
+
         // Pass defeat data to GameOver scene and stop this scene
         this.scene.start("GameOver", {
           defeatedBy: this.combatState.enemy.name,
@@ -1861,11 +1866,11 @@ export class Combat extends Scene {
       creatureDialogues[enemyKey] || creatureDialogues.tikbalang_scout;
 
     // Background overlay (Prologue style - semi-transparent)
-    const overlay = this.add.rectangle(screenWidth/2, screenHeight/2, screenWidth, screenHeight, 0x000000, 0.7);
+    const overlay = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x000000, 0.7);
 
     // Create dialogue container positioned at center (Prologue style)
     const dialogueContainer = this.add.container(screenWidth / 2, screenHeight / 2);
-    
+
     // Calculate dialogue box size
     const dialogueBoxWidth = Math.min(600, screenWidth * 0.8);
     const dialogueBoxHeight = Math.min(350, screenHeight * 0.6);
@@ -1875,16 +1880,27 @@ export class Combat extends Scene {
     const innerBorder = this.add.rectangle(0, 0, dialogueBoxWidth, dialogueBoxHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
     const bg = this.add.rectangle(0, 0, dialogueBoxWidth, dialogueBoxHeight, 0x150E10);
 
-    // Enemy name with Prologue styling
-    const enemyNameText = this.add.text(0, -80, dialogue.name, {
+    // Enemy name with Prologue styling — larger and more impactful
+    const enemyNameText = this.add.text(0, -100, dialogue.name.toUpperCase(), {
       fontFamily: "dungeon-mode",
-      fontSize: Math.floor(24 * scaleFactor),
-      color: "#77888C",
+      fontSize: Math.floor(28 * scaleFactor),
+      color: "#ff4757",
       align: "center",
     }).setOrigin(0.5);
 
-    // Main dialogue text with Prologue styling
-    const mainText = this.add.text(0, 0, "You have defeated this creature. What do you choose?", {
+    // Defeat dialogue line — typewriter fade-in
+    const defeatLine = this.combatState.enemy.dialogue?.defeat || "";
+    const defeatText = this.add.text(0, -55, '', {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.floor(14 * scaleFactor),
+      color: "#aabbcc",
+      align: "center",
+      fontStyle: "italic",
+      wordWrap: { width: dialogueBoxWidth * 0.8 },
+    }).setOrigin(0.5);
+
+    // Main prompt text — typewriter effect
+    const mainText = this.add.text(0, 10, '', {
       fontFamily: "dungeon-mode",
       fontSize: Math.floor(18 * scaleFactor),
       color: "#77888C",
@@ -1898,27 +1914,40 @@ export class Combat extends Scene {
       innerBorder,
       bg,
       enemyNameText,
+      defeatText,
       mainText
     ];
 
     dialogueContainer.add(containerChildren);
     dialogueContainer.setDepth(5001);
 
-    // Prologue-style fade in animation
-    dialogueContainer.setAlpha(0);
-    this.tweens.add({ 
-      targets: dialogueContainer, 
-      alpha: 1, 
-      duration: 400, 
-      ease: 'Power2' 
+    // Cinematic fade in with slight scale-up
+    dialogueContainer.setAlpha(0).setScale(0.95);
+    this.tweens.add({
+      targets: dialogueContainer,
+      alpha: 1,
+      scale: 1,
+      duration: 500,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Typewriter the defeat line first, then the choice prompt
+        if (defeatLine) {
+          this.typewriterText(defeatText, `"${defeatLine}"`, 25);
+          this.time.delayedCall(defeatLine.length * 25 + 400, () => {
+            this.typewriterText(mainText, "What do you choose?", 40);
+          });
+        } else {
+          this.typewriterText(mainText, "What do you choose?", 40);
+        }
+      }
     });
 
     // Landas choice buttons (positioned outside the container for easier positioning)
-    this.createDialogueButton(screenWidth/2 - 120, screenHeight/2 + 80, "Spare", "#2ed573", () =>
+    this.createDialogueButton(screenWidth / 2 - 120, screenHeight / 2 + 80, "Spare", "#2ed573", () =>
       this.makeLandasChoice("spare", dialogue)
     );
 
-    this.createDialogueButton(screenWidth/2 + 120, screenHeight/2 + 80, "Slay", "#ff4757", () =>
+    this.createDialogueButton(screenWidth / 2 + 120, screenHeight / 2 + 80, "Slay", "#ff4757", () =>
       this.makeLandasChoice("kill", dialogue)
     );
 
@@ -1927,8 +1956,8 @@ export class Combat extends Scene {
     const landasColor = this.getLandasColor(landasTier);
 
     this.add.text(
-      screenWidth/2,
-      screenHeight/2 + 150,
+      screenWidth / 2,
+      screenHeight / 2 + 150,
       `Current Landas: ${this.combatState.player.landasScore} (${landasTier.toUpperCase()})`,
       {
         fontFamily: "dungeon-mode",
@@ -1950,41 +1979,41 @@ export class Combat extends Scene {
     callback: () => void
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
-    
+
     // Create text first to measure size (Prologue style)
-    const buttonText = this.add.text(0, 0, text, { 
-      fontFamily: "dungeon-mode", 
-      fontSize: 24, 
-      color: "#77888C", 
-      align: "center" 
+    const buttonText = this.add.text(0, 0, text, {
+      fontFamily: "dungeon-mode",
+      fontSize: 24,
+      color: "#77888C",
+      align: "center"
     }).setOrigin(0.5);
-    
+
     // Calculate dynamic size based on text with increased padding for better clickability
     const paddingX = 60;
     const paddingY = 30;
     const buttonWidth = Math.max(buttonText.width + paddingX, 200);
     const buttonHeight = Math.max(buttonText.height + paddingY, 50);
-    
+
     // Double border design (Prologue style)
     const outerBorder = this.add.rectangle(0, 0, buttonWidth + 8, buttonHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
     const innerBorder = this.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
     const bg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
-    
+
     // Make background the interactive element instead of container (Prologue style)
     bg.setInteractive({ useHandCursor: true });
-    
+
     button.add([outerBorder, innerBorder, bg, buttonText]);
-    
+
     // Set container size and depth - make sure buttons are above dialogue container
     button.setSize(buttonWidth, buttonHeight);
     button.setDepth(5010); // Higher than dialogue container (5001)
-    
+
     let isHovering = false;
-    
+
     // Prologue-style button interactions
     bg.on('pointerdown', () => {
       if (!button.active) return;
-      
+
       // Visual feedback (Prologue style)
       this.tweens.add({
         targets: button,
@@ -2001,10 +2030,10 @@ export class Combat extends Scene {
               if (button.active) {
                 // Disable the button to prevent multiple clicks
                 button.disableInteractive();
-                
+
                 // Remove all button events to prevent further interaction
                 button.removeAllListeners();
-                
+
                 // Add a small delay before executing callback to ensure UI updates
                 this.time.delayedCall(50, () => {
                   callback();
@@ -2016,7 +2045,7 @@ export class Combat extends Scene {
       });
       this.cameras.main.shake(30, 0.01);
     });
-    
+
     bg.on('pointerover', () => {
       if (!button.active) return;
       isHovering = true;
@@ -2024,7 +2053,7 @@ export class Combat extends Scene {
       this.tweens.add({ targets: button, scale: 1.05, duration: 200, ease: 'Power2' });
       bg.setFillStyle(0x1f1410); // Prologue hover color
     });
-    
+
     bg.on('pointerout', () => {
       if (!button.active) return;
       isHovering = false;
@@ -2032,7 +2061,7 @@ export class Combat extends Scene {
       this.tweens.add({ targets: button, scale: 1, duration: 200, ease: 'Power2' });
       bg.setFillStyle(0x150E10); // Prologue normal color
     });
-    
+
     // Store original disable method
     const originalDisable = button.disableInteractive.bind(button);
     button.disableInteractive = () => {
@@ -2055,7 +2084,7 @@ export class Combat extends Scene {
   ): void {
     try {
       console.log(`Making landas choice: ${choice}`);
-      
+
       const isSpare = choice === "spare";
       const landasChange = isSpare ? 1 : -1;
       const reward = isSpare ? dialogue.spareReward : dialogue.killReward;
@@ -2071,11 +2100,11 @@ export class Combat extends Scene {
       // Apply DDA gold multiplier using PRE-COMBAT difficulty (fair reward scaling)
       // Rewards are based on the tier active DURING combat, not the tier AFTER combat results are processed
       const scaledGold = Math.round(reward.ginto * this.preCombatDifficultyAdjustment.goldRewardMultiplier);
-      
+
       // Apply scaled rewards
       this.combatState.player.ginto += scaledGold;
       this.combatState.player.diamante += reward.diamante;
-      
+
       // Log for thesis data collection
       if (scaledGold !== reward.ginto) {
         console.log(`💰 DDA Gold Reward Scaling (Pre-Combat Tier): ${reward.ginto} → ${scaledGold} (tier: ${this.preCombatDifficultyAdjustment.tier}, multiplier: ${this.preCombatDifficultyAdjustment.goldRewardMultiplier})`);
@@ -2092,17 +2121,17 @@ export class Combat extends Scene {
       if (reward.relics && reward.relics.length > 0 && reward.relicDropChance) {
         const dropRoll = Math.random();
         console.log(`Relic drop roll: ${dropRoll.toFixed(2)} vs ${reward.relicDropChance.toFixed(2)}`);
-        
+
         if (dropRoll <= reward.relicDropChance) {
           // Successful drop - add first relic from the reward
           const droppedRelic = reward.relics[0];
           console.log(`✅ Relic dropped: ${droppedRelic.name} (${droppedRelic.emoji})`);
-          
+
           // Add to player's relics (max 6)
           if (!this.combatState.player.relics) {
             this.combatState.player.relics = [];
           }
-          
+
           if (this.combatState.player.relics.length < 6) {
             this.combatState.player.relics.push(droppedRelic);
             console.log(`Added relic to inventory. Total relics: ${this.combatState.player.relics.length}/6`);
@@ -2122,14 +2151,14 @@ export class Combat extends Scene {
           // Keep background elements and camera-related objects
           return !(child instanceof Phaser.GameObjects.Image && child.texture?.key === 'bg');
         });
-        
+
         childrenToRemove.forEach(child => {
           if (child && child.destroy) {
             child.destroy();
           }
         });
       }
-      
+
       // Safety check for camera
       if (this.cameras.main) {
         this.cameras.main.setBackgroundColor(0x150E10);
@@ -2145,7 +2174,7 @@ export class Combat extends Scene {
           this.returnToOverworld();
         }
       });
-      
+
     } catch (error) {
       console.error("Error in makeLandasChoice:", error);
       // Fallback - return to overworld if something goes wrong
@@ -2179,7 +2208,7 @@ export class Combat extends Scene {
     const bgScale = Math.max(bgScaleX, bgScaleY);
     bgImage.setScale(bgScale);
     bgImage.setDepth(-100);
-    
+
     // Add overlay - 70% opacity (same as MainMenu)
     const overlay = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x150E10, 0.70);
     overlay.setDepth(-90);
@@ -2200,7 +2229,7 @@ export class Combat extends Scene {
       gravityY: 15 // Gentle downward pull
     });
     particles.setDepth(-70);
-    
+
     // Add second layer of smaller, faster particles for depth (same as MainMenu)
     const dustParticles = this.add.particles(0, 0, '__WHITE', {
       x: { min: 0, max: screenWidth },
@@ -2221,7 +2250,7 @@ export class Combat extends Scene {
     // Title
     this.add
       .text(
-        screenWidth/2,
+        screenWidth / 2,
         100,
         choice === "spare" ? "Mercy Shown" : "Victory Through Force",
         {
@@ -2235,7 +2264,7 @@ export class Combat extends Scene {
 
     // Dialogue
     this.add
-      .text(screenWidth/2, 200, dialogue, {
+      .text(screenWidth / 2, 200, dialogue, {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(16 * scaleFactor),
         color: "#e8eced",
@@ -2259,13 +2288,13 @@ export class Combat extends Scene {
     const rewardsBoxWidth = Math.min(700, screenWidth * 0.75);
     const rewardsBoxHeight = Math.max(250, Math.min(estimatedHeight, screenHeight * 0.5));
     const rewardsBoxY = 320 + (rewardsBoxHeight / 2);
-    const rewardsBox = this.add.rectangle(screenWidth/2, rewardsBoxY, rewardsBoxWidth, rewardsBoxHeight, 0x2f3542);
+    const rewardsBox = this.add.rectangle(screenWidth / 2, rewardsBoxY, rewardsBoxWidth, rewardsBoxHeight, 0x2f3542);
     rewardsBox.setStrokeStyle(2, 0x57606f);
 
     // Rewards title
     const rewardsTitleY = rewardsBoxY - (rewardsBoxHeight / 2) + 30;
     this.add
-      .text(screenWidth/2, rewardsTitleY, "Rewards", {
+      .text(screenWidth / 2, rewardsTitleY, "Rewards", {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(24 * scaleFactor),
         color: "#ffd93d",
@@ -2278,7 +2307,7 @@ export class Combat extends Scene {
     // Ginto reward - display the DDA-scaled amount
     if (scaledGold > 0) {
       this.add
-        .text(screenWidth/2, rewardY, `💰 ${scaledGold} Ginto`, {
+        .text(screenWidth / 2, rewardY, `💰 ${scaledGold} Ginto`, {
           fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#e8eced",
@@ -2291,7 +2320,7 @@ export class Combat extends Scene {
     // Health healing
     if (reward.healthHealing > 0) {
       this.add
-        .text(screenWidth/2, rewardY, `♥ Healed ${reward.healthHealing} HP`, {
+        .text(screenWidth / 2, rewardY, `♥ Healed ${reward.healthHealing} HP`, {
           fontFamily: "dungeon-mode",
           fontSize: Math.floor(16 * scaleFactor),
           color: "#ff6b6b",
@@ -2303,7 +2332,7 @@ export class Combat extends Scene {
 
     // Landas change
     this.add
-      .text(screenWidth/2, rewardY, `✨ Landas ${landasChangeText}`, {
+      .text(screenWidth / 2, rewardY, `✨ Landas ${landasChangeText}`, {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(16 * scaleFactor),
         color: landasChange > 0 ? "#2ed573" : "#ff4757",
@@ -2315,7 +2344,7 @@ export class Combat extends Scene {
     // Bonus effect
     if (reward.bonusEffect) {
       this.add
-        .text(screenWidth/2, rewardY, `✨ ${reward.bonusEffect}`, {
+        .text(screenWidth / 2, rewardY, `✨ ${reward.bonusEffect}`, {
           fontFamily: "dungeon-mode",
           fontSize: Math.floor(14 * scaleFactor),
           color: "#ffd93d",
@@ -2331,11 +2360,11 @@ export class Combat extends Scene {
       // Check if relic was actually dropped (based on the logic in makeLandasChoice)
       const droppedRelic = this.combatState.player.relics[this.combatState.player.relics.length - 1];
       const rewardRelic = reward.relics[0];
-      
+
       // If the last relic in player's inventory matches the reward relic, it was dropped
       if (droppedRelic && droppedRelic.id === rewardRelic.id) {
         this.add
-          .text(screenWidth/2, rewardY, `${rewardRelic.emoji} Relic: ${rewardRelic.name}`, {
+          .text(screenWidth / 2, rewardY, `${rewardRelic.emoji} Relic: ${rewardRelic.name}`, {
             fontFamily: "dungeon-mode",
             fontSize: Math.floor(16 * scaleFactor),
             color: "#a29bfe",
@@ -2344,10 +2373,10 @@ export class Combat extends Scene {
           })
           .setOrigin(0.5);
         rewardY += 30 * scaleFactor;
-        
+
         // Show relic description
         this.add
-          .text(screenWidth/2, rewardY, rewardRelic.description, {
+          .text(screenWidth / 2, rewardY, rewardRelic.description, {
             fontFamily: "dungeon-mode",
             fontSize: Math.floor(12 * scaleFactor),
             color: "#95a5a6",
@@ -2359,7 +2388,7 @@ export class Combat extends Scene {
       } else {
         // Relic drop failed
         this.add
-          .text(screenWidth/2, rewardY, `❌ No relic dropped`, {
+          .text(screenWidth / 2, rewardY, `❌ No relic dropped`, {
             fontFamily: "dungeon-mode",
             fontSize: Math.floor(14 * scaleFactor),
             color: "#7f8c8d",
@@ -2380,10 +2409,9 @@ export class Combat extends Scene {
 
     this.add
       .text(
-        screenWidth/2,
+        screenWidth / 2,
         landasY,
-        `Landas: ${
-          this.combatState.player.landasScore
+        `Landas: ${this.combatState.player.landasScore
         } (${landasTier.toUpperCase()})`,
         {
           fontFamily: "dungeon-mode",
@@ -2395,7 +2423,7 @@ export class Combat extends Scene {
       .setOrigin(0.5);
 
     // Continue button
-    this.createDialogueButton(screenWidth/2, continueButtonY, "Continue", "#4ecdc4", () => {
+    this.createDialogueButton(screenWidth / 2, continueButtonY, "Continue", "#4ecdc4", () => {
       // Save player state and return to overworld
       this.returnToOverworld();
     });
@@ -2414,9 +2442,9 @@ export class Combat extends Scene {
   private handleChapterProgression(gameState: GameState): void {
     const currentChapter = gameState.getCurrentChapter();
     const defeatedEnemy = this.combatState.enemy.name;
-    
+
     console.log(`Checking chapter progression: Current chapter ${currentChapter}, defeated ${defeatedEnemy}`);
-    
+
     // Check if a boss was defeated and unlock next chapter
     if (defeatedEnemy === "Kapre Shade" && currentChapter === 1) {
       // Act 1 boss defeated - unlock Act 2
@@ -2441,20 +2469,20 @@ export class Combat extends Scene {
    */
   private performChapterTransitionReset(gameState: GameState, newChapter: number): void {
     console.log(`🔄 Performing chapter transition reset for Chapter ${newChapter}`);
-    
+
     // 1. Unlock and set new chapter
     gameState.unlockChapter(newChapter as 1 | 2 | 3);
     gameState.setCurrentChapter(newChapter as 1 | 2 | 3);
-    
+
     // 2. Reset GameState for new chapter (clears player data, map, sets flag)
     console.log("🗺️ Resetting GameState for new chapter...");
     gameState.resetForNewChapter();
-    
+
     // 3. Reset OverworldGameState (day/night cycle, boss progress)
     console.log("🌅 Resetting day/night cycle...");
     const overworldGameState = OverworldGameState.getInstance();
     overworldGameState.reset();
-    
+
     // 4. Reset DDA system to default
     console.log("🎯 Resetting DDA system...");
     try {
@@ -2463,44 +2491,322 @@ export class Combat extends Scene {
     } catch (error) {
       console.warn("Could not reset DDA:", error);
     }
-    
+
     // 5. Apply visual theme for new chapter
     const themeManager = new VisualThemeManager(this);
     themeManager.applyChapterTheme(newChapter as 1 | 2 | 3);
-    
+
     console.log(`✅ All resets complete for Chapter ${newChapter}`);
   }
 
   /**
    * Trigger epilogue sequence after defeating False Bathala
-   * Redirects to Credits scene instead of returning to overworld
+   * Shows Landás-based ending text card, then redirects to Credits
    */
   private triggerEpilogue(): void {
     console.log("Starting epilogue sequence...");
-    
-    // Clean shutdown of combat scene
-    this.input.removeAllListeners();
-    this.time.removeAllEvents();
-    
-    // Stop the Overworld scene if it's running
-    if (this.scene.isActive('Overworld') || this.scene.isPaused('Overworld')) {
-      this.scene.stop('Overworld');
-    }
-    
-    // Stop this scene and start Credits (epilogue)
-    this.scene.stop();
-    
-    // Small delay before starting credits to ensure clean transition
-    setTimeout(() => {
-      try {
-        console.log("Launching Credits scene as epilogue...");
-        this.scene.manager.start("Credits");
-      } catch (error) {
-        console.error("Error starting Credits scene:", error);
-        // Fallback to main menu
-        this.scene.manager.start("MainMenu");
+
+    // Show ending text card based on Landás score
+    this.showEndingTextCard(() => {
+      // Clean shutdown of combat scene
+      this.input.removeAllListeners();
+      this.time.removeAllEvents();
+
+      // Stop the Overworld scene if it's running
+      if (this.scene.isActive('Overworld') || this.scene.isPaused('Overworld')) {
+        this.scene.stop('Overworld');
       }
-    }, 100);
+
+      // Stop this scene and start Credits (epilogue)
+      this.scene.stop();
+
+      // Small delay before starting credits to ensure clean transition
+      setTimeout(() => {
+        try {
+          console.log("Launching Credits scene as epilogue...");
+          this.scene.manager.start("Credits");
+        } catch (error) {
+          console.error("Error starting Credits scene:", error);
+          // Fallback to main menu
+          this.scene.manager.start("MainMenu");
+        }
+      }, 100);
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // Narrative System: Boss Phase Dialogue
+  // ─────────────────────────────────────────────
+
+  /**
+   * Check if we should show boss mid-combat dialogue at HP thresholds.
+   * Called after each damageEnemy() — only triggers for boss/elite enemies
+   * that have entries in BOSS_NARRATIVES.
+   */
+  private checkBossPhaseDialogue(): void {
+    const enemy = this.combatState.enemy;
+    const enemyKey = enemy.name.toLowerCase().replace(/\s+/g, '_');
+    const bossNarrative = BOSS_NARRATIVES[enemyKey];
+    if (!bossNarrative) return;
+
+    const hpPercent = enemy.currentHealth / enemy.maxHealth;
+
+    for (const phase of bossNarrative.phases) {
+      // Convert threshold to a key to track (e.g., 50 for 0.5)
+      const phaseKey = Math.round(phase.hpThreshold * 100);
+      if (hpPercent <= phase.hpThreshold && !this.bossPhaseTriggered.has(phaseKey)) {
+        this.bossPhaseTriggered.add(phaseKey);
+        this.showBossPhaseDialogue(enemy.name, phase.text);
+        break; // Only one phase per damage instance
+      }
+    }
+  }
+
+  /**
+   * Show a DRAMATIC mid-combat boss dialogue overlay.
+   * Full-width cinematic banner with typewriter text, screen flash, and camera shake.
+   * Does NOT pause combat — auto-fades after 4 seconds, clickable to dismiss.
+   */
+  private showBossPhaseDialogue(bossName: string, text: string): void {
+    const screenWidth = this.cameras.main?.width || 1024;
+    const screenHeight = this.cameras.main?.height || 768;
+
+    // === DRAMATIC CAMERA EFFECTS ===
+    this.cameras.main.shake(500, 0.015);
+    this.cameras.main.flash(300, 255, 50, 50, false); // Red flash
+
+    // === FULL-WIDTH CINEMATIC BANNER ===
+    const bannerY = screenHeight / 2;
+    const bannerHeight = 120;
+    const container = this.add.container(screenWidth / 2, bannerY).setDepth(6000).setAlpha(0);
+
+    // Dark background spanning full width
+    const bg = this.add.rectangle(0, 0, screenWidth + 20, bannerHeight, 0x0a0606, 0.95);
+
+    // Red glowing borders (top and bottom)
+    const topBorder = this.add.rectangle(0, -bannerHeight / 2, screenWidth + 20, 3, 0xff4757, 0.9);
+    const bottomBorder = this.add.rectangle(0, bannerHeight / 2, screenWidth + 20, 3, 0xff4757, 0.9);
+
+    // Boss name — large, red, prominent
+    const nameText = this.add.text(0, -30, bossName.toUpperCase(), {
+      fontFamily: 'dungeon-mode', fontSize: '20px', color: '#ff4757', align: 'center'
+    }).setOrigin(0.5);
+
+    // Dialogue text — starts empty, will typewrite in
+    const dialogueText = this.add.text(0, 12, '', {
+      fontFamily: 'dungeon-mode', fontSize: '16px', color: '#ffffff',
+      fontStyle: 'italic', align: 'center',
+      wordWrap: { width: screenWidth * 0.7 }
+    }).setOrigin(0.5);
+
+    container.add([bg, topBorder, bottomBorder, nameText, dialogueText]);
+
+    // === ANIMATE IN: Bars slide in from edges ===
+    container.setAlpha(1);
+    bg.setScale(0, 1);
+    topBorder.setScale(0, 1);
+    bottomBorder.setScale(0, 1);
+    nameText.setAlpha(0);
+
+    // Bars expand from center
+    this.tweens.add({
+      targets: [bg, topBorder, bottomBorder],
+      scaleX: 1, duration: 400, ease: 'Power3',
+      onComplete: () => {
+        // Boss name fades in
+        this.tweens.add({
+          targets: nameText, alpha: 1, duration: 300, ease: 'Power2',
+          onComplete: () => {
+            // Typewriter effect for dialogue
+            this.typewriterText(dialogueText, `"${text}"`, 30);
+          }
+        });
+      }
+    });
+
+    // Red vignette flash effect
+    const vignette = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0xff0000, 0.15).setDepth(5999);
+    this.tweens.add({ targets: vignette, alpha: 0, duration: 1500, ease: 'Power2', onComplete: () => vignette.destroy() });
+
+    // === AUTO-DISMISS after 4 seconds ===
+    let dismissed = false;
+    const dismiss = () => {
+      if (dismissed) return;
+      dismissed = true;
+      this.tweens.add({
+        targets: container, alpha: 0, y: bannerY - 30, duration: 500, ease: 'Power3',
+        onComplete: () => container.destroy()
+      });
+    };
+
+    this.time.delayedCall(4000, dismiss);
+    bg.setInteractive().on('pointerdown', dismiss);
+
+    // Pulsing red glow on borders
+    this.tweens.add({
+      targets: [topBorder, bottomBorder], alpha: 0.4,
+      duration: 600, yoyo: true, repeat: 3, ease: 'Sine.easeInOut'
+    });
+  }
+
+  /**
+   * Typewriter effect — reveals text letter by letter in a Phaser text object.
+   * @param textObj  The Phaser text object to fill
+   * @param fullText The complete string to type out
+   * @param msPerChar Milliseconds per character (lower = faster)
+   */
+  private typewriterText(textObj: Phaser.GameObjects.Text, fullText: string, msPerChar: number = 30): void {
+    let charIndex = 0;
+    this.time.addEvent({
+      delay: msPerChar,
+      repeat: fullText.length - 1,
+      callback: () => {
+        charIndex++;
+        textObj.setText(fullText.substring(0, charIndex));
+      }
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // Narrative System: Post-Boss Resolution & Ending
+  // ─────────────────────────────────────────────
+
+  /**
+   * Show a post-boss resolution text card.
+   * Called from returnToOverworld when a boss was defeated.
+   * Shows a brief narrative text card, then calls the callback.
+   */
+  private showPostBossResolution(bossKey: string, callback: () => void): void {
+    const bossNarrative = BOSS_NARRATIVES[bossKey];
+    if (!bossNarrative || !bossNarrative.resolution) {
+      callback();
+      return;
+    }
+
+    const screenWidth = this.cameras.main?.width || 1024;
+    const screenHeight = this.cameras.main?.height || 768;
+
+    // Full black overlay
+    const overlay = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x000000, 0.95).setDepth(7000);
+
+    // Resolution text
+    const resText = this.add.text(screenWidth / 2, screenHeight / 2 - 20, bossNarrative.resolution, {
+      fontFamily: 'dungeon-mode', fontSize: '16px', color: '#aabbcc',
+      align: 'center', fontStyle: 'italic', wordWrap: { width: screenWidth * 0.6 }
+    }).setOrigin(0.5).setDepth(7001).setAlpha(0);
+
+    const skipHint = this.add.text(screenWidth / 2, screenHeight - 50, 'Click to continue', {
+      fontFamily: 'dungeon-mode', fontSize: '12px', color: '#555555'
+    }).setOrigin(0.5).setDepth(7001).setAlpha(0);
+
+    // Fade in
+    this.tweens.add({ targets: resText, alpha: 1, duration: 1000, ease: 'Power2' });
+    this.tweens.add({ targets: skipHint, alpha: 0.5, duration: 1000, delay: 1500 });
+
+    // Click to continue
+    overlay.setInteractive().on('pointerdown', () => {
+      this.tweens.add({
+        targets: [overlay, resText, skipHint], alpha: 0, duration: 600,
+        ease: 'Power2', onComplete: () => {
+          overlay.destroy(); resText.destroy(); skipHint.destroy();
+          callback();
+        }
+      });
+    });
+
+    // Auto-continue after 5 seconds
+    this.time.delayedCall(5000, () => {
+      if (overlay.active) {
+        overlay.emit('pointerdown');
+      }
+    });
+  }
+
+  /**
+   * Show the Landás-based ending text card for Chapter 3 finale.
+   * Golden glow for Mercy, dark shatter for Conquest, balanced for Balance.
+   */
+  private showEndingTextCard(callback: () => void): void {
+    const screenWidth = this.cameras.main?.width || 1024;
+    const screenHeight = this.cameras.main?.height || 768;
+    const ending = getEnding(this.combatState.player.landasScore);
+
+    // Full overlay
+    const overlay = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x000000, 1).setDepth(8000);
+
+    // Title
+    const title = this.add.text(screenWidth / 2, screenHeight / 2 - 120, ending.title, {
+      fontFamily: 'dungeon-mode', fontSize: '36px',
+      color: `#${ending.color.toString(16).padStart(6, '0')}`, align: 'center'
+    }).setOrigin(0.5).setDepth(8001).setAlpha(0);
+
+    // Subtitle
+    const subtitle = this.add.text(screenWidth / 2, screenHeight / 2 - 75, ending.subtitle, {
+      fontFamily: 'dungeon-mode', fontSize: '16px', color: '#888888',
+      align: 'center', fontStyle: 'italic'
+    }).setOrigin(0.5).setDepth(8001).setAlpha(0);
+
+    // Bathala's voice
+    const voice = this.add.text(screenWidth / 2, screenHeight / 2, `"${ending.bathalaVoice}"`, {
+      fontFamily: 'dungeon-mode', fontSize: '14px', color: '#e8eced',
+      align: 'center', fontStyle: 'italic', wordWrap: { width: screenWidth * 0.55 }
+    }).setOrigin(0.5).setDepth(8001).setAlpha(0);
+
+    // Final text
+    const finalText = this.add.text(screenWidth / 2, screenHeight / 2 + 100, ending.finalText, {
+      fontFamily: 'dungeon-mode', fontSize: '13px', color: '#aabbcc',
+      align: 'center', wordWrap: { width: screenWidth * 0.55 }
+    }).setOrigin(0.5).setDepth(8001).setAlpha(0);
+
+    // Unlock text
+    const unlockText = this.add.text(screenWidth / 2, screenHeight / 2 + 180, `🔓 ${ending.unlock}`, {
+      fontFamily: 'dungeon-mode', fontSize: '12px', color: '#ffd93d',
+      align: 'center', wordWrap: { width: screenWidth * 0.55 }
+    }).setOrigin(0.5).setDepth(8001).setAlpha(0);
+
+    // Floating particles with ending color
+    const particleCount = 20;
+    for (let i = 0; i < particleCount; i++) {
+      const px = Phaser.Math.Between(0, screenWidth);
+      const py = Phaser.Math.Between(screenHeight, screenHeight + 100);
+      const dot = this.add.circle(px, py, Phaser.Math.Between(1, 3), ending.particleTint, 0.4).setDepth(8001);
+      this.tweens.add({
+        targets: dot, y: py - Phaser.Math.Between(200, 500), alpha: 0,
+        duration: Phaser.Math.Between(5000, 10000), ease: 'Power1',
+        delay: Phaser.Math.Between(0, 2000)
+      });
+    }
+
+    // Animate in sequence
+    this.tweens.add({ targets: title, alpha: 1, duration: 1000, ease: 'Power2' });
+    this.tweens.add({ targets: subtitle, alpha: 1, duration: 800, delay: 600, ease: 'Power2' });
+    this.tweens.add({ targets: voice, alpha: 1, duration: 1000, delay: 1400, ease: 'Power2' });
+    this.tweens.add({ targets: finalText, alpha: 1, duration: 1000, delay: 2400, ease: 'Power2' });
+    this.tweens.add({ targets: unlockText, alpha: 1, duration: 800, delay: 3400, ease: 'Power2' });
+
+    // Continue hint
+    const continueText = this.add.text(screenWidth / 2, screenHeight - 40, 'Click to continue', {
+      fontFamily: 'dungeon-mode', fontSize: '12px', color: '#555555'
+    }).setOrigin(0.5).setDepth(8001).setAlpha(0);
+    this.tweens.add({ targets: continueText, alpha: 0.5, duration: 500, delay: 4000 });
+
+    // Click to proceed (after 3s minimum)
+    let canProceed = false;
+    this.time.delayedCall(3000, () => {
+      canProceed = true;
+    });
+
+    overlay.setInteractive().on('pointerdown', () => {
+      if (!canProceed) return;
+      this.tweens.add({
+        targets: [overlay, title, subtitle, voice, finalText, unlockText, continueText],
+        alpha: 0, duration: 1000, ease: 'Power2',
+        onComplete: () => {
+          [overlay, title, subtitle, voice, finalText, unlockText, continueText].forEach(o => o.destroy());
+          callback();
+        }
+      });
+    });
   }
 
   /**
@@ -2509,54 +2815,54 @@ export class Combat extends Scene {
   private returnToOverworld(): void {
     try {
       console.log("Returning to overworld...");
-      
+
       const gameState = GameState.getInstance();
       const currentChapter = gameState.getCurrentChapter();
       const defeatedEnemy = this.combatState.enemy.name;
-      
+
       // Check if this is a boss defeat that will trigger chapter progression
       // If so, we need to handle things differently (fresh start for new chapter)
-      const isBossDefeatChapterTransition = 
+      const isBossDefeatChapterTransition =
         (defeatedEnemy === "Kapre Shade" && currentChapter === 1) ||
         (defeatedEnemy === "Bakunawa" && currentChapter === 2);
-      
+
       if (isBossDefeatChapterTransition) {
         console.log("🎉 Boss defeated! Triggering chapter transition...");
-        
+
         // Mark current node as completed BEFORE chapter progression resets
         gameState.completeCurrentNode(true);
-        
+
         // Handle chapter progression (this will reset everything for new chapter)
         this.handleChapterProgression(gameState);
-        
+
         // Clean shutdown of combat scene
         this.input.removeAllListeners();
         this.time.removeAllEvents();
         this.scene.stop();
-        
+
         // Stop Overworld if it's running (we'll start it fresh)
         const sceneManager = this.scene.manager;
         if (sceneManager.isActive('Overworld') || sceneManager.getScene('Overworld')) {
           sceneManager.stop('Overworld');
         }
-        
+
         // Small delay then start Chapter Transition scene
         setTimeout(() => {
           const newChapter = GameState.getInstance().getCurrentChapter();
           console.log(`🎬 Starting chapter transition to Chapter ${newChapter}...`);
           sceneManager.start("ChapterTransition", { chapter: newChapter });
         }, 100);
-        
+
         return; // Don't continue with normal return flow
       }
-      
+
       // Normal combat return (not a chapter transition)
       // Save player state to GameState manager
       const currentHealth = Math.max(0, Math.floor(this.combatState.player.currentHealth));
       const maxHealth = Math.max(1, Math.floor(this.combatState.player.maxHealth));
-      
+
       console.log(`Saving player health: ${currentHealth}/${maxHealth}`);
-      
+
       // Update player data in GameState with complete state
       gameState.updatePlayerData({
         currentHealth: currentHealth,
@@ -2586,7 +2892,7 @@ export class Combat extends Scene {
 
       // Mark the current node as completed
       gameState.completeCurrentNode(true);
-      
+
       // Check for False Bathala defeat (epilogue trigger)
       if (defeatedEnemy === "False Bathala" && currentChapter === 3) {
         console.log("🎉 Act 3 boss defeated! Game complete! Triggering epilogue...");
@@ -2597,26 +2903,26 @@ export class Combat extends Scene {
       // Clean shutdown of combat scene
       this.input.removeAllListeners();
       this.time.removeAllEvents();
-      
+
       // Stop this scene first
       this.scene.stop();
-      
+
       // Small delay before resuming overworld to ensure clean transition
       setTimeout(() => {
         try {
           console.log("Attempting to resume Overworld scene...");
-          
+
           // Get the scene manager
           const sceneManager = this.scene.manager;
-          
+
           // Check if Overworld scene exists and is not active
           const overworldScene = sceneManager.getScene("Overworld");
           if (overworldScene) {
             console.log("Overworld scene found, resuming...");
-            
+
             // Resume the overworld scene
             sceneManager.resume("Overworld");
-            
+
             // Explicitly call resume method on overworld if it exists
             if (typeof (overworldScene as any).resume === 'function') {
               (overworldScene as any).resume();
@@ -2631,7 +2937,7 @@ export class Combat extends Scene {
           this.scene.manager.start("Overworld");
         }
       }, 100);
-      
+
     } catch (error) {
       console.error("Error in returnToOverworld:", error);
       // Emergency fallback
@@ -2642,9 +2948,9 @@ export class Combat extends Scene {
         }, 100);
       } catch (fallbackError) {
         console.error("Emergency fallback also failed:", fallbackError);
-        
+
         // Music will auto-stop via shutdown() when scene.start() is called
-        
+
         // Absolute last resort - restart the game
         this.scene.start("MainMenu");
       }
@@ -2809,22 +3115,22 @@ export class Combat extends Scene {
       console.log("Action already processing, ignoring input");
       return;
     }
-    
+
     // Check if Special has already been used this combat
     if (actionType === "special" && this.specialUsedThisCombat) {
       console.log("Special attack already used this combat!");
       this.showActionResult("Special already used!");
       return;
     }
-    
+
     // PRIORITY 2: Set processing flag (will be reset in try-finally or delayed call)
     this.isActionProcessing = true;
-    
+
     // Visually disable action buttons
     this.setActionButtonsEnabled(false);
-    
+
     console.log(`Executing action: ${actionType}`);
-    
+
     // STEP 1: Evaluate hand
     const evaluation = HandEvaluator.evaluateHand(
       this.combatState.player.playedHand,
@@ -2832,19 +3138,19 @@ export class Combat extends Scene {
       this.combatState.player
     );
     console.log(`Hand evaluation:`, evaluation);
-    
+
     // Display the hand type with visual flair
     this.displayHandType(evaluation.type);
-    
+
     // Track best hand for DDA
     if (this.isHandBetterThan(evaluation.type, this.bestHandAchieved)) {
       this.bestHandAchieved = evaluation.type;
     }
-    
+
     // STEP 2: Apply relic effects AFTER hand evaluation
     // This handles: Ancestral Blade, Babaylan's Talisman, Balete Root, etc.
     RelicManager.applyAfterHandPlayedEffects(this.combatState.player, this.combatState.player.playedHand, evaluation);
-    
+
     const dominantSuit = this.getDominantSuit(
       this.combatState.player.playedHand
     );
@@ -2853,38 +3159,38 @@ export class Combat extends Scene {
     // STEP 3: Calculate base damage/block from evaluation
     let damage = 0;
     let block = 0;
-    
+
     // Track relic bonuses for detailed display
-    const relicBonuses: {name: string, amount: number}[] = [];
-    
+    const relicBonuses: { name: string, amount: number }[] = [];
+
     switch (actionType) {
       case "attack":
         damage = evaluation.totalValue;
-        
+
         // STEP 4: Apply passive relic damage bonuses
         // Apply "Sigbin Heart" effect: +5 damage on all Attacks
         const sigbinHeartDamage = RelicManager.calculateSigbinHeartDamage(this.combatState.player);
         if (sigbinHeartDamage > 0) {
           damage += sigbinHeartDamage;
-          relicBonuses.push({name: "Sigbin Heart", amount: sigbinHeartDamage});
+          relicBonuses.push({ name: "Sigbin Heart", amount: sigbinHeartDamage });
         }
-        
+
         // Apply "Bungisngis Grin" effect: +8 damage when enemy has debuffs
         const bungisngisGrinDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (bungisngisGrinDamage > 0) {
           damage += bungisngisGrinDamage;
-          relicBonuses.push({name: "Bungisngis Grin", amount: bungisngisGrinDamage});
+          relicBonuses.push({ name: "Bungisngis Grin", amount: bungisngisGrinDamage });
         }
-        
+
         // STEP 5: Apply Kapre's Cigar (first attack only)
         if (RelicManager.shouldApplyKapresCigarDouble(this.combatState.player, this)) {
           damage = damage * 2;
-          relicBonuses.push({name: "Kapre's Cigar", amount: damage / 2}); // Show the doubled amount
+          relicBonuses.push({ name: "Kapre's Cigar", amount: damage / 2 }); // Show the doubled amount
           this.showActionResult("Kapre's Cigar empowered your strike!");
         }
-        
+
         console.log(`Total attack damage: ${damage}`);
-        
+
         // Show detailed damage calculation with breakdown
         if (evaluation.breakdown) {
           console.log('Damage breakdown:', evaluation.breakdown.join(' → '));
@@ -2893,17 +3199,17 @@ export class Combat extends Scene {
         break;
       case "defend":
         block = evaluation.totalValue;
-        
+
         // STEP 4: Apply Balete Root (after base calculation)
         // Apply "Balete Root" effect: +2 block per Lupa card
         // This is added as a flat bonus AFTER the main calculation
         const baleteRootBonus = RelicManager.calculateBaleteRootBlock(this.combatState.player, this.combatState.player.playedHand);
         if (baleteRootBonus > 0) {
           block += baleteRootBonus;
-          relicBonuses.push({name: "Balete Root", amount: baleteRootBonus});
+          relicBonuses.push({ name: "Balete Root", amount: baleteRootBonus });
         }
         console.log(`Total block gained: ${block}`);
-        
+
         // Show detailed block calculation with breakdown
         if (evaluation.breakdown) {
           console.log('Block breakdown:', evaluation.breakdown.join(' → '));
@@ -2914,23 +3220,23 @@ export class Combat extends Scene {
         // Mark special as used
         this.specialUsedThisCombat = true;
         this.updateTurnUI();
-        
+
         // PRIORITY 3: Start cinematic special action animation with standardized timing
         this.animations.animateSpecialAction(dominantSuit);
-        
+
         // Execute special action after animation
         this.time.delayedCall(this.DELAY_AFTER_ACTION, () => {
           this.showActionResult(this.getSpecialActionName(dominantSuit));
           console.log(`Special action executed: ${this.getSpecialActionName(dominantSuit)}`);
           // Special actions have unique effects based on suit
           this.applyElementalEffects(actionType, dominantSuit, evaluation.totalValue);
-          
+
           // Process enemy turn after animation completes
           this.time.delayedCall(this.DELAY_SHOW_RESULTS, () => {
             this.processEnemyTurn();
           });
         });
-        
+
         // Return here since special action has delayed processing
         return;
     }
@@ -2944,20 +3250,20 @@ export class Combat extends Scene {
       this.animations.animatePlayerAttack(); // Add animation when attacking
       this.showFloatingDamage(damage); // Show floating damage counter like Prologue
       this.damageEnemy(damage);
-      
+
       // STEP 8: Apply Amomongo Claw AFTER damage (with source tracking)
       if (actionType === "attack" && RelicManager.shouldApplyAmomongoVulnerable(this.combatState.player)) {
         const vulnerableStacks = RelicManager.getAmomongoVulnerableStacks(this.combatState.player);
         StatusEffectManager.applyStatusEffect(
-          this.combatState.enemy, 
-          'vulnerable', 
+          this.combatState.enemy,
+          'vulnerable',
           vulnerableStacks
         );
         this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'vulnerable', vulnerableStacks);
         this.showActionResult(`Amomongo Claw applied ${vulnerableStacks} Vulnerable!`);
         this.ui.updateEnemyUI();
       }
-      
+
       // Result already shown above with detailed calculation
     }
 
@@ -2966,14 +3272,14 @@ export class Combat extends Scene {
       this.ui.updatePlayerUI();
       // Result already shown above with detailed calculation
     }
-    
+
     // PRIORITY 2 & 3: Process enemy turn with standardized delay
     // Note: processing flag will be managed by enemy turn flow
     this.time.delayedCall(this.DELAY_SHOW_RESULTS, () => {
       this.processEnemyTurn();
     });
   }
-  
+
   /**
    * PRIORITY 6: Show current enemy action during enemy turn
    * This displays what the enemy is doing NOW (not next turn)
@@ -2981,7 +3287,7 @@ export class Combat extends Scene {
   private showCurrentEnemyAction(action: string): void {
     let actionText = "";
     const enemyName = this.combatState.enemy.name;
-    
+
     switch (action) {
       case "attack":
         actionText = `${enemyName} attacks!`;
@@ -3017,7 +3323,7 @@ export class Combat extends Scene {
         actionText = `${enemyName} acts!`;
         break;
     }
-    
+
     this.showActionResult(actionText);
   }
 
@@ -3036,7 +3342,7 @@ export class Combat extends Scene {
     // Process enemy action - the enemy turn will handle resetting the processing flag
     this.executeEnemyTurn();
   }
-  
+
   /** Add cinematic effect for special poker hands */
 
 
@@ -3049,14 +3355,14 @@ export class Combat extends Scene {
     if (actionType !== "special") {
       return;
     }
-    
+
     // Apply "Mangangaway Wand" effect: +10 damage on all Special actions
     const mangangawayWandDamage = RelicManager.calculateMangangawayWandDamage(this.combatState.player);
     if (mangangawayWandDamage > 0) {
       this.damageEnemy(mangangawayWandDamage);
       // Damage is applied silently - shown in enhanced special effect notification
     }
-    
+
     switch (suit) {
       case "Apoy": // Fire - Damage + Burn (3 stacks of Poison)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
@@ -3064,49 +3370,49 @@ export class Combat extends Scene {
         if (apoyAdditionalDamage > 0) {
           this.damageEnemy(apoyAdditionalDamage);
         }
-        
+
         // Apply Poison: 3 stacks (deals 2 damage per stack per turn) - displayed as "Burn"
         StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'poison', 3);
         this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'poison', 3);
         this.ui.updateEnemyUI();
         this.ui.showSpecialEffectNotification("Apoy", "Burn", "Applied 3 stacks of Burn (6 damage/turn)");
         break;
-        
+
       case "Tubig": // Water - Damage + Frail (2 stacks)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const tubigAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (tubigAdditionalDamage > 0) {
           this.damageEnemy(tubigAdditionalDamage);
         }
-        
+
         // Apply Frail: 2 stacks (reduces enemy block from Defend actions by 25% per stack)
         StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'frail', 2);
         this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'frail', 2);
         this.ui.updateEnemyUI();
         this.ui.showSpecialEffectNotification("Tubig", "Frail", "Applied 2 stacks of Frail (50% block reduction)");
         break;
-        
+
       case "Lupa": // Earth - Damage + Vulnerable (2 stacks)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const lupaAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (lupaAdditionalDamage > 0) {
           this.damageEnemy(lupaAdditionalDamage);
         }
-        
+
         // Apply Vulnerable: makes enemy take 50% more damage (non-stackable, but refresh duration)
         StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'vulnerable', 1);
         this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'vulnerable', 1);
         this.ui.updateEnemyUI();
         this.ui.showSpecialEffectNotification("Lupa", "Vulnerable", "Enemy takes 50% more damage");
         break;
-        
+
       case "Hangin": // Air - Damage + Weak (2 stacks)
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const hanginAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (hanginAdditionalDamage > 0) {
           this.damageEnemy(hanginAdditionalDamage);
         }
-        
+
         // Apply Weak: 2 stacks (reduces enemy attack damage by 25% per stack)
         StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'weak', 2);
         this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'weak', 2);
@@ -3123,9 +3429,9 @@ export class Combat extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    
+
     this.actionResultText = this.add
-      .text(screenWidth/2, screenHeight * 0.75, "", { // Position lower to avoid overlap with calculation displays
+      .text(screenWidth / 2, screenHeight * 0.75, "", { // Position lower to avoid overlap with calculation displays
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(20 * scaleFactor),
         color: "#2ed573",
@@ -3143,25 +3449,25 @@ export class Combat extends Scene {
   private createDeckSprite(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
+
     // Position deck on the right side, below the enemy area
     this.deckPosition = {
       x: screenWidth * 0.85,
       y: screenHeight * 0.75
     };
-    
+
     this.deckSprite = this.add.container(this.deckPosition.x, this.deckPosition.y);
-    
+
     // Calculate card dimensions based on screen size (same as hand cards)
     const baseCardWidth = 80;
     const baseCardHeight = 112;
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
     const cardWidth = baseCardWidth * scaleFactor;
     const cardHeight = baseCardHeight * scaleFactor;
-    
+
     // Create deck pile visual (stack of cards)
     const deckCardCount = Math.min(5, this.combatState.player.drawPile.length); // Show max 5 cards in stack
-    
+
     for (let i = 0; i < deckCardCount; i++) {
       if (i === deckCardCount - 1) {
         // Top card uses backart.png sprite with black border
@@ -3198,7 +3504,7 @@ export class Combat extends Scene {
         this.deckSprite.add(cardBack);
       }
     }
-    
+
     // Add deck label positioned below the deck cards
     const labelY = (cardHeight / 2) + 20; // Position below the cards
     const deckLabel = this.add.text(0, labelY, `Deck: ${this.combatState.player.drawPile.length}`, {
@@ -3207,9 +3513,9 @@ export class Combat extends Scene {
       color: "#ffffff",
       align: "center"
     }).setOrigin(0.5);
-    
+
     this.deckSprite.add(deckLabel);
-    this.deckSprite.setInteractive(new Phaser.Geom.Rectangle(-cardWidth/2, -cardHeight/2, cardWidth, cardHeight), Phaser.Geom.Rectangle.Contains);
+    this.deckSprite.setInteractive(new Phaser.Geom.Rectangle(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight), Phaser.Geom.Rectangle.Contains);
     this.deckSprite.on("pointerdown", () => {
       this.showDeckView();
     });
@@ -3264,7 +3570,7 @@ export class Combat extends Scene {
     // Delegate to CombatUI
     this.ui.updateDeckDisplay();
   }
-  
+
   /**
    * Update discard pile display (card count)
    */
@@ -3272,7 +3578,7 @@ export class Combat extends Scene {
     // Delegate to CombatUI
     this.ui.updateDiscardDisplay();
   }
-  
+
   /**
    * Update hand display without animations (for existing cards)
    */
@@ -3283,7 +3589,7 @@ export class Combat extends Scene {
   private updateHandDisplayQuiet(): void {
     this.ui.updateHandDisplayQuiet();
   }
-  
+
   /**
    * Show action result message
    */
@@ -3293,12 +3599,12 @@ export class Combat extends Scene {
       console.warn("actionResultText not initialized yet, skipping message:", message);
       return;
     }
-    
+
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
+
     // Update position to center of screen
-    this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
+    this.actionResultText.setPosition(screenWidth / 2, screenHeight / 2);
     this.actionResultText.setText(message);
     this.actionResultText.setVisible(true);
 
@@ -3313,18 +3619,18 @@ export class Combat extends Scene {
       },
     });
   }
-  
+
   /**
    * Display the hand type with visual flair
    */
   private displayHandType(handType: HandType): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
+
     // Get hand type display text and color
     const handTypeText = this.getHandTypeDisplayText(handType);
     const handColor = this.getHandTypeColor(handType);
-    
+
     // Create the hand type display text
     const handDisplay = this.add.text(
       screenWidth / 2,
@@ -3337,7 +3643,7 @@ export class Combat extends Scene {
         align: "center"
       }
     ).setOrigin(0.5).setAlpha(0).setScale(0.8).setDepth(1000);
-    
+
     // Animate the text in with a bounce effect
     this.tweens.add({
       targets: handDisplay,
@@ -3361,7 +3667,7 @@ export class Combat extends Scene {
         });
       }
     });
-    
+
     // Add a subtle glow effect for high-tier hands
     const specialHands: HandType[] = ["straight", "flush", "full_house", "four_of_a_kind", "straight_flush", "royal_flush", "five_of_a_kind"];
     if (specialHands.includes(handType)) {
@@ -3373,7 +3679,7 @@ export class Combat extends Scene {
         handDisplay.height + 20,
         0xffffff
       ).setOrigin(0.5).setAlpha(0).setDepth(999);
-      
+
       this.tweens.add({
         targets: glow,
         alpha: [0, 0.15, 0],
@@ -3385,12 +3691,12 @@ export class Combat extends Scene {
       });
     }
   }
-  
+
   /**
    * Get appropriate color for hand type
    */
   private getHandTypeColor(handType: HandType): string {
-    switch(handType) {
+    switch (handType) {
       case "high_card": return "#9ca3af";      // Gray
       case "pair": return "#10b981";           // Green
       case "two_pair": return "#3b82f6";       // Blue
@@ -3412,9 +3718,9 @@ export class Combat extends Scene {
   private showEnhancedActionResult(message: string, color: string = "#2ed573"): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
+
     // Update position to lower area to avoid overlap with calculation displays
-    this.actionResultText.setPosition(screenWidth/2, screenHeight * 0.75);
+    this.actionResultText.setPosition(screenWidth / 2, screenHeight * 0.75);
     this.actionResultText.setText(message);
     this.actionResultText.setColor(color);
     this.actionResultText.setVisible(true);
@@ -3430,35 +3736,35 @@ export class Combat extends Scene {
       },
     });
   }
-  
+
   /** Show floating damage counter similar to Prologue's attack animation */
   private showFloatingDamage(damage: number): void {
     if (!this.enemySprite) return;
-    
+
     // Create damage text at enemy position
     const damageText = this.add.text(
-      this.enemySprite.x, 
-      this.enemySprite.y, 
-      damage.toString(), 
-      { 
-        fontFamily: 'dungeon-mode', 
-        fontSize: 48, 
+      this.enemySprite.x,
+      this.enemySprite.y,
+      damage.toString(),
+      {
+        fontFamily: 'dungeon-mode',
+        fontSize: 48,
         color: '#ff6b6b'
       }
     ).setOrigin(0.5);
-    
+
     // Animate damage text upward and fade out
-    this.tweens.add({ 
-      targets: damageText, 
-      y: this.enemySprite.y - 100, 
-      alpha: 0, 
-      duration: 1000, 
+    this.tweens.add({
+      targets: damageText,
+      y: this.enemySprite.y - 100,
+      alpha: 0,
+      duration: 1000,
       ease: 'Power1',
       onComplete: () => {
         damageText.destroy();
       }
     });
-    
+
     // Flash enemy red like in Prologue
     this.enemySprite.setTint(0xff0000);
     this.time.delayedCall(200, () => {
@@ -3466,11 +3772,11 @@ export class Combat extends Scene {
         this.enemySprite.clearTint();
       }
     });
-    
+
     // Camera shake like in Prologue
     this.cameras.main.shake(100, 0.01);
   }
-  
+
   /** Update damage preview with calculated damage - kept for style reference */
   private updateDamagePreview(isActionSelectionPhase: boolean): void {
     // This method is kept for its calculation logic and styling approach
@@ -3556,10 +3862,10 @@ export class Combat extends Scene {
 
   private addStatusEffect(entity: CombatEntity, effect: StatusEffect): void {
     // Check for relic effects that might prevent or modify status effects
-    
+
     // Status effects are no longer blocked by relics in the simplified system
     // Relics now provide direct combat bonuses instead of status prevention
-    
+
     entity.statusEffects.push(effect);
     this.updateStatusEffectUI(entity);
   }
@@ -3579,15 +3885,15 @@ export class Combat extends Scene {
       console.warn("Status containers not initialized");
       return;
     }
-    
+
     const statusContainer = entity.id === "player" ? this.playerStatusContainer : this.enemyStatusContainer;
-    
+
     // Check if container exists before trying to access it
     if (!statusContainer) {
       console.warn("Status container not found for entity:", entity.id);
       return;
     }
-    
+
     try {
       statusContainer.removeAll(true);
     } catch (error) {
@@ -3600,22 +3906,22 @@ export class Combat extends Scene {
     const baseSpacing = 80; // Increased spacing for wider status badges
     const spacing = baseSpacing * scaleFactor;
     let x = -(entity.statusEffects.length - 1) * spacing / 2; // Center the status effects
-    
+
     entity.statusEffects.forEach((effect) => {
       // Enhanced status effect badge with color-coding
       const statusBadge = this.add.container(x, 0);
-      
+
       // Determine color based on effect type
       let borderColor = 0xff6b35; // Default: debuff red
       let bgColor = 0x2a0a0a; // Dark red background
       let textColor = "#ff6b35";
-      
+
       if (effect.type === "buff") {
         borderColor = 0x4ecdc4; // Buff cyan
         bgColor = 0x0a1a2a; // Dark cyan background
         textColor = "#4ecdc4";
       }
-      
+
       // Element-specific colors for debuffs
       if (effect.id === "burn") {
         borderColor = 0xff6b35;
@@ -3630,28 +3936,28 @@ export class Combat extends Scene {
         bgColor = 0x1a1a1a;
         textColor = "#e8eced";
       }
-      
+
       // Badge dimensions
       const badgeWidth = 70;
       const badgeHeight = 56;
-      
+
       // Outer glow/border
       const outerBorder = this.add.rectangle(0, 0, badgeWidth + 6, badgeHeight + 6, undefined, 0)
         .setStrokeStyle(3, borderColor, 1.0);
-      
+
       // Inner border
       const innerBorder = this.add.rectangle(0, 0, badgeWidth, badgeHeight, undefined, 0)
         .setStrokeStyle(2, borderColor, 0.6);
-      
+
       // Background
       const bg = this.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.95);
-      
+
       // Effect emoji (large and centered)
       const emojiText = this.add.text(0, -8, effect.emoji, {
         fontSize: 28,
         align: "center"
       }).setOrigin(0.5);
-      
+
       // Stack counter (bottom of badge) - using value instead of duration
       const stackText = this.add.text(0, 16, `${effect.value} stack${effect.value !== 1 ? 's' : ''}`, {
         fontFamily: "dungeon-mode",
@@ -3659,7 +3965,7 @@ export class Combat extends Scene {
         color: textColor,
         align: "center"
       }).setOrigin(0.5);
-      
+
       // Effect name label (top, very small)
       const nameText = this.add.text(0, -24, effect.name.toUpperCase(), {
         fontFamily: "dungeon-mode",
@@ -3667,26 +3973,26 @@ export class Combat extends Scene {
         color: textColor,
         align: "center"
       }).setOrigin(0.5).setAlpha(0.8);
-      
+
       statusBadge.add([outerBorder, innerBorder, bg, nameText, emojiText, stackText]);
       statusBadge.setInteractive(
-        new Phaser.Geom.Rectangle(-badgeWidth/2, -badgeHeight/2, badgeWidth, badgeHeight),
+        new Phaser.Geom.Rectangle(-badgeWidth / 2, -badgeHeight / 2, badgeWidth, badgeHeight),
         Phaser.Geom.Rectangle.Contains
       );
-      
+
       // Enhanced tooltip with more info
       const tooltipContainer = this.add.container(x, 45);
-      
+
       const tooltipWidth = 180;
       const tooltipHeight = 60;
-      
+
       // Prologue-style double border design
       const tooltipOuterBorder = this.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
         .setStrokeStyle(2, borderColor);
       const tooltipInnerBorder = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
         .setStrokeStyle(2, borderColor, 0.6);
       const tooltipBg = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x0a0a0a, 0.95);
-      
+
       // Tooltip title
       const tooltipTitle = this.add.text(0, -16, effect.name.toUpperCase(), {
         fontFamily: "dungeon-mode-inverted",
@@ -3695,7 +4001,7 @@ export class Combat extends Scene {
         align: "center",
         fontStyle: "bold"
       }).setOrigin(0.5);
-      
+
       // Tooltip description
       const tooltipDesc = this.add.text(0, 8, effect.description, {
         fontFamily: "dungeon-mode",
@@ -3704,7 +4010,7 @@ export class Combat extends Scene {
         align: "center",
         wordWrap: { width: tooltipWidth - 20 }
       }).setOrigin(0.5);
-      
+
       tooltipContainer.add([tooltipOuterBorder, tooltipInnerBorder, tooltipBg, tooltipTitle, tooltipDesc]);
       tooltipContainer.setVisible(false).setAlpha(0).setDepth(1000);
 
@@ -3712,7 +4018,7 @@ export class Combat extends Scene {
       statusBadge.on("pointerover", () => {
         outerBorder.setStrokeStyle(3, borderColor, 1.0);
         bg.setAlpha(1.0);
-        
+
         // Show tooltip with fade in
         tooltipContainer.setVisible(true);
         this.tweens.add({
@@ -3726,7 +4032,7 @@ export class Combat extends Scene {
       statusBadge.on("pointerout", () => {
         outerBorder.setStrokeStyle(3, borderColor, 1.0);
         bg.setAlpha(0.95);
-        
+
         // Hide tooltip with fade out
         this.tweens.add({
           targets: tooltipContainer,
@@ -3807,55 +4113,55 @@ export class Combat extends Scene {
     if (!this.cameras.main) {
       return;
     }
-    
+
     // Reposition UI elements on resize
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
+
     // Update containers if they exist
     if (this.handContainer) {
-      this.handContainer.setPosition(screenWidth/2, screenHeight - 280);
+      this.handContainer.setPosition(screenWidth / 2, screenHeight - 280);
     }
-    
+
     if (this.playedHandContainer) {
-      this.playedHandContainer.setPosition(screenWidth/2, screenHeight - 450);
+      this.playedHandContainer.setPosition(screenWidth / 2, screenHeight - 450);
     }
-    
+
     if (this.actionButtons) {
-      this.actionButtons.setPosition(screenWidth/2, screenHeight - 60);
+      this.actionButtons.setPosition(screenWidth / 2, screenHeight - 60);
     }
-    
+
     if (this.relicInventory) {
       this.relicInventory.setPosition(screenWidth / 2, 80);
     }
-    
+
     // Update text positions
     if (this.turnText) {
       this.turnText.setPosition(screenWidth - 200, 50);
     }
-    
+
     if (this.actionsText) {
       this.actionsText.setPosition(screenWidth - 200, 80);
     }
-    
+
     if (this.actionResultText) {
-      this.actionResultText.setPosition(screenWidth/2, screenHeight/2);
+      this.actionResultText.setPosition(screenWidth / 2, screenHeight / 2);
     }
-    
+
     // Update poker hand info button position
     if (this.pokerHandInfoButton) {
       this.pokerHandInfoButton.setPosition(screenWidth - 50, 50);
     }
-    
+
     // Update player and enemy positions
     if (this.playerSprite) {
       this.playerSprite.setPosition(screenWidth * 0.25, screenHeight * 0.4);
     }
-    
+
     if (this.enemySprite) {
       this.enemySprite.setPosition(screenWidth * 0.75, screenHeight * 0.4);
     }
-    
+
     // Redraw UI elements
     this.ui.updateHandDisplay();
     this.ui.updatePlayedHandDisplay();
@@ -3869,7 +4175,7 @@ export class Combat extends Scene {
   update(_time: number, _delta: number): void {
     // Reserved for future animations
   }
-  
+
   /**
    * Helper method to determine if one hand type is better than another for DDA tracking
    */
@@ -3887,10 +4193,10 @@ export class Combat extends Scene {
       "straight_flush": 10,
       "royal_flush": 11,
     };
-    
+
     return handRanking[newHand] > handRanking[currentBest];
   }
-  
+
   /**
    * Convert hand type to quality score for DDA analysis
    */
@@ -3908,7 +4214,7 @@ export class Combat extends Scene {
       "straight_flush": 10,
       "royal_flush": 11,
     };
-    
+
     return handRanking[handType] / 11; // Normalize to 0-1 scale
   }
   /**
@@ -3925,36 +4231,36 @@ export class Combat extends Scene {
       'swift_wind_agimat': '+1 Discard charge (4 total). No card draw bonus',
       'stone_golem_heart': '+8 Max HP permanently. +2 Block at combat start',
       'diwatas_crown': 'Enables Five of a Kind hands. +5 Block at combat start. All Defend actions gain +3 Block',
-      
+
       // === TIER 2: START OF TURN RELICS ===
       'ember_fetish': '+4 Strength when Block = 0 (risky play), +2 Strength when Block > 0',
       'tiyanak_tear': '+1 Strength at the start of each turn (stacks over combat)',
-      
+
       // === TIER 3: HAND EVALUATION RELICS ===
       'babaylans_talisman': 'All hands count as one tier higher (Pair → Two Pair, Straight → Flush, etc.)',
       'ancestral_blade': '+2 Strength when playing a Flush or better',
       'sarimanok_feather': '+1 Ginto when playing a Straight or better',
       'lucky_charm': '+1 Ginto when playing a Straight or better',
-      
+
       // === TIER 4: CARD PLAY RELICS ===
       'umalagad_spirit': '+2 Block per card played. All Defend actions gain +4 Block',
       'balete_root': '+2 Block per Lupa (Earth) card in your played hand',
-      
+
       // === TIER 5: ATTACK ACTION RELICS ===
       'sigbin_heart': 'All Attack actions deal +3 damage',
       'amomongo_claw': 'Attack actions apply 1 Vulnerable (enemies take +50% damage)',
       'bungisngis_grin': '+4 damage when attacking enemies with any debuff (Weak, Vulnerable, Burn)',
       'kapres_cigar': 'First Attack of combat deals double damage (once per combat)',
-      
+
       // === TIER 6: DEFEND ACTION RELICS ===
       'duwende_charm': 'All Defend actions gain +3 Block',
-      
+
       // === TIER 7: SPECIAL ACTION RELICS ===
       'mangangaway_wand': 'All Special actions deal +5 damage',
-      
+
       // === TIER 8: PASSIVE RELICS ===
       'tikbalangs_hoof': '10% chance to completely dodge enemy attacks (1 in 10)',
-      
+
       // === TIER 9: END OF TURN RELICS ===
       'tidal_amulet': 'Heal +1 HP per card in hand at end of turn (max +8 with full hand)'
     };
@@ -3967,24 +4273,24 @@ export class Combat extends Scene {
   private showRelicTooltip(name: string, x: number, y: number): void {
     // Clean up any existing tooltip
     this.hideRelicTooltip();
-    
+
     const tooltip = this.add.container(x, y);
     tooltip.name = 'relicTooltip';
-    
+
     // Calculate text width for dynamic sizing
     const textWidth = name.length * 7;
     const paddingX = 16;
     const paddingY = 12;
     const tooltipWidth = textWidth + paddingX;
     const tooltipHeight = 24 + paddingY;
-    
+
     // Prologue-style double border design
     const outerBorder = this.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
       .setStrokeStyle(2, 0x77888C);
     const innerBorder = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
       .setStrokeStyle(2, 0x77888C);
     const bg = this.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
-    
+
     // Prologue-style text
     const text = this.add.text(0, 0, name, {
       fontFamily: "dungeon-mode",
@@ -3992,9 +4298,9 @@ export class Combat extends Scene {
       color: "#77888C",
       align: "center"
     }).setOrigin(0.5);
-    
+
     tooltip.add([outerBorder, innerBorder, bg, text]);
-    
+
     // Prologue-style entrance animation
     tooltip.setScale(0.8).setAlpha(0);
     this.tweens.add({
@@ -4004,10 +4310,10 @@ export class Combat extends Scene {
       duration: 300,
       ease: 'Power2.easeOut'
     });
-    
+
     this.currentRelicTooltip = tooltip;
   }
-  
+
   /**
    * Hide the current relic tooltip
    */
@@ -4018,51 +4324,51 @@ export class Combat extends Scene {
       this.currentRelicTooltip = null;
     }
   }
-  
+
   /**
    * Show detailed relic description modal on click
    */
   private showRelicDetailModal(relic: { id: string; name: string; description: string; emoji: string }): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
+
     // Create modal overlay
     const overlay = this.add.container(screenWidth / 2, screenHeight / 2);
     overlay.name = 'relicDetailModal';
-    
+
     // Dark background overlay
     const darkBg = this.add.rectangle(0, 0, screenWidth, screenHeight, 0x000000, 0.7);
     darkBg.setInteractive();
-    
+
     // Modal panel with Prologue styling
     const modalWidth = Math.min(400, screenWidth - 40);
     const modalHeight = Math.min(250, screenHeight - 40);
-    
+
     // Prologue-style double border design
     const outerBorder = this.add.rectangle(0, 0, modalWidth + 8, modalHeight + 8, undefined, 0)
       .setStrokeStyle(2, 0x77888C);
     const innerBorder = this.add.rectangle(0, 0, modalWidth, modalHeight, undefined, 0)
       .setStrokeStyle(2, 0x77888C);
     const modalBg = this.add.rectangle(0, 0, modalWidth, modalHeight, 0x150E10);
-    
+
     // Relic emoji/icon at the top
-    const relicIcon = this.add.text(0, -modalHeight/2 + 40, relic.emoji, {
+    const relicIcon = this.add.text(0, -modalHeight / 2 + 40, relic.emoji, {
       fontSize: 32,
       align: "center"
     }).setOrigin(0.5);
-    
+
     // Relic name
-    const nameText = this.add.text(0, -modalHeight/2 + 80, relic.name, {
+    const nameText = this.add.text(0, -modalHeight / 2 + 80, relic.name, {
       fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#77888C",
       align: "center"
     }).setOrigin(0.5);
-    
+
     // Relic description with word wrap - show accurate effect
     const effectDescription = this.getRelicEffectDescription(relic.id);
     const fullDescription = `${relic.description}\n\n⚡ EFFECT:\n${effectDescription}`;
-    const descText = this.add.text(0, -modalHeight/2 + 120, fullDescription, {
+    const descText = this.add.text(0, -modalHeight / 2 + 120, fullDescription, {
       fontFamily: "dungeon-mode",
       fontSize: 12,
       color: "#77888C",
@@ -4070,12 +4376,12 @@ export class Combat extends Scene {
       wordWrap: { width: modalWidth - 40 },
       lineSpacing: 4
     }).setOrigin(0.5);
-    
+
     // Close button with Prologue styling
-    const closeButton = this.add.container(0, modalHeight/2 - 30);
+    const closeButton = this.add.container(0, modalHeight / 2 - 30);
     const closeButtonWidth = 100;
     const closeButtonHeight = 35;
-    
+
     const closeOuterBorder = this.add.rectangle(0, 0, closeButtonWidth + 8, closeButtonHeight + 8, undefined, 0)
       .setStrokeStyle(2, 0x77888C);
     const closeInnerBorder = this.add.rectangle(0, 0, closeButtonWidth, closeButtonHeight, undefined, 0)
@@ -4086,10 +4392,10 @@ export class Combat extends Scene {
       fontSize: 14,
       color: "#77888C"
     }).setOrigin(0.5);
-    
+
     closeButton.add([closeOuterBorder, closeInnerBorder, closeBg, closeText]);
-    closeButton.setInteractive(new Phaser.Geom.Rectangle(-closeButtonWidth/2, -closeButtonHeight/2, closeButtonWidth, closeButtonHeight), Phaser.Geom.Rectangle.Contains);
-    
+    closeButton.setInteractive(new Phaser.Geom.Rectangle(-closeButtonWidth / 2, -closeButtonHeight / 2, closeButtonWidth, closeButtonHeight), Phaser.Geom.Rectangle.Contains);
+
     // Prologue-style hover effects for close button
     closeButton.on('pointerover', () => {
       closeBg.setFillStyle(0x1f1410); // Prologue hover color
@@ -4100,7 +4406,7 @@ export class Combat extends Scene {
         ease: 'Power2.easeOut'
       });
     });
-    
+
     closeButton.on('pointerout', () => {
       closeBg.setFillStyle(0x150E10); // Prologue normal color
       this.tweens.add({
@@ -4110,10 +4416,10 @@ export class Combat extends Scene {
         ease: 'Power2.easeOut'
       });
     });
-    
+
     // Add all elements to overlay
     overlay.add([darkBg, outerBorder, innerBorder, modalBg, relicIcon, nameText, descText, closeButton]);
-    
+
     // Prologue-style entrance animation
     overlay.setAlpha(0);
     this.tweens.add({
@@ -4122,7 +4428,7 @@ export class Combat extends Scene {
       duration: 400,
       ease: 'Power2.easeOut'
     });
-    
+
     // Close handlers
     const closeModal = () => {
       this.tweens.add({
@@ -4135,7 +4441,7 @@ export class Combat extends Scene {
         }
       });
     };
-    
+
     darkBg.on('pointerdown', closeModal);
     closeButton.on('pointerdown', closeModal);
   }
@@ -4149,19 +4455,19 @@ export class Combat extends Scene {
     if (this.handContainer) this.handContainer.setVisible(false);
     if (this.playedHandContainer) this.playedHandContainer.setVisible(false);
     if (this.actionButtons) this.actionButtons.setVisible(false);
-    
+
     // Hide deck and discard piles
     if (this.deckSprite) this.deckSprite.setVisible(false);
     if (this.discardPileSprite) this.discardPileSprite.setVisible(false);
-    
+
     // Hide status containers
     if (this.playerStatusContainer) this.playerStatusContainer.setVisible(false);
     if (this.enemyStatusContainer) this.enemyStatusContainer.setVisible(false);
-    
+
     // Hide relics and other UI elements
     if (this.relicsContainer) this.relicsContainer.setVisible(false);
     if (this.pokerHandInfoButton) this.pokerHandInfoButton.setVisible(false);
-    
+
     // Hide text elements
     if (this.turnText) this.turnText.setVisible(false);
     if (this.actionsText) this.actionsText.setVisible(false);
@@ -4179,19 +4485,19 @@ export class Combat extends Scene {
     if (this.handContainer) this.handContainer.setVisible(true);
     if (this.playedHandContainer) this.playedHandContainer.setVisible(true);
     if (this.actionButtons) this.actionButtons.setVisible(true);
-    
+
     // Restore deck and discard piles
     if (this.deckSprite) this.deckSprite.setVisible(true);
     if (this.discardPileSprite) this.discardPileSprite.setVisible(true);
-    
+
     // Restore status containers
     if (this.playerStatusContainer) this.playerStatusContainer.setVisible(true);
     if (this.enemyStatusContainer) this.enemyStatusContainer.setVisible(true);
-    
+
     // Restore relics and other UI elements
     if (this.relicsContainer) this.relicsContainer.setVisible(true);
     if (this.pokerHandInfoButton) this.pokerHandInfoButton.setVisible(true);
-    
+
     // Restore text elements
     if (this.turnText) this.turnText.setVisible(true);
     if (this.actionsText) this.actionsText.setVisible(true);
@@ -4207,12 +4513,12 @@ export class Combat extends Scene {
    */
   public resume(): void {
     console.log("Combat scene resumed - refreshing UI");
-    
+
     // Refresh relic inventory to show any new items purchased
     if (this.ui && this.ui.forceRelicInventoryUpdate) {
       this.ui.forceRelicInventoryUpdate();
     }
-    
+
     // Update all UI elements
     this.updateTurnUI();
     this.ui?.updatePlayerUI();
@@ -4227,7 +4533,7 @@ export class Combat extends Scene {
   private startMusic(): void {
     try {
       console.log(`🎵 ========== MUSIC START: Combat ==========`);
-      
+
       // Stop any existing music first
       if (this.music) {
         console.log(`🎵 Combat: Stopping existing music before starting new track`);
@@ -4239,7 +4545,7 @@ export class Combat extends Scene {
       // Get music configuration from MusicManager
       const musicManager = MusicManager.getInstance();
       const musicConfig = musicManager.getMusicKeyForScene('Combat');
-      
+
       if (!musicConfig) {
         console.warn(`⚠️ Combat: No music configured for Combat scene`);
         console.log(`🎵 ========== MUSIC START FAILED: Combat (no config) ==========`);
@@ -4319,7 +4625,7 @@ export class Combat extends Scene {
       }
 
       // No resize listener cleanup needed — Scale.FIT handles zoom uniformly
-      
+
     } catch (error) {
       console.error(`❌ Combat: Error in shutdown:`, error);
     }
