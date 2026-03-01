@@ -35,6 +35,9 @@ export class FogOfWarSystem {
   /** Transition duration for day/night fog changes (in milliseconds) */
   public transitionDuration: number = 2000;
   
+  /** Whether a fog transition (day/night) is currently in progress */
+  public isTransitioning: boolean = false;
+  
   /** Camera zoom during day (less zoomed in - larger fog area) */
   public dayCameraZoom: number = 1.0;
   
@@ -373,6 +376,8 @@ export class FogOfWarSystem {
       const camera = this.scene.cameras.main;
       const startZoom = camera.zoom;
       
+      this.isTransitioning = true;
+      
       // Create smooth transition tween
       const transitionObject = { progress: 0 };
       this.transitionTween = this.scene.tweens.add({
@@ -402,6 +407,7 @@ export class FogOfWarSystem {
           this.updateUIScale(targetZoom);
           this.renderFog();
           this.transitionTween = null;
+          this.isTransitioning = false;
           
           console.log(`🌫️ FogOfWarSystem: ${isDay ? 'Day' : 'Night'} fog transition complete (radius: ${this.currentVisibilityRadius}, zoom: ${targetZoom})`);
         }
@@ -483,6 +489,14 @@ export class FogOfWarSystem {
       });
     }
     
+    // Day/night transition text box — keep at constant size and centered
+    if (overworldScene.dayNightTransitionContainer) {
+      overworldScene.dayNightTransitionContainer.setScale(uiScale);
+      const transitionCx = cameraWidth / 2;
+      const transitionCy = cameraHeight / 2;
+      overworldScene.dayNightTransitionContainer.setPosition(transitionCx, transitionCy);
+    }
+
     // Note: Chapter indicator is now part of uiContainer, so it's automatically handled
     // Note: Tooltip handles its own zoom compensation in updateTooltipContent
   }
