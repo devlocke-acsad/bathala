@@ -39,6 +39,38 @@ export class NodeGenerator {
   private static readonly BASE_NODE_COUNT = 3;             // Base number of nodes per chunk
   private static readonly MIN_NODE_DISTANCE_FACTOR = 4;    // Divisor for minimum distance between nodes
 
+  // Runtime node-type weights used by the active overworld generation path.
+  // Ensures common encounters are significantly more frequent than elites.
+  private static readonly NODE_TYPE_WEIGHTS_BY_CHAPTER: Record<Chapter, Record<NodeType, number>> = {
+    1: {
+      combat: 6,
+      elite: 0.4,
+      shop: 1,
+      event: 2,
+      campfire: 1,
+      treasure: 1,
+      boss: 0,
+    },
+    2: {
+      combat: 6,
+      elite: 0.45,
+      shop: 1,
+      event: 2,
+      campfire: 1,
+      treasure: 1,
+      boss: 0,
+    },
+    3: {
+      combat: 5.5,
+      elite: 0.55,
+      shop: 1,
+      event: 1.8,
+      campfire: 1,
+      treasure: 1,
+      boss: 0,
+    },
+  };
+
   /**
    * Get enemy arrays for the current chapter
    */
@@ -58,6 +90,25 @@ export class NodeGenerator {
   }
 
   /**
+   * Weighted node-type roll so elite spawn chance stays below combat chance.
+   */
+  private static rollNodeTypeForChapter(chapter: Chapter, rng: SeededRandom): NodeType {
+    const weights = this.NODE_TYPE_WEIGHTS_BY_CHAPTER[chapter] ?? this.NODE_TYPE_WEIGHTS_BY_CHAPTER[1];
+    const entries = Object.entries(weights) as [NodeType, number][];
+    const total = entries.reduce((sum, [, weight]) => sum + Math.max(0, weight), 0);
+    if (total <= 0) return "combat";
+
+    let roll = rng.next() * total;
+    for (const [nodeType, weight] of entries) {
+      const safeWeight = Math.max(0, weight);
+      roll -= safeWeight;
+      if (roll <= 0) return nodeType;
+    }
+
+    return "combat";
+  }
+
+  /**
    * Generate nodes efficiently using spatial hashing
    */
   static generateOptimizedNodes(
@@ -69,7 +120,7 @@ export class NodeGenerator {
     rng: SeededRandom
   ): MapNode[] {
     const nodes: MapNode[] = [];
-    const nodeTypes: NodeType[] = ["combat", "elite", "shop", "event", "campfire", "treasure"];
+    const currentChapter = GameState.getInstance().getCurrentChapter();
     
     // Pre-calculate valid positions (paths only)
     const validPositions: { x: number; y: number }[] = [];
@@ -131,10 +182,9 @@ export class NodeGenerator {
       }
       
       if (bestPosition) {
-        const type = nodeTypes[Math.floor(rng.next() * nodeTypes.length)];
-        
-        // Get current chapter for enemy selection
-        const currentChapter = GameState.getInstance().getCurrentChapter();
+        const type = this.rollNodeTypeForChapter(currentChapter, rng);
+
+        // Get chapter-aware enemy pools for node enemy assignment.
         const enemyArrays = this.getEnemyArraysForChapter(currentChapter);
         
         let enemyId: string | undefined = undefined;
