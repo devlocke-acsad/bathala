@@ -182,8 +182,10 @@ export class Shop extends Scene {
     const titlePanel = this.add.graphics();
     titlePanel.fillStyle(0x150E10, 0.9);
     titlePanel.fillRoundedRect(screenWidth/2 - 350, 10, 700, 75, 12); // Increased height from 60px to 75px
-    titlePanel.lineStyle(2, 0x77888C, 0.8);
+    titlePanel.lineStyle(3, 0x77888C, 0.9);
     titlePanel.strokeRoundedRect(screenWidth/2 - 350, 10, 700, 75, 12); // Increased height from 60px to 75px
+    titlePanel.lineStyle(2, 0x556065, 0.75);
+    titlePanel.strokeRoundedRect(screenWidth/2 - 348, 12, 696, 71, 10);
     titlePanel.setDepth(2000); // Ensure title stays on top and doesn't scroll
     
     // Main title with prologue/combat styling
@@ -696,16 +698,17 @@ export class Shop extends Scene {
     const panelX = screenWidth - panelWidth / 2 - 20;
     const panelY = topY;
     
-    const statsPanel = this.add.graphics();
-    statsPanel.setDepth(2000);
-    
-    // Outer border
-    statsPanel.lineStyle(2, 0x77888C, 0.8);
-    statsPanel.strokeRoundedRect(panelX - panelWidth/2, panelY - panelHeight/2, panelWidth, panelHeight, 8);
-    
-    // Background fill
-    statsPanel.fillStyle(0x150E10, 0.92);
-    statsPanel.fillRoundedRect(panelX - panelWidth/2, panelY - panelHeight/2, panelWidth, panelHeight, 8);
+    const statsBg = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x150E10, 0.96)
+      .setOrigin(0.5)
+      .setDepth(2000);
+    const statsOuterBorder = this.add.rectangle(panelX, panelY, panelWidth + 6, panelHeight + 6, undefined, 0)
+      .setOrigin(0.5)
+      .setDepth(2000);
+    statsOuterBorder.setStrokeStyle(3, 0x77888C, 0.9);
+    const statsInnerBorder = this.add.rectangle(panelX, panelY, panelWidth + 2, panelHeight + 2, undefined, 0)
+      .setOrigin(0.5)
+      .setDepth(2000);
+    statsInnerBorder.setStrokeStyle(2, 0x556065, 0.75);
     
     // Health display with combat styling
     const healthY = topY - 12;
@@ -758,23 +761,31 @@ export class Shop extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Create non-scrollable container positioned to the right of merchant
+    // Create container for shop cards (can scroll if content exceeds viewport)
     const shopContainer = this.add.container(0, 0);
     shopContainer.setDepth(1000);
     
     // All items now use gold currency
     const allItems = this.shopItems;
     
-    // Position cards with more top margin - NO TITLE
-    const sectionY = 300; // Reduced since no title (was 280)
-    this.createDiscoverStyleSection(allItems, screenWidth, sectionY, shopContainer);
+    // Position cards with top margin below title/merchant area
+    const sectionY = 300;
+    const layout = this.createDiscoverStyleSection(allItems, screenWidth, sectionY, shopContainer);
+    this.setupScrolling(shopContainer, screenHeight, layout.contentBottom);
     
-    // Store container reference for resizing (no scrolling)
+    // Store container reference for tooltips and interactions
     this.scrollContainer = shopContainer;
   }
 
-  private setupScrolling(container: Phaser.GameObjects.Container, screenHeight: number): void {
-    const maxScroll = Math.max(0, 1200 - screenHeight + 200);
+  private setupScrolling(
+    container: Phaser.GameObjects.Container,
+    screenHeight: number,
+    contentBottom: number
+  ): void {
+    // Keep title/stats area visible while allowing card rows to scroll.
+    const viewportTop = 120;
+    const viewportBottom = screenHeight - 40;
+    const maxScroll = Math.max(0, contentBottom - viewportBottom);
     const scrollSpeed = 35; // Optimal speed for smooth scrolling
     
     // Smooth interpolation for buttery scrolling
@@ -830,6 +841,8 @@ export class Shop extends Scene {
     
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.isInputLocked()) return;
+      // Only start drag scroll in the card viewport area.
+      if (pointer.y < viewportTop || pointer.y > viewportBottom) return;
       isDragging = true;
       dragStartY = pointer.y;
       dragStartScrollY = targetScrollY;
@@ -851,29 +864,45 @@ export class Shop extends Scene {
   /**
    * Create Discover-style premium card section for shop items - 6x6 grid with proper margins
    */
-  private createDiscoverStyleSection(items: ShopItem[], screenWidth: number, startY: number, scrollContainer: Phaser.GameObjects.Container): void {
-    // 6-column grid configuration with proper left and right margins
-    const leftMargin = 380; // Left margin to clear merchant
-    const rightMargin = 100; // Right margin for balance
-    const cardWidth = 200;  // Restored to original size (was 180)
-    const cardHeight = 260; // Restored to original size (was 240)
-    const cardSpacing = 30; // Spacing between cards (both horizontal and vertical)
-    const cardsPerRow = 6; // Fixed 6-column grid
-    
-    // Calculate grid starting position with left margin
-    const gridStartX = leftMargin + cardWidth / 2;
+  private createDiscoverStyleSection(
+    items: ShopItem[],
+    screenWidth: number,
+    startY: number,
+    scrollContainer: Phaser.GameObjects.Container
+  ): { contentBottom: number } {
+    // Responsive grid so cards never overlap and any number of items can fit via rows + scrolling.
+    const leftMargin = 370; // Keep clear of merchant area
+    const rightMargin = 70;
+    const availableWidth = Math.max(220, screenWidth - leftMargin - rightMargin);
+
+    const cardWidth = 200;
+    const cardHeight = 260;
+    const horizontalSpacing = 36; // extra spacing avoids border/glow overlap
+    const verticalSpacing = 42;
+
+    const cardsPerRow = Math.max(
+      1,
+      Math.min(items.length || 1, Math.floor((availableWidth + horizontalSpacing) / (cardWidth + horizontalSpacing)))
+    );
+
+    const gridWidth = cardsPerRow * cardWidth + (cardsPerRow - 1) * horizontalSpacing;
+    const gridStartX = leftMargin + (availableWidth - gridWidth) / 2 + cardWidth / 2;
     const gridStartY = startY;
 
     items.forEach((item, index) => {
       const row = Math.floor(index / cardsPerRow);
       const col = index % cardsPerRow;
-      const x = gridStartX + col * (cardWidth + cardSpacing);
-      const y = gridStartY + row * (cardHeight + cardSpacing);
+      const x = gridStartX + col * (cardWidth + horizontalSpacing);
+      const y = gridStartY + row * (cardHeight + verticalSpacing);
 
       const card = this.createDiscoverStyleCard(item, x, y, cardWidth, cardHeight);
       scrollContainer.add(card);
       this.relicButtons.push(card);
     });
+
+    const totalRows = Math.max(1, Math.ceil(items.length / cardsPerRow));
+    const contentBottom = gridStartY + (totalRows - 1) * (cardHeight + verticalSpacing) + cardHeight / 2 + 24;
+    return { contentBottom };
   }
 
   /**
@@ -890,11 +919,15 @@ export class Shop extends Scene {
     const typeColor = 0xfbbf24;
     
     // Layered card background for depth (matching Discover)
-    const outerGlow = this.add.rectangle(0, 0, width, height, typeColor, isOwned ? 0.06 : 0.12)
+    const outerGlow = this.add.rectangle(0, 0, width, height, typeColor, isOwned ? 0.04 : 0.08)
       .setOrigin(0.5);
       
-    const background = this.add.rectangle(0, 0, width - 8, height - 8, 0x1d151a)
-      .setStrokeStyle(1, 0x4a3a40)
+    const background = this.add.rectangle(0, 0, width - 8, height - 8, 0x150E10, 0.98)
+      .setStrokeStyle(3, 0x77888C, 0.85)
+      .setOrigin(0.5);
+
+    const innerBorder = this.add.rectangle(0, 0, width - 12, height - 12, undefined, 0)
+      .setStrokeStyle(2, 0x556065, 0.75)
       .setOrigin(0.5);
     
     // Name badge at top - moved up now that decorative bar is removed
@@ -903,7 +936,8 @@ export class Shop extends Scene {
     
     // Calculate badge width based on name length
     const estimatedWidth = Math.min(Math.max(item.name.length * 8 + 20, 120), width - 20);
-    const nameBadge = this.add.rectangle(0, -height/2 + 20, estimatedWidth, 28, 0x2a1f24)
+    const nameBadge = this.add.rectangle(0, -height/2 + 20, estimatedWidth, 28, 0x1b2327, 0.8)
+      .setStrokeStyle(1, 0x77888C, 0.5)
       .setOrigin(0.5);
       
     const nameBadgeText = this.add.text(0, -height/2 + 20, item.name, {
@@ -915,10 +949,11 @@ export class Shop extends Scene {
       align: "center"
     }).setOrigin(0.5);
     
-    // Sprite container frame - larger now with more available space
-    const spriteFrameSize = 180; // Increased from 160 to use freed space
-    const spriteY = 5; // Slightly lower to center better
-    const spriteFrame = this.add.rectangle(0, spriteY, spriteFrameSize, spriteFrameSize, 0x0f0a0d)
+    // Sprite container frame - keep safe vertical gap from bottom price panel
+    const spriteFrameSize = 156;
+    const spriteY = -6;
+    const spriteFrame = this.add.rectangle(0, spriteY, spriteFrameSize, spriteFrameSize, 0x150E10, 1)
+      .setStrokeStyle(2, 0x556065, 0.75)
       .setOrigin(0.5);
     
     // Get sprite key for this relic
@@ -931,8 +966,8 @@ export class Shop extends Scene {
       const texture = this.textures.get(spriteKey);
       const frame = texture.get();
       const aspectRatio = frame.width / frame.height;
-      const maxWidth = spriteFrameSize - 10; // 10px padding
-      const maxHeight = spriteFrameSize - 10;
+      const maxWidth = spriteFrameSize - 12;
+      const maxHeight = spriteFrameSize - 12;
       
       let displayWidth, displayHeight;
       if (aspectRatio > 1) {
@@ -955,22 +990,23 @@ export class Shop extends Scene {
       itemVisual = symbolText;
     }
     
-    // Bottom panel - compact size for price only
-    const bottomPanelHeight = 50;
-    const pricePanel = this.add.rectangle(0, height/2 - bottomPanelHeight/2, width - 16, bottomPanelHeight, 0x0f0a0d)
-      .setStrokeStyle(1, 0x4a3a40)
+    // Bottom panel - keep fully inside inner card bounds
+    const bottomPanelHeight = 46;
+    const bottomPanelY = height / 2 - bottomPanelHeight / 2 - 8;
+    const pricePanel = this.add.rectangle(0, bottomPanelY, width - 20, bottomPanelHeight, 0x1b2327, 0.72)
+      .setStrokeStyle(1, 0x77888C, 0.55)
       .setOrigin(0.5);
     
     // Build components array starting with base elements
     const components: Phaser.GameObjects.GameObject[] = [
-      outerGlow, background, nameBadge, nameBadgeText, spriteFrame, 
+      outerGlow, background, innerBorder, nameBadge, nameBadgeText, spriteFrame, 
       itemVisual, pricePanel
     ];
     
     // Add price information in the bottom panel (centered vertically)
     if (hasDiscount && !isOwned) {
       // Original price with strikethrough (left side)
-      const discountText = this.add.text(-40, height/2 - bottomPanelHeight/2, `${item.price}`, {
+      const discountText = this.add.text(-40, bottomPanelY, `${item.price}`, {
         fontFamily: "dungeon-mode",
         fontSize: 13,
         color: "#9ca3af"
@@ -978,14 +1014,14 @@ export class Shop extends Scene {
       discountText.setStroke("#666666", 1);
       
       // Sale label and discounted price (right side)
-      const saleLabel = this.add.text(35, height/2 - bottomPanelHeight/2 - 8, "SALE", {
+      const saleLabel = this.add.text(35, bottomPanelY - 8, "SALE", {
         fontFamily: "dungeon-mode",
         fontSize: 10,
         color: "#2ed573"
       }).setOrigin(0.5);
       
-      const finalPriceValue = this.add.text(35, height/2 - bottomPanelHeight/2 + 8, `${actualPrice} ♦`, {
-        fontFamily: "dungeon-mode-inverted",
+      const finalPriceValue = this.add.text(35, bottomPanelY + 8, `${actualPrice} ♦`, {
+        fontFamily: "dungeon-mode",
         fontSize: 15,
         color: "#2ed573"
       }).setOrigin(0.5);
@@ -993,14 +1029,14 @@ export class Shop extends Scene {
       components.push(discountText, saleLabel, finalPriceValue);
     } else {
       // Normal price display (no discount) - centered
-      const finalPriceLabel = this.add.text(0, height/2 - bottomPanelHeight/2 - 8, "PRICE", {
+      const finalPriceLabel = this.add.text(0, bottomPanelY - 8, "PRICE", {
         fontFamily: "dungeon-mode",
         fontSize: 11,
         color: "#77888C"
       }).setOrigin(0.5);
       
-      const finalPriceValue = this.add.text(0, height/2 - bottomPanelHeight/2 + 8, `${actualPrice} ♦`, {
-        fontFamily: "dungeon-mode-inverted",
+      const finalPriceValue = this.add.text(0, bottomPanelY + 8, `${actualPrice} ♦`, {
+        fontFamily: "dungeon-mode",
         fontSize: 16,
         color: isOwned ? "#666666" : "#fbbf24"
       }).setOrigin(0.5);
@@ -1308,17 +1344,89 @@ export class Shop extends Scene {
     this.hideItemTooltip();
     this.lockInput();
     
+    const screenW = this.cameras.main.width;
+    const screenH = this.cameras.main.height;
+    const panelX = screenW / 2;
+    const panelY = screenH / 2;
+
+    const descriptionText = item.description || "A mysterious artifact of unknown purpose.";
+    const loreText = this.getItemLore(item);
+    const nameTextValue = item.name.toUpperCase();
+
+    const actualPrice = this.getActualPrice(item);
+    const hasDiscount = actualPrice < item.price;
+    const priceEmoji = item.currency === "ginto" ? "♦" : "💎";
+
+    // Measure wrapped text to size panel dynamically so it hugs content.
+    const minContentWidth = 300;
+    const maxContentWidth = 560;
+    const measureWrappedText = (
+      text: string,
+      style: Phaser.Types.GameObjects.Text.TextStyle
+    ): Phaser.Types.Math.Vector2Like => {
+      const temp = this.add.text(-9999, -9999, text, style);
+      const bounds = temp.getBounds();
+      temp.destroy();
+      return { x: Math.ceil(bounds.width), y: Math.ceil(bounds.height) };
+    };
+
+    const nameMeasure = measureWrappedText(nameTextValue, {
+      fontFamily: "dungeon-mode",
+      fontSize: 22,
+      color: "#e8eced",
+      wordWrap: { width: maxContentWidth }
+    });
+    const descMeasure = measureWrappedText(descriptionText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 15,
+      color: "#e8eced",
+      wordWrap: { width: maxContentWidth }
+    });
+    const loreMeasure = measureWrappedText(loreText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e8eced",
+      wordWrap: { width: maxContentWidth }
+    });
+
+    const contentWidth = Math.max(
+      minContentWidth,
+      Math.min(
+        maxContentWidth,
+        Math.max(descMeasure.x, loreMeasure.x, nameMeasure.x + 170)
+      )
+    );
+
+    const panelWidth = contentWidth + 72;
+    const headerH = 76;
+    const priceH = hasDiscount ? 80 : 58;
+    const sectionLabelH = 18;
+    const bodyGap = 16;
+    const buyButtonArea = 80;
+    const panelHeight =
+      28 +
+      headerH +
+      14 +
+      priceH +
+      bodyGap +
+      sectionLabelH + descMeasure.y + 10 +
+      bodyGap +
+      sectionLabelH + loreMeasure.y + 16 +
+      buyButtonArea;
+
     // Create overlay that blocks all interactions beneath it
     const overlay = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
+      panelX,
+      panelY,
+      screenW,
+      screenH,
       0x000000
     ).setAlpha(0.8).setScrollFactor(0).setDepth(2000);
     
     // Make overlay interactive to block clicks on cards beneath
     overlay.setInteractive();
+
+    const panel = this.add.container(panelX, panelY).setScrollFactor(0).setDepth(2001);
     
     // Function to close the panel
     const closePanel = () => {
@@ -1351,46 +1459,27 @@ export class Shop extends Scene {
         closePanel();
       }
     });
-    
-    // Create item details panel with modern Persona styling
-    const panelWidth = 520;
-    const panelHeight = 580;
-    const panelX = this.cameras.main.width / 2;
-    const panelY = this.cameras.main.height / 2;
-    
-    const panel = this.add.container(panelX, panelY).setScrollFactor(0).setDepth(2001);
-    
-    // Panel shadow for depth
-    const panelShadow = this.add.graphics();
-    panelShadow.fillStyle(0x000000, 0.4);
-    panelShadow.fillRoundedRect(-panelWidth/2 + 8, -panelHeight/2 + 8, panelWidth, panelHeight, 20);
-    
-    // Main panel background with shop theme (matching #77888C color scheme)
-    const panelBg = this.add.graphics();
-    panelBg.fillStyle(0x150E10, 0.95); // Match shop background
-    panelBg.lineStyle(3, 0x77888C, 0.9); // Match shop border color
-    panelBg.fillRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
-    panelBg.strokeRoundedRect(-panelWidth/2, -panelHeight/2, panelWidth, panelHeight, 20);
-    
-    // Inner highlight for premium feel
-    const innerHighlight = this.add.graphics();
-    innerHighlight.lineStyle(2, 0x77888C, 0.4); // Match shop accent color
-    innerHighlight.strokeRoundedRect(-panelWidth/2 + 4, -panelHeight/2 + 4, panelWidth - 8, panelHeight - 8, 16);
-    
-    // Header section with shop theme
-    const headerBg = this.add.graphics();
-    headerBg.fillStyle(0x77888C, 0.2); // Subtle shop color background
-    headerBg.lineStyle(1, 0x77888C, 0.6);
-    headerBg.fillRoundedRect(-panelWidth/2 + 12, -panelHeight/2 + 12, panelWidth - 24, 80, 12);
-    headerBg.strokeRoundedRect(-panelWidth/2 + 12, -panelHeight/2 + 12, panelWidth - 24, 80, 12);
-    
-    // Item icon with enhanced styling and proper container
-    const iconContainer = this.add.graphics();
-    iconContainer.fillStyle(0x150E10, 0.8); // Match shop background
-    iconContainer.fillRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
-    iconContainer.lineStyle(2, 0x77888C, 0.8); // Shop border color
-    iconContainer.strokeRoundedRect(-panelWidth/2 + 30, -panelHeight/2 + 30, 60, 60, 10);
-    
+
+    // Main panel: match MainMenu/Tutorial style (dark bg + gray double border)
+    const panelShadow = this.add.rectangle(4, 4, panelWidth, panelHeight, 0x000000, 0.45).setOrigin(0.5);
+    const panelBg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x150E10, 0.98).setOrigin(0.5);
+    const outerBorder = this.add.rectangle(0, 0, panelWidth + 6, panelHeight + 6, undefined, 0).setOrigin(0.5);
+    outerBorder.setStrokeStyle(3, 0x77888C, 0.9);
+    const innerBorder = this.add.rectangle(0, 0, panelWidth + 2, panelHeight + 2, undefined, 0).setOrigin(0.5);
+    innerBorder.setStrokeStyle(2, 0x556065, 0.75);
+
+    const headerY = -panelHeight / 2 + 14;
+    const headerBg = this.add.rectangle(0, headerY + headerH / 2, panelWidth - 22, headerH, 0x1b2327, 0.72).setOrigin(0.5);
+    const headerBorder = this.add.rectangle(0, headerY + headerH / 2, panelWidth - 22, headerH, undefined, 0).setOrigin(0.5);
+    headerBorder.setStrokeStyle(1, 0x77888C, 0.5);
+
+    const iconX = -panelWidth / 2 + 40;
+    const iconY = headerY + headerH / 2;
+    const iconBg = this.add.rectangle(iconX, iconY, 48, 48, 0x150E10, 0.95).setOrigin(0.5);
+    iconBg.setStrokeStyle(2, 0x77888C, 0.85);
+    const iconInner = this.add.rectangle(iconX, iconY, 44, 44, undefined, 0).setOrigin(0.5);
+    iconInner.setStrokeStyle(1, 0x556065, 0.75);
+
     // Get sprite key for this relic
     const spriteKey = getRelicSpriteKey(item.item.id);
     
@@ -1399,207 +1488,132 @@ export class Shop extends Scene {
     
     if (spriteKey && this.textures.exists(spriteKey)) {
       // Use sprite if available
-      itemIcon = this.add.image(-panelWidth/2 + 60, -panelHeight/2 + 60, spriteKey)
+      itemIcon = this.add.image(iconX, iconY, spriteKey)
         .setOrigin(0.5)
-        .setDisplaySize(56, 56); // Larger sprite for better visibility in detail modal
+        .setDisplaySize(34, 34);
     } else {
       // Fallback to emoji if sprite not found
-      itemIcon = this.add.text(-panelWidth/2 + 60, -panelHeight/2 + 60, item.emoji, {
-        fontSize: 48,
-      }).setOrigin(0.5, 0.5);
-      (itemIcon as Phaser.GameObjects.Text).setShadow(2, 2, '#1a1625', 4, false, true);
+      itemIcon = this.add.text(iconX, iconY, item.emoji, { fontSize: 24 }).setOrigin(0.5);
     }
     
-    // Item name with proper alignment, shop theme colors, and word wrap
-    const name = this.add.text(-panelWidth/2 + 110, -panelHeight/2 + 40, item.name.toUpperCase(), {
+    const name = this.add.text(iconX + 34, iconY - 5, nameTextValue, {
       fontFamily: "dungeon-mode",
-      fontSize: 22,
-      color: "#77888C",
-      fontStyle: "bold",
-      wordWrap: { width: panelWidth - 180 }
-    }).setOrigin(0, 0);
-    name.setShadow(2, 2, '#000000', 4, false, true);
-    
-    // Price display with shop theme
-    const actualPrice = this.getActualPrice(item);
-    const hasDiscount = actualPrice < item.price;
-    
-    const priceBg = this.add.graphics();
-    priceBg.fillStyle(0x150E10, 0.9); // Match shop background
-    priceBg.lineStyle(2, 0x77888C, 0.8); // Match shop border
-    priceBg.fillRoundedRect(-80, -panelHeight/2 + 110, 160, hasDiscount ? 70 : 45, 12);
-    priceBg.strokeRoundedRect(-80, -panelHeight/2 + 110, 160, hasDiscount ? 70 : 45, 12);
-    
-    let priceEmoji;
-    if (item.currency === "ginto") {
-      priceEmoji = "♦";
-    } else {
-      priceEmoji = "💎";
-    }
-    
-    const priceLabel = this.add.text(0, -panelHeight/2 + 125, hasDiscount ? "DISCOUNTED" : "PRICE", {
       fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: hasDiscount ? "#2ed573" : "#77888C", // Green if discounted
-    }).setOrigin(0.5, 0.5);
-    
-    let tooltipPriceElements: Phaser.GameObjects.GameObject[] = [priceLabel];
-    
-    if (hasDiscount) {
-      const originalPrice = this.add.text(0, -panelHeight/2 + 145, `${item.price} ${priceEmoji}`, {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#888888",
-      }).setOrigin(0.5, 0.5);
-      originalPrice.setStroke("#666666", 2);
-      
-      const price = this.add.text(0, -panelHeight/2 + 165, `${actualPrice} ${priceEmoji}`, {
-        fontFamily: "dungeon-mode",
-        fontSize: 24,
-        color: "#2ed573",
-        fontStyle: "bold"
-      }).setOrigin(0.5, 0.5);
-      
-      tooltipPriceElements.push(originalPrice, price);
-    } else {
-      const price = this.add.text(0, -panelHeight/2 + 140, `${actualPrice} ${priceEmoji}`, {
-        fontFamily: "dungeon-mode",
         fontSize: 20,
-        color: "#ffffff",
-        fontStyle: "bold"
-      }).setOrigin(0.5, 0.5);
-      
-      tooltipPriceElements.push(price);
-    }
-    
-    // Add shadow to all price elements
-    tooltipPriceElements.forEach(el => {
-      if (el instanceof Phaser.GameObjects.Text) {
-        el.setShadow(1, 1, '#000000', 2, false, true);
-      }
-    });
-    
-    // Content sections with shop theme
-    const contentStartY = -panelHeight/2 + 200;
-    
-    // Description section with shop styling - increased height for better readability
-    const descSection = this.add.graphics();
-    descSection.fillStyle(0x77888C, 0.15); // Subtle shop color background
-    descSection.lineStyle(1, 0x77888C, 0.3);
-    descSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 130, 8);
-    descSection.strokeRoundedRect(-panelWidth/2 + 30, contentStartY, panelWidth - 60, 130, 8);
-    
-    const descTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 15, "DESCRIPTION", {
+      color: "#e8eced",
+      wordWrap: { width: panelWidth - 180 }
+    }).setOrigin(0, 0.5);
+    const statusText = this.add.text(iconX + 34, iconY + 16, hasDiscount ? "DISCOUNTED ITEM" : "SHOP ITEM", {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: hasDiscount ? "#2ed573" : "#77888C"
+    }).setOrigin(0, 0.5);
+
+    const closeBtn = this.add.container(panelWidth / 2 - 22, -panelHeight / 2 + 22);
+    const closeBg = this.add.rectangle(0, 0, 24, 24, 0x150E10, 1).setOrigin(0.5);
+    closeBg.setStrokeStyle(2, 0x77888C, 0.95);
+    const closeText = this.add.text(0, 0, "X", {
       fontFamily: "dungeon-mode",
       fontSize: 14,
-      color: "#77888C", // Shop accent color
-      fontStyle: "bold"
-    }).setOrigin(0, 0);
-    
-    const description = this.add.text(-panelWidth/2 + 45, contentStartY + 40, item.description, {
-      fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#cccccc", // Light gray for readability
-      align: "left",
-      wordWrap: { width: panelWidth - 90 }
-    }).setOrigin(0, 0);
-    
-    // Lore section with shop styling - increased height and adjusted position
-    const loreSection = this.add.graphics();
-    loreSection.fillStyle(0x77888C, 0.1); // Even more subtle
-    loreSection.lineStyle(1, 0x77888C, 0.2);
-    loreSection.fillRoundedRect(-panelWidth/2 + 30, contentStartY + 150, panelWidth - 60, 140, 8);
-    loreSection.strokeRoundedRect(-panelWidth/2 + 30, contentStartY + 150, panelWidth - 60, 140, 8);
-    
-    const loreTitle = this.add.text(-panelWidth/2 + 45, contentStartY + 165, "LORE", {
-      fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#77888C", // Shop accent color
-      fontStyle: "bold"
-    }).setOrigin(0, 0);
-    
-    const lore = this.getItemLore(item);
-    const loreText = this.add.text(-panelWidth/2 + 45, contentStartY + 190, lore, {
-      fontFamily: "dungeon-mode",
-      fontSize: 13,
-      color: "#aaaaaa", // Light gray for lore text
-      align: "left",
-      wordWrap: { width: panelWidth - 90 }
-    }).setOrigin(0, 0);
-    
-    // Persona 5 style close button - inside panel, top-right corner
-    const closeBtn = this.add.container(panelWidth/2 - 40, -panelHeight/2 + 40);
-    const closeBg = this.add.graphics();
-    closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
-    closeBg.lineStyle(2, 0xfca5a5, 0.8);
-    closeBg.fillRoundedRect(-20, -20, 40, 40, 8); // Increased from 30x30 to 40x40
-    closeBg.strokeRoundedRect(-20, -20, 40, 40, 8);
-    
-    const closeText = this.add.text(0, 0, "✕", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 18, // Increased from 16 to 18
-      color: "#ffffff",
-    }).setOrigin(0.5, 0.5);
-    closeText.setShadow(1, 1, '#000000', 2, false, true);
-    
+      color: "#e8eced"
+    }).setOrigin(0.5);
     closeBtn.add([closeBg, closeText]);
-    closeBtn.setSize(40, 40); // Set proper size for interaction
-    closeBtn.setInteractive();
-    closeBtn.on("pointerdown", () => {
-      closePanel();
-    });
+    closeBtn.setSize(24, 24);
+    closeBtn.setInteractive({ useHandCursor: true });
+    closeBtn.on("pointerdown", closePanel);
     closeBtn.on("pointerover", () => {
       this.input.setDefaultCursor('pointer');
-      this.tweens.add({
-        targets: closeBtn,
-        scale: 1.1,
-        duration: 100,
-        ease: 'Power2'
-      });
-      closeBg.clear();
-      closeBg.fillGradientStyle(0xf87171, 0xef4444, 0xdc2626, 0xb91c1c, 0.95);
-      closeBg.lineStyle(2, 0xfca5a5, 1);
-      closeBg.fillRoundedRect(-20, -20, 40, 40, 8);
-      closeBg.strokeRoundedRect(-20, -20, 40, 40, 8);
+      closeBg.setFillStyle(0x2a343a, 1);
+      closeBtn.setScale(1.08);
     });
     closeBtn.on("pointerout", () => {
       this.input.setDefaultCursor('default');
-      this.tweens.add({
-        targets: closeBtn,
-        scale: 1,
-        duration: 100,
-        ease: 'Power2'
-      });
-      closeBg.clear();
-      closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
-      closeBg.lineStyle(2, 0xfca5a5, 0.8);
-      closeBg.fillRoundedRect(-20, -20, 40, 40, 8);
-      closeBg.strokeRoundedRect(-20, -20, 40, 40, 8);
+      closeBg.setFillStyle(0x150E10, 1);
+      closeBtn.setScale(1);
     });
-    
-    // Modern buy button with shop theme - positioned at bottom
-    const buyBtn = this.add.container(0, panelHeight/2 - 80);
+
+    let currentY = -panelHeight / 2 + 14 + headerH + 14;
+    const priceBg = this.add.rectangle(0, currentY + priceH / 2, panelWidth - 44, priceH, 0x1b2327, 0.6).setOrigin(0.5);
+    priceBg.setStrokeStyle(1, 0x77888C, 0.45);
+
+    const priceLabel = this.add.text(0, currentY + 12, hasDiscount ? "PRICE (DISCOUNTED)" : "PRICE", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: hasDiscount ? "#2ed573" : "#77888C",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+
+    const priceMainText = hasDiscount
+      ? `${actualPrice} ${priceEmoji}   (was ${item.price} ${priceEmoji})`
+      : `${actualPrice} ${priceEmoji}`;
+    const priceValue = this.add.text(0, currentY + (hasDiscount ? 44 : 36), priceMainText, {
+      fontFamily: "dungeon-mode",
+      fontSize: hasDiscount ? 17 : 20,
+      color: hasDiscount ? "#2ed573" : "#e8eced",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+
+    currentY += priceH + bodyGap;
+    const sep1 = this.add.rectangle(0, currentY, panelWidth - 30, 1, 0x556065, 0.8).setOrigin(0.5);
+    currentY += 10;
+
+    const leftX = -panelWidth / 2 + 26;
+    const descTitle = this.add.text(leftX, currentY, "DESCRIPTION", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C"
+    }).setOrigin(0, 0);
+    currentY += sectionLabelH;
+
+    const description = this.add.text(0, currentY, descriptionText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 15,
+      color: "#d0dce4",
+      align: "center",
+      wordWrap: { width: contentWidth },
+      lineSpacing: 4
+    }).setOrigin(0.5, 0);
+    currentY += description.getBounds().height + 12;
+
+    const sep2 = this.add.rectangle(0, currentY, panelWidth - 30, 1, 0x556065, 0.8).setOrigin(0.5);
+    currentY += 10;
+
+    const loreTitle = this.add.text(leftX, currentY, "LORE", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C"
+    }).setOrigin(0, 0);
+    currentY += sectionLabelH;
+
+    const loreBody = this.add.text(0, currentY, loreText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#9eb1b8",
+      align: "center",
+      wordWrap: { width: contentWidth },
+      lineSpacing: 4
+    }).setOrigin(0.5, 0);
+
+    const buyBtn = this.add.container(0, panelHeight / 2 - 44);
     const buyBg = this.add.graphics();
-    buyBg.fillStyle(0x150E10, 0.9); // Match shop background
-    buyBg.lineStyle(3, 0x77888C, 0.8); // Match shop border
-    buyBg.fillRoundedRect(-120, -25, 240, 50, 12);
-    buyBg.strokeRoundedRect(-120, -25, 240, 50, 12);
+    buyBg.fillStyle(0x150E10, 0.9);
+    buyBg.lineStyle(3, 0x77888C, 0.8);
+    buyBg.fillRoundedRect(-120, -24, 240, 48, 10);
+    buyBg.strokeRoundedRect(-120, -24, 240, 48, 10);
     
     const buyInnerGlow = this.add.graphics();
-    buyInnerGlow.lineStyle(1, 0x77888C, 0.3); // Shop accent
-    buyInnerGlow.strokeRoundedRect(-118, -23, 236, 46, 10);
+    buyInnerGlow.lineStyle(1, 0x556065, 0.7);
+    buyInnerGlow.strokeRoundedRect(-118, -22, 236, 44, 9);
     
     const buyText = this.add.text(0, 0, "PURCHASE ITEM", {
       fontFamily: "dungeon-mode",
       fontSize: 18,
-      color: "#77888C", // Shop accent color
-      fontStyle: "bold"
+      color: "#77888C"
     }).setOrigin(0.5, 0.5);
-    buyText.setShadow(2, 2, '#000000', 3, false, true);
     
     buyBtn.add([buyBg, buyInnerGlow, buyText]);
-    buyBtn.setSize(240, 50); // Set proper size for interaction
-    buyBtn.setInteractive();
+    buyBtn.setSize(240, 48);
+    buyBtn.setInteractive({ useHandCursor: true });
     buyBtn.on("pointerdown", () => {
       // Clean up panel with animation and then proceed with purchase
       this.tweens.add({
@@ -1619,39 +1633,49 @@ export class Shop extends Scene {
     });
     buyBtn.on("pointerover", () => {
       this.input.setDefaultCursor('pointer');
-      this.tweens.add({
-        targets: buyBtn,
-        scale: 1.05,
-        duration: 150,
-        ease: 'Power2'
-      });
+      buyBtn.setScale(1.05);
       buyBg.clear();
-      buyBg.fillStyle(0x150E10, 1); // Slightly brighter on hover
-      buyBg.lineStyle(3, 0x77888C, 1); // Full opacity border on hover
-      buyBg.fillRoundedRect(-120, -25, 240, 50, 12);
-      buyBg.strokeRoundedRect(-120, -25, 240, 50, 12);
-      buyText.setColor("#ffffff"); // White text on hover
+      buyBg.fillStyle(0x150E10, 1);
+      buyBg.lineStyle(3, 0x77888C, 1);
+      buyBg.fillRoundedRect(-120, -24, 240, 48, 10);
+      buyBg.strokeRoundedRect(-120, -24, 240, 48, 10);
+      buyText.setColor("#ffffff");
     });
     buyBtn.on("pointerout", () => {
       this.input.setDefaultCursor('default');
-      this.tweens.add({
-        targets: buyBtn,
-        scale: 1,
-        duration: 150,
-        ease: 'Power2'
-      });
+      buyBtn.setScale(1);
       buyBg.clear();
-      buyBg.fillStyle(0x150E10, 0.9); // Return to normal
-      buyBg.lineStyle(3, 0x77888C, 0.8); // Return to normal border
-      buyBg.fillRoundedRect(-120, -25, 240, 50, 12);
-      buyBg.strokeRoundedRect(-120, -25, 240, 50, 12);
-      buyText.setColor("#77888C"); // Return to shop accent color
+      buyBg.fillStyle(0x150E10, 0.9);
+      buyBg.lineStyle(3, 0x77888C, 0.8);
+      buyBg.fillRoundedRect(-120, -24, 240, 48, 10);
+      buyBg.strokeRoundedRect(-120, -24, 240, 48, 10);
+      buyText.setColor("#77888C");
     });
     
-    // Assemble the modern panel
-    panel.add([panelShadow, panelBg, innerHighlight, headerBg, iconContainer, itemIcon, name, 
-              priceBg, ...tooltipPriceElements, descSection, descTitle, description, 
-              loreSection, loreTitle, loreText, closeBtn, buyBtn]);
+    panel.add([
+      panelShadow,
+      outerBorder,
+      innerBorder,
+      panelBg,
+      headerBg,
+      headerBorder,
+      iconBg,
+      iconInner,
+      itemIcon,
+      name,
+      statusText,
+      closeBtn,
+      priceBg,
+      priceLabel,
+      priceValue,
+      sep1,
+      descTitle,
+      description,
+      sep2,
+      loreTitle,
+      loreBody,
+      buyBtn
+    ]);
               
     // Entrance animation
     panel.setScale(0.8).setAlpha(0);
@@ -1745,45 +1769,70 @@ export class Shop extends Scene {
   }
   
   private showPurchaseConfirmation(item: ShopItem): void {
-    const panelWidth = 440;
-    const panelHeight = 380;
-    const panelX = this.cameras.main.width / 2;
-    const panelY = this.cameras.main.height / 2;
+    const screenW = this.cameras.main.width;
+    const screenH = this.cameras.main.height;
+    const panelX = screenW / 2;
+    const panelY = screenH / 2;
+
+    const actualPrice = this.getActualPrice(item);
+    const hasDiscount = actualPrice < item.price;
+    const priceEmoji = item.currency === "ginto" ? "♦" : "💎";
+    const nameValue = item.name.toUpperCase();
+    const confirmValue = "CONFIRM PURCHASE?";
+    const priceValue = hasDiscount
+      ? `${actualPrice} ${priceEmoji}   (was ${item.price} ${priceEmoji})`
+      : `${actualPrice} ${priceEmoji}`;
+    const goldValue = `Your Gold: ${this.player.ginto} ♦`;
+
+    // Measure text so modal hugs content.
+    const measureWrappedText = (
+      text: string,
+      style: Phaser.Types.GameObjects.Text.TextStyle
+    ): Phaser.Types.Math.Vector2Like => {
+      const temp = this.add.text(-9999, -9999, text, style);
+      const bounds = temp.getBounds();
+      temp.destroy();
+      return { x: Math.ceil(bounds.width), y: Math.ceil(bounds.height) };
+    };
+    const nameMeasure = measureWrappedText(nameValue, {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#e8eced",
+      wordWrap: { width: 460 }
+    });
+    const priceMeasure = measureWrappedText(priceValue, {
+      fontFamily: "dungeon-mode",
+      fontSize: hasDiscount ? 17 : 22,
+      color: "#e8eced"
+    });
+    const goldMeasure = measureWrappedText(goldValue, {
+      fontFamily: "dungeon-mode",
+      fontSize: 15,
+      color: "#fbbf24"
+    });
+
+    const panelWidth = Math.max(420, Math.min(640, Math.max(nameMeasure.x + 180, priceMeasure.x + 120, goldMeasure.x + 120)));
+    const headerH = 76;
+    const priceH = hasDiscount ? 72 : 54;
+    const panelHeight = 28 + headerH + 14 + 38 + 12 + priceH + 12 + 26 + 20 + 56 + 26;
 
     this.lockInput();
 
-    // Create overlay that blocks all interactions beneath it
-    const overlay = this.add.rectangle(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      this.cameras.main.width,
-      this.cameras.main.height,
-      0x000000
-    ).setAlpha(0.8).setScrollFactor(0).setDepth(2000);
-    overlay.setInteractive();
+    const overlay = this.add.rectangle(panelX, panelY, screenW, screenH, 0x000000)
+      .setAlpha(0.8)
+      .setScrollFactor(0)
+      .setDepth(2000)
+      .setInteractive();
 
-    // Click overlay (outside panel) to close
-    overlay.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      const bounds = {
-        left: panelX - panelWidth / 2,
-        right: panelX + panelWidth / 2,
-        top: panelY - panelHeight / 2,
-        bottom: panelY + panelHeight / 2
-      };
-      if (pointer.x < bounds.left || pointer.x > bounds.right ||
-          pointer.y < bounds.top || pointer.y > bounds.bottom) {
-        closePanel();
-      }
-    });
+    const panel = this.add.container(panelX, panelY).setScrollFactor(0).setDepth(2001);
 
-    // Function to close the panel
     const closePanel = () => {
       this.tweens.add({
         targets: panel,
         scale: 0.8,
         alpha: 0,
         duration: 200,
-        ease: 'Back.easeIn',
+        ease: "Back.easeIn",
         onComplete: () => {
           overlay.destroy();
           panel.destroy();
@@ -1792,208 +1841,130 @@ export class Shop extends Scene {
       });
     };
 
-    const panel = this.add.container(panelX, panelY).setScrollFactor(0).setDepth(2001);
+    overlay.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      const bounds = {
+        left: panelX - panelWidth / 2,
+        right: panelX + panelWidth / 2,
+        top: panelY - panelHeight / 2,
+        bottom: panelY + panelHeight / 2
+      };
+      if (pointer.x < bounds.left || pointer.x > bounds.right || pointer.y < bounds.top || pointer.y > bounds.bottom) {
+        closePanel();
+      }
+    });
 
-    // --- Layout anchors (relative to panel center 0,0) ---
-    const top = -panelHeight / 2;   // -190
-    const bottom = panelHeight / 2;  // +190
+    const panelShadow = this.add.rectangle(4, 4, panelWidth, panelHeight, 0x000000, 0.45).setOrigin(0.5);
+    const panelBg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x150E10, 0.98).setOrigin(0.5);
+    const outerBorder = this.add.rectangle(0, 0, panelWidth + 6, panelHeight + 6, undefined, 0).setOrigin(0.5);
+    outerBorder.setStrokeStyle(3, 0x77888C, 0.9);
+    const innerBorder = this.add.rectangle(0, 0, panelWidth + 2, panelHeight + 2, undefined, 0).setOrigin(0.5);
+    innerBorder.setStrokeStyle(2, 0x556065, 0.75);
 
-    // Panel shadow
-    const panelShadow = this.add.graphics();
-    panelShadow.fillStyle(0x000000, 0.4);
-    panelShadow.fillRoundedRect(-panelWidth/2 + 8, top + 8, panelWidth, panelHeight, 20);
+    const headerY = -panelHeight / 2 + 14;
+    const headerBg = this.add.rectangle(0, headerY + headerH / 2, panelWidth - 22, headerH, 0x1b2327, 0.72).setOrigin(0.5);
+    const headerBorder = this.add.rectangle(0, headerY + headerH / 2, panelWidth - 22, headerH, undefined, 0).setOrigin(0.5);
+    headerBorder.setStrokeStyle(1, 0x77888C, 0.5);
 
-    // Main panel background
-    const panelBg = this.add.graphics();
-    panelBg.fillStyle(0x150E10, 0.95);
-    panelBg.lineStyle(3, 0x77888C, 0.9);
-    panelBg.fillRoundedRect(-panelWidth/2, top, panelWidth, panelHeight, 20);
-    panelBg.strokeRoundedRect(-panelWidth/2, top, panelWidth, panelHeight, 20);
+    const iconX = -panelWidth / 2 + 40;
+    const iconY = headerY + headerH / 2;
+    const iconBg = this.add.rectangle(iconX, iconY, 48, 48, 0x150E10, 0.95).setOrigin(0.5);
+    iconBg.setStrokeStyle(2, 0x77888C, 0.85);
+    const iconInner = this.add.rectangle(iconX, iconY, 44, 44, undefined, 0).setOrigin(0.5);
+    iconInner.setStrokeStyle(1, 0x556065, 0.75);
 
-    // Inner highlight
-    const innerHighlight = this.add.graphics();
-    innerHighlight.lineStyle(2, 0x77888C, 0.4);
-    innerHighlight.strokeRoundedRect(-panelWidth/2 + 4, top + 4, panelWidth - 8, panelHeight - 8, 16);
-
-    // ===== ROW 1: HEADER (icon + item name) — 15px from top =====
-    const headerTop = top + 15;
-    const headerHeight = 80;
-    const headerBg = this.add.graphics();
-    headerBg.fillStyle(0x77888C, 0.2);
-    headerBg.lineStyle(1, 0x77888C, 0.6);
-    headerBg.fillRoundedRect(-panelWidth/2 + 14, headerTop, panelWidth - 28, headerHeight, 12);
-    headerBg.strokeRoundedRect(-panelWidth/2 + 14, headerTop, panelWidth - 28, headerHeight, 12);
-
-    // Icon — 60x60, vertically centered in header
-    const iconSize = 60;
-    const iconX = -panelWidth/2 + 28;
-    const iconY = headerTop + (headerHeight - iconSize) / 2;
-    const iconBg = this.add.graphics();
-    iconBg.fillStyle(0x150E10, 0.8);
-    iconBg.fillRoundedRect(iconX, iconY, iconSize, iconSize, 10);
-    iconBg.lineStyle(2, 0x77888C, 0.8);
-    iconBg.strokeRoundedRect(iconX, iconY, iconSize, iconSize, 10);
-
-    const iconCenterX = iconX + iconSize / 2;
-    const iconCenterY = iconY + iconSize / 2;
     const spriteKey = getRelicSpriteKey(item.item.id);
     let itemIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
     if (spriteKey && this.textures.exists(spriteKey)) {
-      itemIcon = this.add.image(iconCenterX, iconCenterY, spriteKey)
-        .setOrigin(0.5).setDisplaySize(52, 52);
+      itemIcon = this.add.image(iconX, iconY, spriteKey).setOrigin(0.5).setDisplaySize(34, 34);
     } else {
-      itemIcon = this.add.text(iconCenterX, iconCenterY, item.emoji, {
-        fontSize: 40,
-      }).setOrigin(0.5, 0.5);
+      itemIcon = this.add.text(iconX, iconY, item.emoji, { fontSize: 24 }).setOrigin(0.5);
     }
 
-    // Item name — vertically centered in header, right of icon
-    const textLeftX = iconX + iconSize + 18;
-    const headerCenterY = headerTop + headerHeight / 2;
-    const nameText = this.add.text(textLeftX, headerCenterY, item.name.toUpperCase(), {
+    const nameText = this.add.text(iconX + 34, iconY - 5, nameValue, {
       fontFamily: "dungeon-mode",
       fontSize: 20,
       color: "#e8eced",
-      fontStyle: "bold",
-      wordWrap: { width: panelWidth - 160 }
+      wordWrap: { width: panelWidth - 180 }
     }).setOrigin(0, 0.5);
-    nameText.setShadow(2, 2, '#000000', 4, false, true);
-
-    // ===== ROW 2: "Confirm Purchase?" — centered below header =====
-    const confirmLabelY = headerTop + headerHeight + 35;
-    const confirmLabel = this.add.text(0, confirmLabelY, "Confirm Purchase?", {
+    const subText = this.add.text(iconX + 34, iconY + 16, "PURCHASE CHECK", {
       fontFamily: "dungeon-mode",
-      fontSize: 24,
-      color: "#77888C",
-    }).setOrigin(0.5);
-    confirmLabel.setShadow(1, 1, '#000000', 2, false, true);
+      fontSize: 11,
+      color: "#77888C"
+    }).setOrigin(0, 0.5);
 
-    // ===== ROW 3: Price badge — centered below label =====
-    const actualPrice = this.getActualPrice(item);
-    const hasDiscount = actualPrice < item.price;
-    const priceEmoji = item.currency === "ginto" ? "♦" : "💎";
-
-    const priceBadgeY = confirmLabelY + 45;
-    const priceBadgeW = 180;
-    const priceBadgeH = hasDiscount ? 65 : 45;
-
-    const priceBg = this.add.graphics();
-    priceBg.fillStyle(0x150E10, 0.9);
-    priceBg.lineStyle(2, 0x77888C, 0.8);
-    priceBg.fillRoundedRect(-priceBadgeW/2, priceBadgeY - priceBadgeH/2, priceBadgeW, priceBadgeH, 12);
-    priceBg.strokeRoundedRect(-priceBadgeW/2, priceBadgeY - priceBadgeH/2, priceBadgeW, priceBadgeH, 12);
-
-    let priceElements: Phaser.GameObjects.GameObject[] = [];
-
-    if (hasDiscount) {
-      const originalPrice = this.add.text(0, priceBadgeY - 15, `${item.price} ${priceEmoji}`, {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#888888",
-      }).setOrigin(0.5);
-      originalPrice.setStroke("#666666", 2);
-
-      const discountedPrice = this.add.text(0, priceBadgeY + 12, `${actualPrice} ${priceEmoji}`, {
-        fontFamily: "dungeon-mode",
-        fontSize: 24,
-        color: "#2ed573",
-        fontStyle: "bold"
-      }).setOrigin(0.5);
-      discountedPrice.setShadow(1, 1, '#000000', 2, false, true);
-
-      priceElements.push(originalPrice, discountedPrice);
-    } else {
-      const price = this.add.text(0, priceBadgeY, `${actualPrice} ${priceEmoji}`, {
-        fontFamily: "dungeon-mode",
-        fontSize: 26,
-        color: "#ffffff",
-        fontStyle: "bold"
-      }).setOrigin(0.5);
-      price.setShadow(1, 1, '#000000', 2, false, true);
-
-      priceElements.push(price);
-    }
-
-    // ===== ROW 4: Gold balance — below price badge =====
-    const goldInfoY = priceBadgeY + priceBadgeH/2 + 22;
-    const goldInfo = this.add.text(0, goldInfoY, `Your Gold: ${this.player.ginto} ♦`, {
+    const closeBtn = this.add.container(panelWidth / 2 - 22, -panelHeight / 2 + 22);
+    const closeBg = this.add.rectangle(0, 0, 24, 24, 0x150E10, 1).setOrigin(0.5);
+    closeBg.setStrokeStyle(2, 0x77888C, 0.95);
+    const closeText = this.add.text(0, 0, "X", {
       fontFamily: "dungeon-mode",
-      fontSize: 15,
-      color: "#fbbf24",
+      fontSize: 14,
+      color: "#e8eced"
     }).setOrigin(0.5);
-    goldInfo.setShadow(1, 1, '#000000', 2, false, true);
-
-    // ===== CLOSE BUTTON (red X) — top-right, outside header =====
-    const closeBtn = this.add.container(panelWidth/2 - 30, top + 28);
-    const closeBg = this.add.graphics();
-    closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
-    closeBg.lineStyle(2, 0xfca5a5, 0.8);
-    closeBg.fillRoundedRect(-16, -16, 32, 32, 8);
-    closeBg.strokeRoundedRect(-16, -16, 32, 32, 8);
-    const closeText = this.add.text(0, 0, "✕", {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 15,
-      color: "#ffffff",
-    }).setOrigin(0.5, 0.5);
-    closeText.setShadow(1, 1, '#000000', 2, false, true);
     closeBtn.add([closeBg, closeText]);
-    closeBtn.setSize(32, 32);
-    closeBtn.setInteractive();
-    closeBtn.on("pointerdown", () => {
-      closePanel();
-    });
-    closeBtn.on("pointerover", () => {
-      this.input.setDefaultCursor('pointer');
-      this.tweens.add({ targets: closeBtn, scale: 1.1, duration: 100, ease: 'Power2' });
-      closeBg.clear();
-      closeBg.fillGradientStyle(0xf87171, 0xef4444, 0xdc2626, 0xb91c1c, 0.95);
-      closeBg.lineStyle(2, 0xfca5a5, 1);
-      closeBg.fillRoundedRect(-16, -16, 32, 32, 8);
-      closeBg.strokeRoundedRect(-16, -16, 32, 32, 8);
-    });
-    closeBtn.on("pointerout", () => {
-      this.input.setDefaultCursor('default');
-      this.tweens.add({ targets: closeBtn, scale: 1, duration: 100, ease: 'Power2' });
-      closeBg.clear();
-      closeBg.fillGradientStyle(0xef4444, 0xdc2626, 0xb91c1c, 0x991b1b, 0.95);
-      closeBg.lineStyle(2, 0xfca5a5, 0.8);
-      closeBg.fillRoundedRect(-16, -16, 32, 32, 8);
-      closeBg.strokeRoundedRect(-16, -16, 32, 32, 8);
-    });
+    closeBtn.setSize(24, 24).setInteractive({ useHandCursor: true });
+    closeBtn.on("pointerdown", closePanel);
+    closeBtn.on("pointerover", () => { closeBg.setFillStyle(0x2a343a, 1); closeBtn.setScale(1.08); });
+    closeBtn.on("pointerout", () => { closeBg.setFillStyle(0x150E10, 1); closeBtn.setScale(1); });
 
-    // ===== BUTTONS — 45px from bottom =====
-    const btnY = bottom - 48;
+    let currentY = -panelHeight / 2 + 14 + headerH + 18;
+    const confirmLabel = this.add.text(0, currentY, confirmValue, {
+      fontFamily: "dungeon-mode",
+      fontSize: 22,
+      color: "#77888C",
+      align: "center"
+    }).setOrigin(0.5, 0);
+    currentY += 36;
+
+    const priceBg = this.add.rectangle(0, currentY + priceH / 2, panelWidth - 60, priceH, 0x1b2327, 0.72).setOrigin(0.5);
+    priceBg.setStrokeStyle(1, 0x77888C, 0.5);
+    const priceLabel = this.add.text(0, currentY + 12, hasDiscount ? "PRICE (DISCOUNTED)" : "PRICE", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: hasDiscount ? "#2ed573" : "#77888C"
+    }).setOrigin(0.5, 0.5);
+    const priceText = this.add.text(0, currentY + (hasDiscount ? 43 : 35), priceValue, {
+      fontFamily: "dungeon-mode",
+      fontSize: hasDiscount ? 17 : 22,
+      color: hasDiscount ? "#2ed573" : "#e8eced",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
+    currentY += priceH + 16;
+
+    const goldInfo = this.add.text(0, currentY, goldValue, {
+      fontFamily: "dungeon-mode",
+      fontSize: 15,
+      color: "#fbbf24"
+    }).setOrigin(0.5, 0);
+    currentY += 30;
+
+    const btnY = panelHeight / 2 - 44;
     const btnWidth = 160;
-    const btnHeight = 50;
+    const btnHeight = 48;
     const btnGap = 20;
 
-    // Confirm button
-    const confirmBtn = this.add.container(-btnWidth/2 - btnGap/2, btnY);
+    const confirmBtn = this.add.container(-btnWidth / 2 - btnGap / 2, btnY);
     const confirmBg = this.add.graphics();
     confirmBg.fillStyle(0x150E10, 0.9);
     confirmBg.lineStyle(3, 0x77888C, 0.8);
-    confirmBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
-    confirmBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+    confirmBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
+    confirmBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
     const confirmInnerGlow = this.add.graphics();
-    confirmInnerGlow.lineStyle(1, 0x77888C, 0.3);
-    confirmInnerGlow.strokeRoundedRect(-btnWidth/2 + 2, -btnHeight/2 + 2, btnWidth - 4, btnHeight - 4, 10);
+    confirmInnerGlow.lineStyle(1, 0x556065, 0.7);
+    confirmInnerGlow.strokeRoundedRect(-btnWidth / 2 + 2, -btnHeight / 2 + 2, btnWidth - 4, btnHeight - 4, 8);
     const confirmText = this.add.text(0, 0, "CONFIRM", {
       fontFamily: "dungeon-mode",
       fontSize: 18,
-      color: "#77888C",
-      fontStyle: "bold"
-    }).setOrigin(0.5, 0.5);
-    confirmText.setShadow(2, 2, '#000000', 3, false, true);
+      color: "#77888C"
+    }).setOrigin(0.5);
     confirmBtn.add([confirmBg, confirmInnerGlow, confirmText]);
-    confirmBtn.setSize(btnWidth, btnHeight);
-    confirmBtn.setInteractive();
+    confirmBtn.setSize(btnWidth, btnHeight).setInteractive({ useHandCursor: true });
     confirmBtn.on("pointerdown", () => {
       this.tweens.add({
         targets: panel,
         scale: 0.8,
         alpha: 0,
         duration: 200,
-        ease: 'Back.easeIn',
+        ease: "Back.easeIn",
         onComplete: () => {
           overlay.destroy();
           panel.destroy();
@@ -2003,83 +1974,89 @@ export class Shop extends Scene {
       });
     });
     confirmBtn.on("pointerover", () => {
-      this.input.setDefaultCursor('pointer');
-      this.tweens.add({ targets: confirmBtn, scale: 1.05, duration: 150, ease: 'Power2' });
+      confirmBtn.setScale(1.05);
       confirmBg.clear();
       confirmBg.fillStyle(0x150E10, 1);
       confirmBg.lineStyle(3, 0x77888C, 1);
-      confirmBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
-      confirmBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      confirmBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
+      confirmBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
       confirmText.setColor("#ffffff");
     });
     confirmBtn.on("pointerout", () => {
-      this.input.setDefaultCursor('default');
-      this.tweens.add({ targets: confirmBtn, scale: 1, duration: 150, ease: 'Power2' });
+      confirmBtn.setScale(1);
       confirmBg.clear();
       confirmBg.fillStyle(0x150E10, 0.9);
       confirmBg.lineStyle(3, 0x77888C, 0.8);
-      confirmBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
-      confirmBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      confirmBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
+      confirmBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
       confirmText.setColor("#77888C");
     });
 
-    // Cancel button
-    const cancelBtn = this.add.container(btnWidth/2 + btnGap/2, btnY);
+    const cancelBtn = this.add.container(btnWidth / 2 + btnGap / 2, btnY);
     const cancelBg = this.add.graphics();
     cancelBg.fillStyle(0x150E10, 0.9);
     cancelBg.lineStyle(3, 0x77888C, 0.8);
-    cancelBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
-    cancelBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+    cancelBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
+    cancelBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
     const cancelInnerGlow = this.add.graphics();
-    cancelInnerGlow.lineStyle(1, 0x77888C, 0.3);
-    cancelInnerGlow.strokeRoundedRect(-btnWidth/2 + 2, -btnHeight/2 + 2, btnWidth - 4, btnHeight - 4, 10);
+    cancelInnerGlow.lineStyle(1, 0x556065, 0.7);
+    cancelInnerGlow.strokeRoundedRect(-btnWidth / 2 + 2, -btnHeight / 2 + 2, btnWidth - 4, btnHeight - 4, 8);
     const cancelText = this.add.text(0, 0, "CANCEL", {
       fontFamily: "dungeon-mode",
       fontSize: 18,
-      color: "#77888C",
-      fontStyle: "bold"
-    }).setOrigin(0.5, 0.5);
-    cancelText.setShadow(2, 2, '#000000', 3, false, true);
+      color: "#77888C"
+    }).setOrigin(0.5);
     cancelBtn.add([cancelBg, cancelInnerGlow, cancelText]);
-    cancelBtn.setSize(btnWidth, btnHeight);
-    cancelBtn.setInteractive();
-    cancelBtn.on("pointerdown", () => closePanel());
+    cancelBtn.setSize(btnWidth, btnHeight).setInteractive({ useHandCursor: true });
+    cancelBtn.on("pointerdown", closePanel);
     cancelBtn.on("pointerover", () => {
-      this.input.setDefaultCursor('pointer');
-      this.tweens.add({ targets: cancelBtn, scale: 1.05, duration: 150, ease: 'Power2' });
+      cancelBtn.setScale(1.05);
       cancelBg.clear();
       cancelBg.fillStyle(0x150E10, 1);
       cancelBg.lineStyle(3, 0x77888C, 1);
-      cancelBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
-      cancelBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      cancelBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
+      cancelBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
       cancelText.setColor("#ffffff");
     });
     cancelBtn.on("pointerout", () => {
-      this.input.setDefaultCursor('default');
-      this.tweens.add({ targets: cancelBtn, scale: 1, duration: 150, ease: 'Power2' });
+      cancelBtn.setScale(1);
       cancelBg.clear();
       cancelBg.fillStyle(0x150E10, 0.9);
       cancelBg.lineStyle(3, 0x77888C, 0.8);
-      cancelBg.fillRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
-      cancelBg.strokeRoundedRect(-btnWidth/2, -btnHeight/2, btnWidth, btnHeight, 12);
+      cancelBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
+      cancelBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 10);
       cancelText.setColor("#77888C");
     });
 
-    // Assemble the panel
     panel.add([
-      panelShadow, panelBg, innerHighlight, headerBg, iconBg, itemIcon,
-      nameText, confirmLabel, priceBg, ...priceElements, goldInfo,
-      closeBtn, confirmBtn, cancelBtn
+      panelShadow,
+      outerBorder,
+      innerBorder,
+      panelBg,
+      headerBg,
+      headerBorder,
+      iconBg,
+      iconInner,
+      itemIcon,
+      nameText,
+      subText,
+      closeBtn,
+      confirmLabel,
+      priceBg,
+      priceLabel,
+      priceText,
+      goldInfo,
+      confirmBtn,
+      cancelBtn
     ]);
 
-    // Entrance animation
     panel.setScale(0.8).setAlpha(0);
     this.tweens.add({
       targets: panel,
       scale: 1,
       alpha: 1,
-      duration: 300,
-      ease: 'Back.easeOut'
+      duration: 280,
+      ease: "Back.easeOut"
     });
   }
   

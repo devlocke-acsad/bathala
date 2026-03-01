@@ -3599,185 +3599,237 @@ export class CombatUI {
     const screenH = this.scene.cameras.main.height;
     
     // --- Dim overlay (scene-level, full screen) ---
-    const overlay = this.scene.add.rectangle(screenW / 2, screenH / 2, screenW, screenH, 0x000000, 0.85);
+    const overlay = this.scene.add.rectangle(screenW / 2, screenH / 2, screenW, screenH, 0x000000, 0.82);
     overlay.setDepth(2900);
     overlay.setInteractive();
     
+    // Measure text first so the modal can hug content per relic.
+    const descriptionText = relic.description || "A mysterious relic of unknown power.";
+    const effectText = this.getRelicEffectDescription(relic);
+    const loreText = relic.lore || "An ancient artifact of great power, its origins lost to time.";
+
+    const minContentWidth = 250;
+    const maxContentWidth = 520;
+    const measureWrappedText = (
+      text: string,
+      style: Phaser.Types.GameObjects.Text.TextStyle
+    ): Phaser.Types.Math.Vector2Like => {
+      const temp = this.scene.add.text(-9999, -9999, text, style);
+      const bounds = temp.getBounds();
+      temp.destroy();
+      return { x: Math.ceil(bounds.width), y: Math.ceil(bounds.height) };
+    };
+
+    const nameMeasure = measureWrappedText(relic.name.toUpperCase(), {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#e8eced"
+    });
+    const descMeasure = measureWrappedText(descriptionText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 16,
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: maxContentWidth }
+    });
+    const effectMeasure = measureWrappedText(effectText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 15,
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: maxContentWidth }
+    });
+    const loreMeasure = measureWrappedText(loreText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#e8eced",
+      align: "center",
+      wordWrap: { width: maxContentWidth }
+    });
+
+    const measuredContentWidth = Math.max(
+      minContentWidth,
+      Math.min(
+        maxContentWidth,
+        Math.max(descMeasure.x, effectMeasure.x, loreMeasure.x, nameMeasure.x + 170)
+      )
+    );
+    const contentWidth = measuredContentWidth;
+    const pw = contentWidth + 64;
+
+    const sectionGap = 18;
+    const headerH = 72;
+    const bodyTopPadding = 16;
+    const sectionLabelH = 18;
+    const sectionBottomPadding = 8;
+    const ph =
+      28 +
+      headerH +
+      bodyTopPadding +
+      sectionLabelH + descMeasure.y + sectionBottomPadding +
+      sectionGap +
+      sectionLabelH + effectMeasure.y + sectionBottomPadding +
+      sectionGap +
+      sectionLabelH + loreMeasure.y +
+      30;
+
     // --- Modal panel ---
-    const pw = 440;
-    const ph = 480;
     const modal = this.scene.add.container(screenW / 2, screenH / 2);
     modal.setDepth(2901);
 
-    // Panel background with subtle shadow
-    const panelGfx = this.scene.add.graphics();
-    panelGfx.fillStyle(0x000000, 0.45);
-    panelGfx.fillRoundedRect(-pw / 2 + 5, -ph / 2 + 5, pw, ph, 10);
-    panelGfx.fillStyle(0x0e1318, 0.98);
-    panelGfx.fillRoundedRect(-pw / 2, -ph / 2, pw, ph, 10);
-    panelGfx.lineStyle(2, 0x4a6070, 0.85);
-    panelGfx.strokeRoundedRect(-pw / 2, -ph / 2, pw, ph, 10);
-    panelGfx.lineStyle(1, 0x6b8899, 0.2);
-    panelGfx.strokeRoundedRect(-pw / 2 + 3, -ph / 2 + 3, pw - 6, ph - 6, 8);
-    modal.add(panelGfx);
+    // Main panel: same visual language as main menu/tutorial.
+    const shadow = this.scene.add.rectangle(4, 4, pw, ph, 0x000000, 0.45).setOrigin(0.5);
+    const bg = this.scene.add.rectangle(0, 0, pw, ph, 0x150E10, 0.98).setOrigin(0.5);
+    const outerBorder = this.scene.add.rectangle(0, 0, pw + 6, ph + 6, undefined, 0).setOrigin(0.5);
+    outerBorder.setStrokeStyle(3, 0x77888C, 0.9);
+    const innerBorder = this.scene.add.rectangle(0, 0, pw + 2, ph + 2, undefined, 0).setOrigin(0.5);
+    innerBorder.setStrokeStyle(2, 0x556065, 0.75);
+    modal.add([shadow, outerBorder, innerBorder, bg]);
 
-    // --- Header row ---
-    const headerH = 64;
-    const headerTop = -ph / 2 + 12;
-    const headerGfx = this.scene.add.graphics();
-    headerGfx.fillStyle(0x16202a, 0.85);
-    headerGfx.fillRoundedRect(-pw / 2 + 12, headerTop, pw - 24, headerH, 8);
-    modal.add(headerGfx);
+    const headerY = -ph / 2 + 14;
+    const headerBg = this.scene.add.rectangle(0, headerY + headerH / 2, pw - 22, headerH, 0x1b2327, 0.72).setOrigin(0.5);
+    const headerBorder = this.scene.add.rectangle(0, headerY + headerH / 2, pw - 22, headerH, undefined, 0).setOrigin(0.5);
+    headerBorder.setStrokeStyle(1, 0x77888C, 0.5);
+    modal.add([headerBg, headerBorder]);
 
-    // Icon background
-    const iconCx = -pw / 2 + 46;
-    const iconCy = headerTop + headerH / 2;
-    const iconGfx = this.scene.add.graphics();
-    iconGfx.fillStyle(0x1a2832, 0.9);
-    iconGfx.lineStyle(1, 0x4a6070, 0.55);
-    iconGfx.fillRoundedRect(iconCx - 22, iconCy - 22, 44, 44, 8);
-    iconGfx.strokeRoundedRect(iconCx - 22, iconCy - 22, 44, 44, 8);
-    modal.add(iconGfx);
+    // Icon container
+    const iconCx = -pw / 2 + 40;
+    const iconCy = headerY + headerH / 2;
+    const iconBg = this.scene.add.rectangle(iconCx, iconCy, 46, 46, 0x150E10, 0.95).setOrigin(0.5);
+    iconBg.setStrokeStyle(2, 0x77888C, 0.85);
+    const iconInnerBorder = this.scene.add.rectangle(iconCx, iconCy, 42, 42, undefined, 0).setOrigin(0.5);
+    iconInnerBorder.setStrokeStyle(1, 0x556065, 0.75);
+    modal.add([iconBg, iconInnerBorder]);
 
-    // Icon sprite or emoji
     const spriteKey = getRelicSpriteKey(relic.id);
     let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
     if (spriteKey && this.scene.textures.exists(spriteKey)) {
-      relicIcon = this.scene.add.image(iconCx, iconCy, spriteKey).setOrigin(0.5).setDisplaySize(36, 36);
+      relicIcon = this.scene.add.image(iconCx, iconCy, spriteKey).setOrigin(0.5).setDisplaySize(34, 34);
     } else {
-      relicIcon = this.scene.add.text(iconCx, iconCy, relic.emoji || "⚙️", { fontSize: 26 }).setOrigin(0.5);
+      relicIcon = this.scene.add.text(iconCx, iconCy, relic.emoji || "⚙️", { fontSize: 24 }).setOrigin(0.5);
     }
     modal.add(relicIcon);
 
-    // Name text (left-aligned next to icon)
-    const nameText = this.scene.add.text(iconCx + 36, iconCy, relic.name.toUpperCase(), {
-      fontFamily: "dungeon-mode-inverted",
-      fontSize: 17,
-      color: "#dce8f0",
-      wordWrap: { width: pw - 180 }
+    const titleWidth = pw - 180;
+    const nameText = this.scene.add.text(iconCx + 34, iconCy - 6, relic.name.toUpperCase(), {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: "#e8eced",
+      wordWrap: { width: titleWidth }
     }).setOrigin(0, 0.5);
-    nameText.setShadow(1, 1, '#000000', 3, false, true);
-    modal.add(nameText);
+    const equippedText = this.scene.add.text(iconCx + 34, iconCy + 16, "EQUIPPED", {
+      fontFamily: "dungeon-mode",
+      fontSize: 11,
+      color: "#6fb590"
+    }).setOrigin(0, 0.5);
+    modal.add([nameText, equippedText]);
 
-    // Equipped badge (right side of header)
-    const badgeCx = pw / 2 - 70;
-    const badgeCy = headerTop + headerH / 2;
-    const badgeGfx = this.scene.add.graphics();
-    badgeGfx.fillStyle(0x276749, 0.9);
-    badgeGfx.fillRoundedRect(badgeCx - 38, badgeCy - 10, 76, 20, 5);
-    modal.add(badgeGfx);
-    const badgeLabel = this.scene.add.text(badgeCx, badgeCy, "EQUIPPED", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 9, color: "#a7f3d0"
-    }).setOrigin(0.5);
-    modal.add(badgeLabel);
-
-    // --- Close button (top-right corner) ---
-    const closeBtnX = pw / 2 - 24;
-    const closeBtnY = -ph / 2 + 24;
-    const closeBtn = this.scene.add.container(closeBtnX, closeBtnY);
-    const closeBgGfx = this.scene.add.graphics();
-
-    const drawCloseBtn = (hover: boolean) => {
-      closeBgGfx.clear();
-      closeBgGfx.fillStyle(hover ? 0xdc2626 : 0x8b1a1a, 0.95);
-      closeBgGfx.lineStyle(1, hover ? 0xfca5a5 : 0xc07070, 0.7);
-      closeBgGfx.fillRoundedRect(-13, -13, 26, 26, 6);
-      closeBgGfx.strokeRoundedRect(-13, -13, 26, 26, 6);
-    };
-    drawCloseBtn(false);
-
+    // Close button
+    const closeBtn = this.scene.add.container(pw / 2 - 22, -ph / 2 + 22);
+    const closeBg = this.scene.add.rectangle(0, 0, 24, 24, 0x150E10, 1).setOrigin(0.5);
+    closeBg.setStrokeStyle(2, 0x77888C, 0.95);
     const closeLabel = this.scene.add.text(0, 0, "X", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 13, color: "#ffffff"
-    }).setOrigin(0.5);
-    closeBtn.add([closeBgGfx, closeLabel]);
-    closeBtn.setInteractive(new Phaser.Geom.Rectangle(-13, -13, 26, 26), Phaser.Geom.Rectangle.Contains);
-    closeBtn.on("pointerdown", () => { overlay.destroy(); modal.destroy(); });
-    closeBtn.on("pointerover", () => { drawCloseBtn(true); closeBtn.setScale(1.1); });
-    closeBtn.on("pointerout", () => { drawCloseBtn(false); closeBtn.setScale(1.0); });
-    modal.add(closeBtn);
-
-    // --- Separator ---
-    const sepY = headerTop + headerH + 16;
-    const sepGfx = this.scene.add.graphics();
-    sepGfx.lineStyle(1, 0x3a5060, 0.4);
-    sepGfx.lineBetween(-pw / 2 + 24, sepY, pw / 2 - 24, sepY);
-    modal.add(sepGfx);
-
-    // --- Description section ---
-    const descTop = sepY + 12;
-    const descLabel = this.scene.add.text(-pw / 2 + 28, descTop, "DESCRIPTION", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#7a9aaa"
-    });
-    modal.add(descLabel);
-
-    const descBody = this.scene.add.text(0, descTop + 24, relic.description || "A mysterious relic of unknown power.", {
       fontFamily: "dungeon-mode",
       fontSize: 14,
-      color: "#d0dce4",
-      align: "center",
-      wordWrap: { width: pw - 64 },
-      lineSpacing: 5
-    }).setOrigin(0.5, 0);
-    modal.add(descBody);
-
-    const descHeight = descBody.getBounds().height;
-
-    // --- Effect section (positioned dynamically below description) ---
-    const effectTop = descTop + 24 + descHeight + 24;
-    const effectSepGfx = this.scene.add.graphics();
-    effectSepGfx.lineStyle(1, 0x3a4a60, 0.35);
-    effectSepGfx.lineBetween(-pw / 2 + 24, effectTop, pw / 2 - 24, effectTop);
-    modal.add(effectSepGfx);
-
-    const effectLabel = this.scene.add.text(-pw / 2 + 28, effectTop + 10, "EFFECT", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#c8a040"
+      color: "#e8eced"
+    }).setOrigin(0.5);
+    closeBtn.add([closeBg, closeLabel]);
+    closeBtn.setSize(24, 24).setInteractive({ useHandCursor: true });
+    closeBtn.on("pointerdown", () => { overlay.destroy(); modal.destroy(); });
+    closeBtn.on("pointerover", () => {
+      closeBg.setFillStyle(0x2a343a, 1);
+      closeBtn.setScale(1.08);
     });
-    modal.add(effectLabel);
-
-    const effectText = this.getRelicEffectDescription(relic);
-    const effectBody = this.scene.add.text(0, effectTop + 34, effectText, {
-      fontFamily: "dungeon-mode",
-      fontSize: 13,
-      color: "#5ccfb8",
-      align: "center",
-      wordWrap: { width: pw - 64 },
-      lineSpacing: 5
-    }).setOrigin(0.5, 0);
-    modal.add(effectBody);
-
-    const effectHeight = effectBody.getBounds().height;
-
-    // --- Lore section (positioned dynamically below effect) ---
-    const loreTop = effectTop + 34 + effectHeight + 24;
-    const loreSepGfx = this.scene.add.graphics();
-    loreSepGfx.lineStyle(1, 0x2e4a3a, 0.35);
-    loreSepGfx.lineBetween(-pw / 2 + 24, loreTop, pw / 2 - 24, loreTop);
-    modal.add(loreSepGfx);
-
-    const loreLabel = this.scene.add.text(-pw / 2 + 28, loreTop + 10, "LORE", {
-      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#6fb590"
+    closeBtn.on("pointerout", () => {
+      closeBg.setFillStyle(0x150E10, 1);
+      closeBtn.setScale(1);
     });
-    modal.add(loreLabel);
+    modal.add(closeBtn);
 
-    const loreText = relic.lore || "An ancient artifact of great power, its origins lost to time.";
-    const loreBody = this.scene.add.text(0, loreTop + 34, loreText, {
+    const separator1Y = headerY + headerH + 8;
+    const separator1 = this.scene.add.rectangle(0, separator1Y, pw - 30, 1, 0x556065, 0.8).setOrigin(0.5);
+    modal.add(separator1);
+
+    // Body sections
+    const leftX = -pw / 2 + 24;
+    let currentY = separator1Y + 14;
+
+    const descLabel = this.scene.add.text(leftX, currentY, "DESCRIPTION", {
       fontFamily: "dungeon-mode",
       fontSize: 12,
-      color: "#99b3a8",
+      color: "#77888C"
+    }).setOrigin(0, 0);
+    modal.add(descLabel);
+    currentY += sectionLabelH;
+
+    const descBody = this.scene.add.text(0, currentY, descriptionText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 16,
+      color: "#e8eced",
       align: "center",
-      wordWrap: { width: pw - 64 },
-      lineSpacing: 5
+      wordWrap: { width: contentWidth },
+      lineSpacing: 4
+    }).setOrigin(0.5, 0);
+    modal.add(descBody);
+    currentY += descBody.getBounds().height + sectionBottomPadding;
+
+    const separator2 = this.scene.add.rectangle(0, currentY + 8, pw - 30, 1, 0x556065, 0.8).setOrigin(0.5);
+    modal.add(separator2);
+    currentY += sectionGap;
+
+    const effectLabel = this.scene.add.text(leftX, currentY, "EFFECT", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C"
+    }).setOrigin(0, 0);
+    modal.add(effectLabel);
+    currentY += sectionLabelH;
+
+    const effectBody = this.scene.add.text(0, currentY, effectText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 15,
+      color: "#5ccfb8",
+      align: "center",
+      wordWrap: { width: contentWidth },
+      lineSpacing: 4
+    }).setOrigin(0.5, 0);
+    modal.add(effectBody);
+    currentY += effectBody.getBounds().height + sectionBottomPadding;
+
+    const separator3 = this.scene.add.rectangle(0, currentY + 8, pw - 30, 1, 0x556065, 0.8).setOrigin(0.5);
+    modal.add(separator3);
+    currentY += sectionGap;
+
+    const loreLabel = this.scene.add.text(leftX, currentY, "LORE", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C"
+    }).setOrigin(0, 0);
+    modal.add(loreLabel);
+    currentY += sectionLabelH;
+
+    const loreBody = this.scene.add.text(0, currentY, loreText, {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#9eb1b8",
+      align: "center",
+      wordWrap: { width: contentWidth },
+      lineSpacing: 4
     }).setOrigin(0.5, 0);
     modal.add(loreBody);
 
     // --- Entrance animation ---
-    modal.setScale(0.85).setAlpha(0);
+    modal.setScale(0.9).setAlpha(0);
     this.scene.tweens.add({
-      targets: modal, scale: 1, alpha: 1, duration: 220, ease: 'Back.Out'
+      targets: modal,
+      scale: 1,
+      alpha: 1,
+      duration: 220,
+      ease: "Back.Out"
     });
 
     // Close on overlay click
-    overlay.on('pointerdown', () => { overlay.destroy(); modal.destroy(); });
+    overlay.on("pointerdown", () => { overlay.destroy(); modal.destroy(); });
   }
   
   /**
