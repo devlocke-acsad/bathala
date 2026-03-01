@@ -357,6 +357,15 @@ export class Overworld_TooltipManager {
     if (!this.tooltipContainer || !this.tooltipBackground) {
       return;
     }
+
+    const baseNameFontSize = 16;
+    const baseTypeFontSize = 11;
+    const baseDescFontSize = 11;
+
+    // Reset to base first so sizing doesn't compound across repeated hover updates.
+    this.tooltipNameText?.setFontSize(baseNameFontSize);
+    this.tooltipTypeText?.setFontSize(baseTypeFontSize);
+    this.tooltipDescriptionText?.setFontSize(baseDescFontSize);
     
     // Calculate dynamic tooltip size based on content - Prologue/Combat style.
     // Enemy portrait tooltips need a larger header area and width for Discover assets.
@@ -411,6 +420,34 @@ export class Overworld_TooltipManager {
     // Position description text directly after header
     const descY = headerHeight + 10;
     this.tooltipDescriptionText?.setPosition(18, descY);
+
+    // Dynamically increase font sizes when tooltip is spacious relative to text.
+    // This keeps short descriptions readable in larger portrait tooltips.
+    const maxDescHeight = tooltipHeight - descY - 18;
+    const descTextLength = this.tooltipDescriptionText?.text?.length ?? 0;
+    const isShortText = descTextLength > 0 && descTextLength <= 220;
+    const hasLargePanel = tooltipWidth >= 560 || tooltipHeight >= 360;
+    if (isPortraitTooltip && hasLargePanel && isShortText) {
+      let boostedName = 20;
+      let boostedType = 13;
+      let boostedDesc = 15;
+
+      this.tooltipNameText?.setFontSize(boostedName);
+      this.tooltipTypeText?.setFontSize(boostedType);
+      this.tooltipDescriptionText?.setFontSize(boostedDesc);
+      this.tooltipDescriptionText?.setWordWrapWidth(textWidth);
+
+      // Guardrail: if boosted text overflows, step down until it fits.
+      while ((this.tooltipDescriptionText?.height ?? 0) > maxDescHeight && boostedDesc > baseDescFontSize) {
+        boostedDesc -= 1;
+        boostedName = Math.max(baseNameFontSize, boostedName - 1);
+        boostedType = Math.max(baseTypeFontSize, boostedType - 1);
+        this.tooltipNameText?.setFontSize(boostedName);
+        this.tooltipTypeText?.setFontSize(boostedType);
+        this.tooltipDescriptionText?.setFontSize(boostedDesc);
+        this.tooltipDescriptionText?.setWordWrapWidth(textWidth);
+      }
+    }
     
     // Hide the description separator (cleaner look)
     descSeparator?.setVisible(false);
