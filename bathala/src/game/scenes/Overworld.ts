@@ -122,6 +122,12 @@ export class Overworld extends Scene {
 
   // Music
   private musicLifecycle!: MusicLifecycleSystem;
+  private mobileControlsContainer: Phaser.GameObjects.Container | null = null;
+  private mobileDirectionButtons: Partial<Record<'left' | 'right' | 'up' | 'down', {
+    bg: Phaser.GameObjects.Rectangle;
+    innerBorder: Phaser.GameObjects.Rectangle;
+    text: Phaser.GameObjects.Text;
+  }>> = {};
 
   constructor() {
     super({ key: "Overworld" });
@@ -322,6 +328,9 @@ export class Overworld extends Scene {
     console.log('🎮 Overworld: Input explicitly enabled after initialization');
     console.log('🎮 Overworld: isMoving =', this.isMoving, ', isTransitioningToCombat =', this.isTransitioningToCombat);
 
+    // Add transparent on-screen movement controls for touch devices.
+    this.createMobileMovementControls();
+
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
 
@@ -354,6 +363,111 @@ export class Overworld extends Scene {
       console.log('   - player position:', { x: this.player.x, y: this.player.y });
       console.log('   - keyInputManager exists:', !!this.keyInputManager);
     });
+  }
+
+  private isTouchDevice(): boolean {
+    const nav = navigator as Navigator & { maxTouchPoints?: number };
+    const userAgentData = navigator as Navigator & { userAgentData?: { mobile?: boolean } };
+    const hasTouchPoints = (nav.maxTouchPoints ?? 0) > 0;
+    const hasTouchEvent = 'ontouchstart' in window;
+    const isMobileByUAData = userAgentData.userAgentData?.mobile === true;
+    return hasTouchPoints || hasTouchEvent || isMobileByUAData;
+  }
+
+  private createMobileMovementControls(): void {
+    if (!this.isTouchDevice()) {
+      return;
+    }
+
+    if (this.mobileControlsContainer) {
+      this.mobileControlsContainer.destroy(true);
+      this.mobileControlsContainer = null;
+    }
+    this.mobileDirectionButtons = {};
+
+    const screenHeight = this.cameras.main.height;
+    const centerX = 255;
+    const centerY = screenHeight - 170;
+    const spacing = 80;
+    const buttonSize = 56;
+
+    this.mobileControlsContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH.UI_BASE + 700);
+
+    this.createMobileDirectionButton(centerX, centerY - spacing, buttonSize, "↑", "up");
+    this.createMobileDirectionButton(centerX - spacing, centerY, buttonSize, "←", "left");
+    this.createMobileDirectionButton(centerX + spacing, centerY, buttonSize, "→", "right");
+    this.createMobileDirectionButton(centerX, centerY + spacing, buttonSize, "↓", "down");
+  }
+
+  private createMobileDirectionButton(
+    x: number,
+    y: number,
+    size: number,
+    label: string,
+    direction: 'left' | 'right' | 'up' | 'down'
+  ): void {
+    if (!this.mobileControlsContainer) {
+      return;
+    }
+
+    const bg = this.add.rectangle(x, y, size, size, 0x150E10, 0.42)
+      .setStrokeStyle(2, 0x77888C, 0.9)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: false });
+
+    const innerBorder = this.add.rectangle(x, y, size - 8, size - 8, undefined, 0)
+      .setStrokeStyle(1.5, 0x77888C, 0.65)
+      .setScrollFactor(0);
+
+    const text = this.add.text(x, y, label, {
+      fontFamily: "dungeon-mode",
+      fontSize: "30px",
+      color: "#77888C"
+    }).setOrigin(0.5).setScrollFactor(0).setAlpha(0.9);
+
+    this.mobileDirectionButtons[direction] = { bg, innerBorder, text };
+
+    const setButtonVisual = (targetDirection: 'left' | 'right' | 'up' | 'down', pressed: boolean) => {
+      const buttonRefs = this.mobileDirectionButtons[targetDirection];
+      if (!buttonRefs) {
+        return;
+      }
+      buttonRefs.bg.setFillStyle(pressed ? 0x2a1a1f : 0x150E10, pressed ? 0.85 : 0.42);
+      buttonRefs.text.setColor(pressed ? "#e8eced" : "#77888C");
+      buttonRefs.innerBorder.setStrokeStyle(1.5, 0x77888C, pressed ? 0.95 : 0.65);
+    };
+
+    const releaseAll = () => {
+      this.keyInputManager.resetVirtualDirections();
+      setButtonVisual('left', false);
+      setButtonVisual('right', false);
+      setButtonVisual('up', false);
+      setButtonVisual('down', false);
+    };
+
+    const setPressed = (pressed: boolean) => {
+      if (pressed) {
+        releaseAll();
+        this.keyInputManager.setVirtualDirection(direction, true);
+        setButtonVisual(direction, true);
+      } else {
+        releaseAll();
+      }
+    };
+
+    bg.on('pointerdown', () => setPressed(true));
+    bg.on('pointerup', () => setPressed(false));
+    bg.on('pointerout', () => setPressed(false));
+    bg.on('pointerupoutside', () => setPressed(false));
+    bg.on('pointercancel', () => setPressed(false));
+
+    const releaseOnAnyPointerUp = () => setPressed(false);
+    this.input.on('pointerup', releaseOnAnyPointerUp);
+    bg.once('destroy', () => {
+      this.input.off('pointerup', releaseOnAnyPointerUp);
+    });
+
+    this.mobileControlsContainer.add([bg, innerBorder, text]);
   }
 
   createUI(): void {
@@ -1032,6 +1146,7 @@ export class Overworld extends Scene {
     // Re-enable input when returning from other scenes using KeyInputManager
     if (this.keyInputManager) {
       this.keyInputManager.enableInput();
+      this.keyInputManager.resetVirtualDirections();
     }
 
     // Reset movement flags
@@ -2470,6 +2585,11 @@ export class Overworld extends Scene {
     // Clean up KeyInputManager
     if (this.keyInputManager) {
       this.keyInputManager.destroy();
+    }
+
+    if (this.mobileControlsContainer) {
+      this.mobileControlsContainer.destroy(true);
+      this.mobileControlsContainer = null;
     }
 
     // Clean up event listeners
