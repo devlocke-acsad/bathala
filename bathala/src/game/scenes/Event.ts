@@ -471,15 +471,54 @@ export class EventScene extends Scene {
       // Normal Gameplay Flow
       const gameState = GameState.getInstance();
       gameState.completeCurrentNode(true);
-      
-      // Manually call the Overworld resume method to reset movement flags
-      const overworldScene = this.scene.get("Overworld");
-      if (overworldScene) {
-        (overworldScene as any).resume();
-      }
-      
-      this.scene.stop('EventScene');
-      this.scene.resume('Overworld');
+
+      this.playExitTransition(() => {
+        const overworldScene = this.scene.get("Overworld");
+        if (overworldScene) {
+          (overworldScene as any).resume();
+        }
+        this.scene.stop('EventScene');
+        this.scene.resume('Overworld');
+      });
+    });
+  }
+
+  /**
+   * Persona 5-ish exit transition — teal horizontal bars iris-close outward.
+   */
+  private playExitTransition(onComplete: () => void): void {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x001a1a)
+      .setOrigin(0.5).setAlpha(0).setDepth(9000);
+    this.tweens.add({ targets: overlay, alpha: 0.5, duration: 300, ease: 'Sine.easeIn' });
+
+    const barCount = 5;
+    const barH = (h / barCount) + 4;
+    for (let i = 0; i < barCount; i++) {
+      const fromTop = i < barCount / 2;
+      const targetY = barH * i + barH / 2;
+      const bar = this.add.rectangle(
+        w / 2, fromTop ? -barH : h + barH, w, barH,
+        Phaser.Math.RND.pick([0x001a1a, 0x002020, 0x001515])
+      ).setOrigin(0.5).setAlpha(0.85).setDepth(9001);
+
+      const distFromEdge = fromTop ? i : (barCount - 1 - i);
+      this.tweens.add({
+        targets: bar, y: targetY,
+        duration: 400, ease: 'Sine.easeInOut',
+        delay: distFromEdge * 50
+      });
+    }
+
+    this.time.delayedCall(550, () => {
+      const black = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
+        .setOrigin(0.5).setAlpha(0).setDepth(9002);
+      this.tweens.add({
+        targets: black, alpha: 1, duration: 250, ease: 'Sine.easeInOut',
+        onComplete
+      });
     });
   }
 

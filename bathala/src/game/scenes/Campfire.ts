@@ -482,14 +482,15 @@ export class Campfire extends Scene {
       const gameState = GameState.getInstance();
       gameState.updatePlayerData(this.player);
       gameState.completeCurrentNode(true);
-      
-      const overworldScene = this.scene.get("Overworld");
-      if (overworldScene) {
-        (overworldScene as any).resume();
-      }
-      
-      this.scene.stop();
-      this.scene.resume("Overworld");
+
+      this.playExitTransition(() => {
+        const overworldScene = this.scene.get("Overworld");
+        if (overworldScene) {
+          (overworldScene as any).resume();
+        }
+        this.scene.stop();
+        this.scene.resume("Overworld");
+      });
     });
     
     backButton.on("pointerover", () => {
@@ -2071,6 +2072,46 @@ export class Campfire extends Scene {
     
     // Hide tooltip
     this.hideTooltip();
+  }
+
+  /**
+   * Persona 5-ish exit transition — warm horizontal bands slide out + fade to black.
+   */
+  private playExitTransition(onComplete: () => void): void {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    // Warm overlay dims scene
+    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x1a0a00)
+      .setOrigin(0.5).setAlpha(0).setDepth(9000);
+    this.tweens.add({ targets: overlay, alpha: 0.5, duration: 300, ease: 'Sine.easeIn' });
+
+    // Horizontal bands slide in from alternating sides
+    const bandCount = 6;
+    const bandH = h / bandCount;
+    for (let i = 0; i < bandCount; i++) {
+      const fromLeft = i % 2 === 0;
+      const band = this.add.rectangle(
+        fromLeft ? -w : w * 2, bandH * i + bandH / 2, w, bandH,
+        Phaser.Math.RND.pick([0x0d0400, 0x150600, 0x1a0800])
+      ).setOrigin(0.5).setAlpha(0.9).setDepth(9001);
+
+      this.tweens.add({
+        targets: band, x: w / 2,
+        duration: 350, ease: 'Power2',
+        delay: i * 40
+      });
+    }
+
+    // Final black + callback
+    this.time.delayedCall(350 + bandCount * 40 + 50, () => {
+      const black = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
+        .setOrigin(0.5).setAlpha(0).setDepth(9002);
+      this.tweens.add({
+        targets: black, alpha: 1, duration: 200, ease: 'Power2',
+        onComplete
+      });
+    });
   }
 
   /**

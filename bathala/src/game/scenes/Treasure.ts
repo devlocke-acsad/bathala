@@ -683,18 +683,9 @@ export class Treasure extends Scene {
     );
 
     backButton.on("pointerdown", () => {
-      // Complete the treasure node and return to overworld
       const gameState = GameState.getInstance();
       gameState.completeCurrentNode(true);
-
-      // Manually call the Overworld resume method to reset movement flags
-      const overworldScene = this.scene.get("Overworld");
-      if (overworldScene) {
-        (overworldScene as any).resume();
-      }
-
-      this.scene.stop();
-      this.scene.resume("Overworld");
+      this.exitToOverworld();
     });
 
     backButton.on("pointerover", () => {
@@ -771,12 +762,7 @@ export class Treasure extends Scene {
 
     // Immediately return to Overworld (player data already updated above)
     gameState.completeCurrentNode(true);
-    const overworldScene = this.scene.get("Overworld");
-    if (overworldScene) {
-      (overworldScene as any).resume();
-    }
-    this.scene.stop();
-    this.scene.resume("Overworld");
+    this.exitToOverworld();
   }
 
   private selectReward(reward: TreasureReward, selectedButton: Phaser.GameObjects.Container): void {
@@ -854,12 +840,7 @@ export class Treasure extends Scene {
 
     // Immediately return to Overworld (player data already updated above)
     gameState.completeCurrentNode(true);
-    const overworldScene = this.scene.get("Overworld");
-    if (overworldScene) {
-      (overworldScene as any).resume();
-    }
-    this.scene.stop();
-    this.scene.resume("Overworld");
+    this.exitToOverworld();
   }
 
   /**
@@ -970,12 +951,7 @@ export class Treasure extends Scene {
       dialog.destroy();
 
       gameState.completeCurrentNode(true);
-      const overworldScene = this.scene.get("Overworld");
-      if (overworldScene) {
-        (overworldScene as any).resume();
-      }
-      this.scene.stop();
-      this.scene.resume("Overworld");
+      this.exitToOverworld();
     };
 
     const gintoBtn = makeOptionButton(
@@ -1173,12 +1149,7 @@ export class Treasure extends Scene {
           // Return to overworld after short delay
           this.time.delayedCall(1500, () => {
             gameState.completeCurrentNode(true);
-            const overworldScene = this.scene.get("Overworld");
-            if (overworldScene) {
-              (overworldScene as any).resume();
-            }
-            this.scene.stop();
-            this.scene.resume("Overworld");
+            this.exitToOverworld();
           });
         }
       });
@@ -1244,6 +1215,65 @@ export class Treasure extends Scene {
     // Auto-remove after 2 seconds
     this.time.delayedCall(2000, () => {
       messageText.destroy();
+    });
+  }
+
+  /**
+   * Persona 5-ish exit transition — diagonal gold slashes sweep + fade to black.
+   */
+  private playExitTransition(onComplete: () => void): void {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    // Quick gold flash
+    const flash = this.add.rectangle(w / 2, h / 2, w, h, 0xffd700)
+      .setOrigin(0.5).setAlpha(0).setDepth(9000);
+    this.tweens.add({ targets: flash, alpha: 0.4, duration: 80, yoyo: true, onComplete: () => flash.destroy() });
+
+    // Diagonal gold slashes
+    const slashCount = 6;
+    const slashW = w * 0.18;
+    for (let i = 0; i < slashCount; i++) {
+      const gfx = this.add.graphics().setDepth(9001).setAlpha(0);
+      const color = Phaser.Math.RND.pick([0xffd700, 0xdaa520, 0xffec8b]);
+      gfx.fillStyle(color, 0.9);
+      const offset = 40;
+      const sx = -slashW + (i * (w + slashW)) / slashCount;
+      gfx.fillPoints([
+        new Phaser.Geom.Point(sx + offset, 0),
+        new Phaser.Geom.Point(sx + slashW + offset, 0),
+        new Phaser.Geom.Point(sx + slashW - offset, h),
+        new Phaser.Geom.Point(sx - offset, h)
+      ], true);
+      gfx.x = -w;
+      this.tweens.add({
+        targets: gfx, x: 0, alpha: 1,
+        duration: 250, ease: 'Power3',
+        delay: 50 + i * 40
+      });
+    }
+
+    this.time.delayedCall(400, () => {
+      const black = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
+        .setOrigin(0.5).setAlpha(0).setDepth(9002);
+      this.tweens.add({
+        targets: black, alpha: 1, duration: 200, ease: 'Power2',
+        onComplete
+      });
+    });
+  }
+
+  /**
+   * Common exit: play transition then stop scene and resume Overworld.
+   */
+  private exitToOverworld(): void {
+    this.playExitTransition(() => {
+      const overworldScene = this.scene.get("Overworld");
+      if (overworldScene) {
+        (overworldScene as any).resume();
+      }
+      this.scene.stop();
+      this.scene.resume("Overworld");
     });
   }
 

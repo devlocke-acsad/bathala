@@ -1338,22 +1338,20 @@ export class Shop extends Scene {
     
     backButton.on("pointerdown", () => {
       if (this.isInputLocked()) return;
-      // Clean up any remaining tooltips
       this.hideItemTooltip();
-      
-      // Save player data back to GameState before leaving
+
       const gameState = GameState.getInstance();
       gameState.updatePlayerData(this.player);
       gameState.completeCurrentNode(true);
-      
-      // Manually call the Overworld resume method to reset movement flags
-      const overworldScene = this.scene.get("Overworld");
-      if (overworldScene) {
-        (overworldScene as any).resume();
-      }
-      
-      this.scene.stop();
-      this.scene.resume("Overworld");
+
+      this.playExitTransition(() => {
+        const overworldScene = this.scene.get("Overworld");
+        if (overworldScene) {
+          (overworldScene as any).resume();
+        }
+        this.scene.stop();
+        this.scene.resume("Overworld");
+      });
     });
   }
 
@@ -2505,6 +2503,45 @@ export class Shop extends Scene {
         }
       });
     }
+  }
+
+  /**
+   * Persona 5-ish exit transition — purple vertical curtain strips close inward.
+   */
+  private playExitTransition(onComplete: () => void): void {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x0d0015)
+      .setOrigin(0.5).setAlpha(0).setDepth(9000);
+    this.tweens.add({ targets: overlay, alpha: 0.5, duration: 300, ease: 'Power2' });
+
+    const stripCount = 8;
+    const stripW = (w / stripCount) + 4;
+    for (let i = 0; i < stripCount; i++) {
+      const fromLeft = i < stripCount / 2;
+      const targetX = stripW * i + stripW / 2;
+      const strip = this.add.rectangle(
+        fromLeft ? -stripW : w + stripW, h / 2, stripW, h,
+        Phaser.Math.RND.pick([0x0d0015, 0x0a0010, 0x120020])
+      ).setOrigin(0.5).setAlpha(0.9).setDepth(9001);
+
+      const distFromEdge = fromLeft ? i : (stripCount - 1 - i);
+      this.tweens.add({
+        targets: strip, x: targetX,
+        duration: 350, ease: 'Power2',
+        delay: distFromEdge * 35
+      });
+    }
+
+    this.time.delayedCall(500, () => {
+      const black = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
+        .setOrigin(0.5).setAlpha(0).setDepth(9002);
+      this.tweens.add({
+        targets: black, alpha: 1, duration: 200, ease: 'Power2',
+        onComplete
+      });
+    });
   }
 
   /**

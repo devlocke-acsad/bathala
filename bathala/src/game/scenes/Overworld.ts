@@ -1084,6 +1084,26 @@ export class Overworld extends Scene {
 
     // Update visible chunks around player
     this.updateVisibleChunks();
+
+    // Entrance transition — fade from black to reveal overworld
+    this.playResumeEntrance();
+  }
+
+  /**
+   * Smooth fade-in when returning to overworld from any sub-scene.
+   */
+  private playResumeEntrance(): void {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    const cover = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
+      .setOrigin(0.5).setAlpha(1).setScrollFactor(0).setDepth(2005);
+
+    this.tweens.add({
+      targets: cover, alpha: 0,
+      duration: 400, ease: 'Power2',
+      onComplete: () => cover.destroy()
+    });
   }
 
   /**
