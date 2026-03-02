@@ -45,6 +45,24 @@ export class EventScene extends Scene {
     this.musicLifecycle = new MusicLifecycleSystem(this);
     this.musicLifecycle.start();
 
+    // ── Mysterious event entrance transition ──
+    const ew = this.cameras.main.width;
+    const eh = this.cameras.main.height;
+    const tealCover = this.add.rectangle(ew / 2, eh / 2, ew, eh, 0x001a1a)
+      .setOrigin(0.5).setAlpha(1).setDepth(9999);
+    const mystRing = this.add.circle(ew / 2, eh / 2, ew * 0.3, 0x20b2aa, 0.15)
+      .setDepth(9998);
+    this.tweens.add({
+      targets: tealCover, alpha: 0,
+      duration: 800, ease: 'Sine.easeInOut', delay: 100,
+      onComplete: () => tealCover.destroy()
+    });
+    this.tweens.add({
+      targets: mystRing, alpha: 0, radius: ew * 0.5,
+      duration: 1000, ease: 'Sine.easeOut', delay: 150,
+      onComplete: () => mystRing.destroy()
+    });
+
     this.createBackground();
     this.createEventDisplay();
     this.createIllustration();

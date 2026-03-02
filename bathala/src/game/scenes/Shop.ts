@@ -153,6 +153,24 @@ export class Shop extends Scene {
     this.musicLifecycle = new MusicLifecycleSystem(this);
     this.musicLifecycle.start();
 
+    // ── Mysterious merchant entrance transition ──
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+    const purpleCover = this.add.rectangle(w / 2, h / 2, w, h, 0x0d0015)
+      .setOrigin(0.5).setAlpha(1).setDepth(9999);
+    const shimmer = this.add.circle(w / 2, h / 2, w * 0.3, 0x9b59b6, 0.12)
+      .setDepth(9998);
+    this.tweens.add({
+      targets: purpleCover, alpha: 0,
+      duration: 700, ease: 'Power2', delay: 80,
+      onComplete: () => purpleCover.destroy()
+    });
+    this.tweens.add({
+      targets: shimmer, alpha: 0, radius: w * 0.5,
+      duration: 900, ease: 'Power2', delay: 100,
+      onComplete: () => shimmer.destroy()
+    });
+
     // Add forest background image
     const forestBg = this.add.image(
       this.cameras.main.width / 2,

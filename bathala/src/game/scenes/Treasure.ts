@@ -163,6 +163,42 @@ export class Treasure extends Scene {
 
     this.cameras.main.setBackgroundColor(0x150E10);
 
+    // ── Exciting treasure entrance transition ──
+    const tw = this.cameras.main.width;
+    const th = this.cameras.main.height;
+    const goldCover = this.add.rectangle(tw / 2, th / 2, tw, th, 0x1a1200)
+      .setOrigin(0.5).setAlpha(1).setDepth(9999);
+    // Quick gold flash on entry
+    const goldFlash = this.add.rectangle(tw / 2, th / 2, tw, th, 0xffd700)
+      .setOrigin(0.5).setAlpha(0.5).setDepth(9998);
+    this.tweens.add({
+      targets: goldFlash, alpha: 0,
+      duration: 300, ease: 'Power2',
+      onComplete: () => goldFlash.destroy()
+    });
+    // Sparkle burst
+    for (let si = 0; si < 10; si++) {
+      const sp = this.add.rectangle(
+        tw / 2 + Phaser.Math.Between(-120, 120),
+        th / 2 + Phaser.Math.Between(-80, 80),
+        Phaser.Math.Between(3, 5), Phaser.Math.Between(3, 5),
+        Phaser.Math.RND.pick([0xffd700, 0xffffff, 0xffec8b]), 1
+      ).setDepth(10000);
+      this.tweens.add({
+        targets: sp, alpha: 0,
+        y: (sp as any).y - Phaser.Math.Between(30, 80),
+        duration: Phaser.Math.Between(400, 700),
+        delay: Phaser.Math.Between(50, 250),
+        ease: 'Power2',
+        onComplete: () => sp.destroy()
+      });
+    }
+    this.tweens.add({
+      targets: goldCover, alpha: 0,
+      duration: 500, ease: 'Power2', delay: 100,
+      onComplete: () => goldCover.destroy()
+    });
+
     // Add forest background image
     const forestBg = this.add.image(
       this.cameras.main.width / 2,

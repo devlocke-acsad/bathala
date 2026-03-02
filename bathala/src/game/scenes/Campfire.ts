@@ -39,6 +39,24 @@ export class Campfire extends Scene {
     // Start campfire music via MusicLifecycleSystem
     this.musicLifecycle = new MusicLifecycleSystem(this);
     this.musicLifecycle.start();
+
+    // ── Warm entrance transition ──
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+    const warmCover = this.add.rectangle(w / 2, h / 2, w, h, 0x1a0a00)
+      .setOrigin(0.5).setAlpha(1).setDepth(9999);
+    const emberGlow = this.add.circle(w / 2, h / 2 + 30, w * 0.4, 0xff6600, 0.15)
+      .setDepth(9998);
+    this.tweens.add({
+      targets: warmCover, alpha: 0,
+      duration: 900, ease: 'Sine.easeInOut', delay: 100,
+      onComplete: () => warmCover.destroy()
+    });
+    this.tweens.add({
+      targets: emberGlow, alpha: 0, radius: w * 0.6,
+      duration: 1200, ease: 'Sine.easeOut', delay: 200,
+      onComplete: () => emberGlow.destroy()
+    });
     
     // Add forest background image
     const forestBg = this.add.image(
