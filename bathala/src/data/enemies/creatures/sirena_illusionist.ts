@@ -26,10 +26,10 @@ export const SIRENA_ILLUSIONIST: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Songs lure to deep!',
-    defeat: 'My melody... fades...',
-    spare: 'Mercy sings: Sirena, benevolent guardians, corrupted by false tides (Ramos, 1990).',
-    slay: 'Silence my voice—fuel for shadow!',
+    intro: 'Do you hear my song, landwalker? It was beautiful once — a melody that guided fishermen safely home through the storm. The sirena sang of love, of the sea\'s bounty, of Bathala\'s grace upon the waves. But the engkanto rewrote my lyrics. Now my song lures you to the deep, where the current has teeth.',
+    defeat: 'My melody... fades like foam on the shore. The enchantment breaks, and through the silence I remember the old songs — the ones that healed sick children and calmed raging seas. Was there ever a time when my voice was a gift?',
+    spare: 'You spare the songstress of the deep? Then listen — truly listen. The sirena were once the most benevolent of sea spirits, guardians of coastal waters who sang to calm storms and guide the lost. Filipino fishermen would leave offerings for our protection. The engkanto corrupted our melodies, turning comfort into compulsion, guidance into luring. Your mercy restores a note of the old song.',
+    slay: 'Silence my voice — and the seas lose their oldest lullaby! Every sirena you kill is a song the ocean will never sing again, and the impostor feasts on the silence that follows!',
   },
 
   // === Lore ===

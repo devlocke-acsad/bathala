@@ -26,10 +26,10 @@ export const AMOMONGO: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Nails rend unworthy!',
-    defeat: 'My fury... breaks...',
-    spare: 'Grace spares: Amomongo, ape-like with long nails, attacking livestock (Samar, 2019).',
-    slay: 'Crush me—shadow lives on!',
+    intro: 'You intrude upon the mountain caves of Negros, mortal! Feel the fury of the amomongo — nails long as daggers, arms thick as ancient branches! The farmers who live below know my shadow. The engkanto sharpened my claws and pointed them at you!',
+    defeat: 'My fury... breaks like stone under rain. The claws retract. I remember the caves of La Castellana, where I lived in peace — a guardian of the wild places, feared only by those who threatened the mountain livestock...',
+    spare: 'Grace? For the amomongo? The Visayan people of Negros tell of an ape-like creature dwelling in mountain caves — large, powerful, with nails that could tear through anything. We were territorial, yes, but not malicious. We attacked livestock when hungry, not from cruelty. The engkanto starved us and aimed our hunger at mortals. Your mercy feeds something deeper than my belly.',
+    slay: 'Crush me — the shadow that corrupted my kind lives on! The caves of Negros will echo with emptiness, and the mountain will lose its wildest guardian. The engkanto will find another beast to sharpen!',
   },
 
   // === Lore ===

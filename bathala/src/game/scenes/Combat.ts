@@ -1865,63 +1865,61 @@ export class Combat extends Scene {
     const dialogue =
       creatureDialogues[enemyKey] || creatureDialogues.tikbalang_scout;
 
-    // Background overlay (Prologue style - semi-transparent)
-    const overlay = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x000000, 0.7);
+    // Background overlay
+    const overlay = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x000000, 0.75);
 
-    // Create dialogue container positioned at center (Prologue style)
+    // Create dialogue container positioned at center
     const dialogueContainer = this.add.container(screenWidth / 2, screenHeight / 2);
 
-    // Calculate dialogue box size
-    const dialogueBoxWidth = Math.min(600, screenWidth * 0.8);
-    const dialogueBoxHeight = Math.min(350, screenHeight * 0.6);
+    // Larger dialogue box to fit all content
+    const dialogueBoxWidth = Math.min(650, screenWidth * 0.85);
+    const dialogueBoxHeight = Math.min(420, screenHeight * 0.72);
 
-    // Double border design with Prologue colors
+    // Double border design
     const outerBorder = this.add.rectangle(0, 0, dialogueBoxWidth + 8, dialogueBoxHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
     const innerBorder = this.add.rectangle(0, 0, dialogueBoxWidth, dialogueBoxHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
     const bg = this.add.rectangle(0, 0, dialogueBoxWidth, dialogueBoxHeight, 0x150E10);
 
-    // Enemy name with Prologue styling — larger and more impactful
-    const enemyNameText = this.add.text(0, -100, dialogue.name.toUpperCase(), {
+    // Enemy name — positioned near top of box with room below
+    const enemyNameText = this.add.text(0, -dialogueBoxHeight / 2 + 30, dialogue.name.toUpperCase(), {
       fontFamily: "dungeon-mode",
-      fontSize: Math.floor(28 * scaleFactor),
+      fontSize: Math.floor(26 * scaleFactor),
       color: "#ff4757",
       align: "center",
     }).setOrigin(0.5);
 
-    // Defeat dialogue line — typewriter fade-in
+    // Thin separator under enemy name
+    const nameDivider = this.add.rectangle(0, -dialogueBoxHeight / 2 + 52, dialogueBoxWidth * 0.5, 1, 0xff4757, 0.3);
+
+    // Defeat dialogue — pre-filled, will fade in
     const defeatLine = this.combatState.enemy.dialogue?.defeat || "";
-    const defeatText = this.add.text(0, -55, '', {
+    const defeatText = this.add.text(0, -dialogueBoxHeight / 2 + 80, defeatLine ? `"${defeatLine}"` : '', {
       fontFamily: "dungeon-mode",
-      fontSize: Math.floor(14 * scaleFactor),
+      fontSize: Math.floor(13 * scaleFactor),
       color: "#aabbcc",
       align: "center",
       fontStyle: "italic",
-      wordWrap: { width: dialogueBoxWidth * 0.8 },
-    }).setOrigin(0.5);
+      wordWrap: { width: dialogueBoxWidth * 0.82 },
+      lineSpacing: 4,
+    }).setOrigin(0.5, 0).setAlpha(0);
 
-    // Main prompt text — typewriter effect
-    const mainText = this.add.text(0, 10, '', {
+    // "What do you choose?" prompt — centered in box
+    const mainText = this.add.text(0, 30, 'What do you choose?', {
       fontFamily: "dungeon-mode",
       fontSize: Math.floor(18 * scaleFactor),
       color: "#77888C",
       align: "center",
       wordWrap: { width: dialogueBoxWidth * 0.8 },
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setAlpha(0);
 
     // Add elements to dialogue container
-    const containerChildren = [
-      outerBorder,
-      innerBorder,
-      bg,
-      enemyNameText,
-      defeatText,
-      mainText
-    ];
-
-    dialogueContainer.add(containerChildren);
+    dialogueContainer.add([
+      outerBorder, innerBorder, bg,
+      enemyNameText, nameDivider, defeatText, mainText
+    ]);
     dialogueContainer.setDepth(5001);
 
-    // Cinematic fade in with slight scale-up
+    // Cinematic fade in
     dialogueContainer.setAlpha(0).setScale(0.95);
     this.tweens.add({
       targets: dialogueContainer,
@@ -1930,34 +1928,35 @@ export class Combat extends Scene {
       duration: 500,
       ease: 'Back.easeOut',
       onComplete: () => {
-        // Typewriter the defeat line first, then the choice prompt
+        // Fade in defeat text first, then the choice prompt
         if (defeatLine) {
-          this.typewriterText(defeatText, `"${defeatLine}"`, 25);
-          this.time.delayedCall(defeatLine.length * 25 + 400, () => {
-            this.typewriterText(mainText, "What do you choose?", 40);
+          this.tweens.add({ targets: defeatText, alpha: 0.9, duration: 600, ease: 'Power2' });
+          this.time.delayedCall(700, () => {
+            this.tweens.add({ targets: mainText, alpha: 1, duration: 400, ease: 'Power2' });
           });
         } else {
-          this.typewriterText(mainText, "What do you choose?", 40);
+          this.tweens.add({ targets: mainText, alpha: 1, duration: 400, ease: 'Power2' });
         }
       }
     });
 
-    // Landas choice buttons (positioned outside the container for easier positioning)
-    this.createDialogueButton(screenWidth / 2 - 120, screenHeight / 2 + 80, "Spare", "#2ed573", () =>
+    // Spare / Slay buttons — positioned lower inside the bigger box
+    const btnY = screenHeight / 2 + 90;
+    this.createDialogueButton(screenWidth / 2 - 130, btnY, "Spare", "#2ed573", () =>
       this.makeLandasChoice("spare", dialogue)
     );
 
-    this.createDialogueButton(screenWidth / 2 + 120, screenHeight / 2 + 80, "Slay", "#ff4757", () =>
+    this.createDialogueButton(screenWidth / 2 + 130, btnY, "Slay", "#ff4757", () =>
       this.makeLandasChoice("kill", dialogue)
     );
 
-    // Current landas display with Prologue styling
+    // Current landas display
     const landasTier = this.getLandasTier(this.combatState.player.landasScore);
     const landasColor = this.getLandasColor(landasTier);
 
     this.add.text(
       screenWidth / 2,
-      screenHeight / 2 + 150,
+      btnY + 60,
       `Current Landas: ${this.combatState.player.landasScore} (${landasTier.toUpperCase()})`,
       {
         fontFamily: "dungeon-mode",
@@ -2183,7 +2182,9 @@ export class Combat extends Scene {
   }
 
   /**
-   * Show rewards screen
+   * Show rewards screen — cinematic frosted-glass panel with staggered
+   * reward reveals, themed particles, badge-style Landás indicator,
+   * and polished continue button.
    */
   private showRewardsScreen(
     choice: "spare" | "kill",
@@ -2192,245 +2193,418 @@ export class Combat extends Scene {
     landasChange: number,
     scaledGold: number
   ): void {
-    const choiceColor = choice === "spare" ? "#2ed573" : "#ff4757";
-    const landasChangeText =
-      landasChange > 0 ? `+${landasChange}` : `${landasChange}`;
+    const isSpare = choice === "spare";
+    const themeColor = isSpare ? "#2ed573" : "#ff4757";
+    const themeHex = isSpare ? 0x2ed573 : 0xff4757;
+    const themeHexDark = isSpare ? 0x1a7a42 : 0x8a2530;
+    const landasText = landasChange > 0 ? `+${landasChange}` : `${landasChange}`;
 
-    // Get screen dimensions
-    const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
-    const screenHeight = this.cameras.main?.height || this.scale.height || 768;
-    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const sw = this.cameras.main?.width || 1024;
+    const sh = this.cameras.main?.height || 768;
+    const sf = Math.max(0.8, Math.min(1.2, sw / 1024));
 
-    // Add background image (same as MainMenu)
-    const bgImage = this.add.image(screenWidth / 2, screenHeight / 2, 'chap1_no_leaves_boss');
-    const bgScaleX = screenWidth / bgImage.width;
-    const bgScaleY = screenHeight / bgImage.height;
-    const bgScale = Math.max(bgScaleX, bgScaleY);
-    bgImage.setScale(bgScale);
-    bgImage.setDepth(-100);
+    // ============================================================
+    // BACKGROUND & OVERLAY
+    // ============================================================
+    const bgImage = this.add.image(sw / 2, sh / 2, 'chap1_no_leaves_boss');
+    bgImage.setScale(Math.max(sw / bgImage.width, sh / bgImage.height)).setDepth(-100);
 
-    // Add overlay - 70% opacity (same as MainMenu)
-    const overlay = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x150E10, 0.70);
-    overlay.setDepth(-90);
+    const overlay = this.add.rectangle(sw / 2, sh / 2, sw, sh, 0x080608, 0.93)
+      .setDepth(-90).setAlpha(0);
+    this.tweens.add({ targets: overlay, alpha: 1, duration: 400, ease: 'Power2' });
 
-    // Create floating embers/spirits particles (same as MainMenu)
-    const particles = this.add.particles(0, 0, '__WHITE', {
-      x: { min: 0, max: screenWidth },
-      y: { min: -20, max: screenHeight + 20 },
-      lifespan: 5000,
-      speed: { min: 20, max: 60 },
-      angle: { min: 75, max: 105 }, // Slight drift
-      scale: { start: 1.2, end: 0.3 }, // Much larger
-      alpha: { start: 0.7, end: 0 }, // Very visible
+    // Vignette edges
+    this.add.rectangle(sw / 2, 0, sw, sh * 0.18, 0x000000, 0.6)
+      .setOrigin(0.5, 0).setDepth(-85);
+    this.add.rectangle(sw / 2, sh, sw, sh * 0.18, 0x000000, 0.6)
+      .setOrigin(0.5, 1).setDepth(-85);
+
+    // ============================================================
+    // AMBIENT PARTICLES — slow themed drift
+    // ============================================================
+    this.add.particles(0, 0, '__WHITE', {
+      x: { min: 0, max: sw },
+      y: { min: -20, max: sh + 20 },
+      lifespan: 9000,
+      speed: { min: 4, max: 18 },
+      angle: { min: 260, max: 280 },
+      scale: { start: 0.5, end: 0.02 },
+      alpha: { start: 0.35, end: 0 },
       blendMode: 'ADD',
-      frequency: 80, // Spawn faster
-      tint: 0x77888C,
-      maxParticles: 100, // Many more particles
-      gravityY: 15 // Gentle downward pull
+      frequency: 140,
+      tint: themeHex,
+      maxParticles: 60,
+      gravityY: -4,
+    }).setDepth(-60);
+
+    // ============================================================
+    // CENTRAL PANEL — frosted glass card
+    // ============================================================
+    const panelW = Math.min(520 * sf, sw * 0.65);
+    const panelH = Math.min(620 * sf, sh * 0.92);
+    const panelX = sw / 2;
+    const panelY = sh / 2;
+
+    // Panel shadow
+    const panelShadow = this.add.rectangle(panelX + 4, panelY + 4, panelW, panelH, 0x000000, 0.4)
+      .setDepth(0);
+
+    // Panel bg
+    const panelBg = this.add.rectangle(panelX, panelY, panelW, panelH, 0x12101a, 0.88)
+      .setDepth(1);
+
+    // Panel outer border
+    const panelBorder = this.add.rectangle(panelX, panelY, panelW, panelH, undefined, 0)
+      .setDepth(2).setStrokeStyle(1.5, themeHexDark, 0.6);
+
+    // Panel inner border (double-border effect)
+    const panelInner = this.add.rectangle(panelX, panelY, panelW - 8, panelH - 8, undefined, 0)
+      .setDepth(2).setStrokeStyle(0.5, themeHex, 0.15);
+
+    // Themed top accent bar
+    const accentBar = this.add.rectangle(panelX, panelY - panelH / 2, panelW, 3, themeHex, 0.7)
+      .setOrigin(0.5, 0).setDepth(3);
+
+    // Panel fade-in
+    [panelShadow, panelBg, panelBorder, panelInner, accentBar].forEach(el => {
+      el.setAlpha(0);
+      this.tweens.add({
+        targets: el,
+        alpha: el === panelShadow ? 0.4 : 1,
+        duration: 350,
+        ease: 'Power2',
+      });
     });
-    particles.setDepth(-70);
 
-    // Add second layer of smaller, faster particles for depth (same as MainMenu)
-    const dustParticles = this.add.particles(0, 0, '__WHITE', {
-      x: { min: 0, max: screenWidth },
-      y: { min: -10, max: screenHeight + 10 },
-      lifespan: 3000,
-      speed: { min: 30, max: 80 },
-      angle: { min: 70, max: 110 },
-      scale: { start: 0.5, end: 0.1 },
-      alpha: { start: 0.5, end: 0 },
-      blendMode: 'ADD',
-      frequency: 60,
-      tint: 0x99aabb,
-      maxParticles: 80,
-      gravityY: 20
+    // ============================================================
+    // LAYOUT — vertical flow inside panel
+    // ============================================================
+    const top = panelY - panelH / 2;
+    let curY = top + 24 * sf;
+
+    // ============================================================
+    // ENEMY PORTRAIT — small, centered at top of panel
+    // ============================================================
+    const spriteKey = this.combatState.enemy.combatSpriteKey || 'tikbalang_combat';
+    const portraitY = curY + 28 * sf;
+
+    // Glow ring behind portrait
+    const glowRing = this.add.circle(panelX, portraitY, 36 * sf, themeHex, 0.06)
+      .setDepth(4).setAlpha(0);
+    this.tweens.add({ targets: glowRing, alpha: 0.15, duration: 400, ease: 'Power2' });
+    this.tweens.add({
+      targets: glowRing,
+      scaleX: 1.12, scaleY: 1.12, alpha: 0.04,
+      duration: 2200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: 600,
     });
-    dustParticles.setDepth(-75);
 
-    // Title
-    this.add
-      .text(
-        screenWidth / 2,
-        100,
-        choice === "spare" ? "Mercy Shown" : "Victory Through Force",
-        {
-          fontFamily: "dungeon-mode",
-          fontSize: Math.floor(32 * scaleFactor),
-          color: choiceColor,
-          align: "center",
-        }
-      )
-      .setOrigin(0.5);
+    const portrait = this.add.sprite(panelX, portraitY, spriteKey)
+      .setScale(0.9 * sf).setDepth(10).setAlpha(0);
 
-    // Dialogue
-    this.add
-      .text(screenWidth / 2, 200, dialogue, {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(16 * scaleFactor),
-        color: "#e8eced",
-        align: "center",
-        wordWrap: { width: screenWidth * 0.7 },
-      })
-      .setOrigin(0.5);
+    this.tweens.add({
+      targets: portrait,
+      alpha: isSpare ? 1 : 0.35,
+      duration: 400, ease: 'Power3', delay: 120,
+    });
+    if (!isSpare) portrait.setTint(0x666666);
 
-    // Calculate dynamic box height based on rewards
-    let estimatedHeight = 80; // Base height with padding
-    if (scaledGold > 0) estimatedHeight += 30;
-    // Diamante not shown in rewards
-    if (reward.healthHealing > 0) estimatedHeight += 30;
-    estimatedHeight += 30; // Landas change (always shown)
-    if (reward.bonusEffect) estimatedHeight += 35;
-    if (reward.relics && reward.relics.length > 0) {
-      estimatedHeight += 90; // Relic name + description with extra space
-    }
+    curY = portraitY + 38 * sf;
 
-    // Rewards box with dynamic sizing
-    const rewardsBoxWidth = Math.min(700, screenWidth * 0.75);
-    const rewardsBoxHeight = Math.max(250, Math.min(estimatedHeight, screenHeight * 0.5));
-    const rewardsBoxY = 320 + (rewardsBoxHeight / 2);
-    const rewardsBox = this.add.rectangle(screenWidth / 2, rewardsBoxY, rewardsBoxWidth, rewardsBoxHeight, 0x2f3542);
-    rewardsBox.setStrokeStyle(2, 0x57606f);
+    // ============================================================
+    // CHOICE TITLE + SUBTITLE
+    // ============================================================
+    const titleLabel = isSpare ? "MERCY" : "CONQUEST";
+    const titleSub = isSpare
+      ? "You showed compassion to the fallen spirit."
+      : "The creature's essence feeds the shadow.";
 
-    // Rewards title
-    const rewardsTitleY = rewardsBoxY - (rewardsBoxHeight / 2) + 30;
-    this.add
-      .text(screenWidth / 2, rewardsTitleY, "Rewards", {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(24 * scaleFactor),
-        color: "#ffd93d",
-        align: "center",
-      })
-      .setOrigin(0.5);
+    const title = this.add.text(panelX, curY, titleLabel, {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.floor(44 * sf),
+      color: themeColor,
+      align: "center",
+    }).setOrigin(0.5).setAlpha(0).setScale(0.5).setDepth(10);
 
-    let rewardY = rewardsTitleY + 40;
+    this.tweens.add({
+      targets: title, alpha: 1, scale: 1,
+      duration: 450, ease: 'Back.easeOut', delay: 220,
+    });
 
-    // Ginto reward - display the DDA-scaled amount
+    curY += 36 * sf;
+
+    const subtitle = this.add.text(panelX, curY, titleSub, {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.floor(12 * sf),
+      color: "#8a9ba8",
+      fontStyle: "italic",
+      align: "center",
+    }).setOrigin(0.5).setAlpha(0).setDepth(10);
+
+    this.tweens.add({ targets: subtitle, alpha: 0.75, duration: 300, delay: 450 });
+
+    curY += 22 * sf;
+
+    // ============================================================
+    // NARRATIVE DIALOGUE — pre-filled, fade-in
+    // ============================================================
+    const narrativeObj = this.add.text(panelX, curY, `"${dialogue}"`, {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.floor(11 * sf),
+      color: "#c8d6e0",
+      fontStyle: "italic",
+      align: "center",
+      wordWrap: { width: panelW * 0.82 },
+      lineSpacing: 5,
+    }).setOrigin(0.5, 0).setAlpha(0).setDepth(10);
+
+    // Measure actual text height so we leave enough room
+    const narrativeHeight = narrativeObj.height || 40;
+
+    this.time.delayedCall(550, () => {
+      if (!narrativeObj?.active) return;
+      this.tweens.add({ targets: narrativeObj, alpha: 0.8, duration: 500, ease: 'Power2' });
+    });
+
+    curY += Math.max(narrativeHeight + 14 * sf, 50 * sf);
+
+    // ============================================================
+    // ORNAMENTAL DIVIDER
+    // ============================================================
+    const divSpan = panelW * 0.35;
+    const divGap = 16 * sf;
+
+    const divLeft = this.add.rectangle(panelX - divGap - divSpan / 2, curY, divSpan, 1, themeHex, 0.45)
+      .setDepth(10).setAlpha(0);
+    const divRight = this.add.rectangle(panelX + divGap + divSpan / 2, curY, divSpan, 1, themeHex, 0.45)
+      .setDepth(10).setAlpha(0);
+    const divIcon = this.add.text(panelX, curY, isSpare ? "✦" : "☠", {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.floor(16 * sf) + 'px',
+      color: themeColor,
+      align: 'center',
+    }).setOrigin(0.5).setAlpha(0).setDepth(10);
+
+    // Decorative end-dots
+    const dotL = this.add.circle(panelX - divGap - divSpan, curY, 2, themeHex, 0.4)
+      .setDepth(10).setAlpha(0);
+    const dotR = this.add.circle(panelX + divGap + divSpan, curY, 2, themeHex, 0.4)
+      .setDepth(10).setAlpha(0);
+
+    this.time.delayedCall(750, () => {
+      this.tweens.add({ targets: [divLeft, divRight, dotL, dotR], alpha: 1, duration: 250 });
+      this.tweens.add({ targets: divIcon, alpha: 1, duration: 300 });
+    });
+
+    curY += 24 * sf;
+
+    // ============================================================
+    // REWARD ROWS — styled with icon badges & accent notch
+    // ============================================================
+    const rewardLines: { emoji: string; text: string; color: string; iconBg: number }[] = [];
+
     if (scaledGold > 0) {
-      this.add
-        .text(screenWidth / 2, rewardY, `💰 ${scaledGold} Ginto`, {
-          fontFamily: "dungeon-mode",
-          fontSize: Math.floor(16 * scaleFactor),
-          color: "#e8eced",
-          align: "center",
-        })
-        .setOrigin(0.5);
-      rewardY += 25 * scaleFactor;
+      rewardLines.push({ emoji: '💰', text: `${scaledGold} Ginto`, color: '#ffd93d', iconBg: 0x3d3520 });
     }
-
-    // Health healing
     if (reward.healthHealing > 0) {
-      this.add
-        .text(screenWidth / 2, rewardY, `♥ Healed ${reward.healthHealing} HP`, {
-          fontFamily: "dungeon-mode",
-          fontSize: Math.floor(16 * scaleFactor),
-          color: "#ff6b6b",
-          align: "center",
-        })
-        .setOrigin(0.5);
-      rewardY += 25 * scaleFactor;
+      rewardLines.push({ emoji: '♥', text: `+${reward.healthHealing} HP`, color: '#ff6b6b', iconBg: 0x3d2020 });
     }
-
-    // Landas change
-    this.add
-      .text(screenWidth / 2, rewardY, `✨ Landas ${landasChangeText}`, {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(16 * scaleFactor),
-        color: landasChange > 0 ? "#2ed573" : "#ff4757",
-        align: "center",
-      })
-      .setOrigin(0.5);
-    rewardY += 25 * scaleFactor;
-
-    // Bonus effect
+    rewardLines.push({
+      emoji: '✨',
+      text: `Landás ${landasText}`,
+      color: landasChange > 0 ? '#2ed573' : '#ff4757',
+      iconBg: landasChange > 0 ? 0x1a3d20 : 0x3d1a1a,
+    });
     if (reward.bonusEffect) {
-      this.add
-        .text(screenWidth / 2, rewardY, `✨ ${reward.bonusEffect}`, {
-          fontFamily: "dungeon-mode",
-          fontSize: Math.floor(14 * scaleFactor),
-          color: "#ffd93d",
-          align: "center",
-          wordWrap: { width: rewardsBoxWidth - 40 }
-        })
-        .setOrigin(0.5);
-      rewardY += 30 * scaleFactor;
+      rewardLines.push({ emoji: '🌟', text: `${reward.bonusEffect}`, color: '#ffeaa7', iconBg: 0x3d3820 });
     }
-
-    // Relic drop display
     if (reward.relics && reward.relics.length > 0) {
-      // Check if relic was actually dropped (based on the logic in makeLandasChoice)
-      const droppedRelic = this.combatState.player.relics[this.combatState.player.relics.length - 1];
-      const rewardRelic = reward.relics[0];
-
-      // If the last relic in player's inventory matches the reward relic, it was dropped
-      if (droppedRelic && droppedRelic.id === rewardRelic.id) {
-        this.add
-          .text(screenWidth / 2, rewardY, `${rewardRelic.emoji} Relic: ${rewardRelic.name}`, {
-            fontFamily: "dungeon-mode",
-            fontSize: Math.floor(16 * scaleFactor),
-            color: "#a29bfe",
-            align: "center",
-            wordWrap: { width: rewardsBoxWidth - 40 }
-          })
-          .setOrigin(0.5);
-        rewardY += 30 * scaleFactor;
-
-        // Show relic description
-        this.add
-          .text(screenWidth / 2, rewardY, rewardRelic.description, {
-            fontFamily: "dungeon-mode",
-            fontSize: Math.floor(12 * scaleFactor),
-            color: "#95a5a6",
-            align: "center",
-            wordWrap: { width: rewardsBoxWidth - 60 }
-          })
-          .setOrigin(0.5);
-        rewardY += 45 * scaleFactor;
-      } else {
-        // Relic drop failed
-        this.add
-          .text(screenWidth / 2, rewardY, `❌ No relic dropped`, {
-            fontFamily: "dungeon-mode",
-            fontSize: Math.floor(14 * scaleFactor),
-            color: "#7f8c8d",
-            align: "center",
-          })
-          .setOrigin(0.5);
-        rewardY += 25 * scaleFactor;
+      const last = this.combatState.player.relics[this.combatState.player.relics.length - 1];
+      const rr = reward.relics[0];
+      if (last && last.id === rr.id) {
+        rewardLines.push({ emoji: rr.emoji, text: `${rr.name}`, color: '#a29bfe', iconBg: 0x2a2040 });
       }
     }
 
-    // Calculate positions for elements below the rewards box
-    const landasY = rewardsBoxY + (rewardsBoxHeight / 2) + 50;
-    const continueButtonY = landasY + 60;
+    const rowW = panelW * 0.82;
+    const rowH = 34 * sf;
+    const rowSpacing = 40 * sf;
+    const rewardContainers: Phaser.GameObjects.Container[] = [];
 
-    // Current landas status
-    const landasTier = this.getLandasTier(this.combatState.player.landasScore);
-    const landasColor = this.getLandasColor(landasTier);
+    for (const line of rewardLines) {
+      const container = this.add.container(panelX, curY).setDepth(10);
 
-    this.add
-      .text(
-        screenWidth / 2,
-        landasY,
-        `Landas: ${this.combatState.player.landasScore
-        } (${landasTier.toUpperCase()})`,
-        {
-          fontFamily: "dungeon-mode",
-          fontSize: Math.floor(18 * scaleFactor),
-          color: landasColor,
-          align: "center",
-        }
-      )
-      .setOrigin(0.5);
+      // Row background — subtle dark stripe
+      const rowBg = this.add.rectangle(0, 0, rowW, rowH, 0x0e0c14, 0.6);
+      rowBg.setStrokeStyle(0.5, themeHexDark, 0.3);
 
-    // Continue button
-    this.createDialogueButton(screenWidth / 2, continueButtonY, "Continue", "#4ecdc4", () => {
-      // Save player state and return to overworld
-      this.returnToOverworld();
+      // Left accent notch
+      const leftNotch = this.add.rectangle(-rowW / 2, 0, 3, rowH, themeHex, 0.35);
+
+      // Icon badge — tinted square behind emoji
+      const iconBadge = this.add.rectangle(-rowW / 2 + 26, 0, 26, 26, line.iconBg, 0.8);
+
+      // Emoji
+      const emojiText = this.add.text(-rowW / 2 + 26, 0, line.emoji, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(15 * sf),
+        align: "center",
+      }).setOrigin(0.5);
+
+      // Reward text
+      const rewardTxt = this.add.text(-rowW / 2 + 52, 0, line.text, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(16 * sf),
+        color: line.color,
+        align: "left",
+      }).setOrigin(0, 0.5);
+
+      container.add([rowBg, leftNotch, iconBadge, emojiText, rewardTxt]);
+      container.setAlpha(0);
+      rewardContainers.push(container);
+      curY += rowSpacing;
+    }
+
+    // Staggered reveal with slide-up
+    this.time.delayedCall(900, () => {
+      rewardContainers.forEach((ctr, i) => {
+        this.time.delayedCall(i * 110, () => {
+          if (!ctr?.active) return;
+          ctr.setY(ctr.y + 14);
+          this.tweens.add({
+            targets: ctr,
+            alpha: 1,
+            y: ctr.y - 14,
+            duration: 320,
+            ease: 'Back.easeOut',
+          });
+        });
+      });
     });
 
-    // Auto-continue after 8 seconds
-    this.time.delayedCall(8000, () => {
-      this.returnToOverworld();
+    // ============================================================
+    // LANDÁS BADGE — pill-shaped status indicator
+    // ============================================================
+    curY += 10 * sf;
+    const landasTier = this.getLandasTier(this.combatState.player.landasScore);
+    const landasColor = this.getLandasColor(landasTier);
+    const landasHex = Phaser.Display.Color.HexStringToColor(landasColor).color;
+
+    const landasBadge = this.add.container(panelX, curY).setDepth(10).setAlpha(0);
+
+    // Pill background
+    const pillW = 200 * sf;
+    const pillH = 30 * sf;
+    const pillBg = this.add.rectangle(0, 0, pillW, pillH, 0x0e0c14, 0.7);
+    pillBg.setStrokeStyle(1, landasHex, 0.5);
+
+    const landasLabel = this.add.text(0, 0,
+      `Landás: ${this.combatState.player.landasScore}  ·  ${landasTier.toUpperCase()}`, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(14 * sf),
+        color: landasColor,
+        align: "center",
+      }).setOrigin(0.5);
+
+    landasBadge.add([pillBg, landasLabel]);
+
+    // Pulsing glow behind badge
+    const landasGlow = this.add.rectangle(panelX, curY, pillW + 20, pillH + 12, landasHex, 0.04)
+      .setDepth(9).setAlpha(0);
+
+    this.tweens.add({
+      targets: landasGlow, alpha: 0.08,
+      duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: 2000,
+    });
+
+    const landasDelay = 900 + rewardContainers.length * 110 + 200;
+    this.time.delayedCall(landasDelay, () => {
+      if (!landasBadge?.active) return;
+      this.tweens.add({ targets: [landasBadge, landasGlow], alpha: 1, duration: 350, ease: 'Power2' });
+    });
+
+    // ============================================================
+    // CONTINUE BUTTON — themed, prominent
+    // ============================================================
+    curY += 50 * sf;
+    const btnDelay = landasDelay + 280;
+
+    this.time.delayedCall(btnDelay, () => {
+      const btnContainer = this.add.container(panelX, curY).setDepth(10).setAlpha(0);
+
+      const btnW = 180 * sf;
+      const btnH = 44 * sf;
+
+      // Glow behind button
+      const btnGlow = this.add.rectangle(0, 0, btnW + 16, btnH + 10, themeHex, 0.06);
+
+      // Button background
+      const btnBg = this.add.rectangle(0, 0, btnW, btnH, 0x150e12, 1);
+      btnBg.setStrokeStyle(1.5, themeHex, 0.7);
+
+      // Top highlight line
+      const btnHighlight = this.add.rectangle(0, -btnH / 2, btnW - 8, 1, themeHex, 0.25)
+        .setOrigin(0.5, 0);
+
+      // Button label
+      const btnLabelText = this.add.text(0, 0, "Continue", {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(20 * sf),
+        color: themeColor,
+        align: "center",
+      }).setOrigin(0.5);
+
+      btnContainer.add([btnGlow, btnBg, btnHighlight, btnLabelText]);
+
+      // Interactive
+      btnBg.setInteractive({ useHandCursor: true });
+
+      let clicked = false;
+
+      btnBg.on('pointerdown', () => {
+        if (clicked) return;
+        clicked = true;
+        this.tweens.add({
+          targets: btnContainer, scale: 0.93, duration: 80, ease: 'Power1',
+          onComplete: () => {
+            this.tweens.add({
+              targets: btnContainer, scale: 1, duration: 80, ease: 'Power1',
+              onComplete: () => {
+                this.cameras.main.shake(30, 0.008);
+                this.time.delayedCall(50, () => this.returnToOverworld());
+              },
+            });
+          },
+        });
+      });
+
+      btnBg.on('pointerover', () => {
+        if (clicked) return;
+        this.input.setDefaultCursor('pointer');
+        this.tweens.add({ targets: btnContainer, scale: 1.06, duration: 180, ease: 'Power2' });
+        btnBg.setFillStyle(0x1c1418);
+        btnBg.setStrokeStyle(1.5, themeHex, 1);
+        btnGlow.setAlpha(0.12);
+      });
+
+      btnBg.on('pointerout', () => {
+        if (clicked) return;
+        this.input.setDefaultCursor('default');
+        this.tweens.add({ targets: btnContainer, scale: 1, duration: 180, ease: 'Power2' });
+        btnBg.setFillStyle(0x150e12);
+        btnBg.setStrokeStyle(1.5, themeHex, 0.7);
+        btnGlow.setAlpha(0.06);
+      });
+
+      // Fade in with breathing glow
+      this.tweens.add({
+        targets: btnContainer, alpha: 1, duration: 350, ease: 'Power2',
+        onComplete: () => {
+          this.tweens.add({
+            targets: btnGlow, alpha: 0.12,
+            duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+          });
+        },
+      });
     });
   }
 
@@ -2661,6 +2835,7 @@ export class Combat extends Scene {
       delay: msPerChar,
       repeat: fullText.length - 1,
       callback: () => {
+        if (!textObj || !textObj.active) return;
         charIndex++;
         textObj.setText(fullText.substring(0, charIndex));
       }

@@ -26,10 +26,10 @@ export const BULALAKAW_FLAMEWINGS: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Comets blaze your doom!',
-    defeat: 'My streak... fades...',
-    spare: 'Pity uncovers: Bulalakaw, comet-like omen birds (Ramos, 1990).',
-    slay: 'Quench my fire—fuel for deceit!',
+    intro: 'COMETS BLAZE across the sky! I am the bulalakaw — the meteor-bird whose fiery streak across the heavens once marked the turning of seasons and the coming of change! The people looked up in wonder. Now the engkanto sets my course toward DESTRUCTION — and the wonder has turned to terror!',
+    defeat: 'My streak... fades like a dying ember falling through cloud. The fire that propelled me across the sky cools, and I remember: I was an omen, yes, but not of doom. The bulalakaw heralded change — new seasons, new beginnings. When did the engkanto convince me that change meant annihilation?',
+    spare: 'Pity uncovers the star beneath the fire! The bulalakaw are comet-like omen birds — celestial spirits whose fiery passage across the sky was read by babaylan as a sign of great change approaching. We were associated with illness, yes, but also with transformation: the fever that breaks before healing, the storm that clears before calm. The engkanto stripped away the healing and left only the fever. Your mercy restores the full cycle.',
+    slay: 'Quench my fire — and the sky loses its oldest herald of change! Without the bulalakaw, the seasons blur, the babaylan lose their celestial calendar, and the false god writes new omens in the empty sky!',
   },
 
   // === Lore ===

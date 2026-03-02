@@ -2024,18 +2024,19 @@ export class Overworld extends Scene {
 
     this.tweens.add({
       targets: [bg, topLine, bottomLine],
-      scaleX: 1, duration: 350, ease: 'Power3',
+      scaleX: 1, duration: 250, ease: 'Power3',
       onComplete: () => {
         // Fade in name
         this.tweens.add({
-          targets: nameText, alpha: 1, duration: 250, ease: 'Power2',
+          targets: nameText, alpha: 1, duration: 180, ease: 'Power2',
           onComplete: () => {
             // Typewriter the intro dialogue
             let charIdx = 0;
             this.time.addEvent({
-              delay: 28,
+              delay: 18,
               repeat: intro.length - 1,
               callback: () => {
+                if (!dialogueText || !dialogueText.active) return;
                 charIdx++;
                 dialogueText.setText(`"${intro.substring(0, charIdx)}"`);
               }
@@ -2054,11 +2055,11 @@ export class Overworld extends Scene {
     }
 
     // Auto-proceed after dialogue hold time
-    const holdTime = isElite ? 2500 : 1800;
+    const holdTime = isElite ? 1800 : 1200;
     this.time.delayedCall(holdTime, () => {
       // Fade out banner, then trigger combat transition
       this.tweens.add({
-        targets: container, alpha: 0, y: cy - 30, duration: 400, ease: 'Power3',
+        targets: container, alpha: 0, y: cy - 30, duration: 250, ease: 'Power3',
         onComplete: () => {
           container.destroy();
           callback();

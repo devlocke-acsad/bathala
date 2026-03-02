@@ -26,10 +26,10 @@ export const BUNGISNGIS: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Laughter masks rage!',
-    defeat: 'My grin... cracks...',
-    spare: 'Pity reveals: Bungisngis, one-eyed laughing giants, once jovial (Jocano, 1969).',
-    slay: 'Silence my mirth—fuel for deceit!',
+    intro: 'BWAHAHAHAHA! Look at you — so small, so serious! I am the bungisngis, the laughing giant with one eye that sees EVERYTHING funny! But the engkanto taught me a new kind of joke — the kind where only I laugh at the end!',
+    defeat: 'My grin... cracks. The laughter hollows out. With one eye I see the truth now — I was laughing to keep from crying. The engkanto turned my joy into madness, my mirth into menace...',
+    spare: 'You spare the laughing giant? HA! ...no, not "ha." Thank you. The Tagalog and Cebuano elders spoke of the bungisngis as jovial one-eyed giants — strong enough to uproot trees, but laughing always, because the world delighted us. We were the comic relief of the spirit world. The engkanto poisoned our laughter, turned delight into delirium. Your mercy... it\'s the first thing that\'s made me smile — truly smile — in an age.',
+    slay: 'Silence the mirth — and the forest grows quieter, colder, grimmer! Every bungisngis that falls is a laugh stolen from the world, fuel for the impostor\'s joyless throne!',
   },
 
   // === Lore ===
