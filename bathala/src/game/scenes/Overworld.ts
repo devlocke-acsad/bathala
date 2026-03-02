@@ -7,6 +7,7 @@ import { Player, Relic } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { InputSystem } from "../../systems/shared/InputSystem";
 import { MazeGenSystem } from "../../systems/generation/MazeGenSystem";
+import { OverworldGenerator } from "../../systems/generation/OverworldGenerator";
 import { ActRegistry } from "../../core/acts/ActRegistry";
 import { ACT1 } from "../../acts/act1/Act1Definition";
 import { TooltipSystem } from "../../systems/world/TooltipSystem";
