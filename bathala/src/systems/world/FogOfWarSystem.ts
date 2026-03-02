@@ -476,6 +476,12 @@ export class FogOfWarSystem {
       const toggleY = 50 + offsetY;
       overworldScene.toggleButton.setPosition(toggleX, toggleY);
     }
+
+    // Mobile controls container (kept fixed despite camera zoom changes)
+    if (overworldScene.mobileControlsContainer) {
+      overworldScene.mobileControlsContainer.setScale(uiScale);
+      overworldScene.mobileControlsContainer.setPosition(offsetX, offsetY);
+    }
     
     // Test buttons container
     if (overworldScene.testButtonsContainer) {

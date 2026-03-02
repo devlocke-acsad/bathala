@@ -328,9 +328,6 @@ export class Overworld extends Scene {
     console.log('🎮 Overworld: Input explicitly enabled after initialization');
     console.log('🎮 Overworld: isMoving =', this.isMoving, ', isTransitioningToCombat =', this.isTransitioningToCombat);
 
-    // Add transparent on-screen movement controls for touch devices.
-    this.createMobileMovementControls();
-
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
 
@@ -375,7 +372,7 @@ export class Overworld extends Scene {
   }
 
   private createMobileMovementControls(): void {
-    if (!this.isTouchDevice()) {
+    if (!this.isTouchDevice() || !this.uiContainer) {
       return;
     }
 
@@ -391,12 +388,14 @@ export class Overworld extends Scene {
     const spacing = 80;
     const buttonSize = 56;
 
-    this.mobileControlsContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH.UI_BASE + 700);
+    // Keep controls fixed to the camera so fog-of-war zoom transitions never move them.
+    this.mobileControlsContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(1500);
 
     this.createMobileDirectionButton(centerX, centerY - spacing, buttonSize, "↑", "up");
     this.createMobileDirectionButton(centerX - spacing, centerY, buttonSize, "←", "left");
     this.createMobileDirectionButton(centerX + spacing, centerY, buttonSize, "→", "right");
     this.createMobileDirectionButton(centerX, centerY + spacing, buttonSize, "↓", "down");
+    this.createMobileFullscreenButton(centerX + 165, centerY, buttonSize + 8);
   }
 
   private createMobileDirectionButton(
@@ -423,7 +422,7 @@ export class Overworld extends Scene {
       fontFamily: "dungeon-mode",
       fontSize: "30px",
       color: "#77888C"
-    }).setOrigin(0.5).setScrollFactor(0).setAlpha(0.9);
+    }).setOrigin(0.5).setAlpha(0.9).setScrollFactor(0);
 
     this.mobileDirectionButtons[direction] = { bg, innerBorder, text };
 
@@ -468,6 +467,98 @@ export class Overworld extends Scene {
     });
 
     this.mobileControlsContainer.add([bg, innerBorder, text]);
+  }
+
+  private createMobileFullscreenButton(x: number, y: number, size: number): void {
+    if (!this.mobileControlsContainer) {
+      return;
+    }
+
+    const buttonContainer = this.add.container(x, y);
+    const half = size / 2;
+
+    const bg = this.add.rectangle(0, 0, size, size, 0x150E10, 0.42)
+      .setStrokeStyle(2, 0x77888C, 0.9)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: false });
+    const innerBorder = this.add.rectangle(0, 0, size - 8, size - 8, undefined, 0)
+      .setStrokeStyle(1.5, 0x77888C, 0.65)
+      .setScrollFactor(0);
+
+    const icon = this.add.graphics();
+    const drawIcon = (pressed: boolean) => {
+      const color = pressed ? 0xe8eced : 0x77888c;
+      const alpha = pressed ? 1 : 0.9;
+      const pad = 12;
+      const arm = 12;
+      const xMin = -half + pad;
+      const xMax = half - pad;
+      const yMin = -half + pad;
+      const yMax = half - pad;
+
+      icon.clear();
+      icon.lineStyle(4, color, alpha);
+      icon.beginPath();
+      icon.moveTo(xMin + arm, yMin); icon.lineTo(xMin, yMin); icon.lineTo(xMin, yMin + arm); // top-left
+      icon.moveTo(xMax - arm, yMin); icon.lineTo(xMax, yMin); icon.lineTo(xMax, yMin + arm); // top-right
+      icon.moveTo(xMin + arm, yMax); icon.lineTo(xMin, yMax); icon.lineTo(xMin, yMax - arm); // bottom-left
+      icon.moveTo(xMax - arm, yMax); icon.lineTo(xMax, yMax); icon.lineTo(xMax, yMax - arm); // bottom-right
+      icon.strokePath();
+    };
+
+    const getFullscreenActive = (): boolean => {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null };
+      return !!(document.fullscreenElement || doc.webkitFullscreenElement);
+    };
+
+    const requestFullscreen = async () => {
+      const root = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void> };
+      if (root.requestFullscreen) {
+        await root.requestFullscreen();
+        return;
+      }
+      if (root.webkitRequestFullscreen) {
+        await root.webkitRequestFullscreen();
+      }
+    };
+
+    const exitFullscreen = async () => {
+      const doc = document as Document & { webkitExitFullscreen?: () => Promise<void> };
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+        return;
+      }
+      if (doc.webkitExitFullscreen) {
+        await doc.webkitExitFullscreen();
+      }
+    };
+
+    const setPressedVisual = (pressed: boolean) => {
+      bg.setFillStyle(pressed ? 0x2a1a1f : 0x150E10, pressed ? 0.85 : 0.42);
+      innerBorder.setStrokeStyle(1.5, 0x77888C, pressed ? 0.95 : 0.65);
+      drawIcon(pressed);
+    };
+
+    bg.on('pointerdown', () => setPressedVisual(true));
+    bg.on('pointerup', async () => {
+      setPressedVisual(false);
+      try {
+        if (getFullscreenActive()) {
+          await exitFullscreen();
+        } else {
+          await requestFullscreen();
+        }
+      } catch (_error) {
+        // Ignore - browser may block fullscreen on unsupported contexts.
+      }
+    });
+    bg.on('pointerout', () => setPressedVisual(false));
+    bg.on('pointerupoutside', () => setPressedVisual(false));
+    bg.on('pointercancel', () => setPressedVisual(false));
+
+    drawIcon(false);
+    buttonContainer.add([bg, innerBorder, icon]);
+    this.mobileControlsContainer.add(buttonContainer);
   }
 
   createUI(): void {
@@ -772,6 +863,9 @@ export class Overworld extends Scene {
 
     // Create overworld UI panel
     this.createOverworldUI();
+
+    // Add mobile controls after uiContainer is ready so they share the exact same UI layer.
+    this.createMobileMovementControls();
   }
 
   createDayNightProgressBar(): void {
@@ -3839,6 +3933,12 @@ export class Overworld extends Scene {
       const toggleX = cameraWidth - 60 - offsetX;
       const toggleY = 50 + offsetY;
       this.toggleButton.setPosition(toggleX, toggleY);
+    }
+
+    // Mobile controls container (fixed gameplay controls)
+    if (this.mobileControlsContainer) {
+      this.mobileControlsContainer.setScale(uiScale);
+      this.mobileControlsContainer.setPosition(offsetX, offsetY);
     }
 
     // Test buttons container
