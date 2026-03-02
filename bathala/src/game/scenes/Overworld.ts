@@ -328,9 +328,6 @@ export class Overworld extends Scene {
     console.log('🎮 Overworld: Input explicitly enabled after initialization');
     console.log('🎮 Overworld: isMoving =', this.isMoving, ', isTransitioningToCombat =', this.isTransitioningToCombat);
 
-    // Add transparent on-screen movement controls for touch devices.
-    this.createMobileMovementControls();
-
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
 
@@ -375,7 +372,7 @@ export class Overworld extends Scene {
   }
 
   private createMobileMovementControls(): void {
-    if (!this.isTouchDevice()) {
+    if (!this.isTouchDevice() || !this.uiContainer) {
       return;
     }
 
@@ -386,12 +383,13 @@ export class Overworld extends Scene {
     this.mobileDirectionButtons = {};
 
     const screenHeight = this.cameras.main.height;
-    const centerX = 255;
-    const centerY = screenHeight - 170;
-    const spacing = 80;
-    const buttonSize = 56;
+    const centerX = 340;
+    const centerY = screenHeight - 260;
+    const spacing = 132;
+    const buttonSize = 102;
 
-    this.mobileControlsContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(DEPTH.UI_BASE + 700);
+    // Keep controls fixed to the camera so fog-of-war zoom transitions never move them.
+    this.mobileControlsContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(1500);
 
     this.createMobileDirectionButton(centerX, centerY - spacing, buttonSize, "↑", "up");
     this.createMobileDirectionButton(centerX - spacing, centerY, buttonSize, "←", "left");
@@ -421,9 +419,9 @@ export class Overworld extends Scene {
 
     const text = this.add.text(x, y, label, {
       fontFamily: "dungeon-mode",
-      fontSize: "30px",
+      fontSize: "60px",
       color: "#77888C"
-    }).setOrigin(0.5).setScrollFactor(0).setAlpha(0.9);
+    }).setOrigin(0.5).setAlpha(0.9).setScrollFactor(0);
 
     this.mobileDirectionButtons[direction] = { bg, innerBorder, text };
 
@@ -772,6 +770,9 @@ export class Overworld extends Scene {
 
     // Create overworld UI panel
     this.createOverworldUI();
+
+    // Add mobile controls after uiContainer is ready so they share the exact same UI layer.
+    this.createMobileMovementControls();
   }
 
   createDayNightProgressBar(): void {
@@ -3839,6 +3840,12 @@ export class Overworld extends Scene {
       const toggleX = cameraWidth - 60 - offsetX;
       const toggleY = 50 + offsetY;
       this.toggleButton.setPosition(toggleX, toggleY);
+    }
+
+    // Mobile controls container (fixed gameplay controls)
+    if (this.mobileControlsContainer) {
+      this.mobileControlsContainer.setScale(uiScale);
+      this.mobileControlsContainer.setPosition(offsetX, offsetY);
     }
 
     // Test buttons container

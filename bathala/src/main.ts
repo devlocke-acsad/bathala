@@ -91,31 +91,35 @@ const setupAndroidFullscreenButton = (): void => {
         button = document.createElement('button');
         button.id = 'android-fullscreen-btn';
         button.type = 'button';
+        button.innerHTML = `
+            <span style="position:absolute; top:16px; left:16px; width:22px; height:22px; border-top:4px solid #f1f1f0; border-left:4px solid #f1f1f0;"></span>
+            <span style="position:absolute; top:16px; right:16px; width:22px; height:22px; border-top:4px solid #f1f1f0; border-right:4px solid #f1f1f0;"></span>
+            <span style="position:absolute; bottom:16px; left:16px; width:22px; height:22px; border-bottom:4px solid #f1f1f0; border-left:4px solid #f1f1f0;"></span>
+            <span style="position:absolute; bottom:16px; right:16px; width:22px; height:22px; border-bottom:4px solid #f1f1f0; border-right:4px solid #f1f1f0;"></span>
+        `;
         button.setAttribute('style', `
             position: fixed;
-            right: max(12px, env(safe-area-inset-right));
-            bottom: max(12px, env(safe-area-inset-bottom));
+            right: max(6px, env(safe-area-inset-right));
+            bottom: max(24px, env(safe-area-inset-bottom));
             z-index: 9500;
-            min-width: 128px;
-            padding: 10px 14px;
+            width: 104px;
+            height: 104px;
             border: 2px solid #77888C;
             background: rgba(21, 14, 16, 0.78);
-            color: #f1f1f0;
-            font-family: 'dungeon-mode', Chivo, Arial, sans-serif;
-            font-size: 14px;
-            letter-spacing: 0.03em;
+            padding: 0;
             cursor: pointer;
             user-select: none;
             touch-action: manipulation;
+            border-radius: 6px;
         `);
         appRoot.appendChild(button);
     }
 
-    const syncLabel = () => {
+    const syncVisual = () => {
         if (!button) {
             return;
         }
-        button.textContent = isCurrentlyFullscreen() ? 'Exit Fullscreen' : 'Fullscreen';
+        button.style.opacity = isCurrentlyFullscreen() ? '1' : '0.92';
     };
 
     button.onclick = async () => {
@@ -124,12 +128,12 @@ const setupAndroidFullscreenButton = (): void => {
         } else {
             await requestBrowserFullscreen();
         }
-        syncLabel();
+        syncVisual();
     };
 
-    document.addEventListener('fullscreenchange', syncLabel);
-    document.addEventListener('webkitfullscreenchange', syncLabel as EventListener);
-    syncLabel();
+    document.addEventListener('fullscreenchange', syncVisual);
+    document.addEventListener('webkitfullscreenchange', syncVisual as EventListener);
+    syncVisual();
 };
 
 const setupMobileFullscreenGesture = (): void => {
