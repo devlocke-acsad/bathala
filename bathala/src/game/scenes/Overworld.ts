@@ -1971,99 +1971,98 @@ export class Overworld extends Scene {
   private showEncounterDialogue(nodeType: string, enemyId: string | undefined, callback: () => void): void {
     // Look up enemy config for dialogue
     const enemyConfig = enemyId ? EnemyRegistry.resolve(enemyId) : null;
-    const intro = enemyConfig?.dialogue?.intro;
     const enemyName = enemyConfig?.name || 'Unknown Creature';
     const isElite = nodeType === 'elite';
-
-    if (!intro) {
-      // No dialogue — just proceed to transition immediately
-      callback();
-      return;
-    }
+    const accentColor = isElite ? 0xff4757 : 0xffd93d;
+    const accentHex = isElite ? '#ff4757' : '#ffd93d';
 
     const cam = this.cameras.main;
-    const cx = cam.width / 2;
-    const cy = cam.height / 2;
+    const sw = cam.width;
+    const sh = cam.height;
 
-    // Subtle camera shake
-    cam.shake(300, isElite ? 0.012 : 0.006);
+    // === SHARP SCREEN FLASH + SHAKE — instant impact ===
+    cam.flash(150, 255, 255, 255, false);
+    cam.shake(200, isElite ? 0.025 : 0.015);
 
-    // === CINEMATIC ENCOUNTER BANNER ===
-    const container = this.add.container(cx, cy)
-      .setScrollFactor(0).setDepth(DEPTH.DIALOG_OVERLAY + 10).setAlpha(0);
+    // Master container for cleanup
+    const container = this.add.container(0, 0)
+      .setScrollFactor(0).setDepth(DEPTH.DIALOG_OVERLAY + 10);
 
-    const bannerH = 120;
-    const bannerW = cam.width + 20;
+    // === DARK VIGNETTE ===
+    const overlay = this.add.rectangle(sw / 2, sh / 2, sw, sh, 0x000000, 0)
+      .setScrollFactor(0);
+    container.add(overlay);
+    this.tweens.add({ targets: overlay, alpha: 0.72, duration: 80, ease: 'Power4' });
 
-    const bg = this.add.rectangle(0, 0, bannerW, bannerH, 0x0a0606, 0.95);
-    const borderColor = isElite ? 0xff4757 : 0x77888c;
-    const topLine = this.add.rectangle(0, -bannerH / 2, bannerW, 2, borderColor, 0.9);
-    const bottomLine = this.add.rectangle(0, bannerH / 2, bannerW, 2, borderColor, 0.9);
+    // === BIG "!" EXCLAMATION — Persona 5 alert ===
+    const exclamation = this.add.text(sw / 2, sh / 2 - 30, '!', {
+      fontFamily: 'dungeon-mode',
+      fontSize: Math.floor(sw * 0.2) + 'px',
+      color: accentHex,
+      align: 'center',
+      stroke: '#000000',
+      strokeThickness: 8,
+    }).setOrigin(0.5).setAlpha(0).setScale(3.5).setScrollFactor(0);
+    container.add(exclamation);
 
-    // Enemy name — centered, bold
-    const nameColor = isElite ? '#ff4757' : '#ffd93d';
-    const nameText = this.add.text(0, -28, enemyName.toUpperCase(), {
-      fontFamily: 'dungeon-mode', fontSize: '22px', color: nameColor, align: 'center'
-    }).setOrigin(0.5);
-
-    // Dialogue text — starts empty, typewriter
-    const dialogueText = this.add.text(0, 12, '', {
-      fontFamily: 'dungeon-mode', fontSize: '14px', color: '#ffffff',
-      fontStyle: 'italic', align: 'center',
-      wordWrap: { width: cam.width * 0.7 }
-    }).setOrigin(0.5);
-
-    container.add([bg, topLine, bottomLine, nameText, dialogueText]);
-
-    // Animate bars expanding from center
-    container.setAlpha(1);
-    bg.setScale(0, 1);
-    topLine.setScale(0, 1);
-    bottomLine.setScale(0, 1);
-    nameText.setAlpha(0);
-
+    // "!" slams from big to normal
     this.tweens.add({
-      targets: [bg, topLine, bottomLine],
-      scaleX: 1, duration: 250, ease: 'Power3',
-      onComplete: () => {
-        // Fade in name
-        this.tweens.add({
-          targets: nameText, alpha: 1, duration: 180, ease: 'Power2',
-          onComplete: () => {
-            // Typewriter the intro dialogue
-            let charIdx = 0;
-            this.time.addEvent({
-              delay: 18,
-              repeat: intro.length - 1,
-              callback: () => {
-                if (!dialogueText || !dialogueText.active) return;
-                charIdx++;
-                dialogueText.setText(`"${intro.substring(0, charIdx)}"`);
-              }
-            });
-          }
-        });
-      }
+      targets: exclamation, alpha: 1, scale: 1,
+      duration: 140, ease: 'Back.easeOut',
     });
 
-    // Pulsing border glow
+    // Thin accent slash behind "!"
+    const slash = this.add.rectangle(sw / 2, sh / 2 - 30, sw * 0.55, 3, accentColor, 0)
+      .setAngle(-3).setScrollFactor(0);
+    container.add(slash);
+    this.tweens.add({ targets: slash, alpha: 0.6, duration: 100, delay: 60, ease: 'Power4' });
+
+    // === ENEMY NAME — fades in below "!" ===
+    const nameText = this.add.text(sw / 2, sh / 2 + 40, enemyName.toUpperCase(), {
+      fontFamily: 'dungeon-mode',
+      fontSize: Math.floor(sw * 0.032) + 'px',
+      color: '#e8eced',
+      align: 'center',
+      stroke: '#000000',
+      strokeThickness: 4,
+    }).setOrigin(0.5).setAlpha(0).setScrollFactor(0);
+    container.add(nameText);
+
+    this.tweens.add({
+      targets: nameText, alpha: 1,
+      duration: 250, ease: 'Power2', delay: 120,
+    });
+
+    // === EDGE FLASH BARS ===
     if (isElite) {
+      const barTop = this.add.rectangle(sw / 2, 0, sw, 4, accentColor, 0)
+        .setOrigin(0.5, 0).setScrollFactor(0);
+      const barBot = this.add.rectangle(sw / 2, sh, sw, 4, accentColor, 0)
+        .setOrigin(0.5, 1).setScrollFactor(0);
+      container.add([barTop, barBot]);
       this.tweens.add({
-        targets: [topLine, bottomLine], alpha: 0.3,
-        duration: 500, yoyo: true, repeat: 2, ease: 'Sine.easeInOut'
+        targets: [barTop, barBot], alpha: 0.9,
+        duration: 80, ease: 'Power4', delay: 60,
+        onComplete: () => {
+          this.tweens.add({ targets: [barTop, barBot], alpha: 0, duration: 350 });
+        },
       });
     }
 
-    // Auto-proceed after dialogue hold time
-    const holdTime = isElite ? 1800 : 1200;
+    // === AUTO-DISMISS — fast out, then combat transition ===
+    const holdTime = isElite ? 700 : 550;
     this.time.delayedCall(holdTime, () => {
-      // Fade out banner, then trigger combat transition
       this.tweens.add({
-        targets: container, alpha: 0, y: cy - 30, duration: 250, ease: 'Power3',
+        targets: [exclamation, slash, nameText], alpha: 0, scale: 0.7,
+        duration: 140, ease: 'Power3',
+      });
+      this.tweens.add({
+        targets: overlay, alpha: 0,
+        duration: 180, ease: 'Power2', delay: 40,
         onComplete: () => {
           container.destroy();
           callback();
-        }
+        },
       });
     });
   }
