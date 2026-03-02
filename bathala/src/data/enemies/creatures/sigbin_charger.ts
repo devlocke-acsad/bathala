@@ -26,7 +26,7 @@ export const SIGBIN_CHARGER: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Can you smell it? The stench of fear that follows wherever I charge? The Visayan elders warned their children about what lurks when the night is darkest. I am the sigbin — and the hearts I steal now feed a darker master than any amulet ever did!',
+    intro: 'Smell that? The stench of fear! I am the sigbin — the hearts I steal now feed a darker master than any amulet ever did!',
     defeat: 'My heart... the one I should have kept... it beats slower now. The charge falters. I remember when my purpose was to gather hearts for sacred amulets — offerings to Bathala, not weapons for a false god...',
     spare: 'You show compassion to a heart-thief? Then know this: the sigbin were once loyal servants of the divine, gathering hearts not in cruelty but in sacred duty. The Visayan tradition tells that our stolen hearts became amulets of protection — anting-anting blessed by Bathala himself. The engkanto perverted our purpose, turned protection into predation. Your mercy reaches deeper than any stolen heart.',
     slay: 'Slay me and claim the power the shadow promises! But every heart the sigbin steals returns to feed the false god\'s amulets of corruption. My death is just another offering on the impostor\'s altar!',

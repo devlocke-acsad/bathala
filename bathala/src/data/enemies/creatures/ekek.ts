@@ -26,7 +26,7 @@ export const EKEK: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Blood calls from the night sky, mortal! I am ekek — the bird-vampire who swoops into open windows while victims sleep. My long tongue finds the pulse, and the feeding begins. The engkanto said: \'The night is yours. Take everything that bleeds.\' And I listened, because the darkness makes all voices sound like truth.',
+    intro: 'Blood calls from the night sky! I am ekek — the bird-vampire. My tongue finds the pulse, and the feeding begins. The darkness makes all voices sound like truth.',
     defeat: 'My thirst... quenches at last. The vampiric urge recedes like a tide pulling back from shore. In the moonlight, I see my reflection in a puddle — not a monster, but a night bird. Once, my nocturnal flights were simply that: flights. The ekek hunted insects, not people. When did the hunger change?',
     spare: 'Compassion stills the night hunter! The ekek are bird-like vampiric creatures of Filipino night mythology — relations of the more fearsome manananggal. Our long tongues and nocturnal habits made us terrifying, but in the oldest stories, we were simply creatures of the dark — no more evil than the owl or the bat. The engkanto cultivated our hunger, turning insect-catching into blood-drinking. Your mercy breaks the feeding cycle.',
     slay: 'Drain my life — and the impostor rises on wings of stolen blood! The night sky grows emptier and more dangerous without the ekek. We were the darkness\'s own creatures — fearsome, yes, but part of the balance between day and night. Without us, the night has no voice!',

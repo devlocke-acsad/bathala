@@ -26,7 +26,7 @@ export const APOY_TUBIG_FURY: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Two elements that should never meet — FORCED together by the engkanto\'s cruelty! I am fire drowning in water! I am water boiling in flame! The Visayan creation stories speak of element against element when the gods warred. We are that war made flesh — an eternal agony of clashing natures!',
+    intro: 'Two elements FORCED together by the engkanto\'s cruelty! Fire drowning in water! Water boiling in flame! We are that war made flesh!',
     defeat: 'My balance... breaks at last. The fire and water separate, and in their parting, a moment of peace. Steam rises like a prayer. This is what the elements were meant to do — not clash, but transform. Fire heats water into clouds. Water tames fire into warmth. We were never enemies...',
     spare: 'Pity reveals the truth beneath the fury! In Jocano\'s cosmogony, the elements were Bathala\'s assistants — forces of creation, not destruction. Fire warmed the world. Water gave it life. Together they made steam, rain, seasons, growth. The engkanto forced us into opposition, turning synergy into combat. Your mercy allows us to remember: we are not enemies. We are partners in creation.',
     slay: 'Quench our flames and boil our waters — and the natural balance of the world tips further into chaos! The engkanto\'s deceit wins when creation\'s forces destroy each other instead of building together!',

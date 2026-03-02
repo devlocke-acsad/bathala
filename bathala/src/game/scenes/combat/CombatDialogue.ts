@@ -418,58 +418,66 @@ export class CombatDialogue {
    */
   public showEnemyDialogue(): void {
     const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
     const combatState = this.scene.getCombatState();
     const enemyName = combatState.enemy.name;
     const introText = this.getEnemyDialogue();
     const isEliteOrBoss = combatState.enemy.tier === 'elite' || combatState.enemy.tier === 'boss';
     const borderColor = isEliteOrBoss ? 0xff4757 : 0x77888C;
-
-    // Dialogue container at top of screen
-    const dialogueContainer = this.scene.add.container(screenWidth / 2, 110);
-    const boxW = screenWidth * 0.8;
-
-    // Styled box
-    const outerBorder = this.scene.add.rectangle(0, 0, boxW + 8, 108, undefined, 0)
-      .setStrokeStyle(2, borderColor);
-    const innerBorder = this.scene.add.rectangle(0, 0, boxW, 100, undefined, 0)
-      .setStrokeStyle(2, borderColor);
-    const bg = this.scene.add.rectangle(0, 0, boxW, 100, 0x150E10).setInteractive();
-
-    // Enemy name — red for elite/boss, gold for common
     const nameColor = isEliteOrBoss ? '#ff4757' : '#ffd93d';
+
+    // Narrower, taller box — right-center of screen
+    const boxW = Math.min(420, screenWidth * 0.5);
+    const boxH = 180;
+    const boxX = screenWidth - boxW / 2 - 30;
+    const boxY = screenHeight / 2 - 20;
+
+    const dialogueContainer = this.scene.add.container(boxX, boxY);
+
+    // Styled box — double border
+    const outerBorder = this.scene.add.rectangle(0, 0, boxW + 8, boxH + 8, undefined, 0)
+      .setStrokeStyle(2, borderColor);
+    const innerBorder = this.scene.add.rectangle(0, 0, boxW, boxH, undefined, 0)
+      .setStrokeStyle(2, borderColor);
+    const bg = this.scene.add.rectangle(0, 0, boxW, boxH, 0x150E10).setInteractive();
+
+    // Enemy name — top of box
     const enemyNameText = this.scene.add.text(
-      -(boxW / 2) + 20, -32, enemyName.toUpperCase(), {
+      -(boxW / 2) + 16, -boxH / 2 + 12, enemyName.toUpperCase(), {
         fontFamily: "dungeon-mode", fontSize: '16px', color: nameColor, align: 'left'
       }
     ).setOrigin(0, 0).setDepth(5002).setAlpha(0);
 
-    // Dialogue text — pre-filled, will fade in
+    // Thin separator
+    const separator = this.scene.add.rectangle(0, -boxH / 2 + 36, boxW * 0.85, 1, borderColor, 0.3);
+
+    // Dialogue text — fills the remaining space
     const dialogueTextObj = this.scene.add.text(
-      -(boxW / 2) + 20, -5, `"${introText}"`, {
-        fontFamily: "dungeon-mode", fontSize: '14px', color: '#e8eced',
+      -(boxW / 2) + 16, -boxH / 2 + 44, `"${introText}"`, {
+        fontFamily: "dungeon-mode", fontSize: '13px', color: '#e8eced',
         fontStyle: 'italic', align: 'left',
-        wordWrap: { width: boxW - 40 },
-        lineSpacing: 3,
+        wordWrap: { width: boxW - 32 },
+        lineSpacing: 4,
       }
     ).setOrigin(0, 0).setDepth(5002).setAlpha(0);
 
-    dialogueContainer.add([outerBorder, innerBorder, bg, enemyNameText, dialogueTextObj]);
+    dialogueContainer.add([outerBorder, innerBorder, bg, enemyNameText, separator, dialogueTextObj]);
     dialogueContainer.setScrollFactor(0).setDepth(5000);
 
-    // Animate in: slide down from above
-    dialogueContainer.setAlpha(0).setY(60);
+    // Animate in: slide from right
+    dialogueContainer.setAlpha(0).setX(boxX + 60);
 
     this.scene.tweens.add({
-      targets: dialogueContainer, alpha: 1, y: 110,
-      duration: 280, ease: 'Back.easeOut',
+      targets: dialogueContainer, alpha: 1, x: boxX,
+      duration: 300, ease: 'Back.easeOut',
       onComplete: () => {
         // Fade in name
         this.scene.tweens.add({
-          targets: enemyNameText, alpha: 1, duration: 250, ease: 'Power2',
+          targets: enemyNameText, alpha: 1, duration: 200, ease: 'Power2',
         });
-        // Fade in dialogue text with slight delay
+        // Fade in dialogue
         this.scene.tweens.add({
-          targets: dialogueTextObj, alpha: 1, duration: 450, ease: 'Power2', delay: 180,
+          targets: dialogueTextObj, alpha: 1, duration: 400, ease: 'Power2', delay: 150,
         });
       }
     });

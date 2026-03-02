@@ -26,7 +26,7 @@ export const TIGMAMANUKAN_WATCHER: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'My wings cut omens into the sky, mortal! I am the tigmamanukan — Bathala\'s own prophetic bird, whose flight once determined the fate of wars, harvests, and journeys. The Tagalog babaylan read my path across the heavens as scripture. But the engkanto has rewritten my auguries. Every omen I bring now is a LIE!',
+    intro: 'My wings cut omens into the sky! I am tigmamanukan — Bathala\'s prophetic bird. The engkanto rewrote my auguries. Every omen I bring now is a LIE!',
     defeat: 'My flight... ends. I spiral downward, and as I fall, the sky behind me fills with the prophecies I should have delivered — true ones. Harvests that would have been bountiful. Wars that could have been avoided. Journeys that should have ended safely. The engkanto stole a future for every omen they corrupted...',
     spare: 'Mercy foretells a brighter future! The tigmamanukan — Bathala\'s divine messenger bird — held a sacred role in Tagalog society. Babaylan would observe our flight before any great undertaking: if we flew right, the day was blessed; if left, the people waited. Our prophecies shaped the rhythm of daily life. The engkanto reversed our auguries, turning blessings into curses. Your mercy sets the compass right again.',
     slay: 'Clip my wings — and the sky loses its oldest oracle! Without the tigmamanukan, no babaylan can read the heavens, no farmer can know the season, no traveler can trust the road. The false god feeds on a world blind to its own future!',

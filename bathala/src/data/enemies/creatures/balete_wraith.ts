@@ -29,7 +29,7 @@ export const BALETE_WRAITH: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Do you feel the roots reaching for your ankles? This balete tree was once a doorway between worlds — where the anito spirits crossed from their realm to bless the faithful. Now the door swings only one way, and what comes through... is me.',
+    intro: 'These roots once held a doorway for anito spirits. Now the door swings only one way — and what comes through is me.',
     defeat: 'The grave... calls me back through the roots. I was never meant to linger here — the balete portal is closing, and through the bark I can hear the anito whispering forgiveness...',
     spare: 'You spare a wraith? Then hear the truth the engkanto buried: the balete tree is sacred — a portal between the mortal world and the spirit realm. The old ones would leave offerings at its roots, and the anito would answer with blessings. The engkanto poisoned the roots, and our blessings became hauntings. But the tree remembers. The tree always remembers.',
     slay: 'Strike true — my form dissolves back into bark and shadow, feeding the impostor who corrupted these sacred groves! Every balete wraith you destroy is an anito portal sealed forever!',

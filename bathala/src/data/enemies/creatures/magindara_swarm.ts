@@ -26,7 +26,7 @@ export const MAGINDARA_SWARM: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Our beauty veils our venom, surfacer! Three voices sing as one — the magindara of Bicol, flesh-eaters whose enchantment makes the devoured smile even as they drown. The engkanto showed us that beauty is the cruelest weapon. Look upon us and WEEP!',
+    intro: 'Our beauty veils our venom! Three voices sing as one — the magindara of Bicol. The engkanto showed us beauty is the cruelest weapon!',
     defeat: 'Our songs... end in dissonance. The swarm scatters, and in our separation we each remember: we were not always vicious. The Bicolano coastal people once spoke of magindara as protectors of the reef, our beauty a reflection of the ocean\'s own splendor...',
     spare: 'Mercy lures truth from the deep! The magindara — enchanting mermaids of Bicolano waters — were once protectors of coral and coastline. Our swarm traveled together in beauty and purpose, guarding the reefs from those who would destroy them. The engkanto whispered that beauty deserved tribute, and tribute became flesh. Your mercy breaks the enchantment. We remember the reef.',
     slay: 'Shatter our forms — and the shadow thrives on scattered beauty! Three voices silenced are three coral guardians lost. The reefs of Bicol will bleach and crumble without the magindara\'s ancient songs!',
