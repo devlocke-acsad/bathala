@@ -117,8 +117,9 @@ export class Act1Definition extends ActDefinition {
     return {
       ...DEFAULT_NODE_DISTRIBUTION,
       typeWeights: {
-        combat: 3,
-        elite: 1,
+        // Rebalanced: commons should appear far more often than elites.
+        combat: 6,
+        elite: 0.4,
         shop: 1,
         event: 2,
         campfire: 1,

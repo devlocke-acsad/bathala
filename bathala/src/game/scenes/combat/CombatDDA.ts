@@ -47,6 +47,9 @@ export class CombatDDA {
    * Initialize DDA system and apply difficulty adjustments to enemy
    */
   public initializeDDA(): void {
+    // Default to baseline enemy behavior unless DDA provides an override.
+    this.scene.setEnemyAIComplexity(1.0);
+
     try {
       this.dda = RuleBasedDDA.getInstance();
       this.combatStartTime = Date.now();
@@ -72,10 +75,14 @@ export class CombatDDA {
       combatState.enemy.maxHealth = Math.round(combatState.enemy.maxHealth * adjustment.enemyHealthMultiplier);
       combatState.enemy.currentHealth = combatState.enemy.maxHealth;
       combatState.enemy.damage = Math.round(combatState.enemy.damage * adjustment.enemyDamageMultiplier);
+
+      // Apply AI complexity so enemy behavior adapts with DDA tier.
+      this.scene.setEnemyAIComplexity(adjustment.aiComplexity);
       
       console.log("✅ DDA Applied (Elemental Affinity Preserved):", {
         adjustedHealth: combatState.enemy.maxHealth,
         adjustedDamage: combatState.enemy.damage,
+        aiComplexity: adjustment.aiComplexity,
         elementalAffinity: combatState.enemy.elementalAffinity // Confirm affinity unchanged
       });
       
@@ -128,6 +135,7 @@ export class CombatDDA {
     }
 
     const combatState = this.scene.getCombatState();
+    const enemyType = combatState.enemy.tier ?? "common";
     
     const combatMetrics: CombatMetrics = {
       combatId: `combat_${Date.now()}`,
@@ -157,7 +165,7 @@ export class CombatDDA {
       combatDuration: Date.now() - this.combatStartTime,
       
       // Enemy information
-      enemyType: "common" as const,
+      enemyType,
       enemyName: combatState.enemy.name,
       enemyStartHealth: combatState.enemy.maxHealth,
     };

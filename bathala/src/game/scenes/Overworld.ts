@@ -7,7 +7,6 @@ import { Player, Relic } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { InputSystem } from "../../systems/shared/InputSystem";
 import { MazeGenSystem } from "../../systems/generation/MazeGenSystem";
-import { OverworldGenerator } from "../../systems/generation/OverworldGenerator";
 import { ActRegistry } from "../../core/acts/ActRegistry";
 import { ACT1 } from "../../acts/act1/Act1Definition";
 import { TooltipSystem } from "../../systems/world/TooltipSystem";
@@ -68,6 +67,13 @@ const DEPTH = {
 };
 
 export class Overworld extends Scene {
+  private bossPreparationContext?: {
+    readiness: number;
+    healthMultiplier: number;
+    damageMultiplier: number;
+    label: string;
+    notes: string[];
+  };
   private player!: Phaser.GameObjects.Sprite;
   private keyInputManager!: InputSystem;
   private mazeGenManager!: MazeGenSystem;
@@ -143,8 +149,8 @@ export class Overworld extends Scene {
         diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : 0,
         relics: savedPlayerData.relics || [],
         potions: savedPlayerData.potions || [],
-        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 1,
-        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 1
+        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 3,
+        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 3
       };
     } else {
       // Initialize player data with default values
@@ -166,8 +172,8 @@ export class Overworld extends Scene {
         diamante: 20,
         relics: [], // No test relics - will be empty until player finds them
         potions: [], // Start with no potions - gain from treasure chests
-        discardCharges: 1,
-        maxDiscardCharges: 1
+        discardCharges: 3,
+        maxDiscardCharges: 3
       };
 
       // Save initial player data to GameState
@@ -244,8 +250,8 @@ export class Overworld extends Scene {
         diamante: 20,
         relics: [], // Start with no relics
         potions: [], // Start with no potions - gain from treasure chests
-        discardCharges: 1,
-        maxDiscardCharges: 1
+        discardCharges: 3,
+        maxDiscardCharges: 3
       };
 
       // Save fresh player data to GameState
@@ -269,8 +275,8 @@ export class Overworld extends Scene {
         diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : 0,
         relics: savedPlayerData.relics || [],
         potions: savedPlayerData.potions || [],
-        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 1,
-        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 1
+        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 3,
+        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 3
       };
     }
 
@@ -432,8 +438,8 @@ export class Overworld extends Scene {
         diamante: 0,
         relics: [],
         potions: [],
-        discardCharges: 1,
-        maxDiscardCharges: 1
+        discardCharges: 3,
+        maxDiscardCharges: 3
       };
 
       // Save player position before transitioning
@@ -618,8 +624,8 @@ export class Overworld extends Scene {
         diamante: 0,
         relics: [],
         potions: [],
-        discardCharges: 1,
-        maxDiscardCharges: 1
+        discardCharges: 3,
+        maxDiscardCharges: 3
       };
 
       // Save player position before transitioning
@@ -1858,8 +1864,8 @@ export class Overworld extends Scene {
             diamante: 0,
             relics: [],
             potions: [],
-            discardCharges: 1,
-            maxDiscardCharges: 1
+            discardCharges: 3,
+            maxDiscardCharges: 3
           };
 
           // Save player position before transitioning
@@ -1953,125 +1959,15 @@ export class Overworld extends Scene {
 
     // Check if this is a boss fight for special animation
     if (nodeType === "boss") {
+      this.gameState.recordCombatStart("boss");
       this.startBossCombat(enemyId);
       return;
     }
 
-    // Show enemy encounter dialogue overlay, then proceed with transition
-    this.showEncounterDialogue(nodeType, enemyId, () => {
-      this.performCombatTransition(nodeType, enemyId);
-    });
-  }
-
-  /**
-   * Show a dramatic enemy encounter dialogue overlay in the overworld.
-   * Displays the enemy's name and intro line with typewriter effect,
-   * then calls the callback to start the combat transition.
-   */
-  private showEncounterDialogue(nodeType: string, enemyId: string | undefined, callback: () => void): void {
-    // Look up enemy config for dialogue
-    const enemyConfig = enemyId ? EnemyRegistry.resolve(enemyId) : null;
-    const enemyName = enemyConfig?.name || 'Unknown Creature';
-    const isElite = nodeType === 'elite';
-    const accentColor = isElite ? 0xff4757 : 0xffd93d;
-    const accentHex = isElite ? '#ff4757' : '#ffd93d';
-
-    const cam = this.cameras.main;
-    const sw = cam.width;
-    const sh = cam.height;
-
-    // === SHARP SCREEN FLASH + SHAKE — instant impact ===
-    cam.flash(150, 255, 255, 255, false);
-    cam.shake(200, isElite ? 0.025 : 0.015);
-
-    // Master container for cleanup
-    const container = this.add.container(0, 0)
-      .setScrollFactor(0).setDepth(DEPTH.DIALOG_OVERLAY + 10);
-
-    // === DARK VIGNETTE ===
-    const overlay = this.add.rectangle(sw / 2, sh / 2, sw, sh, 0x000000, 0)
-      .setScrollFactor(0);
-    container.add(overlay);
-    this.tweens.add({ targets: overlay, alpha: 0.72, duration: 80, ease: 'Power4' });
-
-    // === BIG "!" EXCLAMATION — Persona 5 alert ===
-    const exclamation = this.add.text(sw / 2, sh / 2 - 30, '!', {
-      fontFamily: 'dungeon-mode',
-      fontSize: Math.floor(sw * 0.2) + 'px',
-      color: accentHex,
-      align: 'center',
-      stroke: '#000000',
-      strokeThickness: 8,
-    }).setOrigin(0.5).setAlpha(0).setScale(3.5).setScrollFactor(0);
-    container.add(exclamation);
-
-    // "!" slams from big to normal
-    this.tweens.add({
-      targets: exclamation, alpha: 1, scale: 1,
-      duration: 140, ease: 'Back.easeOut',
-    });
-
-    // Thin accent slash behind "!"
-    const slash = this.add.rectangle(sw / 2, sh / 2 - 30, sw * 0.55, 3, accentColor, 0)
-      .setAngle(-3).setScrollFactor(0);
-    container.add(slash);
-    this.tweens.add({ targets: slash, alpha: 0.6, duration: 100, delay: 60, ease: 'Power4' });
-
-    // === ENEMY NAME — fades in below "!" ===
-    const nameText = this.add.text(sw / 2, sh / 2 + 40, enemyName.toUpperCase(), {
-      fontFamily: 'dungeon-mode',
-      fontSize: Math.floor(sw * 0.032) + 'px',
-      color: '#e8eced',
-      align: 'center',
-      stroke: '#000000',
-      strokeThickness: 4,
-    }).setOrigin(0.5).setAlpha(0).setScrollFactor(0);
-    container.add(nameText);
-
-    this.tweens.add({
-      targets: nameText, alpha: 1,
-      duration: 250, ease: 'Power2', delay: 120,
-    });
-
-    // === EDGE FLASH BARS ===
-    if (isElite) {
-      const barTop = this.add.rectangle(sw / 2, 0, sw, 4, accentColor, 0)
-        .setOrigin(0.5, 0).setScrollFactor(0);
-      const barBot = this.add.rectangle(sw / 2, sh, sw, 4, accentColor, 0)
-        .setOrigin(0.5, 1).setScrollFactor(0);
-      container.add([barTop, barBot]);
-      this.tweens.add({
-        targets: [barTop, barBot], alpha: 0.9,
-        duration: 80, ease: 'Power4', delay: 60,
-        onComplete: () => {
-          this.tweens.add({ targets: [barTop, barBot], alpha: 0, duration: 350 });
-        },
-      });
+    if (nodeType === "combat" || nodeType === "elite") {
+      this.gameState.recordCombatStart(nodeType);
     }
-
-    // === AUTO-DISMISS — fast out, then combat transition ===
-    const holdTime = isElite ? 700 : 550;
-    this.time.delayedCall(holdTime, () => {
-      this.tweens.add({
-        targets: [exclamation, slash, nameText], alpha: 0, scale: 0.7,
-        duration: 140, ease: 'Power3',
-      });
-      this.tweens.add({
-        targets: overlay, alpha: 0,
-        duration: 180, ease: 'Power2', delay: 40,
-        onComplete: () => {
-          container.destroy();
-          callback();
-        },
-      });
-    });
-  }
-
-  /**
-   * Perform the actual combat transition animation (separated from startCombat
-   * so encounter dialogue can precede it).
-   */
-  private performCombatTransition(nodeType: string, enemyId?: string): void {
+    
     // Get camera dimensions
     const camera = this.cameras.main;
     const cameraWidth = camera.width;
@@ -2312,6 +2208,27 @@ export class Overworld extends Scene {
     gameState.savePlayerPosition(this.player.x, this.player.y);
 
     // Get camera dimensions
+    // Build boss preparation context (independent from DDA).
+    try {
+      const relicCount = this.playerData?.relics?.length ?? 0;
+      const potionCount = this.playerData?.potions?.length ?? 0;
+      const bossPreparation = this.gameState.getBossPreparationContext(relicCount, potionCount);
+      console.log("⚖️ Boss preparation context:", {
+        readiness: bossPreparation.readiness.toFixed(2),
+        label: bossPreparation.label,
+        healthMultiplier: bossPreparation.healthMultiplier,
+        damageMultiplier: bossPreparation.damageMultiplier,
+        actionsTaken: this.gameState.actionsTaken,
+        combatsStarted: this.gameState.combatsStarted,
+        relicCount,
+        potionCount,
+      });
+
+      this.bossPreparationContext = bossPreparation;
+    } catch (error) {
+      console.warn("Could not calculate boss preparation context:", error);
+    }
+
     const camera = this.cameras.main;
     const cameraWidth = camera.width;
     const cameraHeight = camera.height;
@@ -2374,7 +2291,8 @@ export class Overworld extends Scene {
             this.scene.launch("Combat", {
               nodeType: "boss",
               enemyId: enemyId,
-              transitionOverlay: overlay
+              transitionOverlay: overlay,
+              bossPreparation: this.bossPreparationContext
             });
           }
         });

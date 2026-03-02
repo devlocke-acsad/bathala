@@ -65,10 +65,10 @@ export interface DDAModifiers {
 
   // Difficulty Tier Thresholds
   difficultyTiers: {
-    struggling: { min: 0, max: 1.0 };     // Tier 0
-    learning: { min: 1.1, max: 2.5 };     // Tier 1-2
-    thriving: { min: 2.6, max: 4.0 };     // Tier 3-4
-    mastering: { min: 4.1, max: 5.0 };    // Tier 5
+    struggling: { min: number, max: number };
+    learning: { min: number, max: number };
+    thriving: { min: number, max: number };
+    mastering: { min: number, max: number };
   };
 
   // Enemy Scaling by Tier
@@ -166,7 +166,7 @@ export const DEFAULT_DDA_CONFIG: DDAModifiers = {
     // Skill Expression Performance
     excellentHandBonus: 0.25,           // Four of a Kind+: Excellent play
     goodHandBonus: 0.1,                 // Straight+: Good play
-    resourceEfficiencyBonus: 0.15,      // Smart resource management
+    resourceEfficiencyBonus: 0.08,      // Smart resource management (stricter trigger in DDA engine)
     
     // Damage Performance
     highDamageEfficiencyBonus: 0.2,     // High damage/turn ratio
@@ -194,17 +194,17 @@ export const DEFAULT_DDA_CONFIG: DDAModifiers = {
 
   comebackBonus: {
     enabled: true,
-    ppsThreshold: 1.5,             // Trigger when deep in struggling tier
-    bonusPerVictory: 0.3,          // Momentum bonus for positive performance while struggling
-    consecutiveWinBonus: 0.15,     // Build momentum with consecutive good performances
-    maxConsecutiveBonus: 0.45,     // Cap at 3 consecutive good performances
+    ppsThreshold: 1.2,             // Trigger only when clearly struggling
+    bonusPerVictory: 0.12,         // Controlled recovery bonus
+    consecutiveWinBonus: 0.05,     // Smaller momentum per consecutive success
+    maxConsecutiveBonus: 0.15,     // Lower cap to avoid slingshoting tiers
   },
 
   difficultyTiers: {
-    struggling: { min: 0, max: 1.0 },
-    learning: { min: 1.1, max: 2.5 },
-    thriving: { min: 2.6, max: 4.0 },
-    mastering: { min: 4.1, max: 5.0 },
+    struggling: { min: 0.0, max: 1.3 },
+    learning: { min: 1.3, max: 2.8 },
+    thriving: { min: 2.8, max: 4.2 },
+    mastering: { min: 4.2, max: 5.0 },
   },
 
   enemyScaling: {

@@ -9,6 +9,11 @@ export class OverworldGameState {
   public totalActionsUntilBoss: number = 500; // 5 cycles * 100 actions per cycle
   public bossAppeared: boolean = false;
 
+  // Engagement tracking for anti-rush balancing
+  public combatsStarted: number = 0;
+  public eliteCombatsStarted: number = 0;
+  public bossCombatsStarted: number = 0;
+
   // Next combat buffs (applied at the start of next combat)
   public nextCombatBlock: number = 0;
   public nextCombatHealth: number = 0;
@@ -63,6 +68,92 @@ export class OverworldGameState {
   }
 
   /**
+   * Record when combat is entered from the overworld.
+   */
+  recordCombatStart(type: "combat" | "elite" | "boss"): void {
+    if (type === "boss") {
+      this.bossCombatsStarted++;
+      return;
+    }
+
+    this.combatsStarted++;
+    if (type === "elite") {
+      this.eliteCombatsStarted++;
+    }
+  }
+
+  /**
+   * Build boss encounter tuning based on run preparation quality.
+   * This is intentionally independent from DDA.
+   */
+  getBossPreparationContext(
+    relicCount: number,
+    potionCount: number
+  ): {
+    readiness: number;
+    healthMultiplier: number;
+    damageMultiplier: number;
+    label: string;
+    notes: string[];
+  } {
+    const expectedCombats = Math.max(4, Math.floor(this.actionsTaken / 70));
+    const combatParticipation = Math.min(1, this.combatsStarted / expectedCombats);
+    const resourceReadiness = Math.min(1, relicCount * 0.25 + potionCount * 0.35);
+    const readiness = Math.max(
+      0,
+      Math.min(1, combatParticipation * 0.55 + resourceReadiness * 0.45)
+    );
+
+    if (readiness >= 0.8) {
+      return {
+        readiness,
+        healthMultiplier: 0.95,
+        damageMultiplier: 0.95,
+        label: "well_prepared",
+        notes: ["Strong node engagement and resource planning."],
+      };
+    }
+
+    if (readiness >= 0.6) {
+      return {
+        readiness,
+        healthMultiplier: 1.0,
+        damageMultiplier: 1.0,
+        label: "prepared",
+        notes: ["Adequate node engagement and resource collection."],
+      };
+    }
+
+    if (readiness >= 0.4) {
+      return {
+        readiness,
+        healthMultiplier: 1.08,
+        damageMultiplier: 1.08,
+        label: "underprepared",
+        notes: ["Limited combat or resource preparation before boss."],
+      };
+    }
+
+    if (readiness >= 0.2) {
+      return {
+        readiness,
+        healthMultiplier: 1.15,
+        damageMultiplier: 1.15,
+        label: "poorly_prepared",
+        notes: ["Low engagement with progression nodes and resources."],
+      };
+    }
+
+    return {
+      readiness,
+      healthMultiplier: 1.22,
+      damageMultiplier: 1.2,
+      label: "rush_path",
+      notes: ["Boss rush detected: minimal preparation taken."],
+    };
+  }
+
+  /**
    * Reset the game state for a new run
    */
   reset(): void {
@@ -73,6 +164,9 @@ export class OverworldGameState {
     this.bossAppeared = false;
     this.nextCombatBlock = 0;
     this.nextCombatHealth = 0;
+    this.combatsStarted = 0;
+    this.eliteCombatsStarted = 0;
+    this.bossCombatsStarted = 0;
   }
 
   /**

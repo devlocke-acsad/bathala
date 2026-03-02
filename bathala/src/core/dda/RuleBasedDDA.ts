@@ -302,8 +302,8 @@ export class RuleBasedDDA {
     // 6. RESOURCE MANAGEMENT (Discard usage efficiency)
     // Roguelikes reward conservative resource usage
     const discardEfficiency = 1 - (metrics.discardsUsed / Math.max(1, metrics.maxDiscardsAvailable));
-    if (discardEfficiency >= 0.7) {
-      // Used ≤30% of discards - excellent resource management
+    if (discardEfficiency >= 0.85) {
+      // Used ≤15% of discards - excellent resource management
       adjustment += config.resourceEfficiencyBonus * tierScale.bonusMultiplier;
     }
 
@@ -353,6 +353,15 @@ export class RuleBasedDDA {
       }
     }
 
+    // 9. ENCOUNTER CONTEXT WEIGHTING
+    // Performance in elite/boss fights should carry more signal than common fights.
+    const encounterWeight = this.getEncounterWeight(metrics.enemyType);
+    adjustment *= encounterWeight;
+
+    // 10. TIER-SPECIFIC STABILITY CLAMP
+    // Limits per-combat PPS swings so one outlier fight cannot over-shift classification.
+    adjustment = this.clampPPSDeltaByTier(adjustment, currentTier);
+
     // Log PPS calculation breakdown for debugging
     console.log("📊 PPS Calculation Breakdown (Roguelike Performance):", {
       startHP: `${(startingHealthRatio * 100).toFixed(0)}%`,
@@ -361,7 +370,9 @@ export class RuleBasedDDA {
       handQuality: `${metrics.bestHandAchieved} (${bestHandQuality})`,
       efficiency: `${efficiencyAdjustment.toFixed(3)} (${metrics.turnCount}/${expectedTurns} turns)`,
       damageEff: `${damageEfficiencyAdjustment.toFixed(3)} (${damagePerTurn.toFixed(1)} DPT)`,
-      resourceMgmt: discardEfficiency >= 0.7 ? `+${config.resourceEfficiencyBonus.toFixed(2)}` : "0",
+      resourceMgmt: discardEfficiency >= 0.85 ? `+${config.resourceEfficiencyBonus.toFixed(2)}` : "0",
+      encounterType: metrics.enemyType,
+      encounterWeight: encounterWeight.toFixed(2),
       clutch: clutchBonus > 0 ? `+${clutchBonus.toFixed(3)} (low HP start)` : "0",
       comeback: comebackBonus > 0 ? `+${comebackBonus.toFixed(3)}` : "0",
       tier: currentTier,
@@ -373,6 +384,28 @@ export class RuleBasedDDA {
     return adjustment;
   }
 
+  private getEncounterWeight(enemyType: CombatMetrics["enemyType"]): number {
+    switch (enemyType) {
+      case "elite":
+        return 1.1;
+      case "boss":
+        return 1.2;
+      default:
+        return 1.0;
+    }
+  }
+
+  private clampPPSDeltaByTier(delta: number, tier: DifficultyTier): number {
+    const bounds: Record<DifficultyTier, { min: number; max: number }> = {
+      struggling: { min: -0.5, max: 0.8 },
+      learning: { min: -0.5, max: 0.6 },
+      thriving: { min: -0.5, max: 0.6 },
+      mastering: { min: -0.6, max: 0.5 },
+    };
+    const { min, max } = bounds[tier];
+    return Math.max(min, Math.min(max, delta));
+  }
+
   /**
    * Calculate difficulty tier from PPS
    */
@@ -381,14 +414,15 @@ export class RuleBasedDDA {
     
     let calculatedTier: DifficultyTier;
     
-    if (pps >= tiers.mastering.min && pps <= tiers.mastering.max) {
-      calculatedTier = "mastering";
-    } else if (pps >= tiers.thriving.min && pps <= tiers.thriving.max) {
-      calculatedTier = "thriving";
-    } else if (pps >= tiers.learning.min && pps <= tiers.learning.max) {
-      calculatedTier = "learning";
-    } else {
+    // Use ordered upper-bound checks to avoid tier "gaps" caused by decimal boundaries.
+    if (pps <= tiers.struggling.max) {
       calculatedTier = "struggling";
+    } else if (pps <= tiers.learning.max) {
+      calculatedTier = "learning";
+    } else if (pps <= tiers.thriving.max) {
+      calculatedTier = "thriving";
+    } else {
+      calculatedTier = "mastering";
     }
     
     // Debug logging to catch tier calculation issues
@@ -417,6 +451,7 @@ export class RuleBasedDDA {
       tier,
       enemyHealthMultiplier: enemyScaling.healthMultiplier,
       enemyDamageMultiplier: enemyScaling.damageMultiplier,
+      aiComplexity: enemyScaling.aiComplexity,
       shopPriceMultiplier: economicScaling.shopPriceMultiplier,
       goldRewardMultiplier: economicScaling.goldRewardMultiplier,
       restNodeBias: mapBias.restNodeChance,
@@ -469,7 +504,7 @@ export class RuleBasedDDA {
     
     // Resource management
     const discardEfficiency = 1 - (metrics.discardsUsed / Math.max(1, metrics.maxDiscardsAvailable));
-    if (discardEfficiency >= 0.7) reasons.push("efficient_resources");
+    if (discardEfficiency >= 0.85) reasons.push("efficient_resources");
     
     // Context
     const startHealthRatio = metrics.startHealth / metrics.startMaxHealth;
