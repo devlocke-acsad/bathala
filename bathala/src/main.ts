@@ -11,6 +11,36 @@ const isMobileDevice = (): boolean => {
     return isMobileByUA || isMobileByUserAgentData || hasTouchPoints > 0;
 };
 
+const setupGameScaleRefresh = (game: ReturnType<typeof StartGame>): (() => void) => {
+    const refreshGameScale = () => {
+        if (!game?.scale) {
+            return;
+        }
+
+        // Recompute FIT scaling after mobile browser UI / orientation changes.
+        game.scale.updateBounds();
+        game.scale.refresh();
+    };
+
+    const refreshGameScaleSoon = () => {
+        refreshGameScale();
+        window.setTimeout(refreshGameScale, 120);
+        window.setTimeout(refreshGameScale, 300);
+    };
+
+    window.addEventListener('resize', refreshGameScaleSoon);
+    window.addEventListener('orientationchange', refreshGameScaleSoon);
+    window.visualViewport?.addEventListener('resize', refreshGameScaleSoon);
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            refreshGameScaleSoon();
+        }
+    });
+
+    refreshGameScaleSoon();
+    return refreshGameScaleSoon;
+};
+
 const showMobileRecommendationWarning = (): void => {
     if (!isMobileDevice()) {
         return;
@@ -92,7 +122,7 @@ const showMobileRecommendationWarning = (): void => {
     }
 };
 
-const setupMobileLandscapeGuard = (): void => {
+const setupMobileLandscapeGuard = (onViewportChange?: () => void): void => {
     if (!isMobileDevice()) {
         return;
     }
@@ -154,6 +184,7 @@ const setupMobileLandscapeGuard = (): void => {
         }
         const isLandscape = window.innerWidth >= window.innerHeight;
         overlay.style.display = isLandscape ? 'none' : 'flex';
+        onViewportChange?.();
     };
 
     // Try browser orientation lock when possible (requires gesture and may be ignored by some browsers).
@@ -182,7 +213,8 @@ const setupMobileLandscapeGuard = (): void => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    StartGame('game-container');
+    const game = StartGame('game-container');
+    const refreshGameScaleSoon = setupGameScaleRefresh(game);
     showMobileRecommendationWarning();
-    setupMobileLandscapeGuard();
+    setupMobileLandscapeGuard(refreshGameScaleSoon);
 });
