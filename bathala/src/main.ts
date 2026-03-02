@@ -11,6 +11,140 @@ const isMobileDevice = (): boolean => {
     return isMobileByUA || isMobileByUserAgentData || hasTouchPoints > 0;
 };
 
+const isAndroidDevice = (): boolean => /Android/i.test(navigator.userAgent || "");
+
+const isCurrentlyFullscreen = (): boolean => {
+    const doc = document as Document & { webkitFullscreenElement?: Element | null };
+    return !!(document.fullscreenElement || doc.webkitFullscreenElement);
+};
+
+const setupMobileViewportSizing = (): void => {
+    const applyViewportHeight = () => {
+        const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+        document.documentElement.style.setProperty('--app-height', `${viewportHeight}px`);
+    };
+
+    applyViewportHeight();
+    window.addEventListener('resize', applyViewportHeight);
+    window.addEventListener('orientationchange', applyViewportHeight);
+    window.visualViewport?.addEventListener('resize', applyViewportHeight);
+    window.visualViewport?.addEventListener('scroll', applyViewportHeight);
+};
+
+const requestBrowserFullscreen = async (): Promise<void> => {
+    const doc = document as Document & {
+        webkitFullscreenElement?: Element | null;
+        webkitExitFullscreen?: () => Promise<void>;
+    };
+    const root = document.documentElement as HTMLElement & {
+        webkitRequestFullscreen?: () => Promise<void>;
+    };
+
+    const hasFullscreen = !!(document.fullscreenElement || doc.webkitFullscreenElement);
+    if (hasFullscreen) {
+        return;
+    }
+
+    try {
+        if (root.requestFullscreen) {
+            await root.requestFullscreen();
+            return;
+        }
+        if (root.webkitRequestFullscreen) {
+            await root.webkitRequestFullscreen();
+        }
+    } catch (_error) {
+        // Some browsers (especially iOS Safari tabs) block this; continue with viewport sizing fallback.
+    }
+};
+
+const exitBrowserFullscreen = async (): Promise<void> => {
+    const doc = document as Document & {
+        webkitExitFullscreen?: () => Promise<void>;
+    };
+
+    try {
+        if (document.exitFullscreen) {
+            await document.exitFullscreen();
+            return;
+        }
+        if (doc.webkitExitFullscreen) {
+            await doc.webkitExitFullscreen();
+        }
+    } catch (_error) {
+        // Ignore exit failures.
+    }
+};
+
+const setupAndroidFullscreenButton = (): void => {
+    if (!isAndroidDevice()) {
+        return;
+    }
+
+    const appRoot = document.getElementById('app');
+    if (!appRoot) {
+        return;
+    }
+
+    let button = document.getElementById('android-fullscreen-btn') as HTMLButtonElement | null;
+    if (!button) {
+        button = document.createElement('button');
+        button.id = 'android-fullscreen-btn';
+        button.type = 'button';
+        button.setAttribute('style', `
+            position: fixed;
+            right: max(12px, env(safe-area-inset-right));
+            bottom: max(12px, env(safe-area-inset-bottom));
+            z-index: 9500;
+            min-width: 128px;
+            padding: 10px 14px;
+            border: 2px solid #77888C;
+            background: rgba(21, 14, 16, 0.78);
+            color: #f1f1f0;
+            font-family: 'dungeon-mode', Chivo, Arial, sans-serif;
+            font-size: 14px;
+            letter-spacing: 0.03em;
+            cursor: pointer;
+            user-select: none;
+            touch-action: manipulation;
+        `);
+        appRoot.appendChild(button);
+    }
+
+    const syncLabel = () => {
+        if (!button) {
+            return;
+        }
+        button.textContent = isCurrentlyFullscreen() ? 'Exit Fullscreen' : 'Fullscreen';
+    };
+
+    button.onclick = async () => {
+        if (isCurrentlyFullscreen()) {
+            await exitBrowserFullscreen();
+        } else {
+            await requestBrowserFullscreen();
+        }
+        syncLabel();
+    };
+
+    document.addEventListener('fullscreenchange', syncLabel);
+    document.addEventListener('webkitfullscreenchange', syncLabel as EventListener);
+    syncLabel();
+};
+
+const setupMobileFullscreenGesture = (): void => {
+    if (!isMobileDevice()) {
+        return;
+    }
+
+    const tryEnterFullscreen = () => {
+        requestBrowserFullscreen().catch(() => undefined);
+    };
+
+    document.addEventListener('pointerdown', tryEnterFullscreen, { once: true });
+    document.addEventListener('touchstart', tryEnterFullscreen, { once: true });
+};
+
 const setupGameScaleRefresh = (game: ReturnType<typeof StartGame>): (() => void) => {
     const refreshGameScale = () => {
         if (!game?.scale) {
@@ -117,6 +251,7 @@ const showMobileRecommendationWarning = (): void => {
     const continueButton = document.getElementById('mobile-warning-continue');
     if (continueButton) {
         continueButton.addEventListener('click', () => {
+            requestBrowserFullscreen().catch(() => undefined);
             warningOverlay?.remove();
         }, { once: true });
     }
@@ -213,6 +348,9 @@ const setupMobileLandscapeGuard = (onViewportChange?: () => void): void => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    setupMobileViewportSizing();
+    setupMobileFullscreenGesture();
+    setupAndroidFullscreenButton();
     const game = StartGame('game-container');
     const refreshGameScaleSoon = setupGameScaleRefresh(game);
     showMobileRecommendationWarning();
