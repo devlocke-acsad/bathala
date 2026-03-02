@@ -2058,12 +2058,22 @@ export class Combat extends Scene {
 
     // Spare / Slay buttons — positioned lower inside the bigger box
     const btnY = screenHeight / 2 + 90;
-    this.createDialogueButton(screenWidth / 2 - 130, btnY, "Spare", "#2ed573", () =>
-      this.makeLandasChoice("spare", dialogue)
+    this.createDialogueButton(
+      screenWidth / 2 - 130,
+      btnY,
+      "Spare",
+      "#2ed573",
+      () => this.makeLandasChoice("spare", dialogue),
+      550
     );
 
-    this.createDialogueButton(screenWidth / 2 + 130, btnY, "Slay", "#ff4757", () =>
-      this.makeLandasChoice("kill", dialogue)
+    this.createDialogueButton(
+      screenWidth / 2 + 130,
+      btnY,
+      "Slay",
+      "#ff4757",
+      () => this.makeLandasChoice("kill", dialogue),
+      550
     );
 
     // Current landas display
@@ -2091,7 +2101,8 @@ export class Combat extends Scene {
     y: number,
     text: string,
     color: string,
-    callback: () => void
+    callback: () => void,
+    interactiveDelayMs: number = 0
   ): Phaser.GameObjects.Container {
     const button = this.add.container(x, y);
 
@@ -2115,7 +2126,15 @@ export class Combat extends Scene {
     const bg = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
 
     // Make background the interactive element instead of container (Prologue style)
-    bg.setInteractive({ useHandCursor: true });
+    const enableInteraction = () => {
+      if (!button.active) return;
+      bg.setInteractive({ useHandCursor: true });
+    };
+    if (interactiveDelayMs > 0) {
+      this.time.delayedCall(interactiveDelayMs, enableInteraction);
+    } else {
+      enableInteraction();
+    }
 
     button.add([outerBorder, innerBorder, bg, buttonText]);
 
@@ -2319,9 +2338,7 @@ export class Combat extends Scene {
     const sh = this.cameras.main?.height || 768;
     const sf = Math.max(0.8, Math.min(1.2, sw / 1024));
 
-    // ============================================================
-    // BACKGROUND & OVERLAY
-    // ============================================================
+    // Background and mood overlay
     const bgImage = this.add.image(sw / 2, sh / 2, 'chap1_no_leaves_boss');
     bgImage.setScale(Math.max(sw / bgImage.width, sh / bgImage.height)).setDepth(-100);
 
@@ -2329,15 +2346,12 @@ export class Combat extends Scene {
       .setDepth(-90).setAlpha(0);
     this.tweens.add({ targets: overlay, alpha: 1, duration: 400, ease: 'Power2' });
 
-    // Vignette edges
     this.add.rectangle(sw / 2, 0, sw, sh * 0.18, 0x000000, 0.6)
       .setOrigin(0.5, 0).setDepth(-85);
     this.add.rectangle(sw / 2, sh, sw, sh * 0.18, 0x000000, 0.6)
       .setOrigin(0.5, 1).setDepth(-85);
 
-    // ============================================================
-    // AMBIENT PARTICLES — slow themed drift
-    // ============================================================
+    // Ambient themed particles
     this.add.particles(0, 0, '__WHITE', {
       x: { min: 0, max: sw },
       y: { min: -20, max: sh + 20 },
@@ -2353,169 +2367,178 @@ export class Combat extends Scene {
       gravityY: -4,
     }).setDepth(-60);
 
-    // ============================================================
-    // CENTRAL PANEL — frosted glass card
-    // ============================================================
-    const panelW = Math.min(520 * sf, sw * 0.65);
-    const panelH = Math.min(620 * sf, sh * 0.92);
-    const panelX = sw / 2;
+    // Two-panel layout: left portrait/description, right result/rewards
+    const panelGap = 24 * sf;
+    const contentWidth = Math.min(sw * 0.9, 980 * sf);
+    const leftPanelW = Math.max(300 * sf, contentWidth * 0.41);
+    const rightPanelW = Math.max(360 * sf, contentWidth - leftPanelW - panelGap);
+    const panelH = Math.min(620 * sf, sh * 0.9);
+    const totalW = leftPanelW + panelGap + rightPanelW;
+    const startX = sw / 2 - totalW / 2;
+    const leftPanelX = startX + leftPanelW / 2;
+    const rightPanelX = startX + leftPanelW + panelGap + rightPanelW / 2;
     const panelY = sh / 2;
+    const panelTop = panelY - panelH / 2;
 
-    // Panel shadow
-    const panelShadow = this.add.rectangle(panelX + 4, panelY + 4, panelW, panelH, 0x000000, 0.4)
-      .setDepth(0);
+    const createPanel = (x: number, w: number) => {
+      const shadow = this.add.rectangle(x + 4, panelY + 4, w, panelH, 0x000000, 0.4).setDepth(0).setAlpha(0);
+      const bg = this.add.rectangle(x, panelY, w, panelH, 0x12101a, 0.9).setDepth(1).setAlpha(0);
+      const border = this.add.rectangle(x, panelY, w, panelH, undefined, 0).setDepth(2).setStrokeStyle(1.5, themeHexDark, 0.6).setAlpha(0);
+      const inner = this.add.rectangle(x, panelY, w - 8, panelH - 8, undefined, 0).setDepth(2).setStrokeStyle(0.5, themeHex, 0.15).setAlpha(0);
+      const accent = this.add.rectangle(x, panelTop, w, 3, themeHex, 0.7).setOrigin(0.5, 0).setDepth(3).setAlpha(0);
 
-    // Panel bg
-    const panelBg = this.add.rectangle(panelX, panelY, panelW, panelH, 0x12101a, 0.88)
-      .setDepth(1);
-
-    // Panel outer border
-    const panelBorder = this.add.rectangle(panelX, panelY, panelW, panelH, undefined, 0)
-      .setDepth(2).setStrokeStyle(1.5, themeHexDark, 0.6);
-
-    // Panel inner border (double-border effect)
-    const panelInner = this.add.rectangle(panelX, panelY, panelW - 8, panelH - 8, undefined, 0)
-      .setDepth(2).setStrokeStyle(0.5, themeHex, 0.15);
-
-    // Themed top accent bar
-    const accentBar = this.add.rectangle(panelX, panelY - panelH / 2, panelW, 3, themeHex, 0.7)
-      .setOrigin(0.5, 0).setDepth(3);
-
-    // Panel fade-in
-    [panelShadow, panelBg, panelBorder, panelInner, accentBar].forEach(el => {
-      el.setAlpha(0);
-      this.tweens.add({
-        targets: el,
-        alpha: el === panelShadow ? 0.4 : 1,
-        duration: 350,
-        ease: 'Power2',
+      [shadow, bg, border, inner, accent].forEach((el, i) => {
+        this.tweens.add({
+          targets: el,
+          alpha: el === shadow ? 0.4 : 1,
+          duration: 300,
+          delay: i * 40,
+          ease: 'Power2',
+        });
       });
+    };
+
+    createPanel(leftPanelX, leftPanelW);
+    createPanel(rightPanelX, rightPanelW);
+
+    // Use the same portrait family as Overworld tooltip + Discover.
+    const enemyKey = this.combatState.enemy.name
+      .toLowerCase()
+      .replace(/-/g, "_")
+      .replace(/\s+/g, "_");
+    const discoverPortraitMap: Record<string, string> = {
+      "tikbalang_scout": "tikbalang_almanac",
+      "balete_wraith": "balete_almanac",
+      "sigbin_charger": "sigbin_almanac",
+      "duwende_trickster": "duwende_almanac",
+      "tiyanak_ambusher": "tiyanak_almanac",
+      "amomongo": "amomongo_almanac",
+      "bungisngis": "bungisngis_almanac",
+      "kapre_shade": "kapre_almanac",
+      "tawong_lipod": "tawonglipod_almanac",
+      "mangangaway": "mangangaway_almanac",
+    };
+    const enemyAny = this.combatState.enemy as any;
+    const discoverPortrait = discoverPortraitMap[enemyKey];
+    const preferredPortraitKey = discoverPortrait && this.textures.exists(discoverPortrait)
+      ? discoverPortrait
+      : (typeof enemyAny.overworldSpriteKey === "string" && this.textures.exists(enemyAny.overworldSpriteKey))
+        ? enemyAny.overworldSpriteKey
+        : (this.combatState.enemy.combatSpriteKey || "tikbalang_combat");
+
+    // Left panel: creature name + portrait + narrative description
+    const creatureName = this.add.text(leftPanelX, panelTop + 52 * sf, this.combatState.enemy.name.toUpperCase(), {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.floor(22 * sf),
+      color: isSpare ? "#a9d9c0" : "#d8a3aa",
+      align: "center",
+    }).setOrigin(0.5).setDepth(12).setAlpha(0);
+    this.tweens.add({ targets: creatureName, alpha: 1, duration: 300, delay: 220, ease: "Power2" });
+
+    const creatureDivider = this.add.rectangle(leftPanelX, panelTop + 78 * sf, leftPanelW * 0.6, 1, themeHex, 0.4)
+      .setDepth(12).setAlpha(0);
+    this.tweens.add({ targets: creatureDivider, alpha: 1, duration: 300, delay: 300, ease: "Power2" });
+
+    const portraitFrameY = panelTop + 170 * sf;
+    const portraitFrameGlow = this.add.rectangle(leftPanelX, portraitFrameY, 236 * sf, 236 * sf, themeHexDark, 0.2)
+      .setDepth(8).setAlpha(0);
+    const portraitFrame = this.add.rectangle(leftPanelX, portraitFrameY, 220 * sf, 220 * sf, 0x0f0a0d, 0.9)
+      .setDepth(9).setStrokeStyle(1.5, themeHex, 0.45).setAlpha(0);
+
+    this.tweens.add({ targets: [portraitFrameGlow, portraitFrame], alpha: 1, duration: 350, delay: 220, ease: "Power2" });
+
+    if (this.textures.exists(preferredPortraitKey)) {
+      const portrait = this.add.image(leftPanelX, portraitFrameY, preferredPortraitKey).setDepth(10).setAlpha(0);
+      const portraitScale = Math.min((190 * sf) / portrait.width, (190 * sf) / portrait.height);
+      portrait.setScale(portraitScale);
+      if (!isSpare) portrait.setTint(0x787878);
+      this.tweens.add({ targets: portrait, alpha: isSpare ? 1 : 0.65, duration: 350, delay: 300, ease: "Power2" });
+    } else {
+      this.add.text(leftPanelX, portraitFrameY, isSpare ? "✦" : "☠", {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(80 * sf),
+        color: themeColor,
+        align: "center",
+      }).setOrigin(0.5).setDepth(10).setAlpha(0.9);
+    }
+
+    const descTopY = portraitFrameY + 130 * sf;
+    const quoteText = this.add.text(leftPanelX, descTopY, `"${dialogue}"`, {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.floor(12 * sf),
+      color: "#c8d6e0",
+      fontStyle: "italic",
+      align: "center",
+      wordWrap: { width: leftPanelW - 70 * sf },
+      lineSpacing: 5,
+    }).setOrigin(0.5, 0).setDepth(12).setAlpha(0);
+
+    // Text box hugs measured dialogue bounds.
+    const quoteBounds = quoteText.getBounds();
+    const quoteBoxW = Math.min(leftPanelW - 36 * sf, Math.max(quoteBounds.width + 28 * sf, 200 * sf));
+    const quoteBoxH = quoteBounds.height + 22 * sf;
+    const quoteBox = this.add.rectangle(
+      leftPanelX,
+      descTopY + quoteBounds.height / 2,
+      quoteBoxW,
+      quoteBoxH,
+      0x0e0c14,
+      0.82
+    ).setDepth(11).setStrokeStyle(1, themeHexDark, 0.55).setAlpha(0);
+
+    this.time.delayedCall(520, () => {
+      if (!quoteText.active || !quoteBox.active) return;
+      this.tweens.add({ targets: [quoteBox, quoteText], alpha: 1, duration: 380, ease: "Power2" });
     });
 
-    // ============================================================
-    // LAYOUT — vertical flow inside panel
-    // ============================================================
-    const top = panelY - panelH / 2;
-    let curY = top + 24 * sf;
-
-    // ============================================================
-    // ENEMY PORTRAIT — small, centered at top of panel
-    // ============================================================
-    const spriteKey = this.combatState.enemy.combatSpriteKey || 'tikbalang_combat';
-    const portraitY = curY + 28 * sf;
-
-    // Glow ring behind portrait
-    const glowRing = this.add.circle(panelX, portraitY, 36 * sf, themeHex, 0.06)
-      .setDepth(4).setAlpha(0);
-    this.tweens.add({ targets: glowRing, alpha: 0.15, duration: 400, ease: 'Power2' });
-    this.tweens.add({
-      targets: glowRing,
-      scaleX: 1.12, scaleY: 1.12, alpha: 0.04,
-      duration: 2200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut', delay: 600,
-    });
-
-    const portrait = this.add.sprite(panelX, portraitY, spriteKey)
-      .setScale(0.9 * sf).setDepth(10).setAlpha(0);
-
-    this.tweens.add({
-      targets: portrait,
-      alpha: isSpare ? 1 : 0.35,
-      duration: 400, ease: 'Power3', delay: 120,
-    });
-    if (!isSpare) portrait.setTint(0x666666);
-
-    curY = portraitY + 38 * sf;
-
-    // ============================================================
-    // CHOICE TITLE + SUBTITLE
-    // ============================================================
+    // Right panel: current result + rewards + continue
     const titleLabel = isSpare ? "MERCY" : "CONQUEST";
     const titleSub = isSpare
       ? "You showed compassion to the fallen spirit."
       : "The creature's essence feeds the shadow.";
+    const rightTitleY = panelTop + 62 * sf;
 
-    const title = this.add.text(panelX, curY, titleLabel, {
+    const title = this.add.text(rightPanelX, rightTitleY, titleLabel, {
       fontFamily: "dungeon-mode",
       fontSize: Math.floor(44 * sf),
       color: themeColor,
       align: "center",
-    }).setOrigin(0.5).setAlpha(0).setScale(0.5).setDepth(10);
-
+    }).setOrigin(0.5).setAlpha(0).setScale(0.6).setDepth(12);
     this.tweens.add({
-      targets: title, alpha: 1, scale: 1,
-      duration: 450, ease: 'Back.easeOut', delay: 220,
+      targets: title,
+      alpha: 1,
+      scale: 1,
+      duration: 420,
+      ease: "Back.easeOut",
+      delay: 260,
     });
 
-    curY += 36 * sf;
-
-    const subtitle = this.add.text(panelX, curY, titleSub, {
+    const subtitle = this.add.text(rightPanelX, rightTitleY + 34 * sf, titleSub, {
       fontFamily: "dungeon-mode",
       fontSize: Math.floor(12 * sf),
       color: "#8a9ba8",
       fontStyle: "italic",
       align: "center",
-    }).setOrigin(0.5).setAlpha(0).setDepth(10);
+      wordWrap: { width: rightPanelW * 0.82 },
+    }).setOrigin(0.5, 0).setAlpha(0).setDepth(12);
+    this.tweens.add({ targets: subtitle, alpha: 0.8, duration: 300, delay: 500, ease: "Power2" });
 
-    this.tweens.add({ targets: subtitle, alpha: 0.75, duration: 300, delay: 450 });
-
-    curY += 22 * sf;
-
-    // ============================================================
-    // NARRATIVE DIALOGUE — pre-filled, fade-in
-    // ============================================================
-    const narrativeObj = this.add.text(panelX, curY, `"${dialogue}"`, {
+    const dividerY = rightTitleY + 78 * sf;
+    const divSpan = rightPanelW * 0.32;
+    const divGap = 14 * sf;
+    const divLeft = this.add.rectangle(rightPanelX - divGap - divSpan / 2, dividerY, divSpan, 1, themeHex, 0.45).setDepth(12).setAlpha(0);
+    const divRight = this.add.rectangle(rightPanelX + divGap + divSpan / 2, dividerY, divSpan, 1, themeHex, 0.45).setDepth(12).setAlpha(0);
+    const divIcon = this.add.text(rightPanelX, dividerY, isSpare ? "✦" : "☠", {
       fontFamily: "dungeon-mode",
-      fontSize: Math.floor(11 * sf),
-      color: "#c8d6e0",
-      fontStyle: "italic",
-      align: "center",
-      wordWrap: { width: panelW * 0.82 },
-      lineSpacing: 5,
-    }).setOrigin(0.5, 0).setAlpha(0).setDepth(10);
-
-    // Measure actual text height so we leave enough room
-    const narrativeHeight = narrativeObj.height || 40;
-
-    this.time.delayedCall(550, () => {
-      if (!narrativeObj?.active) return;
-      this.tweens.add({ targets: narrativeObj, alpha: 0.8, duration: 500, ease: 'Power2' });
-    });
-
-    curY += Math.max(narrativeHeight + 14 * sf, 50 * sf);
-
-    // ============================================================
-    // ORNAMENTAL DIVIDER
-    // ============================================================
-    const divSpan = panelW * 0.35;
-    const divGap = 16 * sf;
-
-    const divLeft = this.add.rectangle(panelX - divGap - divSpan / 2, curY, divSpan, 1, themeHex, 0.45)
-      .setDepth(10).setAlpha(0);
-    const divRight = this.add.rectangle(panelX + divGap + divSpan / 2, curY, divSpan, 1, themeHex, 0.45)
-      .setDepth(10).setAlpha(0);
-    const divIcon = this.add.text(panelX, curY, isSpare ? "✦" : "☠", {
-      fontFamily: "dungeon-mode",
-      fontSize: Math.floor(16 * sf) + 'px',
+      fontSize: Math.floor(16 * sf) + "px",
       color: themeColor,
-      align: 'center',
-    }).setOrigin(0.5).setAlpha(0).setDepth(10);
+      align: "center",
+    }).setOrigin(0.5).setAlpha(0).setDepth(12);
 
-    // Decorative end-dots
-    const dotL = this.add.circle(panelX - divGap - divSpan, curY, 2, themeHex, 0.4)
-      .setDepth(10).setAlpha(0);
-    const dotR = this.add.circle(panelX + divGap + divSpan, curY, 2, themeHex, 0.4)
-      .setDepth(10).setAlpha(0);
-
-    this.time.delayedCall(750, () => {
-      this.tweens.add({ targets: [divLeft, divRight, dotL, dotR], alpha: 1, duration: 250 });
-      this.tweens.add({ targets: divIcon, alpha: 1, duration: 300 });
+    this.time.delayedCall(700, () => {
+      this.tweens.add({ targets: [divLeft, divRight, divIcon], alpha: 1, duration: 220, ease: "Power2" });
     });
 
-    curY += 24 * sf;
-
-    // ============================================================
-    // REWARD ROWS — styled with icon badges & accent notch
-    // ============================================================
     const rewardLines: { emoji: string; text: string; color: string; iconBg: number }[] = [];
 
     if (scaledGold > 0) {
@@ -2541,38 +2564,37 @@ export class Combat extends Scene {
       }
     }
 
-    const rowW = panelW * 0.82;
+    const minRowW = rightPanelW * 0.64;
+    const maxRowW = rightPanelW * 0.9;
     const rowH = 34 * sf;
-    const rowSpacing = 40 * sf;
+    const rowSpacing = 38 * sf;
     const rewardContainers: Phaser.GameObjects.Container[] = [];
+    let curY = dividerY + 30 * sf;
 
     for (const line of rewardLines) {
-      const container = this.add.container(panelX, curY).setDepth(10);
+      const container = this.add.container(rightPanelX, curY).setDepth(12);
 
-      // Row background — subtle dark stripe
-      const rowBg = this.add.rectangle(0, 0, rowW, rowH, 0x0e0c14, 0.6);
-      rowBg.setStrokeStyle(0.5, themeHexDark, 0.3);
-
-      // Left accent notch
-      const leftNotch = this.add.rectangle(-rowW / 2, 0, 3, rowH, themeHex, 0.35);
-
-      // Icon badge — tinted square behind emoji
-      const iconBadge = this.add.rectangle(-rowW / 2 + 26, 0, 26, 26, line.iconBg, 0.8);
-
-      // Emoji
-      const emojiText = this.add.text(-rowW / 2 + 26, 0, line.emoji, {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(15 * sf),
-        align: "center",
-      }).setOrigin(0.5);
-
-      // Reward text
-      const rewardTxt = this.add.text(-rowW / 2 + 52, 0, line.text, {
+      // Build the reward text first, then size the row background to hug it.
+      const rewardTxt = this.add.text(0, 0, line.text, {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(16 * sf),
         color: line.color,
         align: "left",
       }).setOrigin(0, 0.5);
+
+      const textW = rewardTxt.width;
+      const computedRowW = Phaser.Math.Clamp(textW + 118 * sf, minRowW, maxRowW);
+
+      const rowBg = this.add.rectangle(0, 0, computedRowW, rowH, 0x0e0c14, 0.6);
+      rowBg.setStrokeStyle(0.5, themeHexDark, 0.3);
+      const leftNotch = this.add.rectangle(-computedRowW / 2, 0, 3, rowH, themeHex, 0.35);
+      const iconBadge = this.add.rectangle(-computedRowW / 2 + 26, 0, 26, 26, line.iconBg, 0.8);
+      const emojiText = this.add.text(-computedRowW / 2 + 26, 0, line.emoji, {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(15 * sf),
+        align: "center",
+      }).setOrigin(0.5);
+      rewardTxt.setPosition(-computedRowW / 2 + 52, 0);
 
       container.add([rowBg, leftNotch, iconBadge, emojiText, rewardTxt]);
       container.setAlpha(0);
@@ -2580,7 +2602,6 @@ export class Combat extends Scene {
       curY += rowSpacing;
     }
 
-    // Staggered reveal with slide-up
     this.time.delayedCall(900, () => {
       rewardContainers.forEach((ctr, i) => {
         this.time.delayedCall(i * 110, () => {
@@ -2597,17 +2618,14 @@ export class Combat extends Scene {
       });
     });
 
-    // ============================================================
-    // LANDÁS BADGE — pill-shaped status indicator
-    // ============================================================
-    curY += 10 * sf;
+    curY += 8 * sf;
     const landasTier = this.getLandasTier(this.combatState.player.landasScore);
     const landasColor = this.getLandasColor(landasTier);
     const landasHex = Phaser.Display.Color.HexStringToColor(landasColor).color;
+    const landasY = Math.min(curY, panelTop + panelH - 120 * sf);
 
-    const landasBadge = this.add.container(panelX, curY).setDepth(10).setAlpha(0);
+    const landasBadge = this.add.container(rightPanelX, landasY).setDepth(12).setAlpha(0);
 
-    // Pill background
     const pillW = 200 * sf;
     const pillH = 30 * sf;
     const pillBg = this.add.rectangle(0, 0, pillW, pillH, 0x0e0c14, 0.7);
@@ -2623,9 +2641,8 @@ export class Combat extends Scene {
 
     landasBadge.add([pillBg, landasLabel]);
 
-    // Pulsing glow behind badge
-    const landasGlow = this.add.rectangle(panelX, curY, pillW + 20, pillH + 12, landasHex, 0.04)
-      .setDepth(9).setAlpha(0);
+    const landasGlow = this.add.rectangle(rightPanelX, landasY, pillW + 20, pillH + 12, landasHex, 0.04)
+      .setDepth(11).setAlpha(0);
 
     this.tweens.add({
       targets: landasGlow, alpha: 0.08,
@@ -2638,30 +2655,20 @@ export class Combat extends Scene {
       this.tweens.add({ targets: [landasBadge, landasGlow], alpha: 1, duration: 350, ease: 'Power2' });
     });
 
-    // ============================================================
-    // CONTINUE BUTTON — themed, prominent
-    // ============================================================
-    curY += 50 * sf;
+    const btnY = panelTop + panelH - 52 * sf;
     const btnDelay = landasDelay + 280;
 
     this.time.delayedCall(btnDelay, () => {
-      const btnContainer = this.add.container(panelX, curY).setDepth(10).setAlpha(0);
+      const btnContainer = this.add.container(rightPanelX, btnY).setDepth(12).setAlpha(0);
 
       const btnW = 180 * sf;
       const btnH = 44 * sf;
 
-      // Glow behind button
       const btnGlow = this.add.rectangle(0, 0, btnW + 16, btnH + 10, themeHex, 0.06);
-
-      // Button background
       const btnBg = this.add.rectangle(0, 0, btnW, btnH, 0x150e12, 1);
       btnBg.setStrokeStyle(1.5, themeHex, 0.7);
-
-      // Top highlight line
       const btnHighlight = this.add.rectangle(0, -btnH / 2, btnW - 8, 1, themeHex, 0.25)
         .setOrigin(0.5, 0);
-
-      // Button label
       const btnLabelText = this.add.text(0, 0, "Continue", {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(20 * sf),
@@ -2670,8 +2677,6 @@ export class Combat extends Scene {
       }).setOrigin(0.5);
 
       btnContainer.add([btnGlow, btnBg, btnHighlight, btnLabelText]);
-
-      // Interactive
       btnBg.setInteractive({ useHandCursor: true });
 
       let clicked = false;
