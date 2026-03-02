@@ -3191,43 +3191,46 @@ export class Combat extends Scene {
         return;
       }
 
-      // Clean shutdown of combat scene
-      this.input.removeAllListeners();
-      this.time.removeAllEvents();
+      // Play exit transition then clean up and resume overworld
+      this.playExitTransition(() => {
+        // Clean shutdown of combat scene
+        this.input.removeAllListeners();
+        this.time.removeAllEvents();
 
-      // Stop this scene first
-      this.scene.stop();
+        // Stop this scene first
+        this.scene.stop();
 
-      // Small delay before resuming overworld to ensure clean transition
-      setTimeout(() => {
-        try {
-          console.log("Attempting to resume Overworld scene...");
+        // Small delay before resuming overworld to ensure clean transition
+        setTimeout(() => {
+          try {
+            console.log("Attempting to resume Overworld scene...");
 
-          // Get the scene manager
-          const sceneManager = this.scene.manager;
+            // Get the scene manager
+            const sceneManager = this.scene.manager;
 
-          // Check if Overworld scene exists and is not active
-          const overworldScene = sceneManager.getScene("Overworld");
-          if (overworldScene) {
-            console.log("Overworld scene found, resuming...");
+            // Check if Overworld scene exists and is not active
+            const overworldScene = sceneManager.getScene("Overworld");
+            if (overworldScene) {
+              console.log("Overworld scene found, resuming...");
 
-            // Resume the overworld scene
-            sceneManager.resume("Overworld");
+              // Resume the overworld scene
+              sceneManager.resume("Overworld");
 
-            // Explicitly call resume method on overworld if it exists
-            if (typeof (overworldScene as any).resume === 'function') {
-              (overworldScene as any).resume();
+              // Explicitly call resume method on overworld if it exists
+              if (typeof (overworldScene as any).resume === 'function') {
+                (overworldScene as any).resume();
+              }
+            } else {
+              console.warn("Overworld scene not found, starting new instance");
+              sceneManager.start("Overworld");
             }
-          } else {
-            console.warn("Overworld scene not found, starting new instance");
-            sceneManager.start("Overworld");
+          } catch (resumeError) {
+            console.error("Error resuming Overworld:", resumeError);
+            // Last resort - start overworld fresh
+            this.scene.manager.start("Overworld");
           }
-        } catch (resumeError) {
-          console.error("Error resuming Overworld:", resumeError);
-          // Last resort - start overworld fresh
-          this.scene.manager.start("Overworld");
-        }
-      }, 100);
+        }, 100);
+      });
 
     } catch (error) {
       console.error("Error in returnToOverworld:", error);
@@ -3246,6 +3249,52 @@ export class Combat extends Scene {
         this.scene.start("MainMenu");
       }
     }
+  }
+
+  /**
+   * Persona 5-ish exit transition — red/dark diagonal slashes + fade to black.
+   */
+  private playExitTransition(onComplete: () => void): void {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    // Dark red overlay
+    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x1a0000)
+      .setOrigin(0.5).setAlpha(0).setDepth(9000);
+    this.tweens.add({ targets: overlay, alpha: 0.5, duration: 250, ease: 'Power2' });
+
+    // Diagonal dark slashes sweep from right to left (reverse of combat entrance)
+    const slashCount = 7;
+    const slashW = w * 0.16;
+    for (let i = 0; i < slashCount; i++) {
+      const gfx = this.add.graphics().setDepth(9001).setAlpha(0);
+      const color = Phaser.Math.RND.pick([0x0a0000, 0x150000, 0x1a0505]);
+      gfx.fillStyle(color, 0.92);
+      const offset = 35;
+      const sx = -slashW + (i * (w + slashW)) / slashCount;
+      gfx.fillPoints([
+        new Phaser.Geom.Point(sx + offset, 0),
+        new Phaser.Geom.Point(sx + slashW + offset, 0),
+        new Phaser.Geom.Point(sx + slashW - offset, h),
+        new Phaser.Geom.Point(sx - offset, h)
+      ], true);
+      gfx.x = w; // start from right
+      this.tweens.add({
+        targets: gfx, x: 0, alpha: 1,
+        duration: 280, ease: 'Power3',
+        delay: 60 + i * 35
+      });
+    }
+
+    // Final black
+    this.time.delayedCall(420, () => {
+      const black = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
+        .setOrigin(0.5).setAlpha(0).setDepth(9002);
+      this.tweens.add({
+        targets: black, alpha: 1, duration: 200, ease: 'Power2',
+        onComplete
+      });
+    });
   }
 
   /**

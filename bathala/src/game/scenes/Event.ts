@@ -45,6 +45,24 @@ export class EventScene extends Scene {
     this.musicLifecycle = new MusicLifecycleSystem(this);
     this.musicLifecycle.start();
 
+    // ── Mysterious event entrance transition ──
+    const ew = this.cameras.main.width;
+    const eh = this.cameras.main.height;
+    const tealCover = this.add.rectangle(ew / 2, eh / 2, ew, eh, 0x001a1a)
+      .setOrigin(0.5).setAlpha(1).setDepth(9999);
+    const mystRing = this.add.circle(ew / 2, eh / 2, ew * 0.3, 0x20b2aa, 0.15)
+      .setDepth(9998);
+    this.tweens.add({
+      targets: tealCover, alpha: 0,
+      duration: 800, ease: 'Sine.easeInOut', delay: 100,
+      onComplete: () => tealCover.destroy()
+    });
+    this.tweens.add({
+      targets: mystRing, alpha: 0, radius: ew * 0.5,
+      duration: 1000, ease: 'Sine.easeOut', delay: 150,
+      onComplete: () => mystRing.destroy()
+    });
+
     this.createBackground();
     this.createEventDisplay();
     this.createIllustration();
@@ -453,15 +471,54 @@ export class EventScene extends Scene {
       // Normal Gameplay Flow
       const gameState = GameState.getInstance();
       gameState.completeCurrentNode(true);
-      
-      // Manually call the Overworld resume method to reset movement flags
-      const overworldScene = this.scene.get("Overworld");
-      if (overworldScene) {
-        (overworldScene as any).resume();
-      }
-      
-      this.scene.stop('EventScene');
-      this.scene.resume('Overworld');
+
+      this.playExitTransition(() => {
+        const overworldScene = this.scene.get("Overworld");
+        if (overworldScene) {
+          (overworldScene as any).resume();
+        }
+        this.scene.stop('EventScene');
+        this.scene.resume('Overworld');
+      });
+    });
+  }
+
+  /**
+   * Persona 5-ish exit transition — teal horizontal bars iris-close outward.
+   */
+  private playExitTransition(onComplete: () => void): void {
+    const w = this.cameras.main.width;
+    const h = this.cameras.main.height;
+
+    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x001a1a)
+      .setOrigin(0.5).setAlpha(0).setDepth(9000);
+    this.tweens.add({ targets: overlay, alpha: 0.5, duration: 300, ease: 'Sine.easeIn' });
+
+    const barCount = 5;
+    const barH = (h / barCount) + 4;
+    for (let i = 0; i < barCount; i++) {
+      const fromTop = i < barCount / 2;
+      const targetY = barH * i + barH / 2;
+      const bar = this.add.rectangle(
+        w / 2, fromTop ? -barH : h + barH, w, barH,
+        Phaser.Math.RND.pick([0x001a1a, 0x002020, 0x001515])
+      ).setOrigin(0.5).setAlpha(0.85).setDepth(9001);
+
+      const distFromEdge = fromTop ? i : (barCount - 1 - i);
+      this.tweens.add({
+        targets: bar, y: targetY,
+        duration: 400, ease: 'Sine.easeInOut',
+        delay: distFromEdge * 50
+      });
+    }
+
+    this.time.delayedCall(550, () => {
+      const black = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
+        .setOrigin(0.5).setAlpha(0).setDepth(9002);
+      this.tweens.add({
+        targets: black, alpha: 1, duration: 250, ease: 'Sine.easeInOut',
+        onComplete
+      });
     });
   }
 
