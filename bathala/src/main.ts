@@ -92,18 +92,18 @@ const setupAndroidFullscreenButton = (): void => {
         button.id = 'android-fullscreen-btn';
         button.type = 'button';
         button.innerHTML = `
-            <span style="position:absolute; top:10px; left:10px; width:12px; height:12px; border-top:3px solid #f1f1f0; border-left:3px solid #f1f1f0;"></span>
-            <span style="position:absolute; top:10px; right:10px; width:12px; height:12px; border-top:3px solid #f1f1f0; border-right:3px solid #f1f1f0;"></span>
-            <span style="position:absolute; bottom:10px; left:10px; width:12px; height:12px; border-bottom:3px solid #f1f1f0; border-left:3px solid #f1f1f0;"></span>
-            <span style="position:absolute; bottom:10px; right:10px; width:12px; height:12px; border-bottom:3px solid #f1f1f0; border-right:3px solid #f1f1f0;"></span>
+            <span style="position:absolute; top:16px; left:16px; width:22px; height:22px; border-top:4px solid #f1f1f0; border-left:4px solid #f1f1f0;"></span>
+            <span style="position:absolute; top:16px; right:16px; width:22px; height:22px; border-top:4px solid #f1f1f0; border-right:4px solid #f1f1f0;"></span>
+            <span style="position:absolute; bottom:16px; left:16px; width:22px; height:22px; border-bottom:4px solid #f1f1f0; border-left:4px solid #f1f1f0;"></span>
+            <span style="position:absolute; bottom:16px; right:16px; width:22px; height:22px; border-bottom:4px solid #f1f1f0; border-right:4px solid #f1f1f0;"></span>
         `;
         button.setAttribute('style', `
             position: fixed;
-            right: max(12px, env(safe-area-inset-right));
-            bottom: max(12px, env(safe-area-inset-bottom));
+            right: max(6px, env(safe-area-inset-right));
+            bottom: max(24px, env(safe-area-inset-bottom));
             z-index: 9500;
-            width: 54px;
-            height: 54px;
+            width: 104px;
+            height: 104px;
             border: 2px solid #77888C;
             background: rgba(21, 14, 16, 0.78);
             padding: 0;

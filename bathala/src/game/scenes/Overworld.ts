@@ -383,10 +383,10 @@ export class Overworld extends Scene {
     this.mobileDirectionButtons = {};
 
     const screenHeight = this.cameras.main.height;
-    const centerX = 255;
-    const centerY = screenHeight - 170;
-    const spacing = 80;
-    const buttonSize = 56;
+    const centerX = 340;
+    const centerY = screenHeight - 260;
+    const spacing = 132;
+    const buttonSize = 102;
 
     // Keep controls fixed to the camera so fog-of-war zoom transitions never move them.
     this.mobileControlsContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(1500);
@@ -419,7 +419,7 @@ export class Overworld extends Scene {
 
     const text = this.add.text(x, y, label, {
       fontFamily: "dungeon-mode",
-      fontSize: "30px",
+      fontSize: "60px",
       color: "#77888C"
     }).setOrigin(0.5).setAlpha(0.9).setScrollFactor(0);
 
