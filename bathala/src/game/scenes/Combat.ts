@@ -2427,19 +2427,36 @@ export class Combat extends Scene {
         : (this.combatState.enemy.combatSpriteKey || "tikbalang_combat");
 
     // Left panel: creature name + portrait + narrative description
-    const creatureName = this.add.text(leftPanelX, panelTop + 52 * sf, this.combatState.enemy.name.toUpperCase(), {
+    const creatureNameY = panelTop + 42 * sf;
+    const creatureName = this.add.text(leftPanelX, creatureNameY, this.combatState.enemy.name.toUpperCase(), {
       fontFamily: "dungeon-mode",
       fontSize: Math.floor(22 * sf),
       color: isSpare ? "#a9d9c0" : "#d8a3aa",
       align: "center",
-    }).setOrigin(0.5).setDepth(12).setAlpha(0);
-    this.tweens.add({ targets: creatureName, alpha: 1, duration: 300, delay: 220, ease: "Power2" });
+    }).setOrigin(0.5).setDepth(13).setAlpha(0);
 
-    const creatureDivider = this.add.rectangle(leftPanelX, panelTop + 78 * sf, leftPanelW * 0.6, 1, themeHex, 0.4)
+    const namePadX = 20 * sf;
+    const namePadY = 10 * sf;
+    const nameBoxW = Math.min(leftPanelW * 0.86, creatureName.width + namePadX * 2);
+    const nameBoxH = creatureName.height + namePadY * 2;
+    const creatureNameBg = this.add.rectangle(leftPanelX, creatureNameY, nameBoxW, nameBoxH, 0x100d14, 0.85)
+      .setDepth(11).setStrokeStyle(1.2, themeHexDark, 0.7).setAlpha(0);
+    const creatureNameInner = this.add.rectangle(leftPanelX, creatureNameY, nameBoxW - 8, nameBoxH - 8, undefined, 0)
+      .setDepth(12).setStrokeStyle(0.8, themeHex, 0.25).setAlpha(0);
+
+    this.tweens.add({
+      targets: [creatureNameBg, creatureNameInner, creatureName],
+      alpha: 1,
+      duration: 300,
+      delay: 220,
+      ease: "Power2"
+    });
+
+    const creatureDivider = this.add.rectangle(leftPanelX, creatureNameY + 28 * sf, leftPanelW * 0.6, 1, themeHex, 0.4)
       .setDepth(12).setAlpha(0);
-    this.tweens.add({ targets: creatureDivider, alpha: 1, duration: 300, delay: 300, ease: "Power2" });
+    this.tweens.add({ targets: creatureDivider, alpha: 1, duration: 300, delay: 320, ease: "Power2" });
 
-    const portraitFrameY = panelTop + 170 * sf;
+    const portraitFrameY = panelTop + 188 * sf;
     const portraitFrameGlow = this.add.rectangle(leftPanelX, portraitFrameY, 236 * sf, 236 * sf, themeHexDark, 0.2)
       .setDepth(8).setAlpha(0);
     const portraitFrame = this.add.rectangle(leftPanelX, portraitFrameY, 220 * sf, 220 * sf, 0x0f0a0d, 0.9)
@@ -2462,7 +2479,8 @@ export class Combat extends Scene {
       }).setOrigin(0.5).setDepth(10).setAlpha(0.9);
     }
 
-    const descTopY = portraitFrameY + 130 * sf;
+    const portraitBottomY = portraitFrameY + 110 * sf;
+    const descTopY = portraitBottomY + 28 * sf;
     const quoteText = this.add.text(leftPanelX, descTopY, `"${dialogue}"`, {
       fontFamily: "dungeon-mode",
       fontSize: Math.floor(12 * sf),
@@ -2564,17 +2582,33 @@ export class Combat extends Scene {
       }
     }
 
-    const minRowW = rightPanelW * 0.64;
+    const minRowW = rightPanelW * 0.68;
     const maxRowW = rightPanelW * 0.9;
     const rowH = 34 * sf;
     const rowSpacing = 38 * sf;
     const rewardContainers: Phaser.GameObjects.Container[] = [];
     let curY = dividerY + 30 * sf;
 
+    // Keep reward rows visually consistent by sizing all rows from the longest line.
+    const measureStyle: Phaser.Types.GameObjects.Text.TextStyle = {
+      fontFamily: "dungeon-mode",
+      fontSize: Math.floor(16 * sf),
+      align: "left",
+    };
+    let maxRewardTextWidth = 0;
+    for (const line of rewardLines) {
+      const measureText = this.add.text(-9999, -9999, line.text, measureStyle).setVisible(false);
+      maxRewardTextWidth = Math.max(maxRewardTextWidth, measureText.width);
+      measureText.destroy();
+    }
+    const rowW = Phaser.Math.Clamp(maxRewardTextWidth + 118 * sf, minRowW, maxRowW);
+
     for (const line of rewardLines) {
       const container = this.add.container(rightPanelX, curY).setDepth(12);
 
-      // Build the reward text first, then size the row background to hug it.
+      const rowBg = this.add.rectangle(0, 0, rowW, rowH, 0x0e0c14, 0.6);
+      rowBg.setStrokeStyle(0.5, themeHexDark, 0.3);
+      const leftNotch = this.add.rectangle(-rowW / 2, 0, 3, rowH, themeHex, 0.35);
       const rewardTxt = this.add.text(0, 0, line.text, {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(16 * sf),
@@ -2582,19 +2616,21 @@ export class Combat extends Scene {
         align: "left",
       }).setOrigin(0, 0.5);
 
-      const textW = rewardTxt.width;
-      const computedRowW = Phaser.Math.Clamp(textW + 118 * sf, minRowW, maxRowW);
+      // Center icon + text group within the row.
+      const badgeSize = 26;
+      const iconToTextGap = 14 * sf;
+      const contentW = badgeSize + iconToTextGap + rewardTxt.width;
+      const contentStartX = -contentW / 2;
+      const badgeCenterX = contentStartX + badgeSize / 2;
+      const textX = contentStartX + badgeSize + iconToTextGap;
 
-      const rowBg = this.add.rectangle(0, 0, computedRowW, rowH, 0x0e0c14, 0.6);
-      rowBg.setStrokeStyle(0.5, themeHexDark, 0.3);
-      const leftNotch = this.add.rectangle(-computedRowW / 2, 0, 3, rowH, themeHex, 0.35);
-      const iconBadge = this.add.rectangle(-computedRowW / 2 + 26, 0, 26, 26, line.iconBg, 0.8);
-      const emojiText = this.add.text(-computedRowW / 2 + 26, 0, line.emoji, {
+      const iconBadge = this.add.rectangle(badgeCenterX, 0, badgeSize, badgeSize, line.iconBg, 0.8);
+      const emojiText = this.add.text(badgeCenterX, 0, line.emoji, {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(15 * sf),
         align: "center",
       }).setOrigin(0.5);
-      rewardTxt.setPosition(-computedRowW / 2 + 52, 0);
+      rewardTxt.setPosition(textX, 0);
 
       container.add([rowBg, leftNotch, iconBadge, emojiText, rewardTxt]);
       container.setAlpha(0);
@@ -2626,18 +2662,23 @@ export class Combat extends Scene {
 
     const landasBadge = this.add.container(rightPanelX, landasY).setDepth(12).setAlpha(0);
 
-    const pillW = 200 * sf;
     const pillH = 30 * sf;
-    const pillBg = this.add.rectangle(0, 0, pillW, pillH, 0x0e0c14, 0.7);
-    pillBg.setStrokeStyle(1, landasHex, 0.5);
-
     const landasLabel = this.add.text(0, 0,
       `Landás: ${this.combatState.player.landasScore}  ·  ${landasTier.toUpperCase()}`, {
         fontFamily: "dungeon-mode",
         fontSize: Math.floor(14 * sf),
         color: landasColor,
         align: "center",
-      }).setOrigin(0.5);
+      }).setOrigin(0.5, 0.5);
+
+    // If the label is too wide, step down one font size before sizing the pill.
+    const maxLandasLabelW = rightPanelW * 0.72;
+    if (landasLabel.width > maxLandasLabelW) {
+      landasLabel.setFontSize(Math.max(11, Math.floor(12 * sf)));
+    }
+    const pillW = Phaser.Math.Clamp(landasLabel.width + 34 * sf, 170 * sf, rightPanelW * 0.84);
+    const pillBg = this.add.rectangle(0, 0, pillW, pillH, 0x0e0c14, 0.7);
+    pillBg.setStrokeStyle(1, landasHex, 0.5);
 
     landasBadge.add([pillBg, landasLabel]);
 
