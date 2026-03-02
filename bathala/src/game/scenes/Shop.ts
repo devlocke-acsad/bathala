@@ -1514,7 +1514,6 @@ export class Shop extends Scene {
     
     const name = this.add.text(iconX + 34, iconY - 5, nameTextValue, {
       fontFamily: "dungeon-mode",
-      fontFamily: "dungeon-mode",
         fontSize: 20,
       color: "#e8eced",
       wordWrap: { width: panelWidth - 180 }
