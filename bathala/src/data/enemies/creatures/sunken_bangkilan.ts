@@ -26,10 +26,10 @@ export const SUNKEN_BANGKILAN: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Curses bubble from abyss!',
-    defeat: 'My shapes... dissolve...',
-    spare: 'Mercy shifts: Bangkilan, shape-shifting sorceresses (Samar, 2019).',
-    slay: 'Shatter my illusions—shadow rises!',
+    intro: 'Curses bubble from the abyss! I am bangkilan — sorceress of drowned villages, shape-shifter of stolen faces. The engkanto gave me the faces of the dead. Shall I wear YOURS?',
+    defeat: 'My shapes... dissolve like salt in the current. A hundred stolen faces release, each one sighing with relief. Beneath them all, my own face emerges — not a monster\'s, but a babaylan\'s. A healer\'s. How many faces did I steal before I forgot my own?',
+    spare: 'Mercy shifts the tide! The bangkilan are shape-shifting sea sorceresses — cousins to the land-dwelling mangkukulam. In the old ways, our shapeshifting was not deception but empathy — we became the patient to understand the illness, wore the mourner\'s face to share the grief. The engkanto weaponized our gift, turning understanding into manipulation. Your mercy returns us to our original shape — the one that heals.',
+    slay: 'Shatter my illusions — and the shadow rises from the bones of the sunken barangay! Every bangkilan destroyed is a hundred faces lost to the deep, a hundred stories drowned with them. The impostor collects our masks!',
   },
 
   // === Lore ===

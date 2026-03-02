@@ -28,10 +28,10 @@ export const KAPRE_SHADE: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'My smoke veils the grove—none leave unclaimed!',
-    defeat: 'My tree... crumbles... the cigar... fades...',
-    spare: 'Compassion unlocks: Kapre, tree giants smoking cigars, once loyal to Bathala. Their smoke once guided the lost; now it chokes the defiant (Ramos, 1990).',
-    slay: 'Burn me down—the ashes feed the shadow!',
+    intro: 'Smell that smoke? A hundred years I guarded this forest. The engkanto said: "Let the forest answer to YOU." I AM the forest now — its rage, its fire. Burn with me.',
+    defeat: 'My tree... my ancient, beloved tree... the cigar dims for the first time in an age. Through the thinning smoke I see them — the travelers I once protected, the children who left mangoes at my roots. I was their guardian. The engkanto\'s corruption doesn\'t excuse what I became... but perhaps it explains it.',
+    spare: 'You spare the Kapre? Then sit with me a moment, in the shadow of what\'s left of my tree. The old stories are true — we were Bathala\'s appointed guardians of the sacred groves. Our smoke kept evil spirits away. Our enormous stature terrified those who would harm the forest. When travelers showed respect, we showed them the safest paths. The engkanto twisted our protectiveness into possessiveness. Your mercy lifts the corruption like morning mist.',
+    slay: 'You burned my tree — the same tree where generations of fireflies nested, where lovers carved their names, where the anito crossed between worlds. The forest SCREAMS with a voice that remembers every root, every branch, every leaf you just destroyed. The Shard is yours... but the grove\'s anger will haunt you like cigar smoke that never clears.',
   },
 
   // === Lore ===

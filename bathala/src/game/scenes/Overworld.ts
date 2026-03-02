@@ -14,6 +14,7 @@ import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem"
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { getRelicSpriteKey } from "../../utils/RelicSpriteUtils";
 import { FogOfWarSystem } from "../../systems/world/FogOfWarSystem";
+import { EnemyRegistry } from "../../core/registries/EnemyRegistry";
 
 /**
  * === DEPTH LAYER CONFIGURATION ===
@@ -32,7 +33,7 @@ const DEPTH = {
   MAP_TILES: 0,
   FOG_OF_WAR: 50,        // Covers map tiles only
   MAP_NPCS: 51,          // NPCs above fog
-  
+
   // UI Layer (100-998)
   DAY_NIGHT_PROGRESS: 100,
   DAY_NIGHT_FILL: 100,
@@ -42,15 +43,15 @@ const DEPTH = {
   DAY_NIGHT_ICONS: 104,
   DAY_NIGHT_INDICATOR: 105,
   BOSS_TEXT: 110,
-  
+
   // Night Overlay
   NIGHT_OVERLAY: 999,
-  
+
   // Player and Interactive UI (1000-1999)
   PLAYER: 1000,
   UI_BASE: 1000,
   ACTION_BUTTONS: 1000,
-  
+
   // Tooltips and Overlays (2000-2999)
   TOGGLE_BUTTON: 2000,
   TRANSITION_OVERLAY: 2000,
@@ -59,7 +60,7 @@ const DEPTH = {
   DIALOG_BOX: 2001,
   DIALOG_CONTENT: 2002,
   TOOLTIP: 2500,         // Tooltips above everything except boss effects
-  
+
   // Boss Effects (3000+)
   BOSS_OVERLAY: 3000,
   BOSS_EFFECTS: 3001
@@ -88,7 +89,7 @@ export class Overworld extends Scene {
   private testButtonsVisible: boolean = false;
   private testButtonsContainer!: Phaser.GameObjects.Container;
   private toggleButton!: Phaser.GameObjects.Container;
-  
+
   // Overworld UI elements
   private uiContainer!: Phaser.GameObjects.Container;
   private healthBar!: Phaser.GameObjects.Graphics;
@@ -98,37 +99,37 @@ export class Overworld extends Scene {
   private currencyText!: Phaser.GameObjects.Text;
   private playerData: Player;
   private relicDetailsOpen: boolean = false;
-  
+
   // Tooltip Manager
   private tooltipManager!: TooltipSystem;
-  
+
   // Chapter tracking - to detect chapter changes on resume (e.g., after boss defeat)
   private sceneChapter: number = 1;
-  
+
   // Chapter indicator UI
   private chapterIndicatorText!: Phaser.GameObjects.Text;
   private chapterIndicatorContainer!: Phaser.GameObjects.Container;
-  
+
   // Fog of War Manager
   private fogOfWarManager!: FogOfWarSystem;
-  
+
   /** Tracks last known day/night state so transition text only fires once per change */
   private lastKnownIsDay: boolean | null = null;
-  
+
   /** Active day/night transition text container (for zoom compensation) */
   dayNightTransitionContainer: Phaser.GameObjects.Container | null = null;
-  
+
   // Music
   private musicLifecycle!: MusicLifecycleSystem;
 
   constructor() {
     super({ key: "Overworld" });
     this.gameState = OverworldGameState.getInstance();
-    
+
     // Initialize player data with default values or from GameState
     const gameState = GameState.getInstance();
     const savedPlayerData = gameState.getPlayerData();
-    
+
     if (savedPlayerData) {
       const deck = savedPlayerData.deck && savedPlayerData.deck.length > 0 ? savedPlayerData.deck : DeckManager.createFullDeck();
       this.playerData = {
@@ -174,7 +175,7 @@ export class Overworld extends Scene {
         discardCharges: 3,
         maxDiscardCharges: 3
       };
-      
+
       // Save initial player data to GameState
       gameState.updatePlayerData(this.playerData);
     }
@@ -184,7 +185,7 @@ export class Overworld extends Scene {
     // Reset movement and transition flags
     this.isMoving = false;
     this.isTransitioningToCombat = false;
-    
+
     // Set camera background color to match forest theme
     this.cameras.main.setBackgroundColor(0x323C39);
 
@@ -192,45 +193,45 @@ export class Overworld extends Scene {
     if (data?.fadeIn) {
       this.cameras.main.fadeIn(1200, 0, 0, 0);
     }
-    
+
     // Start music via MusicLifecycleSystem
     this.musicLifecycle = new MusicLifecycleSystem(this);
     this.musicLifecycle.start();
-    
+
     // Explicitly set default cursor to prevent pointer cursor from persisting
     this.input.setDefaultCursor('default');
     console.log('🖱️ Overworld: Setting default cursor to "default"');
-    
+
     // Debug: Log cursor state after setup
     this.time.delayedCall(1000, () => {
       console.log('🖱️ Current cursor state:', this.game.canvas.style.cursor);
       console.log('🖱️ Input enabled:', this.input.enabled);
     });
-    
+
     // Check if we need to reset player data (fresh game start or new chapter)
     const gameState = GameState.getInstance();
     const savedPlayerData = gameState.getPlayerData();
-    
+
     // Track which chapter this scene was created for (used to detect chapter changes on resume)
     this.sceneChapter = gameState.getCurrentChapter();
     console.log(`🗺️ Overworld created for Chapter ${this.sceneChapter}`);
-    
+
     // Check for new chapter transition OR fresh start
     const isNewChapter = gameState.isNewChapterTransition;
     const isFreshStart = !savedPlayerData || (typeof savedPlayerData === 'object' && Object.keys(savedPlayerData).length === 0);
-    
+
     if (isNewChapter || isFreshStart) {
       if (isNewChapter) {
         console.log(`🎉 New chapter ${this.sceneChapter} - initializing fresh player data`);
         // Clear the flag so it doesn't trigger again
         gameState.clearNewChapterFlag();
-        
+
         // Also refresh the OverworldGameState reference (singleton might have stale values in this instance)
         this.gameState = OverworldGameState.getInstance();
       } else {
         console.log('🔄 Fresh game detected - initializing new player data');
       }
-      
+
       const newDeck = DeckManager.createFullDeck();
       this.playerData = {
         id: "player",
@@ -252,7 +253,7 @@ export class Overworld extends Scene {
         discardCharges: 3,
         maxDiscardCharges: 3
       };
-      
+
       // Save fresh player data to GameState
       gameState.updatePlayerData(this.playerData);
     } else {
@@ -278,18 +279,19 @@ export class Overworld extends Scene {
         maxDiscardCharges: savedPlayerData.maxDiscardCharges || 3
       };
     }
-    
+
     // Initialize maze generation manager with act-aware overworld generator
     // Register Act 1 in the registry (idempotent)
     const actRegistry = ActRegistry.getInstance();
     if (!actRegistry.has(ACT1.id)) {
       actRegistry.register(ACT1);
     }
-    this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible);
-    
+    const overworldGen = new OverworldGenerator(ACT1);
+    this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible, overworldGen);
+
     // Check if we're returning from another scene
     const savedPosition = gameState.getPlayerPosition();
-    
+
     if (savedPosition) {
       // Restore player at saved position
       this.player = this.add.sprite(savedPosition.x, savedPosition.y, "player_overworld");
@@ -298,50 +300,50 @@ export class Overworld extends Scene {
     } else {
       // Initialize new game in maze manager
       this.mazeGenManager.initializeNewGame();
-      
+
       // Calculate player start position using manager
       const startPos = this.mazeGenManager.calculatePlayerStartPosition();
       this.player = this.add.sprite(startPos.x, startPos.y, "player_overworld");
     }
-    
+
     this.player.setOrigin(0.5); // Center the sprite
     this.player.setDepth(1000); // Ensure player is above everything
 
     // Initialize keyboard input manager
     this.keyInputManager = new InputSystem(this);
     this.keyInputManager.initialize();
-    
+
     // Initialize pointer/mouse tracking with debug logging enabled
     this.keyInputManager.initializePointerTracking(true);
-    
+
     // Explicitly enable input
     this.keyInputManager.enableInput();
     console.log('🎮 Overworld: Input explicitly enabled after initialization');
     console.log('🎮 Overworld: isMoving =', this.isMoving, ', isTransitioningToCombat =', this.isTransitioningToCombat);
-    
+
     // Center the camera on the player
     this.cameras.main.startFollow(this.player);
-    
+
     // Set initial camera zoom (will be managed by fog of war system)
     // Start with day zoom since game starts during day
     this.cameras.main.setZoom(1.0);
-    
+
     // Create enemy info tooltip
     this.createEnemyTooltip();
-    
+
     // Create fog of war system
     this.createFogOfWar();
-    
+
     // Create UI elements with a slight delay to ensure camera is ready
     this.time.delayedCall(10, () => {
       this.createUI();
       // Set initial UI scale to compensate for camera zoom
       this.setInitialUIScale();
     }, [], this);
-    
+
     // Render initial chunks around player with a slight delay to ensure camera is ready
     this.time.delayedCall(20, this.updateVisibleChunks, [], this);
-    
+
     // Debug: Log final state after scene is fully created
     this.time.delayedCall(100, () => {
       console.log('🔍 Overworld Debug State:');
@@ -361,13 +363,13 @@ export class Overworld extends Scene {
       this.time.delayedCall(10, this.createUI, [], this);
       return;
     }
-    
+
     // Create day/night cycle progress bar (He is Coming style)
     this.createDayNightProgressBar();
-    
+
     // Create boss appearance indicator
-    this.bossText = this.add.text(10, 40, 
-      `Boss Progress: ${Math.round(this.gameState.getBossProgress() * 100)}%`, 
+    this.bossText = this.add.text(10, 40,
+      `Boss Progress: ${Math.round(this.gameState.getBossProgress() * 100)}%`,
       {
         fontFamily: 'dungeon-mode',
         fontSize: '16px',
@@ -377,45 +379,45 @@ export class Overworld extends Scene {
       }
     ).setScrollFactor(0).setDepth(1000); // Fix to camera and set depth
     this.bossText.setShadow(2, 2, '#000000', 2, false, true);
-    
+
     // Create action buttons on the top right side of the screen (fixed to camera)
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     const buttonX = screenWidth - 150; // Position from right edge
     let buttonY = 100;
-    
+
     // Combat test button
     this.createActionButton(buttonX, buttonY, "Combat", "#ff0000", () => {
       this.startCombat("combat");
     }, this.testButtonsContainer);
     buttonY += 60;
-    
+
     // Elite test button
     this.createActionButton(buttonX, buttonY, "Elite", "#ffa500", () => {
       this.startCombat("elite");
     }, this.testButtonsContainer);
     buttonY += 60;
-    
+
     // Boss test button
     this.createActionButton(buttonX, buttonY, "Boss Fight", "#8b5cf6", () => {
       this.startCombat("boss");
     }, this.testButtonsContainer);
     buttonY += 60;
-    
+
     // Shop test button
     this.createActionButton(buttonX, buttonY, "Shop", "#00ff00", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
-      
+
       // Pause this scene and launch shop scene with actual player data
       this.scene.pause();
-      this.scene.launch("Shop", { 
+      this.scene.launch("Shop", {
         player: this.playerData
       });
     }, this.testButtonsContainer);
     buttonY += 60;
-    
+
     // Event test button
     this.createActionButton(buttonX, buttonY, "Event", "#0000ff", () => {
       // Check if player data exists, if not create a default one
@@ -439,42 +441,42 @@ export class Overworld extends Scene {
         discardCharges: 3,
         maxDiscardCharges: 3
       };
-      
+
       // Save player position before transitioning
       const gameState4 = GameState.getInstance();
       gameState4.savePlayerPosition(this.player.x, this.player.y);
-      
+
       // Pause this scene and launch event scene with player data
       this.scene.pause();
-      this.scene.launch("EventScene", { 
+      this.scene.launch("EventScene", {
         player: safePlayerData
       });
     }, this.testButtonsContainer);
     buttonY += 60;
-    
+
     // Campfire test button
     this.createActionButton(buttonX, buttonY, "Campfire", "#ff4500", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
-      
+
       // Pause this scene and launch campfire scene
       this.scene.pause();
-      this.scene.launch("Campfire", { 
+      this.scene.launch("Campfire", {
         player: this.playerData
       });
     }, this.testButtonsContainer);
     buttonY += 60;
-    
+
     // Treasure test button
     this.createActionButton(buttonX, buttonY, "Treasure", "#ffff00", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
-      
+
       // Pause this scene and launch treasure scene
       this.scene.pause();
-      this.scene.launch("Treasure", { 
+      this.scene.launch("Treasure", {
         player: {
           id: "player",
           name: "Hero",
@@ -501,78 +503,78 @@ export class Overworld extends Scene {
         }
       });
     }, this.testButtonsContainer);
-    
+
     // Create additional easily accessible test buttons at the bottom of the screen (fixed to camera)
     const bottomButtonY = screenHeight - 100;
-    
+
     // Calculate total width needed for all buttons to center them
     const buttonCount = 8; // Number of bottom buttons
     const buttonSpacing = 200; // Increased spacing between buttons
     const totalWidth = (buttonCount - 1) * buttonSpacing; // Total width of spacing between buttons
     const bottomButtonX = (screenWidth - totalWidth) / 2; // Center the group of buttons
-    
+
     let currentButtonX = bottomButtonX;
-    
+
     // Quick Boss Fight button at bottom
     this.createActionButton(currentButtonX, bottomButtonY, "Quick Boss", "#8b5cf6", () => {
       this.startCombat("boss");
     }, this.testButtonsContainer);
-    
+
     currentButtonX += 200;
-    
+
     // Quick Combat button at bottom
     this.createActionButton(currentButtonX, bottomButtonY, "Quick Combat", "#ff0000", () => {
       this.startCombat("combat");
     }, this.testButtonsContainer);
-    
+
     currentButtonX += 200;
-    
+
     // Quick Elite button at bottom
     this.createActionButton(currentButtonX, bottomButtonY, "Quick Elite", "#ffa500", () => {
       this.startCombat("elite");
     }, this.testButtonsContainer);
-    
+
     currentButtonX += 200;
-    
+
     // Quick Campfire button at bottom
     this.createActionButton(currentButtonX, bottomButtonY, "Quick Campfire", "#ff4500", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
-      
+
       // Pause this scene and launch campfire scene
       this.scene.pause();
-      this.scene.launch("Campfire", { 
+      this.scene.launch("Campfire", {
         player: this.playerData
       });
     }, this.testButtonsContainer);
-    
+
     currentButtonX += 200;
-    
+
     // Quick Shop button at bottom
     this.createActionButton(currentButtonX, bottomButtonY, "Quick Shop", "#00ff00", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
-      
+
       // Pause this scene and launch shop scene with actual player data
       this.scene.pause();
-      this.scene.launch("Shop", { 
+      this.scene.launch("Shop", {
         player: this.playerData
       });
     }, this.testButtonsContainer);
-    
+
     currentButtonX += 200;
-    
+
     // Quick Treasure button at bottom
     this.createActionButton(currentButtonX, bottomButtonY, "Quick Treasure", "#ffff00", () => {
       // Save player position before transitioning
       const gameState = GameState.getInstance();
       gameState.savePlayerPosition(this.player.x, this.player.y);
-      
+
       // Pause this scene and launch treasure scene
       this.scene.pause();
-      this.scene.launch("Treasure", { 
+      this.scene.launch("Treasure", {
         player: {
           id: "player",
           name: "Hero",
@@ -599,9 +601,9 @@ export class Overworld extends Scene {
         }
       });
     }, this.testButtonsContainer);
-    
+
     currentButtonX += 200;
-    
+
     // Quick Event button at bottom
     this.createActionButton(currentButtonX, bottomButtonY, "Quick Event", "#0000ff", () => {
       // Check if player data exists, if not create a default one
@@ -625,34 +627,34 @@ export class Overworld extends Scene {
         discardCharges: 3,
         maxDiscardCharges: 3
       };
-      
+
       // Save player position before transitioning
       const gameState4 = GameState.getInstance();
       gameState4.savePlayerPosition(this.player.x, this.player.y);
-      
+
       // Pause this scene and launch event scene with player data
       this.scene.pause();
-      this.scene.launch("EventScene", { 
+      this.scene.launch("EventScene", {
         player: safePlayerData
       });
     }, this.testButtonsContainer);
-    
+
     currentButtonX += 200;
-    
+
     // DDA Debug button at bottom  
     this.createActionButton(currentButtonX, bottomButtonY, "DDA Debug", "#9c27b0", () => {
       this.scene.launch("DDADebugScene");
       this.scene.pause();
     }, this.testButtonsContainer);
-    
+
     // Create container for all test buttons
     this.testButtonsContainer = this.add.container(0, 0);
     // Add all existing test buttons to the container
     // (We'll need to modify the button creation to add them to this container)
-    
+
     // Create toggle button
     this.createToggleButton();
-    
+
     // Create overworld UI panel
     this.createOverworldUI();
   }
@@ -663,23 +665,23 @@ export class Overworld extends Scene {
       console.warn("Camera not available, skipping day/night progress bar creation");
       return;
     }
-    
+
     // Create container for all progress bar elements
     this.dayNightProgressContainer = this.add.container(0, 0);
     this.dayNightProgressContainer.setScrollFactor(0).setDepth(100);
-    
+
     const screenWidth = this.cameras.main.width;
     const progressBarWidth = screenWidth * 0.6;
     const progressBarX = (screenWidth - progressBarWidth) / 2;
     const progressBarY = 80; // Move down with more margin above it to prevent overflow
-    
+
     // Create horizontal axis line segments with colors matching the vertical ticks
     // Last segment should use night color, only the final tick should be red for boss
     const segmentWidth = progressBarWidth / 10;
     for (let i = 0; i < 10; i++) {
       const segmentX = progressBarX + (i * segmentWidth) + (segmentWidth / 2);
       const isDay = i % 2 === 0;
-      
+
       const segment = this.add.rectangle(
         segmentX,
         progressBarY,
@@ -689,12 +691,12 @@ export class Overworld extends Scene {
       ).setAlpha(1);
       this.dayNightProgressContainer.add(segment);
     }
-    
+
     // Create major ticks (taller bars) at icon positions with thicker lines and matching colors
     for (let i = 0; i <= 10; i++) {
       const tickX = progressBarX + (i * progressBarWidth / 10);
       let color;
-      
+
       if (i === 10) {
         // Boss tick (red color)
         color = 0xE54646;
@@ -703,7 +705,7 @@ export class Overworld extends Scene {
         const isDay = i % 2 === 0;
         color = isDay ? 0xFFD368 : 0x7144FF;
       }
-      
+
       // Major tick (taller bar) with thicker line
       const majorTick = this.add.rectangle(
         tickX,
@@ -714,7 +716,7 @@ export class Overworld extends Scene {
       ).setOrigin(0.5, 0.5);
       this.dayNightProgressContainer.add(majorTick);
     }
-    
+
     // Create minor ticks (shorter bars) between icons with thicker lines and matching colors
     const stepsPerSegment = 5;
     for (let i = 0; i < 10; i++) {
@@ -722,7 +724,7 @@ export class Overworld extends Scene {
       const segmentEndX = progressBarX + ((i + 1) * progressBarWidth / 10);
       const stepWidth = (segmentEndX - segmentStartX) / stepsPerSegment;
       let color;
-      
+
       if (i === 9) {
         // Last segment for boss (red color for final tick only)
         // For minor ticks in the last segment, use night color
@@ -732,10 +734,10 @@ export class Overworld extends Scene {
         const isDay = i % 2 === 0;
         color = isDay ? 0xFFD368 : 0x7144FF;
       }
-      
+
       for (let step = 1; step < stepsPerSegment; step++) {
         const tickX = segmentStartX + (step * stepWidth);
-        
+
         // Minor tick (shorter bar) with thicker line
         const minorTick = this.add.rectangle(
           tickX,
@@ -747,14 +749,14 @@ export class Overworld extends Scene {
         this.dayNightProgressContainer.add(minorTick);
       }
     }
-    
+
     // Create icons above the axis line (5 day/night cycles = 10 icons + 1 boss)
     // Position icons in the middle of each cycle segment
     const iconOffset = progressBarWidth / 20; // Half of segment width to center icons
     for (let i = 0; i < 10; i++) {
       const iconX = progressBarX + (i * progressBarWidth / 10) + iconOffset;
       const iconY = progressBarY - 50; // Position above the axis line (moved down to match new position)
-      
+
       if (i % 2 === 0) {
         // Day icon (sun) - even positions
         const sunIcon = this.add.image(iconX, iconY, "bathala_sun_icon");
@@ -767,7 +769,7 @@ export class Overworld extends Scene {
         this.dayNightProgressContainer.add(moonIcon);
       }
     }
-    
+
     // Boss icon at the end, positioned above the axis line
     // Position it at the end of the progress bar
     const bossIconX = progressBarX + progressBarWidth;
@@ -784,34 +786,34 @@ export class Overworld extends Scene {
       align: 'center'
     }).setOrigin(0.5, 0);
     this.dayNightProgressContainer.add(this.dayNightIndicator);
-    
+
     // Update the progress bar
     this.updateDayNightProgressBar();
   }
 
   createActionButton(x: number, y: number, text: string, color: string, callback: () => void, container?: Phaser.GameObjects.Container): void {
     const button = this.add.container(x, y);
-    
+
     // Create a temporary text object to measure the actual text width
     const tempText = this.add.text(0, 0, text, {
       fontFamily: 'dungeon-mode',
       fontSize: '14px',
       color: '#ffffff'
     });
-    
+
     // Get the actual width of the text
     const textWidth = tempText.width;
     const textHeight = tempText.height;
     tempText.destroy(); // Remove the temporary text
-    
+
     // Set button dimensions with proper padding
     const padding = 20;
     const buttonWidth = Math.max(120, textWidth + padding); // Minimum width of 120px
     const buttonHeight = Math.max(40, textHeight + 10); // Minimum height of 40px
-    
+
     const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x333333);
     background.setStrokeStyle(2, parseInt(color.replace('#', ''), 16));
-    
+
     const buttonText = this.add.text(0, 0, text, {
       fontFamily: 'dungeon-mode',
       fontSize: '14px',
@@ -819,15 +821,15 @@ export class Overworld extends Scene {
       align: 'center'
     }).setOrigin(0.5);
     buttonText.setShadow(2, 2, '#000000', 2, false, true);
-    
+
     button.add([background, buttonText]);
-    button.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
-    
+    button.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
+
     // Set depth to ensure buttons are visible above other UI elements
     button.setDepth(1000);
     // Fix buttons to camera so they're always visible
     button.setScrollFactor(0);
-    
+
     button.on('pointerdown', callback);
     button.on('pointerover', () => {
       background.setFillStyle(0x555555);
@@ -835,96 +837,96 @@ export class Overworld extends Scene {
     button.on('pointerout', () => {
       background.setFillStyle(0x333333);
     });
-    
+
     // Add to the specified container if provided, otherwise add to scene
     if (container) {
       container.add(button);
     }
-    
+
     this.actionButtons.push(button);
   }
 
   createToggleButton(): void {
     const screenWidth = this.cameras.main.width;
-    
+
     // Position toggle button at top-right corner
     const toggleX = screenWidth - 60;
     const toggleY = 50;
-    
+
     this.toggleButton = this.add.container(toggleX, toggleY);
-    
+
     // Create a temporary text object to measure the actual text width
     const tempText = this.add.text(0, 0, "Dev Mode", {
       fontFamily: 'dungeon-mode',
       fontSize: '12px',
       color: '#ffffff'
     });
-    
+
     // Get the actual width of the text
     const textWidth = tempText.width;
     const textHeight = tempText.height;
     tempText.destroy(); // Remove the temporary text
-    
+
     // Set button dimensions with proper padding
     const padding = 20;
     const buttonWidth = Math.max(100, textWidth + padding); // Minimum width of 100px
     const buttonHeight = Math.max(30, textHeight + 10); // Minimum height of 30px
-    
+
     const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x333333);
     background.setStrokeStyle(2, 0xffffff);
-    
+
     const buttonText = this.add.text(0, 0, "Dev Mode", {
       fontFamily: 'dungeon-mode',
       fontSize: '12px',
       color: '#ffffff',
       align: 'center'
     }).setOrigin(0.5);
-    
+
     this.toggleButton.add([background, buttonText]);
-    this.toggleButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
+    this.toggleButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
     this.toggleButton.setScrollFactor(0);
     this.toggleButton.setDepth(2000); // Ensure it's above other UI elements
-    
+
     this.toggleButton.on('pointerdown', () => {
       this.toggleTestButtons();
     });
-    
+
     this.toggleButton.on('pointerover', () => {
       background.setFillStyle(0x555555);
     });
-    
+
     this.toggleButton.on('pointerout', () => {
       background.setFillStyle(0x333333);
     });
-    
+
     // Initially hide all test buttons since dev mode is off by default
     this.hideTestButtons();
   }
 
   toggleTestButtons(): void {
     this.testButtonsVisible = !this.testButtonsVisible;
-    
+
     // Update toggle button text
     const buttonText = this.toggleButton.getAt(1) as Phaser.GameObjects.Text;
     buttonText.setText("Dev Mode");
-    
+
     // Show or hide all test buttons only
     this.actionButtons.forEach(button => {
       button.setVisible(this.testButtonsVisible);
     });
-    
+
     // Update dev mode in MazeGenManager
     if (this.mazeGenManager) {
       this.mazeGenManager.setDevMode(this.testButtonsVisible);
     }
   }
-  
+
   hideTestButtons(): void {
     // Hide only test buttons, not essential UI elements
     this.actionButtons.forEach(button => {
       button.setVisible(false);
     });
-    
+
     // Update dev mode in MazeGenManager
     if (this.mazeGenManager) {
       this.mazeGenManager.setDevMode(false);
@@ -934,17 +936,17 @@ export class Overworld extends Scene {
   updateUI(): void {
     // Update day/night progress bar
     this.updateDayNightProgressBar();
-    
+
     // Update boss progress
     this.bossText.setText(`Boss Progress: ${Math.round(this.gameState.getBossProgress() * 100)}%`);
-    
+
     // Show boss alert if close to appearing
     if (this.gameState.getBossProgress() > 0.8 && !this.gameState.bossAppeared) {
       this.bossText.setColor('#ff0000');
     } else {
       this.bossText.setColor('#ffffff');
     }
-    
+
     // Update overworld UI panel
     if (this.uiContainer) {
       this.updateOverworldUI();
@@ -956,24 +958,24 @@ export class Overworld extends Scene {
     const progressBarWidth = screenWidth * 0.6;
     const progressBarX = (screenWidth - progressBarWidth) / 2;
     const progressBarY = 80; // Match the Y position from createDayNightProgressBar (updated position)
-    
+
     // Calculate progress (0 to 1)
     const totalProgress = Math.min(this.gameState.actionsTaken / this.gameState.totalActionsUntilBoss, 1);
-    
+
     // Update progress fill width
     if (this.dayNightProgressFill) {
       this.dayNightProgressFill.width = progressBarWidth * totalProgress;
     }
-    
+
     // Update player indicator position (below the bar)
     this.dayNightIndicator.x = progressBarX + (progressBarWidth * totalProgress);
     this.dayNightIndicator.y = progressBarY + 25; // Position below the bar
-    
+
     // Additional check for boss encounter when updating UI
     if (totalProgress >= 1.0 && !this.isTransitioningToCombat) {
       this.checkBossEncounter();
     }
-    
+
     // Handle night overlay
     if (!this.gameState.isDay && !this.nightOverlay) {
       // Create night overlay
@@ -989,7 +991,7 @@ export class Overworld extends Scene {
       this.nightOverlay.destroy();
       this.nightOverlay = null;
     }
-    
+
     // Update fog of war visibility based on day/night
     if (this.fogOfWarManager) {
       this.fogOfWarManager.updateDayNight(this.gameState.isDay);
@@ -1003,39 +1005,39 @@ export class Overworld extends Scene {
   }
 
   // No need for resume method since we handle state restoration in create()
-  
+
   /**
    * Called when the scene resumes from another scene
    */
   resume(): void {
     const gameState = GameState.getInstance();
     const currentChapter = gameState.getCurrentChapter();
-    
+
     // Check if chapter has changed (e.g., after boss defeat)
     if (currentChapter !== this.sceneChapter) {
       console.log(`🎉 Chapter changed! ${this.sceneChapter} → ${currentChapter}`);
       this.showChapterTransition(currentChapter);
       return; // Don't continue with normal resume - we're transitioning
     }
-    
+
     // Set camera background color to match forest theme
     this.cameras.main.setBackgroundColor(0x323C39);
-    
+
     // Re-enable input when returning from other scenes using KeyInputManager
     if (this.keyInputManager) {
       this.keyInputManager.enableInput();
     }
-    
+
     // Reset movement flags
     this.isMoving = false;
     this.isTransitioningToCombat = false;
-    
+
     // Remove nighttime alert icon from the enemy we just defeated (if any)
     const lastCompletedNodeId = gameState.lastCompletedNodeId;
     if (lastCompletedNodeId) {
       this.mazeGenManager.removeEnemyAlert(lastCompletedNodeId);
     }
-    
+
     // Restore player position if saved
     const savedPosition = gameState.getPlayerPosition();
     if (savedPosition) {
@@ -1045,7 +1047,7 @@ export class Overworld extends Scene {
       // Clear the saved position
       gameState.clearPlayerPosition();
     }
-    
+
     // Update player data from GameState
     const savedPlayerData = gameState.getPlayerData();
     if (savedPlayerData) {
@@ -1069,11 +1071,11 @@ export class Overworld extends Scene {
         discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : this.playerData.discardCharges,
         maxDiscardCharges: savedPlayerData.maxDiscardCharges !== undefined ? savedPlayerData.maxDiscardCharges : this.playerData.maxDiscardCharges
       };
-      
+
       // Update UI to reflect new player data
       this.updateOverworldUI();
     }
-    
+
     // Update visible chunks around player
     this.updateVisibleChunks();
   }
@@ -1086,35 +1088,35 @@ export class Overworld extends Scene {
     if (this.keyInputManager) {
       this.keyInputManager.disableInput();
     }
-    
+
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
+
     // Chapter names
     const chapterNames: Record<number, string> = {
       1: "The Enchanted Forest",
       2: "The Submerged Barangays",
       3: "The Skyward Citadel"
     };
-    
+
     const chapterSubtitles: Record<number, string> = {
       1: "Where ancient spirits dwell",
       2: "Depths of forgotten villages",
       3: "Realm of the divine"
     };
-    
+
     // Create transition overlay
     const overlay = this.add.rectangle(
-      screenWidth / 2, 
-      screenHeight / 2, 
-      screenWidth, 
-      screenHeight, 
-      0x000000, 
+      screenWidth / 2,
+      screenHeight / 2,
+      screenWidth,
+      screenHeight,
+      0x000000,
       0
     );
     overlay.setDepth(DEPTH.TRANSITION_OVERLAY);
     overlay.setScrollFactor(0);
-    
+
     // Fade to black
     this.tweens.add({
       targets: overlay,
@@ -1129,14 +1131,14 @@ export class Overworld extends Scene {
           color: "#ffd700",
           align: "center"
         }).setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(DEPTH.TRANSITION_EFFECTS);
-        
+
         const chapterTitle = this.add.text(screenWidth / 2, screenHeight / 2, chapterNames[newChapter] || `Act ${newChapter}`, {
           fontFamily: "dungeon-mode",
           fontSize: 42,
           color: "#ffffff",
           align: "center"
         }).setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(DEPTH.TRANSITION_EFFECTS);
-        
+
         const chapterSubtitle = this.add.text(screenWidth / 2, screenHeight / 2 + 50, chapterSubtitles[newChapter] || "", {
           fontFamily: "dungeon-mode",
           fontSize: 18,
@@ -1144,7 +1146,7 @@ export class Overworld extends Scene {
           align: "center",
           fontStyle: "italic"
         }).setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(DEPTH.TRANSITION_EFFECTS);
-        
+
         // Animate text in
         this.tweens.add({
           targets: [chapterLabel, chapterTitle, chapterSubtitle],
@@ -1165,19 +1167,19 @@ export class Overworld extends Scene {
                   chapterLabel.destroy();
                   chapterTitle.destroy();
                   chapterSubtitle.destroy();
-                  
+
                   // Stop current scene and restart for new chapter
                   console.log(`🗺️ Restarting Overworld for Chapter ${newChapter}`);
-                  
+
                   // Reset GameState for new chapter (clears player data, map, etc.)
                   const gameState = GameState.getInstance();
                   gameState.resetForNewChapter();
-                  
+
                   // Reset day/night cycle for new chapter (OverworldGameState)
                   console.log("🌅 Resetting day/night cycle for new chapter");
                   const overworldGameState = OverworldGameState.getInstance();
                   overworldGameState.reset();
-                  
+
                   // Reset DDA system to default for fair chapter start
                   console.log("🎯 Resetting DDA system for new chapter");
                   try {
@@ -1186,7 +1188,7 @@ export class Overworld extends Scene {
                   } catch (error) {
                     console.warn("Could not reset DDA:", error);
                   }
-                  
+
                   // Fade out overlay and restart scene
                   this.tweens.add({
                     targets: overlay,
@@ -1214,14 +1216,14 @@ export class Overworld extends Scene {
   movePlayer(targetX: number, targetY: number, direction: string): void {
     // Set moving flag to prevent input during movement
     this.isMoving = true;
-    
+
     // Static sprite - no animation needed
     console.log("Moving player in direction:", direction);
 
     // Check if the new position is valid (not a wall)
     if (this.isValidPosition(targetX, targetY)) {
       console.log("Position is valid, moving player");
-      
+
       // Move player with tween
       this.tweens.add({
         targets: this.player,
@@ -1231,24 +1233,24 @@ export class Overworld extends Scene {
         onComplete: () => {
           this.isMoving = false;
           this.checkNodeInteraction();
-          
+
           // Record the action for day/night cycle after movement completes
           this.gameState.recordAction();
-          
+
           // Check if boss should appear after recording action
           this.checkBossEncounter();
-          
+
           // Update UI to reflect day/night cycle changes
           this.updateUI();
-          
+
           // Update visible chunks as player moves
           this.updateVisibleChunks();
-          
+
           // Update fog of war
           if (this.fogOfWarManager) {
             this.fogOfWarManager.update(this.player.x, this.player.y);
           }
-          
+
           // Move nearby enemy nodes toward player during nighttime
           this.moveEnemiesNighttime();
         }
@@ -1276,7 +1278,7 @@ export class Overworld extends Scene {
       this.nightOverlay.destroy();
       this.nightOverlay = null;
     }
-    
+
     // Update fog of war visibility based on day/night
     if (this.fogOfWarManager) {
       this.fogOfWarManager.updateDayNight(this.gameState.isDay);
@@ -1298,9 +1300,9 @@ export class Overworld extends Scene {
     const cy = this.cameras.main.height / 2;
 
     const mainLabel = isDay ? 'Morning' : 'Night';
-    const subLabel  = isDay ? 'Umaga'   : 'Gabi';
+    const subLabel = isDay ? 'Umaga' : 'Gabi';
     const mainColor = isDay ? '#FFD368' : '#7144FF';
-    const subColor  = isDay ? '#FFF0C8' : '#B8A0FF';
+    const subColor = isDay ? '#FFF0C8' : '#B8A0FF';
 
     // Destroy any existing transition container
     if (this.dayNightTransitionContainer) {
@@ -1390,16 +1392,16 @@ export class Overworld extends Scene {
     }
 
     this.isTransitioningToCombat = true;
-    
+
     // Mark boss as triggered to prevent future triggers
     this.gameState.markBossTriggered();
-    
+
     // Hide any visible tooltips
     this.tooltipManager.hideTooltip();
-    
+
     // Create dramatic effect for boss appearance
     this.createBossAppearanceEffect();
-    
+
     // Delay the actual combat transition for dramatic effect
     this.time.delayedCall(3000, () => {
       this.startBossEncounter();
@@ -1412,7 +1414,7 @@ export class Overworld extends Scene {
   createBossAppearanceEffect(): void {
     // Screen shake effect
     this.cameras.main.shake(2000, 0.02);
-    
+
     // Screen flash effect
     const flashOverlay = this.add.rectangle(
       this.cameras.main.width / 2,
@@ -1421,7 +1423,7 @@ export class Overworld extends Scene {
       this.cameras.main.height,
       0xff0000
     ).setAlpha(0).setScrollFactor(0).setDepth(3000);
-    
+
     // Flash sequence
     this.tweens.add({
       targets: flashOverlay,
@@ -1433,7 +1435,7 @@ export class Overworld extends Scene {
         flashOverlay.destroy();
       }
     });
-    
+
     // Dramatic text announcement
     const bossText = this.add.text(
       this.cameras.main.width / 2,
@@ -1448,7 +1450,7 @@ export class Overworld extends Scene {
         strokeThickness: 4
       }
     ).setOrigin(0.5).setScrollFactor(0).setDepth(3001).setAlpha(0);
-    
+
     // Animate text appearance
     this.tweens.add({
       targets: bossText,
@@ -1470,7 +1472,7 @@ export class Overworld extends Scene {
         });
       }
     });
-    
+
     // Darken the entire screen progressively
     const darkOverlay = this.add.rectangle(
       this.cameras.main.width / 2,
@@ -1479,7 +1481,7 @@ export class Overworld extends Scene {
       this.cameras.main.height,
       0x000000
     ).setAlpha(0).setScrollFactor(0).setDepth(2999);
-    
+
     this.tweens.add({
       targets: darkOverlay,
       alpha: 0.8,
@@ -1495,7 +1497,7 @@ export class Overworld extends Scene {
     // Save player position
     const gameState = GameState.getInstance();
     gameState.savePlayerPosition(this.player.x, this.player.y);
-    
+
     // Start the epic boss transition animation (from debug boss button)
     this.startEpicBossTransition();
   }
@@ -1508,7 +1510,7 @@ export class Overworld extends Scene {
     const camera = this.cameras.main;
     const cameraWidth = camera.width;
     const cameraHeight = camera.height;
-    
+
     // Create epic boss transition effect
     const overlay = this.add.rectangle(
       cameraWidth / 2,
@@ -1517,7 +1519,7 @@ export class Overworld extends Scene {
       cameraHeight,
       0x000000
     ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
-    
+
     // Epic fade in
     this.tweens.add({
       targets: overlay,
@@ -1525,7 +1527,7 @@ export class Overworld extends Scene {
       duration: 1000,
       ease: 'Power2'
     });
-    
+
     // Create epic radial effect
     this.time.delayedCall(500, () => {
       // Create expanding circles
@@ -1538,9 +1540,9 @@ export class Overworld extends Scene {
           0xff0000,
           0.7
         ).setScrollFactor(0).setDepth(2001);
-        
+
         circles.push(circle);
-        
+
         // Animate circle expansion
         this.tweens.add({
           targets: circle,
@@ -1551,7 +1553,7 @@ export class Overworld extends Scene {
           ease: 'Power2'
         });
       }
-      
+
       // Final transition
       this.time.delayedCall(2500, () => {
         // Final zoom and transition
@@ -1564,7 +1566,7 @@ export class Overworld extends Scene {
             // Pause this scene and launch boss combat
             // Music will auto-stop via 'pause' event listener
             this.scene.pause();
-            this.scene.launch("Combat", { 
+            this.scene.launch("Combat", {
               nodeType: "boss",
               transitionOverlay: overlay
             });
@@ -1581,7 +1583,7 @@ export class Overworld extends Scene {
     // Get player position
     const playerX = this.player.x;
     const playerY = this.player.y;
-    
+
     // Delegate to MazeGenManager
     this.mazeGenManager.moveEnemiesNighttime(this.gameState, playerX, playerY, this.mazeGenManager.getGridSize(), this);
   }
@@ -1592,10 +1594,10 @@ export class Overworld extends Scene {
       console.warn("Camera not available, skipping chunk update");
       return;
     }
-    
+
     // Update visible chunks using manager
     this.mazeGenManager.updateVisibleChunks(this.cameras.main);
-    
+
     // Render any new nodes that were added
     const allNodes = this.mazeGenManager.getNodes();
     allNodes.forEach(node => {
@@ -1615,16 +1617,16 @@ export class Overworld extends Scene {
   renderNode(node: MapNode): void {
     // DEPRECATED: This method now delegates to MazeGenManager.renderNodeSprite
     // All node rendering logic has been moved to the manager for better separation of concerns
-    
+
     // Use the manager's enhanced hover callbacks that match the original functionality
     this.mazeGenManager.renderNodeSprite(
       node,
       (hoveredNode, pointer) => {
         console.log(`🖱️ Hovering over ${hoveredNode.type} node at ${hoveredNode.id}`);
-        
+
         // Set current hovered node
         this.tooltipManager.setLastHoveredNodeId(hoveredNode.id);
-        
+
         // Show appropriate tooltip based on node type
         if (hoveredNode.type === "combat" || hoveredNode.type === "elite" || hoveredNode.type === "boss") {
           this.tooltipManager.showEnemyTooltip(hoveredNode, pointer.x, pointer.y);
@@ -1640,7 +1642,7 @@ export class Overworld extends Scene {
       },
       (hoveredNode) => {
         console.log(`🖱️ Stopped hovering over ${hoveredNode.type} node at ${hoveredNode.id}`);
-        
+
         // Hide tooltip immediately
         this.tooltipManager.hideTooltip();
       }
@@ -1649,10 +1651,10 @@ export class Overworld extends Scene {
 
   private handleNodeHoverStart(node: MapNode, pointer: Phaser.Input.Pointer): void {
     console.log(`🖱️ [HOVER START] Node type: ${node.type}, ID: ${node.id}, EnemyID: ${node.enemyId || 'N/A'}`);
-    
+
     // Set current hovered node
     this.tooltipManager.setLastHoveredNodeId(node.id);
-    
+
     // Show appropriate tooltip based on node type
     if (node.type === "combat" || node.type === "elite" || node.type === "boss") {
       console.log(`🖱️ Showing enemy tooltip for: ${node.enemyId}`);
@@ -1672,7 +1674,7 @@ export class Overworld extends Scene {
 
   private handleNodeHoverEnd(node: MapNode): void {
     console.log(`🖱️ Stopped hovering over ${node.type} node at ${node.id}`);
-    
+
     // Hide tooltip immediately
     this.tooltipManager.hideTooltip();
   }
@@ -1686,16 +1688,16 @@ export class Overworld extends Scene {
     if (this.isMoving || this.isTransitioningToCombat) {
       return;
     }
-    
+
     // Check if player is close to any node
     const threshold = this.mazeGenManager.getGridSize();
     const nodes = this.mazeGenManager.getNodes();
 
     const nodeIndex = nodes.findIndex((n: MapNode) => {
       const distance = Phaser.Math.Distance.Between(
-        this.player.x, 
-        this.player.y, 
-        n.x + this.mazeGenManager.getGridSize() / 2, 
+        this.player.x,
+        this.player.y,
+        n.x + this.mazeGenManager.getGridSize() / 2,
         n.y + this.mazeGenManager.getGridSize() / 2
       );
       return distance < threshold;
@@ -1704,146 +1706,146 @@ export class Overworld extends Scene {
     if (nodeIndex !== -1) {
       const nodes = this.mazeGenManager.getNodes();
       const node = nodes[nodeIndex];
-      
+
       // Check if this node has already been visited and prevent re-interaction
       // (for non-consumable nodes like shop, campfire, treasure)
       if (node.visited && (node.type === "shop" || node.type === "campfire" || node.type === "treasure")) {
         console.log(`Node ${node.type} at ${node.x}, ${node.y} has already been visited`);
         return;
       }
-      
+
       // Handle different node types
       switch (node.type) {
         case "combat":
         case "elite":
           // Remove the node from the manager's list
           nodes.splice(nodeIndex, 1);
-          
+
           // Clean up the corresponding sprite from manager
           const sprite = this.mazeGenManager.getNodeSprite(node.id);
           if (sprite) {
             sprite.destroy();
           }
-          
+
           // Remove nighttime alert icon so it doesn't persist after combat
           this.mazeGenManager.removeEnemyAlert(node.id);
-          
+
           // Hide tooltip if it's visible
           this.tooltipManager.hideTooltip();
-          
+
           this.startCombat(node.type, node.enemyId);
           break;
-          
+
         case "boss":
           // Remove the node from the manager's list
           nodes.splice(nodeIndex, 1);
-          
+
           // Clean up the corresponding sprite from manager
           const bossSprite = this.mazeGenManager.getNodeSprite(node.id);
           if (bossSprite) {
             bossSprite.destroy();
           }
-          
+
           // Remove nighttime alert icon if present
           this.mazeGenManager.removeEnemyAlert(node.id);
-          
+
           // Hide tooltip if it's visible
           this.tooltipManager.hideTooltip();
-          
+
           this.startCombat("boss", node.enemyId);
           break;
-          
+
         case "shop":
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
-          
+
           // Mark node as visited instead of removing it
           node.visited = true;
-          
+
           // Update sprite appearance to show it's been visited
           const shopSprite = this.mazeGenManager.getNodeSprite(node.id);
           if (shopSprite) {
             shopSprite.setAlpha(0.6); // Make it semi-transparent
             shopSprite.setTint(0x888888); // Give it a gray tint
           }
-          
+
           // Save player position before transitioning
           const gameState = GameState.getInstance();
           gameState.savePlayerPosition(this.player.x, this.player.y);
-          
+
           // Pause this scene and launch shop scene with actual player data
           this.scene.pause();
-          this.scene.launch("Shop", { 
+          this.scene.launch("Shop", {
             player: this.playerData
           });
           break;
-          
+
         case "campfire":
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
-          
+
           // Mark node as visited instead of removing it
           node.visited = true;
-          
+
           // Update sprite appearance to show it's been visited
           const campfireSprite = this.mazeGenManager.getNodeSprite(node.id);
           if (campfireSprite) {
             campfireSprite.setAlpha(0.6); // Make it semi-transparent
             campfireSprite.setTint(0x888888); // Give it a gray tint
           }
-          
+
           // Save player position before transitioning
           const gameState2 = GameState.getInstance();
           gameState2.savePlayerPosition(this.player.x, this.player.y);
-          
+
           // Pause this scene and launch campfire scene
           this.scene.pause();
-          this.scene.launch("Campfire", { 
+          this.scene.launch("Campfire", {
             player: this.playerData
           });
           break;
-          
+
         case "treasure":
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
-          
+
           // Mark node as visited instead of removing it
           node.visited = true;
-          
+
           // Update sprite appearance to show it's been visited
           const treasureSprite = this.mazeGenManager.getNodeSprite(node.id);
           if (treasureSprite) {
             treasureSprite.setAlpha(0.6); // Make it semi-transparent
             treasureSprite.setTint(0x888888); // Give it a gray tint
           }
-          
+
           // Save player position before transitioning
           const gameState3 = GameState.getInstance();
           gameState3.savePlayerPosition(this.player.x, this.player.y);
-          
+
           // Pause this scene and launch treasure scene with current player data
           this.scene.pause();
-          this.scene.launch("Treasure", { 
+          this.scene.launch("Treasure", {
             player: this.playerData
           });
           break;
-          
+
         case "event":
           // Set moving flag to prevent additional interactions during transition
           this.isMoving = true;
-          
+
           // Remove the node from the manager's list
           nodes.splice(nodeIndex, 1);
-          
+
           // Clean up the corresponding sprite from manager
           const eventSprite = this.mazeGenManager.getNodeSprite(node.id);
           if (eventSprite) {
             eventSprite.destroy();
           }
-          
+
           // Hide tooltip if it's visible
           this.tooltipManager.hideTooltip();
-          
+
           // Check if player data exists, if not create a default one
           const safePlayerData = this.playerData || {
             id: "player",
@@ -1865,20 +1867,20 @@ export class Overworld extends Scene {
             discardCharges: 3,
             maxDiscardCharges: 3
           };
-          
+
           // Save player position before transitioning
           const gameState4 = GameState.getInstance();
           gameState4.savePlayerPosition(this.player.x, this.player.y);
-          
+
           // Pause this scene and launch event scene with player data
           this.scene.pause();
-          this.scene.launch("EventScene", { 
+          this.scene.launch("EventScene", {
             player: safePlayerData
           });
           break;
       }
     }
-    
+
     // Check if boss should appear automatically
     if (this.gameState.shouldBossAppear()) {
       this.showBossAppearance();
@@ -1888,7 +1890,7 @@ export class Overworld extends Scene {
   showBossAppearance(): void {
     // Disable player movement during boss appearance
     this.isMoving = true;
-    
+
     // Create overlay
     const overlay = this.add.rectangle(
       this.cameras.main.width / 2,
@@ -1897,7 +1899,7 @@ export class Overworld extends Scene {
       this.cameras.main.height,
       0x000000
     ).setAlpha(0).setScrollFactor(0).setDepth(3000);
-    
+
     // Fade in overlay
     this.tweens.add({
       targets: overlay,
@@ -1905,7 +1907,7 @@ export class Overworld extends Scene {
       duration: 1000,
       ease: 'Power2'
     });
-    
+
     // Create boss appearance text
     const bossText = this.add.text(
       this.cameras.main.width / 2,
@@ -1918,7 +1920,7 @@ export class Overworld extends Scene {
         align: "center"
       }
     ).setOrigin(0.5).setScrollFactor(0).setDepth(3001).setScale(0.1);
-    
+
     // Animate text scaling
     this.tweens.add({
       targets: bossText,
@@ -1926,16 +1928,16 @@ export class Overworld extends Scene {
       duration: 1500,
       ease: 'Elastic.easeOut'
     });
-    
+
     // Shake camera for dramatic effect
     this.cameras.main.shake(2000, 0.02);
-    
+
     // After delay, start boss combat
     this.time.delayedCall(3000, () => {
       // Clean up
       overlay.destroy();
       bossText.destroy();
-      
+
       // Start boss combat
       this.startCombat("boss");
     });
@@ -1945,16 +1947,16 @@ export class Overworld extends Scene {
     // Prevent player from moving during combat transition
     this.isMoving = true;
     this.isTransitioningToCombat = true;
-    
+
     // Save player position before transitioning
     const gameState = GameState.getInstance();
     gameState.savePlayerPosition(this.player.x, this.player.y);
-    
+
     // Disable input during transition
     if (this.input && this.input.keyboard) {
       this.input.keyboard.enabled = false;
     }
-    
+
     // Check if this is a boss fight for special animation
     if (nodeType === "boss") {
       this.gameState.recordCombatStart("boss");
@@ -1970,7 +1972,7 @@ export class Overworld extends Scene {
     const camera = this.cameras.main;
     const cameraWidth = camera.width;
     const cameraHeight = camera.height;
-    
+
     // Create a full-screen overlay that follows the camera
     const overlay = this.add.rectangle(
       cameraWidth / 2,
@@ -1979,7 +1981,7 @@ export class Overworld extends Scene {
       cameraHeight,
       0x000000
     ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
-    
+
     // Different transition effects based on enemy type (Pokemon-like wild encounters with consistent red/black theme)
     if (nodeType === "elite") {
       // Elite enemy transition - Pokemon-like wild encounter with red/black theme
@@ -1991,7 +1993,7 @@ export class Overworld extends Scene {
         cameraHeight,
         0xff0000
       ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2001);
-      
+
       // Animate flash
       this.tweens.add({
         targets: flashOverlay,
@@ -2003,11 +2005,11 @@ export class Overworld extends Scene {
           flashOverlay.destroy();
         }
       });
-      
+
       // Shake player sprite
       const originalPlayerX = this.player.x;
       const originalPlayerY = this.player.y;
-      
+
       // More intense shaking for elite enemies
       this.tweens.add({
         targets: this.player,
@@ -2021,7 +2023,7 @@ export class Overworld extends Scene {
           this.player.setY(originalPlayerY);
         }
       });
-      
+
       // Create elite enemy encounter effect
       this.time.delayedCall(500, () => {
         // Create expanding circles with red color
@@ -2033,7 +2035,7 @@ export class Overworld extends Scene {
             0xff0000, // Red color for elite enemies
             0.3
           ).setScrollFactor(0).setDepth(2001);
-          
+
           // Animate circle expansion
           this.tweens.add({
             targets: circle,
@@ -2047,18 +2049,18 @@ export class Overworld extends Scene {
             }
           });
         }
-        
+
         // Create red sparkle effects
         for (let i = 0; i < 20; i++) {
           const sparkle = this.add.rectangle(
-            Phaser.Math.Between(cameraWidth/2 - 100, cameraWidth/2 + 100),
-            Phaser.Math.Between(cameraHeight/2 - 100, cameraHeight/2 + 100),
+            Phaser.Math.Between(cameraWidth / 2 - 100, cameraWidth / 2 + 100),
+            Phaser.Math.Between(cameraHeight / 2 - 100, cameraHeight / 2 + 100),
             Phaser.Math.Between(2, 5),
             Phaser.Math.Between(2, 5),
             0xff0000,
             1
           ).setScrollFactor(0).setDepth(2001);
-          
+
           // Animate sparkles
           this.tweens.add({
             targets: sparkle,
@@ -2071,7 +2073,7 @@ export class Overworld extends Scene {
           });
         }
       });
-      
+
       // Fade to black and transition
       this.time.delayedCall(1500, () => {
         this.tweens.add({
@@ -2083,7 +2085,7 @@ export class Overworld extends Scene {
             // Pause this scene and start combat scene
             // Music will auto-stop via 'pause' event listener
             this.scene.pause();
-            this.scene.launch("Combat", { 
+            this.scene.launch("Combat", {
               nodeType: nodeType,
               enemyId: enemyId,
               transitionOverlay: overlay // Pass overlay to combat scene
@@ -2101,7 +2103,7 @@ export class Overworld extends Scene {
         cameraHeight,
         0xff0000
       ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2001);
-      
+
       // Animate flash
       this.tweens.add({
         targets: flashOverlay,
@@ -2113,11 +2115,11 @@ export class Overworld extends Scene {
           flashOverlay.destroy();
         }
       });
-      
+
       // Shake player sprite slightly
       const originalPlayerX = this.player.x;
       const originalPlayerY = this.player.y;
-      
+
       this.tweens.add({
         targets: this.player,
         x: originalPlayerX + Phaser.Math.Between(-3, 3),
@@ -2130,7 +2132,7 @@ export class Overworld extends Scene {
           this.player.setY(originalPlayerY);
         }
       });
-      
+
       // Create common enemy encounter effect
       this.time.delayedCall(400, () => {
         // Create simple expanding circle in red
@@ -2141,7 +2143,7 @@ export class Overworld extends Scene {
           0xff0000, // Red color for common enemies
           0.2
         ).setScrollFactor(0).setDepth(2001);
-        
+
         // Animate circle expansion
         this.tweens.add({
           targets: circle,
@@ -2153,18 +2155,18 @@ export class Overworld extends Scene {
             circle.destroy();
           }
         });
-        
+
         // Create small red sparkle effects
         for (let i = 0; i < 10; i++) {
           const sparkle = this.add.rectangle(
-            Phaser.Math.Between(cameraWidth/2 - 50, cameraWidth/2 + 50),
-            Phaser.Math.Between(cameraHeight/2 - 50, cameraHeight/2 + 50),
+            Phaser.Math.Between(cameraWidth / 2 - 50, cameraWidth / 2 + 50),
+            Phaser.Math.Between(cameraHeight / 2 - 50, cameraHeight / 2 + 50),
             2,
             2,
             0xff0000,
             1
           ).setScrollFactor(0).setDepth(2001);
-          
+
           // Animate sparkles
           this.tweens.add({
             targets: sparkle,
@@ -2177,7 +2179,7 @@ export class Overworld extends Scene {
           });
         }
       });
-      
+
       // Fade to black and transition
       this.time.delayedCall(1200, () => {
         this.tweens.add({
@@ -2189,7 +2191,7 @@ export class Overworld extends Scene {
             // Pause this scene and start combat scene
             // Music will auto-stop via 'pause' event listener
             this.scene.pause();
-            this.scene.launch("Combat", { 
+            this.scene.launch("Combat", {
               nodeType: nodeType,
               enemyId: enemyId,
               transitionOverlay: overlay // Pass overlay to combat scene
@@ -2204,7 +2206,7 @@ export class Overworld extends Scene {
     // Save player position before transitioning
     const gameState = GameState.getInstance();
     gameState.savePlayerPosition(this.player.x, this.player.y);
-    
+
     // Get camera dimensions
     // Build boss preparation context (independent from DDA).
     try {
@@ -2230,7 +2232,7 @@ export class Overworld extends Scene {
     const camera = this.cameras.main;
     const cameraWidth = camera.width;
     const cameraHeight = camera.height;
-    
+
     // Create epic boss transition effect
     const overlay = this.add.rectangle(
       cameraWidth / 2,
@@ -2239,7 +2241,7 @@ export class Overworld extends Scene {
       cameraHeight,
       0x000000
     ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
-    
+
     // Epic fade in
     this.tweens.add({
       targets: overlay,
@@ -2247,7 +2249,7 @@ export class Overworld extends Scene {
       duration: 1000,
       ease: 'Power2'
     });
-    
+
     // Create epic radial effect
     this.time.delayedCall(500, () => {
       // Create expanding circles
@@ -2260,9 +2262,9 @@ export class Overworld extends Scene {
           0xff0000,
           0.7
         ).setScrollFactor(0).setDepth(2001);
-        
+
         circles.push(circle);
-        
+
         // Animate circle expansion
         this.tweens.add({
           targets: circle,
@@ -2273,7 +2275,7 @@ export class Overworld extends Scene {
           ease: 'Power2'
         });
       }
-      
+
       // Final transition
       this.time.delayedCall(2500, () => {
         // Final zoom and transition
@@ -2286,7 +2288,7 @@ export class Overworld extends Scene {
             // Pause this scene and launch boss combat
             // Music will auto-stop via 'pause' event listener
             this.scene.pause();
-            this.scene.launch("Combat", { 
+            this.scene.launch("Combat", {
               nodeType: "boss",
               enemyId: enemyId,
               transitionOverlay: overlay,
@@ -2303,20 +2305,20 @@ export class Overworld extends Scene {
    */
   shutdown(): void {
     console.log('🧹 Overworld: Cleaning up scene resources');
-    
+
     // Music cleanup is handled automatically by MusicLifecycleSystem
-    
+
     // Reset cursor when leaving the scene
     this.input.setDefaultCursor('default');
-    
+
     // Clean up KeyInputManager
     if (this.keyInputManager) {
       this.keyInputManager.destroy();
     }
-    
+
     // Clean up event listeners
     // No resize listener cleanup needed — Scale.FIT handles zoom uniformly
-    
+
     console.log('✅ Overworld: Shutdown complete');
   }
 
@@ -2334,7 +2336,7 @@ export class Overworld extends Scene {
     if (this.isMoving || this.isTransitioningToCombat || this.fogOfWarManager?.isTransitioning) {
       return;
     }
-    
+
     // Ensure camera is available before processing input
     if (!this.cameras || !this.cameras.main) {
       return;
@@ -2344,7 +2346,7 @@ export class Overworld extends Scene {
     if (!this.isMoving && !this.isTransitioningToCombat) {
       const gridSize = this.mazeGenManager.getGridSize();
       let moved = false;
-      
+
       // Check for movement input using KeyInputManager
       if (this.keyInputManager.isLeftPressed()) {
         const targetX = this.player.x - gridSize;
@@ -2371,26 +2373,26 @@ export class Overworld extends Scene {
           moved = true;
         }
       }
-      
+
       // Check for Enter key to interact with nodes
       if (this.keyInputManager.isEnterJustPressed()) {
         this.checkNodeInteraction();
       }
-      
+
       // Check for shop key
       if (this.keyInputManager.isShopKeyJustPressed()) {
         console.log("Shop key pressed");
         // Save player position before transitioning
         const gameState = GameState.getInstance();
         gameState.savePlayerPosition(this.player.x, this.player.y);
-        
+
         // Pause this scene and launch shop scene with actual player data
         this.scene.pause();
-        this.scene.launch("Shop", { 
+        this.scene.launch("Shop", {
           player: this.playerData
         });
       }
-      
+
       // Debug: Add actions with P key for testing (adds 100 actions to test boss trigger faster)
       if (this.keyInputManager.isDebugActionKeyJustPressed()) {
         for (let i = 0; i < 100; i++) {
@@ -2400,17 +2402,17 @@ export class Overworld extends Scene {
         this.checkBossEncounter();
       }
 
-      
+
       // Check for C key to trigger combat (for testing)
       if (this.keyInputManager.isDebugCombatKeyJustPressed()) {
         this.startCombat("combat");
       }
-      
+
       // Check for E key to trigger elite combat (for testing)
       if (this.keyInputManager.isDebugEliteKeyJustPressed()) {
         this.startCombat("elite");
       }
-      
+
       // Update chunk rendering and day/night cycle if player moved
       if (moved) {
         this.updateVisibleChunks();
@@ -2427,7 +2429,7 @@ export class Overworld extends Scene {
   private createOverworldUI(): void {
     const screenHeight = this.cameras.main.height;
     const screenWidth = this.cameras.main.width;
-    
+
     // Create main UI container positioned at top-left
     this.uiContainer = this.add.container(0, 0);
     this.uiContainer.setScrollFactor(0).setDepth(1500);
@@ -2438,13 +2440,13 @@ export class Overworld extends Scene {
     if (tooltipContainer && tooltipContainer.parentContainer !== this.uiContainer) {
       this.uiContainer.add(tooltipContainer);
     }
-    
+
     // Create compact left panel for all UI elements
     this.createCompactLeftPanel(screenHeight);
-    
+
     // Create chapter indicator at top-right
     this.createChapterIndicator(screenWidth);
-    
+
     // Update all UI elements
     this.updateOverworldUI();
   }
@@ -2457,21 +2459,21 @@ export class Overworld extends Scene {
     const gameState = GameState.getInstance();
     const currentChapter = gameState.getCurrentChapter();
     const screenHeight = this.cameras.main.height;
-    
+
     // Chapter names
     const chapterNames: Record<number, string> = {
       1: "The Enchanted Forest",
       2: "The Submerged Barangays",
       3: "The Skyward Citadel"
     };
-    
+
     // Chapter colors
     const chapterColors: Record<number, number> = {
       1: 0x2d5a27, // Forest green
       2: 0x1e4d6b, // Ocean blue
       3: 0x5a4a7a  // Sky purple
     };
-    
+
     // Position above the inventory panel (left panel is at x=20, centered vertically)
     // Left panel: panelWidth=300, panelHeight=450, panelY = screenHeight/2 - 225
     const panelWidth = 300;
@@ -2479,10 +2481,10 @@ export class Overworld extends Scene {
     const inventoryPanelY = (screenHeight / 2) - 225; // Top of inventory panel
     const panelX = 20;
     const panelY = inventoryPanelY - panelHeight - 10; // 10px gap above inventory
-    
+
     // Create a sub-container for chapter indicator elements (added to uiContainer)
     this.chapterIndicatorContainer = this.add.container(panelX, panelY);
-    
+
     // Background panel matching inventory style
     const panelBg = this.add.graphics();
     panelBg.fillStyle(0x0a0a0a, 1.0);
@@ -2490,13 +2492,13 @@ export class Overworld extends Scene {
     panelBg.fillRect(0, 0, panelWidth, panelHeight);
     panelBg.strokeRect(0, 0, panelWidth, panelHeight);
     this.chapterIndicatorContainer.add(panelBg);
-    
+
     // Inner border to match inventory style
     const innerBorder = this.add.graphics();
     innerBorder.lineStyle(1, 0x666666, 1.0);
     innerBorder.strokeRect(4, 4, panelWidth - 8, panelHeight - 8);
     this.chapterIndicatorContainer.add(innerBorder);
-    
+
     // Chapter label
     const chapterLabel = this.add.text(10, 8, `CHAPTER ${currentChapter}`, {
       fontFamily: "dungeon-mode",
@@ -2504,7 +2506,7 @@ export class Overworld extends Scene {
       color: "#ffd700"
     });
     this.chapterIndicatorContainer.add(chapterLabel);
-    
+
     // Chapter name
     this.chapterIndicatorText = this.add.text(10, 26, chapterNames[currentChapter] || `Act ${currentChapter}`, {
       fontFamily: "dungeon-mode",
@@ -2512,7 +2514,7 @@ export class Overworld extends Scene {
       color: "#ffffff"
     });
     this.chapterIndicatorContainer.add(this.chapterIndicatorText);
-    
+
     // Add the chapter indicator container to the main UI container
     // This ensures it inherits the same zoom compensation as the inventory
     this.uiContainer.add(this.chapterIndicatorContainer);
@@ -2526,31 +2528,31 @@ export class Overworld extends Scene {
     const panelHeight = 450;
     const panelX = 20;
     const panelY = (screenHeight / 2) - (panelHeight / 2); // Center vertically
-    
+
     // Retro panel base with subtle depth and double border
     const panelBg = this.add.graphics();
     panelBg.fillStyle(0x080b0d, 1.0);
     panelBg.lineStyle(2, 0x586670, 1.0);
     panelBg.fillRect(panelX, panelY, panelWidth, panelHeight);
     panelBg.strokeRect(panelX, panelY, panelWidth, panelHeight);
-    
+
     // Inner border
     const innerBorder = this.add.graphics();
     innerBorder.lineStyle(1, 0x2f3940, 1.0);
     innerBorder.strokeRect(panelX + 6, panelY + 6, panelWidth - 12, panelHeight - 12);
-    
+
     this.uiContainer.add([panelBg, innerBorder]);
-    
+
     let currentY = panelY + 30;
-    
+
     // Health section
     this.createRetroHealthSection(panelX + 30, currentY, panelWidth - 60);
     currentY += 110;
-    
+
     // Relics section
     this.createRetroRelicsSection(panelX + 30, currentY, panelWidth - 60);
     currentY += 180;
-    
+
     // Potions section
     this.createRetroPotionsSection(panelX + 30, currentY, panelWidth - 60);
   }
@@ -2609,7 +2611,7 @@ export class Overworld extends Scene {
       color: "#8ea3b0"
     });
     this.uiContainer.add(relicsLabel);
-    
+
     // Create 3x2 grid of relic slots (3 columns, 2 rows)
     const slotSize = 60;
     const slotSpacing = 10;
@@ -2617,12 +2619,12 @@ export class Overworld extends Scene {
     const rows = 2;
     const gridStartX = x;
     const gridStartY = y + 25;
-    
+
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < slotsPerRow; col++) {
         const slotX = gridStartX + col * (slotSize + slotSpacing);
         const slotY = gridStartY + row * (slotSize + slotSpacing);
-        
+
         const slot = this.add.graphics();
         slot.fillStyle(0x050607, 1.0);
         slot.lineStyle(1, 0x374047, 1.0);
@@ -2631,7 +2633,7 @@ export class Overworld extends Scene {
         this.uiContainer.add(slot);
       }
     }
-    
+
     // Create relics container for items
     this.relicsContainer = this.add.container(gridStartX, gridStartY);
     this.uiContainer.add(this.relicsContainer);
@@ -2648,16 +2650,16 @@ export class Overworld extends Scene {
       color: "#8ea3b0"
     });
     this.uiContainer.add(potionsLabel);
-    
+
     // Create 3 horizontal potion slots
     const slotSize = 60;
     const slotSpacing = 10;
     const potionStartX = x;
     const potionStartY = y + 25;
-    
+
     for (let i = 0; i < 3; i++) {
       const slotX = potionStartX + i * (slotSize + slotSpacing);
-      
+
       const slot = this.add.graphics();
       slot.fillStyle(0x050607, 1.0);
       slot.lineStyle(1, 0x374047, 1.0);
@@ -2665,7 +2667,7 @@ export class Overworld extends Scene {
       slot.strokeRoundedRect(slotX, potionStartY, slotSize, slotSize, 6);
       this.uiContainer.add(slot);
     }
-    
+
     // Create potions container for items
     this.potionsContainer = this.add.container(potionStartX, potionStartY);
     this.uiContainer.add(this.potionsContainer);
@@ -2679,7 +2681,7 @@ export class Overworld extends Scene {
     const tooltipBg = this.add.graphics();
     tooltipBg.fillStyle(0x000000, 0.85);
     tooltipBg.lineStyle(0.5, 0x555555);
-    
+
     const tooltipText = this.add.text(0, 0, `${title}\n${description}`, {
       fontFamily: "dungeon-mode",
       fontSize: "9px",
@@ -2687,20 +2689,20 @@ export class Overworld extends Scene {
       wordWrap: { width: 160 },
       align: "center"
     }).setOrigin(0.5);
-    
+
     const bounds = tooltipText.getBounds();
-    tooltipBg.fillRoundedRect(-bounds.width/2 - 6, -bounds.height/2 - 3, bounds.width + 12, bounds.height + 6, 3);
-    tooltipBg.strokeRoundedRect(-bounds.width/2 - 6, -bounds.height/2 - 3, bounds.width + 12, bounds.height + 6, 3);
-    
+    tooltipBg.fillRoundedRect(-bounds.width / 2 - 6, -bounds.height / 2 - 3, bounds.width + 12, bounds.height + 6, 3);
+    tooltipBg.strokeRoundedRect(-bounds.width / 2 - 6, -bounds.height / 2 - 3, bounds.width + 12, bounds.height + 6, 3);
+
     tooltip.add([tooltipBg, tooltipText]);
     this.uiContainer.add(tooltip);
-    
+
     targetObject.on('pointerover', () => {
       const globalPos = targetObject.getWorldTransformMatrix();
       tooltip.setPosition(globalPos.tx + 20, globalPos.ty - 20);
       tooltip.setVisible(true);
     });
-    
+
     targetObject.on('pointerout', () => {
       tooltip.setVisible(false);
     });
@@ -2721,14 +2723,14 @@ export class Overworld extends Scene {
    */
   private updateHealthBar(): void {
     if (!this.healthBar || !this.healthText) return;
-    
+
     const healthPercent = this.playerData.currentHealth / this.playerData.maxHealth;
-    
+
     this.healthBar.clear();
-    
+
     // Update health text
     this.healthText.setText(`${this.playerData.currentHealth}/${this.playerData.maxHealth}`);
-    
+
     // Change text color based on health level
     if (healthPercent < 0.25) {
       this.healthText.setColor('#ff0000');
@@ -2746,9 +2748,9 @@ export class Overworld extends Scene {
     this.currencyText.setText(`${this.playerData.ginto}`);
   }
 
-    /**
-   * Update relics display with interactive slots and details modal
-   */
+  /**
+ * Update relics display with interactive slots and details modal
+ */
   private updateRelicsDisplay(): void {
     if (!this.relicsContainer) return;
 
@@ -2886,39 +2888,39 @@ export class Overworld extends Scene {
    */
   private updatePotionsDisplay(): void {
     if (!this.potionsContainer) return;
-    
+
     this.potionsContainer.removeAll(true);
-    
+
     const slotSize = 60; // Match retro potion slot size
     const slotSpacing = 10; // Match retro spacing
     const maxPotions = 3;
-    
+
     for (let i = 0; i < Math.min(this.playerData.potions.length, maxPotions); i++) {
       const potion = this.playerData.potions[i];
       const potionX = i * (slotSize + slotSpacing);
       const potionY = 0;
-      
+
       // Create potion background
       const potionBg = this.add.graphics();
       potionBg.fillStyle(0x333333, 1.0);
       potionBg.lineStyle(1, 0xaaaaaa, 1.0);
       potionBg.fillRect(potionX, potionY, slotSize, slotSize);
       potionBg.strokeRect(potionX, potionY, slotSize, slotSize);
-      
+
       // Potion icon (use heal_potion image instead of emoji)
-  const potionIcon = this.add.image(potionX + slotSize/2, potionY + slotSize/2, "heal_potion").setOrigin(0.5);
-  potionIcon.setDisplaySize(48, 48); // Fit within 60px slot
-      
+      const potionIcon = this.add.image(potionX + slotSize / 2, potionY + slotSize / 2, "heal_potion").setOrigin(0.5);
+      potionIcon.setDisplaySize(48, 48); // Fit within 60px slot
+
       this.potionsContainer.add([potionBg, potionIcon]);
-      
+
       // Make interactive
       const hitArea = new Phaser.Geom.Rectangle(potionX, potionY, slotSize, slotSize);
       potionIcon.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
-      
+
       potionIcon.on('pointerover', () => {
         this.createItemTooltip(potionIcon, potion.name, potion.description);
       });
-      
+
       potionIcon.on('pointerout', () => {
         // Remove tooltip
         this.children.getChildren().forEach(child => {
@@ -2930,9 +2932,9 @@ export class Overworld extends Scene {
     }
   }
 
-    /**
-   * Show detailed relic information in a clean, readable popup
-   */
+  /**
+ * Show detailed relic information in a clean, readable popup
+ */
   private showRelicDetails(relic: Relic, relicIndex: number): void {
     if (this.relicDetailsOpen) {
       return;
@@ -3478,7 +3480,7 @@ export class Overworld extends Scene {
   private getRelicLore(relic: Relic): string {
     return relic.lore ?? "An ancient artifact of great power, its origins lost to time but its effects undeniable. Those who wield it are forever changed by its mystical properties.";
   }
-  
+
   /**
    * Create enemy info tooltip system
    */
@@ -3495,16 +3497,16 @@ export class Overworld extends Scene {
     console.log("Creating fog of war system...");
     this.fogOfWarManager = new FogOfWarSystem(this);
     this.fogOfWarManager.initialize(this.player.x, this.player.y);
-    
+
     // Configure fog depth (all other parameters are set in FogOfWarManager)
     this.fogOfWarManager.setFogParameters({
       fogDepth: DEPTH.FOG_OF_WAR      // Above map tiles, below NPCs and UI
     });
-    
+
     // Set initial fog state based on current day/night (no transition text on init)
     this.fogOfWarManager.updateDayNight(this.gameState.isDay);
     this.lastKnownIsDay = this.gameState.isDay;
-    
+
     console.log("✅ Fog of war system initialized");
   }
 
@@ -3515,21 +3517,21 @@ export class Overworld extends Scene {
   private setInitialUIScale(): void {
     const cameraZoom = this.cameras.main.zoom;
     const uiScale = 1 / cameraZoom;
-    
+
     // Get camera dimensions
     const cameraWidth = this.cameras.main.width;
     const cameraHeight = this.cameras.main.height;
-    
+
     // Calculate position offset to keep UI in place
     const offsetX = (cameraWidth * (cameraZoom - 1)) / (2 * cameraZoom);
     const offsetY = (cameraHeight * (cameraZoom - 1)) / (2 * cameraZoom);
-    
+
     // Scale and reposition UI container (left panel)
     if (this.uiContainer) {
       this.uiContainer.setScale(uiScale);
       this.uiContainer.setPosition(offsetX, offsetY);
     }
-    
+
     // Day/night progress bar container - scale, center horizontally, and shift down
     if (this.dayNightProgressContainer) {
       this.dayNightProgressContainer.setScale(uiScale);
@@ -3537,7 +3539,7 @@ export class Overworld extends Scene {
       const progressBarCenterOffset = (cameraWidth * (1 - uiScale)) / 2;
       // Vertical: shift down to stay at top
       this.dayNightProgressContainer.setPosition(progressBarCenterOffset, offsetY);
-      
+
       // Update indicator position within the container
       if (this.dayNightIndicator) {
         const progressBarWidth = cameraWidth * 0.6;
@@ -3548,13 +3550,13 @@ export class Overworld extends Scene {
         this.dayNightIndicator.y = progressBarY + 25;
       }
     }
-    
+
     // Boss text (top left)
     if (this.bossText) {
       this.bossText.setScale(uiScale);
       this.bossText.setPosition(10 + offsetX, 40 + offsetY);
     }
-    
+
     // Toggle button (top right)
     if (this.toggleButton) {
       this.toggleButton.setScale(uiScale);
@@ -3562,22 +3564,22 @@ export class Overworld extends Scene {
       const toggleY = 50 + offsetY;
       this.toggleButton.setPosition(toggleX, toggleY);
     }
-    
+
     // Test buttons container
     if (this.testButtonsContainer) {
       this.testButtonsContainer.setScale(uiScale);
     }
-    
+
     // Scale action buttons
     if (this.actionButtons) {
       this.actionButtons.forEach(button => {
         button.setScale(uiScale);
       });
     }
-    
+
     // Note: Chapter indicator is now part of uiContainer, so it's automatically handled
     // Note: Tooltip handles its own zoom compensation in updateTooltipContent
-    
+
     console.log(`🎮 Initial UI scale set to ${uiScale} (camera zoom: ${cameraZoom})`);
   }
 }

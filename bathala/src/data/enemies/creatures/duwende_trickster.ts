@@ -26,10 +26,10 @@ export const DUWENDE_TRICKSTER: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Tricks abound in mounds!',
-    defeat: 'My fortune... fades...',
-    spare: 'Spare, learn: Duwende grant boons/curses, warped by engkanto lies (Samar, 2019).',
-    slay: 'End my mischief—fuel for impostor!',
+    intro: 'Tabi-tabi po! Ha! You forgot to ask permission! The engkanto taught us new tricks — and my mischief has teeth!',
+    defeat: 'My fortune fades like gold dust in rain... The mound grows quiet. I remember when my tricks brought luck to those who respected the old ways, and only cursed those who trampled sacred ground without care...',
+    spare: 'You spare a duwende? Wise, mortal — wiser than you know. We are creatures of the between — not good, not evil, but responsive to how we are treated. Say "tabi-tabi po" and we grant fortune. Disrespect us and we curse. The engkanto exploited our dual nature, feeding us only anger. Your mercy restores the balance our mounds once held.',
+    slay: 'End my mischief — and the impostor laughs! Every duwende mound destroyed is a piece of the old bargain broken. No more tabi-tabi po. No more fortune for the respectful. Just silence where wonder once lived!',
   },
 
   // === Lore ===

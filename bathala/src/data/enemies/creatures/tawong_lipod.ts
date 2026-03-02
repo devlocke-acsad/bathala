@@ -29,10 +29,10 @@ export const TAWONG_LIPOD: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Winds conceal—feel fury!',
-    defeat: 'Our veil... tears...',
-    spare: 'Mercy whispers: Tawong Lipod, invisible Bikol wind beings, once harmonious (Samar, 2019).',
-    slay: 'Scatter us—impostor grows!',
+    intro: 'Can you see me? Of course not. We are tawong lipod — the invisible wind people. The engkanto armed our wind with thorns. Feel the fury of what you cannot see!',
+    defeat: 'Our veil... tears like spider silk in a storm. The invisibility that protected us now fails. Through the fading wind, you can almost see our true forms — not monsters, but wind-dancers, sky-children of the Bikol highlands...',
+    spare: 'You show mercy to the invisible? Then you see more than most. The Bikol people knew us as tawong lipod — the hidden folk who lived in harmony with the wind itself. We were neither malicious nor benevolent, simply... present. Like the air you breathe. The engkanto gave us rage and taught us to use our invisibility as a weapon. Your mercy makes us visible again — not to the eye, but to the heart.',
+    slay: 'Scatter us to the winds — and the impostor grows stronger with every invisible spirit you disperse! We are the wind itself — you cannot kill us, only silence us. And a world without wind is a world without breath!',
   },
 
   // === Lore ===

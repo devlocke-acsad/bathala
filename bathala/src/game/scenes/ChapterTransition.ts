@@ -1,10 +1,12 @@
 import { Scene } from "phaser";
 import { ActManager } from "../../core/managers/ActManager";
+import { CHAPTER_NARRATIVES } from "../../data/NarrativeData";
 
 /**
  * ChapterTransition Scene
  * Displays a cinematic chapter title screen when transitioning between chapters.
  * Uses ActManager for chapter-aware names, subtitles, and colors.
+ * Now includes narrative text from the story design.
  */
 export class ChapterTransition extends Scene {
   private targetChapter: number = 1;
@@ -31,6 +33,10 @@ export class ChapterTransition extends Scene {
     // Chapter name and subtitle from ActConfig (with fallbacks)
     const chapterName = actConfig?.subtitle || `Act ${this.targetChapter}`;
     const chapterSubtitleText = actConfig ? `Where ${actConfig.theme.primaryElements.join(' and ').toLowerCase()} converge` : "";
+
+    // Get narrative text for this chapter
+    const narrative = CHAPTER_NARRATIVES[this.targetChapter];
+    const narrativeText = narrative?.entryText || "";
 
     // Chapter-specific colors from ActConfig theme palette
     const defaultColors = { primary: "#4ade80", secondary: "#166534", bg: 0x0d1f0d };
@@ -111,6 +117,21 @@ export class ChapterTransition extends Scene {
       }
     ).setOrigin(0.5).setAlpha(0);
 
+    // Narrative text — story-driven line below the subtitle, more prominent
+    const narrativeLabel = this.add.text(
+      screenWidth / 2,
+      screenHeight / 2 + 150,
+      '',  // Will typewrite in
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: "16px",
+        color: "#d4e0e8",
+        align: "center",
+        fontStyle: "italic",
+        wordWrap: { width: screenWidth * 0.65 }
+      }
+    ).setOrigin(0.5).setAlpha(0);
+
     // Skip hint
     const skipHint = this.add.text(
       screenWidth / 2,
@@ -137,7 +158,7 @@ export class ChapterTransition extends Scene {
       ease: 'Power2',
       onComplete: () => {
         if (this.isSkipping) return;
-        
+
         // Step 2: Show chapter number
         this.tweens.add({
           targets: chapterNumber,
@@ -147,7 +168,7 @@ export class ChapterTransition extends Scene {
           ease: 'Back.easeOut',
           onComplete: () => {
             if (this.isSkipping) return;
-            
+
             // Step 3: Show chapter title
             this.tweens.add({
               targets: chapterTitle,
@@ -156,7 +177,7 @@ export class ChapterTransition extends Scene {
               duration: 800,
               ease: 'Back.easeOut'
             });
-            
+
             // Step 4: Show subtitle (slightly delayed)
             this.tweens.add({
               targets: chapterSubtitle,
@@ -166,18 +187,30 @@ export class ChapterTransition extends Scene {
               ease: 'Power2',
               onComplete: () => {
                 if (this.isSkipping) return;
-                
+
+                // Step 4b: Show narrative text with typewriter effect
+                narrativeLabel.setAlpha(0.9);
+                let charIdx = 0;
+                this.time.addEvent({
+                  delay: 25,
+                  repeat: narrativeText.length - 1,
+                  callback: () => {
+                    charIdx++;
+                    narrativeLabel.setText(narrativeText.substring(0, charIdx));
+                  }
+                });
+
                 // Show skip hint
                 this.tweens.add({
                   targets: skipHint,
                   alpha: 0.5,
                   duration: 500
                 });
-                
-                // Step 5: Hold then fade out (after 2.5 seconds)
-                this.time.delayedCall(2500, () => {
+
+                // Step 5: Hold then fade out (after 4 seconds — longer to read narrative)
+                this.time.delayedCall(4000, () => {
                   if (this.isSkipping) return;
-                  this.fadeOutAndTransition(overlay, chapterNumber, chapterTitle, chapterSubtitle, topLine, bottomLine, skipHint);
+                  this.fadeOutAndTransition(overlay, chapterNumber, chapterTitle, chapterSubtitle, topLine, bottomLine, skipHint, narrativeLabel);
                 });
               }
             });
@@ -201,11 +234,12 @@ export class ChapterTransition extends Scene {
     chapterSubtitle: Phaser.GameObjects.Text,
     topLine: Phaser.GameObjects.Rectangle,
     bottomLine: Phaser.GameObjects.Rectangle,
-    skipHint: Phaser.GameObjects.Text
+    skipHint: Phaser.GameObjects.Text,
+    narrativeLabel: Phaser.GameObjects.Text
   ): void {
     // Fade out all text and lines
     this.tweens.add({
-      targets: [chapterNumber, chapterTitle, chapterSubtitle, topLine, bottomLine, skipHint],
+      targets: [chapterNumber, chapterTitle, chapterSubtitle, topLine, bottomLine, skipHint, narrativeLabel],
       alpha: 0,
       duration: 800,
       ease: 'Power2',
@@ -230,7 +264,7 @@ export class ChapterTransition extends Scene {
   private skipTransition(): void {
     if (this.isSkipping) return;
     this.isSkipping = true;
-    
+
     console.log("⏭️ Chapter transition skipped");
     this.tweens.killAll();
     this.time.removeAllEvents();
@@ -256,9 +290,9 @@ export class ChapterTransition extends Scene {
       const x = Phaser.Math.Between(0, screenWidth);
       const y = Phaser.Math.Between(screenHeight / 2, screenHeight);
       const size = Phaser.Math.Between(2, 4);
-      
+
       const particle = this.add.circle(x, y, size, colorNum, 0.2);
-      
+
       // Floating animation
       this.tweens.add({
         targets: particle,

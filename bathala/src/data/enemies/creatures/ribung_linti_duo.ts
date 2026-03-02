@@ -26,10 +26,10 @@ export const RIBUNG_LINTI_DUO: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Storms strike in tandem!',
-    defeat: 'Our thunder... silences...',
-    spare: 'Mercy echoes: Ribung Linti, Ilocano lightning spirits (Samar, 2019).',
-    slay: 'Shatter our bolts—false god grows!',
+    intro: 'STORMS STRIKE IN TANDEM! We are Ribung Linti — twin lightning of the Ilocano highlands! The engkanto made us the storm instead of its herald!',
+    defeat: 'Our thunder... silences at last. The twin bolts separate, and in the quiet between lightning and its echo, we hear the old Ilocano prayers: not prayers of fear, but of respect. The farming communities knew our storms brought rain for the rice terraces. We were the heralds of harvest, not harbingers of ruin...',
+    spare: 'Mercy echoes through the mountains! The Ribung Linti are Ilocano lightning spirits — twin forces of storm and thunder that the highland communities respected and feared in equal measure. Our lightning struck the mountains to release minerals into the soil. Our rain filled the rice terraces. Our thunder warned of approaching weather. The engkanto weaponized our power, aimed our bolts at people instead of mountains. Your mercy grounds us in purpose again.',
+    slay: 'Shatter our bolts — and the false god grows stronger on stolen thunder! The Ilocano highlands will know storms without warning, rain without rhythm, and lightning without meaning. We were the weather\'s voice — and you have silenced it!',
   },
 
   // === Lore ===

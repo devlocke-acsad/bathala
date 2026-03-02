@@ -26,10 +26,10 @@ export const TIKBALANG_SCOUT: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: "Lost in my paths, seer? False one's whispers guide!",
-    defeat: 'My tricks... unravel...',
-    spare: 'Spare me: Tikbalang were forest protectors, now misleading with backward hooves (Ramos, 1990).',
-    slay: 'End me—my essence feeds shadow!',
+    intro: "Ha! My hooves face backward, mortal — the engkanto taught me to lead you in and never let you out! The false one's whispers guide my trails now!",
+    defeat: 'My tricks... unravel like roots torn from soil. The paths I twisted are straightening... I can feel the mountain calling me home...',
+    spare: 'You would spare a tikbalang? We were once the sacred guardians of the mountain trails, our backward hooves a sign of our otherness — not cruelty, but vigilance. The Tagalog elders told children to wear their shirts inside-out to see through our misdirection. Now the engkanto has turned our guidance into torment. Your mercy... it reminds me of what I once protected.',
+    slay: 'Strike true — my essence feeds the shadow that your false god commands! But know this: every tikbalang you destroy is a mountain trail left unguarded, a traveler left without a guide in the dark!',
   },
 
   // === Lore ===

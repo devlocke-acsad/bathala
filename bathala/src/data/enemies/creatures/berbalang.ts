@@ -26,10 +26,10 @@ export const BERBALANG: EnemyConfig = {
 
   // === Dialogue ===
   dialogue: {
-    intro: 'Ghoul hunger rises from depths!',
-    defeat: 'My spirit... scatters...',
-    spare: 'Compassion spares: Berbalang, ghouls feeding on drowned (Ramos, 1990).',
-    slay: 'Consume my form—impostor grows!',
+    intro: 'Ghoul hunger rises from Sulu! I am berbalang — I split my spirit to hunt through the dark. The engkanto taught me to hunger for the living as well as the dead!',
+    defeat: 'My spirit... scatters like ash on the water. The astral form collapses back into flesh that no longer moves. In the stillness, I remember: the berbalang once held vigil over the dead, ensuring their passage to the afterlife. We were undertakers of the sea, not desecrators...',
+    spare: 'Compassion for the corpse-eater? Then hear what Sulu\'s elders knew: the berbalang are astral hunters, able to separate their upper bodies to hunt. Terrifying, yes — but our original purpose was sacred. We consumed the dead so their spirits could travel freely to the afterlife. We were the sea\'s funeral rites. The engkanto turned our sacred consumption into endless hunger. Your mercy... it tastes like the last meal I ate with purpose.',
+    slay: 'Consume my form — and the impostor grows fat on a ghoul\'s essence! The dead of Sulu\'s waters will drift without passage, their spirits trapped between worlds. Every berbalang destroyed is an afterlife pathway sealed!',
   },
 
   // === Lore ===
