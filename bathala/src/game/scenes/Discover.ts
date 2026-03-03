@@ -20,6 +20,10 @@ export class Discover extends Scene {
   private lastDragY: number = 0;
   private lastDragTime: number = 0;
   
+  // Chapter selection
+  private currentChapter: number = 1;
+  private chapterButtons: GameObjects.Text[] = [];
+  
   // Compendium data
   private compendiumEntries: any[] = [];
   
@@ -173,6 +177,90 @@ export class Discover extends Scene {
           }
         });
       });
+    
+    // Add chapter selection buttons
+    this.createChapterButtons(screenWidth);
+  }
+  
+  /**
+   * Create chapter selection buttons
+   */
+  private createChapterButtons(screenWidth: number): void {
+    const chapterY = 115;
+    const chapterLabels = ["Chapter 1", "Chapter 2", "Chapter 3"];
+    const buttonGapX = 280; // Much larger gap between buttons
+    
+    // Calculate total width needed and center it
+    const totalWidth = (chapterLabels.length - 1) * buttonGapX;
+    const startX = (screenWidth - totalWidth) / 2;
+    
+    for (let i = 0; i < chapterLabels.length; i++) {
+      const x = startX + i * buttonGapX;
+      const chapterNum = i + 1;
+      const chapterText = this.add
+        .text(x, chapterY, chapterLabels[i], {
+          fontFamily: "dungeon-mode",
+          fontSize: 13,
+          color: this.currentChapter === chapterNum ? "#06d6a0" : "#77888C",
+          align: "center",
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .on("pointerdown", () => {
+          this.switchChapter(chapterNum);
+        })
+        .on("pointerover", () => {
+          this.tweens.add({
+            targets: chapterText,
+            scaleX: 1.15,
+            scaleY: 1.15,
+            duration: 150
+          });
+        })
+        .on("pointerout", () => {
+          this.tweens.add({
+            targets: chapterText,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 150
+          });
+        });
+      
+      this.chapterButtons.push(chapterText);
+    }
+  }
+  
+  /**
+   * Switch to a different chapter and refresh cards
+   */
+  private switchChapter(chapter: number): void {
+    this.currentChapter = chapter;
+    
+    // Update button colors
+    this.chapterButtons.forEach((button, index) => {
+      const btnChapter = index + 1;
+      this.tweens.add({
+        targets: button,
+        color: btnChapter === chapter ? 0x06d6a0 : 0x77888C,
+        duration: 200
+      });
+    });
+    
+    // Reset scroll completely
+    this.scrollY = 0;
+    this.targetScrollY = 0;
+    this.scrollVelocity = 0;
+    
+    // Destroy old container
+    if (this.cardsContainer) {
+      this.cardsContainer.destroy();
+    }
+    
+    // Create new cards for this chapter
+    this.createCharacterCards();
+    
+    // Reapply mask to prevent seeing other chapter content
+    this.createScrollMask();
   }
   
   /**
@@ -181,6 +269,8 @@ export class Discover extends Scene {
   private loadCompendiumData(): void {
     bootstrapEnemies();
     const getEnemyConfig = (id: string) => EnemyRegistry.getConfigOrThrow(id);
+    
+    // Chapter 1 enemies
     const tikbalangScout = getEnemyConfig('tikbalang_scout');
     const baleteWraith = getEnemyConfig('balete_wraith');
     const sigbinCharger = getEnemyConfig('sigbin_charger');
@@ -191,6 +281,30 @@ export class Discover extends Scene {
     const kapreShade = getEnemyConfig('kapre_shade');
     const tawongLipod = getEnemyConfig('tawong_lipod');
     const mangangaway = getEnemyConfig('mangangaway');
+    
+    // Chapter 2 enemies
+    const sirenaillusionist = getEnemyConfig('sirena_illusionist');
+    const siyokoyRaider = getEnemyConfig('siyokoy_raider');
+    const santelmoFlicker = getEnemyConfig('santelmo_flicker');
+    const berberokeLurker = getEnemyConfig('berberoka_lurker');
+    const magindara = getEnemyConfig('magindara_swarm');
+    const kataw = getEnemyConfig('kataw');
+    const berbalang = getEnemyConfig('berbalang');
+    const sunkenBangkilan = getEnemyConfig('sunken_bangkilan');
+    const apoyTubigFury = getEnemyConfig('apoy_tubig_fury');
+    const bakunawa = getEnemyConfig('bakunawa');
+    
+    // Chapter 3 enemies
+    const tigmamanukan = getEnemyConfig('tigmamanukan_watcher');
+    const diwataSentinel = getEnemyConfig('diwata_sentinel');
+    const sarimanok = getEnemyConfig('sarimanok_keeper');
+    const bulalakaw = getEnemyConfig('bulalakaw_flamewings');
+    const minokawa = getEnemyConfig('minokawa_harbinger');
+    const alan = getEnemyConfig('alan');
+    const ekek = getEnemyConfig('ekek');
+    const ribungLinti = getEnemyConfig('ribung_linti_duo');
+    const apolaki = getEnemyConfig('apolaki_godling');
+    const falseBathala = getEnemyConfig('false_bathala');
 
     this.compendiumEntries = [
       {
@@ -198,6 +312,7 @@ export class Discover extends Scene {
         name: tikbalangScout.name,
         description: "Horse-headed trickster spirits that guard mountain passes and mislead travelers with backward hoof prints. Their chaotic nature confuses targeting and disorients those who dare trespass their domain.",
         type: "Common",
+        chapter: 1,
         health: tikbalangScout.maxHealth,
         attack: tikbalangScout.damage,
         abilities: ["Confuse", "Misdirection"],
@@ -208,6 +323,7 @@ export class Discover extends Scene {
         name: baleteWraith.name,
         description: "Tormented spirits bound to ancient Balete trees—sacred portals between the mortal realm and the spirit world. They gain strength when wounded, feeding on the pain of intrusion.",
         type: "Common",
+        chapter: 1,
         health: baleteWraith.maxHealth,
         attack: baleteWraith.damage,
         abilities: ["Strengthen When Hurt", "Vulnerable"],
@@ -218,6 +334,7 @@ export class Discover extends Scene {
         name: sigbinCharger.name,
         description: "Goat-like nocturnal creatures that walk backward and emit a foul stench. They steal hearts to forge dark amulets, charging with devastating burst attacks every third turn.",
         type: "Common",
+        chapter: 1,
         health: sigbinCharger.maxHealth,
         attack: sigbinCharger.damage,
         abilities: ["Burst Attack (Every 3 Turns)", "Heart Steal"],
@@ -228,6 +345,7 @@ export class Discover extends Scene {
         name: duwendeTrickster.name,
         description: "Mischievous goblin-folk dwelling in anthills and ancient mounds. Their unpredictable magic can grant fortune or misfortune, now twisted to steal your defenses and disrupt your strategy.",
         type: "Common",
+        chapter: 1,
         health: duwendeTrickster.maxHealth,
         attack: duwendeTrickster.damage,
         abilities: ["Steal Block", "Disrupt Draw", "Fortune Reversal"],
@@ -238,6 +356,7 @@ export class Discover extends Scene {
         name: tiyanakAmbusher.name,
         description: "Demonic spirits of unbaptized or aborted children that mimic infant cries to lure victims into the forest. Their ambush strikes inspire terror and deal devastating critical damage.",
         type: "Common",
+        chapter: 1,
         health: tiyanakAmbusher.maxHealth,
         attack: tiyanakAmbusher.damage,
         abilities: ["Fear", "Critical First Strike", "Mimic Cry"],
@@ -248,6 +367,7 @@ export class Discover extends Scene {
         name: amomongo.name,
         description: "Ape-like cryptids from the Visayan islands with razor-sharp claws that cause grievous bleeding wounds. These cave-dwelling beasts once protected mountain sanctuaries but now hunt with primal fury.",
         type: "Common",
+        chapter: 1,
         health: amomongo.maxHealth,
         attack: amomongo.damage,
         abilities: ["Bleed", "Fast Attacks", "Rending Claws"],
@@ -258,6 +378,7 @@ export class Discover extends Scene {
         name: bungisngis.name,
         description: "Enormous one-eyed giants whose perpetual laughter masks their devastating strength. Their unsettling mirth weakens the resolve of all who hear it, while they wield massive clubs with crushing force.",
         type: "Common",
+        chapter: 1,
         health: bungisngis.maxHealth,
         attack: bungisngis.damage,
         abilities: ["Laugh Debuff", "High Swing", "Intimidating Presence"],
@@ -268,6 +389,7 @@ export class Discover extends Scene {
         name: kapreShade.name,
         description: "Towering tree giants perpetually smoking enormous cigars, their presence marked by the scent of tobacco and burnt leaves. They command flames and summon lesser spirits, defending their sacred trees with primal fury.",
         type: "Boss",
+        chapter: 1,
         health: kapreShade.maxHealth,
         attack: kapreShade.damage,
         abilities: ["AoE Burn", "Summon Fire Minions", "Cigar Smoke Veil", "Strengthen"],
@@ -278,6 +400,7 @@ export class Discover extends Scene {
         name: tawongLipod.name,
         description: "Invisible wind spirits from Bicolano mythology that exist only as whispers on the breeze. Their unseen presence makes them impossible to target consistently, striking with sudden stuns from the air itself.",
         type: "Elite",
+        chapter: 1,
         health: tawongLipod.maxHealth,
         attack: tawongLipod.damage,
         abilities: ["Invisibility", "Wind Stun", "Air Affinity Bonus"],
@@ -288,10 +411,233 @@ export class Discover extends Scene {
         name: mangangaway.name,
         description: "Dark sorcerers who wield forbidden hexes and curses, capable of mimicking any elemental force turned against them. They wear necklaces of skulls and channel the spirits of the damned to reverse fate itself.",
         type: "Elite",
+        chapter: 1,
         health: mangangaway.maxHealth,
         attack: mangangaway.damage,
         abilities: ["Mimic Elements", "Curse Cards", "Hex of Reversal"],
         lore: "Dark practitioners of kulam (curse magic) and barang (hex casting), Mangangaway are the opposite of healing Babaylan—they bring illness and death through cursed objects and malevolent spirits. Wearing skull necklaces, their power grows with each life taken. Ancient outcasts who broke kapwa's sacred laws, they now serve the false god as hex-wielding enforcers."
+      },
+      // ===== Chapter 2: The Submerged Barangays =====
+      {
+        id: "sirena_illusionist",
+        name: sirenaillusionist.name,
+        description: "Enchanting mermaids whose haunting songs lure victims into the depths. They heal their allies and charm enemies, making them miss critical strikes.",
+        type: "Common",
+        chapter: 2,
+        health: sirenaillusionist.maxHealth,
+        attack: sirenaillusionist.damage,
+        abilities: ["Heal Allies", "Charm", "Mesmerizing Song"],
+        lore: "Benevolent mermaids of Visayan waters, Sirena once sang to protect sailors and guide lost travelers. Their melodious voices commanded respect and kindness. Corrupted by engkanto lies, these guardians now use their songs to entrap souls in endless tides of despair."
+      },
+      {
+        id: "siyokoy_raider",
+        name: siyokoyRaider.name,
+        description: "Malevolent mermen with strong scales that absorb damage. They drag victims underwater with violent splash attacks that affect multiple targets.",
+        type: "Common",
+        chapter: 2,
+        health: siyokoyRaider.maxHealth,
+        attack: siyokoyRaider.damage,
+        abilities: ["Armor", "Splash Attack", "Drag Victims"],
+        lore: "Aggressive mermen who once balanced the waters with Sirena, Siyokoy have always guarded territorial boundaries. Their scaled bodies are nearly impenetrable. False promises of power transformed them into ravenous predators dragging the innocent to watery graves."
+      },
+      {
+        id: "santelmo_flicker",
+        name: santelmoFlicker.name,
+        description: "Mystical soul fires appearing as floating lights above water. They evade attacks with uncanny grace and ignite their enemies with supernatural flames.",
+        type: "Common",
+        chapter: 2,
+        health: santelmoFlicker.maxHealth,
+        attack: santelmoFlicker.damage,
+        abilities: ["Dodge", "Burn", "St. Elmo's Fire"],
+        lore: "Spiritual fires aiding gods and righteous travelers, Santelmo lights appeared above masts during storms to warn of danger. Sacred and wise, they chose sides carefully. Now twisted by engkanto corruption into agents of chaos, their flames consume without discrimination."
+      },
+      {
+        id: "berberoka_lurker",
+        name: berberokeLurker.name,
+        description: "Massive water giants that dwell in swamps, capable of swelling to enormous size. They devour cards from your hand, disrupting your strategy.",
+        type: "Common",
+        chapter: 2,
+        health: berberokeLurker.maxHealth,
+        attack: berberokeLurker.damage,
+        abilities: ["Banish Cards", "Size Change", "Swamp Master"],
+        lore: "Apa­yao protectors of swamplands, Berberoka were once guardians preventing wasteful drowning. Giants capable of changing size at will, they judged trespassers fairly. Engkanto manipulation turned their protective instinct into ravenous hunger, now indiscriminately consuming trespassers."
+      },
+      {
+        id: "magindara_swarm",
+        name: magindara.name,
+        description: "Vicious mermaids appearing in coordinated groups. They adapt to threats, regenerate when damaged, and coordinate devastating attacks.",
+        type: "Common",
+        chapter: 2,
+        health: magindara.maxHealth,
+        attack: magindara.damage,
+        abilities: ["Adaptive", "Regenerate", "Coordinated Attacks"],
+        lore: "Bicolano fish-eating mermaids with beautiful faces and seductive songs hiding savage hunger. Once protective of their waters without aggression toward surface dwellers, their nature was perverted into that of apex predators of the deep."
+      },
+      {
+        id: "kataw",
+        name: kataw.name,
+        description: "Regal sea monarchs commanding the waters themselves. They summon minions and strengthen their forces through mystic rule over the oceans.",
+        type: "Common",
+        chapter: 2,
+        health: kataw.maxHealth,
+        attack: kataw.damage,
+        abilities: ["Summon Minions", "Heal", "Command Seas"],
+        lore: "Bisayan sea kings crowned with coral and command authority over oceans. Fair rulers maintaining balance between water realms, Kataw were respected by all sea dwellers. Whispers of forbidden power corrupted their noble governance into tyranny."
+      },
+      {
+        id: "berbalang",
+        name: berbalang.name,
+        description: "Astral ghouls that feed on the drowned dead. They detach spiritually from the material realm and weaken the deck with spectral hunger.",
+        type: "Common",
+        chapter: 2,
+        health: berbalang.maxHealth,
+        attack: berbalang.damage,
+        abilities: ["Astral Detach", "Weaken Deck", "Corpse Feeding"],
+        lore: "Sulu Islamic folk creatures—ghouls of the dead dwelling between worlds, Berbalang feast on corpses nobody claimed. Neither truly alive nor dead, they hunger eternally. Engkanto lies convinced them their hunger was righteous justice."
+      },
+      {
+        id: "sunken_bangkilan",
+        name: sunkenBangkilan.name,
+        description: "Shape-shifting sorceresses dwelling in sunken ruins. They disrupt hand formation and bend reality, turning player strategies against them.",
+        type: "Elite",
+        chapter: 2,
+        health: sunkenBangkilan.maxHealth,
+        attack: sunkenBangkilan.damage,
+        abilities: ["Shape-Shift", "Disrupt Hands", "Reality Warping"],
+        lore: "Mangkukulam-descended water witches mastering transformation magic. Bangkilan shape-shift to counter threats, their forms reflecting opponent vulnerabilities. Bound to engkanto service through dark pacts, they now use their gifts to trap and torment."
+      },
+      {
+        id: "apoy_tubig_fury",
+        name: apoyTubigFury.name,
+        description: "Warring elemental spirits embodying the conflict between fire and water. They cycle between devastating burn attacks and healing surges.",
+        type: "Elite",
+        chapter: 2,
+        health: apoyTubigFury.maxHealth,
+        attack: apoyTubigFury.damage,
+        abilities: ["Burn AoE", "Healing Surge", "Element Clash"],
+        lore: "Visayan creation tales speak of siblings born from Bathala's conflict—fire and water eternally opposed yet interdependent. These elementals embody that struggle. Engkanto deception weaponized their rivalry, turning balance into chaos."
+      },
+      {
+        id: "bakunawa",
+        name: bakunawa.name,
+        description: "The legendary moon-devouring serpent whose hunger devours relics and warps your hands. Capable of devouring entire hands and consuming resources.",
+        type: "Boss",
+        chapter: 2,
+        health: bakunawa.maxHealth,
+        attack: bakunawa.damage,
+        abilities: ["Lunar Eclipse", "Devour Relics", "Warp Hands", "Flood"],
+        lore: "Bicolano and Visayan cosmic serpent causing eclipses by swallowing the moon. Ancient, intelligent, and driven by infinite hunger, Bakunawa was imprisoned by Bathala to maintain celestial order. The engkanto's lies convinced it that rage was freedom—now it devours everything."
+      },
+      // ===== Chapter 3: The Skyward Citadel =====
+      {
+        id: "tigmamanukan_watcher",
+        name: tigmamanukan.name,
+        description: "Prophetic birds of Bathala that grow stronger as battles progress. Their omens foretell fate, making them increasingly dangerous foes.",
+        type: "Common",
+        chapter: 3,
+        health: tigmamanukan.maxHealth,
+        attack: tigmamanukan.damage,
+        abilities: ["Prophecy", "Grow Stronger", "Omen Sight"],
+        lore: "Tagalog divination birds with three calls—one for each fate. They served Bathala as messengers of omens, guiding people toward righteous paths. Now twisted to speak only lies, their once-true vision sees only engkanto deceptions."
+      },
+      {
+        id: "diwata_sentinel",
+        name: diwataSentinel.name,
+        description: "Divine guardians of nature and sacred places. They counter opposite forces and punish those who disrespect the natural order.",
+        type: "Common",
+        chapter: 3,
+        health: diwataSentinel.maxHealth,
+        attack: diwataSentinel.damage,
+        abilities: ["Counter Opposite", "Nature Guard", "Sacred Protection"],
+        lore: "Visayan nature guardians owning herds of white deer and schools of white fish. Protectors of forests and waters, they punished disrespect with disease or loss. Engkanto whispers broke their trust, convincing them all intruders are enemies."
+      },
+      {
+        id: "sarimanok_keeper",
+        name: sarimanok.name,
+        description: "Ornate fortune birds of Maranao origin. They nullify special abilities and enhance their own power through mystical buffs.",
+        type: "Common",
+        chapter: 3,
+        health: sarimanok.maxHealth,
+        attack: sarimanok.damage,
+        abilities: ["Nullify Specials", "Buff Self", "Fortune"],
+        lore: "Maranao two-headed birds symbolizing harmony and prosperity. With rooster heads and fish tails, Sarimanok brought luck and protected homes. Their connection to multiple realms let them see threats others missed. False visions now poison their protective foresight."
+      },
+      {
+        id: "bulalakaw_flamewings",
+        name: bulalakaw.name,
+        description: "Comet-like omen birds streaking across skies trailing fire. They burn and blur vision, striking with meteoric force.",
+        type: "Common",
+        chapter: 3,
+        health: bulalakaw.maxHealth,
+        attack: bulalakaw.damage,
+        abilities: ["Meteor Burn", "Blur Vision", "Omen of Illness"],
+        lore: "General folklore beings appearing as comets overhead, Bulalakaw are omen birds whose sightings predicted illness. Once seen as natural warnings, respected while feared. Engkanto lies turned their prophecies into curses of sickness."
+      },
+      {
+        id: "minokawa_harbinger",
+        name: minokawa.name,
+        description: "Eclipse birds that steal potions and evade with air affinity. These cosmic devourers steal resources while remaining hidden.",
+        type: "Common",
+        chapter: 3,
+        health: minokawa.maxHealth,
+        attack: minokawa.damage,
+        abilities: ["Steal Potions", "Air Evasion", "Eclipse Devourer"],
+        lore: "Bagobo cosmic creatures causing eclipses by devouring sun and moon. Enormous, intelligent, and driven by hunger beyond eating—they consume light itself. Imprisoned in sky realms by Bathala, engkanto promises freed them to rampage."
+      },
+      {
+        id: "alan",
+        name: alan.name,
+        description: "Half-bird, half-human aerial creatures from Bikol. They dive with sharp talons and summon flocks of smaller birds to aid them.",
+        type: "Common",
+        chapter: 3,
+        health: alan.maxHealth,
+        attack: alan.damage,
+        abilities: ["Winged Dive", "Summon Birds", "Talon Strike"],
+        lore: "Bikol bird-people adopting lost children, Alan were benevolent despite their danger. With upper human bodies and lower bird forms, they flew between realms. Engkanto lies told them lost children were theirs to consume, transforming caretakers into hunters."
+      },
+      {
+        id: "ekek",
+        name: ekek.name,
+        description: "Nocturnal bird vampires that drain life essence and evade detection. They suck sustenance from sleeping victims under cover of darkness.",
+        type: "Common",
+        chapter: 3,
+        health: ekek.maxHealth,
+        attack: ekek.damage,
+        abilities: ["Vampiric Drain", "Night Evasion", "Tongue Sucker"],
+        lore: "General folklore nocturnal creatures appearing as birds by day and vampires by night, Ekek suck tongues or blood from sleeping victims. Uncontrollable hunger drives their attacks. Even before engkanto corruption they were feared—now they are merciless."
+      },
+      {
+        id: "ribung_linti_duo",
+        name: ribungLinti.name,
+        description: "Ilocano lightning spirits operating in dangerous tandem. They share damage between them and alternate devastating thunder strikes.",
+        type: "Elite",
+        chapter: 3,
+        health: ribungLinti.maxHealth,
+        attack: ribungLinti.damage,
+        abilities: ["Shared Damage", "Lightning Strike", "Storm Tandem"],
+        lore: "Ilocano storm beings embodying thunder's raw power. Twin spirits, they were seen as harbingers of seasonal rains necessary for crops. Sacred lightning brought renewal. Engkanto corruption weaponized their storms into instruments of destruction."
+      },
+      {
+        id: "apolaki_godling",
+        name: apolaki.name,
+        description: "War and sun deity rivaling Mayari in Tagalog mythology. This divine being changes poker rules to suit itself, bending fate.",
+        type: "Elite",
+        chapter: 3,
+        health: apolaki.maxHealth,
+        attack: apolaki.damage,
+        abilities: ["Change Rules", "Divine Wrath", "Sun's Power"],
+        lore: "Tagalog Bathala's son embodying sun and war, Apolaki once balanced his sister Mayari's lunar authority. Their eternal rivalry maintained celestial harmony. False god's influence twisted Apolaki's pride into absolute dominion, breaking sibling balance forever."
+      },
+      {
+        id: "false_bathala",
+        name: falseBathala.name,
+        description: "The impostor god born from forbidden merger of grave-bound serpent and winged spirit. It steals relics, nullifies bonuses, and shifts elements.",
+        type: "Boss",
+        chapter: 3,
+        health: falseBathala.maxHealth,
+        attack: falseBathala.damage,
+        abilities: ["Steal Relics", "Nullify Bonuses", "Shift Elements", "Divine Judgment"],
+        lore: "The engkanto's ultimate deception—a fusion of Ulilang Kaluluwa (the slain serpent buried deep) and Galang Kaluluwa (the winged friend entombed beside it), corrupted from the grave. They twisted the coconut tree's sacred gift of life into perversion. An abomination claiming godhood, promising false restoration while dragging all toward darkness."
       }
     ];
   }
@@ -308,6 +654,9 @@ export class Discover extends Scene {
     // Clear existing cards
     this.cards = [];
     
+    // Filter entries by current chapter
+    const filteredEntries = this.compendiumEntries.filter(entry => (entry.chapter || 1) === this.currentChapter);
+    
     // Calculate grid positions - centered layout with consistent card sizing
     const cardWidth = 260;
     const cardHeight = 420;
@@ -315,15 +664,24 @@ export class Discover extends Scene {
     const cardsPerRow = Math.floor((screenWidth - 200) / (cardWidth + cardSpacing));
     const totalGridWidth = cardsPerRow * cardWidth + (cardsPerRow - 1) * cardSpacing;
     const startX = (screenWidth - totalGridWidth) / 2;
-    const startY = 150;
+    const startY = 220; // Increased to account for chapter buttons
     
-    // Create a card for each entry
-    this.compendiumEntries.forEach((entry, index) => {
+    // Create a card for each entry in current chapter
+    filteredEntries.forEach((entry, index) => {
       const row = Math.floor(index / cardsPerRow);
       const col = index % cardsPerRow;
       
-      const x = startX + col * (cardWidth + cardSpacing);
+      let x = startX + col * (cardWidth + cardSpacing);
       const y = startY + row * (cardHeight + cardSpacing);
+      
+      // Center boss cards in their row if they're alone
+      if (entry.type === "Boss") {
+        const itemsInThisRow = Math.min(cardsPerRow, filteredEntries.length - row * cardsPerRow);
+        if (itemsInThisRow === 1) {
+          // Boss is alone in its row - center it
+          x = screenWidth / 2 - cardWidth / 2;
+        }
+      }
       
       const card = this.createCharacterCard(entry, x, y, cardWidth, cardHeight);
       this.cardsContainer.add(card);
@@ -331,7 +689,7 @@ export class Discover extends Scene {
     });
     
     // Calculate max scroll based on the last card position
-    const lastRow = Math.floor((this.compendiumEntries.length - 1) / cardsPerRow);
+    const lastRow = Math.floor((filteredEntries.length - 1) / cardsPerRow);
     const contentHeight = startY + lastRow * (cardHeight + cardSpacing) + cardHeight;
     const screenHeight = this.cameras.main.height;
     this.maxScroll = Math.max(0, contentHeight - screenHeight + 100);
@@ -498,6 +856,7 @@ export class Discover extends Scene {
    */
   private getCharacterSpriteKey(id: string): string {
     const spriteMap: Record<string, string> = {
+      // Chapter 1
       "tikbalang_scout": "tikbalang_almanac",
       "balete_wraith": "balete_almanac",
       "sigbin_charger": "sigbin_almanac",
@@ -507,7 +866,29 @@ export class Discover extends Scene {
       "bungisngis": "bungisngis_almanac",
       "kapre_shade": "kapre_almanac",
       "tawong_lipod": "tawonglipod_almanac",
-      "mangangaway": "mangangaway_almanac"
+      "mangangaway": "mangangaway_almanac",
+      // Chapter 2
+      "sirena_illusionist": "sirena_almanac",
+      "siyokoy_raider": "siyokoy_almanac",
+      "santelmo_flicker": "santelmo_almanac",
+      "berberoka_lurker": "berberoka_almanac",
+      "magindara_swarm": "magindara_almanac",
+      "kataw": "kataw_almanac",
+      "berbalang": "berbalang_almanac",
+      "sunken_bangkilan": "bangkilan_almanac",
+      "apoy_tubig_fury": "apoy_tubig_fury_almanac",
+      "bakunawa": "bakunawa_almanac",
+      // Chapter 3
+      "tigmamanukan_watcher": "tigmamanukan_almanac",
+      "diwata_sentinel": "diwata_almanac",
+      "sarimanok_keeper": "sarimanok_almanac",
+      "bulalakaw_flamewings": "bulalakaw_almanac",
+      "minokawa_harbinger": "minokawa_almanac",
+      "alan": "alan_almanac",
+      "ekek": "ekek_almanac",
+      "ribung_linti_duo": "ribung_linti_almanac",
+      "apolaki_godling": "apolaki_almanac",
+      "false_bathala": "false_bathala_almanac"
     };
     return spriteMap[id] || "tikbalang_almanac";
   }
@@ -517,6 +898,7 @@ export class Discover extends Scene {
    */
   private getCharacterSymbol(id: string): string {
     switch (id) {
+      // Chapter 1
       case "tikbalang_scout": return "🐴";
       case "balete_wraith": return "🌳";
       case "sigbin_charger": return "🐕";
@@ -527,6 +909,28 @@ export class Discover extends Scene {
       case "kapre_shade": return "🚬";
       case "tawong_lipod": return "💨";
       case "mangangaway": return "🧙";
+      // Chapter 2
+      case "sirena_illusionist": return "🧜‍♀️";
+      case "siyokoy_raider": return "🧜‍♂️";
+      case "santelmo_flicker": return "🔥";
+      case "berberoka_lurker": return "💧";
+      case "magindara_swarm": return "🐠";
+      case "kataw": return "👑";
+      case "berbalang": return "👻";
+      case "sunken_bangkilan": return "🪄";
+      case "apoy_tubig_fury": return "⚡";
+      case "bakunawa": return "🐍";
+      // Chapter 3
+      case "tigmamanukan_watcher": return "🦅";
+      case "diwata_sentinel": return "✨";
+      case "sarimanok_keeper": return "🦚";
+      case "bulalakaw_flamewings": return "☄️";
+      case "minokawa_harbinger": return "🌙";
+      case "alan": return "🪶";
+      case "ekek": return "🦇";
+      case "ribung_linti_duo": return "⚡";
+      case "apolaki_godling": return "☀️";
+      case "false_bathala": return "😈";
       default: return "👹";
     }
   }
@@ -920,14 +1324,15 @@ export class Discover extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
     
-    // Create mask
+    // Create mask with proper spacing to avoid UI overlap
+    // Starts below chapter buttons (at y ~170) and extends to bottom
     this.scrollMask = this.make.graphics({});
     this.scrollMask.fillStyle(0xffffff);
-    this.scrollMask.fillRect(0, 120, screenWidth, screenHeight - 140);
+    this.scrollMask.fillRect(0, 170, screenWidth, screenHeight - 170);
     
     const maskShape = this.make.graphics({});
     maskShape.fillStyle(0xffffff);
-    maskShape.fillRect(0, 120, screenWidth, screenHeight - 140);
+    maskShape.fillRect(0, 170, screenWidth, screenHeight - 170);
     
     const mask = maskShape.createGeometryMask();
     this.cardsContainer.setMask(mask);
