@@ -269,7 +269,7 @@ export class CombatResolver {
     switch (suit) {
       case 'Apoy':
         return {
-          statusEffects: [{ effectId: 'poison', stacks: 3, displayName: 'Burn' }],
+          statusEffects: [{ effectId: 'burn', stacks: 3, displayName: 'Burn' }],
           messages: ['Applied 3 stacks of Burn (6 damage/turn)'],
         };
       case 'Tubig':

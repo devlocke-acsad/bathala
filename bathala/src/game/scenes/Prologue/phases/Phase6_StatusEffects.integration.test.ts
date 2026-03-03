@@ -242,13 +242,13 @@ describe('Phase6_StatusEffects Integration Tests', () => {
             }
         });
         
-        test('should clarify Burn and Poison work the same way', () => {
+        test('should clarify Burn and Poison are separate effects', () => {
             phase6.start();
             
             const textCalls = (mockScene.add.text as jest.Mock).mock.calls;
             const clarificationText = textCalls.some(call => 
                 call[2] && typeof call[2] === 'string' && 
-                call[2].includes('Burn and Poison work the same way')
+                call[2].includes('Burn and Poison are now separate status effects')
             );
             expect(clarificationText).toBe(true);
         });

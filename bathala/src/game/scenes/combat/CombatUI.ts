@@ -3281,6 +3281,10 @@ export class CombatUI {
           20;
 
         const oldHP = player.currentHealth ?? 0;
+        if (effect === "gain_temp_max_hp") {
+          player.maxHealth = (player.maxHealth ?? oldHP) + 10;
+          player.tempMaxHealthBonus = (player.tempMaxHealthBonus ?? 0) + 10;
+        }
         const maxHealth = player.maxHealth ?? oldHP;
         player.currentHealth = Math.min(oldHP + healAmount, maxHealth);
         const actualHeal = (player.currentHealth ?? 0) - oldHP;
@@ -3294,7 +3298,29 @@ export class CombatUI {
           }
         }
 
-        this.showActionResult(`Healed ${actualHeal} HP!`, "#2ed573");
+        // Act 2 relic: draw 1 card whenever healing occurs.
+        if (actualHeal > 0 && Array.isArray(player.relics) && player.relics.some((r: any) => r.id === "magindara_song")) {
+          if (player.drawPile && player.discardPile && player.drawPile.length < 1 && player.discardPile.length > 0) {
+            player.drawPile = DeckManager.shuffleDeck(player.discardPile);
+            player.discardPile = [];
+          }
+
+          if (player.drawPile && player.hand) {
+            const { drawnCards, remainingDeck } = DeckManager.drawCards(player.drawPile, 1);
+            player.hand.push(...drawnCards);
+            player.drawPile = remainingDeck;
+            this.updateHandDisplay();
+            this.updateDeckDisplay();
+            this.updateDiscardDisplay();
+          }
+        }
+
+        this.showActionResult(
+          effect === "gain_temp_max_hp"
+            ? `Gained +10 temporary Max HP and healed ${actualHeal} HP!`
+            : `Healed ${actualHeal} HP!`,
+          "#2ed573"
+        );
         this.showPlayerHealingIndicator(actualHeal, false);
         this.updatePlayerUI();
         break;
@@ -3384,12 +3410,12 @@ export class CombatUI {
       }
 
       case "gain_regeneration": {
-        StatusEffectManager.applyStatusEffect(player, "regeneration", 2, {
+        StatusEffectManager.applyStatusEffect(player, "regeneration_potion", 3, {
           type: "other",
           id: potion.id ?? "regeneration_potion",
           icon: potion.emoji ?? "♻️",
         });
-        this.showActionResult("Gained Regeneration.", "#2ed573");
+        this.showActionResult("Gained Regeneration (2 HP for 3 turns).", "#2ed573");
         this.updatePlayerUI();
         break;
       }
@@ -3430,7 +3456,18 @@ export class CombatUI {
 
       // ── Damage & burn ────────────────────────────────
       case "apply_10_burn_all": {
-        applyDirectDamage(10, "Burned enemy for");
+        if (enemy) {
+          StatusEffectManager.applyStatusEffect(enemy, "burn", 5, {
+            type: "other",
+            id: potion.id ?? "burn_potion",
+            icon: potion.emoji ?? "🔥",
+          });
+          this.showActionResult("Applied Burn (10 damage/turn) to current enemy.", "#ff6b6b");
+          this.showStatusEffectApplicationFeedback(enemy, "burn", 5);
+          this.updateEnemyUI();
+        } else {
+          this.showActionResult("No target to burn.", "#77888C");
+        }
         break;
       }
 
@@ -3447,16 +3484,49 @@ export class CombatUI {
         break;
 
       case "deal_15_elemental_damage":
-        applyDirectDamage(20, "Elemental blast dealt");
+        {
+          const hasApoyOrTubig = Array.isArray(player.hand)
+            && player.hand.some((card: any) => card?.suit === "Apoy" || card?.suit === "Tubig");
+          const elementalDamage = hasApoyOrTubig ? 20 : 15;
+          applyDirectDamage(elementalDamage, "Elemental blast dealt");
+        }
         break;
 
       case "deal_20_elemental_damage":
-        applyDirectDamage(30, "Elemental surge dealt");
+        {
+          const distinctSuits = new Set(
+            (Array.isArray(player.hand) ? player.hand : [])
+              .map((card: any) => card?.suit)
+              .filter((suit: any) => typeof suit === "string")
+          ).size;
+          const elementalDamage = distinctSuits >= 3 ? 30 : 20;
+          applyDirectDamage(elementalDamage, "Elemental surge dealt");
+        }
         break;
 
       // ── Element choice & random cards ────────────────
       case "choose_element": {
-        this.showActionResult("You feel attuned to the elements (effect will be expanded in a future update).", "#4ecdc4");
+        const validSuits = ["Apoy", "Tubig", "Lupa", "Hangin"];
+        let chosenSuit = "Apoy";
+
+        try {
+          const promptFn = (globalThis as any)?.prompt;
+          if (typeof promptFn === "function") {
+            const response = promptFn("Choose next dominant suit: Apoy, Tubig, Lupa, Hangin", "Apoy");
+            if (typeof response === "string") {
+              const normalized = response.trim();
+              const matched = validSuits.find(suit => suit.toLowerCase() === normalized.toLowerCase());
+              if (matched) {
+                chosenSuit = matched;
+              }
+            }
+          }
+        } catch (error) {
+          console.warn("choose_element prompt unavailable, defaulting to Apoy", error);
+        }
+
+        player.nextDominantSuitOverride = chosenSuit;
+        this.showActionResult(`Attuned next hand to ${chosenSuit}.`, "#4ecdc4");
         break;
       }
 
