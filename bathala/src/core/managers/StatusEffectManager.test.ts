@@ -26,28 +26,31 @@ describe('StatusEffectManager', () => {
   });
 
   describe('Initialization', () => {
-    it('should initialize with 8 status effect definitions', () => {
+    it('should initialize with 11 status effect definitions', () => {
       const definitions = StatusEffectManager.getAllDefinitions();
-      expect(definitions).toHaveLength(8);
+      expect(definitions).toHaveLength(11);
     });
 
     it('should have all required status effects', () => {
       const definitions = StatusEffectManager.getAllDefinitions();
       const ids = definitions.map(d => d.id);
       
+      expect(ids).toContain('burn');
       expect(ids).toContain('poison');
       expect(ids).toContain('weak');
       expect(ids).toContain('plated_armor');
       expect(ids).toContain('regeneration');
+      expect(ids).toContain('regeneration_potion');
       expect(ids).toContain('strength');
       expect(ids).toContain('vulnerable');
       expect(ids).toContain('frail');
       expect(ids).toContain('ritual');
+      expect(ids).toContain('stunned');
     });
 
-    it('should not exceed 8 status effect types', () => {
+    it('should not exceed 11 status effect types', () => {
       const definitions = StatusEffectManager.getAllDefinitions();
-      expect(definitions.length).toBeLessThanOrEqual(8);
+      expect(definitions.length).toBeLessThanOrEqual(11);
     });
   });
 

@@ -41,7 +41,7 @@ import { RewardSystem } from "../../systems/combat/RewardSystem";
  * 
  * Features:
  * - Poker-based combat system with Attack, Defend, and Special actions
- * - Status effect system with 8 core effects (Poison, Weak, Strength, etc.)
+ * - Status effect system with core effects (Burn, Poison, Weak, Strength, etc.)
  * - Elemental weakness/resistance system (Fire, Water, Earth, Air)
  * - Dynamic Difficulty Adjustment (DDA) system
  * - Relic system with combat modifiers
@@ -81,6 +81,9 @@ export class Combat extends Scene {
   private discardsUsedThisTurn: number = 0;
   private maxDiscardsPerTurn: number = 3;  // Increased from 1 to 3
   private specialUsedThisCombat: boolean = false;  // Track if Special has been used
+  private bonusSpecialUsedThisCombat: boolean = false; // Sarimanok Plumage bonus special charge
+  private minokawaDiscardNegatedThisCombat: boolean = false;
+  private coconutBuffRemovalNegatedThisCombat: boolean = false;
   private actionsText!: Phaser.GameObjects.Text;  // Shows Discard and Special counters on one line
   private relicsContainer!: Phaser.GameObjects.Container;
   private playerStatusContainer!: Phaser.GameObjects.Container;
@@ -125,6 +128,7 @@ export class Combat extends Scene {
   // DDA tracking
   public dda!: CombatDDA;
   private preCombatDifficultyAdjustment!: DifficultyAdjustment; // Snapshot before combat results processed
+  private currentEnemyAIComplexity: number = 1.0;
 
   // UI properties
   private playerShadow!: Phaser.GameObjects.Graphics;
@@ -534,6 +538,9 @@ export class Combat extends Scene {
     this.bestHandAchieved = "high_card";
     this.isActionProcessing = false;
     this.specialUsedThisCombat = false; // Reset Special usage for new combat
+    this.bonusSpecialUsedThisCombat = false;
+    this.minokawaDiscardNegatedThisCombat = false;
+    this.coconutBuffRemovalNegatedThisCombat = false;
 
     // Initialize DDA tracking and apply adjustments
     this.dda.initializeDDA();
@@ -1350,16 +1357,14 @@ export class Combat extends Scene {
     if (currentAction === "attack") {
       // Calculate damage with Weak modifier
       let damage = enemy.damage || enemy.intent.value || 12;
-      if (enemy.statusEffects.some((e) => e.name === "Weak")) {
-        damage = Math.floor(damage * 0.5);
-      }
+      damage = Math.floor(damage * this.getEnemyWeakMultiplier(enemy));
 
       console.log(`Enemy attacking for ${damage} damage`);
       this.animations.animateEnemyAttack();
       this.damagePlayer(damage);
     } else if (currentAction === "defend") {
       // Enemy gains block
-      const blockGained = 5;
+      const blockGained = Math.floor(5 * this.getEnemyFrailMultiplier(enemy));
       enemy.block += blockGained;
       this.showActionResult(`${enemy.name} gains ${blockGained} block!`);
       this.ui.updateEnemyUI();
@@ -1381,12 +1386,38 @@ export class Combat extends Scene {
       this.showActionResult(`${enemy.name} weakens you!`);
       this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'weak', 1);
       this.ui.updatePlayerUI();
-    } else if (currentAction === "confuse" || currentAction === "disrupt_draw" || currentAction === "fear") {
+    } else if (currentAction === "disrupt_draw" || currentAction === "fear") {
+      // Apply discard/steal-style pressure unless negated by Minokawa Claw.
+      if (this.tryNegateDiscardEffectWithMinokawa()) {
+        this.showActionResult("Minokawa Claw blocked hand disruption!");
+      } else {
+        const discarded = this.discardRandomPlayerCards(1);
+        if (discarded > 0) {
+          this.showActionResult(`${enemy.name} disrupted your hand!`);
+        }
+      }
+
+      StatusEffectManager.applyStatusEffect(this.combatState.player, 'stunned', 1);
+      this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'stunned', 1);
+      this.ui.updatePlayerUI();
+    } else if (currentAction === "confuse") {
       // SIMPLIFIED: All crowd control = Stunned (skip next turn)
       StatusEffectManager.applyStatusEffect(this.combatState.player, 'stunned', 1);
       this.showActionResult(`${enemy.name} stuns you! (Turn skipped)`);
       this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'stunned', 1);
       this.ui.updatePlayerUI();
+    } else if (currentAction === "curse_card" || currentAction === "hex_reversal") {
+      // Remove a random player buff unless Coconut Diwa blocks it.
+      if (this.tryNegateBuffRemovalWithCoconutDiwa()) {
+        this.showActionResult("Coconut Diwa protected your blessings!");
+      } else {
+        const removed = this.removeRandomPlayerBuffs(1);
+        if (removed > 0) {
+          this.showActionResult(`${enemy.name} removed one of your buffs!`);
+        } else {
+          this.showActionResult(`${enemy.name} tried to nullify your buffs.`);
+        }
+      }
     } else if (currentAction === "charge" || currentAction === "wait") {
       // Enemy prepares or waits (gains block)
       const blockGained = 3;
@@ -1403,9 +1434,7 @@ export class Combat extends Scene {
       // Unhandled action - enemy attacks as fallback
       console.warn(`Unhandled enemy action: ${currentAction}, defaulting to attack`);
       let damage = enemy.damage || 10;
-      if (enemy.statusEffects.some((e) => e.name === "Weak")) {
-        damage = Math.floor(damage * 0.5);
-      }
+      damage = Math.floor(damage * this.getEnemyWeakMultiplier(enemy));
       this.animations.animateEnemyAttack();
       this.damagePlayer(damage);
     }
@@ -1592,6 +1621,19 @@ export class Combat extends Scene {
       0,
       this.combatState.enemy.block - finalDamage
     );
+
+    // Act 2: Siyokoy Fin grants block when damaging grouped enemies.
+    const enemyAny = this.combatState.enemy as any;
+    const enemyHasGroup = enemyAny.hasMinions === true || (Array.isArray(enemyAny.minions) && enemyAny.minions.length > 0);
+    if (
+      actualDamage > 0 &&
+      enemyHasGroup &&
+      this.combatState.player.relics.some(r => r.id === "siyokoy_fin")
+    ) {
+      this.combatState.player.block += 3;
+      this.showActionResult("Siyokoy Fin granted 3 Block!");
+      this.ui.updatePlayerUI();
+    }
 
     console.log(`Enemy health: ${this.combatState.enemy.currentHealth}/${this.combatState.enemy.maxHealth}`);
 
@@ -1807,7 +1849,10 @@ export class Combat extends Scene {
     try {
       // Cache text values to avoid unnecessary setText calls
       const turnText = `Turn: ${this.combatState.turn}`;
-      const specialStatus = this.specialUsedThisCombat ? "USED" : "READY";
+      const maxSpecialCharges = this.combatState.player.relics.some(r => r.id === "sarimanok_plumage") ? 2 : 1;
+      const usedSpecialCharges = (this.specialUsedThisCombat ? 1 : 0) + (this.bonusSpecialUsedThisCombat ? 1 : 0);
+      const remainingSpecialCharges = Math.max(0, maxSpecialCharges - usedSpecialCharges);
+      const specialStatus = remainingSpecialCharges > 0 ? `${remainingSpecialCharges} LEFT` : "USED";
       const actionsText = `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`;
 
       // Only update if text has actually changed
@@ -1819,7 +1864,7 @@ export class Combat extends Scene {
         this.actionsText.setText(actionsText);
 
         // Color code the special status within the text - only when text changes
-        const newColor = this.specialUsedThisCombat ? "#cccccc" : "#ffd93d";
+        const newColor = remainingSpecialCharges > 0 ? "#ffd93d" : "#cccccc";
         if (this.actionsText.style.color !== newColor) {
           this.actionsText.setColor(newColor);
         }
@@ -1832,6 +1877,96 @@ export class Combat extends Scene {
     } catch (error) {
       console.error("Error updating turn UI:", error);
     }
+  }
+
+  private canUseSpecialAction(): boolean {
+    if (!this.specialUsedThisCombat) {
+      return true;
+    }
+
+    const hasSarimanokPlumage = this.combatState.player.relics.some(r => r.id === "sarimanok_plumage");
+    return hasSarimanokPlumage && !this.bonusSpecialUsedThisCombat;
+  }
+
+  private getEnemyWeakMultiplier(enemy: CombatEntity): number {
+    const weak = enemy.statusEffects.find((e) => e.id === "weak" || e.name === "Weak");
+    if (!weak || typeof weak.value !== "number" || weak.value <= 0) {
+      return 1;
+    }
+    const stacks = Math.max(0, Math.min(3, weak.value));
+    return Math.max(0.25, 1 - stacks * 0.25);
+  }
+
+  private getEnemyFrailMultiplier(enemy: CombatEntity): number {
+    const frail = enemy.statusEffects.find((e) => e.id === "frail" || e.name === "Frail");
+    if (!frail || typeof frail.value !== "number" || frail.value <= 0) {
+      return 1;
+    }
+    const stacks = Math.max(0, Math.min(3, frail.value));
+    return Math.max(0.25, 1 - stacks * 0.25);
+  }
+
+  private tryNegateDiscardEffectWithMinokawa(): boolean {
+    const hasMinokawaClaw = this.combatState.player.relics.some(r => r.id === "minokawa_claw");
+    if (!hasMinokawaClaw || this.minokawaDiscardNegatedThisCombat) {
+      return false;
+    }
+    this.minokawaDiscardNegatedThisCombat = true;
+    return true;
+  }
+
+  private tryNegateBuffRemovalWithCoconutDiwa(): boolean {
+    const hasCoconutDiwa = this.combatState.player.relics.some(r => r.id === "coconut_diwa");
+    if (!hasCoconutDiwa || this.coconutBuffRemovalNegatedThisCombat) {
+      return false;
+    }
+    this.coconutBuffRemovalNegatedThisCombat = true;
+    return true;
+  }
+
+  private discardRandomPlayerCards(count: number): number {
+    const hand = this.combatState.player.hand;
+    const discardPile = this.combatState.player.discardPile;
+    if (!Array.isArray(hand) || hand.length === 0 || count <= 0) {
+      return 0;
+    }
+
+    const toDiscard = Math.min(count, hand.length);
+    const discarded: PlayingCard[] = [];
+    for (let i = 0; i < toDiscard; i++) {
+      const idx = Math.floor(Math.random() * hand.length);
+      const [card] = hand.splice(idx, 1);
+      if (card) discarded.push(card);
+    }
+    discardPile.push(...discarded);
+    this.ui.updateHandDisplay();
+    this.updateDiscardDisplay();
+    return discarded.length;
+  }
+
+  private removeRandomPlayerBuffs(count: number): number {
+    const effects = this.combatState.player.statusEffects;
+    if (!Array.isArray(effects) || effects.length === 0 || count <= 0) {
+      return 0;
+    }
+
+    const removed: number[] = [];
+    for (let i = 0; i < count; i++) {
+      const buffIndices = effects
+        .map((effect, index) => ({ effect, index }))
+        .filter(({ effect, index }) => effect.type === "buff" && !removed.includes(index));
+      if (buffIndices.length === 0) break;
+      const pick = buffIndices[Math.floor(Math.random() * buffIndices.length)];
+      removed.push(pick.index);
+    }
+
+    if (removed.length === 0) {
+      return 0;
+    }
+
+    this.combatState.player.statusEffects = effects.filter((_, index) => !removed.includes(index));
+    this.ui.updatePlayerUI();
+    return removed.length;
   }
 
 
@@ -1887,6 +2022,14 @@ export class Combat extends Scene {
 
     this.combatEnded = true;
     this.combatState.phase = "post_combat";
+
+    // Revert temporary max HP granted by combat-only potion effects.
+    const tempMaxHealthBonus = (this.combatState.player as any).tempMaxHealthBonus ?? 0;
+    if (tempMaxHealthBonus > 0) {
+      this.combatState.player.maxHealth = Math.max(1, this.combatState.player.maxHealth - tempMaxHealthBonus);
+      this.combatState.player.currentHealth = Math.min(this.combatState.player.currentHealth, this.combatState.player.maxHealth);
+      delete (this.combatState.player as any).tempMaxHealthBonus;
+    }
 
     // PRIORITY 2: Reset action processing flag (safety)
     this.isActionProcessing = false;
@@ -3416,6 +3559,12 @@ export class Combat extends Scene {
    * Get dominant suit from played hand
    */
   public getDominantSuit(cards: PlayingCard[]): Suit {
+    const overrideSuit = (this.combatState.player as any).nextDominantSuitOverride as Suit | undefined;
+    if (overrideSuit) {
+      delete (this.combatState.player as any).nextDominantSuitOverride;
+      return overrideSuit;
+    }
+
     if (cards.length === 0) return "Apoy";
 
     const suitCounts = cards.reduce((counts, card) => {
@@ -3430,7 +3579,7 @@ export class Combat extends Scene {
 
   public getSpecialActionName(suit: Suit): string {
     const specialActions: Record<Suit, string> = {
-      Apoy: "Burn (3 stacks)",      // Poison effect, but called "Burn" for flavor
+      Apoy: "Burn (3 stacks)",
       Tubig: "Frail (2 stacks)",    // Reduces enemy block
       Lupa: "Vulnerable",           // Enemy takes more damage
       Hangin: "Weak (2 stacks)",    // Reduces enemy attack
@@ -3503,7 +3652,7 @@ export class Combat extends Scene {
     }
 
     // Check if Special has already been used this combat
-    if (actionType === "special" && this.specialUsedThisCombat) {
+    if (actionType === "special" && !this.canUseSpecialAction()) {
       console.log("Special attack already used this combat!");
       this.showActionResult("Special already used!");
       return;
@@ -3552,6 +3701,7 @@ export class Combat extends Scene {
     switch (actionType) {
       case "attack":
         damage = evaluation.totalValue;
+        const distinctSuits = new Set(this.combatState.player.playedHand.map(card => card.suit)).size;
 
         // STEP 4: Apply passive relic damage bonuses
         // Apply "Sigbin Heart" effect: +5 damage on all Attacks
@@ -3566,6 +3716,53 @@ export class Combat extends Scene {
         if (bungisngisGrinDamage > 0) {
           damage += bungisngisGrinDamage;
           relicBonuses.push({ name: "Bungisngis Grin", amount: bungisngisGrinDamage });
+        }
+
+        // Act 2: +3 damage on Apoy/Tubig hands
+        if (
+          this.combatState.player.relics.some(r => r.id === "elemental_core") &&
+          this.combatState.player.playedHand.some(card => card.suit === "Apoy" || card.suit === "Tubig")
+        ) {
+          damage += 3;
+          relicBonuses.push({ name: "Elemental Core", amount: 3 });
+        }
+
+        // Act 2: +5 damage against enemies with minions/summons
+        if (this.combatState.player.relics.some(r => r.id === "kataw_crown")) {
+          const enemyAny = this.combatState.enemy as any;
+          const hasMinions = enemyAny.hasMinions === true || (Array.isArray(enemyAny.minions) && enemyAny.minions.length > 0);
+          if (hasMinions) {
+            damage += 5;
+            relicBonuses.push({ name: "Kataw Crown", amount: 5 });
+          }
+        }
+
+        // Act 3: +5 damage when player has allies/minions
+        if (this.combatState.player.relics.some(r => r.id === "alan_wing")) {
+          const playerAny = this.combatState.player as any;
+          const hasAllies = playerAny.hasAllies === true || (Array.isArray(playerAny.allies) && playerAny.allies.length > 0);
+          if (hasAllies) {
+            damage += 5;
+            relicBonuses.push({ name: "Alan Wing", amount: 5 });
+          }
+        }
+
+        // Act 3: +3 damage after turn 5
+        if (this.combatState.player.relics.some(r => r.id === "ekek_fang") && this.combatState.turn > 5) {
+          damage += 3;
+          relicBonuses.push({ name: "Ekek Fang", amount: 3 });
+        }
+
+        // Act 3: +5 damage on 3+ distinct suit hands
+        if (this.combatState.player.relics.some(r => r.id === "linti_bolt") && distinctSuits >= 3) {
+          damage += 5;
+          relicBonuses.push({ name: "Linti Bolt", amount: 5 });
+        }
+
+        // Act 3: +5 damage on any multi-element hand
+        if (this.combatState.player.relics.some(r => r.id === "apolaki_spear") && distinctSuits >= 2) {
+          damage += 5;
+          relicBonuses.push({ name: "Apolaki's Spear", amount: 5 });
         }
 
         // STEP 5: Apply Kapre's Cigar (first attack only)
@@ -3586,6 +3783,13 @@ export class Combat extends Scene {
       case "defend":
         block = evaluation.totalValue;
 
+        // Apply defend-focused relic bonuses (Umalagad, Diwata, Duwende)
+        const defendRelicBonus = RelicManager.calculateDefendBlockBonus(this.combatState.player);
+        if (defendRelicBonus > 0) {
+          block += defendRelicBonus;
+          relicBonuses.push({ name: "Defend Relics", amount: defendRelicBonus });
+        }
+
         // STEP 4: Apply Balete Root (after base calculation)
         // Apply "Balete Root" effect: +2 block per Lupa card
         // This is added as a flat bonus AFTER the main calculation
@@ -3603,8 +3807,12 @@ export class Combat extends Scene {
         // Removed showBlockCalculation - duplicate display
         break;
       case "special":
-        // Mark special as used
-        this.specialUsedThisCombat = true;
+        // Mark special charge as used (base first, bonus second)
+        if (!this.specialUsedThisCombat) {
+          this.specialUsedThisCombat = true;
+        } else {
+          this.bonusSpecialUsedThisCombat = true;
+        }
         this.updateTurnUI();
 
         // PRIORITY 3: Start cinematic special action animation with standardized timing
@@ -3629,6 +3837,17 @@ export class Combat extends Scene {
 
     // STEP 6: Apply elemental effects (if Special)
     this.applyElementalEffects(actionType, dominantSuit, evaluation.totalValue);
+
+    // Act 3: Apply Burn on multi-element hands regardless of action type
+    if (
+      this.combatState.player.relics.some(r => r.id === "bulalakaw_spark") &&
+      new Set(this.combatState.player.playedHand.map(card => card.suit)).size >= 2
+    ) {
+      StatusEffectManager.applyStatusEffect(this.combatState.enemy, "burn", 3);
+      this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, "burn", 3);
+      this.showActionResult("Bulalakaw Spark applied 3 Burn!");
+      this.ui.updateEnemyUI();
+    }
 
     // STEP 7: Execute damage/block
     if (damage > 0) {
@@ -3742,26 +3961,75 @@ export class Combat extends Scene {
       return;
     }
 
-    // Apply "Mangangaway Wand" effect: +10 damage on all Special actions
-    const mangangawayWandDamage = RelicManager.calculateMangangawayWandDamage(this.combatState.player);
-    if (mangangawayWandDamage > 0) {
-      this.damageEnemy(mangangawayWandDamage);
-      // Damage is applied silently - shown in enhanced special effect notification
+    console.log(`Special potency value: ${value}`);
+
+    const playedHand = this.combatState.player.playedHand;
+    const distinctSuits = new Set(playedHand.map(card => card.suit)).size;
+    let relicSpecialDamage = 0;
+
+    // Apply "Mangangaway Wand" effect: +5 damage on all Special actions
+    relicSpecialDamage += RelicManager.calculateMangangawayWandDamage(this.combatState.player);
+
+    // Act 2: +3 damage on Apoy/Tubig hands
+    if (this.combatState.player.relics.some(r => r.id === "elemental_core") && (suit === "Apoy" || suit === "Tubig")) {
+      relicSpecialDamage += 3;
+    }
+
+    // Act 2: +5 damage against enemies with minions/summons
+    if (this.combatState.player.relics.some(r => r.id === "kataw_crown")) {
+      const enemyAny = this.combatState.enemy as any;
+      const hasMinions = enemyAny.hasMinions === true || (Array.isArray(enemyAny.minions) && enemyAny.minions.length > 0);
+      if (hasMinions) {
+        relicSpecialDamage += 5;
+      }
+    }
+
+    // Act 3: +5 damage with allies/minions
+    if (this.combatState.player.relics.some(r => r.id === "alan_wing")) {
+      const playerAny = this.combatState.player as any;
+      const hasAllies = playerAny.hasAllies === true || (Array.isArray(playerAny.allies) && playerAny.allies.length > 0);
+      if (hasAllies) {
+        relicSpecialDamage += 5;
+      }
+    }
+
+    // Act 3: +3 damage after turn 5
+    if (this.combatState.player.relics.some(r => r.id === "ekek_fang") && this.combatState.turn > 5) {
+      relicSpecialDamage += 3;
+    }
+
+    // Act 3: +5 damage on 3+ distinct suits
+    if (this.combatState.player.relics.some(r => r.id === "linti_bolt") && distinctSuits >= 3) {
+      relicSpecialDamage += 5;
+    }
+
+    // Act 3: +5 damage on multi-element hands
+    if (this.combatState.player.relics.some(r => r.id === "apolaki_spear") && distinctSuits >= 2) {
+      relicSpecialDamage += 5;
+    }
+
+    if (relicSpecialDamage > 0) {
+      this.damageEnemy(relicSpecialDamage);
     }
 
     switch (suit) {
-      case "Apoy": // Fire - Damage + Burn (3 stacks of Poison)
+      case "Apoy": // Fire - Damage + Burn
         // Apply "Bungisngis Grin" effect: +5 damage when applying debuffs
         const apoyAdditionalDamage = RelicManager.calculateBungisngisGrinDamage(this.combatState.player, this.combatState.enemy);
         if (apoyAdditionalDamage > 0) {
           this.damageEnemy(apoyAdditionalDamage);
         }
 
-        // Apply Poison: 3 stacks (deals 2 damage per stack per turn) - displayed as "Burn"
-        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'poison', 3);
-        this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'poison', 3);
+        // Apply Burn. Santelmo Ember doubles Burn output by doubling stacks.
+        const burnStacks = this.combatState.player.relics.some(r => r.id === "santelmo_ember") ? 6 : 3;
+        StatusEffectManager.applyStatusEffect(this.combatState.enemy, 'burn', burnStacks);
+        this.ui.showStatusEffectApplicationFeedback(this.combatState.enemy, 'burn', burnStacks);
         this.ui.updateEnemyUI();
-        this.ui.showSpecialEffectNotification("Apoy", "Burn", "Applied 3 stacks of Burn (6 damage/turn)");
+        this.ui.showSpecialEffectNotification(
+          "Apoy",
+          "Burn",
+          burnStacks > 3 ? "Applied empowered Burn (12 damage/turn)" : "Applied 3 stacks of Burn (6 damage/turn)"
+        );
         break;
 
       case "Tubig": // Water - Damage + Frail (2 stacks)
