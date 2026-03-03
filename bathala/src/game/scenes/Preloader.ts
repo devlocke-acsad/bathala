@@ -185,17 +185,41 @@ export class Preloader extends Scene {
     this.load.image("tikbalang_combat", "sprites/combat/enemy/chapter1/tikbalang_battle.png");
     this.load.image("tiyanak_combat", "sprites/combat/enemy/chapter1/tiyanak_battle.png");
 
-    // Mythical Compendium (Discover scene) enemy sprites - almanac versions
-    this.load.image("amomongo_almanac", "sprites/combat/enemy/chapter1/almanac/amomongo_almanac.png");
-    this.load.image("balete_almanac", "sprites/combat/enemy/chapter1/almanac/balete_almanac.png");
-    this.load.image("bungisngis_almanac", "sprites/combat/enemy/chapter1/almanac/bungisngis_almanac.png");
-    this.load.image("duwende_almanac", "sprites/combat/enemy/chapter1/almanac/duwindi_almanac.png");
-    this.load.image("kapre_almanac", "sprites/combat/enemy/chapter1/almanac/kapre_almanac.png");
-    this.load.image("mangangaway_almanac", "sprites/combat/enemy/chapter1/almanac/mangangaway_almanac.png");
-    this.load.image("sigbin_almanac", "sprites/combat/enemy/chapter1/almanac/sigbin_almanac bg.png");
-    this.load.image("tawonglipod_almanac", "sprites/combat/enemy/chapter1/almanac/tawonglipod_almanac.png");
-    this.load.image("tikbalang_almanac", "sprites/combat/enemy/chapter1/almanac/tikbalang_almanac.png");
-    this.load.image("tiyanak_almanac", "sprites/combat/enemy/chapter1/almanac/tiyanak_almanac.png");
+    // Chapter 1 enemy almanac sprites
+    this.load.image("amomongo_almanac", "sprites/discover/chapter1/amomongo_almanac.png");
+    this.load.image("balete_almanac", "sprites/discover/chapter1/balete_almanac.png");
+    this.load.image("bungisngis_almanac", "sprites/discover/chapter1/bungisngis_almanac.png");
+    this.load.image("duwende_almanac", "sprites/discover/chapter1/duwindi_almanac.png");
+    this.load.image("kapre_almanac", "sprites/discover/chapter1/kapre_almanac.png");
+    this.load.image("mangangaway_almanac", "sprites/discover/chapter1/mangangaway_almanac.png");
+    this.load.image("sigbin_almanac", "sprites/discover/chapter1/sigbin_almanac bg.png");
+    this.load.image("tawonglipod_almanac", "sprites/discover/chapter1/tawonglipod_almanac.png");
+    this.load.image("tikbalang_almanac", "sprites/discover/chapter1/tikbalang_almanac.png");
+    this.load.image("tiyanak_almanac", "sprites/discover/chapter1/tiyanak_almanac.png");
+
+    // Chapter 2 almanac sprites
+    this.load.image("sirena_almanac", "sprites/discover/chapter2/sirena_almanac.png");
+    this.load.image("siyokoy_almanac", "sprites/discover/chapter2/siyokoy_almanac.png");
+    this.load.image("santelmo_almanac", "sprites/discover/chapter2/santelmo_almanac.png");
+    this.load.image("berberoka_almanac", "sprites/discover/chapter2/berberoka_almanac.png");
+    this.load.image("magindara_almanac", "sprites/discover/chapter2/magindara_almanac.png");
+    this.load.image("kataw_almanac", "sprites/discover/chapter2/kataw_almanac.png");
+    this.load.image("berbalang_almanac", "sprites/discover/chapter2/berbalang_almanac.png");
+    this.load.image("bangkilan_almanac", "sprites/discover/chapter2/bangkilan_almanac.png");
+    this.load.image("apoy_tubig_fury_almanac", "sprites/discover/chapter2/apoy_tubig_almanac.png");
+    this.load.image("bakunawa_almanac", "sprites/discover/chapter2/bakunawa_almanac.png");
+
+    // Chapter 3 almanac sprites
+    this.load.image("tigmamanukan_almanac", "sprites/discover/chapter3/tigmanukan_almanac.png");
+    this.load.image("diwata_almanac", "sprites/discover/chapter3/diwata_almanac.png");
+    this.load.image("sarimanok_almanac", "sprites/discover/chapter3/sarimanok_almanac.png");
+    this.load.image("bulalakaw_almanac", "sprites/discover/chapter3/bulalakaw_almanac.png");
+    this.load.image("minokawa_almanac", "sprites/discover/chapter3/minokawa_almanac.png");
+    this.load.image("alan_almanac", "sprites/discover/chapter3/alan_almanac.png");
+    this.load.image("ekek_almanac", "sprites/discover/chapter3/ekek_almanac.png");
+    this.load.image("ribung_linti_almanac", "sprites/discover/chapter3/ribung_linti_almanac.png");
+    this.load.image("apolaki_almanac", "sprites/discover/chapter3/apolaki_almanac.png");
+    this.load.image("false_bathala_almanac", "sprites/discover/chapter3/bathala_almanac.png");
 
     // Legacy enemy sprite keys for backward compatibility
     this.load.image("amomongo", "sprites/combat/enemy/chapter1/amomongo_battle.png");
