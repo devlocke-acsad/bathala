@@ -36,13 +36,8 @@ export const CHAPTER_NARRATIVES: Record<number, ChapterNarrative> = {
   1: {
     title: "The Corrupted Ancestral Forests",
     entryText:
-      "In balete groves — portals to anito realms where Bathala's breath birthed earth and winds carried omens — the engkanto's lies twist guardians into deceivers.",
-    entrySlides: [
-      "The balete trees once stood as doorways between the mortal world and the spirit realm.\n\nTheir roots grew deep into Bathala's earth, and their branches reached toward the heavens where the anito dwelt in harmony.",
-      "In the old stories, the Bicolano people spoke of a time when spirits rebelled against the divine order.\n\nNow those stories repeat — not as myth, but as truth unfolding before you.",
-      "Tikbalang who once guided travelers now lead them astray with backward hooves.\n\nKapre who smoked in peaceful watch now burn with corrupted fury.\n\nThe engkanto's whispers have turned every guardian into a weapon.",
-      "Navigate the forest's day-time harmony to attune the ancient relics.\n\nBrave the night's aggression to face the trials that await.\n\nSurvive five cycles to summon the cursed enforcer — and purify the cradle of creation.",
-    ],
+      "The balete roots rot with engkanto lies.\n\nAwaken the ancient relics. Hunt the Kapre Shade.\n\nPurify the earth before the shadow consumes all.",
+    entrySlides: [],
     transitionToNext:
       "The Mangangaway's hexes shatter like glass against stone. The forest exhales — a breath held since the engkanto first whispered their lies.\n\nFrom the purified earth, the Lupa Diwa Shard rises: a crystallized fragment of Bathala's earthen breath, warm as soil after rain.\n\nBut even as roots mend, the ground beneath your feet grows damp. Somewhere below, floodwaters stir. The drowned barangays call — and the sea spirits' betrayals run deeper than any root.",
     narratorIntro:
@@ -51,13 +46,8 @@ export const CHAPTER_NARRATIVES: Record<number, ChapterNarrative> = {
   2: {
     title: "The Submerged Barangays",
     entryText:
-      "In sunken barangays — where Bathala's tears wove seas and merfolk guarded the deep — the engkanto's betrayals spark ancient feuds, drowning kapwa in deceitful tides.",
-    entrySlides: [
-      "The Visayan epics tell of Bathala's children who warred among themselves.\n\nSiblings pitted against siblings, their conflicts carving the very seas that separate the islands.\n\nNow those wars echo beneath the waves.",
-      "Sirena who once sang sailors to safety now lure them to their doom.\n\nSiyokoy drag the drowned into their sunken kingdoms.\n\nThe engkanto's poison has turned the sea's embrace into a crushing grip.",
-      "Beneath the tides, entire barangays lie submerged — their homes now haunted by spirits who have forgotten what they once protected.\n\nThe waters hold secrets and sorrows in equal measure.",
-      "Attune relics in the day's calm currents.\n\nFace the fiery surges that rise with the night.\n\nSurvive five cycles to summon the lunar devourer — the great Bakunawa — and restore the depths to peace.",
-    ],
+      "The sunken barangays drown in deceitful tides.\n\nAttune to the ocean's relics. Face the Apoy-Tubig Fury.\n\nSummon the Bakunawa before the false moon rises.",
+    entrySlides: [],
     transitionToNext:
       "The Bakunawa's coils loosen as its ancient hunger finally stills. Seven moons — all that the serpent devoured in its madness — begin to reform in the sky above the waves.\n\nFrom the deepest trench, the Tubig Diwa Shard rises: a tear of Bathala, crystallized into sapphire light.\n\nThe waters calm, but above, thunder rolls across cloudless skies. The impostor's citadel hangs in the heavens like a stolen constellation — and within it, the final truth waits to be unmasked.",
     narratorIntro:
@@ -66,13 +56,8 @@ export const CHAPTER_NARRATIVES: Record<number, ChapterNarrative> = {
   3: {
     title: "The Skyward Citadel",
     entryText:
-      "Atop the ethereal citadel — Bathala's dream-realm of omens and celestial courts — the engkanto's illusions cycle through deceptions, fracturing the very sky.",
-    entrySlides: [
-      "The Tagalog creation stories speak of Apolaki and Mayari — sun and moon, brother and sister.\n\nTheir balance kept the heavens in order. Their feud, born of jealousy, scarred Mayari's face and gave us the dim light of the moon.",
-      "Now a greater deception eclipses even that ancient rivalry.\n\nThe False Bathala sits upon a stolen throne — a fusion of Ulilang Kaluluwa, the serpent slain by the true Bathala, and Galang Kaluluwa, the winged spirit buried alongside him.\n\nRevived by engkanto sorcery, they pervert the coconut tree's sacred gift of life.",
-      "The sky creatures who once served as Bathala's messengers and guardians now bow to the impostor.\n\nTigmamanukan's prophecies are silenced. Sarimanok's fortune is twisted. Minokawa devours not just the moon, but hope itself.",
-      "Infuse multi-element synergies in the day's celestial visions.\n\nSurvive the night's thunderous trials.\n\nEndure five cycles to unmask the impostor and restore divine order to the fractured heavens.",
-    ],
+      "The ethereal citadel fractures under divine lies.\n\nMaster the celestial elements. Confront the False Bathala.\n\nUnmask the impostor before the sky falls.",
+    entrySlides: [],
     narratorIntro:
       "In the sky, lies are hardest to hide — yet the greatest deception of all has taken root among the clouds. The gods themselves have been fooled. Only mortal eyes, unclouded by divinity, can see the truth.",
   },

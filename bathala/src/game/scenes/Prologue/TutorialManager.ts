@@ -39,21 +39,21 @@ export class TutorialManager {
     public start() {
         // Enhanced background with parallax effect
         const bg = this.scene.add.image(
-            this.scene.cameras.main.width / 2, 
-            this.scene.cameras.main.height / 2, 
+            this.scene.cameras.main.width / 2,
+            this.scene.cameras.main.height / 2,
             'chap1_no_leaves_boss'
         );
         const scaleX = this.scene.cameras.main.width / bg.width;
         const scaleY = this.scene.cameras.main.height / bg.height;
         const scale = Math.max(scaleX, scaleY);
         bg.setScale(scale * 1.05); // Slightly larger for parallax effect
-        
+
         // Layered overlays for depth
         const overlay1 = this.scene.add.rectangle(
             0,
             0,
-            this.scene.cameras.main.width, 
-            this.scene.cameras.main.height, 
+            this.scene.cameras.main.width,
+            this.scene.cameras.main.height,
             0x150E10
         ).setOrigin(0, 0).setAlpha(0.85);
 
@@ -103,26 +103,26 @@ export class TutorialManager {
         const skipButtonY = this.scene.cameras.main.height * 0.92;
         const buttonWidth = 300; // Larger width to prevent text wrapping
         this.skipButton = createButton(
-            this.scene, 
-            skipButtonX, 
-            skipButtonY, 
-            'Skip Tutorial', 
+            this.scene,
+            skipButtonX,
+            skipButtonY,
+            'Skip Tutorial',
             () => this.confirmSkip(),
             buttonWidth
         );
-        
+
         // Add Skip Phase button (bottom right, above Skip Tutorial)
         const skipPhaseButtonX = this.scene.cameras.main.width * 0.88;
         const skipPhaseButtonY = this.scene.cameras.main.height * 0.85; // Above Skip Tutorial
         this.skipPhaseButton = createButton(
-            this.scene, 
-            skipPhaseButtonX, 
-            skipPhaseButtonY, 
-            'Skip Phase', 
+            this.scene,
+            skipPhaseButtonX,
+            skipPhaseButtonY,
+            'Skip Phase',
             () => this.skipCurrentPhase(),
             buttonWidth // Same fixed width for uniformity
         );
-        
+
         // Add Help/Navigation button (top right) - aligned with skip buttons
         const helpButtonX = this.scene.cameras.main.width * 0.94; // Further right, aligned with skip buttons
         const helpButtonY = this.scene.cameras.main.height * 0.08;
@@ -134,14 +134,14 @@ export class TutorialManager {
             () => this.showPhaseNavigation(),
             80 // Smaller width for just the icon
         );
-        
+
         // Don't add buttons to container - add them directly to scene so they're always visible
-        
+
         // Ensure buttons are always visible at top depth - add to scene directly
         this.skipButton.setDepth(5000);
         this.skipPhaseButton.setDepth(5000);
         this.helpButton.setDepth(5000);
-        
+
         // Make sure buttons are always visible
         this.skipButton.setAlpha(1);
         this.skipPhaseButton.setAlpha(1);
@@ -163,7 +163,7 @@ export class TutorialManager {
             new Phase10_AdvancedConcepts(this.scene, tutorialUI, this.completeTutorial.bind(this))
             // Phase11_FinalTrial - Removed (transition directly to game)
         ];
-        
+
         // Lock navigation during initial fade-in to prevent premature clicks
         this.isTransitioning = true;
         this.setNavigationEnabled(false);
@@ -171,7 +171,7 @@ export class TutorialManager {
         // Fade in everything
         this.container.setAlpha(0);
         this.bgContainer.setAlpha(0);
-        
+
         this.scene.tweens.add({
             targets: this.bgContainer,
             alpha: 1,
@@ -202,7 +202,7 @@ export class TutorialManager {
         const dialogHeight = 320;
 
         const bg = this.scene.add.rectangle(0, 0, dialogWidth, dialogHeight, 0x150E10, 0.98);
-        
+
         // Double border design
         const outerBorder = this.scene.add.rectangle(0, 0, dialogWidth + 8, dialogHeight + 8, undefined, 0)
             .setStrokeStyle(3, 0xFF6B35, 0.8);
@@ -264,7 +264,7 @@ export class TutorialManager {
 
         // Use the standardized cleanup helper (handles shutdown, event listeners, handContainer, etc.)
         this.cleanupCurrentPhase();
-        
+
         // Show brief notification
         const notification = this.scene.add.text(
             this.scene.cameras.main.width / 2,
@@ -317,21 +317,21 @@ export class TutorialManager {
         const menuHeight = 880; // Taller to give buttons breathing room
 
         const bg = this.scene.add.rectangle(0, 0, menuWidth, menuHeight, 0x150E10, 0.98);
-        
+
         // Double border design
         const outerBorder = this.scene.add.rectangle(0, 0, menuWidth + 8, menuHeight + 8, undefined, 0)
             .setStrokeStyle(3, 0x77888C, 0.8);
         const innerBorder = this.scene.add.rectangle(0, 0, menuWidth + 2, menuHeight + 2, undefined, 0)
             .setStrokeStyle(2, 0x556065, 0.6);
 
-        const titleText = this.scene.add.text(0, -menuHeight/2 + 50, 'Phase Navigation', {
+        const titleText = this.scene.add.text(0, -menuHeight / 2 + 50, 'Phase Navigation', {
             fontFamily: 'dungeon-mode',
             fontSize: 32,
             color: '#77888C',
             align: 'center'
         }).setOrigin(0.5);
 
-        const currentPhaseText = this.scene.add.text(0, -menuHeight/2 + 95, `Current: Phase ${this.currentPhaseIndex}`, {
+        const currentPhaseText = this.scene.add.text(0, -menuHeight / 2 + 95, `Current: Phase ${this.currentPhaseIndex}`, {
             fontFamily: 'dungeon-mode',
             fontSize: 18,
             color: '#FFAA00',
@@ -357,7 +357,7 @@ export class TutorialManager {
         const buttonWidth = 450;
         const buttonHeight = 45;
         const buttonSpacing = 70; // Comfortable spacing between phase buttons
-        const startY = -menuHeight/2 + 150; // More space from top
+        const startY = -menuHeight / 2 + 150; // More space from top
 
         phaseNames.forEach((phaseName, index) => {
             const y = startY + (index * buttonSpacing);
@@ -384,7 +384,7 @@ export class TutorialManager {
         const closeButton = createButton(
             this.scene,
             0,
-            menuHeight/2 - 48, // More space from bottom
+            menuHeight / 2 - 48, // More space from bottom
             'Close',
             () => {
                 this.scene.tweens.add({
@@ -442,19 +442,19 @@ export class TutorialManager {
     private cleanupCurrentPhase(): void {
         const currentPhase = this.phases[this.currentPhaseIndex - 1];
         if (!currentPhase) return;
-        
+
         // Cancel all pending delayed calls FIRST to prevent stale callbacks from firing
         if (currentPhase.cancelAllTimers && typeof currentPhase.cancelAllTimers === 'function') {
             currentPhase.cancelAllTimers();
         }
-        
+
         // Call phase-specific cleanup methods (shutdown handles event listeners, etc.)
         if (currentPhase.shutdown && typeof currentPhase.shutdown === 'function') {
             currentPhase.shutdown();
         } else if (currentPhase.cleanup && typeof currentPhase.cleanup === 'function') {
             currentPhase.cleanup();
         }
-        
+
         // Ensure container is cleaned up even if phase methods missed something
         if (currentPhase.container && currentPhase.container.active) {
             this.scene.tweens.killTweensOf(currentPhase.container);
@@ -464,7 +464,7 @@ export class TutorialManager {
             currentPhase.container.removeAll(true);
             currentPhase.container.setAlpha(0);
         }
-        
+
         // Hide shared TutorialUI elements that live outside phase containers
         if (this.tutorialUI) {
             if (this.tutorialUI.handContainer) {
@@ -473,7 +473,7 @@ export class TutorialManager {
                 this.tutorialUI.handContainer.setAlpha(0);
             }
         }
-        
+
         // Reset the phase so it can be re-entered later
         if (currentPhase.reset && typeof currentPhase.reset === 'function') {
             currentPhase.reset();
@@ -505,13 +505,13 @@ export class TutorialManager {
         // Set index so startNextPhase picks up the right phase
         // startNextPhase does phases[currentPhaseIndex++], so set to target index
         this.currentPhaseIndex = phaseIndex;
-        
+
         // Reset the TARGET phase for re-entry (in case it was previously visited)
         const targetPhase = this.phases[phaseIndex];
         if (targetPhase && targetPhase.reset && typeof targetPhase.reset === 'function') {
             targetPhase.reset();
         }
-        
+
         // Show notification
         const notification = this.scene.add.text(
             this.scene.cameras.main.width / 2,
@@ -565,21 +565,21 @@ export class TutorialManager {
         if (this.currentPhaseIndex < this.phases.length) {
             // Clean up previous phase properly using the standardized cleanup helper
             this.cleanupCurrentPhase();
-            
+
             const phase = this.phases[this.currentPhaseIndex++];
-            
+
             // Skip phase button is always visible
             this.skipPhaseButton.setVisible(true);
-            
+
             // Subtle transition - remove flash, use gentle fade
             const timer = this.scene.time.delayedCall(400, () => {
                 // Start phase with container at 0 alpha
                 if (phase.container) {
                     phase.container.setAlpha(0);
                 }
-                
+
                 phase.start();
-                
+
                 // Fade in new phase
                 const fadeTimer = this.scene.time.delayedCall(100, () => {
                     if (phase.container && phase.container.active) {
@@ -616,19 +616,19 @@ export class TutorialManager {
     private startPhaseDirectly() {
         if (this.currentPhaseIndex < this.phases.length) {
             const phase = this.phases[this.currentPhaseIndex++];
-            
+
             // Skip phase button is always visible
             this.skipPhaseButton.setVisible(true);
-            
+
             // Subtle transition - use gentle fade
             const timer = this.scene.time.delayedCall(400, () => {
                 // Start phase with container at 0 alpha
                 if (phase.container) {
                     phase.container.setAlpha(0);
                 }
-                
+
                 phase.start();
-                
+
                 // Fade in new phase
                 const fadeTimer = this.scene.time.delayedCall(100, () => {
                     if (phase.container && phase.container.active) {
@@ -671,7 +671,7 @@ export class TutorialManager {
 
         // Completion message
         const { width, height } = this.scene.cameras.main;
-        
+
         // Add background image (same as used throughout prologue)
         const completionBg = this.scene.add.image(
             width / 2,
@@ -682,7 +682,7 @@ export class TutorialManager {
         const scaleY = height / completionBg.height;
         const scale = Math.max(scaleX, scaleY);
         completionBg.setScale(scale).setDepth(2900).setAlpha(0);
-        
+
         // Add overlay (matching prologue style)
         const completionOverlay = this.scene.add.rectangle(
             width / 2,
@@ -691,7 +691,7 @@ export class TutorialManager {
             height,
             0x150E10
         ).setAlpha(0).setDepth(2950);
-        
+
         const completionText = this.scene.add.text(
             width / 2,
             height / 2 - 100,
@@ -769,7 +769,7 @@ export class TutorialManager {
         this.scene.input.once('pointerdown', () => {
             // Stop the pulsing animation on ready text
             this.scene.tweens.killTweensOf(readyText);
-            
+
             // Fade out all text quickly
             this.scene.tweens.add({
                 targets: [completionText, messageText, readyText],
@@ -831,12 +831,12 @@ export class TutorialManager {
                     this.bgContainer.removeAll(true);
                     this.bgContainer.destroy();
                 }
-                
+
                 // Keep the black screen for a moment before transitioning
                 this.scene.time.delayedCall(300, () => {
-                    // Start the overworld scene with fade-in flag
-                    this.scene.scene.start('Overworld', { fadeIn: true });
-                    
+                    // Start the ChapterTransition scene for Chapter 1
+                    this.scene.scene.start('ChapterTransition', { chapter: 1 });
+
                     // The fade overlay will be destroyed when the scene changes
                     fadeOverlay.destroy();
                 });

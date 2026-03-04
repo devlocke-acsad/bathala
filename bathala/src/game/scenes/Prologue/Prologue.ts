@@ -4,7 +4,6 @@ import { createButton } from '../../ui/Button';
 
 export class Prologue extends Scene {
     private isStoryPhase: boolean = true;
-    private tutorialContainer: GameObjects.Container;
     private skipButton: GameObjects.Container;
     private typingTimer: Phaser.Time.TimerEvent | null = null;
 
@@ -17,7 +16,7 @@ export class Prologue extends Scene {
         if (this.cameras.main) {
             this.cameras.main.setBackgroundColor(0x000000);
         }
-        
+
         // Add cleanup when scene shuts down
         this.events.once('shutdown', () => {
             if (this.typingTimer) {
@@ -25,7 +24,7 @@ export class Prologue extends Scene {
                 this.typingTimer = null;
             }
         });
-        
+
         this.startStoryPhase();
     }
 
@@ -50,46 +49,45 @@ export class Prologue extends Scene {
 
         // Add background image
         const introBgImage = this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2, 'chap1_no_leaves_boss');
-        
+
         // Scale the background to cover the screen
         const scaleX = this.cameras.main.width / introBgImage.width;
         const scaleY = this.cameras.main.height / introBgImage.height;
         const scale = Math.max(scaleX, scaleY);
         introBgImage.setScale(scale);
-        
+
         // Add 90% opacity overlay with #150E10
         const introOverlay = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.90);
 
         // Text occupies 60% of screen width, centered vertically
-        const displayedText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, '', { 
-            fontFamily: 'dungeon-mode', 
-            fontSize: 24, 
-            color: '#77888C', 
-            align: 'center', 
+        const displayedText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height / 2, '', {
+            fontFamily: 'dungeon-mode',
+            fontSize: 24,
+            color: '#77888C',
+            align: 'center',
             wordWrap: { width: this.cameras.main.width * 0.6 }, // 60% of screen width
             lineSpacing: 12
         }).setOrigin(0.5);
-        
-        const controlsText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height * 0.92, 'Click or press SPACE to continue', { 
-            fontFamily: 'dungeon-mode', 
-            fontSize: 18, 
-            color: '#77888C', 
-            align: 'center',
-            alpha: 0.7
-        }).setOrigin(0.5);
+
+        const controlsText = this.add.text(this.cameras.main.width / 2, this.cameras.main.height * 0.92, 'Click or press SPACE to continue', {
+            fontFamily: 'dungeon-mode',
+            fontSize: 18,
+            color: '#77888C',
+            align: 'center'
+        }).setOrigin(0.5).setAlpha(0.7);
 
         const storyElements = [introBgImage, introOverlay, displayedText, controlsText];
 
         const transitionToTutorial = () => {
             if (!this.isStoryPhase) return; // Prevent double transition
             this.isStoryPhase = false;
-            
+
             // Clean up typing timer before destroying elements
             if (this.typingTimer) {
                 this.typingTimer.remove();
                 this.typingTimer = null;
             }
-            
+
             this.input.off('pointerdown', showNextSlide);
             if (spaceKey) {
                 spaceKey.off('down', showNextSlide);
@@ -103,14 +101,14 @@ export class Prologue extends Scene {
                 duration: 600,
                 ease: 'Power2'
             });
-            
+
             this.tweens.add({
                 targets: [controlsText, this.skipButton],
                 alpha: 0,
                 duration: 400,
                 ease: 'Power2'
             });
-            
+
             this.tweens.add({
                 targets: introOverlay,
                 alpha: 0.9,
@@ -121,7 +119,7 @@ export class Prologue extends Scene {
             this.time.delayedCall(800, () => {
                 storyElements.forEach(el => el.destroy());
                 if (this.skipButton && this.skipButton.active) this.skipButton.destroy();
-                
+
                 // Fade in tutorial
                 this.cameras.main.fadeIn(600, 21, 14, 16); // #150E10 in RGB
                 this.time.delayedCall(300, () => {
@@ -181,33 +179,38 @@ export class Prologue extends Scene {
     }
 
     private typeText(textObject: GameObjects.Text, text: string): Promise<void> {
-        if (this.typingTimer) this.typingTimer.remove();
+        if (this.typingTimer) {
+            this.typingTimer.remove();
+            this.typingTimer = null;
+        }
+
+        // Stop any existing tweens on this object
+        this.tweens.killTweensOf(textObject);
+
         return new Promise(resolve => {
             if (!textObject || !textObject.active) {
                 resolve();
                 return;
             }
-            textObject.setText('');
-            let charIndex = 0;
-            this.typingTimer = this.time.addEvent({
-                delay: 30,
-                callback: () => {
-                    if (!textObject || !textObject.active) {
-                        if (this.typingTimer) {
-                            this.typingTimer.remove();
-                            this.typingTimer = null;
-                        }
-                        resolve();
-                        return;
-                    }
-                    const currentText = textObject.text || '';
-                    textObject.setText(currentText + text[charIndex++]);
-                    if (charIndex === text.length) {
-                        this.typingTimer = null;
-                        resolve();
-                    }
-                },
-                repeat: text.length - 1
+
+            // Set the full text immediately
+            textObject.setText(text);
+
+            // Clean fade and slide-up animation
+            textObject.setAlpha(0);
+
+            const targetY = this.cameras.main.height / 2;
+            textObject.setY(targetY + 15); // start slightly lower
+
+            this.tweens.add({
+                targets: textObject,
+                alpha: 1,
+                y: targetY,
+                duration: 1000,
+                ease: 'Power3.easeOut',
+                onComplete: () => {
+                    resolve();
+                }
             });
         });
     }

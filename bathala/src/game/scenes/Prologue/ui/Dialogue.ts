@@ -6,10 +6,10 @@ export function showDialogue(scene: Scene, text: string, onComplete: () => void)
     // Define box size first
     const boxWidth = Math.min(scene.cameras.main.width * 0.90, 1400);
     const boxHeight = scene.cameras.main.height * 0.35; // Smaller height to clear phase title
-    
+
     // Text should wrap INSIDE the box with padding
     const textWrapWidth = boxWidth - 100; // 50px padding on each side
-    
+
     const dialogueText = scene.add.text(0, 0, text, {
         fontFamily: 'dungeon-mode',
         fontSize: 20,
@@ -31,7 +31,7 @@ export function showDialogue(scene: Scene, text: string, onComplete: () => void)
     dialogueText.setText(''); // Clear text for typing effect
 
     // Continue indicator - using arrow symbol
-    const continueIndicator = scene.add.text(0, boxHeight/2 - 35, '▼', {
+    const continueIndicator = scene.add.text(0, boxHeight / 2 - 35, '▼', {
         fontFamily: 'dungeon-mode',
         fontSize: 24,
         color: '#77888C'
@@ -42,11 +42,11 @@ export function showDialogue(scene: Scene, text: string, onComplete: () => void)
 
     // Fade in with scale animation
     dialogueContainer.setAlpha(0).setScale(0.95);
-    scene.tweens.add({ 
-        targets: dialogueContainer, 
-        alpha: 1, 
+    scene.tweens.add({
+        targets: dialogueContainer,
+        alpha: 1,
         scale: 1,
-        duration: 500, 
+        duration: 500,
         ease: 'Back.easeOut'
     });
 
@@ -54,48 +54,51 @@ export function showDialogue(scene: Scene, text: string, onComplete: () => void)
     let typingTimer: Phaser.Time.TimerEvent | null = null;
 
     const typeText = (textObject: Phaser.GameObjects.Text, text: string): Promise<void> => {
-        if (typingTimer) typingTimer.remove();
+        if (typingTimer) {
+            typingTimer.remove();
+            typingTimer = null;
+        }
+
+        // Stop any tweens running on the text object itself
+        scene.tweens.killTweensOf(textObject);
+
         return new Promise(resolve => {
             if (!textObject || !textObject.active) {
                 resolve();
                 return;
             }
-            textObject.setText('');
-            let charIndex = 0;
-            typingTimer = scene.time.addEvent({
-                delay: 25, // Slightly faster typing
-                callback: () => {
-                    if (!textObject || !textObject.active) {
-                        if (typingTimer) {
-                            typingTimer.remove();
-                            typingTimer = null;
-                        }
-                        resolve();
-                        return;
-                    }
-                    const currentText = textObject.text || '';
-                    textObject.setText(currentText + text[charIndex++]);
-                    if (charIndex === text.length) {
-                        typingTimer = null;
-                        resolve();
-                    }
-                },
-                repeat: text.length - 1
+
+            // Set the full text immediately
+            textObject.setText(text);
+
+            // Clean fade and slide-up animation
+            textObject.setAlpha(0);
+            textObject.setY(10); // start slightly lower (relative to container)
+
+            scene.tweens.add({
+                targets: textObject,
+                alpha: 1,
+                y: 0,
+                duration: 800, // Slightly faster for tutorial
+                ease: 'Power3.easeOut',
+                onComplete: () => {
+                    resolve();
+                }
             });
         });
-    }
+    };
 
     typeText(dialogueText, text).then(() => {
         typingComplete = true;
         continueIndicator.setVisible(true).setAlpha(0);
-        scene.tweens.add({ 
-            targets: continueIndicator, 
+        scene.tweens.add({
+            targets: continueIndicator,
             alpha: 1,
-            y: '+=10', 
-            duration: 800, 
-            yoyo: true, 
-            repeat: -1, 
-            ease: 'Sine.easeInOut' 
+            y: '+=10',
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
         });
     });
 
@@ -105,32 +108,39 @@ export function showDialogue(scene: Scene, text: string, onComplete: () => void)
                 typingTimer.remove();
                 typingTimer = null;
             }
+            scene.tweens.killTweensOf(dialogueText);
+
+            dialogueText.setAlpha(1);
+            dialogueText.setY(0);
             dialogueText.setText(text);
             typingComplete = true;
             continueIndicator.setVisible(true).setAlpha(0);
-            scene.tweens.add({ 
-                targets: continueIndicator, 
+            scene.tweens.add({
+                targets: continueIndicator,
                 alpha: 1,
-                y: '+=10', 
-                duration: 800, 
-                yoyo: true, 
-                repeat: -1, 
-                ease: 'Sine.easeInOut' 
+                y: '+=10',
+                duration: 800,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
             });
         } else {
-            if (typingTimer) typingTimer.remove();
+            if (typingTimer) {
+                typingTimer.remove();
+                typingTimer = null;
+            }
             scene.tweens.killTweensOf(continueIndicator);
             bg.removeAllListeners('pointerdown');
-            scene.tweens.add({ 
-                targets: dialogueContainer, 
+            scene.tweens.add({
+                targets: dialogueContainer,
                 alpha: 0,
                 scale: 0.95,
-                duration: 400, 
-                ease: 'Power2', 
-                onComplete: () => { 
-                    dialogueContainer.destroy(); 
-                    onComplete(); 
-                } 
+                duration: 400,
+                ease: 'Power2',
+                onComplete: () => {
+                    dialogueContainer.destroy();
+                    onComplete();
+                }
             });
         }
     });
