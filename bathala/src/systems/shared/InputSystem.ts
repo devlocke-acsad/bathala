@@ -23,6 +23,14 @@ export class InputSystem {
   private debugActionKey!: Phaser.Input.Keyboard.Key; // P key
   private debugCombatKey!: Phaser.Input.Keyboard.Key; // C key
   private debugEliteKey!: Phaser.Input.Keyboard.Key; // E key
+
+  // Virtual directional inputs (touch controls)
+  private virtualDirections: Record<'left' | 'right' | 'up' | 'down', boolean> = {
+    left: false,
+    right: false,
+    up: false,
+    down: false
+  };
   
   // Pointer tracking
   private pointerPosition: { x: number; y: number } = { x: 0, y: 0 };
@@ -103,28 +111,32 @@ export class InputSystem {
    * Check if left movement is pressed (A or Left Arrow)
    */
   isLeftPressed(): boolean {
-    return this.cursors.left.isDown || this.wasdKeys['A'].isDown;
+    const keyboardPressed = !!(this.cursors?.left?.isDown || this.wasdKeys?.['A']?.isDown);
+    return keyboardPressed || this.virtualDirections.left;
   }
 
   /**
    * Check if right movement is pressed (D or Right Arrow)
    */
   isRightPressed(): boolean {
-    return this.cursors.right.isDown || this.wasdKeys['D'].isDown;
+    const keyboardPressed = !!(this.cursors?.right?.isDown || this.wasdKeys?.['D']?.isDown);
+    return keyboardPressed || this.virtualDirections.right;
   }
 
   /**
    * Check if up movement is pressed (W or Up Arrow)
    */
   isUpPressed(): boolean {
-    return this.cursors.up.isDown || this.wasdKeys['W'].isDown;
+    const keyboardPressed = !!(this.cursors?.up?.isDown || this.wasdKeys?.['W']?.isDown);
+    return keyboardPressed || this.virtualDirections.up;
   }
 
   /**
    * Check if down movement is pressed (S or Down Arrow)
    */
   isDownPressed(): boolean {
-    return this.cursors.down.isDown || this.wasdKeys['S'].isDown;
+    const keyboardPressed = !!(this.cursors?.down?.isDown || this.wasdKeys?.['S']?.isDown);
+    return keyboardPressed || this.virtualDirections.down;
   }
 
   // ============================================================================
@@ -135,6 +147,9 @@ export class InputSystem {
    * Check if Enter key was just pressed (for node interactions)
    */
   isEnterJustPressed(): boolean {
+    if (!this.enterKey) {
+      return false;
+    }
     return Phaser.Input.Keyboard.JustDown(this.enterKey);
   }
 
@@ -142,6 +157,9 @@ export class InputSystem {
    * Check if Shop key (M) was just pressed
    */
   isShopKeyJustPressed(): boolean {
+    if (!this.shopKey) {
+      return false;
+    }
     return Phaser.Input.Keyboard.JustDown(this.shopKey);
   }
 
@@ -154,6 +172,9 @@ export class InputSystem {
    * Used to add 100 actions for testing boss trigger
    */
   isDebugActionKeyJustPressed(): boolean {
+    if (!this.debugActionKey) {
+      return false;
+    }
     return Phaser.Input.Keyboard.JustDown(this.debugActionKey);
   }
 
@@ -162,6 +183,9 @@ export class InputSystem {
    * Used to trigger combat for testing
    */
   isDebugCombatKeyJustPressed(): boolean {
+    if (!this.debugCombatKey) {
+      return false;
+    }
     return Phaser.Input.Keyboard.JustDown(this.debugCombatKey);
   }
 
@@ -170,7 +194,27 @@ export class InputSystem {
    * Used to trigger elite combat for testing
    */
   isDebugEliteKeyJustPressed(): boolean {
+    if (!this.debugEliteKey) {
+      return false;
+    }
     return Phaser.Input.Keyboard.JustDown(this.debugEliteKey);
+  }
+
+  /**
+   * Set a virtual direction pressed state (for touch controls).
+   */
+  setVirtualDirection(direction: 'left' | 'right' | 'up' | 'down', pressed: boolean): void {
+    this.virtualDirections[direction] = pressed;
+  }
+
+  /**
+   * Clears all virtual directional states.
+   */
+  resetVirtualDirections(): void {
+    this.virtualDirections.left = false;
+    this.virtualDirections.right = false;
+    this.virtualDirections.up = false;
+    this.virtualDirections.down = false;
   }
 
   // ============================================================================
@@ -236,6 +280,8 @@ export class InputSystem {
       this.scene.input.off('pointermove');
       this.scene.input.off('pointerdown');
     }
+
+    this.resetVirtualDirections();
     
     console.log('🧹 InputSystem: Cleaned up');
   }

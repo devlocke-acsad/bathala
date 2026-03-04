@@ -176,7 +176,8 @@ export class Phase6_StatusEffects extends TutorialPhase {
      * **IMPORTANT DISTINCTION**: 
      * - Burn (🔥): Player inflicts on enemies via Fire Special actions
      * - Poison (☠️): Enemies inflict on player via poison actions
-     * Both work identically (damage at start of turn, reduce by 1), just different names.
+     * They are separate status identities in combat.
+     * Current turn behavior is similar (damage at start of turn, then reduce by 1 stack).
      * 
      * Uses actual StatusEffectManager definitions for accuracy.
      * 
@@ -210,13 +211,13 @@ export class Phase6_StatusEffects extends TutorialPhase {
         });
 
         // Get actual status effect definitions from StatusEffectManager
-        // Note: Burn uses the same definition as Poison (they work identically)
+        const burn = StatusEffectManager.getDefinition('burn');
         const poison = StatusEffectManager.getDefinition('poison');
         const weak = StatusEffectManager.getDefinition('weak');
         const vulnerable = StatusEffectManager.getDefinition('vulnerable');
         const frail = StatusEffectManager.getDefinition('frail');
 
-        const dialogue = `Now DEBUFFS - harmful effects:\n\n🔥 BURN: You inflict this on enemies with Fire Special\n   ${poison?.description}\n\n${poison?.emoji} ${poison?.name.toUpperCase()}: Enemies inflict this on you\n   ${poison?.description}\n\n${weak?.emoji} ${weak?.name.toUpperCase()}: ${weak?.description}\n${vulnerable?.emoji} ${vulnerable?.name.toUpperCase()}: ${vulnerable?.description}\n${frail?.emoji} ${frail?.name.toUpperCase()}: ${frail?.description}\n\nBurn and Poison work the same way - just different names!`;
+        const dialogue = `Now DEBUFFS - harmful effects:\n\n${burn?.emoji} ${burn?.name.toUpperCase()}: You inflict this on enemies with Fire Special\n   ${burn?.description}\n\n${poison?.emoji} ${poison?.name.toUpperCase()}: Enemies inflict this on you\n   ${poison?.description}\n\n${weak?.emoji} ${weak?.name.toUpperCase()}: ${weak?.description}\n${vulnerable?.emoji} ${vulnerable?.name.toUpperCase()}: ${vulnerable?.description}\n${frail?.emoji} ${frail?.name.toUpperCase()}: ${frail?.description}\n\nBurn and Poison are now separate status effects with distinct identities.`;
 
         this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
@@ -1006,10 +1007,10 @@ export class Phase6_StatusEffects extends TutorialPhase {
      * Apply Burn status effect to enemy (3 stacks).
      * Creates and animates the Burn icon and stack count above the enemy sprite.
      * 
-     * **BURN vs POISON**: Burn is what players inflict on enemies (via Fire Special).
-     * Poison is what enemies inflict on players. Both function identically:
-     * - Deal 2 damage per stack at start of turn
-     * - Reduce by 1 stack at end of turn
+     * **BURN vs POISON**:
+     * - Burn is what players inflict on enemies (via Fire Special).
+     * - Poison is what enemies inflict on players.
+     * - Both currently deal 2 damage per stack at start of turn and reduce by 1 stack.
      * 
      * Uses fire emoji (🔥) for Burn representation in tutorial.
      * 
@@ -1027,9 +1028,8 @@ export class Phase6_StatusEffects extends TutorialPhase {
         // Position Burn icon above enemy
         const burnIconY = enemyY - (enemySpriteScaledHeight / 2) - 60;
         
-        // Get Burn emoji from StatusEffectManager (Burn uses same definition as Poison)
-        // Note: In the actual game, Burn would have its own definition, but for now we use the fire emoji
-        const burnEmoji = '🔥'; // Burn is represented by fire emoji in tutorial
+        // Burn icon in tutorial
+        const burnEmoji = '🔥';
         
         // Create Burn icon
         const burnIcon = this.scene.add.text(enemyX, burnIconY, burnEmoji, {
@@ -1168,7 +1168,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
      * - Deals 2 damage per stack (3 stacks = 6 damage)
      * - Reduces by 1 stack after triggering (3 → 2)
      * 
-     * This is the same mechanic as Poison, just applied to enemies instead of player.
+     * Burn has its own status identity and this simulation demonstrates its turn trigger.
      * 
      * @private
      */
