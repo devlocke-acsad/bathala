@@ -24,10 +24,10 @@ export class FogOfWarSystem {
   public tileSize: number = 32;
   
   /** Night fog - How far the player can see at night (in tiles) */
-  public nightVisibilityRadius: number = 8;
+  public nightVisibilityRadius: number = 6;
   
   /** Day fog - How far the player can see during day (in tiles) - 1.4x night fog */
-  public dayVisibilityRadius: number = 11;
+  public dayVisibilityRadius: number = 8;
   
   /** Current visibility radius (dynamically updated based on day/night) */
   private currentVisibilityRadius: number = 8;
@@ -39,10 +39,10 @@ export class FogOfWarSystem {
   public isTransitioning: boolean = false;
   
   /** Camera zoom during day (less zoomed in - larger fog area) */
-  public dayCameraZoom: number = 1.0;
+  public dayCameraZoom: number = 1.8;
   
   /** Camera zoom at night (more zoomed in - smaller fog area) */
-  public nightCameraZoom: number = 1.3;
+  public nightCameraZoom: number = 2.1;
   
   /** Number of gradient steps from visible to fog (pixel-stepped gradient) */
   public gradientSteps: number = 4;
@@ -483,17 +483,13 @@ export class FogOfWarSystem {
       overworldScene.mobileControlsContainer.setPosition(offsetX, offsetY);
     }
     
-    // Test buttons container
+    // Test buttons container — scale and reposition so buttons stay in place
     if (overworldScene.testButtonsContainer) {
       overworldScene.testButtonsContainer.setScale(uiScale);
+      overworldScene.testButtonsContainer.setPosition(offsetX, offsetY);
     }
     
-    // Action buttons are in the test container, so they inherit positioning
-    if (overworldScene.actionButtons) {
-      overworldScene.actionButtons.forEach((button: any) => {
-        button.setScale(uiScale);
-      });
-    }
+    // Action buttons inherit scale from the container; no extra scaling needed
     
     // Day/night transition text box — keep at constant size and centered
     if (overworldScene.dayNightTransitionContainer) {
@@ -526,6 +522,19 @@ export class FogOfWarSystem {
   isTileRevealed(tileX: number, tileY: number): boolean {
     const key = `${tileX},${tileY}`;
     return this.revealedAreas.has(key);
+  }
+
+  /**
+   * Check if a world-space position has been revealed through the fog of war.
+   * Converts world coordinates to tile coordinates and checks revealedAreas.
+   * @param worldX - World X coordinate (pixels)
+   * @param worldY - World Y coordinate (pixels)
+   * @returns True if the position is revealed
+   */
+  isWorldPositionRevealed(worldX: number, worldY: number): boolean {
+    const tileX = Math.floor(worldX / this.tileSize);
+    const tileY = Math.floor(worldY / this.tileSize);
+    return this.revealedAreas.has(`${tileX},${tileY}`);
   }
 
   /**

@@ -336,7 +336,7 @@ export class Overworld extends Scene {
 
     // Set initial camera zoom (will be managed by fog of war system)
     // Start with day zoom since game starts during day
-    this.cameras.main.setZoom(1.0);
+    this.cameras.main.setZoom(1.8);
 
     // Create enemy info tooltip
     this.createEnemyTooltip();
@@ -570,6 +570,11 @@ export class Overworld extends Scene {
       }
     ).setScrollFactor(0).setDepth(1000); // Fix to camera and set depth
     this.bossText.setShadow(2, 2, '#000000', 2, false, true);
+
+    // Create container for all test buttons BEFORE adding buttons to it
+    this.testButtonsContainer = this.add.container(0, 0);
+    this.testButtonsContainer.setScrollFactor(0);
+    this.testButtonsContainer.setDepth(2000);
 
     // Create action buttons on the top right side of the screen (fixed to camera)
     const screenWidth = this.cameras.main.width;
@@ -838,10 +843,7 @@ export class Overworld extends Scene {
       this.scene.pause();
     }, this.testButtonsContainer);
 
-    // Create container for all test buttons
-    this.testButtonsContainer = this.add.container(0, 0);
-    // Add all existing test buttons to the container
-    // (We'll need to modify the button creation to add them to this container)
+    // Container is already created above, just proceed to toggle button
 
     // Create toggle button
     this.createToggleButton();
@@ -1104,10 +1106,10 @@ export class Overworld extends Scene {
     const buttonText = this.toggleButton.getAt(1) as Phaser.GameObjects.Text;
     buttonText.setText("Dev Mode");
 
-    // Show or hide all test buttons only
-    this.actionButtons.forEach(button => {
-      button.setVisible(this.testButtonsVisible);
-    });
+    // Toggle container visibility (all buttons are children of this container)
+    if (this.testButtonsContainer) {
+      this.testButtonsContainer.setVisible(this.testButtonsVisible);
+    }
 
     // Update dev mode in MazeGenManager
     if (this.mazeGenManager) {
@@ -1116,10 +1118,10 @@ export class Overworld extends Scene {
   }
 
   hideTestButtons(): void {
-    // Hide only test buttons, not essential UI elements
-    this.actionButtons.forEach(button => {
-      button.setVisible(false);
-    });
+    // Hide the dev buttons container
+    if (this.testButtonsContainer) {
+      this.testButtonsContainer.setVisible(false);
+    }
 
     // Update dev mode in MazeGenManager
     if (this.mazeGenManager) {
@@ -1844,6 +1846,14 @@ export class Overworld extends Scene {
       (hoveredNode, pointer) => {
         console.log(`🖱️ Hovering over ${hoveredNode.type} node at ${hoveredNode.id}`);
 
+        // Don't show tooltip for nodes hidden by fog of war
+        if (this.fogOfWarManager && !this.fogOfWarManager.isWorldPositionRevealed(
+          hoveredNode.x + this.mazeGenManager.getGridSize() / 2,
+          hoveredNode.y + this.mazeGenManager.getGridSize() / 2
+        )) {
+          return;
+        }
+
         // Set current hovered node
         this.tooltipManager.setLastHoveredNodeId(hoveredNode.id);
 
@@ -1871,6 +1881,14 @@ export class Overworld extends Scene {
 
   private handleNodeHoverStart(node: MapNode, pointer: Phaser.Input.Pointer): void {
     console.log(`🖱️ [HOVER START] Node type: ${node.type}, ID: ${node.id}, EnemyID: ${node.enemyId || 'N/A'}`);
+
+    // Don't show tooltip for nodes hidden by fog of war
+    if (this.fogOfWarManager && !this.fogOfWarManager.isWorldPositionRevealed(
+      node.x + this.mazeGenManager.getGridSize() / 2,
+      node.y + this.mazeGenManager.getGridSize() / 2
+    )) {
+      return;
+    }
 
     // Set current hovered node
     this.tooltipManager.setLastHoveredNodeId(node.id);
@@ -3921,14 +3939,10 @@ export class Overworld extends Scene {
     // Test buttons container
     if (this.testButtonsContainer) {
       this.testButtonsContainer.setScale(uiScale);
+      this.testButtonsContainer.setPosition(offsetX, offsetY);
     }
 
-    // Scale action buttons
-    if (this.actionButtons) {
-      this.actionButtons.forEach(button => {
-        button.setScale(uiScale);
-      });
-    }
+    // Action buttons inherit scale from the container; no extra scaling needed
 
     // Note: Chapter indicator is now part of uiContainer, so it's automatically handled
     // Note: Tooltip handles its own zoom compensation in updateTooltipContent
