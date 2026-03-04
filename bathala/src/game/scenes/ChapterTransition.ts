@@ -63,7 +63,7 @@ export class ChapterTransition extends Scene {
     const lineWidth = screenWidth * 0.7; // Wider to fit narrative
     const topLine = this.add.rectangle(
       screenWidth / 2,
-      screenHeight / 2 - 120, // Moved higher
+      screenHeight / 2 - 120, // Moved higher for spacing
       lineWidth,
       2,
       Phaser.Display.Color.HexStringToColor(colors.primary).color
@@ -71,7 +71,7 @@ export class ChapterTransition extends Scene {
 
     const bottomLine = this.add.rectangle(
       screenWidth / 2,
-      screenHeight / 2 + 250, // Moved significantly lower
+      screenHeight / 2 + 180, // Brought further down to give narrative more space
       lineWidth,
       2,
       Phaser.Display.Color.HexStringToColor(colors.primary).color
@@ -80,7 +80,7 @@ export class ChapterTransition extends Scene {
     // Chapter number text
     const chapterNumber = this.add.text(
       screenWidth / 2,
-      screenHeight / 2 - 50,
+      screenHeight / 2 - 100, // Move higher up to wait for animation
       `CHAPTER ${this.targetChapter}`,
       {
         fontFamily: "dungeon-mode",
@@ -93,11 +93,11 @@ export class ChapterTransition extends Scene {
     // Chapter title text
     const chapterTitle = this.add.text(
       screenWidth / 2,
-      screenHeight / 2 - 20, // Moved up slightly
+      screenHeight / 2 - 60, // Pulled slightly higher
       chapterName,
       {
         fontFamily: "dungeon-mode",
-        fontSize: "48px",
+        fontSize: "36px", // Smaller
         color: "#ffffff",
         align: "center"
       }
@@ -106,11 +106,11 @@ export class ChapterTransition extends Scene {
     // Chapter subtitle text
     const chapterSubtitle = this.add.text(
       screenWidth / 2,
-      screenHeight / 2 + 30, // Tucked closer to title
+      screenHeight / 2 - 15, // Keep at same place
       chapterSubtitleText,
       {
         fontFamily: "dungeon-mode",
-        fontSize: "18px",
+        fontSize: "16px", // Smaller
         color: colors.secondary,
         align: "center",
         fontStyle: "italic"
@@ -120,21 +120,21 @@ export class ChapterTransition extends Scene {
     // Narrative text — story-driven line below the subtitle, more prominent
     const narrativeLabel = this.add.text(
       screenWidth / 2,
-      screenHeight / 2 + 170, // Much lower to prevent overlap
+      screenHeight / 2 + 80, // Pushed much lower to clear subtitle
       narrativeText,
       {
         fontFamily: "dungeon-mode",
-        fontSize: "20px",
+        fontSize: "16px", // Smaller
         color: "#d4e0e8",
         align: "center",
         fontStyle: "normal", // changed to normal for dark souls impact
         wordWrap: { width: screenWidth * 0.7 },
-        lineSpacing: 10
+        lineSpacing: 18 // Pushed lines further apart
       }
     ).setOrigin(0.5).setAlpha(0);
 
     // Initial position lower for the slide up effect
-    narrativeLabel.setY(screenHeight / 2 + 200);
+    narrativeLabel.setY(screenHeight / 2 + 130);
 
     // Skip hint
     const skipHint = this.add.text(
@@ -167,7 +167,7 @@ export class ChapterTransition extends Scene {
         this.tweens.add({
           targets: chapterNumber,
           alpha: 1,
-          y: screenHeight / 2 - 70,
+          y: screenHeight / 2 - 90, // Ends up slightly higher
           duration: 500,
           ease: 'Back.easeOut',
           onComplete: () => {
@@ -196,7 +196,7 @@ export class ChapterTransition extends Scene {
                 this.tweens.add({
                   targets: narrativeLabel,
                   alpha: 0.9,
-                  y: screenHeight / 2 + 150, // slide to final position
+                  y: screenHeight / 2 + 80, // slide to final position
                   duration: 1000,
                   ease: 'Power3.easeOut'
                 });

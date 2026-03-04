@@ -379,14 +379,14 @@ export class Overworld extends Scene {
       // Ignore if sound missing
     }
 
-    const popupContainer = this.add.container(screenWidth / 2, screenHeight / 2 - 120) // Slightly higher
+    const popupContainer = this.add.container(screenWidth / 2, screenHeight / 2 - 50) // Slightly higher
       .setScrollFactor(0)
       .setDepth(DEPTH.TRANSITION_OVERLAY + 1000);
 
     // Area Text - Larger, more imposing
     const areaText = this.add.text(0, 0, areaName, {
       fontFamily: 'dungeon-mode',
-      fontSize: '64px', // Bigger font
+      fontSize: '42px', // Bigger font
       color: '#ffffff',
       fontStyle: 'normal'
     }).setOrigin(0.5).setAlpha(0);
