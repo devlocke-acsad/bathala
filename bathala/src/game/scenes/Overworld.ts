@@ -438,6 +438,8 @@ export class Overworld extends Scene {
         });
       }
     });
+  }
+
   private isTouchDevice(): boolean {
     const nav = navigator as Navigator & { maxTouchPoints?: number };
     const userAgentData = navigator as Navigator & { userAgentData?: { mobile?: boolean } };

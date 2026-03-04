@@ -34,7 +34,7 @@ export interface ChapterNarrative {
 
 export const CHAPTER_NARRATIVES: Record<number, ChapterNarrative> = {
   1: {
-    title: "The Corrupted Ancestral Forests",
+    title: "The Enchanted Forest",
     entryText:
       "The balete roots rot with engkanto lies.\n\nAwaken the ancient relics. Hunt the Kapre Shade.\n\nPurify the earth before the shadow consumes all.",
     entrySlides: [],
