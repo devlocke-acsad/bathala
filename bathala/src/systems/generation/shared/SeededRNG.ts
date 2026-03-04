@@ -7,7 +7,7 @@
  * @module SeededRNG
  */
 
-import { SeededRandom } from '../../core/types/GenerationTypes';
+import { SeededRandom } from '../../../core/types/GenerationTypes';
 
 /**
  * Create a Mulberry32 PRNG seeded with the given value.
