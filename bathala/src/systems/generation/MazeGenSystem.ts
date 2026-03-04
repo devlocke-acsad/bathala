@@ -833,12 +833,17 @@ export class Overworld_MazeGenManager {
     if (node.type === "combat" || node.type === "elite" || node.type === "boss" || 
         node.type === "shop" || node.type === "event" || node.type === "campfire" || node.type === "treasure") {
       // Make the entire rendered node asset hoverable (not just a small center circle).
-      const hitAreaWidth = nodeSprite.displayWidth + 8;
-      const hitAreaHeight = nodeSprite.displayHeight + 8;
+      // Use the UNSCALED (original) sprite dimensions because Phaser's hit testing
+      // transforms pointer coords into the sprite's local (unscaled) coordinate space.
+      // With origin (0.5, 0.5), display-origin is added back, so local space maps
+      // (0,0) → top-left and (width, height) → bottom-right of the texture.
+      const padding = 8 / scale; // padding in unscaled pixels so it matches ~8px on screen
+      const hitAreaWidth = nodeSprite.width + padding;
+      const hitAreaHeight = nodeSprite.height + padding;
       nodeSprite.setInteractive(
         new Phaser.Geom.Rectangle(
-          -hitAreaWidth / 2,
-          -hitAreaHeight / 2,
+          -padding / 2,
+          -padding / 2,
           hitAreaWidth,
           hitAreaHeight
         ),
