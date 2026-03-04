@@ -532,7 +532,8 @@ export class PokerHandReference extends Scene {
     ];
 
     const debuffs = [
-      { emoji: "🔥", name: "Burn / ☠️ Poison", desc: "Deals damage at start of turn (stacks × 2), then reduces by 1. Burn is applied by player, Poison by enemies.", color: "#FF6B6B" },
+      { emoji: "🔥", name: "Burn", desc: "Deals damage at start of turn (stacks × 2), then reduces by 1. Usually applied by player effects.", color: "#FF6B6B" },
+      { emoji: "☠️", name: "Poison", desc: "Deals damage at start of turn (stacks × 2), then reduces by 1. Usually applied by enemy effects.", color: "#A8E6A3" },
       { emoji: "⚠️", name: "Weak", desc: "Attack actions deal 25% less damage per stack. Max 3 stacks (75%).", color: "#FF9F43" },
       { emoji: "🛡️💔", name: "Vulnerable", desc: "Takes 50% more damage from ALL sources. Non-stackable (binary).", color: "#E74C3C" },
       { emoji: "🔻", name: "Frail", desc: "Defend actions grant 25% less block per stack. Max 3 stacks (75%).", color: "#A29BFE" },

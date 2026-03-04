@@ -86,8 +86,10 @@ export class CombatUI {
   public playerHealthText!: Phaser.GameObjects.Text;
   public playerBlockText!: Phaser.GameObjects.Text;
   public playerStatusContainer!: Phaser.GameObjects.Container;
+  public playerInfoContainer!: Phaser.GameObjects.Container;
   public playerSprite!: Phaser.GameObjects.Sprite;
   public playerShadow!: Phaser.GameObjects.Graphics;
+  private playerHealthBarFill!: Phaser.GameObjects.Rectangle;
   
   // Enemy UI Elements
   public enemyHealthText!: Phaser.GameObjects.Text;
@@ -95,10 +97,17 @@ export class CombatUI {
   public enemyIntentText!: Phaser.GameObjects.Text;
   public enemyIntentTooltip!: Phaser.GameObjects.Container | null;
   public enemyStatusContainer!: Phaser.GameObjects.Container;
+  public enemyInfoContainer!: Phaser.GameObjects.Container;
   public enemySprite!: Phaser.GameObjects.Sprite;
   public enemyShadow!: Phaser.GameObjects.Graphics;
   public enemyAffinityContainer!: Phaser.GameObjects.Container;
   public currentAffinityTooltip!: Phaser.GameObjects.Container | null;
+  private enemyHealthBarFill!: Phaser.GameObjects.Rectangle;
+  
+  private readonly SIDE_PANEL_WIDTH = 270;
+  private readonly SIDE_PANEL_HEIGHT = 190;
+  private readonly HEALTH_BAR_WIDTH = 220;
+  private readonly SIDE_PANEL_MARGIN = 34;
   
   // Card UI Elements
   public handContainer!: Phaser.GameObjects.Container;
@@ -298,14 +307,17 @@ export class CombatUI {
     
     // Disable texture smoothing for pixel-perfect rendering
     this.playerSprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+    
+    const panelMinX = this.SIDE_PANEL_WIDTH / 2 + 12;
+    const panelMaxX = screenWidth / 2 - this.SIDE_PANEL_WIDTH / 2 - 24;
+    const desiredPanelX = playerX - (this.playerSprite.displayWidth / 2 + this.SIDE_PANEL_WIDTH / 2 + this.SIDE_PANEL_MARGIN);
+    const panelX = Phaser.Math.Clamp(desiredPanelX, panelMinX, panelMaxX);
+    const panelY = playerY + this.playerSprite.displayHeight * 0.2;
 
     // Calculate dynamic Y offset based on player sprite's scaled height
     const playerScale = 1;
     const playerSpriteScaledHeight = this.playerSprite.height * playerScale;
     const playerNameYOffset = playerY - (playerSpriteScaledHeight / 2) - 25; // 25px padding above sprite
-    const playerHealthYOffset = playerY + (playerSpriteScaledHeight / 2) + 25; // 25px padding below sprite
-    const playerBlockYOffset = playerHealthYOffset + 28;
-    const playerStatusYOffset = playerBlockYOffset + 40; // More space for status effects
 
     // Player name - dynamically positioned above sprite
     this.scene.add
@@ -317,27 +329,76 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Health display - dynamically positioned below sprite
+    // Side UI panel to match dungeon-style combat UI
+    this.playerInfoContainer = this.scene.add.container(panelX, panelY);
+    const playerOuterBorder = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH + 8, this.SIDE_PANEL_HEIGHT + 8, undefined, 0)
+      .setStrokeStyle(2, 0x77888C, 0.95);
+    const playerInnerBorder = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH, this.SIDE_PANEL_HEIGHT, undefined, 0)
+      .setStrokeStyle(2, 0x556065, 0.8);
+    const playerPanelBg = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH, this.SIDE_PANEL_HEIGHT, 0x150E10, 0.95);
+    const playerHeader = this.scene.add.text(0, -72, "HERO STATUS", {
+      fontFamily: "dungeon-mode",
+      fontSize: 16,
+      color: "#77888C",
+      align: "center",
+    }).setOrigin(0.5);
+
+    const playerHealthBarBg = this.scene.add.rectangle(
+      -this.HEALTH_BAR_WIDTH / 2,
+      -40,
+      this.HEALTH_BAR_WIDTH,
+      16,
+      0x1b2327,
+      0.95
+    )
+      .setOrigin(0, 0.5)
+      .setStrokeStyle(1, 0x77888C, 0.7);
+    this.playerHealthBarFill = this.scene.add.rectangle(
+      -this.HEALTH_BAR_WIDTH / 2,
+      -40,
+      this.HEALTH_BAR_WIDTH,
+      16,
+      0x2ed573,
+      1
+    ).setOrigin(0, 0.5);
+
     this.playerHealthText = this.scene.add
-      .text(playerX, playerHealthYOffset, "", {
+      .text(0, -58, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#ff6b6b",
+        fontSize: 16,
+        color: "#e8eced",
         align: "center"
       })
       .setOrigin(0.5);
 
-    // Block display
     this.playerBlockText = this.scene.add
-      .text(playerX, playerBlockYOffset, "", {
+      .text(0, -12, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 18,
+        fontSize: 16,
         color: "#4ecdc4",
         align: "center"
       })
       .setOrigin(0.5);
 
-    this.playerStatusContainer = this.scene.add.container(playerX, playerStatusYOffset);
+    const playerStatusLabel = this.scene.add.text(0, 22, "Effects", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#77888C",
+      align: "center",
+    }).setOrigin(0.5);
+    this.playerStatusContainer = this.scene.add.container(0, 58);
+    this.playerInfoContainer.add([
+      playerOuterBorder,
+      playerInnerBorder,
+      playerPanelBg,
+      playerHeader,
+      playerHealthBarBg,
+      this.playerHealthBarFill,
+      this.playerHealthText,
+      this.playerBlockText,
+      playerStatusLabel,
+      this.playerStatusContainer,
+    ]);
 
     this.updatePlayerUI();
   }
@@ -371,13 +432,16 @@ export class CombatUI {
 
     const scale = Math.min(targetWidth / sprite.width, targetHeight / sprite.height);
     sprite.setScale(scale);
+    
+    const panelMinX = screenWidth / 2 + this.SIDE_PANEL_WIDTH / 2 + 24;
+    const panelMaxX = screenWidth - (this.SIDE_PANEL_WIDTH / 2 + 12);
+    const desiredPanelX = enemyX + (sprite.displayWidth / 2 + this.SIDE_PANEL_WIDTH / 2 + this.SIDE_PANEL_MARGIN);
+    const panelX = Phaser.Math.Clamp(desiredPanelX, panelMinX, panelMaxX);
+    const panelY = enemyY + sprite.displayHeight * 0.18;
 
     // Calculate dynamic Y offset based on sprite's scaled height - match player UI spacing
     const spriteScaledHeight = sprite.height * scale;
     const nameYOffset = enemyY - (spriteScaledHeight / 2) - 25; // Match player 25px
-    const healthYOffset = enemyY + (spriteScaledHeight / 2) + 25; // Match player 25px
-    const blockYOffset = healthYOffset + 28;
-    const statusYOffset = blockYOffset + 40; // Match player 40px for status effects
 
     // Enemy name - dynamically positioned above sprite
     this.scene.add
@@ -389,38 +453,93 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Health display - dynamically positioned below sprite based on actual size
+    this.enemyInfoContainer = this.scene.add.container(panelX, panelY);
+    const enemyOuterBorder = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH + 8, this.SIDE_PANEL_HEIGHT + 8, undefined, 0)
+      .setStrokeStyle(2, 0x77888C, 0.95);
+    const enemyInnerBorder = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH, this.SIDE_PANEL_HEIGHT, undefined, 0)
+      .setStrokeStyle(2, 0x556065, 0.8);
+    const enemyPanelBg = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH, this.SIDE_PANEL_HEIGHT, 0x150E10, 0.95);
+    const enemyHeader = this.scene.add.text(0, -72, "ENEMY STATUS", {
+      fontFamily: "dungeon-mode",
+      fontSize: 16,
+      color: "#77888C",
+      align: "center",
+    }).setOrigin(0.5);
+    const enemyHealthBarBg = this.scene.add.rectangle(
+      -this.HEALTH_BAR_WIDTH / 2,
+      -40,
+      this.HEALTH_BAR_WIDTH,
+      16,
+      0x1b2327,
+      0.95
+    )
+      .setOrigin(0, 0.5)
+      .setStrokeStyle(1, 0x77888C, 0.7);
+    this.enemyHealthBarFill = this.scene.add.rectangle(
+      -this.HEALTH_BAR_WIDTH / 2,
+      -40,
+      this.HEALTH_BAR_WIDTH,
+      16,
+      0x2ed573,
+      1
+    ).setOrigin(0, 0.5);
+
     this.enemyHealthText = this.scene.add
-      .text(enemyX, healthYOffset, "", {
+      .text(0, -58, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 24,
-        color: "#ff6b6b",
+        fontSize: 16,
+        color: "#e8eced",
         align: "center"
       })
       .setOrigin(0.5);
 
-    // Block display
     this.enemyBlockText = this.scene.add
-      .text(enemyX, blockYOffset, "", {
+      .text(0, -12, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 20,
+        fontSize: 16,
         color: "#4ecdc4",
         align: "center"
       })
       .setOrigin(0.5);
 
-    // Intent display - positioned below status effects with proper spacing
+    this.enemyInfoContainer.add([
+      enemyOuterBorder,
+      enemyInnerBorder,
+      enemyPanelBg,
+      enemyHeader,
+      enemyHealthBarBg,
+      this.enemyHealthBarFill,
+      this.enemyHealthText,
+      this.enemyBlockText,
+    ]);
+
+    // Build affinity row first, then place effects UI below it.
+    const affinityRowY = 6;
+    const affinityRowHeight = this.createElementalAffinityIndicators(this.enemyInfoContainer, affinityRowY);
+    const enemyStatusLabelY = affinityRowY + affinityRowHeight / 2 + 18;
+    const enemyStatusRowY = enemyStatusLabelY + 32;
+
+    const enemyStatusLabel = this.scene.add.text(0, enemyStatusLabelY, "Effects", {
+      fontFamily: "dungeon-mode",
+      fontSize: 14,
+      color: "#77888C",
+      align: "center",
+    }).setOrigin(0.5);
+    this.enemyStatusContainer = this.scene.add.container(0, enemyStatusRowY);
+    this.enemyInfoContainer.add([enemyStatusLabel, this.enemyStatusContainer]);
+
+    // Intent display - now below side panel
     this.enemyIntentText = this.scene.add
-      .text(enemyX, statusYOffset + 55, "", { // Increased spacing for source icons
+      .text(panelX, panelY + this.SIDE_PANEL_HEIGHT / 2 + 32, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 18,
+        fontSize: 15,
         color: "#feca57",
         align: "center",
-        wordWrap: { width: 220 }
+        wordWrap: { width: 280 }
       })
       .setOrigin(0.5)
-      .setVisible(true) // Now visible
-      .setInteractive({ useHandCursor: true }); // Make interactive for tooltip
+      .setVisible(true)
+      .setInteractive({ useHandCursor: true });
     
     // Initialize intent tooltip as null
     this.enemyIntentTooltip = null;
@@ -433,12 +552,6 @@ export class CombatUI {
     this.enemyIntentText.on('pointerout', () => {
       this.hideEnemyIntentTooltip();
     });
-
-    // Status effects container - positioned dynamically
-    this.enemyStatusContainer = this.scene.add.container(enemyX, statusYOffset);
-
-    // Elemental affinity indicators - positioned near health bar
-    this.createElementalAffinityIndicators(enemyX, healthYOffset);
 
     // Information button for enemy lore
     const infoButtonY = enemyY - (spriteScaledHeight / 2) - 44;
@@ -481,88 +594,129 @@ export class CombatUI {
   /**
    * Create elemental affinity indicators for enemy
    */
-  private createElementalAffinityIndicators(enemyX: number, healthY: number): void {
+  private createElementalAffinityIndicators(
+    parentContainer: Phaser.GameObjects.Container,
+    rowY: number
+  ): number {
     const combatState = this.scene.getCombatState();
     const enemy = combatState.enemy;
     
     // Get affinity display data
     const affinityData = ElementalAffinitySystem.getAffinityDisplayData(enemy.elementalAffinity);
     
-    // Create container for affinity indicators - positioned to the right of health bar
-    this.enemyAffinityContainer = this.scene.add.container(enemyX + 120, healthY);
+    // Affinity badges live inside enemy side panel.
+    this.enemyAffinityContainer = this.scene.add.container(0, rowY);
+    parentContainer.add(this.enemyAffinityContainer);
     
-    const iconSize = 32;
-    const iconSpacing = 40;
-    let currentX = 0;
+    const chipHeight = 28;
+    const chipGap = 12;
+    const chipPadding = 10;
+    const chipLayout: Array<{
+      type: "weak" | "resist";
+      label: string;
+      icon: string;
+      bgColor: number;
+      borderColor: number;
+      labelColor: string;
+      hoverColor: number;
+      tooltipText: string;
+    }> = [];
     
-    // Weakness indicator (left side)
     if (affinityData.weaknessIcon) {
-      const weaknessContainer = this.scene.add.container(currentX, 0);
+      chipLayout.push({
+        type: "weak",
+        label: "Weak",
+        icon: affinityData.weaknessIcon,
+        bgColor: 0x2a1715,
+        borderColor: 0xff6b6b,
+        labelColor: "#ff9d9d",
+        hoverColor: 0x3a1d1a,
+        tooltipText: affinityData.weaknessText,
+      });
+    }
+    
+    if (affinityData.resistanceIcon) {
+      chipLayout.push({
+        type: "resist",
+        label: "Resist",
+        icon: affinityData.resistanceIcon,
+        bgColor: 0x142125,
+        borderColor: 0x4ecdc4,
+        labelColor: "#98f0ea",
+        hoverColor: 0x1b2c31,
+        tooltipText: affinityData.resistanceText,
+      });
+    }
+    
+    if (chipLayout.length === 0) {
+      return 0;
+    }
+    
+    const measuredChips: Array<{
+      config: typeof chipLayout[number];
+      chipWidth: number;
+      labelWidth: number;
+    }> = chipLayout.map((config) => {
+      const tempLabel = this.scene.add.text(0, 0, config.label, {
+        fontFamily: "dungeon-mode",
+        fontSize: 11,
+      }).setVisible(false);
+      const labelWidth = tempLabel.getBounds().width;
+      tempLabel.destroy();
+      const chipWidth = Math.max(86, Math.ceil(labelWidth + 34 + chipPadding * 3));
+      return { config, chipWidth, labelWidth };
+    });
+    
+    const totalRowWidth = measuredChips.reduce((sum, item) => sum + item.chipWidth, 0)
+      + chipGap * (measuredChips.length - 1);
+    let currentX = -totalRowWidth / 2;
+    
+    measuredChips.forEach(({ config, chipWidth, labelWidth }) => {
+      const chipX = currentX + chipWidth / 2;
+      const weaknessContainer = this.scene.add.container(chipX, 0);
       
-      // Background circle for weakness (red tint)
-      const weaknessBg = this.scene.add.circle(0, 0, iconSize / 2, 0xff6b6b, 0.3);
-      const weaknessBorder = this.scene.add.circle(0, 0, iconSize / 2, undefined, 0);
-      weaknessBorder.setStrokeStyle(2, 0xff6b6b, 0.8);
-      
-      // Weakness icon
-      const weaknessIcon = this.scene.add.text(0, 0, affinityData.weaknessIcon, {
-        fontSize: 20,
-        align: "center"
+      const weaknessBg = this.scene.add.rectangle(0, 0, chipWidth, chipHeight, config.bgColor, 0.95)
+        .setStrokeStyle(2, config.borderColor, 0.9);
+      const weaknessLabel = this.scene.add.text(
+        -chipWidth / 2 + chipPadding,
+        0,
+        config.label,
+        {
+        fontFamily: "dungeon-mode",
+        fontSize: 11,
+        color: config.labelColor,
+        align: "left",
+      }).setOrigin(0, 0.5);
+      const weaknessIcon = this.scene.add.text(
+        -chipWidth / 2 + chipPadding + labelWidth + chipPadding + 8,
+        0,
+        config.icon,
+        {
+        fontSize: 16,
+        align: "center",
       }).setOrigin(0.5);
       
-      weaknessContainer.add([weaknessBg, weaknessBorder, weaknessIcon]);
+      weaknessContainer.add([weaknessBg, weaknessLabel, weaknessIcon]);
       
       // Make interactive for tooltip with a forgiving hit area
-      weaknessContainer.setSize(iconSize + 10, iconSize + 10);
+      weaknessContainer.setSize(chipWidth + 8, chipHeight + 8);
       weaknessContainer.setInteractive({ useHandCursor: true });
       
       weaknessContainer.on('pointerover', () => {
-        weaknessBg.setFillStyle(0xff6b6b, 0.5);
-        this.showAffinityTooltip(affinityData.weaknessText, enemyX + 120 + currentX, healthY - 40);
+        weaknessBg.setFillStyle(config.hoverColor, 1);
+        this.showAffinityTooltip(config.tooltipText, parentContainer.x + chipX, parentContainer.y + rowY - 36);
       });
       
       weaknessContainer.on('pointerout', () => {
-        weaknessBg.setFillStyle(0xff6b6b, 0.3);
+        weaknessBg.setFillStyle(config.bgColor, 0.95);
         this.hideAffinityTooltip();
       });
       
       this.enemyAffinityContainer.add(weaknessContainer);
-      currentX += iconSpacing;
-    }
+      currentX += chipWidth + chipGap;
+    });
     
-    // Resistance indicator (right side)
-    if (affinityData.resistanceIcon) {
-      const resistanceContainer = this.scene.add.container(currentX, 0);
-      
-      // Background circle for resistance (blue tint)
-      const resistanceBg = this.scene.add.circle(0, 0, iconSize / 2, 0x4ecdc4, 0.3);
-      const resistanceBorder = this.scene.add.circle(0, 0, iconSize / 2, undefined, 0);
-      resistanceBorder.setStrokeStyle(2, 0x4ecdc4, 0.8);
-      
-      // Resistance icon
-      const resistanceIcon = this.scene.add.text(0, 0, affinityData.resistanceIcon, {
-        fontSize: 20,
-        align: "center"
-      }).setOrigin(0.5);
-      
-      resistanceContainer.add([resistanceBg, resistanceBorder, resistanceIcon]);
-      
-      // Make interactive for tooltip with a forgiving hit area
-      resistanceContainer.setSize(iconSize + 10, iconSize + 10);
-      resistanceContainer.setInteractive({ useHandCursor: true });
-      
-      resistanceContainer.on('pointerover', () => {
-        resistanceBg.setFillStyle(0x4ecdc4, 0.5);
-        this.showAffinityTooltip(affinityData.resistanceText, enemyX + 120 + currentX, healthY - 40);
-      });
-      
-      resistanceContainer.on('pointerout', () => {
-        resistanceBg.setFillStyle(0x4ecdc4, 0.3);
-        this.hideAffinityTooltip();
-      });
-      
-      this.enemyAffinityContainer.add(resistanceContainer);
-    }
+    return chipHeight;
   }
   
   /**
@@ -827,12 +981,12 @@ export class CombatUI {
   public createPotionInventory(): void {
     const screenHeight = this.scene.cameras.main.height;
     
-    // Position on the left side, lower position for better visibility
-    this.potionInventory = this.scene.add.container(80, screenHeight * 0.6);
+    // Position on the left side, lower to avoid crowding the side status panel
+    this.potionInventory = this.scene.add.container(80, screenHeight * 0.74);
     this.potionInventory.setVisible(true);
     this.currentPotionTooltip = null;
     
-    console.log("Creating potion inventory container at:", 80, this.scene.cameras.main.height * 0.6);
+    console.log("Creating potion inventory container at:", 80, this.scene.cameras.main.height * 0.74);
     
     const inventoryWidth = 120;
     const inventoryHeight = 310;
@@ -1172,6 +1326,23 @@ export class CombatUI {
     this.statusEffectUpdateThrottle.clear();
   }
   
+  private updateHealthBar(
+    healthBarFill: Phaser.GameObjects.Rectangle,
+    currentHealth: number,
+    maxHealth: number
+  ): void {
+    const healthPercent = Phaser.Math.Clamp(currentHealth / maxHealth, 0, 1);
+    healthBarFill.width = this.HEALTH_BAR_WIDTH * healthPercent;
+    
+    if (healthPercent < 0.25) {
+      healthBarFill.setFillStyle(0xff4757, 1);
+    } else if (healthPercent < 0.5) {
+      healthBarFill.setFillStyle(0xff9f43, 1);
+    } else {
+      healthBarFill.setFillStyle(0x2ed573, 1);
+    }
+  }
+  
   /**
    * Update player UI elements
    */
@@ -1183,7 +1354,8 @@ export class CombatUI {
     const currentHealth = Math.max(0, Math.floor(player.currentHealth));
     const maxHealth = Math.max(1, Math.floor(player.maxHealth));
     
-    this.playerHealthText.setText(`♥ ${currentHealth}/${maxHealth}`);
+    this.playerHealthText.setText(`HP ${currentHealth}/${maxHealth}`);
+    this.updateHealthBar(this.playerHealthBarFill, currentHealth, maxHealth);
     this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
     
     // Update status effect display
@@ -1199,7 +1371,10 @@ export class CombatUI {
   public updateEnemyUI(): void {
     const combatState = this.scene.getCombatState();
     const enemy = combatState.enemy;
-    this.enemyHealthText.setText(`♥ ${enemy.currentHealth}/${enemy.maxHealth}`);
+    const currentHealth = Math.max(0, Math.floor(enemy.currentHealth));
+    const maxHealth = Math.max(1, Math.floor(enemy.maxHealth));
+    this.enemyHealthText.setText(`HP ${currentHealth}/${maxHealth}`);
+    this.updateHealthBar(this.enemyHealthBarFill, currentHealth, maxHealth);
     this.enemyBlockText.setText(enemy.block > 0 ? `⛨ ${enemy.block}` : "");
     
     // PRIORITY 6: Display intent with "Next Turn:" prefix for clarity
@@ -1302,7 +1477,7 @@ export class CombatUI {
     const tooltipHeight = descHeight + basePadding;
 
     const tooltipX = intentX;
-    const tooltipY = intentY + 50; // Position below the intent text
+    const tooltipY = intentY - 62; // Position above the intent text to avoid card-area overlap
     
     this.enemyIntentTooltip = this.scene.add.container(tooltipX, tooltipY);
     
@@ -1411,45 +1586,48 @@ export class CombatUI {
       return 0;
     });
     
-    // Display each status effect with improved spacing
-    const spacing = 42; // Increased for source icon below
-    const iconRadius = 18; // Slightly larger icons
+    // Display each status effect as panel chips instead of circles
+    const spacing = 72;
+    const chipWidth = 64;
+    const chipHeight = 34;
     const startX = -(sortedEffects.length - 1) * spacing / 2;
     
     sortedEffects.forEach((effect, index) => {
       const x = startX + index * spacing;
       
-      // Create status effect icon with stack count
+      // Create status effect chip with stack count
       const effectContainer = this.scene.add.container(x, 0);
       
-      // Background circle for the icon - larger and more visible
-      const bg = this.scene.add.circle(0, 0, iconRadius, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b, 0.25);
-      const border = this.scene.add.circle(0, 0, iconRadius, undefined, 0).setStrokeStyle(2.5, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b);
+      const chipBg = this.scene.add.rectangle(
+        0,
+        0,
+        chipWidth,
+        chipHeight,
+        effect.type === 'buff' ? 0x1c2b21 : 0x2b1c1c,
+        0.95
+      ).setStrokeStyle(2, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b, 0.9);
       
-      // Status effect emoji - larger and centered
-      const icon = this.scene.add.text(0, 0, effect.emoji, {
-        fontSize: '22px',
+      const icon = this.scene.add.text(-12, 0, effect.emoji, {
+        fontSize: '18px',
       }).setOrigin(0.5);
       
-      // Stack count - positioned at bottom-right corner
-      const stackText = this.scene.add.text(14, 14, effect.value.toString(), {
+      const stackText = this.scene.add.text(16, 0, `x${effect.value}`, {
         fontFamily: "dungeon-mode",
-        fontSize: 13,
+        fontSize: 12,
         color: "#ffffff",
         stroke: "#000000",
-        strokeThickness: 3,
+        strokeThickness: 2,
       }).setOrigin(0.5);
       
-      effectContainer.add([bg, border, icon, stackText]);
+      effectContainer.add([chipBg, icon, stackText]);
       
       // Show source relic icon below if available - better aligned
       if (effect.source && effect.source.type === 'relic') {
         // Source label container
         const sourceContainer = this.scene.add.container(0, 28);
         
-        // Small background for source
-        const sourceBg = this.scene.add.rectangle(0, 0, 26, 18, 0x1a1a1a, 0.8)
-          .setStrokeStyle(1, 0x555555);
+        const sourceBg = this.scene.add.rectangle(0, 0, 30, 18, 0x1a1a1a, 0.85)
+          .setStrokeStyle(1, 0x77888C);
         
         const sourceIcon = this.scene.add.text(0, 0, effect.source.icon, {
           fontSize: '12px',
@@ -1459,7 +1637,7 @@ export class CombatUI {
         effectContainer.add(sourceContainer);
       }
       // Use a forgiving rectangular hit area that covers the full badge
-      effectContainer.setSize(iconRadius * 2 + 10, iconRadius * 2 + 20);
+      effectContainer.setSize(chipWidth + 10, chipHeight + 20);
       effectContainer.setInteractive({ useHandCursor: true });
       
       // Add tooltip on hover
@@ -1496,8 +1674,8 @@ export class CombatUI {
         const basePadding = hasSource ? 72 : 60; // extra room for title + spacing
         const tooltipHeight = descHeight + basePadding;
 
-        // Position tooltip just above the status row, aligned with this circle
-        tooltip = this.scene.add.container(x, 55);
+        // Position tooltip above the status chips
+        tooltip = this.scene.add.container(x, -62);
 
         const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
           .setStrokeStyle(2, 0x77888C);
@@ -3103,6 +3281,10 @@ export class CombatUI {
           20;
 
         const oldHP = player.currentHealth ?? 0;
+        if (effect === "gain_temp_max_hp") {
+          player.maxHealth = (player.maxHealth ?? oldHP) + 10;
+          player.tempMaxHealthBonus = (player.tempMaxHealthBonus ?? 0) + 10;
+        }
         const maxHealth = player.maxHealth ?? oldHP;
         player.currentHealth = Math.min(oldHP + healAmount, maxHealth);
         const actualHeal = (player.currentHealth ?? 0) - oldHP;
@@ -3116,7 +3298,29 @@ export class CombatUI {
           }
         }
 
-        this.showActionResult(`Healed ${actualHeal} HP!`, "#2ed573");
+        // Act 2 relic: draw 1 card whenever healing occurs.
+        if (actualHeal > 0 && Array.isArray(player.relics) && player.relics.some((r: any) => r.id === "magindara_song")) {
+          if (player.drawPile && player.discardPile && player.drawPile.length < 1 && player.discardPile.length > 0) {
+            player.drawPile = DeckManager.shuffleDeck(player.discardPile);
+            player.discardPile = [];
+          }
+
+          if (player.drawPile && player.hand) {
+            const { drawnCards, remainingDeck } = DeckManager.drawCards(player.drawPile, 1);
+            player.hand.push(...drawnCards);
+            player.drawPile = remainingDeck;
+            this.updateHandDisplay();
+            this.updateDeckDisplay();
+            this.updateDiscardDisplay();
+          }
+        }
+
+        this.showActionResult(
+          effect === "gain_temp_max_hp"
+            ? `Gained +10 temporary Max HP and healed ${actualHeal} HP!`
+            : `Healed ${actualHeal} HP!`,
+          "#2ed573"
+        );
         this.showPlayerHealingIndicator(actualHeal, false);
         this.updatePlayerUI();
         break;
@@ -3206,12 +3410,12 @@ export class CombatUI {
       }
 
       case "gain_regeneration": {
-        StatusEffectManager.applyStatusEffect(player, "regeneration", 2, {
+        StatusEffectManager.applyStatusEffect(player, "regeneration_potion", 3, {
           type: "other",
           id: potion.id ?? "regeneration_potion",
           icon: potion.emoji ?? "♻️",
         });
-        this.showActionResult("Gained Regeneration.", "#2ed573");
+        this.showActionResult("Gained Regeneration (2 HP for 3 turns).", "#2ed573");
         this.updatePlayerUI();
         break;
       }
@@ -3252,7 +3456,18 @@ export class CombatUI {
 
       // ── Damage & burn ────────────────────────────────
       case "apply_10_burn_all": {
-        applyDirectDamage(10, "Burned enemy for");
+        if (enemy) {
+          StatusEffectManager.applyStatusEffect(enemy, "burn", 5, {
+            type: "other",
+            id: potion.id ?? "burn_potion",
+            icon: potion.emoji ?? "🔥",
+          });
+          this.showActionResult("Applied Burn (10 damage/turn) to current enemy.", "#ff6b6b");
+          this.showStatusEffectApplicationFeedback(enemy, "burn", 5);
+          this.updateEnemyUI();
+        } else {
+          this.showActionResult("No target to burn.", "#77888C");
+        }
         break;
       }
 
@@ -3269,16 +3484,49 @@ export class CombatUI {
         break;
 
       case "deal_15_elemental_damage":
-        applyDirectDamage(20, "Elemental blast dealt");
+        {
+          const hasApoyOrTubig = Array.isArray(player.hand)
+            && player.hand.some((card: any) => card?.suit === "Apoy" || card?.suit === "Tubig");
+          const elementalDamage = hasApoyOrTubig ? 20 : 15;
+          applyDirectDamage(elementalDamage, "Elemental blast dealt");
+        }
         break;
 
       case "deal_20_elemental_damage":
-        applyDirectDamage(30, "Elemental surge dealt");
+        {
+          const distinctSuits = new Set(
+            (Array.isArray(player.hand) ? player.hand : [])
+              .map((card: any) => card?.suit)
+              .filter((suit: any) => typeof suit === "string")
+          ).size;
+          const elementalDamage = distinctSuits >= 3 ? 30 : 20;
+          applyDirectDamage(elementalDamage, "Elemental surge dealt");
+        }
         break;
 
       // ── Element choice & random cards ────────────────
       case "choose_element": {
-        this.showActionResult("You feel attuned to the elements (effect will be expanded in a future update).", "#4ecdc4");
+        const validSuits = ["Apoy", "Tubig", "Lupa", "Hangin"];
+        let chosenSuit = "Apoy";
+
+        try {
+          const promptFn = (globalThis as any)?.prompt;
+          if (typeof promptFn === "function") {
+            const response = promptFn("Choose next dominant suit: Apoy, Tubig, Lupa, Hangin", "Apoy");
+            if (typeof response === "string") {
+              const normalized = response.trim();
+              const matched = validSuits.find(suit => suit.toLowerCase() === normalized.toLowerCase());
+              if (matched) {
+                chosenSuit = matched;
+              }
+            }
+          }
+        } catch (error) {
+          console.warn("choose_element prompt unavailable, defaulting to Apoy", error);
+        }
+
+        player.nextDominantSuitOverride = chosenSuit;
+        this.showActionResult(`Attuned next hand to ${chosenSuit}.`, "#4ecdc4");
         break;
       }
 

@@ -34,6 +34,7 @@ export interface StatusEffectEntry {
 // ── Effect ID Constants ───────────────────────────────────────────────
 
 export const STATUS_IDS = {
+  BURN: 'burn',
   POISON: 'poison',
   WEAK: 'weak',
   PLATED_ARMOR: 'plated_armor',
@@ -49,6 +50,17 @@ export type StatusId = (typeof STATUS_IDS)[keyof typeof STATUS_IDS];
 // ── Registry Data ─────────────────────────────────────────────────────
 
 const ENTRIES: ReadonlyMap<StatusId, StatusEffectEntry> = new Map<StatusId, StatusEffectEntry>([
+  [STATUS_IDS.BURN, {
+    id: STATUS_IDS.BURN,
+    name: 'Burn',
+    category: 'debuff',
+    emoji: '🔥',
+    timing: 'start_of_turn',
+    stackable: true,
+    perStackValue: 2,
+    description: 'Deals 2 damage per stack at start of turn, then loses 1 stack.',
+  }],
+
   [STATUS_IDS.POISON, {
     id: STATUS_IDS.POISON,
     name: 'Poison',

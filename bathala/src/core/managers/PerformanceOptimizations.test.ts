@@ -191,8 +191,8 @@ describe('Performance Optimizations', () => {
       expect(definition).toBeUndefined();
     });
 
-    it('should efficiently lookup all 8 status effects', () => {
-      const effectIds = ['poison', 'weak', 'plated_armor', 'regeneration', 'strength', 'vulnerable', 'frail', 'ritual'];
+    it('should efficiently lookup all status effects', () => {
+      const effectIds = ['burn', 'poison', 'weak', 'plated_armor', 'regeneration', 'regeneration_potion', 'strength', 'vulnerable', 'frail', 'ritual', 'stunned'];
       
       effectIds.forEach(id => {
         const definition = StatusEffectManager.getDefinition(id);

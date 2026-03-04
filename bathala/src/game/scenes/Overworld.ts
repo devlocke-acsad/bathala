@@ -121,6 +121,12 @@ export class Overworld extends Scene {
 
   // Music
   private musicLifecycle!: MusicLifecycleSystem;
+  private mobileControlsContainer: Phaser.GameObjects.Container | null = null;
+  private mobileDirectionButtons: Partial<Record<'left' | 'right' | 'up' | 'down', {
+    bg: Phaser.GameObjects.Rectangle;
+    innerBorder: Phaser.GameObjects.Rectangle;
+    text: Phaser.GameObjects.Text;
+  }>> = {};
 
   constructor() {
     super({ key: "Overworld" });
@@ -432,6 +438,110 @@ export class Overworld extends Scene {
         });
       }
     });
+  private isTouchDevice(): boolean {
+    const nav = navigator as Navigator & { maxTouchPoints?: number };
+    const userAgentData = navigator as Navigator & { userAgentData?: { mobile?: boolean } };
+    const hasTouchPoints = (nav.maxTouchPoints ?? 0) > 0;
+    const hasTouchEvent = 'ontouchstart' in window;
+    const isMobileByUAData = userAgentData.userAgentData?.mobile === true;
+    return hasTouchPoints || hasTouchEvent || isMobileByUAData;
+  }
+
+  private createMobileMovementControls(): void {
+    if (!this.isTouchDevice() || !this.uiContainer) {
+      return;
+    }
+
+    if (this.mobileControlsContainer) {
+      this.mobileControlsContainer.destroy(true);
+      this.mobileControlsContainer = null;
+    }
+    this.mobileDirectionButtons = {};
+
+    const screenHeight = this.cameras.main.height;
+    const centerX = 340;
+    const centerY = screenHeight - 260;
+    const spacing = 132;
+    const buttonSize = 102;
+
+    // Keep controls fixed to the camera so fog-of-war zoom transitions never move them.
+    this.mobileControlsContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(1500);
+
+    this.createMobileDirectionButton(centerX, centerY - spacing, buttonSize, "↑", "up");
+    this.createMobileDirectionButton(centerX - spacing, centerY, buttonSize, "←", "left");
+    this.createMobileDirectionButton(centerX + spacing, centerY, buttonSize, "→", "right");
+    this.createMobileDirectionButton(centerX, centerY + spacing, buttonSize, "↓", "down");
+  }
+
+  private createMobileDirectionButton(
+    x: number,
+    y: number,
+    size: number,
+    label: string,
+    direction: 'left' | 'right' | 'up' | 'down'
+  ): void {
+    if (!this.mobileControlsContainer) {
+      return;
+    }
+
+    const bg = this.add.rectangle(x, y, size, size, 0x150E10, 0.42)
+      .setStrokeStyle(2, 0x77888C, 0.9)
+      .setScrollFactor(0)
+      .setInteractive({ useHandCursor: false });
+
+    const innerBorder = this.add.rectangle(x, y, size - 8, size - 8, undefined, 0)
+      .setStrokeStyle(1.5, 0x77888C, 0.65)
+      .setScrollFactor(0);
+
+    const text = this.add.text(x, y, label, {
+      fontFamily: "dungeon-mode",
+      fontSize: "60px",
+      color: "#77888C"
+    }).setOrigin(0.5).setAlpha(0.9).setScrollFactor(0);
+
+    this.mobileDirectionButtons[direction] = { bg, innerBorder, text };
+
+    const setButtonVisual = (targetDirection: 'left' | 'right' | 'up' | 'down', pressed: boolean) => {
+      const buttonRefs = this.mobileDirectionButtons[targetDirection];
+      if (!buttonRefs) {
+        return;
+      }
+      buttonRefs.bg.setFillStyle(pressed ? 0x2a1a1f : 0x150E10, pressed ? 0.85 : 0.42);
+      buttonRefs.text.setColor(pressed ? "#e8eced" : "#77888C");
+      buttonRefs.innerBorder.setStrokeStyle(1.5, 0x77888C, pressed ? 0.95 : 0.65);
+    };
+
+    const releaseAll = () => {
+      this.keyInputManager.resetVirtualDirections();
+      setButtonVisual('left', false);
+      setButtonVisual('right', false);
+      setButtonVisual('up', false);
+      setButtonVisual('down', false);
+    };
+
+    const setPressed = (pressed: boolean) => {
+      if (pressed) {
+        releaseAll();
+        this.keyInputManager.setVirtualDirection(direction, true);
+        setButtonVisual(direction, true);
+      } else {
+        releaseAll();
+      }
+    };
+
+    bg.on('pointerdown', () => setPressed(true));
+    bg.on('pointerup', () => setPressed(false));
+    bg.on('pointerout', () => setPressed(false));
+    bg.on('pointerupoutside', () => setPressed(false));
+    bg.on('pointercancel', () => setPressed(false));
+
+    const releaseOnAnyPointerUp = () => setPressed(false);
+    this.input.on('pointerup', releaseOnAnyPointerUp);
+    bg.once('destroy', () => {
+      this.input.off('pointerup', releaseOnAnyPointerUp);
+    });
+
+    this.mobileControlsContainer.add([bg, innerBorder, text]);
   }
 
   createUI(): void {
@@ -736,6 +846,9 @@ export class Overworld extends Scene {
 
     // Create overworld UI panel
     this.createOverworldUI();
+
+    // Add mobile controls after uiContainer is ready so they share the exact same UI layer.
+    this.createMobileMovementControls();
   }
 
   createDayNightProgressBar(): void {
@@ -1110,6 +1223,7 @@ export class Overworld extends Scene {
     // Re-enable input when returning from other scenes using KeyInputManager
     if (this.keyInputManager) {
       this.keyInputManager.enableInput();
+      this.keyInputManager.resetVirtualDirections();
     }
 
     // Reset movement flags
@@ -2550,6 +2664,11 @@ export class Overworld extends Scene {
       this.keyInputManager.destroy();
     }
 
+    if (this.mobileControlsContainer) {
+      this.mobileControlsContainer.destroy(true);
+      this.mobileControlsContainer = null;
+    }
+
     // Clean up event listeners
     // No resize listener cleanup needed — Scale.FIT handles zoom uniformly
 
@@ -3789,6 +3908,12 @@ export class Overworld extends Scene {
       const toggleX = cameraWidth - 60 - offsetX;
       const toggleY = 50 + offsetY;
       this.toggleButton.setPosition(toggleX, toggleY);
+    }
+
+    // Mobile controls container (fixed gameplay controls)
+    if (this.mobileControlsContainer) {
+      this.mobileControlsContainer.setScale(uiScale);
+      this.mobileControlsContainer.setPosition(offsetX, offsetY);
     }
 
     // Test buttons container

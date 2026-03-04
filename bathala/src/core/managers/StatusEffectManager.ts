@@ -53,8 +53,33 @@ export class StatusEffectManager {
   static initialize(): void {
     if (this.initialized) return;
 
-    // Define all 8 core status effects
+    // Define all core status effects used by combat
     const definitions: StatusEffectDefinition[] = [
+      {
+        id: 'burn',
+        name: 'Burn',
+        type: 'debuff',
+        emoji: '🔥',
+        description: 'Takes damage at start of turn, then reduces by 1',
+        triggerTiming: 'start_of_turn',
+        stackable: true,
+        onTrigger: (target: CombatEntity, stacks: number): StatusEffectTriggerResult | null => {
+          const damage = stacks * 2;
+          target.currentHealth -= damage;
+
+          const effect = target.statusEffects.find(e => e.id === 'burn');
+          if (effect) {
+            effect.value -= 1;
+          }
+
+          return {
+            effectName: 'Burn',
+            targetName: target.name,
+            value: damage,
+            message: `${target.name} takes ${damage} burn damage`
+          };
+        }
+      },
       {
         id: 'poison',
         name: 'Poison',
@@ -152,6 +177,33 @@ export class StatusEffectManager {
         }
       },
       {
+        id: 'regeneration_potion',
+        name: 'Regeneration',
+        type: 'buff',
+        emoji: '♻️',
+        description: 'Heals 2 HP at start of turn for 3 turns',
+        triggerTiming: 'start_of_turn',
+        stackable: false,
+        onTrigger: (target: CombatEntity): StatusEffectTriggerResult | null => {
+          const healing = 2;
+          const oldHealth = target.currentHealth;
+          target.currentHealth = Math.min(target.maxHealth, target.currentHealth + healing);
+          const actualHealing = target.currentHealth - oldHealth;
+
+          const effect = target.statusEffects.find(e => e.id === 'regeneration_potion');
+          if (effect) {
+            effect.value -= 1;
+          }
+
+          return {
+            effectName: 'Regeneration',
+            targetName: target.name,
+            value: actualHealing,
+            message: `${target.name} heals ${actualHealing} HP`
+          };
+        }
+      },
+      {
         id: 'strength',
         name: 'Strength',
         type: 'buff',
@@ -196,6 +248,28 @@ export class StatusEffectManager {
             targetName: target.name,
             value: stacks,
             message: `${target.name} gains ${stacks} Strength from Ritual`
+          };
+        }
+      },
+      {
+        id: 'stunned',
+        name: 'Stunned',
+        type: 'debuff',
+        emoji: '💫',
+        description: 'Cannot act. Expires at end of turn.',
+        triggerTiming: 'end_of_turn',
+        stackable: false,
+        onTrigger: (target: CombatEntity): StatusEffectTriggerResult | null => {
+          const effect = target.statusEffects.find(e => e.id === 'stunned');
+          if (effect) {
+            effect.value -= 1;
+          }
+
+          return {
+            effectName: 'Stunned',
+            targetName: target.name,
+            value: 0,
+            message: `${target.name} recovers from Stun`
           };
         }
       }

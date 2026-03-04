@@ -3,22 +3,70 @@ import { HandEvaluator } from "../../utils/HandEvaluator";
 import { RELIC_EFFECTS, hasRelicEffect, getRelicById } from "../../data/relics/Act1Relics";
 import { StatusEffectManager } from "./StatusEffectManager";
 import { ElementalAffinitySystem, ElementalAffinity } from "./ElementalAffinitySystem";
+import { DeckManager } from "../../utils/DeckManager";
 
 /**
  * RelicManager - Manages all relic effects in combat and other game systems
  * Handles applying active relic effects during combat and attune sessions
  */
 export class RelicManager {
+  private static getUniqueRelicIds(player: Player): string[] {
+    return [...new Set(player.relics.map(r => r.id))];
+  }
+
+  private static countSuit(hand: PlayingCard[], suit: PlayingCard["suit"]): number {
+    return hand.filter(card => card.suit === suit).length;
+  }
+
+  private static isAllSuit(hand: PlayingCard[], suit: PlayingCard["suit"]): boolean {
+    return hand.length > 0 && hand.every(card => card.suit === suit);
+  }
+
+  private static drawCardsForRelic(player: Player, count: number): number {
+    if (!Array.isArray(player.hand) || !Array.isArray(player.drawPile) || !Array.isArray(player.discardPile) || count <= 0) {
+      return 0;
+    }
+
+    if (player.drawPile.length < count && player.discardPile.length > 0) {
+      player.drawPile = DeckManager.shuffleDeck(player.discardPile);
+      player.discardPile = [];
+    }
+
+    const { drawnCards, remainingDeck } = DeckManager.drawCards(player.drawPile, count);
+    player.hand.push(...drawnCards);
+    player.drawPile = remainingDeck;
+    return drawnCards.length;
+  }
+
+  private static healPlayer(player: Player, amount: number): number {
+    const oldHealth = player.currentHealth;
+    player.currentHealth = Math.min(player.maxHealth, player.currentHealth + amount);
+    return Math.max(0, player.currentHealth - oldHealth);
+  }
+
+  private static onPlayerHealed(player: Player, healedAmount: number): void {
+    if (healedAmount <= 0) return;
+
+    // Act 2: draw 1 card whenever healing occurs.
+    if (player.relics.some(r => r.id === "magindara_song")) {
+      this.drawCardsForRelic(player, 1);
+    }
+  }
   
   /**
    * Helper method to add dexterity effect to player
    */
   private static addDexterityEffect(player: Player, effectId: string, value: number, relicId?: string, relicIcon?: string): void {
+    const existingEffect = player.statusEffects.find(e => e.id === effectId);
+    if (existingEffect) {
+      existingEffect.value += value;
+      return;
+    }
+
     const dexterityEffect: StatusEffect = {
       id: effectId,
       name: "Dexterity",
       type: "buff" as const,
-      duration: 999, // Permanent for this combat
       value: value,
       description: "Gain +1 additional block per stack with Defend actions.",
       emoji: "⛨",
@@ -28,23 +76,23 @@ export class RelicManager {
         icon: relicIcon || '🗿'
       } : undefined
     };
-    
-    // Check if dexterity effect already exists to avoid duplicates
-    const existingEffect = player.statusEffects.find(e => e.id === effectId);
-    if (!existingEffect) {
-      player.statusEffects.push(dexterityEffect);
-    }
+    player.statusEffects.push(dexterityEffect);
   }
 
   /**
    * Helper method to add strength effect to player
    */
   private static addStrengthEffect(player: Player, effectId: string, value: number, relicId?: string, relicIcon?: string): void {
+    const existingEffect = player.statusEffects.find(e => e.id === effectId);
+    if (existingEffect) {
+      existingEffect.value += value;
+      return;
+    }
+
     const strengthEffect: StatusEffect = {
       id: effectId,
       name: "Strength",
       type: "buff" as const,
-      duration: 999, // Permanent for this combat
       value: value,
       description: "Deal +3 additional damage per stack with Attack actions.",
       emoji: "†",
@@ -54,12 +102,7 @@ export class RelicManager {
         icon: relicIcon || '🗿'
       } : undefined
     };
-    
-    // Check if strength effect already exists to avoid duplicates
-    const existingEffect = player.statusEffects.find(e => e.id === effectId);
-    if (!existingEffect) {
-      player.statusEffects.push(strengthEffect);
-    }
+    player.statusEffects.push(strengthEffect);
   }
   
   /**
@@ -76,9 +119,27 @@ export class RelicManager {
     StatusEffectManager.registerModifier((effectId, stacks, target) => {
       let modifiedStacks = stacks;
 
+      // Act 2: Ignore first Weak debuff each combat.
+      if (
+        effectId === 'weak' &&
+        target.id === player.id &&
+        player.relics.some(r => r.id === 'berbalang_spirit')
+      ) {
+        const weakIgnored = (player as any).berbalangWeakIgnoredThisCombat === true;
+        if (!weakIgnored) {
+          (player as any).berbalangWeakIgnoredThisCombat = true;
+          return 0;
+        }
+      }
+
       // Get additive bonus from all relics
       const bonus = this.getStatusEffectStackBonus(effectId, player);
       modifiedStacks += bonus;
+
+      // Act 2: Santelmo Ember intensifies Burn applications on enemies.
+      if (effectId === 'burn' && target.id !== player.id && player.relics.some(r => r.id === 'santelmo_ember')) {
+        modifiedStacks += stacks; // effectively doubles burn stacks from player applications
+      }
 
       // Ensure stacks remain positive
       return Math.max(0, modifiedStacks);
@@ -144,13 +205,14 @@ export class RelicManager {
     // Register relic modifiers first
     this.registerRelicModifiers(player);
     
-    // Apply all start-of-combat effects using the centralized system
-    
-    // Apply all start-of-combat effects using the centralized system
-    RELIC_EFFECTS.START_OF_COMBAT.forEach(relicId => {
-      const relic = player.relics.find(r => r.id === relicId);
-      if (!relic) return;
+    // Reset per-combat relic state flags
+    (player as any).berbalangWeakIgnoredThisCombat = false;
+    (player as any).bonusSpecialChargeGranted = player.relics.some(r => r.id === "sarimanok_plumage");
+    (player as any).bonusSpecialChargeConsumed = false;
 
+    // Apply all start-of-combat effects for each owned relic (unique IDs)
+    const ownedRelicIds = this.getUniqueRelicIds(player);
+    ownedRelicIds.forEach(relicId => {
       switch (relicId) {
         case "earthwardens_plate":
           // BALANCED: Start with 5 Block (defensive foundation without being overpowered)
@@ -183,6 +245,11 @@ export class RelicManager {
           player.currentHealth += 8;
           player.block += 2;
           break;
+
+        case "apolaki_spear":
+          // Act 3 relic: gain 2 Strength at start of combat
+          RelicManager.addStrengthEffect(player, "strength_apolaki", 2, "apolaki_spear", "🔱");
+          break;
       }
     });
   }
@@ -192,11 +259,8 @@ export class RelicManager {
    * Now uses centralized relic system for easier management
    */
   static applyStartOfTurnEffects(player: Player): void {
-    // Apply all start-of-turn effects using the centralized system
-    RELIC_EFFECTS.START_OF_TURN.forEach(relicId => {
-      const relic = player.relics.find(r => r.id === relicId);
-      if (!relic) return;
-
+    const ownedRelicIds = this.getUniqueRelicIds(player);
+    ownedRelicIds.forEach(relicId => {
       switch (relicId) {
         case "ember_fetish":
           // BALANCED: +4 Strength when Block = 0 (encourages risky play), +2 Strength otherwise
@@ -227,11 +291,8 @@ export class RelicManager {
    * Now uses centralized relic system for easier management
    */
   static applyAfterHandPlayedEffects(player: Player, hand: PlayingCard[], evaluation: any): void {
-    // Apply all after-hand-played effects using the centralized system
-    RELIC_EFFECTS.AFTER_HAND_PLAYED.forEach(relicId => {
-      const relic = player.relics.find(r => r.id === relicId);
-      if (!relic) return;
-
+    const ownedRelicIds = this.getUniqueRelicIds(player);
+    ownedRelicIds.forEach(relicId => {
       switch (relicId) {
         case "ancestral_blade":
           // BALANCED: +2 Strength per Flush (rewards element focus)
@@ -260,6 +321,28 @@ export class RelicManager {
           
         case "wind_veil":
           // +1 draw on Air (Hangin) cards - handled in Combat.ts
+          break;
+
+        case "sirenas_scale":
+          // Act 2: Heal when at least one Tubig card is played
+          if (this.countSuit(hand, "Tubig") > 0) {
+            const healed = this.healPlayer(player, 2);
+            this.onPlayerHealed(player, healed);
+          }
+          break;
+
+        case "berberoka_tide":
+          // Act 2: Gain 10 block on all-Tubig hands
+          if (this.isAllSuit(hand, "Tubig")) {
+            player.block += 10;
+          }
+          break;
+
+        case "tigmamanukan_feather":
+          // Act 3: Draw 1 on Straight or better
+          if (RelicManager.isHandTypeAtLeast(evaluation.type, "straight")) {
+            this.drawCardsForRelic(player, 1);
+          }
           break;
       }
     });
@@ -329,12 +412,27 @@ export class RelicManager {
    * Calculate dodge chance with "Tikbalang's Hoof" effect
    */
   static calculateDodgeChance(player: Player): number {
-    // BALANCED: 10% dodge chance (1 in 10 attacks avoided)
     let dodgeChance = 0;
-    const tikbalangsHoof = player.relics.find(r => r.id === "tikbalangs_hoof");
-    if (tikbalangsHoof) {
-      dodgeChance += 0.10; // 10% dodge chance
+
+    if (player.relics.some(r => r.id === "tikbalangs_hoof")) {
+      dodgeChance += 0.10;
     }
+
+    // Act 3: flat dodge chance
+    if (player.relics.some(r => r.id === "diwata_veil")) {
+      dodgeChance += 0.10;
+    }
+
+    // Act 2: dodge while debuffed
+    if (player.relics.some(r => r.id === "bangkilan_veil")) {
+      const hasDebuff = player.statusEffects?.some(effect => effect.type === "debuff");
+      if (hasDebuff) {
+        dodgeChance += 0.10;
+      }
+    }
+
+    // Safety cap for stacked dodge relics
+    dodgeChance = Math.min(0.6, dodgeChance);
     return dodgeChance;
   }
 
@@ -514,16 +612,14 @@ export class RelicManager {
    * Now uses centralized relic system for easier management
    */
   static applyEndOfTurnEffects(player: Player): void {
-    // Apply all end-of-turn effects using the centralized system
-    RELIC_EFFECTS.END_OF_TURN.forEach(relicId => {
-      const relic = player.relics.find(r => r.id === relicId);
-      if (!relic) return;
-
+    const ownedRelicIds = this.getUniqueRelicIds(player);
+    ownedRelicIds.forEach(relicId => {
       switch (relicId) {
         case "tidal_amulet":
           // BALANCED: +1 HP per card remaining in hand (max +8 HP with full hand)
           const healAmount = player.hand.length * 1;
-          player.currentHealth = Math.min(player.maxHealth, player.currentHealth + healAmount);
+          const healed = this.healPlayer(player, healAmount);
+          this.onPlayerHealed(player, healed);
           break;
       }
     });
