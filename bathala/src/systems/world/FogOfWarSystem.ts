@@ -529,6 +529,19 @@ export class FogOfWarSystem {
   }
 
   /**
+   * Check if a world-space position has been revealed through the fog of war.
+   * Converts world coordinates to tile coordinates and checks revealedAreas.
+   * @param worldX - World X coordinate (pixels)
+   * @param worldY - World Y coordinate (pixels)
+   * @returns True if the position is revealed
+   */
+  isWorldPositionRevealed(worldX: number, worldY: number): boolean {
+    const tileX = Math.floor(worldX / this.tileSize);
+    const tileY = Math.floor(worldY / this.tileSize);
+    return this.revealedAreas.has(`${tileX},${tileY}`);
+  }
+
+  /**
    * Manually reveal a specific area
    * @param centerX - World X coordinate
    * @param centerY - World Y coordinate

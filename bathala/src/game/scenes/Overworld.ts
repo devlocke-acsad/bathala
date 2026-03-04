@@ -1844,6 +1844,14 @@ export class Overworld extends Scene {
       (hoveredNode, pointer) => {
         console.log(`🖱️ Hovering over ${hoveredNode.type} node at ${hoveredNode.id}`);
 
+        // Don't show tooltip for nodes hidden by fog of war
+        if (this.fogOfWarManager && !this.fogOfWarManager.isWorldPositionRevealed(
+          hoveredNode.x + this.mazeGenManager.getGridSize() / 2,
+          hoveredNode.y + this.mazeGenManager.getGridSize() / 2
+        )) {
+          return;
+        }
+
         // Set current hovered node
         this.tooltipManager.setLastHoveredNodeId(hoveredNode.id);
 
@@ -1871,6 +1879,14 @@ export class Overworld extends Scene {
 
   private handleNodeHoverStart(node: MapNode, pointer: Phaser.Input.Pointer): void {
     console.log(`🖱️ [HOVER START] Node type: ${node.type}, ID: ${node.id}, EnemyID: ${node.enemyId || 'N/A'}`);
+
+    // Don't show tooltip for nodes hidden by fog of war
+    if (this.fogOfWarManager && !this.fogOfWarManager.isWorldPositionRevealed(
+      node.x + this.mazeGenManager.getGridSize() / 2,
+      node.y + this.mazeGenManager.getGridSize() / 2
+    )) {
+      return;
+    }
 
     // Set current hovered node
     this.tooltipManager.setLastHoveredNodeId(node.id);
