@@ -17,6 +17,8 @@ export interface GameEvent {
   description: string[]; // An array of strings to represent the dialogue
   choices: EventChoice[];
   dayEvent: boolean; // true if it's a day event, false if it's a night event
+  imageKey?: string; // Key for the image to display in EventScene
+  creatureId?: string; // Optional ID linking to a creature in the database
 }
 
 // Educational Event System Interfaces

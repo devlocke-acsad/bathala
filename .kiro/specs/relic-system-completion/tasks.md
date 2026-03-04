@@ -72,7 +72,7 @@ This implementation plan ensures all relics function correctly across Acts 1-3 w
   - Test in actual combat to verify relics trigger
   - _Requirements: 1.1-1.5, 5.1-5.5_
 
-- [ ] 7. Integrate relic damage calculators
+- [x] 7. Integrate relic damage calculators
   - In calculateAttackDamage(): Add RelicManager.calculateSigbinHeartDamage(this.player)
   - In calculateAttackDamage(): Add RelicManager.calculateBungisngisGrinDamage(this.player, enemy)
   - In calculateAttackDamage(): Check RelicManager.shouldApplyKapresCigarDouble() for first attack
