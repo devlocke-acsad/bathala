@@ -36,13 +36,8 @@ export const CHAPTER_NARRATIVES: Record<number, ChapterNarrative> = {
   1: {
     title: "The Corrupted Ancestral Forests",
     entryText:
-      "In balete groves — portals to anito realms where Bathala's breath birthed earth and winds carried omens — the engkanto's lies twist guardians into deceivers.",
-    entrySlides: [
-      "The balete trees once stood as doorways between the mortal world and the spirit realm.\n\nTheir roots grew deep into Bathala's earth, and their branches reached toward the heavens where the anito dwelt in harmony.",
-      "In the old stories, the Bicolano people spoke of a time when spirits rebelled against the divine order.\n\nNow those stories repeat — not as myth, but as truth unfolding before you.",
-      "Tikbalang who once guided travelers now lead them astray with backward hooves.\n\nKapre who smoked in peaceful watch now burn with corrupted fury.\n\nThe engkanto's whispers have turned every guardian into a weapon.",
-      "Navigate the forest's day-time harmony to attune the ancient relics.\n\nBrave the night's aggression to face the trials that await.\n\nSurvive five cycles to summon the cursed enforcer — and purify the cradle of creation.",
-    ],
+      "The balete roots rot with engkanto lies.\n\nAwaken the ancient relics. Hunt the Kapre Shade.\n\nPurify the earth before the shadow consumes all.",
+    entrySlides: [],
     transitionToNext:
       "The Mangangaway's hexes shatter like glass against stone. The forest exhales — a breath held since the engkanto first whispered their lies.\n\nFrom the purified earth, the Lupa Diwa Shard rises: a crystallized fragment of Bathala's earthen breath, warm as soil after rain.\n\nBut even as roots mend, the ground beneath your feet grows damp. Somewhere below, floodwaters stir. The drowned barangays call — and the sea spirits' betrayals run deeper than any root.",
     narratorIntro:

@@ -60,10 +60,10 @@ export class ChapterTransition extends Scene {
     );
 
     // Create decorative lines (use scaleX to expand from center)
-    const lineWidth = screenWidth * 0.6;
+    const lineWidth = screenWidth * 0.7; // Wider to fit narrative
     const topLine = this.add.rectangle(
       screenWidth / 2,
-      screenHeight / 2 - 100,
+      screenHeight / 2 - 120, // Moved higher
       lineWidth,
       2,
       Phaser.Display.Color.HexStringToColor(colors.primary).color
@@ -71,7 +71,7 @@ export class ChapterTransition extends Scene {
 
     const bottomLine = this.add.rectangle(
       screenWidth / 2,
-      screenHeight / 2 + 100,
+      screenHeight / 2 + 250, // Moved significantly lower
       lineWidth,
       2,
       Phaser.Display.Color.HexStringToColor(colors.primary).color
@@ -93,7 +93,7 @@ export class ChapterTransition extends Scene {
     // Chapter title text
     const chapterTitle = this.add.text(
       screenWidth / 2,
-      screenHeight / 2,
+      screenHeight / 2 - 20, // Moved up slightly
       chapterName,
       {
         fontFamily: "dungeon-mode",
@@ -106,7 +106,7 @@ export class ChapterTransition extends Scene {
     // Chapter subtitle text
     const chapterSubtitle = this.add.text(
       screenWidth / 2,
-      screenHeight / 2 + 60,
+      screenHeight / 2 + 30, // Tucked closer to title
       chapterSubtitleText,
       {
         fontFamily: "dungeon-mode",
@@ -120,23 +120,27 @@ export class ChapterTransition extends Scene {
     // Narrative text — story-driven line below the subtitle, more prominent
     const narrativeLabel = this.add.text(
       screenWidth / 2,
-      screenHeight / 2 + 150,
-      '',  // Will typewrite in
+      screenHeight / 2 + 170, // Much lower to prevent overlap
+      narrativeText,
       {
         fontFamily: "dungeon-mode",
-        fontSize: "16px",
+        fontSize: "20px",
         color: "#d4e0e8",
         align: "center",
-        fontStyle: "italic",
-        wordWrap: { width: screenWidth * 0.65 }
+        fontStyle: "normal", // changed to normal for dark souls impact
+        wordWrap: { width: screenWidth * 0.7 },
+        lineSpacing: 10
       }
     ).setOrigin(0.5).setAlpha(0);
+
+    // Initial position lower for the slide up effect
+    narrativeLabel.setY(screenHeight / 2 + 200);
 
     // Skip hint
     const skipHint = this.add.text(
       screenWidth / 2,
       screenHeight - 40,
-      "Press any key or click to skip",
+      "Press any key or click to continue",
       {
         fontFamily: "dungeon-mode",
         fontSize: "12px",
@@ -188,27 +192,26 @@ export class ChapterTransition extends Scene {
               onComplete: () => {
                 if (this.isSkipping) return;
 
-                // Step 4b: Show narrative text with typewriter effect
-                narrativeLabel.setAlpha(0.9);
-                let charIdx = 0;
-                this.time.addEvent({
-                  delay: 25,
-                  repeat: narrativeText.length - 1,
-                  callback: () => {
-                    charIdx++;
-                    narrativeLabel.setText(narrativeText.substring(0, charIdx));
-                  }
+                // Step 4b: Show narrative text with clean fade and slide-up
+                this.tweens.add({
+                  targets: narrativeLabel,
+                  alpha: 0.9,
+                  y: screenHeight / 2 + 150, // slide to final position
+                  duration: 1000,
+                  ease: 'Power3.easeOut'
                 });
 
                 // Show skip hint
                 this.tweens.add({
                   targets: skipHint,
                   alpha: 0.5,
-                  duration: 500
+                  duration: 500,
+                  delay: 1000
                 });
 
-                // Step 5: Hold then fade out (after 4 seconds — longer to read narrative)
-                this.time.delayedCall(4000, () => {
+                // Step 5: Wait for user input to continue, or auto-continue after a long timer
+                // We'll let the user decide when they are done reading the short lore by clicking/pressing key.
+                this.time.delayedCall(10000, () => {
                   if (this.isSkipping) return;
                   this.fadeOutAndTransition(overlay, chapterNumber, chapterTitle, chapterSubtitle, topLine, bottomLine, skipHint, narrativeLabel);
                 });
@@ -219,9 +222,19 @@ export class ChapterTransition extends Scene {
       }
     });
 
-    // Allow skip with any key or click
-    this.input.keyboard?.once('keydown', () => this.skipTransition());
-    this.input.once('pointerdown', () => this.skipTransition());
+    // Allow advance/skip with any key or click
+    this.input.keyboard?.once('keydown', () => {
+      if (!this.isSkipping) {
+        this.isSkipping = true;
+        this.fadeOutAndTransition(overlay, chapterNumber, chapterTitle, chapterSubtitle, topLine, bottomLine, skipHint, narrativeLabel);
+      }
+    });
+    this.input.once('pointerdown', () => {
+      if (!this.isSkipping) {
+        this.isSkipping = true;
+        this.fadeOutAndTransition(overlay, chapterNumber, chapterTitle, chapterSubtitle, topLine, bottomLine, skipHint, narrativeLabel);
+      }
+    });
   }
 
   /**
@@ -258,25 +271,14 @@ export class ChapterTransition extends Scene {
     });
   }
 
-  /**
-   * Skip the transition and go directly to Overworld
-   */
-  private skipTransition(): void {
-    if (this.isSkipping) return;
-    this.isSkipping = true;
-
-    console.log("⏭️ Chapter transition skipped");
-    this.tweens.killAll();
-    this.time.removeAllEvents();
-    this.startOverworld();
-  }
+  // Function removed because logic is handled in the input event listeners
 
   /**
    * Start the Overworld scene
    */
   private startOverworld(): void {
     console.log("🗺️ Chapter transition complete, starting Overworld...");
-    this.scene.start("Overworld");
+    this.scene.start("Overworld", { fadeIn: true });
   }
 
   /**

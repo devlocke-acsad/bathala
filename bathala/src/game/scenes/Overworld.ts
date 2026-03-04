@@ -7,7 +7,6 @@ import { Player, Relic } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { InputSystem } from "../../systems/shared/InputSystem";
 import { MazeGenSystem } from "../../systems/generation/MazeGenSystem";
-import { OverworldGenerator } from "../../systems/generation/OverworldGenerator";
 import { ActRegistry } from "../../core/acts/ActRegistry";
 import { ACT1 } from "../../acts/act1/Act1Definition";
 import { TooltipSystem } from "../../systems/world/TooltipSystem";
@@ -15,7 +14,7 @@ import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem"
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { getRelicSpriteKey } from "../../utils/RelicSpriteUtils";
 import { FogOfWarSystem } from "../../systems/world/FogOfWarSystem";
-import { EnemyRegistry } from "../../core/registries/EnemyRegistry";
+import { CHAPTER_NARRATIVES } from "../../data/NarrativeData";
 
 /**
  * === DEPTH LAYER CONFIGURATION ===
@@ -193,6 +192,11 @@ export class Overworld extends Scene {
     // Fade in from black when arriving from the tutorial
     if (data?.fadeIn) {
       this.cameras.main.fadeIn(1200, 0, 0, 0);
+
+      // Show Dark Souls style cinematic area name popup
+      this.time.delayedCall(1000, () => {
+        this.showAreaPopup();
+      });
     }
 
     // Start music via MusicLifecycleSystem
@@ -287,8 +291,7 @@ export class Overworld extends Scene {
     if (!actRegistry.has(ACT1.id)) {
       actRegistry.register(ACT1);
     }
-    const overworldGen = new OverworldGenerator(ACT1);
-    this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible, overworldGen);
+    this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible);
 
     // Check if we're returning from another scene
     const savedPosition = gameState.getPlayerPosition();
@@ -353,6 +356,81 @@ export class Overworld extends Scene {
       console.log('   - input.keyboard.enabled:', this.input.keyboard?.enabled);
       console.log('   - player position:', { x: this.player.x, y: this.player.y });
       console.log('   - keyInputManager exists:', !!this.keyInputManager);
+    });
+  }
+
+  /**
+   * Shows a Dark Souls style cinematic popup for the Area Name
+   */
+  private showAreaPopup(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+
+    // Get narrative data for the chapter name
+    const narrative = CHAPTER_NARRATIVES[this.sceneChapter];
+    const areaName = narrative?.title || `Chapter ${this.sceneChapter}`;
+
+    // Play a subtle reveal sound if possible
+    try {
+      if (this.sound.get('combat_start')) {
+        this.sound.play('combat_start', { volume: 0.3 });
+      }
+    } catch (e) {
+      // Ignore if sound missing
+    }
+
+    const popupContainer = this.add.container(screenWidth / 2, screenHeight / 2 - 120) // Slightly higher
+      .setScrollFactor(0)
+      .setDepth(DEPTH.TRANSITION_OVERLAY + 1000);
+
+    // Area Text - Larger, more imposing
+    const areaText = this.add.text(0, 0, areaName, {
+      fontFamily: 'dungeon-mode',
+      fontSize: '64px', // Bigger font
+      color: '#ffffff',
+      fontStyle: 'normal'
+    }).setOrigin(0.5).setAlpha(0);
+    areaText.setShadow(3, 3, '#000000', 6, true, true);
+
+    // Dark Souls horizontal line
+    const lineWidth = screenWidth * 0.7; // Wider line
+    const line = this.add.rectangle(0, 40, lineWidth, 2, 0xffffff, 0.7)
+      .setOrigin(0.5)
+      .setScale(0, 1)
+      .setAlpha(0);
+
+    popupContainer.add([areaText, line]);
+
+    // Animate Line expanding slowly
+    this.tweens.add({
+      targets: line,
+      scaleX: 1,
+      alpha: 1,
+      duration: 1500, // Slower
+      ease: 'Power2.easeOut'
+    });
+
+    // Animate Text fading in and sliding slightly downwards (classic style)
+    areaText.setY(-15);
+    this.tweens.add({
+      targets: areaText,
+      alpha: 1,
+      y: 0,
+      duration: 2000, // Slower fade in
+      delay: 500,
+      ease: 'Power2.easeOut',
+      onComplete: () => {
+        // Hold for a dramatic pause, then fade everything out slowly
+        this.time.delayedCall(4000, () => { // Longer hold
+          this.tweens.add({
+            targets: popupContainer,
+            alpha: 0,
+            duration: 2500, // Very slow fade out
+            ease: 'Power2.easeInOut',
+            onComplete: () => popupContainer.destroy()
+          });
+        });
+      }
     });
   }
 
@@ -2264,7 +2342,7 @@ export class Overworld extends Scene {
     if (nodeType === "combat" || nodeType === "elite") {
       this.gameState.recordCombatStart(nodeType);
     }
-    
+
     // Get camera dimensions
     const camera = this.cameras.main;
     const cameraWidth = camera.width;
@@ -2293,10 +2371,10 @@ export class Overworld extends Scene {
     // 3) Big "!" exclamation slam
     const exclamation = this.add.text(
       cameraWidth / 2, cameraHeight / 2 - 20, '!', {
-        fontFamily: 'dungeon-mode', fontSize: isElite ? '140px' : '120px',
-        color: isElite ? '#ff2020' : '#ff4444',
-        stroke: '#000000', strokeThickness: 8,
-      }
+      fontFamily: 'dungeon-mode', fontSize: isElite ? '140px' : '120px',
+      color: isElite ? '#ff2020' : '#ff4444',
+      stroke: '#000000', strokeThickness: 8,
+    }
     ).setOrigin(0.5).setScrollFactor(0).setDepth(2012).setAlpha(0).setScale(3);
 
     // Slam in with bounce
@@ -3619,14 +3697,6 @@ export class Overworld extends Scene {
         onComplete();
       }
     });
-  }
-
-  private truncateTextToLines(textObject: Phaser.GameObjects.Text, maxLines: number): void {
-    const wrapped = textObject.getWrappedText(textObject.text);
-    if (wrapped.length <= maxLines) return;
-    const truncated = wrapped.slice(0, maxLines);
-    truncated[maxLines - 1] = `${truncated[maxLines - 1]}...`;
-    textObject.setText(truncated.join("\n"));
   }
 
   /**
