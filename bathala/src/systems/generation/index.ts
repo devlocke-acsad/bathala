@@ -1,32 +1,60 @@
 /**
  * Generation Module — world generation pipeline for Bathala.
  *
- * Import everything from here instead of individual files:
- *   import { OverworldGenerator, MazeChunkGenerator, createSeededRNG } from '../../systems/generation';
+ * Import everything from here:
+ *   import { OverworldGenerator, DelaunayMazeChunkGenerator, createSeededRNG } from '../systems/generation';
  *
- * Architecture:
- *   OverworldGenerator (orchestrator + LRU cache)
- *     ├── IChunkGenerator.generate()  → RawChunk (terrain grid)
- *     └── NodePopulator.populate()    → MapNode[] (interactive nodes)
+ * ┌─────────────────────────────────────────────────────────────────────┐
+ * │  Architecture                                                      │
+ * │                                                                     │
+ * │  OverworldGenerator (orchestrator + LRU cache)                      │
+ * │    ├── IChunkGenerator.generate()  → RawChunk (terrain grid)       │
+ * │    │     └── terrain/[name]/[Name]Generator.ts  (adapter)          │
+ * │    │           └── terrain/[name]/[Name]Algorithm.ts  (math)       │
+ * │    │                 └── components/  (reusable building blocks)   │
+ * │    └── NodePopulator.populate()    → MapNode[] (interactive nodes) │
+ * │          └── INodeResolver         → entity resolution             │
+ * └─────────────────────────────────────────────────────────────────────┘
  *
- * To add a new terrain type:
- *   1. Create algorithm in  algorithms/   (raw generation logic, no game deps)
- *   2. Create generator in  generators/   (IChunkGenerator adapter)
- *   3. Return it from your  ActDefinition.createGenerator()
+ * Module Structure:
+ *   terrain/        — Complete terrain pipelines (one subfolder per type)
+ *   components/     — Reusable algorithmic building blocks
+ *   shared/         — Data structures & utility functions
+ *   population/     — Node placement + content resolution
+ *   connectivity/   — Chunk-to-chunk connectivity
+ *   orchestration/  — High-level coordinators + cache
  *
  * @module generation
  */
 
 // === Orchestration ===
-export { OverworldGenerator } from './OverworldGenerator';
-export { NodePopulator } from './NodePopulator';
+export { OverworldGenerator } from './orchestration';
+export type { OverworldGeneratorConfig } from './orchestration';
+export { ChunkCache } from './orchestration';
+export type { CachedChunk, ChunkCacheConfig } from './orchestration';
 
-// === Seeded RNG ===
-export { createSeededRNG, chunkSeed } from './SeededRNG';
+// === Terrain Pipelines ===
+export { DelaunayMazeChunkGenerator, DelaunayMazeAlgorithm } from './terrain';
+export type { DelaunayMazeConfig } from './terrain';
 
-// === Chunk generators (one per terrain style) ===
-export { MazeChunkGenerator, TemplateChunkGenerator } from './generators';
-export type { MazeChunkConfig, TemplateChunkConfig } from './generators';
+// === Reusable Components ===
+export { CellularAutomataAlgorithm, RoadNetworkAlgorithm } from './components';
+export type { CellularAutomataConfig, RoadNetworkConfig } from './components';
 
-// === Raw algorithms (framework-agnostic) ===
-export { IntGrid, DelaunayMazeGenerator, TemplateTerrainAlgorithm } from './algorithms';
+// === Shared Utilities ===
+export { IntGrid, findBorderConnections, createSeededRNG, chunkSeed } from './shared';
+export type { BorderConnectionConfig } from './shared';
+
+// === Node Population ===
+export { NodePopulator } from './population';
+export type { NodePopulatorConfig, GridPosition, PlacementConfig } from './population';
+export type { INodeResolver, NodeResolution } from './population';
+export { EnemyNodeResolver, EventNodeResolver, DefaultNodeResolver } from './population';
+export { findValidPositions, selectSpacedPosition } from './population';
+
+// === Connectivity ===
+export { ChunkConnectivityManager } from './connectivity';
+export type { ConnectivityConfig } from './connectivity';
+
+// === MazeGenSystem (rendering + AI — to be decomposed in Phase 2) ===
+export { MazeGenSystem } from './MazeGenSystem';

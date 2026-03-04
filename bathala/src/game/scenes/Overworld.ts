@@ -7,6 +7,7 @@ import { Player, Relic } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { InputSystem } from "../../systems/shared/InputSystem";
 import { MazeGenSystem } from "../../systems/generation/MazeGenSystem";
+import { OverworldGenerator } from "../../systems/generation/orchestration/OverworldGenerator";
 import { ActRegistry } from "../../core/acts/ActRegistry";
 import { ACT1 } from "../../acts/act1/Act1Definition";
 import { TooltipSystem } from "../../systems/world/TooltipSystem";
@@ -14,7 +15,6 @@ import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem"
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { getRelicSpriteKey } from "../../utils/RelicSpriteUtils";
 import { FogOfWarSystem } from "../../systems/world/FogOfWarSystem";
-import { CHAPTER_NARRATIVES } from "../../data/NarrativeData";
 
 /**
  * === DEPTH LAYER CONFIGURATION ===
@@ -67,20 +67,13 @@ const DEPTH = {
 };
 
 export class Overworld extends Scene {
-  private bossPreparationContext?: {
-    readiness: number;
-    healthMultiplier: number;
-    damageMultiplier: number;
-    label: string;
-    notes: string[];
-  };
   private player!: Phaser.GameObjects.Sprite;
   private keyInputManager!: InputSystem;
   private mazeGenManager!: MazeGenSystem;
   private isMoving: boolean = false;
   private isTransitioningToCombat: boolean = false;
   private gameState: OverworldGameState;
-  private dayNightProgressFill?: Phaser.GameObjects.Rectangle;
+  private dayNightProgressFill!: Phaser.GameObjects.Rectangle;
   private dayNightIndicator!: Phaser.GameObjects.Text;
   private dayNightProgressContainer!: Phaser.GameObjects.Container;
   private nightOverlay!: Phaser.GameObjects.Rectangle | null;
@@ -113,20 +106,8 @@ export class Overworld extends Scene {
   // Fog of War Manager
   private fogOfWarManager!: FogOfWarSystem;
 
-  /** Tracks last known day/night state so transition text only fires once per change */
-  private lastKnownIsDay: boolean | null = null;
-
-  /** Active day/night transition text container (for zoom compensation) */
-  dayNightTransitionContainer: Phaser.GameObjects.Container | null = null;
-
   // Music
   private musicLifecycle!: MusicLifecycleSystem;
-  private mobileControlsContainer: Phaser.GameObjects.Container | null = null;
-  private mobileDirectionButtons: Partial<Record<'left' | 'right' | 'up' | 'down', {
-    bg: Phaser.GameObjects.Rectangle;
-    innerBorder: Phaser.GameObjects.Rectangle;
-    text: Phaser.GameObjects.Text;
-  }>> = {};
 
   constructor() {
     super({ key: "Overworld" });
@@ -155,8 +136,8 @@ export class Overworld extends Scene {
         diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : 0,
         relics: savedPlayerData.relics || [],
         potions: savedPlayerData.potions || [],
-        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 3,
-        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 3
+        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 1,
+        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 1
       };
     } else {
       // Initialize player data with default values
@@ -178,8 +159,8 @@ export class Overworld extends Scene {
         diamante: 20,
         relics: [], // No test relics - will be empty until player finds them
         potions: [], // Start with no potions - gain from treasure chests
-        discardCharges: 3,
-        maxDiscardCharges: 3
+        discardCharges: 1,
+        maxDiscardCharges: 1
       };
 
       // Save initial player data to GameState
@@ -198,11 +179,6 @@ export class Overworld extends Scene {
     // Fade in from black when arriving from the tutorial
     if (data?.fadeIn) {
       this.cameras.main.fadeIn(1200, 0, 0, 0);
-
-      // Show Dark Souls style cinematic area name popup
-      this.time.delayedCall(1000, () => {
-        this.showAreaPopup();
-      });
     }
 
     // Start music via MusicLifecycleSystem
@@ -261,8 +237,8 @@ export class Overworld extends Scene {
         diamante: 20,
         relics: [], // Start with no relics
         potions: [], // Start with no potions - gain from treasure chests
-        discardCharges: 3,
-        maxDiscardCharges: 3
+        discardCharges: 1,
+        maxDiscardCharges: 1
       };
 
       // Save fresh player data to GameState
@@ -286,8 +262,8 @@ export class Overworld extends Scene {
         diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : 0,
         relics: savedPlayerData.relics || [],
         potions: savedPlayerData.potions || [],
-        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 3,
-        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 3
+        discardCharges: savedPlayerData.discardCharges !== undefined ? savedPlayerData.discardCharges : 1,
+        maxDiscardCharges: savedPlayerData.maxDiscardCharges || 1
       };
     }
 
@@ -297,7 +273,8 @@ export class Overworld extends Scene {
     if (!actRegistry.has(ACT1.id)) {
       actRegistry.register(ACT1);
     }
-    this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible);
+    const overworldGen = new OverworldGenerator(ACT1);
+    this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible, overworldGen);
 
     // Check if we're returning from another scene
     const savedPosition = gameState.getPlayerPosition();
@@ -363,187 +340,6 @@ export class Overworld extends Scene {
       console.log('   - player position:', { x: this.player.x, y: this.player.y });
       console.log('   - keyInputManager exists:', !!this.keyInputManager);
     });
-  }
-
-  /**
-   * Shows a Dark Souls style cinematic popup for the Area Name
-   */
-  private showAreaPopup(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-
-    // Get narrative data for the chapter name
-    const narrative = CHAPTER_NARRATIVES[this.sceneChapter];
-    const areaName = narrative?.title || `Chapter ${this.sceneChapter}`;
-
-    // Play a subtle reveal sound if possible
-    try {
-      if (this.sound.get('combat_start')) {
-        this.sound.play('combat_start', { volume: 0.3 });
-      }
-    } catch (e) {
-      // Ignore if sound missing
-    }
-
-    const popupContainer = this.add.container(screenWidth / 2, screenHeight / 2 - 50) // Slightly higher
-      .setScrollFactor(0)
-      .setDepth(DEPTH.TRANSITION_OVERLAY + 1000);
-
-    // Area Text - Larger, more imposing
-    const areaText = this.add.text(0, 0, areaName, {
-      fontFamily: 'dungeon-mode',
-      fontSize: '42px', // Bigger font
-      color: '#ffffff',
-      fontStyle: 'normal'
-    }).setOrigin(0.5).setAlpha(0);
-    areaText.setShadow(3, 3, '#000000', 6, true, true);
-
-    // Dark Souls horizontal line
-    const lineWidth = screenWidth * 0.7; // Wider line
-    const line = this.add.rectangle(0, 40, lineWidth, 2, 0xffffff, 0.7)
-      .setOrigin(0.5)
-      .setScale(0, 1)
-      .setAlpha(0);
-
-    popupContainer.add([areaText, line]);
-
-    // Animate Line expanding slowly
-    this.tweens.add({
-      targets: line,
-      scaleX: 1,
-      alpha: 1,
-      duration: 1500, // Slower
-      ease: 'Power2.easeOut'
-    });
-
-    // Animate Text fading in and sliding slightly downwards (classic style)
-    areaText.setY(-15);
-    this.tweens.add({
-      targets: areaText,
-      alpha: 1,
-      y: 0,
-      duration: 2000, // Slower fade in
-      delay: 500,
-      ease: 'Power2.easeOut',
-      onComplete: () => {
-        // Hold for a dramatic pause, then fade everything out slowly
-        this.time.delayedCall(4000, () => { // Longer hold
-          this.tweens.add({
-            targets: popupContainer,
-            alpha: 0,
-            duration: 2500, // Very slow fade out
-            ease: 'Power2.easeInOut',
-            onComplete: () => popupContainer.destroy()
-          });
-        });
-      }
-    });
-  }
-
-  private isTouchDevice(): boolean {
-    const nav = navigator as Navigator & { maxTouchPoints?: number };
-    const userAgentData = navigator as Navigator & { userAgentData?: { mobile?: boolean } };
-    const hasTouchPoints = (nav.maxTouchPoints ?? 0) > 0;
-    const hasTouchEvent = 'ontouchstart' in window;
-    const isMobileByUAData = userAgentData.userAgentData?.mobile === true;
-    return hasTouchPoints || hasTouchEvent || isMobileByUAData;
-  }
-
-  private createMobileMovementControls(): void {
-    if (!this.isTouchDevice() || !this.uiContainer) {
-      return;
-    }
-
-    if (this.mobileControlsContainer) {
-      this.mobileControlsContainer.destroy(true);
-      this.mobileControlsContainer = null;
-    }
-    this.mobileDirectionButtons = {};
-
-    const screenHeight = this.cameras.main.height;
-    const centerX = 340;
-    const centerY = screenHeight - 260;
-    const spacing = 132;
-    const buttonSize = 102;
-
-    // Keep controls fixed to the camera so fog-of-war zoom transitions never move them.
-    this.mobileControlsContainer = this.add.container(0, 0).setScrollFactor(0).setDepth(1500);
-
-    this.createMobileDirectionButton(centerX, centerY - spacing, buttonSize, "↑", "up");
-    this.createMobileDirectionButton(centerX - spacing, centerY, buttonSize, "←", "left");
-    this.createMobileDirectionButton(centerX + spacing, centerY, buttonSize, "→", "right");
-    this.createMobileDirectionButton(centerX, centerY + spacing, buttonSize, "↓", "down");
-  }
-
-  private createMobileDirectionButton(
-    x: number,
-    y: number,
-    size: number,
-    label: string,
-    direction: 'left' | 'right' | 'up' | 'down'
-  ): void {
-    if (!this.mobileControlsContainer) {
-      return;
-    }
-
-    const bg = this.add.rectangle(x, y, size, size, 0x150E10, 0.42)
-      .setStrokeStyle(2, 0x77888C, 0.9)
-      .setScrollFactor(0)
-      .setInteractive({ useHandCursor: false });
-
-    const innerBorder = this.add.rectangle(x, y, size - 8, size - 8, undefined, 0)
-      .setStrokeStyle(1.5, 0x77888C, 0.65)
-      .setScrollFactor(0);
-
-    const text = this.add.text(x, y, label, {
-      fontFamily: "dungeon-mode",
-      fontSize: "60px",
-      color: "#77888C"
-    }).setOrigin(0.5).setAlpha(0.9).setScrollFactor(0);
-
-    this.mobileDirectionButtons[direction] = { bg, innerBorder, text };
-
-    const setButtonVisual = (targetDirection: 'left' | 'right' | 'up' | 'down', pressed: boolean) => {
-      const buttonRefs = this.mobileDirectionButtons[targetDirection];
-      if (!buttonRefs) {
-        return;
-      }
-      buttonRefs.bg.setFillStyle(pressed ? 0x2a1a1f : 0x150E10, pressed ? 0.85 : 0.42);
-      buttonRefs.text.setColor(pressed ? "#e8eced" : "#77888C");
-      buttonRefs.innerBorder.setStrokeStyle(1.5, 0x77888C, pressed ? 0.95 : 0.65);
-    };
-
-    const releaseAll = () => {
-      this.keyInputManager.resetVirtualDirections();
-      setButtonVisual('left', false);
-      setButtonVisual('right', false);
-      setButtonVisual('up', false);
-      setButtonVisual('down', false);
-    };
-
-    const setPressed = (pressed: boolean) => {
-      if (pressed) {
-        releaseAll();
-        this.keyInputManager.setVirtualDirection(direction, true);
-        setButtonVisual(direction, true);
-      } else {
-        releaseAll();
-      }
-    };
-
-    bg.on('pointerdown', () => setPressed(true));
-    bg.on('pointerup', () => setPressed(false));
-    bg.on('pointerout', () => setPressed(false));
-    bg.on('pointerupoutside', () => setPressed(false));
-    bg.on('pointercancel', () => setPressed(false));
-
-    const releaseOnAnyPointerUp = () => setPressed(false);
-    this.input.on('pointerup', releaseOnAnyPointerUp);
-    bg.once('destroy', () => {
-      this.input.off('pointerup', releaseOnAnyPointerUp);
-    });
-
-    this.mobileControlsContainer.add([bg, innerBorder, text]);
   }
 
   createUI(): void {
@@ -629,8 +425,8 @@ export class Overworld extends Scene {
         diamante: 0,
         relics: [],
         potions: [],
-        discardCharges: 3,
-        maxDiscardCharges: 3
+        discardCharges: 1,
+        maxDiscardCharges: 1
       };
 
       // Save player position before transitioning
@@ -815,8 +611,8 @@ export class Overworld extends Scene {
         diamante: 0,
         relics: [],
         potions: [],
-        discardCharges: 3,
-        maxDiscardCharges: 3
+        discardCharges: 1,
+        maxDiscardCharges: 1
       };
 
       // Save player position before transitioning
@@ -848,9 +644,6 @@ export class Overworld extends Scene {
 
     // Create overworld UI panel
     this.createOverworldUI();
-
-    // Add mobile controls after uiContainer is ready so they share the exact same UI layer.
-    this.createMobileMovementControls();
   }
 
   createDayNightProgressBar(): void {
@@ -971,6 +764,16 @@ export class Overworld extends Scene {
     const bossIcon = this.add.image(bossIconX, bossIconY, "bathala_boss_icon");
     bossIcon.setScale(2.0);
     this.dayNightProgressContainer.add(bossIcon);
+
+    // Create progress fill (initially empty)
+    this.dayNightProgressFill = this.add.rectangle(
+      progressBarX,
+      progressBarY,
+      0, // Width will be updated in updateDayNightProgressBar
+      8, // Height of the progress fill
+      0xFFFFFF // White color, can be changed
+    ).setOrigin(0, 0.5);
+    this.dayNightProgressContainer.add(this.dayNightProgressFill);
 
     // Create player indicator (▲ symbol pointing up from below the axis line)
     this.dayNightIndicator = this.add.text(0, 0, "▲", {
@@ -1190,12 +993,6 @@ export class Overworld extends Scene {
     if (this.fogOfWarManager) {
       this.fogOfWarManager.updateDayNight(this.gameState.isDay);
     }
-
-    // Show transition text only when the day/night state actually changes
-    if (this.lastKnownIsDay !== null && this.lastKnownIsDay !== this.gameState.isDay) {
-      this.showDayNightTransitionText(this.gameState.isDay);
-    }
-    this.lastKnownIsDay = this.gameState.isDay;
   }
 
   // No need for resume method since we handle state restoration in create()
@@ -1204,11 +1001,6 @@ export class Overworld extends Scene {
    * Called when the scene resumes from another scene
    */
   resume(): void {
-    // Clean up any transition overlays left from exit transitions
-    this.children.list
-      .filter((child: any) => child.getData && child.getData('transitionOverlay'))
-      .forEach((overlay: any) => overlay.destroy());
-
     const gameState = GameState.getInstance();
     const currentChapter = gameState.getCurrentChapter();
 
@@ -1225,7 +1017,6 @@ export class Overworld extends Scene {
     // Re-enable input when returning from other scenes using KeyInputManager
     if (this.keyInputManager) {
       this.keyInputManager.enableInput();
-      this.keyInputManager.resetVirtualDirections();
     }
 
     // Reset movement flags
@@ -1278,26 +1069,6 @@ export class Overworld extends Scene {
 
     // Update visible chunks around player
     this.updateVisibleChunks();
-
-    // Entrance transition — fade from black to reveal overworld
-    this.playResumeEntrance();
-  }
-
-  /**
-   * Smooth fade-in when returning to overworld from any sub-scene.
-   */
-  private playResumeEntrance(): void {
-    const w = this.cameras.main.width;
-    const h = this.cameras.main.height;
-
-    const cover = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
-      .setOrigin(0.5).setAlpha(1).setScrollFactor(0).setDepth(2005);
-
-    this.tweens.add({
-      targets: cover, alpha: 0,
-      duration: 400, ease: 'Power2',
-      onComplete: () => cover.destroy()
-    });
   }
 
   /**
@@ -1503,94 +1274,6 @@ export class Overworld extends Scene {
     if (this.fogOfWarManager) {
       this.fogOfWarManager.updateDayNight(this.gameState.isDay);
     }
-
-    // Show transition text only when the day/night state actually changes
-    if (this.lastKnownIsDay !== null && this.lastKnownIsDay !== this.gameState.isDay) {
-      this.showDayNightTransitionText(this.gameState.isDay);
-    }
-    this.lastKnownIsDay = this.gameState.isDay;
-  }
-
-  /**
-   * Display a cinematic text overlay during day/night transitions.
-   * Night: foreboding "Night / Gabi", Day: uplifting "Morning / Umaga"
-   */
-  private showDayNightTransitionText(isDay: boolean): void {
-    const cx = this.cameras.main.width / 2;
-    const cy = this.cameras.main.height / 2;
-
-    const mainLabel = isDay ? 'Morning' : 'Night';
-    const subLabel = isDay ? 'Umaga' : 'Gabi';
-    const mainColor = isDay ? '#FFD368' : '#7144FF';
-    const subColor = isDay ? '#FFF0C8' : '#B8A0FF';
-
-    // Destroy any existing transition container
-    if (this.dayNightTransitionContainer) {
-      this.dayNightTransitionContainer.destroy();
-      this.dayNightTransitionContainer = null;
-    }
-
-    const screenW = this.cameras.main.width;
-    const offLeft = -250;
-    const offRight = screenW + 250;
-
-    const container = this.add.container(offLeft, cy)
-      .setAlpha(1)
-      .setScrollFactor(0)
-      .setDepth(DEPTH.TRANSITION_EFFECTS);
-    this.dayNightTransitionContainer = container;
-
-    // Background box matching inventory panel style
-    const boxW = 400;
-    const boxH = 160;
-    const panelGfx = this.add.graphics();
-    panelGfx.fillStyle(0x080b0d, 1.0);
-    panelGfx.lineStyle(2, 0x586670, 1.0);
-    panelGfx.fillRect(-boxW / 2, -boxH / 2, boxW, boxH);
-    panelGfx.strokeRect(-boxW / 2, -boxH / 2, boxW, boxH);
-
-    const innerBorder = this.add.graphics();
-    innerBorder.lineStyle(1, 0x2f3940, 1.0);
-    innerBorder.strokeRect(-boxW / 2 + 6, -boxH / 2 + 6, boxW - 12, boxH - 12);
-
-    const mainText = this.add.text(0, -16, mainLabel, {
-      fontFamily: 'dungeon-mode',
-      fontSize: '42px',
-      color: mainColor,
-      align: 'center',
-    }).setOrigin(0.5);
-
-    const subText = this.add.text(0, 28, subLabel, {
-      fontFamily: 'dungeon-mode',
-      fontSize: '18px',
-      color: subColor,
-      align: 'center',
-    }).setOrigin(0.5);
-
-    container.add([panelGfx, innerBorder, mainText, subText]);
-
-    // Swoop in from the left to center
-    this.tweens.add({
-      targets: container,
-      x: cx,
-      duration: 400,
-      ease: 'Back.easeOut',
-      onComplete: () => {
-        // Hold in center, then swoop out to the right
-        this.time.delayedCall(1200, () => {
-          this.tweens.add({
-            targets: container,
-            x: offRight,
-            duration: 400,
-            ease: 'Back.easeIn',
-            onComplete: () => {
-              container.destroy();
-              this.dayNightTransitionContainer = null;
-            }
-          });
-        });
-      }
-    });
   }
 
   /**
@@ -1976,19 +1659,127 @@ export class Overworld extends Scene {
           break;
 
         case "shop":
-          this.transitionToShop(node, nodes, nodeIndex);
+          // Set moving flag to prevent additional interactions during transition
+          this.isMoving = true;
+
+          // Mark node as visited instead of removing it
+          node.visited = true;
+
+          // Update sprite appearance to show it's been visited
+          const shopSprite = this.mazeGenManager.getNodeSprite(node.id);
+          if (shopSprite) {
+            shopSprite.setAlpha(0.6); // Make it semi-transparent
+            shopSprite.setTint(0x888888); // Give it a gray tint
+          }
+
+          // Save player position before transitioning
+          const gameState = GameState.getInstance();
+          gameState.savePlayerPosition(this.player.x, this.player.y);
+
+          // Pause this scene and launch shop scene with actual player data
+          this.scene.pause();
+          this.scene.launch("Shop", {
+            player: this.playerData
+          });
           break;
 
         case "campfire":
-          this.transitionToCampfire(node, nodes, nodeIndex);
+          // Set moving flag to prevent additional interactions during transition
+          this.isMoving = true;
+
+          // Mark node as visited instead of removing it
+          node.visited = true;
+
+          // Update sprite appearance to show it's been visited
+          const campfireSprite = this.mazeGenManager.getNodeSprite(node.id);
+          if (campfireSprite) {
+            campfireSprite.setAlpha(0.6); // Make it semi-transparent
+            campfireSprite.setTint(0x888888); // Give it a gray tint
+          }
+
+          // Save player position before transitioning
+          const gameState2 = GameState.getInstance();
+          gameState2.savePlayerPosition(this.player.x, this.player.y);
+
+          // Pause this scene and launch campfire scene
+          this.scene.pause();
+          this.scene.launch("Campfire", {
+            player: this.playerData
+          });
           break;
 
         case "treasure":
-          this.transitionToTreasure(node, nodes, nodeIndex);
+          // Set moving flag to prevent additional interactions during transition
+          this.isMoving = true;
+
+          // Mark node as visited instead of removing it
+          node.visited = true;
+
+          // Update sprite appearance to show it's been visited
+          const treasureSprite = this.mazeGenManager.getNodeSprite(node.id);
+          if (treasureSprite) {
+            treasureSprite.setAlpha(0.6); // Make it semi-transparent
+            treasureSprite.setTint(0x888888); // Give it a gray tint
+          }
+
+          // Save player position before transitioning
+          const gameState3 = GameState.getInstance();
+          gameState3.savePlayerPosition(this.player.x, this.player.y);
+
+          // Pause this scene and launch treasure scene with current player data
+          this.scene.pause();
+          this.scene.launch("Treasure", {
+            player: this.playerData
+          });
           break;
 
         case "event":
-          this.transitionToEvent(node, nodes, nodeIndex);
+          // Set moving flag to prevent additional interactions during transition
+          this.isMoving = true;
+
+          // Remove the node from the manager's list
+          nodes.splice(nodeIndex, 1);
+
+          // Clean up the corresponding sprite from manager
+          const eventSprite = this.mazeGenManager.getNodeSprite(node.id);
+          if (eventSprite) {
+            eventSprite.destroy();
+          }
+
+          // Hide tooltip if it's visible
+          this.tooltipManager.hideTooltip();
+
+          // Check if player data exists, if not create a default one
+          const safePlayerData = this.playerData || {
+            id: "player",
+            name: "Hero",
+            maxHealth: 120,
+            currentHealth: 120,
+            block: 0,
+            statusEffects: [],
+            hand: [],
+            deck: [],
+            discardPile: [],
+            drawPile: [],
+            playedHand: [],
+            landasScore: 0,
+            ginto: 100,
+            diamante: 0,
+            relics: [],
+            potions: [],
+            discardCharges: 1,
+            maxDiscardCharges: 1
+          };
+
+          // Save player position before transitioning
+          const gameState4 = GameState.getInstance();
+          gameState4.savePlayerPosition(this.player.x, this.player.y);
+
+          // Pause this scene and launch event scene with player data
+          this.scene.pause();
+          this.scene.launch("EventScene", {
+            player: safePlayerData
+          });
           break;
       }
     }
@@ -2055,385 +1846,6 @@ export class Overworld extends Scene {
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  //  NON-COMBAT NODE TRANSITIONS (Persona 5-ish themed)
-  // ═══════════════════════════════════════════════════════════════
-
-  /**
-   * Helper: mark node visited, dim its sprite, save position.
-   */
-  private prepareNodeVisit(node: any): void {
-    this.isMoving = true;
-    node.visited = true;
-    const sprite = this.mazeGenManager.getNodeSprite(node.id);
-    if (sprite) {
-      sprite.setAlpha(0.6);
-      sprite.setTint(0x888888);
-    }
-    GameState.getInstance().savePlayerPosition(this.player.x, this.player.y);
-  }
-
-  /**
-   * Campfire — warm, smooth. Soft horizontal wipe bands that slide in gently.
-   */
-  private transitionToCampfire(node: any, _nodes: any[], _nodeIndex: number): void {
-    this.prepareNodeVisit(node);
-    const cam = this.cameras.main;
-    const w = cam.width;
-    const h = cam.height;
-
-    // Warm tinted overlay fades in
-    const warmOverlay = this.add.rectangle(w / 2, h / 2, w, h, 0x1a0a00)
-      .setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(2000)
-      .setData('transitionOverlay', true);
-
-    this.tweens.add({
-      targets: warmOverlay, alpha: 0.5,
-      duration: 700, ease: 'Sine.easeInOut'
-    });
-
-    // Soft expanding glow ring
-    const glow = this.add.circle(w / 2, h / 2, 15, 0xff6600, 0.35)
-      .setScrollFactor(0).setDepth(2001)
-      .setData('transitionOverlay', true);
-
-    this.tweens.add({
-      targets: glow, radius: w * 0.5, alpha: 0,
-      duration: 1000, ease: 'Sine.easeOut'
-    });
-
-    // Horizontal warm bands sliding in from alternating sides (gentle wipe)
-    const bandCount = 6;
-    const bandH = h / bandCount;
-    for (let i = 0; i < bandCount; i++) {
-      const fromLeft = i % 2 === 0;
-      const band = this.add.rectangle(
-        fromLeft ? -w : w * 2, bandH * i + bandH / 2, w, bandH,
-        Phaser.Math.RND.pick([0x1a0800, 0x150600, 0x0d0400])
-      ).setOrigin(0.5).setAlpha(0.85).setScrollFactor(0).setDepth(2002)
-        .setData('transitionOverlay', true);
-
-      this.tweens.add({
-        targets: band, x: w / 2,
-        duration: 600, ease: 'Sine.easeInOut',
-        delay: 200 + i * 70,
-        onComplete: () => {
-          // Bands stay — they become the black cover
-        }
-      });
-    }
-
-    // Floating ember particles drifting up
-    for (let i = 0; i < 6; i++) {
-      const ember = this.add.circle(
-        Phaser.Math.Between(w / 2 - 80, w / 2 + 80), h / 2 + 20,
-        Phaser.Math.Between(2, 4),
-        Phaser.Math.RND.pick([0xff6600, 0xff9933, 0xffcc66]), 0.7
-      ).setScrollFactor(0).setDepth(2003);
-
-      this.tweens.add({
-        targets: ember, y: ember.y - Phaser.Math.Between(60, 140), alpha: 0,
-        duration: Phaser.Math.Between(700, 1200),
-        delay: Phaser.Math.Between(100, 500), ease: 'Sine.easeOut',
-        onComplete: () => ember.destroy()
-      });
-    }
-
-    // Final black overlay after bands settle
-    this.time.delayedCall(1000, () => {
-      const blackOverlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
-        .setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(2004)
-        .setData('transitionOverlay', true);
-
-      this.tweens.add({
-        targets: blackOverlay, alpha: 1,
-        duration: 400, ease: 'Sine.easeInOut',
-        onComplete: () => {
-          warmOverlay.destroy();
-          glow.destroy();
-          this.scene.pause();
-          this.scene.launch("Campfire", { player: this.playerData });
-        }
-      });
-    });
-  }
-
-  /**
-   * Shop / Merchant — mysterious, smoky. Vertical curtain strips slide in from edges.
-   */
-  private transitionToShop(node: any, _nodes: any[], _nodeIndex: number): void {
-    this.prepareNodeVisit(node);
-    const cam = this.cameras.main;
-    const w = cam.width;
-    const h = cam.height;
-
-    // Dark purple overlay
-    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x0d0015)
-      .setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(2000)
-      .setData('transitionOverlay', true);
-
-    this.tweens.add({
-      targets: overlay, alpha: 0.6,
-      duration: 500, ease: 'Power2'
-    });
-
-    // Purple ring expanding
-    const ring = this.add.circle(w / 2, h / 2, 8, 0x9b59b6, 0.3)
-      .setScrollFactor(0).setDepth(2001)
-      .setData('transitionOverlay', true);
-
-    this.tweens.add({
-      targets: ring, radius: w * 0.4, alpha: 0,
-      duration: 800, ease: 'Power2'
-    });
-
-    // Vertical curtain strips closing from both sides (mysterious reveal)
-    const stripCount = 8;
-    const stripW = (w / stripCount) + 4; // slight overlap
-    for (let i = 0; i < stripCount; i++) {
-      const fromLeft = i < stripCount / 2;
-      const targetX = stripW * i + stripW / 2;
-      const strip = this.add.rectangle(
-        fromLeft ? -stripW : w + stripW, h / 2, stripW, h,
-        Phaser.Math.RND.pick([0x0d0015, 0x0a0010, 0x120020])
-      ).setOrigin(0.5).setAlpha(0.9).setScrollFactor(0).setDepth(2002)
-        .setData('transitionOverlay', true);
-
-      // Strips from edges close inward — outer strips arrive first
-      const distFromEdge = fromLeft ? i : (stripCount - 1 - i);
-      this.tweens.add({
-        targets: strip, x: targetX,
-        duration: 500, ease: 'Power2',
-        delay: 200 + distFromEdge * 50
-      });
-    }
-
-    // Gold shimmer particles floating through
-    for (let i = 0; i < 8; i++) {
-      const sparkle = this.add.rectangle(
-        Phaser.Math.Between(w * 0.2, w * 0.8),
-        Phaser.Math.Between(h * 0.3, h * 0.7),
-        Phaser.Math.Between(2, 4), Phaser.Math.Between(2, 4),
-        Phaser.Math.RND.pick([0xffd700, 0x9b59b6, 0xf0e68c]), 0.7
-      ).setScrollFactor(0).setDepth(2003);
-
-      this.tweens.add({
-        targets: sparkle, alpha: 0, y: sparkle.y - Phaser.Math.Between(30, 60),
-        duration: Phaser.Math.Between(500, 800),
-        delay: Phaser.Math.Between(100, 500), ease: 'Power2',
-        onComplete: () => sparkle.destroy()
-      });
-    }
-
-    // Final black overlay
-    this.time.delayedCall(850, () => {
-      const blackOverlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
-        .setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(2004)
-        .setData('transitionOverlay', true);
-
-      this.tweens.add({
-        targets: blackOverlay, alpha: 1,
-        duration: 400, ease: 'Power2',
-        onComplete: () => {
-          overlay.destroy();
-          ring.destroy();
-          this.scene.pause();
-          this.scene.launch("Shop", { player: this.playerData });
-        }
-      });
-    });
-  }
-
-  /**
-   * Treasure — exciting, sparkly! Gold flash with star burst.
-   */
-  /**
-   * Treasure — exciting, energetic. Diagonal gold slashes sweep across screen.
-   */
-  private transitionToTreasure(node: any, _nodes: any[], _nodeIndex: number): void {
-    this.prepareNodeVisit(node);
-    const cam = this.cameras.main;
-    const w = cam.width;
-    const h = cam.height;
-
-    // Quick gold flash
-    const flash = this.add.rectangle(w / 2, h / 2, w, h, 0xffd700)
-      .setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
-
-    this.tweens.add({
-      targets: flash, alpha: 0.5,
-      duration: 80, yoyo: true,
-      onComplete: () => flash.destroy()
-    });
-
-    // Camera shake — excitement!
-    this.cameras.main.shake(200, 0.006);
-
-    // Diagonal gold slash bars sweeping from top-left to bottom-right
-    const slashCount = 6;
-    const slashW = w * 0.18;
-    for (let i = 0; i < slashCount; i++) {
-      const gfx = this.add.graphics().setScrollFactor(0).setDepth(2002).setAlpha(0)
-        .setData('transitionOverlay', true);
-      const color = Phaser.Math.RND.pick([0xffd700, 0xdaa520, 0xffec8b]);
-      gfx.fillStyle(color, 0.9);
-
-      // Parallelogram shape (diagonal slash)
-      const offset = 40; // skew amount
-      const sx = -slashW + (i * (w + slashW)) / slashCount;
-      gfx.fillPoints([
-        new Phaser.Geom.Point(sx + offset, 0),
-        new Phaser.Geom.Point(sx + slashW + offset, 0),
-        new Phaser.Geom.Point(sx + slashW - offset, h),
-        new Phaser.Geom.Point(sx - offset, h)
-      ], true);
-
-      // Slash sweeps in from left to right with slight stagger
-      gfx.x = -w;
-      this.tweens.add({
-        targets: gfx, x: 0, alpha: 1,
-        duration: 300, ease: 'Power3',
-        delay: 80 + i * 60
-      });
-    }
-
-    // Gold sparks radiating outward from center
-    for (let i = 0; i < 10; i++) {
-      const angle = (i / 10) * Math.PI * 2;
-      const dist = Phaser.Math.Between(80, 160);
-      const spark = this.add.rectangle(
-        w / 2, h / 2,
-        Phaser.Math.Between(3, 6), Phaser.Math.Between(1, 3),
-        Phaser.Math.RND.pick([0xffd700, 0xffffff, 0xffec8b]), 1
-      ).setScrollFactor(0).setDepth(2003).setRotation(angle);
-
-      this.tweens.add({
-        targets: spark,
-        x: w / 2 + Math.cos(angle) * dist,
-        y: h / 2 + Math.sin(angle) * dist,
-        alpha: 0,
-        duration: Phaser.Math.Between(350, 600),
-        delay: Phaser.Math.Between(50, 200),
-        ease: 'Power2',
-        onComplete: () => spark.destroy()
-      });
-    }
-
-    // Final black overlay
-    this.time.delayedCall(650, () => {
-      const blackOverlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
-        .setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(2004)
-        .setData('transitionOverlay', true);
-
-      this.tweens.add({
-        targets: blackOverlay, alpha: 1,
-        duration: 300, ease: 'Power2',
-        onComplete: () => {
-          this.scene.pause();
-          this.scene.launch("Treasure", { player: this.playerData });
-        }
-      });
-    });
-  }
-
-  /**
-   * Mysterious Event — eerie, enigmatic. Circular iris-close wipe with teal haze.
-   */
-  private transitionToEvent(node: any, nodes: any[], nodeIndex: number): void {
-    this.isMoving = true;
-
-    // Remove the node (events are one-time)
-    nodes.splice(nodeIndex, 1);
-    const eventSprite = this.mazeGenManager.getNodeSprite(node.id);
-    if (eventSprite) { eventSprite.destroy(); }
-    this.tooltipManager.hideTooltip();
-
-    const safePlayerData = this.playerData || {
-      id: "player", name: "Hero", maxHealth: 120, currentHealth: 120,
-      block: 0, statusEffects: [], hand: [], deck: [], discardPile: [],
-      drawPile: [], playedHand: [], landasScore: 0, ginto: 100,
-      diamante: 0, relics: [], potions: [], discardCharges: 3, maxDiscardCharges: 3
-    };
-
-    GameState.getInstance().savePlayerPosition(this.player.x, this.player.y);
-
-    const cam = this.cameras.main;
-    const w = cam.width;
-    const h = cam.height;
-
-    // Dark teal overlay fading in
-    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x001a1a)
-      .setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(2000)
-      .setData('transitionOverlay', true);
-
-    this.tweens.add({
-      targets: overlay, alpha: 0.55,
-      duration: 500, ease: 'Sine.easeIn'
-    });
-
-    // Horizontal teal bars closing inward from top and bottom (like a slow iris)
-    const barCount = 5;
-    const barH = (h / barCount) + 4;
-    for (let i = 0; i < barCount; i++) {
-      const fromTop = i < barCount / 2;
-      const targetY = barH * i + barH / 2;
-      const bar = this.add.rectangle(
-        w / 2,
-        fromTop ? -barH : h + barH,
-        w, barH,
-        Phaser.Math.RND.pick([0x001a1a, 0x002020, 0x001515])
-      ).setOrigin(0.5).setAlpha(0.85).setScrollFactor(0).setDepth(2002)
-        .setData('transitionOverlay', true);
-
-      // Outer bars arrive first, inner bars last — iris-like close
-      const distFromEdge = fromTop ? i : (barCount - 1 - i);
-      this.tweens.add({
-        targets: bar, y: targetY,
-        duration: 550, ease: 'Sine.easeInOut',
-        delay: 200 + distFromEdge * 70
-      });
-    }
-
-    // Faint teal mist particles drifting
-    for (let i = 0; i < 8; i++) {
-      const particle = this.add.circle(
-        Phaser.Math.Between(w * 0.1, w * 0.9),
-        Phaser.Math.Between(h * 0.2, h * 0.8),
-        Phaser.Math.Between(2, 5),
-        Phaser.Math.RND.pick([0x20b2aa, 0x008080, 0x66cdaa]),
-        0.5
-      ).setScrollFactor(0).setDepth(2003);
-
-      this.tweens.add({
-        targets: particle,
-        y: particle.y - Phaser.Math.Between(30, 70),
-        x: particle.x + Phaser.Math.Between(-20, 20),
-        alpha: 0,
-        duration: Phaser.Math.Between(600, 1000),
-        delay: Phaser.Math.Between(100, 450),
-        ease: 'Sine.easeOut',
-        onComplete: () => particle.destroy()
-      });
-    }
-
-    // Final black overlay
-    this.time.delayedCall(900, () => {
-      const blackOverlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
-        .setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(2004)
-        .setData('transitionOverlay', true);
-
-      this.tweens.add({
-        targets: blackOverlay, alpha: 1,
-        duration: 400, ease: 'Sine.easeInOut',
-        onComplete: () => {
-          overlay.destroy();
-          this.scene.pause();
-          this.scene.launch("EventScene", { player: safePlayerData });
-        }
-      });
-    });
-  }
-
   startCombat(nodeType: string, enemyId?: string): void {
     // Prevent player from moving during combat transition
     this.isMoving = true;
@@ -2450,13 +1862,8 @@ export class Overworld extends Scene {
 
     // Check if this is a boss fight for special animation
     if (nodeType === "boss") {
-      this.gameState.recordCombatStart("boss");
       this.startBossCombat(enemyId);
       return;
-    }
-
-    if (nodeType === "combat" || nodeType === "elite") {
-      this.gameState.recordCombatStart(nodeType);
     }
 
     // Get camera dimensions
@@ -2464,92 +1871,233 @@ export class Overworld extends Scene {
     const cameraWidth = camera.width;
     const cameraHeight = camera.height;
 
-    // ── Persona 5-style "!" Exclamation Encounter ──
-    const isElite = nodeType === "elite";
+    // Create a full-screen overlay that follows the camera
+    const overlay = this.add.rectangle(
+      cameraWidth / 2,
+      cameraHeight / 2,
+      cameraWidth,
+      cameraHeight,
+      0x000000
+    ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2000);
 
-    // 1) Quick screen flash
-    const screenFlash = this.add.rectangle(
-      cameraWidth / 2, cameraHeight / 2, cameraWidth, cameraHeight,
-      isElite ? 0xff0000 : 0xffffff
-    ).setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(2010);
+    // Different transition effects based on enemy type (Pokemon-like wild encounters with consistent red/black theme)
+    if (nodeType === "elite") {
+      // Elite enemy transition - Pokemon-like wild encounter with red/black theme
+      // Flash screen with red tint
+      const flashOverlay = this.add.rectangle(
+        cameraWidth / 2,
+        cameraHeight / 2,
+        cameraWidth,
+        cameraHeight,
+        0xff0000
+      ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2001);
 
-    this.tweens.add({
-      targets: screenFlash,
-      alpha: isElite ? 0.6 : 0.7,
-      duration: 80,
-      yoyo: true,
-      onComplete: () => screenFlash.destroy()
-    });
-
-    // 2) Camera shake
-    this.cameras.main.shake(200, isElite ? 0.012 : 0.008);
-
-    // 3) Big "!" exclamation slam
-    const exclamation = this.add.text(
-      cameraWidth / 2, cameraHeight / 2 - 20, '!', {
-      fontFamily: 'dungeon-mode', fontSize: isElite ? '140px' : '120px',
-      color: isElite ? '#ff2020' : '#ff4444',
-      stroke: '#000000', strokeThickness: 8,
-    }
-    ).setOrigin(0.5).setScrollFactor(0).setDepth(2012).setAlpha(0).setScale(3);
-
-    // Slam in with bounce
-    this.tweens.add({
-      targets: exclamation,
-      alpha: 1, scaleX: 1, scaleY: 1,
-      duration: 150, ease: 'Back.easeOut',
-      onComplete: () => {
-        // Brief hold, then fade out
-        this.time.delayedCall(350, () => {
-          this.tweens.add({
-            targets: exclamation,
-            alpha: 0, scaleY: 0.5,
-            duration: 200, ease: 'Power2',
-            onComplete: () => exclamation.destroy()
-          });
-        });
-      }
-    });
-
-    // 4) Red/dark vignette ring expanding outward behind "!"
-    const ring = this.add.circle(
-      cameraWidth / 2, cameraHeight / 2, 10, 0xff0000, isElite ? 0.35 : 0.2
-    ).setScrollFactor(0).setDepth(2011);
-
-    this.tweens.add({
-      targets: ring,
-      radius: cameraWidth / 2,
-      alpha: 0,
-      duration: 600, ease: 'Power2',
-      onComplete: () => ring.destroy()
-    });
-
-    // ── After "!" plays (~700ms), run the fade-to-black transition ──
-    const exclamationDelay = 700;
-
-    this.time.delayedCall(exclamationDelay, () => {
-      // Create a full-screen overlay that follows the camera
-      const overlay = this.add.rectangle(
-        cameraWidth / 2, cameraHeight / 2, cameraWidth, cameraHeight, 0x000000
-      ).setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(2000)
-        .setData('transitionOverlay', true);
-
-      // Fade to black and launch combat
+      // Animate flash
       this.tweens.add({
-        targets: overlay,
-        alpha: 1,
-        duration: isElite ? 600 : 450,
-        ease: 'Power2',
+        targets: flashOverlay,
+        alpha: 0.7,
+        duration: 200,
+        yoyo: true,
+        repeat: 1,
         onComplete: () => {
-          this.scene.pause();
-          this.scene.launch("Combat", {
-            nodeType: nodeType,
-            enemyId: enemyId,
-            transitionOverlay: overlay
+          flashOverlay.destroy();
+        }
+      });
+
+      // Shake player sprite
+      const originalPlayerX = this.player.x;
+      const originalPlayerY = this.player.y;
+
+      // More intense shaking for elite enemies
+      this.tweens.add({
+        targets: this.player,
+        x: originalPlayerX + Phaser.Math.Between(-5, 5),
+        y: originalPlayerY + Phaser.Math.Between(-5, 5),
+        duration: 100,
+        repeat: 5,
+        yoyo: true,
+        onComplete: () => {
+          this.player.setX(originalPlayerX);
+          this.player.setY(originalPlayerY);
+        }
+      });
+
+      // Create elite enemy encounter effect
+      this.time.delayedCall(500, () => {
+        // Create expanding circles with red color
+        for (let i = 0; i < 3; i++) {
+          const circle = this.add.circle(
+            cameraWidth / 2,
+            cameraHeight / 2,
+            10,
+            0xff0000, // Red color for elite enemies
+            0.3
+          ).setScrollFactor(0).setDepth(2001);
+
+          // Animate circle expansion
+          this.tweens.add({
+            targets: circle,
+            radius: cameraWidth / 3,
+            alpha: 0,
+            duration: 1000,
+            delay: i * 100,
+            ease: 'Power2',
+            onComplete: () => {
+              circle.destroy();
+            }
+          });
+        }
+
+        // Create red sparkle effects
+        for (let i = 0; i < 20; i++) {
+          const sparkle = this.add.rectangle(
+            Phaser.Math.Between(cameraWidth / 2 - 100, cameraWidth / 2 + 100),
+            Phaser.Math.Between(cameraHeight / 2 - 100, cameraHeight / 2 + 100),
+            Phaser.Math.Between(2, 5),
+            Phaser.Math.Between(2, 5),
+            0xff0000,
+            1
+          ).setScrollFactor(0).setDepth(2001);
+
+          // Animate sparkles
+          this.tweens.add({
+            targets: sparkle,
+            alpha: 0,
+            duration: 800,
+            delay: Phaser.Math.Between(0, 500),
+            onComplete: () => {
+              sparkle.destroy();
+            }
           });
         }
       });
-    });
+
+      // Fade to black and transition
+      this.time.delayedCall(1500, () => {
+        this.tweens.add({
+          targets: overlay,
+          alpha: 1,
+          duration: 800,
+          ease: 'Power2',
+          onComplete: () => {
+            // Pause this scene and start combat scene
+            // Music will auto-stop via 'pause' event listener
+            this.scene.pause();
+            this.scene.launch("Combat", {
+              nodeType: nodeType,
+              enemyId: enemyId,
+              transitionOverlay: overlay // Pass overlay to combat scene
+            });
+          }
+        });
+      });
+    } else {
+      // Common enemy transition - Pokemon-like wild encounter with red/black theme
+      // Flash screen red
+      const flashOverlay = this.add.rectangle(
+        cameraWidth / 2,
+        cameraHeight / 2,
+        cameraWidth,
+        cameraHeight,
+        0xff0000
+      ).setOrigin(0.5, 0.5).setAlpha(0).setScrollFactor(0).setDepth(2001);
+
+      // Animate flash
+      this.tweens.add({
+        targets: flashOverlay,
+        alpha: 0.8,
+        duration: 150,
+        yoyo: true,
+        repeat: 1,
+        onComplete: () => {
+          flashOverlay.destroy();
+        }
+      });
+
+      // Shake player sprite slightly
+      const originalPlayerX = this.player.x;
+      const originalPlayerY = this.player.y;
+
+      this.tweens.add({
+        targets: this.player,
+        x: originalPlayerX + Phaser.Math.Between(-3, 3),
+        y: originalPlayerY + Phaser.Math.Between(-3, 3),
+        duration: 100,
+        repeat: 3,
+        yoyo: true,
+        onComplete: () => {
+          this.player.setX(originalPlayerX);
+          this.player.setY(originalPlayerY);
+        }
+      });
+
+      // Create common enemy encounter effect
+      this.time.delayedCall(400, () => {
+        // Create simple expanding circle in red
+        const circle = this.add.circle(
+          cameraWidth / 2,
+          cameraHeight / 2,
+          10,
+          0xff0000, // Red color for common enemies
+          0.2
+        ).setScrollFactor(0).setDepth(2001);
+
+        // Animate circle expansion
+        this.tweens.add({
+          targets: circle,
+          radius: cameraWidth / 4,
+          alpha: 0,
+          duration: 800,
+          ease: 'Power2',
+          onComplete: () => {
+            circle.destroy();
+          }
+        });
+
+        // Create small red sparkle effects
+        for (let i = 0; i < 10; i++) {
+          const sparkle = this.add.rectangle(
+            Phaser.Math.Between(cameraWidth / 2 - 50, cameraWidth / 2 + 50),
+            Phaser.Math.Between(cameraHeight / 2 - 50, cameraHeight / 2 + 50),
+            2,
+            2,
+            0xff0000,
+            1
+          ).setScrollFactor(0).setDepth(2001);
+
+          // Animate sparkles
+          this.tweens.add({
+            targets: sparkle,
+            alpha: 0,
+            duration: 600,
+            delay: Phaser.Math.Between(0, 300),
+            onComplete: () => {
+              sparkle.destroy();
+            }
+          });
+        }
+      });
+
+      // Fade to black and transition
+      this.time.delayedCall(1200, () => {
+        this.tweens.add({
+          targets: overlay,
+          alpha: 1,
+          duration: 600,
+          ease: 'Power2',
+          onComplete: () => {
+            // Pause this scene and start combat scene
+            // Music will auto-stop via 'pause' event listener
+            this.scene.pause();
+            this.scene.launch("Combat", {
+              nodeType: nodeType,
+              enemyId: enemyId,
+              transitionOverlay: overlay // Pass overlay to combat scene
+            });
+          }
+        });
+      });
+    }
   }
 
   startBossCombat(enemyId?: string): void {
@@ -2558,27 +2106,6 @@ export class Overworld extends Scene {
     gameState.savePlayerPosition(this.player.x, this.player.y);
 
     // Get camera dimensions
-    // Build boss preparation context (independent from DDA).
-    try {
-      const relicCount = this.playerData?.relics?.length ?? 0;
-      const potionCount = this.playerData?.potions?.length ?? 0;
-      const bossPreparation = this.gameState.getBossPreparationContext(relicCount, potionCount);
-      console.log("⚖️ Boss preparation context:", {
-        readiness: bossPreparation.readiness.toFixed(2),
-        label: bossPreparation.label,
-        healthMultiplier: bossPreparation.healthMultiplier,
-        damageMultiplier: bossPreparation.damageMultiplier,
-        actionsTaken: this.gameState.actionsTaken,
-        combatsStarted: this.gameState.combatsStarted,
-        relicCount,
-        potionCount,
-      });
-
-      this.bossPreparationContext = bossPreparation;
-    } catch (error) {
-      console.warn("Could not calculate boss preparation context:", error);
-    }
-
     const camera = this.cameras.main;
     const cameraWidth = camera.width;
     const cameraHeight = camera.height;
@@ -2641,8 +2168,7 @@ export class Overworld extends Scene {
             this.scene.launch("Combat", {
               nodeType: "boss",
               enemyId: enemyId,
-              transitionOverlay: overlay,
-              bossPreparation: this.bossPreparationContext
+              transitionOverlay: overlay
             });
           }
         });
@@ -2666,11 +2192,6 @@ export class Overworld extends Scene {
       this.keyInputManager.destroy();
     }
 
-    if (this.mobileControlsContainer) {
-      this.mobileControlsContainer.destroy(true);
-      this.mobileControlsContainer = null;
-    }
-
     // Clean up event listeners
     // No resize listener cleanup needed — Scale.FIT handles zoom uniformly
 
@@ -2686,9 +2207,8 @@ export class Overworld extends Scene {
       this.fogOfWarManager.update(this.player.x, this.player.y);
     }
 
-    // Skip input handling if player is currently moving, transitioning to combat,
-    // or fog of war is transitioning (prevents light-source bugs during visibility changes)
-    if (this.isMoving || this.isTransitioningToCombat || this.fogOfWarManager?.isTransitioning) {
+    // Skip input handling if player is currently moving or transitioning to combat
+    if (this.isMoving || this.isTransitioningToCombat) {
       return;
     }
 
@@ -2788,13 +2308,6 @@ export class Overworld extends Scene {
     // Create main UI container positioned at top-left
     this.uiContainer = this.add.container(0, 0);
     this.uiContainer.setScrollFactor(0).setDepth(1500);
-
-    // Put tooltip on the same UI layer as inventory so it inherits
-    // the exact same zoom compensation during day/night transitions.
-    const tooltipContainer = this.tooltipManager?.getTooltipContainer?.();
-    if (tooltipContainer && tooltipContainer.parentContainer !== this.uiContainer) {
-      this.uiContainer.add(tooltipContainer);
-    }
 
     // Create compact left panel for all UI elements
     this.createCompactLeftPanel(screenHeight);
@@ -3305,233 +2818,200 @@ export class Overworld extends Scene {
     // All modal elements stored for cleanup
     const modalElements: Phaser.GameObjects.GameObject[] = [];
 
-    // Dim overlay
+    // --- Dim overlay (scene-level, interactive to close on click outside) ---
     const overlay = this.add.rectangle(cx, cy, screenW, screenH, 0x000000)
-      .setAlpha(0.82).setScrollFactor(0).setDepth(2000).setInteractive();
+      .setAlpha(0.85).setScrollFactor(0).setDepth(2000).setInteractive();
     modalElements.push(overlay);
 
-    // Measure content first so panel hugs relic text.
-    const descriptionText = relic.description || "A mysterious relic of unknown power.";
-    const lore = this.getRelicLore(relic);
-    const measureWrappedText = (
-      text: string,
-      style: Phaser.Types.GameObjects.Text.TextStyle
-    ): Phaser.Types.Math.Vector2Like => {
-      const temp = this.add.text(-9999, -9999, text, style);
-      const bounds = temp.getBounds();
-      temp.destroy();
-      return { x: Math.ceil(bounds.width), y: Math.ceil(bounds.height) };
-    };
+    // --- Panel blocker: invisible interactive rect that covers the panel area ---
+    // This prevents clicks inside the panel from reaching the overlay
+    const pw = 440;
+    const ph = 500;
+    const panelBlocker = this.add.rectangle(cx, cy, pw, ph, 0x000000, 0.001)
+      .setScrollFactor(0).setDepth(2001).setInteractive();
+    modalElements.push(panelBlocker);
 
-    const nameMeasure = measureWrappedText(relic.name.toUpperCase(), {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#e8eced"
-    });
-    const descMeasure = measureWrappedText(descriptionText, {
-      fontFamily: "dungeon-mode",
-      fontSize: 15,
-      color: "#e8eced",
-      wordWrap: { width: 520 }
-    });
-    const loreMeasure = measureWrappedText(lore, {
-      fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#e8eced",
-      wordWrap: { width: 520 }
-    });
-
-    const contentWidth = Math.max(280, Math.min(520, Math.max(descMeasure.x, loreMeasure.x, nameMeasure.x + 170)));
-    const pw = contentWidth + 68;
-    const headerH = 72;
-    const sectionLabelH = 18;
-    const sectionGap = 16;
-    const buttonAreaH = 68;
-    const ph = 28 + headerH + 14 + sectionLabelH + descMeasure.y + 10 + sectionGap + sectionLabelH + loreMeasure.y + 18 + buttonAreaH;
-
+    // --- Visual panel container (NOT interactive — purely visual) ---
     const panel = this.add.container(cx, cy).setScrollFactor(0).setDepth(2002);
     modalElements.push(panel);
 
-    const shadow = this.add.rectangle(4, 4, pw, ph, 0x000000, 0.45).setOrigin(0.5);
-    const bg = this.add.rectangle(0, 0, pw, ph, 0x150E10, 0.98).setOrigin(0.5);
-    const outerBorder = this.add.rectangle(0, 0, pw + 6, ph + 6, undefined, 0).setOrigin(0.5);
-    outerBorder.setStrokeStyle(3, 0x77888C, 0.9);
-    const innerBorder = this.add.rectangle(0, 0, pw + 2, ph + 2, undefined, 0).setOrigin(0.5);
-    innerBorder.setStrokeStyle(2, 0x556065, 0.75);
-    panel.add([shadow, outerBorder, innerBorder, bg]);
+    // Panel background with subtle shadow
+    const panelGfx = this.add.graphics();
+    panelGfx.fillStyle(0x000000, 0.45);
+    panelGfx.fillRoundedRect(-pw / 2 + 5, -ph / 2 + 5, pw, ph, 10);
+    panelGfx.fillStyle(0x0e1318, 0.98);
+    panelGfx.fillRoundedRect(-pw / 2, -ph / 2, pw, ph, 10);
+    panelGfx.lineStyle(2, 0x4a6070, 0.85);
+    panelGfx.strokeRoundedRect(-pw / 2, -ph / 2, pw, ph, 10);
+    panelGfx.lineStyle(1, 0x6b8899, 0.2);
+    panelGfx.strokeRoundedRect(-pw / 2 + 3, -ph / 2 + 3, pw - 6, ph - 6, 8);
+    panel.add(panelGfx);
 
-    const headerY = -ph / 2 + 14;
-    const headerBg = this.add.rectangle(0, headerY + headerH / 2, pw - 22, headerH, 0x1b2327, 0.72).setOrigin(0.5);
-    const headerBorder = this.add.rectangle(0, headerY + headerH / 2, pw - 22, headerH, undefined, 0).setOrigin(0.5);
-    headerBorder.setStrokeStyle(1, 0x77888C, 0.5);
-    panel.add([headerBg, headerBorder]);
+    // --- Header row ---
+    const headerH = 64;
+    const headerTop = -ph / 2 + 12;
+    const headerGfx = this.add.graphics();
+    headerGfx.fillStyle(0x16202a, 0.85);
+    headerGfx.fillRoundedRect(-pw / 2 + 12, headerTop, pw - 24, headerH, 8);
+    panel.add(headerGfx);
 
-    const iconX = -pw / 2 + 40;
-    const iconY = headerY + headerH / 2;
-    const iconBg = this.add.rectangle(iconX, iconY, 46, 46, 0x150E10, 0.95).setOrigin(0.5);
-    iconBg.setStrokeStyle(2, 0x77888C, 0.85);
-    const iconInner = this.add.rectangle(iconX, iconY, 42, 42, undefined, 0).setOrigin(0.5);
-    iconInner.setStrokeStyle(1, 0x556065, 0.75);
-    panel.add([iconBg, iconInner]);
+    // Icon background
+    const iconCx = -pw / 2 + 46;
+    const iconCy = headerTop + headerH / 2;
+    const iconGfx = this.add.graphics();
+    iconGfx.fillStyle(0x1a2832, 0.9);
+    iconGfx.lineStyle(1, 0x4a6070, 0.55);
+    iconGfx.fillRoundedRect(iconCx - 22, iconCy - 22, 44, 44, 8);
+    iconGfx.strokeRoundedRect(iconCx - 22, iconCy - 22, 44, 44, 8);
+    panel.add(iconGfx);
 
+    // Icon sprite or emoji
     const spriteKey = getRelicSpriteKey(relic.id);
     let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
     if (spriteKey && this.textures.exists(spriteKey)) {
-      relicIcon = this.add.image(iconX, iconY, spriteKey).setOrigin(0.5).setDisplaySize(34, 34);
+      relicIcon = this.add.image(iconCx, iconCy, spriteKey).setOrigin(0.5).setDisplaySize(36, 36);
     } else {
-      relicIcon = this.add.text(iconX, iconY, relic.emoji || "⚙️", { fontSize: 24 }).setOrigin(0.5);
+      relicIcon = this.add.text(iconCx, iconCy, relic.emoji, { fontSize: 26 }).setOrigin(0.5);
     }
     panel.add(relicIcon);
 
-    const nameText = this.add.text(iconX + 34, iconY - 6, relic.name.toUpperCase(), {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#e8eced",
+    // Name text
+    const nameText = this.add.text(iconCx + 36, iconCy, relic.name.toUpperCase(), {
+      fontFamily: "dungeon-mode-inverted",
+      fontSize: 17,
+      color: "#dce8f0",
       wordWrap: { width: pw - 180 }
     }).setOrigin(0, 0.5);
-    const equippedText = this.add.text(iconX + 34, iconY + 16, "EQUIPPED", {
-      fontFamily: "dungeon-mode",
-      fontSize: 11,
-      color: "#6fb590"
-    }).setOrigin(0, 0.5);
-    panel.add([nameText, equippedText]);
+    nameText.setShadow(1, 1, '#000000', 3, false, true);
+    panel.add(nameText);
 
-    // Scene-level close button for reliable pointer hit testing
-    const closeBtnX = cx + pw / 2 - 22;
-    const closeBtnY = cy - ph / 2 + 22;
-    const closeBg = this.add.rectangle(closeBtnX, closeBtnY, 30, 30, 0x150E10, 1)
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(2004);
-    closeBg.setStrokeStyle(2, 0x77888C, 0.95);
-    const closeLabel = this.add.text(closeBtnX, closeBtnY, "X", {
+    // Equipped badge
+    const badgeCx = pw / 2 - 70;
+    const badgeCy = headerTop + headerH / 2;
+    const badgeGfx = this.add.graphics();
+    badgeGfx.fillStyle(0x276749, 0.9);
+    badgeGfx.fillRoundedRect(badgeCx - 38, badgeCy - 10, 76, 20, 5);
+    panel.add(badgeGfx);
+    const badgeLabel = this.add.text(badgeCx, badgeCy, "EQUIPPED", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 9, color: "#a7f3d0"
+    }).setOrigin(0.5);
+    panel.add(badgeLabel);
+
+    // --- Separator line ---
+    const sepY = headerTop + headerH + 16;
+    const sepGfx = this.add.graphics();
+    sepGfx.lineStyle(1, 0x3a5060, 0.4);
+    sepGfx.lineBetween(-pw / 2 + 24, sepY, pw / 2 - 24, sepY);
+    panel.add(sepGfx);
+
+    // --- Description section ---
+    const descTop = sepY + 12;
+    const descLabel = this.add.text(-pw / 2 + 28, descTop, "DESCRIPTION", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#7a9aaa"
+    });
+    panel.add(descLabel);
+
+    const descBody = this.add.text(0, descTop + 24, relic.description, {
       fontFamily: "dungeon-mode",
       fontSize: 14,
-      color: "#e8eced"
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(2005);
-    modalElements.push(closeBg, closeLabel);
-    closeBg.setInteractive({ useHandCursor: true });
-
-    closeBg.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      pointer.event.stopPropagation();
-      this.cleanupRelicDetails(modalElements);
-    });
-    closeBg.on("pointerover", () => {
-      closeBg.setFillStyle(0x2a343a, 1);
-      closeLabel.setColor("#ffffff");
-      this.tweens.add({ targets: [closeBg, closeLabel], scale: 1.08, duration: 100, ease: "Power2" });
-    });
-    closeBg.on("pointerout", () => {
-      closeBg.setFillStyle(0x150E10, 1);
-      closeLabel.setColor("#e8eced");
-      this.tweens.add({ targets: [closeBg, closeLabel], scale: 1, duration: 100, ease: "Power2" });
-    });
-
-    let currentY = -ph / 2 + 14 + headerH + 14;
-    const sep1 = this.add.rectangle(0, currentY - 6, pw - 30, 1, 0x556065, 0.8).setOrigin(0.5);
-    panel.add(sep1);
-
-    const leftX = -pw / 2 + 24;
-    const descLabel = this.add.text(leftX, currentY, "DESCRIPTION", {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#77888C"
-    }).setOrigin(0, 0);
-    panel.add(descLabel);
-    currentY += sectionLabelH;
-
-    const descBody = this.add.text(0, currentY, descriptionText, {
-      fontFamily: "dungeon-mode",
-      fontSize: 15,
       color: "#d0dce4",
       align: "center",
-      wordWrap: { width: contentWidth },
-      lineSpacing: 4
+      wordWrap: { width: pw - 64 },
+      lineSpacing: 5
     }).setOrigin(0.5, 0);
     panel.add(descBody);
-    currentY += descBody.getBounds().height + 10;
 
-    const sep2 = this.add.rectangle(0, currentY + 4, pw - 30, 1, 0x556065, 0.8).setOrigin(0.5);
-    panel.add(sep2);
-    currentY += sectionGap;
+    const descHeight = descBody.getBounds().height;
 
-    const loreLabel = this.add.text(leftX, currentY, "LORE", {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#77888C"
-    }).setOrigin(0, 0);
+    // --- Lore section (positioned dynamically below description) ---
+    const loreTop = descTop + 24 + descHeight + 24;
+    const loreSepGfx = this.add.graphics();
+    loreSepGfx.lineStyle(1, 0x2e4a3a, 0.35);
+    loreSepGfx.lineBetween(-pw / 2 + 24, loreTop, pw / 2 - 24, loreTop);
+    panel.add(loreSepGfx);
+
+    const loreLabel = this.add.text(-pw / 2 + 28, loreTop + 10, "LORE", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 12, color: "#6fb590"
+    });
     panel.add(loreLabel);
-    currentY += sectionLabelH;
 
-    const loreBody = this.add.text(0, currentY, lore, {
+    const lore = this.getRelicLore(relic);
+    const loreBody = this.add.text(0, loreTop + 34, lore, {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#9eb1b8",
+      fontSize: 13,
+      color: "#99b3a8",
       align: "center",
-      wordWrap: { width: contentWidth },
-      lineSpacing: 4
+      wordWrap: { width: pw - 64 },
+      lineSpacing: 5
     }).setOrigin(0.5, 0);
     panel.add(loreBody);
 
-    // Scene-level discard button for reliable pointer hit testing
-    const discBtnX = cx;
-    const discBtnY = cy + ph / 2 - 38;
-    const discBg = this.add.rectangle(discBtnX, discBtnY, 188, 40, 0x150E10, 0.95)
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(2004);
-    discBg.setStrokeStyle(3, 0x77888C, 0.9);
-    const discInner = this.add.rectangle(discBtnX, discBtnY, 184, 36, 0x1b2327, 0.65)
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(2004);
-    discInner.setStrokeStyle(1, 0x556065, 0.7);
-    const discLabel = this.add.text(discBtnX, discBtnY, "DISCARD RELIC", {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#77888C"
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(2005);
-    modalElements.push(discBg, discInner, discLabel);
-    discBg.setInteractive({ useHandCursor: true });
+    // === CLOSE BUTTON (scene-level, NOT inside panel container) ===
+    const closeBtnW = 26;
+    const closeBtnH = 26;
+    const closeBtnWorldX = cx + pw / 2 - 24;
+    const closeBtnWorldY = cy - ph / 2 + 24;
 
-    discBg.on("pointerover", () => {
-      discBg.setFillStyle(0x1f1410, 1);
-      discLabel.setColor("#e8eced");
-      this.tweens.add({ targets: [discBg, discInner, discLabel], scale: 1.03, duration: 100, ease: "Power2" });
+    const closeBtnBg = this.add.rectangle(closeBtnWorldX, closeBtnWorldY, closeBtnW, closeBtnH, 0x8b1a1a)
+      .setScrollFactor(0).setDepth(2003).setStrokeStyle(1, 0xc07070, 0.7);
+    modalElements.push(closeBtnBg);
+
+    const closeBtnLabel = this.add.text(closeBtnWorldX, closeBtnWorldY, "X", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 13, color: "#ffffff"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2004);
+    modalElements.push(closeBtnLabel);
+
+    closeBtnBg.setInteractive({ useHandCursor: true });
+    closeBtnBg.on("pointerover", () => {
+      closeBtnBg.setFillStyle(0xdc2626).setStrokeStyle(1, 0xfca5a5, 1);
     });
-    discBg.on("pointerout", () => {
-      discBg.setFillStyle(0x150E10, 0.95);
-      discLabel.setColor("#77888C");
-      this.tweens.add({ targets: [discBg, discInner, discLabel], scale: 1, duration: 100, ease: "Power2" });
+    closeBtnBg.on("pointerout", () => {
+      closeBtnBg.setFillStyle(0x8b1a1a).setStrokeStyle(1, 0xc07070, 0.7);
     });
-    discBg.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      pointer.event.stopPropagation();
+    closeBtnBg.on("pointerdown", () => {
+      this.cleanupRelicDetails(modalElements);
+    });
+
+    // === DISCARD RELIC BUTTON (scene-level, NOT inside panel container) ===
+    const discBtnW = 160;
+    const discBtnH = 32;
+    const discBtnWorldX = cx;
+    const discBtnWorldY = cy + ph / 2 - 38;
+
+    const discBtnBg = this.add.rectangle(discBtnWorldX, discBtnWorldY, discBtnW, discBtnH, 0x6e2020)
+      .setScrollFactor(0).setDepth(2003).setStrokeStyle(1, 0xa06060, 0.75);
+    modalElements.push(discBtnBg);
+
+    const discBtnLabel = this.add.text(discBtnWorldX, discBtnWorldY, "DISCARD RELIC", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 11, color: "#e8b0b0"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2004);
+    modalElements.push(discBtnLabel);
+
+    discBtnBg.setInteractive({ useHandCursor: true });
+    discBtnBg.on("pointerover", () => {
+      discBtnBg.setFillStyle(0x9a3030).setStrokeStyle(1, 0xe08080, 0.85);
+      discBtnLabel.setColor("#ffffff");
+    });
+    discBtnBg.on("pointerout", () => {
+      discBtnBg.setFillStyle(0x6e2020).setStrokeStyle(1, 0xa06060, 0.75);
+      discBtnLabel.setColor("#e8b0b0");
+    });
+    discBtnBg.on("pointerdown", () => {
       this.showDiscardRelicConfirm(relic, relicIndex, modalElements);
     });
 
-    // Entrance animation
-    panel.setScale(0.9).setAlpha(0);
-    this.tweens.add({
-      targets: panel,
-      scale: 1,
-      alpha: { from: 0, to: 1 },
-      duration: 240,
-      ease: "Back.easeOut"
+    // --- Entrance animation ---
+    panel.setScale(0.85).setAlpha(0);
+    panelBlocker.setScale(0.85).setAlpha(0);
+    this.tweens.add({ targets: [panel, panelBlocker], scale: 1, alpha: { from: 0, to: 1 }, duration: 250, ease: 'Back.easeOut' });
+
+    // Close on overlay click (outside panel)
+    overlay.on('pointerdown', () => {
+      this.cleanupRelicDetails(modalElements);
     });
 
-    overlay.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      const left = cx - pw / 2;
-      const right = cx + pw / 2;
-      const top = cy - ph / 2;
-      const bottom = cy + ph / 2;
-      const clickedInsidePanel =
-        pointer.x >= left && pointer.x <= right &&
-        pointer.y >= top && pointer.y <= bottom;
-
-      if (!clickedInsidePanel) {
-        this.cleanupRelicDetails(modalElements);
-      }
-    });
+    // Ignore clicks on the panel area (blocker absorbs them)
+    panelBlocker.on('pointerdown', () => { /* do nothing, just absorb the click */ });
   }
 
   /**
@@ -3560,6 +3040,13 @@ export class Overworld extends Scene {
     const cx = screenW / 2;
     const cy = screenH / 2;
 
+    // Disable parent modal interactive elements while confirm is open
+    parentModalElements.forEach(el => {
+      if (el && 'disableInteractive' in el && typeof (el as any).disableInteractive === 'function') {
+        (el as any).disableInteractive();
+      }
+    });
+
     // Confirm elements for cleanup
     const confirmElements: Phaser.GameObjects.GameObject[] = [];
 
@@ -3569,255 +3056,114 @@ export class Overworld extends Scene {
     confirmElements.push(confirmOverlay);
 
     // Confirm box background
-    const boxW = 380;
-    const boxH = 200;
-    const boxShadow = this.add.rectangle(cx + 4, cy + 4, boxW, boxH, 0x000000, 0.45)
-      .setScrollFactor(0).setDepth(2201);
-    confirmElements.push(boxShadow);
-
-    const boxBg = this.add.rectangle(cx, cy, boxW, boxH, 0x150E10, 0.98)
-      .setScrollFactor(0).setDepth(2202);
-    const boxOuter = this.add.rectangle(cx, cy, boxW + 6, boxH + 6, undefined, 0)
-      .setScrollFactor(0).setDepth(2202);
-    boxOuter.setStrokeStyle(3, 0x77888C, 0.9);
-    const boxInner = this.add.rectangle(cx, cy, boxW + 2, boxH + 2, undefined, 0)
-      .setScrollFactor(0).setDepth(2202);
-    boxInner.setStrokeStyle(2, 0x556065, 0.75);
-    const boxHeader = this.add.rectangle(cx, cy - boxH / 2 + 26, boxW - 20, 40, 0x1b2327, 0.72)
-      .setScrollFactor(0).setDepth(2203);
-    boxHeader.setStrokeStyle(1, 0x77888C, 0.5);
-    confirmElements.push(boxOuter, boxInner, boxHeader);
-    boxBg.setInteractive();
+    const boxW = 320;
+    const boxH = 170;
+    const boxBg = this.add.rectangle(cx, cy, boxW, boxH, 0x0e1318)
+      .setScrollFactor(0).setDepth(2201).setStrokeStyle(2, 0xd08080, 0.85).setInteractive();
     confirmElements.push(boxBg);
 
     // Title
-    const title = this.add.text(cx, cy - boxH / 2 + 26, "DISCARD THIS RELIC?", {
-      fontFamily: "dungeon-mode", fontSize: 16, color: "#e8eced"
+    const title = this.add.text(cx, cy - boxH / 2 + 30, "Discard this relic?", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 16, color: "#ffe4e4"
     }).setOrigin(0.5).setScrollFactor(0).setDepth(2202);
     confirmElements.push(title);
 
     // Body
-    const body = this.add.text(cx, cy - boxH / 2 + 68, relic.name, {
+    const body = this.add.text(cx, cy - boxH / 2 + 58, relic.name, {
       fontFamily: "dungeon-mode", fontSize: 14, color: "#c8d8e2"
     }).setOrigin(0.5).setScrollFactor(0).setDepth(2202);
     confirmElements.push(body);
 
     // Warning
-    const warn = this.add.text(cx, cy - boxH / 2 + 92, "This action cannot be undone.", {
-      fontFamily: "dungeon-mode", fontSize: 11, color: "#a07c7c"
+    const warn = this.add.text(cx, cy - boxH / 2 + 82, "This cannot be undone.", {
+      fontFamily: "dungeon-mode", fontSize: 11, color: "#887070"
     }).setOrigin(0.5).setScrollFactor(0).setDepth(2202);
     confirmElements.push(warn);
+
+    // Helper to re-enable parent modal interactivity
+    const reEnableParent = () => {
+      parentModalElements.forEach(el => {
+        if (el && el.active && 'setInteractive' in el && typeof (el as any).setInteractive === 'function') {
+          (el as any).setInteractive();
+        }
+      });
+    };
 
     // Helper to destroy confirm dialog
     const closeConfirm = () => {
       confirmElements.forEach(el => { if (el && el.active) el.destroy(); });
       confirmElements.length = 0;
+      reEnableParent();
     };
-    let discardInProgress = false;
 
     // Cancel button
-    const btnW = 132;
-    const btnH = 40;
-    const btnY = cy + boxH / 2 - 42;
+    const cancelBw = 110;
+    const cancelBh = 34;
+    const cancelBtnBg = this.add.rectangle(cx - 65, cy + boxH / 2 - 36, cancelBw, cancelBh, 0x3a4a52)
+      .setScrollFactor(0).setDepth(2203).setStrokeStyle(1, 0x6a7a82, 0.8)
+      .setInteractive({ useHandCursor: true });
+    confirmElements.push(cancelBtnBg);
 
-    const cancelX = cx - 78;
-    const cancelBg = this.add.rectangle(cancelX, btnY, btnW, btnH, 0x150E10, 0.95)
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(2204);
-    cancelBg.setStrokeStyle(3, 0x77888C, 0.9);
-    const cancelInner = this.add.rectangle(cancelX, btnY, btnW - 4, btnH - 4, 0x1b2327, 0.65)
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(2204);
-    cancelInner.setStrokeStyle(1, 0x556065, 0.7);
-    const cancelBtnLabel = this.add.text(cancelX, btnY, "CANCEL", {
-      fontFamily: "dungeon-mode",
-      fontSize: 13,
-      color: "#77888C"
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(2205);
-    confirmElements.push(cancelBg, cancelInner, cancelBtnLabel);
-    cancelBg.setInteractive({ useHandCursor: true });
+    const cancelBtnLabel = this.add.text(cx - 65, cy + boxH / 2 - 36, "Cancel", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 13, color: "#ffffff"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2204);
+    confirmElements.push(cancelBtnLabel);
 
-    cancelBg.on("pointerover", () => {
-      cancelBg.setFillStyle(0x1f1410, 1);
-      cancelBtnLabel.setColor("#e8eced");
-      cancelBg.setScale(1.04);
-      cancelInner.setScale(1.04);
-      cancelBtnLabel.setScale(1.04);
-    });
-    cancelBg.on("pointerout", () => {
-      cancelBg.setFillStyle(0x150E10, 0.95);
-      cancelBtnLabel.setColor("#77888C");
-      cancelBg.setScale(1);
-      cancelInner.setScale(1);
-      cancelBtnLabel.setScale(1);
-    });
-    cancelBg.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      pointer.event.stopPropagation();
-      closeConfirm();
-    });
+    cancelBtnBg.on("pointerover", () => { cancelBtnBg.setFillStyle(0x4a5a62); });
+    cancelBtnBg.on("pointerout", () => { cancelBtnBg.setFillStyle(0x3a4a52); });
+    cancelBtnBg.on("pointerdown", () => { closeConfirm(); });
 
     // Discard button
-    const discardX = cx + 78;
-    const discardBg = this.add.rectangle(discardX, btnY, btnW, btnH, 0x150E10, 0.95)
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(2204);
-    discardBg.setStrokeStyle(3, 0x77888C, 0.9);
-    const discardInner = this.add.rectangle(discardX, btnY, btnW - 4, btnH - 4, 0x1b2327, 0.65)
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(2204);
-    discardInner.setStrokeStyle(1, 0x556065, 0.7);
-    const discardBtnLabel = this.add.text(discardX, btnY, "DISCARD", {
-      fontFamily: "dungeon-mode",
-      fontSize: 13,
-      color: "#77888C"
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(2205);
-    confirmElements.push(discardBg, discardInner, discardBtnLabel);
-    discardBg.setInteractive({ useHandCursor: true });
+    const discardBtnBg = this.add.rectangle(cx + 65, cy + boxH / 2 - 36, cancelBw, cancelBh, 0x8b2020)
+      .setScrollFactor(0).setDepth(2203).setStrokeStyle(1, 0xd08080, 0.8)
+      .setInteractive({ useHandCursor: true });
+    confirmElements.push(discardBtnBg);
 
-    discardBg.on("pointerover", () => {
-      discardBg.setFillStyle(0x1f1410, 1);
-      discardBtnLabel.setColor("#e8eced");
-      discardBg.setScale(1.04);
-      discardInner.setScale(1.04);
-      discardBtnLabel.setScale(1.04);
-    });
-    discardBg.on("pointerout", () => {
-      discardBg.setFillStyle(0x150E10, 0.95);
-      discardBtnLabel.setColor("#77888C");
-      discardBg.setScale(1);
-      discardInner.setScale(1);
-      discardBtnLabel.setScale(1);
-    });
-    discardBg.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      pointer.event.stopPropagation();
-      if (discardInProgress) return;
-      discardInProgress = true;
+    const discardBtnLabel = this.add.text(cx + 65, cy + boxH / 2 - 36, "Discard", {
+      fontFamily: "dungeon-mode-inverted", fontSize: 13, color: "#ffffff"
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(2204);
+    confirmElements.push(discardBtnLabel);
 
-      // Lock confirm controls while discard animation plays
-      cancelBg.disableInteractive();
-      discardBg.disableInteractive();
-      confirmOverlay.disableInteractive();
+    discardBtnBg.on("pointerover", () => { discardBtnBg.setFillStyle(0xa33232); });
+    discardBtnBg.on("pointerout", () => { discardBtnBg.setFillStyle(0x8b2020); });
+    discardBtnBg.on("pointerdown", () => {
+      // Remove relic from player data
+      if (relicIndex >= 0 && relicIndex < this.playerData.relics.length) {
+        this.playerData.relics.splice(relicIndex, 1);
+      } else {
+        const idx = this.playerData.relics.findIndex(r => r.id === relic.id);
+        if (idx !== -1) this.playerData.relics.splice(idx, 1);
+      }
 
-      // Close confirmation + parent modal first, then animate in the actual inventory slot.
+      // Persist to GameState
+      const gameState = GameState.getInstance();
+      gameState.updatePlayerData({
+        ...this.playerData,
+        relics: [...this.playerData.relics],
+        potions: [...this.playerData.potions]
+      });
+
+      // Refresh overworld relics display
+      this.updateOverworldUI();
+
+      // Clean up everything
       closeConfirm();
       this.cleanupRelicDetails(parentModalElements);
-
-      this.playRelicDiscardInventoryAnimation(relic, relicIndex, () => {
-        // Remove relic from player data after slot animation
-        if (relicIndex >= 0 && relicIndex < this.playerData.relics.length) {
-          this.playerData.relics.splice(relicIndex, 1);
-        } else {
-          const idx = this.playerData.relics.findIndex(r => r.id === relic.id);
-          if (idx !== -1) this.playerData.relics.splice(idx, 1);
-        }
-
-        // Persist to GameState
-        const gameState = GameState.getInstance();
-        gameState.updatePlayerData({
-          ...this.playerData,
-          relics: [...this.playerData.relics],
-          potions: [...this.playerData.potions]
-        });
-
-        // Refresh overworld relics display
-        this.updateOverworldUI();
-      });
     });
 
     // Close confirm on clicking overlay outside the box
-    confirmOverlay.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      const left = cx - boxW / 2;
-      const right = cx + boxW / 2;
-      const top = cy - boxH / 2;
-      const bottom = cy + boxH / 2;
-      const clickedInsideBox =
-        pointer.x >= left && pointer.x <= right &&
-        pointer.y >= top && pointer.y <= bottom;
-      if (!clickedInsideBox) {
-        closeConfirm();
-      }
-    });
+    confirmOverlay.on('pointerdown', () => { closeConfirm(); });
 
     // Prevent box background clicks from reaching confirm overlay
-    boxBg.on("pointerdown", (pointer: Phaser.Input.Pointer) => { pointer.event.stopPropagation(); });
+    boxBg.on('pointerdown', () => { /* absorb click */ });
   }
 
-  /**
-   * Play relic discard animation at the relic's actual inventory slot.
-   * Runs after confirmation modal closes.
-   */
-  private playRelicDiscardInventoryAnimation(
-    relic: Relic,
-    relicIndex: number,
-    onComplete: () => void
-  ): void {
-    const slotSize = 60;
-    const slotSpacing = 10;
-    const slotsPerRow = 3;
-
-    let centerX = this.cameras.main.width / 2;
-    let centerY = this.cameras.main.height / 2;
-
-    if (this.relicsContainer) {
-      const row = Math.floor(relicIndex / slotsPerRow);
-      const col = relicIndex % slotsPerRow;
-      const localX = col * (slotSize + slotSpacing) + slotSize / 2;
-      const localY = row * (slotSize + slotSpacing) + slotSize / 2;
-
-      const matrix = this.relicsContainer.getWorldTransformMatrix();
-      const worldPoint = new Phaser.Math.Vector2();
-      matrix.transformPoint(localX, localY, worldPoint);
-      centerX = worldPoint.x;
-      centerY = worldPoint.y;
-    }
-
-    const spriteKey = getRelicSpriteKey(relic.id);
-    let relicFx: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
-    if (spriteKey && this.textures.exists(spriteKey)) {
-      relicFx = this.add.image(centerX, centerY, spriteKey).setOrigin(0.5).setDepth(2602).setScrollFactor(0);
-      relicFx.setDisplaySize(48, 48);
-    } else {
-      relicFx = this.add.text(centerX, centerY, relic.emoji || "✦", { fontSize: 34 }).setOrigin(0.5).setDepth(2602).setScrollFactor(0);
-    }
-
-    const burst = this.add.circle(centerX, centerY, 8, 0xff6b6b, 0.9).setDepth(2601).setScrollFactor(0);
-    burst.setBlendMode(Phaser.BlendModes.ADD);
-    const ring = this.add.circle(centerX, centerY, 12, 0xff9f43, 0).setDepth(2601).setScrollFactor(0);
-    ring.setStrokeStyle(3, 0xff9f43, 0.9);
-
-    this.tweens.add({
-      targets: burst,
-      scale: 5.4,
-      alpha: 0,
-      duration: 280,
-      ease: "Cubic.easeOut"
-    });
-    this.tweens.add({
-      targets: ring,
-      scale: 2.4,
-      alpha: 0,
-      duration: 300,
-      ease: "Sine.easeOut"
-    });
-    this.tweens.add({
-      targets: relicFx,
-      y: centerY - 34,
-      angle: 180,
-      scale: 0.12,
-      alpha: 0,
-      duration: 360,
-      ease: "Back.easeIn",
-      onComplete: () => {
-        relicFx.destroy();
-        burst.destroy();
-        ring.destroy();
-        onComplete();
-      }
-    });
+  private truncateTextToLines(textObject: Phaser.GameObjects.Text, maxLines: number): void {
+    const wrapped = textObject.getWrappedText(textObject.text);
+    if (wrapped.length <= maxLines) return;
+    const truncated = wrapped.slice(0, maxLines);
+    truncated[maxLines - 1] = `${truncated[maxLines - 1]}...`;
+    textObject.setText(truncated.join("\n"));
   }
 
   /**
@@ -3850,9 +3196,8 @@ export class Overworld extends Scene {
       fogDepth: DEPTH.FOG_OF_WAR      // Above map tiles, below NPCs and UI
     });
 
-    // Set initial fog state based on current day/night (no transition text on init)
+    // Set initial fog state based on current day/night
     this.fogOfWarManager.updateDayNight(this.gameState.isDay);
-    this.lastKnownIsDay = this.gameState.isDay;
 
     console.log("✅ Fog of war system initialized");
   }
@@ -3910,12 +3255,6 @@ export class Overworld extends Scene {
       const toggleX = cameraWidth - 60 - offsetX;
       const toggleY = 50 + offsetY;
       this.toggleButton.setPosition(toggleX, toggleY);
-    }
-
-    // Mobile controls container (fixed gameplay controls)
-    if (this.mobileControlsContainer) {
-      this.mobileControlsContainer.setScale(uiScale);
-      this.mobileControlsContainer.setPosition(offsetX, offsetY);
     }
 
     // Test buttons container
