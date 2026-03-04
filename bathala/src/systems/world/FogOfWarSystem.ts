@@ -483,17 +483,13 @@ export class FogOfWarSystem {
       overworldScene.mobileControlsContainer.setPosition(offsetX, offsetY);
     }
     
-    // Test buttons container
+    // Test buttons container — scale and reposition so buttons stay in place
     if (overworldScene.testButtonsContainer) {
       overworldScene.testButtonsContainer.setScale(uiScale);
+      overworldScene.testButtonsContainer.setPosition(offsetX, offsetY);
     }
     
-    // Action buttons are in the test container, so they inherit positioning
-    if (overworldScene.actionButtons) {
-      overworldScene.actionButtons.forEach((button: any) => {
-        button.setScale(uiScale);
-      });
-    }
+    // Action buttons inherit scale from the container; no extra scaling needed
     
     // Day/night transition text box — keep at constant size and centered
     if (overworldScene.dayNightTransitionContainer) {

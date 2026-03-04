@@ -687,6 +687,11 @@ export class Overworld_MazeGenManager {
       chunk.graphics.destroy();
     }
     
+    // Destroy all node sprites before clearing the map
+    for (const sprite of this.nodeSprites.values()) {
+      sprite.destroy();
+    }
+    
     this.visibleChunks.clear();
     this.nodes = [];
     this.nodeSprites.clear();
