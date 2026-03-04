@@ -16,31 +16,31 @@ export class Preloader extends Scene {
   init() {
     // Set background color
     this.cameras.main.setBackgroundColor(0x150E10);
-    
+
     //  We loaded this image in our Boot Scene, so we can display it here
     //  Position the background in the center of the screen
     const screenWidth = this.game.config.width as number;
     const screenHeight = this.game.config.height as number;
-    
+
     // Add "BATHALA" text in the center using dungeon-mode-inverted font
-    this.loadingText = this.add.text(screenWidth/2, screenHeight/2 - 100, 'BATHALA', {
+    this.loadingText = this.add.text(screenWidth / 2, screenHeight / 2 - 100, 'BATHALA', {
       fontFamily: 'dungeon-mode-inverted',
       fontSize: 48,
       color: '#77888C',
     }).setOrigin(0.5);
-    
+
     // Add loading status text using dungeon-mode font
-    this.add.text(screenWidth/2, screenHeight/2 - 30, 'GATHERING THE ELEMENTS...', {
+    this.add.text(screenWidth / 2, screenHeight / 2 - 30, 'GATHERING THE ELEMENTS...', {
       fontFamily: 'dungeon-mode',
       fontSize: 16,
       color: '#77888C',
     }).setOrigin(0.5);
 
     //  A simple progress bar. This is the outline of the bar.
-    this.progressBox = this.add.rectangle(screenWidth/2, screenHeight/2, 400, 20).setStrokeStyle(2, 0x77888C);
+    this.progressBox = this.add.rectangle(screenWidth / 2, screenHeight / 2, 400, 20).setStrokeStyle(2, 0x77888C);
 
     //  This is the progress bar itself. It will increase in size from the left based on the % of progress.
-    this.progressBar = this.add.rectangle((screenWidth/2) - 195, screenHeight/2, 10, 16, 0x77888C);
+    this.progressBar = this.add.rectangle((screenWidth / 2) - 195, screenHeight / 2, 10, 16, 0x77888C);
 
     //  Use the 'progress' event emitted by the LoaderPlugin to update the loading bar
     this.load.on("progress", (progress: number) => {
@@ -53,17 +53,17 @@ export class Preloader extends Scene {
       .setOrigin(0)
       .setAlpha(0.15)
       .setTint(0x77888C);
-      
+
     // Create a subtle scanline pattern
     const graphics = this.make.graphics({ x: 0, y: 0 });
     graphics.fillStyle(0x000000, 1);
     graphics.fillRect(0, 0, 4, 1);
     graphics.fillStyle(0xffffff, 1);
     graphics.fillRect(0, 1, 4, 1);
-    
+
     const texture = graphics.generateTexture('preloader_scanline', 4, 2);
     this.scanlines.setTexture('preloader_scanline');
-    
+
     // Move scanlines to the back
     this.scanlines.setDepth(-10);
   }
@@ -107,7 +107,7 @@ export class Preloader extends Scene {
     this.load.image("logo", "logo.png");
     this.load.image("bg", "bg.png");
     this.load.image("forest_bg", "forest_bg.png");
-    
+
     // Background assets
     this.load.image("floor1", "background/floor1.png");
     this.load.image("floor2", "background/floor2.png");
@@ -147,7 +147,7 @@ export class Preloader extends Scene {
     this.load.image("merchant_f05", "sprites/merchant/merchant_f05.png");
     this.load.image("merchant_f06", "sprites/merchant/merchant_f06.png");
     this.load.image("merchant_f07", "sprites/merchant/merchant_f07.png");
-    
+
     // Main merchant sprite (hooded figure with backpack)
     this.load.image("merchant_main", "sprites/merchant/merchant1.png");
 
@@ -290,36 +290,53 @@ export class Preloader extends Scene {
     this.load.image("ribunglinti_overworld", "sprites/overworld/enemy/chapter3/ribung_linti_overworld.png");
     this.load.image("apolaki_overworld", "sprites/overworld/enemy/chapter3/apolaki_overworld.png");
     this.load.image("falsebathala_overworld", "sprites/combat/enemy/chapter3/false_bathala_battle.png");
-    
+
     // Overworld node sprites
     // Combat node sprites (chort)
     this.load.image("chort_f0", "sprites/overworld/combat/chort_idle_anim_f0.png");
     this.load.image("chort_f1", "sprites/overworld/combat/chort_idle_anim_f1.png");
     this.load.image("chort_f2", "sprites/overworld/combat/chort_idle_anim_f2.png");
-    
+
     // Elite node sprites (big demon)
     this.load.image("big_demon_f0", "sprites/overworld/elite/big_demon_idle_anim_f0.png");
     this.load.image("big_demon_f1", "sprites/overworld/elite/big_demon_idle_anim_f1.png");
     this.load.image("big_demon_f2", "sprites/overworld/elite/big_demon_idle_anim_f2.png");
     this.load.image("big_demon_f3", "sprites/overworld/elite/big_demon_idle_anim_f3.png");
-    
+
     // Campfire node sprite (6-frame animation, 32x48 per frame)
     this.load.spritesheet("campfire_overworld", "sprites/overworld/campfire/campfire_overworld.png", {
       frameWidth: 32,
       frameHeight: 48,
     });
-    
+
     // Shop node sprite (merchant)
     this.load.image("merchant_overworld", "sprites/overworld/shop/merchant_overworld.png");
-    
+
     // Event node sprite
     this.load.image("event_overworld", "sprites/overworld/event/event_overworld.png");
-    
+
+    // Act 1 Event splash art
+    this.load.image("event_anito_shrine", "events(act1)/anito shrine.png");
+    this.load.image("event_anito_shrine_educational", "events(act1)/Anito Shrine (Edu).png");
+    this.load.image("event_balete_vision", "events(act1)/balete vision.png");
+    this.load.image("event_diwata_whisper", "events(act1)/diwatas whisper.png");
+    this.load.image("event_diwata_gift_educational", "events(act1)/Diwata's Gift.png");
+    this.load.image("event_forgotten_altar", "events(act1)/forgotten altar.png");
+    this.load.image("event_tikbalang_crossroads", "events(act1)/tikbalangs crossroad.png");
+    this.load.image("event_tikbalang_test_educational", "events(act1)/tikbalangs crossroad.png");
+    this.load.image("event_ancestral_echo", "events(act1)/ancestral echo.png");
+    this.load.image("event_kapre_smoke", "events(act1)/kapre_smoke.png");
+    this.load.image("event_kapre_wisdom_educational", "events(act1)/kapres_wisdom.png");
+    this.load.image("event_sacred_grove", "events(act1)/sacred groove.png");
+    this.load.image("event_tiyanak_wail", "events(act1)/tiyanak_wail.png");
+    this.load.image("event_wind_omen", "events(act1)/wind omen.png");
+    this.load.image("event_balete_mystery_educational", "events(act1)/balete vision.png");
+
     // Treasure node sprites (chest)
     this.load.image("chest_f0", "sprites/overworld/treasure/chest_full_open_anim_f0.png");
     this.load.image("chest_f1", "sprites/overworld/treasure/chest_full_open_anim_f1.png");
     this.load.image("chest_f2", "sprites/overworld/treasure/chest_full_open_anim_f2.png");
-    
+
     // Shop merchant sprites
     this.load.image("merchant_f01", "sprites/merchant/merchant_f01.png");
     this.load.image("merchant_f02", "sprites/merchant/merchant_f02.png");
@@ -328,14 +345,14 @@ export class Preloader extends Scene {
     this.load.image("merchant_f05", "sprites/merchant/merchant_f05.png");
     this.load.image("merchant_f06", "sprites/merchant/merchant_f06.png");
     this.load.image("merchant_f07", "sprites/merchant/merchant_f07.png");
-    
+
     // Load card sprites
     const suits = ["apoy", "tubig", "lupa", "hangin"];
     const ranks = [
       "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
       "11", "12", "13"  // Mandirigma, Babaylan, Datu
     ];
-    
+
     // Load all card sprites
     for (const suit of suits) {
       for (const rank of ranks) {
@@ -345,15 +362,15 @@ export class Preloader extends Scene {
         this.load.image(key, `sprites/cards/${fileName}`);
       }
     }
-    
+
     // Load card back art for discard pile
     this.load.image("backart", "sprites/cards/backart.png");
-    
+
     // Load UI icons for day/night tracker
     this.load.image("bathala_sun_icon", "ui/icons/bathala_sun_icon.png");
     this.load.image("bathala_moon_icon", "ui/icons/bathala_moon_icon.png");
     this.load.image("bathala_boss_icon", "ui/icons/bathala_boss_icon.png");
-    
+
     // Load all audio assets via MusicManager
     // MusicManager handles all audio loading and naming
     MusicManager.getInstance().loadAudioAssets(this);
@@ -399,7 +416,7 @@ export class Preloader extends Scene {
     if (this.textures.exists("player_overworld")) {
       this.textures.get("player_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
-    
+
     // Apply NEAREST filtering to overworld node sprites for crisp pixel art
     if (this.textures.exists("merchant_overworld")) {
       this.textures.get("merchant_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -513,7 +530,7 @@ export class Preloader extends Scene {
    */
   private createNodeAnimations(): void {
     console.log("Creating node animations");
-    
+
     // Combat node animation (chort)
     this.anims.create({
       key: "chort_idle",
@@ -526,7 +543,7 @@ export class Preloader extends Scene {
       repeat: -1,
     });
     console.log("Created chort_idle animation");
-    
+
     // Elite node animation (big demon)
     this.anims.create({
       key: "big_demon_idle",
@@ -540,7 +557,7 @@ export class Preloader extends Scene {
       repeat: -1,
     });
     console.log("Created big_demon_idle animation");
-    
+
     // Campfire node animation (angel)
     // Campfire animation (6 frames from spritesheet)
     this.anims.create({
@@ -550,13 +567,13 @@ export class Preloader extends Scene {
       repeat: -1,
     });
     console.log("Created campfire_burn animation");
-    
+
     // Shop node - static merchant sprite (no animation needed)
     console.log("Shop merchant sprite loaded (static)");
-    
+
     // Event node - static sprite (no animation needed)
     console.log("Event sprite loaded (static)");
-    
+
     // Treasure node animation (chest)
     this.anims.create({
       key: "chest_open",
@@ -569,7 +586,7 @@ export class Preloader extends Scene {
       repeat: -1,
     });
     console.log("Created chest_open animation");
-    
+
     // Merchant animation (shop scene)
     this.anims.create({
       key: "merchant_idle",
@@ -602,7 +619,7 @@ export class Preloader extends Scene {
       tempElement.style.visibility = 'hidden';
       tempElement.textContent = 'bathala';
       document.body.appendChild(tempElement);
-      
+
       // Remove the element after a short time
       setTimeout(() => {
         if (tempElement.parentNode) {
@@ -610,7 +627,7 @@ export class Preloader extends Scene {
         }
       }, 1000);
     }
-    
+
     const font = new FontFace(name, `url(${path})`);
     font.load().then(() => {
       (document as any).fonts.add(font);
@@ -640,7 +657,7 @@ export class Preloader extends Scene {
       }
     });
   }
-  
+
   update(time: number, delta: number): void {
     // Animate the scanlines
     if (this.scanlines) {
