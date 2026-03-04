@@ -24,10 +24,10 @@ export class FogOfWarSystem {
   public tileSize: number = 32;
   
   /** Night fog - How far the player can see at night (in tiles) */
-  public nightVisibilityRadius: number = 8;
+  public nightVisibilityRadius: number = 6;
   
   /** Day fog - How far the player can see during day (in tiles) - 1.4x night fog */
-  public dayVisibilityRadius: number = 11;
+  public dayVisibilityRadius: number = 8;
   
   /** Current visibility radius (dynamically updated based on day/night) */
   private currentVisibilityRadius: number = 8;
@@ -39,10 +39,10 @@ export class FogOfWarSystem {
   public isTransitioning: boolean = false;
   
   /** Camera zoom during day (less zoomed in - larger fog area) */
-  public dayCameraZoom: number = 1.0;
+  public dayCameraZoom: number = 1.8;
   
   /** Camera zoom at night (more zoomed in - smaller fog area) */
-  public nightCameraZoom: number = 1.3;
+  public nightCameraZoom: number = 2.1;
   
   /** Number of gradient steps from visible to fog (pixel-stepped gradient) */
   public gradientSteps: number = 4;

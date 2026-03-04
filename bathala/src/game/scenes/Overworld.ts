@@ -336,7 +336,7 @@ export class Overworld extends Scene {
 
     // Set initial camera zoom (will be managed by fog of war system)
     // Start with day zoom since game starts during day
-    this.cameras.main.setZoom(1.0);
+    this.cameras.main.setZoom(1.8);
 
     // Create enemy info tooltip
     this.createEnemyTooltip();
