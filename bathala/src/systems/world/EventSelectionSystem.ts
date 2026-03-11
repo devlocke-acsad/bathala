@@ -10,6 +10,7 @@
 import { GameEvent, EducationalEvent } from '../../data/events/EventTypes';
 import { CombinedAct1Events } from '../../data/events';
 import { GameState } from '../../core/managers/GameState';
+import { OverworldGameState } from '../../core/managers/OverworldGameState';
 
 type EventProvider = () => (GameEvent | EducationalEvent)[];
 
@@ -55,6 +56,15 @@ export class EventSelectionSystem {
    */
   static getRandomEvent(chapter?: number): GameEvent | EducationalEvent {
     const events = EventSelectionSystem.getEventsForChapter(chapter);
-    return events[Math.floor(Math.random() * events.length)];
+    if (events.length === 0) {
+      throw new Error('EventSelectionSystem: No events available for selection.');
+    }
+    const isDay = OverworldGameState.getInstance().isDay;
+    const cycleEvents = events.filter(e => e.dayEvent === isDay);
+
+    // If a chapter doesn't have any events authored for this cycle yet,
+    // fall back to the full pool to avoid hard failures.
+    const pool = cycleEvents.length > 0 ? cycleEvents : events;
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 }
