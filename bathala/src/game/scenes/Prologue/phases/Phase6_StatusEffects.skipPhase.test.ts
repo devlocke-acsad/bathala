@@ -50,6 +50,7 @@ class MockScene {
                 removeAll: jest.fn(),
                 setVisible: jest.fn().mockReturnThis(),
                 setAlpha: jest.fn().mockReturnThis(),
+                setScale: jest.fn().mockReturnThis(),
                 setDepth: jest.fn().mockReturnThis(),
                 setY: jest.fn().mockReturnThis(),
                 setInteractive: jest.fn().mockReturnThis(),

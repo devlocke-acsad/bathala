@@ -60,11 +60,21 @@ export class EventSelectionSystem {
       throw new Error('EventSelectionSystem: No events available for selection.');
     }
     const isDay = OverworldGameState.getInstance().isDay;
+    const overworldState = OverworldGameState.getInstance();
+    const unseenEvents = events.filter(e => !overworldState.hasEncounteredEvent(e.id));
+    const cycleUnseenEvents = unseenEvents.filter(e => e.dayEvent === isDay);
     const cycleEvents = events.filter(e => e.dayEvent === isDay);
 
     // If a chapter doesn't have any events authored for this cycle yet,
     // fall back to the full pool to avoid hard failures.
-    const pool = cycleEvents.length > 0 ? cycleEvents : events;
+    const pool =
+      cycleUnseenEvents.length > 0
+        ? cycleUnseenEvents
+        : unseenEvents.length > 0
+          ? unseenEvents
+          : cycleEvents.length > 0
+            ? cycleEvents
+            : events;
     return pool[Math.floor(Math.random() * pool.length)];
   }
 }

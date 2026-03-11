@@ -60,6 +60,7 @@ export class EventScene extends Scene {
     this.player = data.player;
     this.currentEvent = data.event ?? EventSelectionSystem.getRandomEvent();
     this.isDayCycle = OverworldGameState.getInstance().isDay;
+    OverworldGameState.getInstance().markEventEncountered(this.currentEvent.id);
     this.currentDescriptionIndex = 0;
     this.choiceButtons = [];
     this.particles = [];
