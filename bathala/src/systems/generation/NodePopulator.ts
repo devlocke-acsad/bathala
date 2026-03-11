@@ -27,6 +27,13 @@ export class NodePopulator {
   private readonly eliteEnemies: readonly EnemyPoolEntry[];
 
   private static readonly PATH = 0;
+  private static readonly FRIENDLY_TYPES: readonly NodeType[] = [
+    'shop',
+    'event',
+    'campfire',
+    'treasure',
+  ];
+  private static readonly ENEMY_TYPES: readonly NodeType[] = ['combat', 'elite'];
 
   constructor(
     commonEnemies: readonly EnemyPoolEntry[],
@@ -70,12 +77,22 @@ export class NodePopulator {
     // 3. Place nodes with spatial distribution
     const minNodeDistance = chunkSize / minDistanceFactor;
     const placed: { x: number; y: number }[] = [];
+    const counts: Partial<Record<NodeType, number>> = {};
+
+    // Guardrails to prevent "enemy flood" chunks.
+    // - Enemy nodes: combat/elite
+    // - Friendly nodes: shop/event/campfire/treasure
+    // Keep this conservative: overworld difficulty still comes from movement + proximity,
+    // but chunks should feel like they have non-combat points of interest.
+    const enemyCap = Math.max(1, Math.ceil(nodeCount * 0.6));
+    const requireFriendly = nodeCount >= 3; // if a chunk has 3+ nodes, ensure at least one friendly
 
     for (let i = 0; i < nodeCount && validPositions.length > 0; i++) {
       const pos = this.selectPosition(validPositions, placed, minNodeDistance, rng);
       if (!pos) continue;
 
-      const type = this.rollNodeType(rng);
+      const remainingSlots = nodeCount - i;
+      const type = this.rollNodeTypeBalanced(rng, counts, remainingSlots, enemyCap, requireFriendly);
       const enemyId = this.resolveEnemyId(type, rng);
 
       nodes.push({
@@ -91,6 +108,7 @@ export class NodePopulator {
         enemyId,
       });
 
+      counts[type] = (counts[type] ?? 0) + 1;
       placed.push(pos);
       // Remove used position
       const idx = validPositions.findIndex(p => p.x === pos.x && p.y === pos.y);
@@ -179,6 +197,76 @@ export class NodePopulator {
 
     // Fallback
     return 'combat';
+  }
+
+  /**
+   * Balanced roll for node type within a single chunk.
+   *
+   * Goals:
+   * - Avoid chunks where almost every node is an enemy.
+   * - Ensure chunks with multiple nodes have at least one friendly POI.
+   * - Still respect act-provided weights (this is a soft clamp, not a rewrite).
+   */
+  private rollNodeTypeBalanced(
+    rng: RNG,
+    placedCounts: Partial<Record<NodeType, number>>,
+    remainingSlots: number,
+    enemyCap: number,
+    requireFriendly: boolean,
+  ): NodeType {
+    const friendlyPlaced = NodePopulator.FRIENDLY_TYPES.reduce((sum, t) => sum + (placedCounts[t] ?? 0), 0);
+    const enemyPlaced = NodePopulator.ENEMY_TYPES.reduce((sum, t) => sum + (placedCounts[t] ?? 0), 0);
+
+    // Hard guarantees near the end of placement.
+    if (requireFriendly && friendlyPlaced === 0 && remainingSlots <= 1) {
+      return this.rollFromTypes(rng, NodePopulator.FRIENDLY_TYPES);
+    }
+    if (enemyPlaced >= enemyCap) {
+      return this.rollFromTypes(rng, NodePopulator.FRIENDLY_TYPES);
+    }
+
+    // Soft biasing: if friendly nodes are underrepresented so far, gently boost them.
+    const targetFriendlyShare = 0.4; // friendly nodes should be noticeable without dominating
+    const placedTotal = friendlyPlaced + enemyPlaced;
+    const friendlyShare = placedTotal > 0 ? friendlyPlaced / placedTotal : 0;
+    const boostFriendly = friendlyShare < targetFriendlyShare;
+
+    if (!boostFriendly) return this.rollNodeType(rng);
+
+    // Rebuild a biased weight table (friendly weights * 1.5, enemy weights * 0.9).
+    const base = this.config.typeWeights;
+    const entries = Object.entries(base) as [NodeType, number][];
+    const biasedEntries: Array<[NodeType, number]> = [];
+    for (const [type, w] of entries) {
+      if (!w || w <= 0) continue;
+      if (NodePopulator.FRIENDLY_TYPES.includes(type)) biasedEntries.push([type, w * 1.5]);
+      else if (NodePopulator.ENEMY_TYPES.includes(type)) biasedEntries.push([type, w * 0.9]);
+      else biasedEntries.push([type, w]);
+    }
+    return this.rollFromWeightedEntries(rng, biasedEntries) ?? 'combat';
+  }
+
+  private rollFromTypes(rng: RNG, types: readonly NodeType[]): NodeType {
+    const base = this.config.typeWeights;
+    const entries: Array<[NodeType, number]> = [];
+    for (const t of types) {
+      const w = base[t];
+      if (typeof w === 'number' && w > 0) entries.push([t, w]);
+    }
+    // If act config zeroes out all weights (unlikely), just pick uniformly.
+    if (entries.length === 0) return types[Math.floor(rng.next() * types.length)] ?? 'combat';
+    return this.rollFromWeightedEntries(rng, entries) ?? (types[0] ?? 'combat');
+  }
+
+  private rollFromWeightedEntries(rng: RNG, entries: Array<[NodeType, number]>): NodeType | null {
+    const total = entries.reduce((sum, [, w]) => sum + w, 0);
+    if (total <= 0) return null;
+    let roll = rng.next() * total;
+    for (const [type, w] of entries) {
+      roll -= w;
+      if (roll <= 0) return type;
+    }
+    return entries[entries.length - 1]?.[0] ?? null;
   }
 
   /**
