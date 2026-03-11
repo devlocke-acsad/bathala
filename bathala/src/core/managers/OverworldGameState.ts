@@ -9,6 +9,9 @@ export class OverworldGameState {
   public totalActionsUntilBoss: number = 500; // 5 cycles * 100 actions per cycle
   public bossAppeared: boolean = false;
 
+  // Event encounter tracking (per playthrough)
+  private encounteredEventIds: Set<string> = new Set();
+
   // Engagement tracking for anti-rush balancing
   public combatsStarted: number = 0;
   public eliteCombatsStarted: number = 0;
@@ -167,6 +170,7 @@ export class OverworldGameState {
     this.combatsStarted = 0;
     this.eliteCombatsStarted = 0;
     this.bossCombatsStarted = 0;
+    this.encounteredEventIds.clear();
   }
 
   /**
@@ -188,6 +192,22 @@ export class OverworldGameState {
    */
   getBossProgress(): number {
     return Math.min(this.actionsTaken / this.totalActionsUntilBoss, 1);
+  }
+
+  /**
+   * Mark an event as encountered (prevents replay in the same playthrough).
+   */
+  markEventEncountered(eventId: string): void {
+    if (!eventId) return;
+    this.encounteredEventIds.add(eventId);
+  }
+
+  /**
+   * Check whether an event has already been encountered this playthrough.
+   */
+  hasEncounteredEvent(eventId: string): boolean {
+    if (!eventId) return false;
+    return this.encounteredEventIds.has(eventId);
   }
 
   /**

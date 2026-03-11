@@ -18,6 +18,7 @@ import { EducationalEventManager } from '../../core/managers/EducationalEventMan
 export class EventScene extends Scene {
   private player!: Player;
   private currentEvent!: GameEvent | EducationalEvent;
+  private isDayCycle!: boolean;
 
   // Layout constants (1920×1080)
   private readonly W = 1920;
@@ -58,6 +59,8 @@ export class EventScene extends Scene {
   init(data: { player: Player; event?: GameEvent | EducationalEvent }) {
     this.player = data.player;
     this.currentEvent = data.event ?? EventSelectionSystem.getRandomEvent();
+    this.isDayCycle = OverworldGameState.getInstance().isDay;
+    OverworldGameState.getInstance().markEventEncountered(this.currentEvent.id);
     this.currentDescriptionIndex = 0;
     this.choiceButtons = [];
     this.particles = [];
@@ -89,7 +92,7 @@ export class EventScene extends Scene {
   // ─────────────────────────────────────────────
 
   private resolveTheme(): void {
-    if (this.currentEvent.dayEvent) {
+    if (this.isDayCycle) {
       // Day: warm teal / gold
       this.accentColor = 0x20b2aa;
       this.accentHex = '#20b2aa';
@@ -125,7 +128,7 @@ export class EventScene extends Scene {
     this.bgLayer.add([edgeLeft, edgeRight, edgeTop, edgeBottom]);
 
     // Subtle colour wash (day = warm, night = cool)
-    const washColor = this.currentEvent.dayEvent ? 0x1a2f2a : 0x1a1a2f;
+    const washColor = this.isDayCycle ? 0x1a2f2a : 0x1a1a2f;
     const wash = this.add.rectangle(this.W / 2, this.H / 2, this.W, this.H, washColor, 0.35);
     this.bgLayer.add(wash);
 
@@ -166,7 +169,7 @@ export class EventScene extends Scene {
       const radius = Phaser.Math.FloatBetween(1.5, 4);
       const alpha = Phaser.Math.FloatBetween(0.08, 0.3);
 
-      const color = this.currentEvent.dayEvent
+      const color = this.isDayCycle
         ? Phaser.Math.RND.pick([0xd4a747, 0xe8c96e, 0x20b2aa])
         : Phaser.Math.RND.pick([0x8a6fdf, 0x4a90d9, 0x6b5ce7]);
 
@@ -348,7 +351,7 @@ export class EventScene extends Scene {
 
     // Day/Night badge
     const badgeY = 80;
-    const isDay = this.currentEvent.dayEvent;
+    const isDay = this.isDayCycle;
     const badgeIcon = isDay ? '☀' : '☾';
     const badgeLabel = isDay ? 'DAY' : 'NIGHT';
     const badgeBg = this.add.rectangle(panelCenterX, badgeY, 120, 36, 0x000000, 0.5)
