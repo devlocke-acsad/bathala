@@ -15,7 +15,7 @@ export class Settings extends Scene {
   backButton: GameObjects.Text;
   private musicLifecycle!: MusicLifecycleSystem;
   private settings = SettingsManager.getInstance();
-  private currentView: "root" | "audio" | "video" | "gameplay" | "controls" = "root";
+  private currentView: "root" | "audio" | "video" | "controls" = "root";
 
   constructor() {
     super("Settings");
@@ -149,7 +149,6 @@ export class Settings extends Scene {
     const options = [
       { label: "Audio", action: () => this.showAudioSettings() },
       { label: "Video", action: () => this.showVideoSettings() },
-      { label: "Gameplay", action: () => this.showGameplaySettings() },
       { label: "Controls", action: () => this.showControls() },
       { label: "Back", action: () => this.scene.start("MainMenu") },
     ];
@@ -210,29 +209,13 @@ export class Settings extends Scene {
     // Add title
     this.createStraightTitle(screenWidth/2, 100, "audio settings");
     
-    // Get current music volume from MusicManager
-    const musicManager = MusicManager.getInstance();
     const current = this.settings.get();
     const currentMusicVolume = current.musicVolume;
-    const currentSfxVolume = current.sfxVolume;
-    const currentMasterVolume = current.masterVolume;
-    
-    // Master Volume Slider
+
+    // Music Volume Slider (only dynamic slider in UI)
     this.createVolumeSlider(
       screenWidth/2,
-      screenHeight/2 - 80,
-      "Master Volume",
-      currentMasterVolume,
-      (volume: number) => {
-        this.settings.set({ masterVolume: volume });
-        this.settings.applyToAudio();
-      }
-    );
-    
-    // Music Volume Slider
-    this.createVolumeSlider(
-      screenWidth/2,
-      screenHeight/2,
+      screenHeight/2 - 40,
       "Music Volume",
       currentMusicVolume,
       (volume: number) => {
@@ -243,42 +226,34 @@ export class Settings extends Scene {
       }
     );
 
-    // SFX Volume Slider (functional for future SFX calls)
-    this.createVolumeSlider(
-      screenWidth/2,
-      screenHeight/2 + 80,
-      "SFX Volume",
-      currentSfxVolume,
-      (volume: number) => {
-        this.settings.set({ sfxVolume: volume });
+    // MainMenu-style buttons
+    const fixedWidth = 360;
+    const startY = screenHeight / 2 + 70;
+
+    const muteLabel = () => `Music: ${this.settings.get().muteMusic ? "OFF" : "ON"}`;
+
+    createButton(
+      this,
+      screenWidth / 2,
+      startY,
+      muteLabel(),
+      () => {
+        const nextMuted = !this.settings.get().muteMusic;
+        this.settings.set({ muteMusic: nextMuted });
         this.settings.applyToAudio();
-      }
+
+        // Stop instantly when muting; resume instantly when unmuting.
+        if (nextMuted) {
+          this.musicLifecycle.stop();
+        } else {
+          this.musicLifecycle.start();
+        }
+
+        // Refresh label to match current state
+        this.showAudioSettings();
+      },
+      fixedWidth
     );
-    
-    // Add mute/unmute button for music
-    const muteButton = this.add.text(
-      screenWidth/2,
-      screenHeight/2 + 170,
-      musicManager.isMusicMutedState() ? "Unmute Music" : "Mute Music",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#77888C",
-        align: "center",
-      }
-    ).setOrigin(0.5)
-    .setInteractive({ useHandCursor: true })
-    .on("pointerdown", () => {
-      musicManager.toggleMusicMute();
-      this.settings.set({ muteMusic: musicManager.isMusicMutedState() });
-      muteButton.setText(musicManager.isMusicMutedState() ? "Unmute Music" : "Mute Music");
-    })
-    .on("pointerover", () => {
-      muteButton.setColor("#e8eced");
-    })
-    .on("pointerout", () => {
-      muteButton.setColor("#77888C");
-    });
     
     // Add back button
     this.createBackButton();
@@ -392,10 +367,7 @@ export class Settings extends Scene {
     // Add title
     this.createStraightTitle(screenWidth/2, 100, "video settings");
 
-    const current = this.settings.get();
     const fullscreenLabel = () => `Fullscreen: ${this.scale.isFullscreen ? "ON" : "OFF"}`;
-    const scanlineLabel = (on: boolean) => `Scanlines: ${on ? "ON" : "OFF"}`;
-    const reducedMotionLabel = (on: boolean) => `Reduced Motion: ${on ? "ON" : "OFF"}`;
 
     const fixedWidth = 360;
     const startY = screenHeight / 2 - 40;
@@ -417,64 +389,6 @@ export class Settings extends Scene {
       },
       fixedWidth
     );
-
-    createButton(
-      this,
-      screenWidth / 2,
-      startY + 80,
-      scanlineLabel(current.showScanlines),
-      () => {
-        const next = !this.settings.get().showScanlines;
-        this.settings.set({ showScanlines: next });
-        this.showVideoSettings();
-      },
-      fixedWidth
-    );
-
-    createButton(
-      this,
-      screenWidth / 2,
-      startY + 160,
-      reducedMotionLabel(current.reducedMotion),
-      () => {
-        const next = !this.settings.get().reducedMotion;
-        this.settings.set({ reducedMotion: next });
-        this.showVideoSettings();
-      },
-      fixedWidth
-    );
-    
-    // Add back button
-    this.createBackButton();
-  }
-
-  private showGameplaySettings(): void {
-    // Clear existing UI
-    this.clearSettingsUI();
-    
-    // Recreate background effects
-    this.createBackgroundEffects();
-    
-    // Get screen dimensions
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Add title
-    this.createStraightTitle(screenWidth/2, 100, "gameplay settings");
-
-    // Minimal but functional: reset settings to defaults
-    createButton(
-      this,
-      screenWidth / 2,
-      screenHeight / 2 - 10,
-      "Reset Settings to Defaults",
-      () => {
-        this.settings.resetToDefaults();
-        this.settings.applyToAudio();
-        this.showGameplaySettings();
-      },
-      420
-    );
     
     // Add back button
     this.createBackButton();
@@ -493,90 +407,54 @@ export class Settings extends Scene {
     
     // Add title
     this.createStraightTitle(screenWidth/2, 100, "controls");
-    
-    this.add.text(
-      screenWidth / 2,
-      screenHeight / 2 - 120,
-      "Controls",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 24,
-        color: "#77888C",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2 - 150,
-      screenHeight/2 - 50,
-      "Movement:",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
-    
-    this.add.text(
-      screenWidth/2 + 50,
-      screenHeight/2 - 50,
-      "WASD / Arrow Keys",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
-    
-    this.add.text(
-      screenWidth/2 - 150,
-      screenHeight/2 - 10,
-      "Confirm:",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
-    
-    this.add.text(
-      screenWidth/2 + 50,
-      screenHeight/2 - 10,
-      "Enter / Space",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
-    
-    this.add.text(
-      screenWidth/2 - 150,
-      screenHeight/2 + 30,
-      "Cancel:",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
-    
-    this.add.text(
-      screenWidth/2 + 50,
-      screenHeight/2 + 30,
-      "Escape",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
+
+    // Styled, non-interactive rows that match the main-menu button design
+    const createControlRow = (x: number, y: number, label: string, binding: string, width = 560) => {
+      const baseButtonHeight = 58;
+      const height = baseButtonHeight;
+
+      const row = this.add.container(x, y);
+
+      const outerBorder = this.add
+        .rectangle(0, 0, width + 8, height + 8, undefined as any, 0)
+        .setStrokeStyle(2, 0x77888C, 0.8);
+      const innerBorder = this.add
+        .rectangle(0, 0, width, height, undefined as any, 0)
+        .setStrokeStyle(1, 0x77888C, 0.6);
+      const bg = this.add.rectangle(0, 0, width, height, 0x150E10);
+
+      const labelText = this.add
+        .text(-width / 2 + 22, 0, label, {
+          fontFamily: "dungeon-mode",
+          fontSize: 18,
+          color: "#77888C",
+          align: "left",
+        })
+        .setOrigin(0, 0.5);
+
+      const bindingText = this.add
+        .text(width / 2 - 22, 0, binding, {
+          fontFamily: "dungeon-mode",
+          fontSize: 18,
+          color: "#e8eced",
+          align: "right",
+          wordWrap: { width: width * 0.55, useAdvancedWrap: true },
+        })
+        .setOrigin(1, 0.5);
+
+      row.add([outerBorder, innerBorder, bg, labelText, bindingText]);
+      return row;
+    };
+
+    const rows = [
+      { label: "Movement", binding: "W / A / S / D  or  Arrow Keys" },
+      { label: "Confirm / Select", binding: "Enter  or  Space" },
+      { label: "Cancel / Back", binding: "Escape" },
+    ];
+
+    const startY = screenHeight / 2 - 70;
+    const spacing = 78;
+    rows.forEach((r, i) => createControlRow(screenWidth / 2, startY + i * spacing, r.label, r.binding));
     
     // Add back button
     this.createBackButton();
@@ -585,25 +463,16 @@ export class Settings extends Scene {
   private createBackButton(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
-    const backText = this.add
-      .text(100, screenHeight - 100, "Back", {
-        fontFamily: "dungeon-mode",
-        fontSize: 24,
-        color: "#77888C",
-        align: "center",
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerdown", () => {
-        this.showRoot();
-      })
-      .on("pointerover", () => {
-        backText.setColor("#e8eced");
-      })
-      .on("pointerout", () => {
-        backText.setColor("#77888C");
-      });
+
+    // MainMenu-style Back button
+    createButton(
+      this,
+      screenWidth / 2,
+      screenHeight - 110,
+      "Back",
+      () => this.showRoot(),
+      220
+    );
   }
 
   private showRoot(): void {
