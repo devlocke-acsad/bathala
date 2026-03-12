@@ -331,7 +331,7 @@ export class EventScene extends Scene {
       // Element glyph symbol
       const glyphSymbol = this.getEventGlyph();
       const glyph = this.add.text(panelCenterX, glyphCenterY, glyphSymbol, {
-        fontFamily: 'dungeon-mode-inverted',
+        fontFamily: 'dungeon-mode',
         fontSize: '140px',
         color: this.accentHex,
         align: 'center'
@@ -364,10 +364,10 @@ export class EventScene extends Scene {
     }).setOrigin(0.5);
     this.illustrationContainer.add([badgeBg, badgeText]);
 
-    // Event name — large dramatic title
+    // Event name — large dramatic title (match core dungeon font)
     const titleY = this.H - 200;
     const title = this.add.text(panelCenterX, titleY, this.currentEvent.name.toUpperCase(), {
-      fontFamily: 'dungeon-mode-inverted',
+      fontFamily: 'dungeon-mode',
       fontSize: '38px',
       color: '#e8eced',
       align: 'center',
@@ -858,7 +858,7 @@ export class EventScene extends Scene {
     // Outcome header
     const headerColor = '#2ed573';
     const header = this.add.text(0, -panelH / 2 + 35, 'EVENT OUTCOME', {
-      fontFamily: 'dungeon-mode-inverted',
+      fontFamily: 'dungeon-mode',
       fontSize: '22px',
       color: headerColor,
       letterSpacing: 3
@@ -965,7 +965,7 @@ export class EventScene extends Scene {
 
     // WISDOM GAINED header
     const header = this.add.text(0, -panelH / 2 + 35, 'WISDOM GAINED', {
-      fontFamily: 'dungeon-mode-inverted',
+      fontFamily: 'dungeon-mode',
       fontSize: '24px',
       color: '#ffb74d',
       letterSpacing: 3
