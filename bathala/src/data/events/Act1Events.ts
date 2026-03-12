@@ -1,4 +1,4 @@
-﻿import { GameEvent, EventContext } from "./EventTypes";
+import { GameEvent, EventContext } from "./EventTypes";
 import { act1CommonPotions as commonPotions, act1UncommonPotions as uncommonPotions } from "../potions";
 import { commonRelics, treasureRelics } from "../relics/Act1Relics";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
@@ -128,7 +128,9 @@ export const Act1Events: GameEvent[] = [
           if (player.relics.length < 6) {
             const availableRelics = [...commonRelics, ...treasureRelics];
             const randomRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
-            player.relics.push(randomRelic);
+            if (!player.relics.some(r => r.id === randomRelic.id)) {
+              player.relics.push(randomRelic);
+            }
             return `You reach for the sampaguita — and the altar responds. Ancient power flows upward through the stone, crystallizing into ${randomRelic.name}. The animist rites still work for those who approach with respect.`;
           }
           return "The altar pulses with latent power, but you carry too many relics. The offering remains, waiting for one who has room for its gift.";
@@ -214,7 +216,9 @@ export const Act1Events: GameEvent[] = [
           if (player.relics.length < 6) {
             const availableRelics = [...commonRelics, ...treasureRelics];
             const randomRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
-            player.relics.push(randomRelic);
+            if (!player.relics.some(r => r.id === randomRelic.id)) {
+              player.relics.push(randomRelic);
+            }
             return `You sit beneath the kapre's tree without fear. For a long while, neither of you speaks. Then the kapre reaches down with an enormous hand and places something in your palm — ${randomRelic.name}. "I remember what I was," it rumbles. "Guard it better than I did."`;
           }
           return "The kapre nods approvingly at your courage but sees your pockets are full. 'Come back when you have room,' it rumbles.";

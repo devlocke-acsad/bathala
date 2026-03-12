@@ -2554,14 +2554,11 @@ export class Combat extends Scene {
           const droppedRelic = reward.relics[0];
           console.log(`✅ Relic dropped: ${droppedRelic.name} (${droppedRelic.emoji})`);
 
-          // Add to player's relics (max 6)
-          if (!this.combatState.player.relics) {
-            this.combatState.player.relics = [];
-          }
-
-          if (this.combatState.player.relics.length < 6) {
-            this.combatState.player.relics.push(droppedRelic);
+          const result = RelicManager.tryGainRelic(this.combatState.player, droppedRelic);
+          if (result.added) {
             console.log(`Added relic to inventory. Total relics: ${this.combatState.player.relics.length}/6`);
+          } else if (result.reason === 'duplicate') {
+            console.log(`ℹ️ Duplicate relic (${droppedRelic.id}) not added.`);
           } else {
             console.log(`⚠️ Relic inventory full (6/6). Relic not added.`);
           }

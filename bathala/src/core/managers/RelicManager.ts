@@ -10,6 +10,35 @@ import { DeckManager } from "../../utils/DeckManager";
  * Handles applying active relic effects during combat and attune sessions
  */
 export class RelicManager {
+  /**
+   * Add a relic to a legacy Player inventory if not already owned.
+   * Prevents duplicates and respects the 6-relic cap used throughout the game.
+   *
+   * Returns whether the relic was added and why it might have been skipped.
+   */
+  static tryGainRelic(
+    player: Player,
+    relic: Relic,
+    opts?: { applyAcquisitionEffect?: boolean }
+  ): { added: boolean; reason?: 'duplicate' | 'full' } {
+    if (!player.relics) player.relics = [];
+
+    if (player.relics.some(r => r.id === relic.id)) {
+      return { added: false, reason: 'duplicate' };
+    }
+
+    // Consistent with UI/flows that cap at 6 relics.
+    if (player.relics.length >= 6) {
+      return { added: false, reason: 'full' };
+    }
+
+    player.relics.push(relic);
+    if (opts?.applyAcquisitionEffect) {
+      RelicManager.applyRelicAcquisitionEffect(relic.id, player);
+    }
+    return { added: true };
+  }
+
   private static getUniqueRelicIds(player: Player): string[] {
     return [...new Set(player.relics.map(r => r.id))];
   }
