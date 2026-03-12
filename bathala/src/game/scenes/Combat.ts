@@ -3288,65 +3288,137 @@ export class Combat extends Scene {
     const screenWidth = this.cameras.main?.width || 1024;
     const screenHeight = this.cameras.main?.height || 768;
     const ending = getEnding(this.combatState.player.landasScore);
+    const scaleFactor = Math.max(0.8, Math.min(1.2, Math.min(screenWidth / 1024, screenHeight / 768)));
+    const wrapWidth = Math.min(screenWidth * 0.72, 760 * scaleFactor);
 
     // Full overlay
-    const overlay = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x000000, 1).setDepth(8000);
+    const overlay = this.add
+      .rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x000000, 1)
+      .setDepth(8000);
 
-    // Title
-    const title = this.add.text(screenWidth / 2, screenHeight / 2 - 120, ending.title, {
-      fontFamily: 'dungeon-mode', fontSize: '36px',
-      color: `#${ending.color.toString(16).padStart(6, '0')}`, align: 'center'
+    // Container to allow stacking and easier teardown
+    const container = this.add.container(screenWidth / 2, 0).setDepth(8001);
+
+    // Build the text objects (y positions will be computed after measuring heights)
+    const title = this.add.text(0, 0, ending.title, {
+      fontFamily: 'dungeon-mode',
+      fontSize: `${Math.floor(40 * scaleFactor)}px`,
+      color: `#${ending.color.toString(16).padStart(6, '0')}`,
+      align: 'center',
+    }).setOrigin(0.5, 0).setAlpha(0);
+
+    const subtitle = this.add.text(0, 0, ending.subtitle, {
+      fontFamily: 'dungeon-mode',
+      fontSize: `${Math.floor(16 * scaleFactor)}px`,
+      color: '#888888',
+      align: 'center',
+      fontStyle: 'italic',
+      wordWrap: { width: wrapWidth },
+    }).setOrigin(0.5, 0).setAlpha(0);
+
+    const voice = this.add.text(0, 0, `"${ending.bathalaVoice}"`, {
+      fontFamily: 'dungeon-mode',
+      fontSize: `${Math.floor(14 * scaleFactor)}px`,
+      color: '#e8eced',
+      align: 'center',
+      fontStyle: 'italic',
+      wordWrap: { width: wrapWidth },
+    }).setOrigin(0.5, 0).setAlpha(0);
+
+    const finalText = this.add.text(0, 0, ending.finalText, {
+      fontFamily: 'dungeon-mode',
+      fontSize: `${Math.floor(13 * scaleFactor)}px`,
+      color: '#aabbcc',
+      align: 'center',
+      wordWrap: { width: wrapWidth },
+    }).setOrigin(0.5, 0).setAlpha(0);
+
+    // Avoid emoji rendering fallback issues in bitmap fonts by keeping this plain text.
+    const unlockText = this.add.text(0, 0, `Unlocked: ${ending.unlock}`, {
+      fontFamily: 'dungeon-mode',
+      fontSize: `${Math.floor(12 * scaleFactor)}px`,
+      color: '#ffd93d',
+      align: 'center',
+      wordWrap: { width: wrapWidth },
+    }).setOrigin(0.5, 0).setAlpha(0);
+
+    container.add([title, subtitle, voice, finalText, unlockText]);
+
+    // Stack layout with auto-fit for long endings
+    const topPadding = Math.floor(screenHeight * 0.10);
+    const bottomPadding = Math.floor(screenHeight * 0.14);
+    const gap = 12 * scaleFactor;
+    const availableH = Math.max(200, screenHeight - topPadding - bottomPadding);
+
+    const applyLayout = () => {
+      let y = topPadding;
+      title.setY(y);
+      y += title.height + 10 * scaleFactor;
+      subtitle.setY(y);
+      y += subtitle.height + 18 * scaleFactor;
+      voice.setY(y);
+      y += voice.height + 18 * scaleFactor;
+      finalText.setY(y);
+      y += finalText.height + 14 * scaleFactor;
+      unlockText.setY(y);
+    };
+
+    // First layout pass (measure heights with current font sizes)
+    applyLayout();
+
+    // If too tall, shrink body text until it fits (bounded to avoid unreadably small text)
+    const getTotalHeight = () => (unlockText.y + unlockText.height) - topPadding;
+    let iterations = 0;
+    while (getTotalHeight() > availableH && iterations < 10) {
+      iterations++;
+
+      const currentVoiceSize = parseInt(String((voice.style as any).fontSize).replace('px', ''), 10) || Math.floor(14 * scaleFactor);
+      const currentFinalSize = parseInt(String((finalText.style as any).fontSize).replace('px', ''), 10) || Math.floor(13 * scaleFactor);
+      const currentUnlockSize = parseInt(String((unlockText.style as any).fontSize).replace('px', ''), 10) || Math.floor(12 * scaleFactor);
+
+      const nextVoice = Math.max(10, currentVoiceSize - 1);
+      const nextFinal = Math.max(10, currentFinalSize - 1);
+      const nextUnlock = Math.max(10, currentUnlockSize - 1);
+
+      voice.setFontSize(nextVoice);
+      finalText.setFontSize(nextFinal);
+      unlockText.setFontSize(nextUnlock);
+
+      applyLayout();
+    }
+
+    // Continue hint pinned to bottom
+    const continueText = this.add.text(screenWidth / 2, screenHeight - Math.floor(40 * scaleFactor), 'Click to continue', {
+      fontFamily: 'dungeon-mode',
+      fontSize: `${Math.floor(12 * scaleFactor)}px`,
+      color: '#555555',
     }).setOrigin(0.5).setDepth(8001).setAlpha(0);
 
-    // Subtitle
-    const subtitle = this.add.text(screenWidth / 2, screenHeight / 2 - 75, ending.subtitle, {
-      fontFamily: 'dungeon-mode', fontSize: '16px', color: '#888888',
-      align: 'center', fontStyle: 'italic'
-    }).setOrigin(0.5).setDepth(8001).setAlpha(0);
-
-    // Bathala's voice
-    const voice = this.add.text(screenWidth / 2, screenHeight / 2, `"${ending.bathalaVoice}"`, {
-      fontFamily: 'dungeon-mode', fontSize: '14px', color: '#e8eced',
-      align: 'center', fontStyle: 'italic', wordWrap: { width: screenWidth * 0.55 }
-    }).setOrigin(0.5).setDepth(8001).setAlpha(0);
-
-    // Final text
-    const finalText = this.add.text(screenWidth / 2, screenHeight / 2 + 100, ending.finalText, {
-      fontFamily: 'dungeon-mode', fontSize: '13px', color: '#aabbcc',
-      align: 'center', wordWrap: { width: screenWidth * 0.55 }
-    }).setOrigin(0.5).setDepth(8001).setAlpha(0);
-
-    // Unlock text
-    const unlockText = this.add.text(screenWidth / 2, screenHeight / 2 + 180, `🔓 ${ending.unlock}`, {
-      fontFamily: 'dungeon-mode', fontSize: '12px', color: '#ffd93d',
-      align: 'center', wordWrap: { width: screenWidth * 0.55 }
-    }).setOrigin(0.5).setDepth(8001).setAlpha(0);
-
-    // Floating particles with ending color
-    const particleCount = 20;
+    // Floating particles with ending color (tracked for cleanup)
+    const dots: Phaser.GameObjects.Arc[] = [];
+    const particleCount = 24;
     for (let i = 0; i < particleCount; i++) {
       const px = Phaser.Math.Between(0, screenWidth);
-      const py = Phaser.Math.Between(screenHeight, screenHeight + 100);
-      const dot = this.add.circle(px, py, Phaser.Math.Between(1, 3), ending.particleTint, 0.4).setDepth(8001);
+      const py = Phaser.Math.Between(screenHeight, screenHeight + 120);
+      const dot = this.add.circle(px, py, Phaser.Math.Between(1, 3), ending.particleTint, 0.35).setDepth(8001);
+      dots.push(dot);
       this.tweens.add({
-        targets: dot, y: py - Phaser.Math.Between(200, 500), alpha: 0,
-        duration: Phaser.Math.Between(5000, 10000), ease: 'Power1',
-        delay: Phaser.Math.Between(0, 2000)
+        targets: dot,
+        y: py - Phaser.Math.Between(220, 560),
+        alpha: 0,
+        duration: Phaser.Math.Between(5000, 9500),
+        ease: 'Power1',
+        delay: Phaser.Math.Between(0, 2000),
       });
     }
 
     // Animate in sequence
-    this.tweens.add({ targets: title, alpha: 1, duration: 1000, ease: 'Power2' });
-    this.tweens.add({ targets: subtitle, alpha: 1, duration: 800, delay: 600, ease: 'Power2' });
-    this.tweens.add({ targets: voice, alpha: 1, duration: 1000, delay: 1400, ease: 'Power2' });
-    this.tweens.add({ targets: finalText, alpha: 1, duration: 1000, delay: 2400, ease: 'Power2' });
-    this.tweens.add({ targets: unlockText, alpha: 1, duration: 800, delay: 3400, ease: 'Power2' });
-
-    // Continue hint
-    const continueText = this.add.text(screenWidth / 2, screenHeight - 40, 'Click to continue', {
-      fontFamily: 'dungeon-mode', fontSize: '12px', color: '#555555'
-    }).setOrigin(0.5).setDepth(8001).setAlpha(0);
-    this.tweens.add({ targets: continueText, alpha: 0.5, duration: 500, delay: 4000 });
+    this.tweens.add({ targets: title, alpha: 1, duration: 900, ease: 'Power2' });
+    this.tweens.add({ targets: subtitle, alpha: 1, duration: 700, delay: 450, ease: 'Power2' });
+    this.tweens.add({ targets: voice, alpha: 1, duration: 900, delay: 1100, ease: 'Power2' });
+    this.tweens.add({ targets: finalText, alpha: 1, duration: 900, delay: 2000, ease: 'Power2' });
+    this.tweens.add({ targets: unlockText, alpha: 1, duration: 700, delay: 2900, ease: 'Power2' });
+    this.tweens.add({ targets: continueText, alpha: 0.5, duration: 450, delay: 3400 });
 
     // Click to proceed (after 3s minimum)
     let canProceed = false;
@@ -3356,13 +3428,19 @@ export class Combat extends Scene {
 
     overlay.setInteractive().on('pointerdown', () => {
       if (!canProceed) return;
+      overlay.disableInteractive();
       this.tweens.add({
-        targets: [overlay, title, subtitle, voice, finalText, unlockText, continueText],
-        alpha: 0, duration: 1000, ease: 'Power2',
+        targets: [overlay, container, continueText, ...dots],
+        alpha: 0,
+        duration: 900,
+        ease: 'Power2',
         onComplete: () => {
-          [overlay, title, subtitle, voice, finalText, unlockText, continueText].forEach(o => o.destroy());
+          dots.forEach(d => d.destroy());
+          continueText.destroy();
+          container.destroy(true);
+          overlay.destroy();
           callback();
-        }
+        },
       });
     });
   }
