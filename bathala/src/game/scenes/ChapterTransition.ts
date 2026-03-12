@@ -209,9 +209,8 @@ export class ChapterTransition extends Scene {
                   delay: 1000
                 });
 
-                // Step 5: Wait for user input to continue, or auto-continue after a long timer
-                // We'll let the user decide when they are done reading the short lore by clicking/pressing key.
-                this.time.delayedCall(10000, () => {
+                // Step 5: Wait for user input to continue, or auto-continue after a shorter timer
+                this.time.delayedCall(4000, () => {
                   if (this.isSkipping) return;
                   this.fadeOutAndTransition(overlay, chapterNumber, chapterTitle, chapterSubtitle, topLine, bottomLine, skipHint, narrativeLabel);
                 });
