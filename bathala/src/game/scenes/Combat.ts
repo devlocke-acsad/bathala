@@ -440,7 +440,7 @@ export class Combat extends Scene {
         discardPile: existingPlayerData.discardPile || [],
         drawPile: existingPlayerData.drawPile || [],
         playedHand: [],
-        landasScore: existingPlayerData.landasScore || 0,
+        landasScore: existingPlayerData.landasScore ?? 0,
         ginto: existingPlayerData.ginto || 100,
         diamante: existingPlayerData.diamante || 0,
         relics: relicsWithEmoji,

@@ -245,6 +245,9 @@ export class Overworld extends Scene {
         console.log('🔄 Fresh game detected - initializing new player data');
       }
 
+      // Carry Landás across chapters (meta-progression). Fresh starts begin at 0.
+      const carriedLandas = isNewChapter ? (savedPlayerData?.landasScore ?? 0) : 0;
+
       const newDeck = DeckManager.createFullDeck();
       this.playerData = {
         id: "player",
@@ -258,7 +261,7 @@ export class Overworld extends Scene {
         discardPile: [],
         drawPile: [...newDeck],
         playedHand: [],
-        landasScore: 0,
+        landasScore: carriedLandas,
         ginto: 9999,
         diamante: 20,
         relics: [], // Start with no relics
@@ -283,7 +286,7 @@ export class Overworld extends Scene {
         discardPile: savedPlayerData.discardPile || [],
         drawPile: savedPlayerData.drawPile || [],
         playedHand: savedPlayerData.playedHand || [],
-        landasScore: savedPlayerData.landasScore || 0,
+        landasScore: savedPlayerData.landasScore ?? 0,
         ginto: savedPlayerData.ginto !== undefined ? savedPlayerData.ginto : 100,
         diamante: savedPlayerData.diamante !== undefined ? savedPlayerData.diamante : 0,
         relics: savedPlayerData.relics || [],
