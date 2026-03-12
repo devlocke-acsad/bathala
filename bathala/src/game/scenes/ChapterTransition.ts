@@ -256,14 +256,14 @@ export class ChapterTransition extends Scene {
       duration: 800,
       ease: 'Power2',
       onComplete: () => {
-        // Fade to full black
+        // Fade to full black, then hand off to per-chapter cutscene
         this.tweens.add({
           targets: overlay,
           alpha: 1,
           duration: 500,
           ease: 'Power2',
           onComplete: () => {
-            this.startOverworld();
+            this.startChapterCutscene();
           }
         });
       }
@@ -273,11 +273,12 @@ export class ChapterTransition extends Scene {
   // Function removed because logic is handled in the input event listeners
 
   /**
-   * Start the Overworld scene
+   * Start the per-chapter cutscene scene.
+   * This ensures story cutscenes always appear immediately after the transition card.
    */
-  private startOverworld(): void {
-    console.log("🗺️ Chapter transition complete, starting Overworld...");
-    this.scene.start("Overworld", { fadeIn: true });
+  private startChapterCutscene(): void {
+    console.log("🎬 Chapter transition complete, starting ChapterCutscene...");
+    this.scene.start("ChapterCutscene", { chapter: this.targetChapter });
   }
 
   /**
