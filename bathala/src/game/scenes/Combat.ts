@@ -34,6 +34,8 @@ import { BOSS_NARRATIVES, getEnding } from "../../data/NarrativeData";
 import { StatusEffectManager } from "../../core/managers/StatusEffectManager";
 import { VisualThemeManager } from "../../core/managers/VisualThemeManager";
 import { RewardSystem } from "../../systems/combat/RewardSystem";
+import { ActContentProvider } from "../../systems/combat/ActContentProvider";
+import type { Chapter } from "../../core/types/CombatTypes";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -2116,13 +2118,20 @@ export class Combat extends Scene {
     const screenHeight = this.cameras.main?.height || this.scale.height || 768;
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
 
-    // Convert enemy name to dialogue key
+    // Convert enemy name to dialogue key (match hyphen and spaces → underscore)
     const enemyKey = this.combatState.enemy.name
       .toLowerCase()
+      .replace(/-/g, "_")
       .replace(/\s+/g, "_");
     const creatureDialogues = this.dialogue.getCreatureDialogues();
-    const dialogue =
-      creatureDialogues[enemyKey] || creatureDialogues.tikbalang_scout;
+    const currentChapter = GameState.getInstance().getCurrentChapter() as Chapter;
+    let dialogue = creatureDialogues[enemyKey];
+    if (!dialogue) {
+      dialogue = this.buildChapterFallbackDialogue(
+        this.combatState.enemy,
+        currentChapter
+      );
+    }
 
     // Background overlay
     const overlay = this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x000000, 0.75);
@@ -2350,6 +2359,52 @@ export class Combat extends Scene {
     };
 
     return button;
+  }
+
+  /**
+   * Build chapter-appropriate fallback dialogue when no creature dialogue exists
+   * (e.g. Act 2/3 enemies). Uses actual enemy name and chapter relic pool for rewards.
+   */
+  private buildChapterFallbackDialogue(
+    enemy: CombatEntity & { tier?: "common" | "elite" | "boss"; dialogue?: { defeat?: string } },
+    chapter: Chapter
+  ): CreatureDialogue {
+    const tier = enemy.tier ?? "common";
+    const content = ActContentProvider.forChapter(chapter);
+    const relic = content.getRandomRelic(tier);
+    const relics = relic ? [relic] : [];
+    const dropChance = tier === "boss" ? 1.0 : tier === "elite" ? 0.6 : 0.35;
+    const spareGinto = tier === "boss" ? 150 : tier === "elite" ? 80 : 45;
+    const killGinto = tier === "boss" ? 200 : tier === "elite" ? 120 : 70;
+    const spareDiamante = tier === "boss" ? 3 : tier === "elite" ? 1 : 0;
+    const killDiamante = tier === "boss" ? 5 : tier === "elite" ? 2 : 1;
+    const spareHeal = tier === "boss" ? 30 : tier === "elite" ? 20 : 8;
+    const defeatLine = enemy.dialogue?.defeat ?? "";
+    return {
+      name: enemy.name,
+      spareDialogue: defeatLine
+        ? "Your mercy is remembered. Take this blessing."
+        : "Your compassion has been noted. Take this gift.",
+      killDialogue: defeatLine
+        ? "Your choice has been recorded."
+        : "So be it.",
+      spareReward: {
+        ginto: spareGinto,
+        diamante: spareDiamante,
+        healthHealing: spareHeal,
+        bonusEffect: "Chapter blessing",
+        relics,
+        relicDropChance: dropChance,
+      },
+      killReward: {
+        ginto: killGinto,
+        diamante: killDiamante,
+        healthHealing: 0,
+        bonusEffect: "Conquest reward",
+        relics,
+        relicDropChance: dropChance,
+      },
+    };
   }
 
   /**
