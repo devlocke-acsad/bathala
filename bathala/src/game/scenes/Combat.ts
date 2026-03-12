@@ -2116,7 +2116,10 @@ export class Combat extends Scene {
     // Get screen dimensions safely
     const screenWidth = this.cameras.main?.width || this.scale.width || 1024;
     const screenHeight = this.cameras.main?.height || this.scale.height || 768;
-    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
+    const scaleFactor = Math.max(
+      0.8,
+      Math.min(1.2, Math.min(screenWidth / 1024, screenHeight / 768))
+    );
 
     // Convert enemy name to dialogue key (match hyphen and spaces → underscore)
     const enemyKey = this.combatState.enemy.name
@@ -2141,15 +2144,22 @@ export class Combat extends Scene {
 
     // Larger dialogue box to fit all content
     const dialogueBoxWidth = Math.min(650, screenWidth * 0.85);
-    const dialogueBoxHeight = Math.min(420, screenHeight * 0.72);
+    const maxDialogueBoxHeight = Math.min(560, screenHeight * 0.82);
+    const minDialogueBoxHeight = Math.min(360, screenHeight * 0.62);
+    // We'll compute the final height after measuring text.
+    let dialogueBoxHeight = Math.min(420, maxDialogueBoxHeight);
 
     // Double border design
-    const outerBorder = this.add.rectangle(0, 0, dialogueBoxWidth + 8, dialogueBoxHeight + 8, undefined, 0).setStrokeStyle(2, 0x77888C);
-    const innerBorder = this.add.rectangle(0, 0, dialogueBoxWidth, dialogueBoxHeight, undefined, 0).setStrokeStyle(2, 0x77888C);
+    const outerBorder = this.add
+      .rectangle(0, 0, dialogueBoxWidth + 8, dialogueBoxHeight + 8, undefined, 0)
+      .setStrokeStyle(2, 0x77888C);
+    const innerBorder = this.add
+      .rectangle(0, 0, dialogueBoxWidth, dialogueBoxHeight, undefined, 0)
+      .setStrokeStyle(2, 0x77888C);
     const bg = this.add.rectangle(0, 0, dialogueBoxWidth, dialogueBoxHeight, 0x150E10);
 
     // Enemy name — positioned near top of box with room below
-    const enemyNameText = this.add.text(0, -dialogueBoxHeight / 2 + 30, dialogue.name.toUpperCase(), {
+    const enemyNameText = this.add.text(0, 0, dialogue.name.toUpperCase(), {
       fontFamily: "dungeon-mode",
       fontSize: Math.floor(26 * scaleFactor),
       color: "#ff4757",
@@ -2157,11 +2167,11 @@ export class Combat extends Scene {
     }).setOrigin(0.5);
 
     // Thin separator under enemy name
-    const nameDivider = this.add.rectangle(0, -dialogueBoxHeight / 2 + 52, dialogueBoxWidth * 0.5, 1, 0xff4757, 0.3);
+    const nameDivider = this.add.rectangle(0, 0, dialogueBoxWidth * 0.5, 1, 0xff4757, 0.3);
 
     // Defeat dialogue — pre-filled, will fade in
     const defeatLine = this.combatState.enemy.dialogue?.defeat || "";
-    const defeatText = this.add.text(0, -dialogueBoxHeight / 2 + 80, defeatLine ? `"${defeatLine}"` : '', {
+    const defeatText = this.add.text(0, 0, defeatLine ? `"${defeatLine}"` : '', {
       fontFamily: "dungeon-mode",
       fontSize: Math.floor(13 * scaleFactor),
       color: "#aabbcc",
@@ -2172,7 +2182,7 @@ export class Combat extends Scene {
     }).setOrigin(0.5, 0).setAlpha(0);
 
     // "What do you choose?" prompt — centered in box
-    const mainText = this.add.text(0, 30, 'What do you choose?', {
+    const mainText = this.add.text(0, 0, 'What do you choose?', {
       fontFamily: "dungeon-mode",
       fontSize: Math.floor(18 * scaleFactor),
       color: "#77888C",
@@ -2180,12 +2190,133 @@ export class Combat extends Scene {
       wordWrap: { width: dialogueBoxWidth * 0.8 },
     }).setOrigin(0.5).setAlpha(0);
 
+    // Buttons and Landás display are part of the same container so layout can adapt to long text
+    const spareButton = this.createDialogueButton(
+      -130,
+      0,
+      "Spare",
+      "#2ed573",
+      () => this.makeLandasChoice("spare", dialogue),
+      550
+    );
+
+    const slayButton = this.createDialogueButton(
+      130,
+      0,
+      "Slay",
+      "#ff4757",
+      () => this.makeLandasChoice("kill", dialogue),
+      550
+    );
+
+    const landasTier = this.getLandasTier(this.combatState.player.landasScore);
+    const landasColor = this.getLandasColor(landasTier);
+    const landasText = this.add.text(
+      0,
+      0,
+      `Current Landas: ${this.combatState.player.landasScore} (${landasTier.toUpperCase()})`,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: Math.floor(16 * scaleFactor),
+        color: landasColor,
+        align: "center",
+        wordWrap: { width: dialogueBoxWidth * 0.85 },
+      }
+    ).setOrigin(0.5).setDepth(5002);
+
     // Add elements to dialogue container
     dialogueContainer.add([
       outerBorder, innerBorder, bg,
-      enemyNameText, nameDivider, defeatText, mainText
+      enemyNameText, nameDivider, defeatText, mainText,
+      spareButton, slayButton, landasText
     ]);
     dialogueContainer.setDepth(5001);
+
+    // Layout: compute positions based on measured heights; shrink text if needed to fit.
+    const topPadding = 26 * scaleFactor;
+    const bottomPadding = 20 * scaleFactor;
+    const buttonRowGap = 18 * scaleFactor;
+    const sectionGap = 14 * scaleFactor;
+
+    const layout = () => {
+      // Compute required heights with current font sizes
+      const nameH = enemyNameText.height;
+      const defeatH = defeatLine ? defeatText.height : 0;
+      const promptH = mainText.height;
+      const landasH = landasText.height;
+      const buttonH = Math.max(spareButton.getBounds().height, slayButton.getBounds().height);
+
+      const contentH =
+        topPadding +
+        nameH +
+        10 * scaleFactor + // name->divider
+        16 * scaleFactor + // divider->defeat start
+        defeatH +
+        (defeatLine ? sectionGap : 0) +
+        promptH +
+        buttonRowGap +
+        buttonH +
+        14 * scaleFactor + // buttons->landas
+        landasH +
+        bottomPadding;
+
+      dialogueBoxHeight = Math.max(minDialogueBoxHeight, Math.min(maxDialogueBoxHeight, contentH));
+
+      // Resize box visuals to final height
+      outerBorder.setSize(dialogueBoxWidth + 8, dialogueBoxHeight + 8);
+      innerBorder.setSize(dialogueBoxWidth, dialogueBoxHeight);
+      bg.setSize(dialogueBoxWidth, dialogueBoxHeight);
+
+      // Position elements from top to bottom
+      let y = -dialogueBoxHeight / 2 + topPadding;
+      enemyNameText.setY(y);
+      y += nameH + 10 * scaleFactor;
+      nameDivider.setY(y);
+      y += 16 * scaleFactor;
+
+      if (defeatLine) {
+        defeatText.setY(y);
+        y += defeatText.height + sectionGap;
+      } else {
+        defeatText.setY(y);
+      }
+
+      mainText.setY(y + promptH / 2);
+      y += promptH + buttonRowGap;
+
+      // Buttons row
+      spareButton.setY(y + buttonH / 2);
+      slayButton.setY(y + buttonH / 2);
+      y += buttonH + 14 * scaleFactor;
+
+      landasText.setY(y + landasH / 2);
+    };
+
+    // Fit loop: if content overflows max height, shrink defeat/prompt text until it fits.
+    const willOverflow = () => {
+      const bottomMost =
+        landasText.y +
+        landasText.height / 2 +
+        bottomPadding;
+      return bottomMost > (dialogueBoxHeight / 2);
+    };
+
+    let iter = 0;
+    while (iter < 10) {
+      layout();
+      if (!willOverflow()) break;
+      iter++;
+
+      const currentDefeatSize = parseInt(String((defeatText.style as any).fontSize).replace('px', ''), 10) || Math.floor(13 * scaleFactor);
+      const currentPromptSize = parseInt(String((mainText.style as any).fontSize).replace('px', ''), 10) || Math.floor(18 * scaleFactor);
+
+      defeatText.setFontSize(Math.max(10, currentDefeatSize - 1));
+      mainText.setFontSize(Math.max(14, currentPromptSize - 1));
+      landasText.setFontSize(Math.max(12, Math.floor(16 * scaleFactor) - iter));
+    }
+
+    // Final layout pass after fitting
+    layout();
 
     // Cinematic fade in
     dialogueContainer.setAlpha(0).setScale(0.95);
@@ -2207,42 +2338,6 @@ export class Combat extends Scene {
         }
       }
     });
-
-    // Spare / Slay buttons — positioned lower inside the bigger box
-    const btnY = screenHeight / 2 + 90;
-    this.createDialogueButton(
-      screenWidth / 2 - 130,
-      btnY,
-      "Spare",
-      "#2ed573",
-      () => this.makeLandasChoice("spare", dialogue),
-      550
-    );
-
-    this.createDialogueButton(
-      screenWidth / 2 + 130,
-      btnY,
-      "Slay",
-      "#ff4757",
-      () => this.makeLandasChoice("kill", dialogue),
-      550
-    );
-
-    // Current landas display
-    const landasTier = this.getLandasTier(this.combatState.player.landasScore);
-    const landasColor = this.getLandasColor(landasTier);
-
-    this.add.text(
-      screenWidth / 2,
-      btnY + 60,
-      `Current Landas: ${this.combatState.player.landasScore} (${landasTier.toUpperCase()})`,
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(16 * scaleFactor),
-        color: landasColor,
-        align: "center",
-      }
-    ).setOrigin(0.5).setDepth(5002);
   }
 
   /**
