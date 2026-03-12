@@ -70,14 +70,19 @@ export class MusicLifecycleSystem {
       return;
     }
 
-    // Don't restart if already playing the same track
-    if (this.music && this.music.isPlaying) {
-      return;
-    }
-
     const effectiveVolume = musicManager.getEffectiveMusicVolume();
     const configVolume = musicConfig.volume ?? 1;
     const finalVolume = effectiveVolume * configVolume;
+
+    // If already playing, just refresh volume (enables live settings updates)
+    if (this.music && this.music.isPlaying) {
+      try {
+        this.music.setVolume(finalVolume);
+      } catch {
+        // ignore volume update errors
+      }
+      return;
+    }
 
     try {
       this.music = this.scene.sound.add(musicConfig.musicKey, {

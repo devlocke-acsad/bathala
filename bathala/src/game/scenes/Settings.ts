@@ -1,6 +1,8 @@
 import { Scene, GameObjects } from "phaser";
 import { MusicManager } from "../../core/managers/MusicManager";
 import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
+import { SettingsManager } from "../../core/managers/SettingsManager";
+import { createButton } from "../ui/Button";
 
 export class Settings extends Scene {
   background: GameObjects.Image;
@@ -12,6 +14,8 @@ export class Settings extends Scene {
   scanlineTimer: number = 0;
   backButton: GameObjects.Text;
   private musicLifecycle!: MusicLifecycleSystem;
+  private settings = SettingsManager.getInstance();
+  private currentView: "root" | "audio" | "video" | "gameplay" | "controls" = "root";
 
   constructor() {
     super("Settings");
@@ -29,7 +33,52 @@ export class Settings extends Scene {
     this.createBackgroundEffects();
 
     // Create UI elements
-    this.createUI();
+    // Ensure persisted audio settings are applied (music volume/mute).
+    this.settings.applyToAudio();
+    this.showRoot();
+  }
+
+  /**
+   * Fully clear current Settings UI and input.
+   * Some UI elements were getting removed visually but still responding to clicks;
+   * this ensures all interactive objects + handlers are torn down before rebuilding.
+   */
+  private clearSettingsUI(): void {
+    // Remove any scene-level input listeners (wheel/pointer handlers, etc.)
+    this.input.removeAllListeners();
+    this.input.keyboard?.removeAllListeners();
+
+    // Phaser can keep "interactive objects" queued for removal; explicitly clear them now
+    // for all current children (and container descendants) before destroying.
+    const existing = [...this.children.list];
+    for (const obj of existing) {
+      try {
+        this.input.clear(obj, true);
+      } catch {
+        // ignore
+      }
+
+      const anyObj = obj as any;
+      const childList: unknown = anyObj?.list;
+      if (Array.isArray(childList)) {
+        for (const child of childList) {
+          try {
+            this.input.clear(child, true);
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+
+    // Destroy all display objects (including their input hit areas)
+    this.children.removeAll(true);
+
+    // Stop any tweens that might still be acting on destroyed targets
+    this.tweens.killAll();
+
+    // Ensure DOM-like "top only" behavior (should be default, but enforce it).
+    this.input.topOnly = true;
   }
 
   /**
@@ -94,60 +143,24 @@ export class Settings extends Scene {
     const centerY = screenHeight / 2;
     
     // Create "settings" text with Pixeled English Font
-    this.createStraightTitle(screenWidth/2, centerY - 150, "settings");
+    this.createStraightTitle(screenWidth / 2, centerY - 150, "settings");
 
-    // Settings options - centered below the title with increased gap using dungeon-mode-inverted font
-    const settingsOptions = [
-      "Audio Settings", 
-      "Video Settings", 
-      "Gameplay Settings", 
-      "Controls", 
-      "Back to Main Menu"
+    // Root menu buttons (MainMenu style)
+    const options = [
+      { label: "Audio", action: () => this.showAudioSettings() },
+      { label: "Video", action: () => this.showVideoSettings() },
+      { label: "Gameplay", action: () => this.showGameplaySettings() },
+      { label: "Controls", action: () => this.showControls() },
+      { label: "Back", action: () => this.scene.start("MainMenu") },
     ];
-    const startY = centerY - 50; // Start higher to accommodate more options
-    const spacing = 64; // Increased spacing between options
-    
-    settingsOptions.forEach((option, i) => {
-      const menuText = this.add
-        .text(screenWidth/2, startY + i * spacing, option, {
-          fontFamily: "dungeon-mode-inverted", // Updated font for menu
-          fontSize: 32,
-          color: "#77888C", // Updated color --primary
-          align: "center",
-        })
-        .setOrigin(0.5);
-        
-      // Add pointer interaction for all menu options
-      menuText
-        .setInteractive({ useHandCursor: true })
-        .on("pointerdown", () => {
-          switch (option) {
-            case "Audio Settings":
-              this.showAudioSettings();
-              break;
-            case "Video Settings":
-              this.showVideoSettings();
-              break;
-            case "Gameplay Settings":
-              this.showGameplaySettings();
-              break;
-            case "Controls":
-              this.showControls();
-              break;
-            case "Back to Main Menu":
-              // Music cleanup handled by MusicLifecycleSystem on scene shutdown
-              this.scene.start("MainMenu");
-              break;
-          }
-        })
-        .on("pointerover", () => {
-          menuText.setColor("#e8eced"); // Highlight on hover
-        })
-        .on("pointerout", () => {
-          menuText.setColor("#77888C"); // Return to normal
-        });
-      
-      this.menuTexts.push(menuText);
+
+    const startY = centerY - 30;
+    const spacing = 70;
+    const fixedWidth = 260;
+
+    options.forEach((o, i) => {
+      const btn = createButton(this, screenWidth / 2, startY + i * spacing, o.label, o.action, fixedWidth);
+      this.menuTexts.push(btn.list.find(x => x instanceof GameObjects.Text) as GameObjects.Text);
     });
   }
 
@@ -185,7 +198,7 @@ export class Settings extends Scene {
    */
   private showAudioSettings(): void {
     // Clear existing UI
-    this.children.removeAll();
+    this.clearSettingsUI();
     
     // Recreate background effects
     this.createBackgroundEffects();
@@ -199,8 +212,10 @@ export class Settings extends Scene {
     
     // Get current music volume from MusicManager
     const musicManager = MusicManager.getInstance();
-    const currentMusicVolume = musicManager.getMusicVolume();
-    const currentMasterVolume = this.sound.volume; // Phaser's master volume
+    const current = this.settings.get();
+    const currentMusicVolume = current.musicVolume;
+    const currentSfxVolume = current.sfxVolume;
+    const currentMasterVolume = current.masterVolume;
     
     // Master Volume Slider
     this.createVolumeSlider(
@@ -209,9 +224,8 @@ export class Settings extends Scene {
       "Master Volume",
       currentMasterVolume,
       (volume: number) => {
-        // Update Phaser's master volume
-        this.sound.volume = volume;
-        console.log(`Master Volume set to: ${Math.round(volume * 100)}%`);
+        this.settings.set({ masterVolume: volume });
+        this.settings.applyToAudio();
       }
     );
     
@@ -222,19 +236,32 @@ export class Settings extends Scene {
       "Music Volume",
       currentMusicVolume,
       (volume: number) => {
-        // Update MusicManager volume
-        musicManager.setMusicVolume(volume);
-        console.log(`Music Volume set to: ${Math.round(volume * 100)}%`);
+        this.settings.set({ musicVolume: volume });
+        this.settings.applyToAudio();
+        // Restart lifecycle music to reflect volume immediately.
+        this.musicLifecycle.start();
+      }
+    );
+
+    // SFX Volume Slider (functional for future SFX calls)
+    this.createVolumeSlider(
+      screenWidth/2,
+      screenHeight/2 + 80,
+      "SFX Volume",
+      currentSfxVolume,
+      (volume: number) => {
+        this.settings.set({ sfxVolume: volume });
+        this.settings.applyToAudio();
       }
     );
     
     // Add mute/unmute button for music
     const muteButton = this.add.text(
       screenWidth/2,
-      screenHeight/2 + 80,
+      screenHeight/2 + 170,
       musicManager.isMusicMutedState() ? "Unmute Music" : "Mute Music",
       {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#77888C",
         align: "center",
@@ -243,6 +270,7 @@ export class Settings extends Scene {
     .setInteractive({ useHandCursor: true })
     .on("pointerdown", () => {
       musicManager.toggleMusicMute();
+      this.settings.set({ muteMusic: musicManager.isMusicMutedState() });
       muteButton.setText(musicManager.isMusicMutedState() ? "Unmute Music" : "Mute Music");
     })
     .on("pointerover", () => {
@@ -352,7 +380,7 @@ export class Settings extends Scene {
    */
   private showVideoSettings(): void {
     // Clear existing UI
-    this.children.removeAll();
+    this.clearSettingsUI();
     
     // Recreate background effects
     this.createBackgroundEffects();
@@ -363,55 +391,58 @@ export class Settings extends Scene {
     
     // Add title
     this.createStraightTitle(screenWidth/2, 100, "video settings");
-    
-    // Add placeholder content
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 - 50,
-      "Video Settings - Placeholder",
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 24,
-        color: "#77888C",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2,
-      "Resolution: [1920x1080] <- Click to change",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 + 40,
-      "Fullscreen: [ON] <- Click to toggle",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 + 80,
-      "VSync: [ON] <- Click to toggle",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
+
+    const current = this.settings.get();
+    const fullscreenLabel = () => `Fullscreen: ${this.scale.isFullscreen ? "ON" : "OFF"}`;
+    const scanlineLabel = (on: boolean) => `Scanlines: ${on ? "ON" : "OFF"}`;
+    const reducedMotionLabel = (on: boolean) => `Reduced Motion: ${on ? "ON" : "OFF"}`;
+
+    const fixedWidth = 360;
+    const startY = screenHeight / 2 - 40;
+    createButton(
+      this,
+      screenWidth / 2,
+      startY,
+      fullscreenLabel(),
+      () => {
+        if (this.scale.isFullscreen) {
+          this.scale.stopFullscreen();
+          this.settings.set({ fullscreen: false });
+        } else {
+          this.scale.startFullscreen();
+          this.settings.set({ fullscreen: true });
+        }
+        // Re-render view so label updates
+        this.showVideoSettings();
+      },
+      fixedWidth
+    );
+
+    createButton(
+      this,
+      screenWidth / 2,
+      startY + 80,
+      scanlineLabel(current.showScanlines),
+      () => {
+        const next = !this.settings.get().showScanlines;
+        this.settings.set({ showScanlines: next });
+        this.showVideoSettings();
+      },
+      fixedWidth
+    );
+
+    createButton(
+      this,
+      screenWidth / 2,
+      startY + 160,
+      reducedMotionLabel(current.reducedMotion),
+      () => {
+        const next = !this.settings.get().reducedMotion;
+        this.settings.set({ reducedMotion: next });
+        this.showVideoSettings();
+      },
+      fixedWidth
+    );
     
     // Add back button
     this.createBackButton();
@@ -419,7 +450,7 @@ export class Settings extends Scene {
 
   private showGameplaySettings(): void {
     // Clear existing UI
-    this.children.removeAll();
+    this.clearSettingsUI();
     
     // Recreate background effects
     this.createBackgroundEffects();
@@ -430,43 +461,20 @@ export class Settings extends Scene {
     
     // Add title
     this.createStraightTitle(screenWidth/2, 100, "gameplay settings");
-    
-    // Add placeholder content
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 - 50,
-      "Gameplay Settings - Placeholder",
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 24,
-        color: "#77888C",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2,
-      "Difficulty: [Normal] <- Click to change",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 + 40,
-      "Auto-Save: [ON] <- Click to toggle",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
+
+    // Minimal but functional: reset settings to defaults
+    createButton(
+      this,
+      screenWidth / 2,
+      screenHeight / 2 - 10,
+      "Reset Settings to Defaults",
+      () => {
+        this.settings.resetToDefaults();
+        this.settings.applyToAudio();
+        this.showGameplaySettings();
+      },
+      420
+    );
     
     // Add back button
     this.createBackButton();
@@ -474,7 +482,7 @@ export class Settings extends Scene {
 
   private showControls(): void {
     // Clear existing UI
-    this.children.removeAll();
+    this.clearSettingsUI();
     
     // Recreate background effects
     this.createBackgroundEffects();
@@ -486,13 +494,12 @@ export class Settings extends Scene {
     // Add title
     this.createStraightTitle(screenWidth/2, 100, "controls");
     
-    // Add placeholder content
     this.add.text(
-      screenWidth/2,
-      screenHeight/2 - 100,
-      "Controls - Placeholder",
+      screenWidth / 2,
+      screenHeight / 2 - 120,
+      "Controls",
       {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#77888C",
         align: "center",
@@ -581,7 +588,7 @@ export class Settings extends Scene {
     
     const backText = this.add
       .text(100, screenHeight - 100, "Back", {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 24,
         color: "#77888C",
         align: "center",
@@ -589,10 +596,7 @@ export class Settings extends Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => {
-        // Recreate the main settings UI
-        this.children.removeAll();
-        this.createBackgroundEffects();
-        this.createUI();
+        this.showRoot();
       })
       .on("pointerover", () => {
         backText.setColor("#e8eced");
@@ -600,6 +604,13 @@ export class Settings extends Scene {
       .on("pointerout", () => {
         backText.setColor("#77888C");
       });
+  }
+
+  private showRoot(): void {
+    this.currentView = "root";
+    this.clearSettingsUI();
+    this.createBackgroundEffects();
+    this.createUI();
   }
 
   /**
