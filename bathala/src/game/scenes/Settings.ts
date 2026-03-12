@@ -1,6 +1,8 @@
 import { Scene, GameObjects } from "phaser";
 import { MusicManager } from "../../core/managers/MusicManager";
 import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
+import { SettingsManager } from "../../core/managers/SettingsManager";
+import { createButton } from "../ui/Button";
 
 export class Settings extends Scene {
   background: GameObjects.Image;
@@ -12,6 +14,8 @@ export class Settings extends Scene {
   scanlineTimer: number = 0;
   backButton: GameObjects.Text;
   private musicLifecycle!: MusicLifecycleSystem;
+  private settings = SettingsManager.getInstance();
+  private currentView: "root" | "audio" | "video" | "controls" = "root";
 
   constructor() {
     super("Settings");
@@ -29,7 +33,52 @@ export class Settings extends Scene {
     this.createBackgroundEffects();
 
     // Create UI elements
-    this.createUI();
+    // Ensure persisted audio settings are applied (music volume/mute).
+    this.settings.applyToAudio();
+    this.showRoot();
+  }
+
+  /**
+   * Fully clear current Settings UI and input.
+   * Some UI elements were getting removed visually but still responding to clicks;
+   * this ensures all interactive objects + handlers are torn down before rebuilding.
+   */
+  private clearSettingsUI(): void {
+    // Remove any scene-level input listeners (wheel/pointer handlers, etc.)
+    this.input.removeAllListeners();
+    this.input.keyboard?.removeAllListeners();
+
+    // Phaser can keep "interactive objects" queued for removal; explicitly clear them now
+    // for all current children (and container descendants) before destroying.
+    const existing = [...this.children.list];
+    for (const obj of existing) {
+      try {
+        this.input.clear(obj, true);
+      } catch {
+        // ignore
+      }
+
+      const anyObj = obj as any;
+      const childList: unknown = anyObj?.list;
+      if (Array.isArray(childList)) {
+        for (const child of childList) {
+          try {
+            this.input.clear(child, true);
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+
+    // Destroy all display objects (including their input hit areas)
+    this.children.removeAll(true);
+
+    // Stop any tweens that might still be acting on destroyed targets
+    this.tweens.killAll();
+
+    // Ensure DOM-like "top only" behavior (should be default, but enforce it).
+    this.input.topOnly = true;
   }
 
   /**
@@ -94,60 +143,23 @@ export class Settings extends Scene {
     const centerY = screenHeight / 2;
     
     // Create "settings" text with Pixeled English Font
-    this.createStraightTitle(screenWidth/2, centerY - 150, "settings");
+    this.createStraightTitle(screenWidth / 2, centerY - 150, "settings");
 
-    // Settings options - centered below the title with increased gap using dungeon-mode-inverted font
-    const settingsOptions = [
-      "Audio Settings", 
-      "Video Settings", 
-      "Gameplay Settings", 
-      "Controls", 
-      "Back to Main Menu"
+    // Root menu buttons (MainMenu style)
+    const options = [
+      { label: "Audio", action: () => this.showAudioSettings() },
+      { label: "Video", action: () => this.showVideoSettings() },
+      { label: "Controls", action: () => this.showControls() },
+      { label: "Back", action: () => this.scene.start("MainMenu") },
     ];
-    const startY = centerY - 50; // Start higher to accommodate more options
-    const spacing = 64; // Increased spacing between options
-    
-    settingsOptions.forEach((option, i) => {
-      const menuText = this.add
-        .text(screenWidth/2, startY + i * spacing, option, {
-          fontFamily: "dungeon-mode-inverted", // Updated font for menu
-          fontSize: 32,
-          color: "#77888C", // Updated color --primary
-          align: "center",
-        })
-        .setOrigin(0.5);
-        
-      // Add pointer interaction for all menu options
-      menuText
-        .setInteractive({ useHandCursor: true })
-        .on("pointerdown", () => {
-          switch (option) {
-            case "Audio Settings":
-              this.showAudioSettings();
-              break;
-            case "Video Settings":
-              this.showVideoSettings();
-              break;
-            case "Gameplay Settings":
-              this.showGameplaySettings();
-              break;
-            case "Controls":
-              this.showControls();
-              break;
-            case "Back to Main Menu":
-              // Music cleanup handled by MusicLifecycleSystem on scene shutdown
-              this.scene.start("MainMenu");
-              break;
-          }
-        })
-        .on("pointerover", () => {
-          menuText.setColor("#e8eced"); // Highlight on hover
-        })
-        .on("pointerout", () => {
-          menuText.setColor("#77888C"); // Return to normal
-        });
-      
-      this.menuTexts.push(menuText);
+
+    const startY = centerY - 30;
+    const spacing = 70;
+    const fixedWidth = 260;
+
+    options.forEach((o, i) => {
+      const btn = createButton(this, screenWidth / 2, startY + i * spacing, o.label, o.action, fixedWidth);
+      this.menuTexts.push(btn.list.find(x => x instanceof GameObjects.Text) as GameObjects.Text);
     });
   }
 
@@ -185,7 +197,7 @@ export class Settings extends Scene {
    */
   private showAudioSettings(): void {
     // Clear existing UI
-    this.children.removeAll();
+    this.clearSettingsUI();
     
     // Recreate background effects
     this.createBackgroundEffects();
@@ -197,60 +209,51 @@ export class Settings extends Scene {
     // Add title
     this.createStraightTitle(screenWidth/2, 100, "audio settings");
     
-    // Get current music volume from MusicManager
-    const musicManager = MusicManager.getInstance();
-    const currentMusicVolume = musicManager.getMusicVolume();
-    const currentMasterVolume = this.sound.volume; // Phaser's master volume
-    
-    // Master Volume Slider
+    const current = this.settings.get();
+    const currentMusicVolume = current.musicVolume;
+
+    // Music Volume Slider (only dynamic slider in UI)
     this.createVolumeSlider(
       screenWidth/2,
-      screenHeight/2 - 80,
-      "Master Volume",
-      currentMasterVolume,
-      (volume: number) => {
-        // Update Phaser's master volume
-        this.sound.volume = volume;
-        console.log(`Master Volume set to: ${Math.round(volume * 100)}%`);
-      }
-    );
-    
-    // Music Volume Slider
-    this.createVolumeSlider(
-      screenWidth/2,
-      screenHeight/2,
+      screenHeight/2 - 40,
       "Music Volume",
       currentMusicVolume,
       (volume: number) => {
-        // Update MusicManager volume
-        musicManager.setMusicVolume(volume);
-        console.log(`Music Volume set to: ${Math.round(volume * 100)}%`);
+        this.settings.set({ musicVolume: volume });
+        this.settings.applyToAudio();
+        // Restart lifecycle music to reflect volume immediately.
+        this.musicLifecycle.start();
       }
     );
-    
-    // Add mute/unmute button for music
-    const muteButton = this.add.text(
-      screenWidth/2,
-      screenHeight/2 + 80,
-      musicManager.isMusicMutedState() ? "Unmute Music" : "Mute Music",
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 20,
-        color: "#77888C",
-        align: "center",
-      }
-    ).setOrigin(0.5)
-    .setInteractive({ useHandCursor: true })
-    .on("pointerdown", () => {
-      musicManager.toggleMusicMute();
-      muteButton.setText(musicManager.isMusicMutedState() ? "Unmute Music" : "Mute Music");
-    })
-    .on("pointerover", () => {
-      muteButton.setColor("#e8eced");
-    })
-    .on("pointerout", () => {
-      muteButton.setColor("#77888C");
-    });
+
+    // MainMenu-style buttons
+    const fixedWidth = 360;
+    const startY = screenHeight / 2 + 70;
+
+    const muteLabel = () => `Music: ${this.settings.get().muteMusic ? "OFF" : "ON"}`;
+
+    createButton(
+      this,
+      screenWidth / 2,
+      startY,
+      muteLabel(),
+      () => {
+        const nextMuted = !this.settings.get().muteMusic;
+        this.settings.set({ muteMusic: nextMuted });
+        this.settings.applyToAudio();
+
+        // Stop instantly when muting; resume instantly when unmuting.
+        if (nextMuted) {
+          this.musicLifecycle.stop();
+        } else {
+          this.musicLifecycle.start();
+        }
+
+        // Refresh label to match current state
+        this.showAudioSettings();
+      },
+      fixedWidth
+    );
     
     // Add back button
     this.createBackButton();
@@ -352,7 +355,7 @@ export class Settings extends Scene {
    */
   private showVideoSettings(): void {
     // Clear existing UI
-    this.children.removeAll();
+    this.clearSettingsUI();
     
     // Recreate background effects
     this.createBackgroundEffects();
@@ -363,110 +366,29 @@ export class Settings extends Scene {
     
     // Add title
     this.createStraightTitle(screenWidth/2, 100, "video settings");
-    
-    // Add placeholder content
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 - 50,
-      "Video Settings - Placeholder",
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 24,
-        color: "#77888C",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2,
-      "Resolution: [1920x1080] <- Click to change",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 + 40,
-      "Fullscreen: [ON] <- Click to toggle",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 + 80,
-      "VSync: [ON] <- Click to toggle",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    // Add back button
-    this.createBackButton();
-  }
 
-  private showGameplaySettings(): void {
-    // Clear existing UI
-    this.children.removeAll();
-    
-    // Recreate background effects
-    this.createBackgroundEffects();
-    
-    // Get screen dimensions
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Add title
-    this.createStraightTitle(screenWidth/2, 100, "gameplay settings");
-    
-    // Add placeholder content
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 - 50,
-      "Gameplay Settings - Placeholder",
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 24,
-        color: "#77888C",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2,
-      "Difficulty: [Normal] <- Click to change",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 + 40,
-      "Auto-Save: [ON] <- Click to toggle",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "center",
-      }
-    ).setOrigin(0.5);
+    const fullscreenLabel = () => `Fullscreen: ${this.scale.isFullscreen ? "ON" : "OFF"}`;
+
+    const fixedWidth = 360;
+    const startY = screenHeight / 2 - 40;
+    createButton(
+      this,
+      screenWidth / 2,
+      startY,
+      fullscreenLabel(),
+      () => {
+        if (this.scale.isFullscreen) {
+          this.scale.stopFullscreen();
+          this.settings.set({ fullscreen: false });
+        } else {
+          this.scale.startFullscreen();
+          this.settings.set({ fullscreen: true });
+        }
+        // Re-render view so label updates
+        this.showVideoSettings();
+      },
+      fixedWidth
+    );
     
     // Add back button
     this.createBackButton();
@@ -474,7 +396,7 @@ export class Settings extends Scene {
 
   private showControls(): void {
     // Clear existing UI
-    this.children.removeAll();
+    this.clearSettingsUI();
     
     // Recreate background effects
     this.createBackgroundEffects();
@@ -485,91 +407,54 @@ export class Settings extends Scene {
     
     // Add title
     this.createStraightTitle(screenWidth/2, 100, "controls");
-    
-    // Add placeholder content
-    this.add.text(
-      screenWidth/2,
-      screenHeight/2 - 100,
-      "Controls - Placeholder",
-      {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 24,
-        color: "#77888C",
-        align: "center",
-      }
-    ).setOrigin(0.5);
-    
-    this.add.text(
-      screenWidth/2 - 150,
-      screenHeight/2 - 50,
-      "Movement:",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
-    
-    this.add.text(
-      screenWidth/2 + 50,
-      screenHeight/2 - 50,
-      "WASD / Arrow Keys",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
-    
-    this.add.text(
-      screenWidth/2 - 150,
-      screenHeight/2 - 10,
-      "Confirm:",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
-    
-    this.add.text(
-      screenWidth/2 + 50,
-      screenHeight/2 - 10,
-      "Enter / Space",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
-    
-    this.add.text(
-      screenWidth/2 - 150,
-      screenHeight/2 + 30,
-      "Cancel:",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
-    
-    this.add.text(
-      screenWidth/2 + 50,
-      screenHeight/2 + 30,
-      "Escape",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#e8eced",
-        align: "left",
-      }
-    );
+
+    // Styled, non-interactive rows that match the main-menu button design
+    const createControlRow = (x: number, y: number, label: string, binding: string, width = 560) => {
+      const baseButtonHeight = 58;
+      const height = baseButtonHeight;
+
+      const row = this.add.container(x, y);
+
+      const outerBorder = this.add
+        .rectangle(0, 0, width + 8, height + 8, undefined as any, 0)
+        .setStrokeStyle(2, 0x77888C, 0.8);
+      const innerBorder = this.add
+        .rectangle(0, 0, width, height, undefined as any, 0)
+        .setStrokeStyle(1, 0x77888C, 0.6);
+      const bg = this.add.rectangle(0, 0, width, height, 0x150E10);
+
+      const labelText = this.add
+        .text(-width / 2 + 22, 0, label, {
+          fontFamily: "dungeon-mode",
+          fontSize: 18,
+          color: "#77888C",
+          align: "left",
+        })
+        .setOrigin(0, 0.5);
+
+      const bindingText = this.add
+        .text(width / 2 - 22, 0, binding, {
+          fontFamily: "dungeon-mode",
+          fontSize: 18,
+          color: "#e8eced",
+          align: "right",
+          wordWrap: { width: width * 0.55, useAdvancedWrap: true },
+        })
+        .setOrigin(1, 0.5);
+
+      row.add([outerBorder, innerBorder, bg, labelText, bindingText]);
+      return row;
+    };
+
+    const rows = [
+      { label: "Movement", binding: "W / A / S / D  or  Arrow Keys" },
+      { label: "Confirm / Select", binding: "Enter  or  Space" },
+      { label: "Cancel / Back", binding: "Escape" },
+    ];
+
+    const startY = screenHeight / 2 - 70;
+    const spacing = 78;
+    rows.forEach((r, i) => createControlRow(screenWidth / 2, startY + i * spacing, r.label, r.binding));
     
     // Add back button
     this.createBackButton();
@@ -578,28 +463,23 @@ export class Settings extends Scene {
   private createBackButton(): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
-    const backText = this.add
-      .text(100, screenHeight - 100, "Back", {
-        fontFamily: "dungeon-mode-inverted",
-        fontSize: 24,
-        color: "#77888C",
-        align: "center",
-      })
-      .setOrigin(0.5)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerdown", () => {
-        // Recreate the main settings UI
-        this.children.removeAll();
-        this.createBackgroundEffects();
-        this.createUI();
-      })
-      .on("pointerover", () => {
-        backText.setColor("#e8eced");
-      })
-      .on("pointerout", () => {
-        backText.setColor("#77888C");
-      });
+
+    // MainMenu-style Back button
+    createButton(
+      this,
+      screenWidth / 2,
+      screenHeight - 110,
+      "Back",
+      () => this.showRoot(),
+      220
+    );
+  }
+
+  private showRoot(): void {
+    this.currentView = "root";
+    this.clearSettingsUI();
+    this.createBackgroundEffects();
+    this.createUI();
   }
 
   /**

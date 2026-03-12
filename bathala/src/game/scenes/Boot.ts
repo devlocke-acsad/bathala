@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { SettingsManager } from '../../core/managers/SettingsManager';
 
 export class Boot extends Scene
 {
@@ -33,6 +34,8 @@ export class Boot extends Scene
         // Otherwise the Preloader's loading screen text uses a fallback font on first load
         // and only shows the correct style after reload (when fonts are cached).
         this.registerFontsFromCache().then(() => {
+            // Load and apply persisted settings before any music starts.
+            SettingsManager.getInstance().applyToAudio();
             this.scene.start("Preloader");
         });
     }

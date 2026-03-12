@@ -721,7 +721,7 @@ export class Combat extends Scene {
 
       // Create Prologue-style tooltip container
       const tooltipContainer = this.add.container(x, spacing);
-      const effectDescription = this.getRelicEffectDescription(relic.id);
+      const effectDescription = this.getRelicEffectDescription(relic.id, relic.description);
       const tooltipText = `${relic.name}\n${effectDescription}`;
       const tooltipWidth = Math.min(300, Math.max(200, tooltipText.length * 4));
       const tooltipHeight = Math.min(120, Math.max(60, tooltipText.split('\n').length * 20 + 20));
@@ -5126,7 +5126,7 @@ export class Combat extends Scene {
    * Get accurate relic effect description from RelicManager.ts BALANCED values
    * Updated to match exact implementation - all 20 relics verified
    */
-  private getRelicEffectDescription(relicId: string): string {
+  private getRelicEffectDescription(relicId: string, fallbackDescription?: string): string {
     const effectDescriptions: Record<string, string> = {
       // === TIER 1: COMBAT START RELICS ===
       'earthwardens_plate': '+5 Block at combat start, then +1 Block at the start of each turn',
@@ -5164,9 +5164,33 @@ export class Combat extends Scene {
       'tikbalangs_hoof': '10% chance to completely dodge enemy attacks (1 in 10)',
 
       // === TIER 9: END OF TURN RELICS ===
-      'tidal_amulet': 'Heal +1 HP per card in hand at end of turn (max +8 with full hand)'
+      'tidal_amulet': 'Heal +1 HP per card in hand at end of turn (max +8 with full hand)',
+
+      // === ACT 2 RELICS ===
+      'sirenas_scale': 'Heal 2 HP whenever you play at least one Tubig (Water) card in a hand',
+      'siyokoy_fin': 'Gain 3 Block whenever you deal splash damage to multiple enemies',
+      'santelmo_ember': 'Your Burn applications on enemies are intensified (Burn stacks effectively double on application)',
+      'berberoka_tide': 'Gain 10 Block whenever you play a hand containing only Tubig (Water) cards',
+      'magindara_song': 'Draw 1 card whenever you heal HP during combat',
+      'kataw_crown': 'Deal +5 damage when facing enemies with minions or summons',
+      'berbalang_spirit': 'Ignore the first Weak debuff applied to you each combat',
+      'bangkilan_veil': 'Gain +10% dodge chance while you have any debuff active',
+      'bakunawa_fang': 'Deal +5 damage whenever you activate a relic effect during combat',
+      'elemental_core': 'Deal +3 damage when playing Apoy (Fire) or Tubig (Water) cards',
+
+      // === ACT 3 RELICS ===
+      'tigmamanukan_feather': 'Draw 1 additional card whenever you play a Straight or better',
+      'diwata_veil': 'Gain +10% dodge chance against all attacks',
+      'sarimanok_plumage': 'Gain 1 additional Special action charge at the start of combat (2 total)',
+      'bulalakaw_spark': 'Apply 3 Burn whenever you play a multi-element hand (2+ distinct elements)',
+      'minokawa_claw': 'Ignore the first enemy card steal/discard effect each combat',
+      'alan_wing': 'Deal +5 damage when you have allies/minions',
+      'ekek_fang': 'Deal +3 damage after turn 5 (second half of combat)',
+      'linti_bolt': 'Deal +5 damage whenever you play a hand with 3 or more different elements',
+      'apolaki_spear': 'Gain 2 Strength at combat start. Deal +5 damage on any multi-element hand (2+ distinct elements)',
+      'coconut_diwa': 'Ignore the first buff removal/nullify effect each combat',
     };
-    return effectDescriptions[relicId] || 'Unknown relic effect';
+    return effectDescriptions[relicId] || fallbackDescription || 'Unknown relic effect';
   }
 
   /**
@@ -5268,7 +5292,7 @@ export class Combat extends Scene {
     }).setOrigin(0.5);
 
     // Relic description with word wrap - show accurate effect
-    const effectDescription = this.getRelicEffectDescription(relic.id);
+    const effectDescription = this.getRelicEffectDescription(relic.id, relic.description);
     const fullDescription = `${relic.description}\n\n⚡ EFFECT:\n${effectDescription}`;
     const descText = this.add.text(0, -modalHeight / 2 + 120, fullDescription, {
       fontFamily: "dungeon-mode",

@@ -48,6 +48,29 @@ export class Discover extends Scene {
   private detailTopAccent: GameObjects.Rectangle;
   private detailTypeBadge: GameObjects.Rectangle;
   private detailOuterGlow: GameObjects.Rectangle;
+
+  // Detail view dynamic sections (for auto-sizing)
+  private detailStatsTitle!: GameObjects.Text;
+  private detailStatsGlow!: GameObjects.Rectangle;
+  private detailStatsContainer!: GameObjects.Rectangle;
+
+  private detailAbilitiesTitle!: GameObjects.Text;
+  private detailAbilitiesGlow!: GameObjects.Rectangle;
+  private detailAbilitiesContainer!: GameObjects.Rectangle;
+
+  private detailDescriptionTitle!: GameObjects.Text;
+  private detailDescriptionGlow!: GameObjects.Rectangle;
+  private detailDescriptionContainer!: GameObjects.Rectangle;
+  private detailDescCornerTL!: GameObjects.Rectangle;
+  private detailDescCornerTR!: GameObjects.Rectangle;
+
+  private detailLoreTitle!: GameObjects.Text;
+  private detailLoreGlow!: GameObjects.Rectangle;
+  private detailLoreContainer!: GameObjects.Rectangle;
+  private detailLoreCornerTL!: GameObjects.Rectangle;
+  private detailLoreCornerTR!: GameObjects.Rectangle;
+  private detailLoreCornerBL!: GameObjects.Rectangle;
+  private detailLoreCornerBR!: GameObjects.Rectangle;
   
   constructor() {
     super({ key: "Discover" });
@@ -125,7 +148,7 @@ export class Discover extends Scene {
     // Add title with improved styling
     this.title = this.add
       .text(screenWidth/2, 60, "Mythical Compendium", {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 32,
         color: "#e8eced",
         align: "center",
@@ -239,11 +262,9 @@ export class Discover extends Scene {
     // Update button colors
     this.chapterButtons.forEach((button, index) => {
       const btnChapter = index + 1;
-      this.tweens.add({
-        targets: button,
-        color: btnChapter === chapter ? 0x06d6a0 : 0x77888C,
-        duration: 200
-      });
+      // Use setColor with hex strings (Phaser Text color is a string).
+      // Tweening numeric colors here was unreliable, causing only Chapter 1 to appear selected.
+      button.setColor(btnChapter === chapter ? "#06d6a0" : "#77888C");
     });
     
     // Reset scroll completely
@@ -759,50 +780,104 @@ export class Discover extends Scene {
       // Fallback to emoji if sprite not found
       const symbol = this.getCharacterSymbol(entry.id);
       characterVisual = this.add.text(width/2, 200, symbol, {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 100,
         color: typeColorHex
       }).setOrigin(0.5);
     }
     
-    // Character name with better visibility - MOVED DOWN MORE
-    const nameText = this.add.text(width/2, 330, entry.name, {
+    // --- Dynamic bottom layout (prevents name overflow into stats) ---
+    const spriteCenterY = 200;
+    const spriteFrameH = 240;
+    const nameTopY = spriteCenterY + spriteFrameH / 2 + 10; // start name below sprite frame
+    const bottomPadding = 16;
+    const statsPanelH = 35;
+    const statsTopGap = 10;
+
+    // Creature name (top-aligned so height measurements are stable)
+    const nameText = this.add.text(width / 2, nameTopY, entry.name, {
       fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#e8eced",
       wordWrap: { width: width - 30 },
-      align: "center"
-    }).setOrigin(0.5);
-    
-    // Stats display panel at bottom - MOVED DOWN MORE
-    const statsPanel = this.add.rectangle(width/2, 370, width - 16, 35, 0x0f0a0d)
+      align: "center",
+    }).setOrigin(0.5, 0);
+
+    const fitNameToSpace = () => {
+      const maxStatsCenterY = height - bottomPadding - statsPanelH / 2;
+      const maxNameBottomY = maxStatsCenterY - statsTopGap;
+      const maxNameH = Math.max(28, Math.floor(maxNameBottomY - nameTopY));
+
+      // Shrink font size until name fits, down to a safe minimum
+      let fontSize = 18;
+      while (nameText.getBounds().height > maxNameH && fontSize > 12) {
+        fontSize -= 1;
+        nameText.setFontSize(fontSize);
+      }
+
+      // If still too tall (very long names), truncate to two lines.
+      // Phaser doesn't support ellipsis natively with wordWrap, so we do a simple clamp.
+      const hardMaxH = maxNameH;
+      if (nameText.getBounds().height > hardMaxH) {
+        const original = entry.name as string;
+        let lo = 0;
+        let hi = original.length;
+        let best = original;
+        while (lo <= hi) {
+          const mid = Math.floor((lo + hi) / 2);
+          const candidate = original.slice(0, Math.max(0, mid)).trimEnd() + "…";
+          nameText.setText(candidate);
+          if (nameText.getBounds().height <= hardMaxH) {
+            best = candidate;
+            lo = mid + 1;
+          } else {
+            hi = mid - 1;
+          }
+        }
+        nameText.setText(best);
+      }
+
+      // Position stats directly below name (but pinned to bottom if needed)
+      const computedStatsCenterY = Math.min(
+        nameTopY + nameText.getBounds().height + statsTopGap + statsPanelH / 2,
+        maxStatsCenterY
+      );
+      return computedStatsCenterY;
+    };
+
+    const statsCenterY = fitNameToSpace();
+
+    // Stats display panel at bottom (follows name)
+    const statsPanel = this.add.rectangle(width / 2, statsCenterY, width - 16, statsPanelH, 0x0f0a0d)
       .setStrokeStyle(1, 0x4a3a40)
       .setOrigin(0.5);
-    
-    // HP stat - ADJUSTED POSITION
-    const hpLabel = this.add.text(width/4, 360, "HP", {
+
+    // HP / ATK labels and values inside the panel
+    const labelY = statsCenterY - 9;
+    const valueY = statsCenterY + 9;
+
+    const hpLabel = this.add.text(width / 4, labelY, "HP", {
       fontFamily: "dungeon-mode",
       fontSize: 11,
-      color: "#77888C"
+      color: "#77888C",
     }).setOrigin(0.5);
-    
-    const hpValue = this.add.text(width/4, 378, entry.health.toString(), {
+
+    const hpValue = this.add.text(width / 4, valueY, entry.health.toString(), {
       fontFamily: "dungeon-mode",
       fontSize: 16,
-      color: "#ff6b6b"
+      color: "#ff6b6b",
     }).setOrigin(0.5);
-    
-    // ATK stat - ADJUSTED POSITION
-    const atkLabel = this.add.text((width * 3) / 4, 360, "ATK", {
+
+    const atkLabel = this.add.text((width * 3) / 4, labelY, "ATK", {
       fontFamily: "dungeon-mode",
       fontSize: 11,
-      color: "#77888C"
+      color: "#77888C",
     }).setOrigin(0.5);
-    
-    const atkValue = this.add.text((width * 3) / 4, 378, entry.attack.toString(), {
+
+    const atkValue = this.add.text((width * 3) / 4, valueY, entry.attack.toString(), {
       fontFamily: "dungeon-mode",
       fontSize: 16,
-      color: "#ffd93d"
+      color: "#ffd93d",
     }).setOrigin(0.5);
     
     // Add all elements to container in proper z-order
@@ -967,12 +1042,14 @@ export class Discover extends Scene {
       
     // Close button with better styling (stays fixed)
     const closeButton = this.add.text(screenWidth - 80, 80, "✕", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 24,
       color: "#ff6b6b"
     }).setOrigin(0.5)
+      .setDepth(9999)
       .setInteractive({ useHandCursor: true })
-      .on("pointerdown", () => {
+      .on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+        pointer.event.stopPropagation();
         this.handleBackNavigation();
       })
       .on("pointerover", () => {
@@ -992,7 +1069,7 @@ export class Discover extends Scene {
     
     // Character name with enhanced styling
     this.detailNameText = this.add.text(screenWidth/2, 0, "", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 36,
       color: "#e8eced",
       stroke: "#000000",
@@ -1025,23 +1102,23 @@ export class Discover extends Scene {
     
     // Character symbol placeholder
     this.detailSymbolText = this.add.text(screenWidth/2, 180, "", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 90,
       color: "#e8eced"
     }).setOrigin(0.5);
     
     // Stats section with enhanced design
-    const statsTitle = this.add.text(screenWidth/2 - 200, 310, "COMBAT STATS", {
-      fontFamily: "dungeon-mode-inverted",
+    this.detailStatsTitle = this.add.text(screenWidth/2 - 200, 310, "COMBAT STATS", {
+      fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#e8eced"
     }).setOrigin(0);
     
-    const statsGlow = this.add.rectangle(screenWidth/2 - 200, 345, 168, 78, 0x4a3a40)
+    this.detailStatsGlow = this.add.rectangle(screenWidth/2 - 200, 345, 168, 78, 0x4a3a40)
       .setOrigin(0)
       .setAlpha(0.3);
       
-    const statsContainer = this.add.rectangle(screenWidth/2 - 200, 345, 164, 74, 0x2a1f24)
+    this.detailStatsContainer = this.add.rectangle(screenWidth/2 - 200, 345, 164, 74, 0x2a1f24)
       .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0);
     
@@ -1054,17 +1131,17 @@ export class Discover extends Scene {
     }).setOrigin(0);
     
     // Abilities section with enhanced design
-    const abilitiesTitle = this.add.text(screenWidth/2 + 40, 310, "SPECIAL ABILITIES", {
-      fontFamily: "dungeon-mode-inverted",
+    this.detailAbilitiesTitle = this.add.text(screenWidth/2 + 40, 310, "SPECIAL ABILITIES", {
+      fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#e8eced"
     }).setOrigin(0);
     
-    const abilitiesGlow = this.add.rectangle(screenWidth/2 + 40, 345, 228, 78, 0x4a3a40)
+    this.detailAbilitiesGlow = this.add.rectangle(screenWidth/2 + 40, 345, 228, 78, 0x4a3a40)
       .setOrigin(0)
       .setAlpha(0.3);
       
-    const abilitiesContainer = this.add.rectangle(screenWidth/2 + 40, 345, 224, 74, 0x2a1f24)
+    this.detailAbilitiesContainer = this.add.rectangle(screenWidth/2 + 40, 345, 224, 74, 0x2a1f24)
       .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0);
     
@@ -1077,27 +1154,27 @@ export class Discover extends Scene {
     }).setOrigin(0);
     
     // Description section with premium design
-    const descriptionTitle = this.add.text(screenWidth/2, 450, "━━━ TACTICAL OVERVIEW ━━━", {
-      fontFamily: "dungeon-mode-inverted",
+    this.detailDescriptionTitle = this.add.text(screenWidth/2, 450, "━━━ TACTICAL OVERVIEW ━━━", {
+      fontFamily: "dungeon-mode",
       fontSize: 22,
       color: "#e8eced",
       stroke: "#4a3a40",
       strokeThickness: 1
     }).setOrigin(0.5);
     
-    const descriptionGlow = this.add.rectangle(screenWidth/2, 500, screenWidth - 180, 108, 0x4a3a40)
+    this.detailDescriptionGlow = this.add.rectangle(screenWidth/2, 500, screenWidth - 180, 108, 0x4a3a40)
       .setOrigin(0.5, 0)
       .setAlpha(0.3);
       
-    const descriptionContainer = this.add.rectangle(screenWidth/2, 500, screenWidth - 186, 104, 0x2a1f24)
+    this.detailDescriptionContainer = this.add.rectangle(screenWidth/2, 500, screenWidth - 186, 104, 0x2a1f24)
       .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0.5, 0);
       
     // Decorative corner accents for description
-    const descCornerTL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 500, 12, 12, 0x06d6a0)
+    this.detailDescCornerTL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 500, 12, 12, 0x06d6a0)
       .setOrigin(0.5)
       .setAlpha(0.6);
-    const descCornerTR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 500, 12, 12, 0x06d6a0)
+    this.detailDescCornerTR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 500, 12, 12, 0x06d6a0)
       .setOrigin(0.5)
       .setAlpha(0.6);
     
@@ -1111,33 +1188,33 @@ export class Discover extends Scene {
     }).setOrigin(0.5, 0);
     
     // Lore section with premium mythological design
-    const loreTitle = this.add.text(screenWidth/2, 630, "━━━ MYTHOLOGY & ANCIENT LORE ━━━", {
-      fontFamily: "dungeon-mode-inverted",
+    this.detailLoreTitle = this.add.text(screenWidth/2, 630, "━━━ MYTHOLOGY & ANCIENT LORE ━━━", {
+      fontFamily: "dungeon-mode",
       fontSize: 22,
       color: "#ffd93d",
       stroke: "#4a3a40",
       strokeThickness: 1
     }).setOrigin(0.5);
     
-    const loreGlow = this.add.rectangle(screenWidth/2, 680, screenWidth - 180, 148, 0x4a3a40)
+    this.detailLoreGlow = this.add.rectangle(screenWidth/2, 680, screenWidth - 180, 148, 0x4a3a40)
       .setOrigin(0.5, 0)
       .setAlpha(0.3);
       
-    const loreContainer = this.add.rectangle(screenWidth/2, 680, screenWidth - 186, 144, 0x2a1f24)
+    this.detailLoreContainer = this.add.rectangle(screenWidth/2, 680, screenWidth - 186, 144, 0x2a1f24)
       .setStrokeStyle(2, 0x4a3a40)
       .setOrigin(0.5, 0);
       
     // Decorative corner accents for lore (golden theme)
-    const loreCornerTL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 680, 12, 12, 0xffd93d)
+    this.detailLoreCornerTL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 680, 12, 12, 0xffd93d)
       .setOrigin(0.5)
       .setAlpha(0.6);
-    const loreCornerTR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 680, 12, 12, 0xffd93d)
+    this.detailLoreCornerTR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 680, 12, 12, 0xffd93d)
       .setOrigin(0.5)
       .setAlpha(0.6);
-    const loreCornerBL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 824, 12, 12, 0xffd93d)
+    this.detailLoreCornerBL = this.add.rectangle(screenWidth/2 - (screenWidth - 186)/2, 824, 12, 12, 0xffd93d)
       .setOrigin(0.5)
       .setAlpha(0.6);
-    const loreCornerBR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 824, 12, 12, 0xffd93d)
+    this.detailLoreCornerBR = this.add.rectangle(screenWidth/2 + (screenWidth - 186)/2, 824, 12, 12, 0xffd93d)
       .setOrigin(0.5)
       .setAlpha(0.6);
     
@@ -1155,21 +1232,25 @@ export class Discover extends Scene {
     this.detailContentContainer.add([
       this.detailNameText, typeBadgeGlow, this.detailTypeBadge, this.detailTypeText, 
       spriteFrameGlow, spriteFrame, this.detailSymbolText,
-      statsTitle, statsGlow, statsContainer, this.detailStatsText, 
-      abilitiesTitle, abilitiesGlow, abilitiesContainer, this.detailAbilitiesText,
-      descriptionTitle, descriptionGlow, descriptionContainer, descCornerTL, descCornerTR, this.detailDescriptionText, 
-      loreTitle, loreGlow, loreContainer, loreCornerTL, loreCornerTR, loreCornerBL, loreCornerBR, this.detailLoreText
+      this.detailStatsTitle, this.detailStatsGlow, this.detailStatsContainer, this.detailStatsText, 
+      this.detailAbilitiesTitle, this.detailAbilitiesGlow, this.detailAbilitiesContainer, this.detailAbilitiesText,
+      this.detailDescriptionTitle, this.detailDescriptionGlow, this.detailDescriptionContainer, this.detailDescCornerTL, this.detailDescCornerTR, this.detailDescriptionText, 
+      this.detailLoreTitle, this.detailLoreGlow, this.detailLoreContainer, this.detailLoreCornerTL, this.detailLoreCornerTR, this.detailLoreCornerBL, this.detailLoreCornerBR, this.detailLoreText
     ]);
     
     // Add content container to main container
     this.detailViewContainer.add(this.detailContentContainer);
     
-    // Set up scroll zone for detail view
-    const scrollZone = this.add.zone(screenWidth/2, screenHeight/2, screenWidth - 100, screenHeight - 100)
-      .setOrigin(0.5)
-      .setInteractive();
+    // Set up scroll zone for detail view.
+    // IMPORTANT: exclude the top header area so the close button is always clickable.
+    const scrollZone = this.add.zone(
+      screenWidth / 2,
+      (screenHeight + 120) / 2,
+      screenWidth - 120,
+      screenHeight - 220
+    ).setOrigin(0.5).setInteractive();
     
-    scrollZone.on('wheel', (pointer: any, deltaX: number, deltaY: number) => {
+    scrollZone.on('wheel', (_pointer: any, _deltaX: number, deltaY: number) => {
       if (this.isDetailViewOpen) {
         this.detailScrollY += deltaY * 0.5;
         this.detailScrollY = Phaser.Math.Clamp(this.detailScrollY, 0, this.detailMaxScroll);
@@ -1251,11 +1332,9 @@ export class Discover extends Scene {
     this.detailAbilitiesText.setText(entry.abilities ? entry.abilities.join("\n") : "None");
     this.detailDescriptionText.setText(entry.description);
     this.detailLoreText.setText(entry.lore);
-    
-    // Calculate max scroll based on content height
-    const contentHeight = 850; // Approximate total content height
-    const viewportHeight = this.cameras.main.height - 200; // Visible area minus padding
-    this.detailMaxScroll = Math.max(0, contentHeight - viewportHeight);
+
+    // Resize description/lore sections to hug text (prevents overflow)
+    this.updateDetailTextLayout();
     
     // Reset content position
     this.detailContentContainer.y = 100;
@@ -1304,6 +1383,85 @@ export class Discover extends Scene {
         this.cardsContainer.setVisible(true);
       }
     });
+  }
+
+  /**
+   * Make the description/lore containers hug their text content.
+   * This prevents overflow for long entries and ensures scroll height is accurate.
+   */
+  private updateDetailTextLayout(): void {
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+
+    // --- Combat stats + abilities panels (hug text) ---
+    // Anchors match the original layout (top-left corners).
+    const statsX = screenWidth / 2 - 200;
+    const statsTopY = 345;
+    const statsWGlow = 168;
+    const statsW = 164;
+    const statsPadY = 14;
+    const statsTextH = this.detailStatsText.getBounds().height;
+    const statsH = Math.max(74, Math.ceil(statsPadY + statsTextH + statsPadY));
+    this.detailStatsGlow.setPosition(statsX, statsTopY).setSize(statsWGlow, statsH + 4);
+    this.detailStatsContainer.setPosition(statsX, statsTopY).setSize(statsW, statsH);
+    this.detailStatsText.setPosition(screenWidth / 2 - 185, statsTopY + statsPadY);
+
+    const abilitiesX = screenWidth / 2 + 40;
+    const abilitiesTopY = 345;
+    const abilitiesWGlow = 228;
+    const abilitiesW = 224;
+    const abilitiesPadY = 14;
+    const abilitiesTextH = this.detailAbilitiesText.getBounds().height;
+    const abilitiesH = Math.max(74, Math.ceil(abilitiesPadY + abilitiesTextH + abilitiesPadY));
+    this.detailAbilitiesGlow.setPosition(abilitiesX, abilitiesTopY).setSize(abilitiesWGlow, abilitiesH + 4);
+    this.detailAbilitiesContainer.setPosition(abilitiesX, abilitiesTopY).setSize(abilitiesW, abilitiesH);
+    this.detailAbilitiesText.setPosition(screenWidth / 2 + 55, abilitiesTopY + abilitiesPadY);
+
+    // The next section should start after the taller of the two panels.
+    const panelsBottomY = abilitiesTopY + Math.max(statsH, abilitiesH);
+    const sectionGapAfterPanels = 60;
+    const descTitleY = panelsBottomY + sectionGapAfterPanels;
+    this.detailDescriptionTitle.setY(descTitleY);
+
+    // --- Description panel ---
+    const descTopY = descTitleY + 50;
+    const descTextTopPadding = 18;
+    const descBottomPadding = 18;
+    const descTextH = this.detailDescriptionText.getBounds().height;
+    const descPanelH = Math.max(84, Math.ceil(descTextTopPadding + descTextH + descBottomPadding));
+
+    this.detailDescriptionGlow.setY(descTopY).setSize(screenWidth - 180, descPanelH + 4);
+    this.detailDescriptionContainer.setY(descTopY).setSize(screenWidth - 186, descPanelH);
+    this.detailDescCornerTL.setY(descTopY);
+    this.detailDescCornerTR.setY(descTopY);
+    this.detailDescriptionText.setY(descTopY + descTextTopPadding);
+
+    const afterDescY = descTopY + descPanelH + 40;
+
+    // --- Lore panel (positioned after description) ---
+    this.detailLoreTitle.setY(afterDescY);
+    const loreTopY = afterDescY + 50;
+    const loreTextTopPadding = 18;
+    const loreBottomPadding = 20;
+    const loreTextH = this.detailLoreText.getBounds().height;
+    const lorePanelH = Math.max(120, Math.ceil(loreTextTopPadding + loreTextH + loreBottomPadding));
+
+    this.detailLoreGlow.setY(loreTopY).setSize(screenWidth - 180, lorePanelH + 4);
+    this.detailLoreContainer.setY(loreTopY).setSize(screenWidth - 186, lorePanelH);
+    this.detailLoreCornerTL.setY(loreTopY);
+    this.detailLoreCornerTR.setY(loreTopY);
+    this.detailLoreCornerBL.setY(loreTopY + lorePanelH);
+    this.detailLoreCornerBR.setY(loreTopY + lorePanelH);
+    this.detailLoreText.setY(loreTopY + loreTextTopPadding);
+
+    // Update scroll bounds based on actual bottom-most content.
+    const contentBottom = loreTopY + lorePanelH + 30;
+    const viewportHeight = screenHeight - 200; // Visible area minus padding
+    this.detailMaxScroll = Math.max(0, contentBottom - viewportHeight);
+
+    // Clamp scroll if currently out of bounds.
+    this.detailScrollY = Phaser.Math.Clamp(this.detailScrollY, 0, this.detailMaxScroll);
+    this.detailContentContainer.y = 100 - this.detailScrollY;
   }
   
   /**
