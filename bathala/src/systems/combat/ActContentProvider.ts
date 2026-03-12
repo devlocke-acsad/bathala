@@ -28,7 +28,7 @@ import type { EnemyConfig, BossConfig } from '../../core/types/EnemyTypes';
 import {
   getEnemiesByTier,
   getEnemiesByChapter,
-  getEnemy,
+  getEnemyById,
   getAllBosses,
 } from '../../data/enemies/registry';
 
@@ -116,7 +116,7 @@ export class ChapterContent {
 
   /** Get a specific enemy by id */
   getEnemy(id: string): EnemyConfig | undefined {
-    return getEnemy(id);
+    return getEnemyById(id);
   }
 
   /** Pick a random enemy by tier from this chapter */
@@ -304,7 +304,7 @@ export class ActContentProvider {
    * Look up an enemy by id (not chapter-scoped)
    */
   static getEnemy(id: string): EnemyConfig | undefined {
-    return getEnemy(id);
+    return getEnemyById(id);
   }
 
   /** Clear cached handles (for testing) */

@@ -81,3 +81,8 @@ export function getEnemyById(id: string): EnemyConfig | undefined {
 export function getEnemyByName(name: string): EnemyConfig | undefined {
   return ENEMY_NAME_MAP.get(name);
 }
+
+/** Get all boss-tier enemy configs (for act content provider). */
+export function getAllBosses(): EnemyConfig[] {
+  return Array.from(BOSS_MAP.values());
+}

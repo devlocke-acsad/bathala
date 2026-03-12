@@ -51,6 +51,8 @@ const DEPTH = {
   PLAYER: 1000,
   UI_BASE: 1000,
   ACTION_BUTTONS: 1000,
+  UI_CONTAINER: 1500,
+  CHAPTER_TRANSITION_OVERLAY: 1400,
 
   // Tooltips and Overlays (2000-2999)
   TOGGLE_BUTTON: 2000,
@@ -366,7 +368,8 @@ export class Overworld extends Scene {
   }
 
   /**
-   * Shows a Dark Souls style cinematic popup for the Area Name
+   * Shows a Dark Souls style cinematic popup for the Area Name,
+   * layered with the main UI (inventory / HP / gold / day-night).
    */
   private showAreaPopup(): void {
     const screenWidth = this.cameras.main.width;
@@ -385,53 +388,59 @@ export class Overworld extends Scene {
       // Ignore if sound missing
     }
 
-    const popupContainer = this.add.container(screenWidth / 2, screenHeight / 2 - 50) // Slightly higher
-      .setScrollFactor(0)
-      .setDepth(DEPTH.TRANSITION_OVERLAY + 1000);
+    const popupContainer = this.add.container(screenWidth / 2, screenHeight / 2 - 50); // Slightly higher
+    popupContainer.setScrollFactor(0);
 
-    // Area Text - Larger, more imposing
+    // Layer popup with the main UI container so it matches inventory / HP / gold / day-night progress
+    if (this.uiContainer) {
+      this.uiContainer.add(popupContainer);
+    } else {
+      popupContainer.setDepth(DEPTH.UI_CONTAINER + 1);
+    }
+
+    // Area Text - slightly larger but still not overly stretched
     const areaText = this.add.text(0, 0, areaName, {
       fontFamily: 'dungeon-mode',
-      fontSize: '42px', // Bigger font
+      fontSize: '34px',
       color: '#ffffff',
       fontStyle: 'normal'
     }).setOrigin(0.5).setAlpha(0);
     areaText.setShadow(3, 3, '#000000', 6, true, true);
 
-    // Dark Souls horizontal line
-    const lineWidth = screenWidth * 0.7; // Wider line
-    const line = this.add.rectangle(0, 40, lineWidth, 2, 0xffffff, 0.7)
+    // Dark Souls horizontal line - narrower to avoid full-width stretch
+    const lineWidth = screenWidth * 0.45;
+    const line = this.add.rectangle(0, 32, lineWidth, 2, 0xffffff, 0.7)
       .setOrigin(0.5)
       .setScale(0, 1)
       .setAlpha(0);
 
     popupContainer.add([areaText, line]);
 
-    // Animate Line expanding slowly
+    // Animate Line expanding (faster)
     this.tweens.add({
       targets: line,
       scaleX: 1,
       alpha: 1,
-      duration: 1500, // Slower
+      duration: 400,
       ease: 'Power2.easeOut'
     });
 
-    // Animate Text fading in and sliding slightly downwards (classic style)
+    // Animate Text fading in and sliding slightly downwards
     areaText.setY(-15);
     this.tweens.add({
       targets: areaText,
       alpha: 1,
       y: 0,
-      duration: 2000, // Slower fade in
-      delay: 500,
+      duration: 500,
+      delay: 200,
       ease: 'Power2.easeOut',
       onComplete: () => {
-        // Hold for a dramatic pause, then fade everything out slowly
-        this.time.delayedCall(4000, () => { // Longer hold
+        // Hold briefly, then fade everything out more quickly
+        this.time.delayedCall(1200, () => {
           this.tweens.add({
             targets: popupContainer,
             alpha: 0,
-            duration: 2500, // Very slow fade out
+            duration: 500,
             ease: 'Power2.easeInOut',
             onComplete: () => popupContainer.destroy()
           });
@@ -1327,7 +1336,7 @@ export class Overworld extends Scene {
       3: "Realm of the divine"
     };
 
-    // Create transition overlay
+    // Create transition overlay (darkens world, stays behind UI)
     const overlay = this.add.rectangle(
       screenWidth / 2,
       screenHeight / 2,
@@ -1336,53 +1345,58 @@ export class Overworld extends Scene {
       0x000000,
       0
     );
-    overlay.setDepth(DEPTH.TRANSITION_OVERLAY);
+    overlay.setDepth(DEPTH.CHAPTER_TRANSITION_OVERLAY);
     overlay.setScrollFactor(0);
 
-    // Fade to black
+    // Fade to black (faster)
     this.tweens.add({
       targets: overlay,
       alpha: 1,
-      duration: 1000,
+      duration: 600,
       ease: 'Power2',
       onComplete: () => {
-        // Create chapter title text (initially hidden)
-        const chapterLabel = this.add.text(screenWidth / 2, screenHeight / 2 - 60, `CHAPTER ${newChapter}`, {
-          fontFamily: "dungeon-mode",
-          fontSize: 28,
-          color: "#ffd700",
-          align: "center"
-        }).setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(DEPTH.TRANSITION_EFFECTS);
-
-        const chapterTitle = this.add.text(screenWidth / 2, screenHeight / 2, chapterNames[newChapter] || `Act ${newChapter}`, {
-          fontFamily: "dungeon-mode",
-          fontSize: 42,
-          color: "#ffffff",
-          align: "center"
-        }).setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(DEPTH.TRANSITION_EFFECTS);
-
-        const chapterSubtitle = this.add.text(screenWidth / 2, screenHeight / 2 + 50, chapterSubtitles[newChapter] || "", {
+        // Create chapter title text (initially hidden), added to uiContainer
+        const chapterLabel = this.add.text(screenWidth / 2, screenHeight / 2 - 50, `CHAPTER ${newChapter}`, {
           fontFamily: "dungeon-mode",
           fontSize: 18,
+          color: "#ffd700",
+          align: "center"
+        }).setOrigin(0.5).setAlpha(0).setScrollFactor(0);
+
+        const chapterTitle = this.add.text(screenWidth / 2, screenHeight / 2 - 10, chapterNames[newChapter] || `Act ${newChapter}`, {
+          fontFamily: "dungeon-mode",
+          fontSize: 26,
+          color: "#ffffff",
+          align: "center"
+        }).setOrigin(0.5).setAlpha(0).setScrollFactor(0);
+
+        const chapterSubtitle = this.add.text(screenWidth / 2, screenHeight / 2 + 20, chapterSubtitles[newChapter] || "", {
+          fontFamily: "dungeon-mode",
+          fontSize: 14,
           color: "#aaaaaa",
           align: "center",
           fontStyle: "italic"
-        }).setOrigin(0.5).setAlpha(0).setScrollFactor(0).setDepth(DEPTH.TRANSITION_EFFECTS);
+        }).setOrigin(0.5).setAlpha(0).setScrollFactor(0);
 
-        // Animate text in
+        // Attach chapter texts to the main UI container so they share the same layer/transform
+        if (this.uiContainer) {
+          this.uiContainer.add([chapterLabel, chapterTitle, chapterSubtitle]);
+        }
+
+        // Animate text in (faster)
         this.tweens.add({
           targets: [chapterLabel, chapterTitle, chapterSubtitle],
           alpha: 1,
-          duration: 800,
+          duration: 500,
           ease: 'Power2',
           onComplete: () => {
-            // Hold for a moment
-            this.time.delayedCall(2000, () => {
-              // Fade out text
+            // Hold briefly, then fade out quickly
+            this.time.delayedCall(800, () => {
+              // Fade out text (faster)
               this.tweens.add({
                 targets: [chapterLabel, chapterTitle, chapterSubtitle],
                 alpha: 0,
-                duration: 500,
+                duration: 350,
                 ease: 'Power2',
                 onComplete: () => {
                   // Clean up
@@ -1411,11 +1425,11 @@ export class Overworld extends Scene {
                     console.warn("Could not reset DDA:", error);
                   }
 
-                  // Fade out overlay and restart scene
+                  // Fade out overlay and restart scene (faster)
                   this.tweens.add({
                     targets: overlay,
                     alpha: 0,
-                    duration: 500,
+                    duration: 350,
                     ease: 'Power2',
                     onComplete: () => {
                       overlay.destroy();
@@ -2805,7 +2819,7 @@ export class Overworld extends Scene {
 
     // Create main UI container positioned at top-left
     this.uiContainer = this.add.container(0, 0);
-    this.uiContainer.setScrollFactor(0).setDepth(1500);
+    this.uiContainer.setScrollFactor(0).setDepth(DEPTH.UI_CONTAINER);
 
     // Put tooltip on the same UI layer as inventory so it inherits
     // the exact same zoom compensation during day/night transitions.

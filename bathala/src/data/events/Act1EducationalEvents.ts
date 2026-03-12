@@ -235,7 +235,9 @@ export const Act1EducationalEvents: EducationalEvent[] = [
           if (player.relics.length < 6) {
             const availableRelics = [...commonRelics, ...treasureRelics];
             const randomRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
-            player.relics.push(randomRelic);
+            if (!player.relics.some(r => r.id === randomRelic.id)) {
+              player.relics.push(randomRelic);
+            }
             return `You spend your energy purifying the spring. The diwata smiles gratefully and grants you ${randomRelic.name}. 'Your malasakit for nature deserves reward.' You lose 15 HP but gain a powerful relic.`;
           }
           return "You purify the spring with great effort. The diwata blesses you with renewed spiritual strength, though you are physically drained. You lose 15 HP but feel spiritually enriched.";

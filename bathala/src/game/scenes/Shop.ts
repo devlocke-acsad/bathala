@@ -2268,10 +2268,15 @@ export class Shop extends Scene {
     
     // Add relic to player
     if (item.type === "relic") {
-      this.player.relics.push(item.item as Relic);
-      
-      // Apply any immediate relic acquisition effects
-      RelicManager.applyRelicAcquisitionEffect(item.item.id, this.player);
+      // Add relic to player (no duplicates) + apply acquisition effect
+      const gain = RelicManager.tryGainRelic(this.player, item.item as Relic, { applyAcquisitionEffect: true });
+      if (!gain.added) {
+        this.showMessage(
+          gain.reason === 'duplicate' ? "You already have this relic!" : "Relic inventory full!",
+          "#ff9f43"
+        );
+        return;
+      }
     }
     
     // Update UI with new currency format (match compact header: value + separate icons)

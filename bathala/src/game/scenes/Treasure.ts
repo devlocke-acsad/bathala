@@ -702,11 +702,17 @@ export class Treasure extends Scene {
     // Get GameState instance first to ensure we're working with the persistent player data
     const gameState = GameState.getInstance();
 
-    // Add relic to player
-    this.player.relics.push(relic);
-
-    // Apply immediate relic acquisition effects (healing, stat boosts, etc.)
-    RelicManager.applyRelicAcquisitionEffect(relic.id, this.player);
+    // Add relic to player (no duplicates)
+    const gain = RelicManager.tryGainRelic(this.player, relic, { applyAcquisitionEffect: true });
+    if (!gain.added) {
+      if (gain.reason === 'duplicate') {
+        this.showDuplicateRelicConversionDialog(relic);
+        return;
+      }
+      // full inventory should never happen here, but guard anyway
+      this.showMessage("Relic inventory full!", "#ff9f43");
+      return;
+    }
 
     // 80% chance to also find a healing potion if player has space (max 3 potions)
     let potionMessage = "";
@@ -782,11 +788,16 @@ export class Treasure extends Scene {
         return;
       }
 
-      // Add relic to player
-      this.player.relics.push(reward.item);
-
-      // Apply immediate relic acquisition effects (healing, stat boosts, etc.)
-      RelicManager.applyRelicAcquisitionEffect(reward.item.id, this.player);
+      // Add relic to player (no duplicates) + apply acquisition effect
+      const gain = RelicManager.tryGainRelic(this.player, reward.item, { applyAcquisitionEffect: true });
+      if (!gain.added) {
+        if (gain.reason === 'duplicate') {
+          this.showDuplicateRelicConversionDialog(reward.item);
+          return;
+        }
+        this.showMessage("Relic inventory full!", "#ff9f43");
+        return;
+      }
 
       // Persist updated player data
       gameState.updatePlayerData({
@@ -1122,11 +1133,16 @@ export class Treasure extends Scene {
         if (reward.type === "relic") {
           const gameState = GameState.getInstance();
 
-          // Add new relic to player
-          this.player.relics.push(reward.item);
-
-          // Apply immediate relic acquisition effects
-          RelicManager.applyRelicAcquisitionEffect(reward.item.id, this.player);
+          // Add new relic to player (no duplicates) + apply acquisition effect
+          const gain = RelicManager.tryGainRelic(this.player, reward.item, { applyAcquisitionEffect: true });
+          if (!gain.added) {
+            if (gain.reason === 'duplicate') {
+              this.showDuplicateRelicConversionDialog(reward.item);
+              return;
+            }
+            this.showMessage("Relic inventory full!", "#ff9f43");
+            return;
+          }
 
           // Persist updated player data
           gameState.updatePlayerData({
