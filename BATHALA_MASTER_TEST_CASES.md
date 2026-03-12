@@ -1,6 +1,6 @@
 # Bathala: Master Test Cases Document
 
-This document contains the comprehensive test cases for all main features of **Bathala**, updated to reflect the latest mechanics including the revised DDA system, Relic Discarding, Mobile Support, Elemental Affinities, and Status Effects.
+This document contains the comprehensive test cases for all main features of **Bathala**, updated to reflect the latest mechanics including the revised DDA system, Relic Discarding, Mobile Support, Elemental Affinities, Status Effects, and detailed Node Encounters (Shop, Campfire, Treasure, Event).
 
 | Test Case ID | Test Case | Pre-Condition | Test Steps | Expected Result | Actual Result | Remarks |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -9,7 +9,6 @@ This document contains the comprehensive test cases for all main features of **B
 | **NAV-002** | Verify blocked path prevention | Player is on the Overworld map | 1. Click on a node obscured by fog of war or not connected. | Movement is blocked; no tooltip is displayed for obscured nodes. | | |
 | **NAV-003** | Verify Day to Night transition | Player is in Day phase | 1. Perform actions until the 50-action threshold is hit. | Visuals shift to Night; enemies become aggressive; transition text displays. | | |
 | **NAV-004** | Verify Chapter Boss spawn | Player is in Chapter 1 | 1. Accumulate ~500 total actions (5 full day/night cycles). | The Chapter Boss node spawns; Boss preparation mechanics activate. | | |
-| **NAV-005** | Verify Event uniqueness | Player on Overworld map | 1. Encounter a specific narrative Event. 2. Attempt to encounter it again. | The event is marked as encountered and does not replay in the same run. | | |
 | **2. COMBAT & POKER MECHANICS** | | | | | | |
 | **CBT-001** | Verify Poker Hand bonuses | Hand selection phase | 1. Select a valid hand (e.g., Flush, Pair). 2. Play hand. | System accurately calculates the hand tier and applies the correct base bonus. | | |
 | **CBT-002** | Verify Discard charge consumption | Hand selection phase | 1. Select up to 5 cards. 2. Click Discard. | Selected cards are replaced; 1 Discard Charge is consumed. | | |
@@ -35,14 +34,19 @@ This document contains the comprehensive test cases for all main features of **B
 | **DDA-003** | Verify Resource & Clutch Bonus | Post-Calibration Combat | 1. Start combat with <50% HP. 2. Use <15% of max discards. 3. Win. | PPS receives Clutch bonus and Resource efficiency bonus. | | |
 | **DDA-004** | Verify Tier 0 (Struggling) effects | PPS drops below 1.3 | 1. Enter a new combat. 2. Check Shop. | Enemy HP/DMG scales to 0.8x; AI complexity to 0.5x. Shop prices drop to 0.8x. | | |
 | **DDA-005** | Verify Tier 5 (Mastering) effects | PPS rises above 4.2 | 1. Enter a new combat. 2. Check Shop. | Enemy HP/DMG scales to 1.15x; AI complexity to 1.5x. Shop prices rise to 1.2x. | | |
-| **6. DECK-SCULPTING & PROGRESSION** | | | | | | |
-| **DCK-001** | Verify Purify action | Shop node | 1. Select Purify. 2. Choose a card. 3. Confirm. | Gold is deducted; selected card is permanently removed from the deck. | | |
-| **DCK-002** | Verify Attune action | Rest node | 1. Select Attune. 2. Choose a card. | Card value is permanently upgraded; Rest node is consumed. | | |
-| **DCK-003** | Verify Infuse action | Post-Elite Reward | 1. Select Infuse. 2. Select a new card. | Selected card is permanently added to the player's deck. | | |
+| **6. NODE ENCOUNTERS (SHOP, CAMPFIRE, TREASURE, EVENT)** | | | | | | |
+| **SHP-001** | Verify Shop Purchase | Shop node | 1. Click an affordable Relic. 2. Confirm purchase. | Relic is added to inventory; correct amount of Ginto is deducted. | | |
+| **SHP-002** | Verify Merchant's Scale | Player has Merchant's Scale | 1. Enter Shop node. 2. Check item prices. | Shop items display discounted prices due to the Merchant's Scale relic. | | |
+| **CMP-001** | Verify Campfire Rest | Campfire node | 1. Select the 'Rest' action. | Player HP is restored; node is consumed/exited. | | |
+| **CMP-002** | Verify Campfire Purify | Campfire node | 1. Select 'Purify'. 2. Select a card. | Selected card is permanently removed from the deck. | | |
+| **CMP-003** | Verify Campfire Attune | Campfire node | 1. Select 'Attune'. 2. Select a card. | Selected card's value is permanently upgraded. | | |
+| **TRS-001** | Verify Treasure Selection | Treasure node | 1. Open the chest. 2. Select a Relic or Potion. | Selected item is added to the inventory. | | |
+| **TRS-002** | Verify Duplicate Relic Conversion | Treasure node (Inventory Full) | 1. Attempt to claim a new Relic while having 6. 2. Choose to discard. | Relic is discarded; Player receives Ginto (Gold) and recovers HP. | | |
+| **EVT-001** | Verify Event Choice Application | Narrative Event node | 1. Read event dialogue. 2. Select a choice. | The chosen effect (e.g., gain relic, lose HP, fight) is successfully applied. | | |
+| **EVT-002** | Verify Event Uniqueness | Overworld map | 1. Encounter a specific Event. 2. Continue exploring. | The event is marked as encountered and does not replay in the same run. | | |
 | **7. ITEMS (RELICS & POTIONS)** | | | | | | |
 | **ITM-001** | Verify passive relic functionality | Player has a specific relic | 1. Enter combat. | Relic effect (e.g., +1 Discard charge, persistent block) automatically applies. | | |
-| **ITM-002** | Verify Relic Discard for Gold/HP | Player has max (6) Relics | 1. Obtain a 7th Relic. 2. Choose to discard the new Relic. | Relic is discarded; Player receives Ginto (Gold) and recovers HP. | | |
-| **ITM-003** | Verify Tooltip Display | Player in Overworld/Combat | 1. Hover over a Relic or Potion icon. | Description tooltip appears accurately positioned without text overflow. | | |
+| **ITM-002** | Verify Tooltip Display | Player in Overworld/Combat | 1. Hover over a Relic or Potion icon. | Description tooltip appears accurately positioned without text overflow. | | |
 | **8. BOSS ENCOUNTERS** | | | | | | |
 | **BOS-001** | Verify Chapter 1 Boss: Kapre | Combat vs Kapre | 1. Progress to end of Chapter 1. 2. Trigger Boss. | Kapre spawns and utilizes AoE Burn and minion summoning mechanics. | | |
 | **BOS-002** | Verify Chapter 2 Boss: Bakunawa | Combat vs Bakunawa | 1. Progress to end of Chapter 2. 2. Trigger Boss. | Bakunawa executes Lunar Eclipse phase, devouring player relics temporarily. | | |
