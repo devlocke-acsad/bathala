@@ -1,6 +1,7 @@
 import { Scene, GameObjects } from "phaser";
 import { CHAPTER_NARRATIVES } from "../../data/NarrativeData";
 import { ActManager } from "../../core/managers/ActManager";
+import { createButton } from "../ui/Button";
 
 /** Theme for cutscene VFX: bg, particle colors, and effect style */
 interface ChapterEffectTheme {
@@ -65,6 +66,8 @@ export class ChapterCutscene extends Scene {
   private targetChapter: number = 1;
   private typingTween?: Phaser.Tweens.Tween;
   private effectObjects: Phaser.GameObjects.GameObject[] = [];
+  private skipButton?: GameObjects.Container;
+  private isFinishing: boolean = false;
 
   constructor() {
     super({ key: "ChapterCutscene" });
@@ -72,6 +75,8 @@ export class ChapterCutscene extends Scene {
 
   init(data: { chapter: number }): void {
     this.targetChapter = data.chapter || 1;
+    this.isFinishing = false;
+    this.skipButton = undefined;
   }
 
   create(): void {
@@ -124,14 +129,25 @@ export class ChapterCutscene extends Scene {
         align: "center",
       })
       .setOrigin(0.5)
-      .setAlpha(0.8)
+      .setAlpha(0)
       .setDepth(25);
 
     const spaceKey = this.input.keyboard?.addKey(
       Phaser.Input.Keyboard.KeyCodes.SPACE
     );
 
+    // Skip button — bottom-right, hidden until first slide appears
+    const skipButtonX = width * 0.88;
+    const skipButtonY = height * 0.92;
+    this.skipButton = createButton(this, skipButtonX, skipButtonY, "Skip Cutscene", () => {
+      this.finishCutscene();
+    });
+    this.skipButton.setAlpha(0).setDepth(30);
+
+    let hasShownSkip = false;
+
     const advance = () => {
+      if (this.isFinishing) return;
       if (currentSlide >= slides.length) {
         this.finishCutscene();
         return;
@@ -139,6 +155,17 @@ export class ChapterCutscene extends Scene {
 
       const slideText = slides[currentSlide++];
       this.playSlide(textObject, slideText);
+
+      // Fade in skip button + controls on first advance
+      if (!hasShownSkip) {
+        hasShownSkip = true;
+        this.tweens.add({
+          targets: [this.skipButton, controlsText],
+          alpha: 1,
+          duration: 500,
+          ease: "Power2",
+        });
+      }
     };
 
     this.input.on("pointerdown", advance);
@@ -396,6 +423,14 @@ export class ChapterCutscene extends Scene {
   }
 
   private finishCutscene(): void {
+    if (this.isFinishing) return;
+    this.isFinishing = true;
+
+    // Fade out skip button if visible
+    if (this.skipButton?.active) {
+      this.tweens.add({ targets: this.skipButton, alpha: 0, duration: 300 });
+    }
+
     this.cameras.main.fadeOut(600, 0, 0, 0);
     this.time.delayedCall(600, () => {
       this.scene.start("Overworld", { fadeIn: true });
