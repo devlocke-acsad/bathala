@@ -3169,29 +3169,40 @@ export class Combat extends Scene {
 
     // Show ending text card based on Landás score
     this.showEndingTextCard(() => {
-      // Clean shutdown of combat scene
-      this.input.removeAllListeners();
-      this.time.removeAllEvents();
+      // Fade to black before switching to Credits
+      const w = this.cameras.main.width;
+      const h = this.cameras.main.height;
+      const fadeOverlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
+        .setOrigin(0.5).setAlpha(0).setDepth(9999);
 
-      // Stop the Overworld scene if it's running
-      if (this.scene.isActive('Overworld') || this.scene.isPaused('Overworld')) {
-        this.scene.stop('Overworld');
-      }
+      this.tweens.add({
+        targets: fadeOverlay,
+        alpha: 1,
+        duration: 800,
+        ease: 'Power2',
+        onComplete: () => {
+          // Clean shutdown of combat scene
+          this.input.removeAllListeners();
+          this.time.removeAllEvents();
 
-      // Stop this scene and start Credits (epilogue)
-      this.scene.stop();
+          // Stop the Overworld scene if it's running
+          if (this.scene.isActive('Overworld') || this.scene.isPaused('Overworld')) {
+            this.scene.stop('Overworld');
+          }
 
-      // Small delay before starting credits to ensure clean transition
-      setTimeout(() => {
-        try {
-          console.log("Launching Credits scene as epilogue...");
-          this.scene.manager.start("Credits");
-        } catch (error) {
-          console.error("Error starting Credits scene:", error);
-          // Fallback to main menu
-          this.scene.manager.start("MainMenu");
-        }
-      }, 100);
+          // Stop this scene and start Credits (epilogue)
+          this.scene.stop();
+
+          try {
+            console.log("Launching Credits scene as epilogue...");
+            this.scene.manager.start("Credits");
+          } catch (error) {
+            console.error("Error starting Credits scene:", error);
+            // Fallback to main menu
+            this.scene.manager.start("MainMenu");
+          }
+        },
+      });
     });
   }
 
@@ -3575,23 +3586,35 @@ export class Combat extends Scene {
         // Handle chapter progression (this will reset everything for new chapter)
         this.handleChapterProgression(gameState);
 
-        // Clean shutdown of combat scene
-        this.input.removeAllListeners();
-        this.time.removeAllEvents();
-        this.scene.stop();
+        // Fade to black before switching scenes
+        const w = this.cameras.main.width;
+        const h = this.cameras.main.height;
+        const fadeOverlay = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
+          .setOrigin(0.5).setAlpha(0).setDepth(9999);
 
-        // Stop Overworld if it's running (we'll start it fresh)
-        const sceneManager = this.scene.manager;
-        if (sceneManager.isActive('Overworld') || sceneManager.getScene('Overworld')) {
-          sceneManager.stop('Overworld');
-        }
+        this.tweens.add({
+          targets: fadeOverlay,
+          alpha: 1,
+          duration: 600,
+          ease: 'Power2',
+          onComplete: () => {
+            // Clean shutdown of combat scene
+            this.input.removeAllListeners();
+            this.time.removeAllEvents();
+            this.scene.stop();
 
-        // Small delay then start Chapter Transition scene
-        setTimeout(() => {
-          const newChapter = GameState.getInstance().getCurrentChapter();
-          console.log(`🎬 Starting chapter transition to Chapter ${newChapter}...`);
-          sceneManager.start("ChapterTransition", { chapter: newChapter });
-        }, 100);
+            // Stop Overworld if it's running (we'll start it fresh)
+            const sceneManager = this.scene.manager;
+            if (sceneManager.isActive('Overworld') || sceneManager.getScene('Overworld')) {
+              sceneManager.stop('Overworld');
+            }
+
+            // Start Chapter Transition scene
+            const newChapter = GameState.getInstance().getCurrentChapter();
+            console.log(`🎬 Starting chapter transition to Chapter ${newChapter}...`);
+            sceneManager.start("ChapterTransition", { chapter: newChapter });
+          },
+        });
 
         return; // Don't continue with normal return flow
       }
