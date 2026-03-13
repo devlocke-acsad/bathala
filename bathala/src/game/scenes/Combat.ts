@@ -276,6 +276,18 @@ export class Combat extends Scene {
     // Add 50% opacity overlay with #150E10 to dim the background (Prologue style)
     const overlay = this.add.rectangle(this.cameras.main.centerX, this.cameras.main.centerY, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.50);
 
+    // Night-time overlay: subtle dark blue tint when it's nighttime in the overworld
+    if (!OverworldGameState.getInstance().isDay) {
+      this.add.rectangle(
+        this.cameras.main.centerX,
+        this.cameras.main.centerY,
+        this.cameras.main.width,
+        this.cameras.main.height,
+        0x000033,
+        0.25
+      ).setDepth(1);
+    }
+
     // Apply chapter-specific visual theme
     const gameState = GameState.getInstance();
     const currentChapter = gameState.getCurrentChapter();

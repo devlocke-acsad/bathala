@@ -20,6 +20,7 @@ import {
 import { allShopItems } from "../../data/relics/ShopItems";
 import { Potion, getChapterCommonPotions } from "../../data/potions";
 import { getRelicSpriteKey } from "../../utils/RelicSpriteUtils";
+import { OverworldGameState } from "../../core/managers/OverworldGameState";
 
 // Treasure reward can be either a Relic or a Potion
 type TreasureReward =
@@ -222,6 +223,19 @@ export class Treasure extends Scene {
       0x150E10,
       0.46
     ).setDepth(1);
+
+    // Night-time overlay: subtle dark blue tint when it's nighttime in the overworld
+    if (!OverworldGameState.getInstance().isDay) {
+      forestBg.setAlpha(0.35);
+      this.add.rectangle(
+        this.cameras.main.width / 2,
+        this.cameras.main.height / 2,
+        this.cameras.main.width,
+        this.cameras.main.height,
+        0x000033,
+        0.3
+      ).setDepth(2);
+    }
 
     // Create title
     const screenWidth = this.cameras.main.width;

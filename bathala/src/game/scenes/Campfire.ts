@@ -4,6 +4,7 @@ import { Player, PlayingCard } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { RelicManager } from "../../core/managers/RelicManager";
 import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
+import { OverworldGameState } from "../../core/managers/OverworldGameState";
 
 export class Campfire extends Scene {
   private player!: Player;
@@ -22,6 +23,7 @@ export class Campfire extends Scene {
   private displayedCards: PlayingCard[] = [];
   private prevButton!: Phaser.GameObjects.Container;
   private nextButton!: Phaser.GameObjects.Container;
+  private isDayCycle!: boolean;
 
   constructor() {
     super({ key: "Campfire" });
@@ -29,6 +31,7 @@ export class Campfire extends Scene {
 
   init(data: { player: Player }) {
     this.player = data.player;
+    this.isDayCycle = OverworldGameState.getInstance().isDay;
   }
 
   create(): void {
@@ -144,9 +147,16 @@ export class Campfire extends Scene {
     const vignette = this.add.image(W / 2, H / 2, vigKey);
     bgLayer.add(vignette);
 
-    // Warm colour wash
-    const wash = this.add.rectangle(W / 2, H / 2, W, H, 0x2a1800, 0.35);
+    // Warm colour wash (day) or cool blue wash (night)
+    const washColor = this.isDayCycle ? 0x2a1800 : 0x0a0a2f;
+    const wash = this.add.rectangle(W / 2, H / 2, W, H, washColor, 0.35);
     bgLayer.add(wash);
+
+    // Night-time overlay: subtle dark blue tint when nighttime
+    if (!this.isDayCycle) {
+      const nightOverlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000033, 0.25);
+      bgLayer.add(nightOverlay);
+    }
 
     // Scanline texture overlay
     const scanGfx = this.make.graphics({});

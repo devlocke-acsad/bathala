@@ -7,6 +7,7 @@ import { allShopItems, ShopItem, getChapterShopItems } from "../../data/relics/S
 import { getRelicById } from "../../data/relics";
 import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
 import { getRelicSpriteKey } from "../../utils/RelicSpriteUtils";
+import { OverworldGameState } from "../../core/managers/OverworldGameState";
 
 /**
  * Shop scene for purchasing relics and items
@@ -186,6 +187,12 @@ export class Shop extends Scene {
     
     // Dim only the background image (not the whole screen)
     forestBg.setAlpha(0.4); // 40% visible = nicely dimmed background
+
+    // Night-time overlay: subtle dark blue tint when it's nighttime in the overworld
+    if (!OverworldGameState.getInstance().isDay) {
+      forestBg.setAlpha(0.3);
+      this.add.rectangle(w / 2, h / 2, w, h, 0x000033, 0.3).setDepth(1);
+    }
 
     // Create animated background elements
     this.createBackgroundElements();
