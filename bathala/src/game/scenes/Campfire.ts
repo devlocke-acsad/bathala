@@ -7,7 +7,6 @@ import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem"
 
 export class Campfire extends Scene {
   private player!: Player;
-  private campfire!: Phaser.GameObjects.Sprite;
   private restButton!: Phaser.GameObjects.Container;
   private purifyButton!: Phaser.GameObjects.Container;
   private upgradeButton!: Phaser.GameObjects.Container;
@@ -34,100 +33,58 @@ export class Campfire extends Scene {
 
   create(): void {
     if (!this.cameras.main) return;
-    this.cameras.main.setBackgroundColor(0x150E10);
 
     // Start campfire music via MusicLifecycleSystem
     this.musicLifecycle = new MusicLifecycleSystem(this);
     this.musicLifecycle.start();
 
-    // ── Warm entrance transition ──
-    const w = this.cameras.main.width;
-    const h = this.cameras.main.height;
-    const warmCover = this.add.rectangle(w / 2, h / 2, w, h, 0x1a0a00)
-      .setOrigin(0.5).setAlpha(1).setDepth(9999);
-    const emberGlow = this.add.circle(w / 2, h / 2 + 30, w * 0.4, 0xff6600, 0.15)
-      .setDepth(9998);
-    this.tweens.add({
-      targets: warmCover, alpha: 0,
-      duration: 900, ease: 'Sine.easeInOut', delay: 100,
-      onComplete: () => warmCover.destroy()
-    });
-    this.tweens.add({
-      targets: emberGlow, alpha: 0, radius: w * 0.6,
-      duration: 1200, ease: 'Sine.easeOut', delay: 200,
-      onComplete: () => emberGlow.destroy()
-    });
-    
-    // Add forest background image
-    const forestBg = this.add.image(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      "forest_bg"
-    );
-    // Scale to cover the entire screen
-    const scaleX = this.cameras.main.width / forestBg.width;
-    const scaleY = this.cameras.main.height / forestBg.height;
-    const scale = Math.max(scaleX, scaleY);
-    forestBg.setScale(scale);
-    forestBg.setDepth(0); // Behind everything
-    
-    // Dim only the background image (not the whole screen) - lighter for cozy campfire atmosphere
-    forestBg.setAlpha(0.5); // 50% visible = softer dimming for campfire
+    // Build EventScene-style atmospheric background first
+    this.createAtmosphericBackground();
+    this.playEntranceTransition();
 
-    // Create responsive layout
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
-    // Add global pointer listener to hide tooltips when moving over non-interactive areas
+
+    // Global pointer listener to hide tooltips
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
-      // Check if pointer is over any interactive object
       const objectsUnderPointer = this.input.hitTestPointer(pointer);
       if (objectsUnderPointer.length === 0) {
-        // No interactive objects under pointer, hide tooltip
         this.hideTooltip();
       }
     });
-    
-    // Add subtle atmospheric tint to unify with menu/shop style
-    this.add.rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x150E10, 0.45).setDepth(1);
-    
-    // Add subtle particles for atmosphere
-    this.createAtmosphericParticles();
-    
-    // Create bonfire animation with glow effect
-    this.createBonfireWithGlow(screenWidth / 2, screenHeight * 0.4);
-    
+
+    // Create bonfire animation with glow effect — centered on screen
+    this.createBonfireWithGlow(screenWidth / 2, screenHeight * 0.5);
+
     // Show the player as part of the scene composition
     this.createPlayerShowcase(screenWidth, screenHeight);
-    
-    // Create responsive title with proper scaling
-    this.add.text(
-      screenWidth / 2,
-      Math.max(60, screenHeight * 0.08),
-      "REST AT BONFIRE",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.min(34, screenWidth * 0.029),
-        color: "#e8eced",
-        align: "center",
-        stroke: "#000000",
-        strokeThickness: 3
-      }
-    ).setOrigin(0.5);
 
-    // Create responsive description with word wrapping
-    this.add.text(
-      screenWidth / 2,
-      Math.max(110, screenHeight * 0.15),
-      "The bonfire's warmth restores your spirit",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.min(18, screenWidth * 0.015),
-        color: "#77888C",
-        align: "center",
-        wordWrap: { width: screenWidth * 0.8 }
-      }
-    ).setOrigin(0.5);
+    // Title — large dramatic header matching EventScene style
+    const titleY = Math.max(55, screenHeight * 0.07);
+    this.add.text(screenWidth / 2, titleY, 'REST AT BONFIRE', {
+      fontFamily: 'dungeon-mode',
+      fontSize: '38px',
+      color: '#e8eced',
+      align: 'center'
+    }).setOrigin(0.5).setDepth(5);
+
+    // Accent line under title
+    const accentLineY = titleY + 32;
+    const lineGfx = this.add.graphics().setDepth(5);
+    lineGfx.lineStyle(3, 0xd4692a, 0.7);
+    lineGfx.beginPath();
+    lineGfx.moveTo(screenWidth / 2 - 140, accentLineY);
+    lineGfx.lineTo(screenWidth / 2 + 140, accentLineY);
+    lineGfx.strokePath();
+
+    // Subtitle — letter-spaced, accented
+    this.add.text(screenWidth / 2, accentLineY + 20, "THE BONFIRE'S WARMTH RESTORES YOUR SPIRIT", {
+      fontFamily: 'dungeon-mode',
+      fontSize: '13px',
+      color: '#d4692a',
+      align: 'center',
+      letterSpacing: 4
+    }).setOrigin(0.5).setAlpha(0.7).setDepth(5);
 
     // Create player health display
     this.createPlayerHealthDisplay();
@@ -140,72 +97,229 @@ export class Campfire extends Scene {
 
     // Create back button with responsive positioning
     this.createResponsiveBackButton();
-    
+
     // Ensure tooltips are cleaned up when scene shuts down
     this.events.on('shutdown', () => {
       this.hideTooltip();
     });
   }
 
-  private createAtmosphericParticles(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create floating embers
-    for (let i = 0; i < 30; i++) {
-      const ember = this.add.rectangle(
-        Phaser.Math.Between(0, screenWidth),
-        Phaser.Math.Between(0, screenHeight),
-        Phaser.Math.Between(1, 3),
-        Phaser.Math.Between(1, 3),
-        0xff4500
-      ).setAlpha(Phaser.Math.FloatBetween(0.3, 0.8));
-      
-      // Animate embers floating upward
+  // ─────────────────────────────────────────────
+  //  ATMOSPHERIC BACKGROUND  (EventScene-style)
+  // ─────────────────────────────────────────────
+
+  private createAtmosphericBackground(): void {
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+    const bgLayer = this.add.container(0, 0).setDepth(0);
+
+    // Forest backdrop
+    if (this.textures.exists('forest_bg')) {
+      const forestBg = this.add.image(W / 2, H / 2, 'forest_bg');
+      const scaleX = W / forestBg.width;
+      const scaleY = H / forestBg.height;
+      forestBg.setScale(Math.max(scaleX, scaleY)).setAlpha(0.5);
+      bgLayer.add(forestBg);
+    }
+
+    // Semi-transparent dark warm base (lets forest bleed through)
+    const base = this.add.rectangle(W / 2, H / 2, W, H, 0x0c0805, 0.65);
+    bgLayer.add(base);
+
+    // Circular vignette via canvas radial gradient (replaces rectangular edge bars)
+    const vigKey = 'campfire_vignette';
+    if (this.textures.exists(vigKey)) { this.textures.remove(vigKey); }
+    const vigCanvas = this.textures.createCanvas(vigKey, W, H) as Phaser.Textures.CanvasTexture;
+    const vigCtx = vigCanvas.getContext();
+    const cx = W / 2, cy = H / 2;
+    const innerR = Math.min(W, H) * 0.28;
+    const outerR = Math.sqrt(W * W + H * H) / 2;
+    const radGrad = vigCtx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
+    radGrad.addColorStop(0,   'rgba(0,0,0,0)');
+    radGrad.addColorStop(0.5, 'rgba(0,0,0,0.28)');
+    radGrad.addColorStop(1,   'rgba(0,0,0,0.90)');
+    vigCtx.fillStyle = radGrad;
+    vigCtx.fillRect(0, 0, W, H);
+    vigCanvas.refresh();
+    const vignette = this.add.image(W / 2, H / 2, vigKey);
+    bgLayer.add(vignette);
+
+    // Warm colour wash
+    const wash = this.add.rectangle(W / 2, H / 2, W, H, 0x2a1800, 0.35);
+    bgLayer.add(wash);
+
+    // Scanline texture overlay
+    const scanGfx = this.make.graphics({});
+    scanGfx.fillStyle(0x000000, 1);
+    scanGfx.fillRect(0, 0, 4, 2);
+    scanGfx.fillStyle(0xffffff, 1);
+    scanGfx.fillRect(0, 2, 4, 2);
+    scanGfx.generateTexture('campfire_scanline', 4, 4);
+    scanGfx.destroy();
+
+    if (this.textures.exists('campfire_scanline')) {
+      const scanlines = this.add.tileSprite(0, 0, W, H, 'campfire_scanline')
+        .setOrigin(0).setAlpha(0.04).setTint(0x4a3a20);
+      bgLayer.add(scanlines);
+    }
+
+    // Floating ember particles
+    this.createFloatingParticles(bgLayer, W, H);
+  }
+
+  private createFloatingParticles(bgLayer: Phaser.GameObjects.Container, W: number, H: number): void {
+    const count = 30;
+    for (let i = 0; i < count; i++) {
+      const x = Phaser.Math.Between(0, W);
+      const y = Phaser.Math.Between(0, H);
+      const radius = Phaser.Math.FloatBetween(1.5, 4);
+      const alpha  = Phaser.Math.FloatBetween(0.08, 0.3);
+      const color  = Phaser.Math.RND.pick([0xff6b35, 0xd4692a, 0xffa04a, 0xff4500]);
+
+      const dot = this.add.circle(x, y, radius, color, alpha).setDepth(1);
+      bgLayer.add(dot);
+
+      const duration = Phaser.Math.Between(4000, 8000);
       this.tweens.add({
-        targets: ember,
-        y: -50,
+        targets: dot,
+        y: y - Phaser.Math.Between(80, 200),
         alpha: 0,
-        duration: Phaser.Math.Between(3000, 8000),
-        ease: 'Power1',
+        duration,
+        ease: 'Sine.easeInOut',
         repeat: -1,
-        yoyo: false,
-        onComplete: () => {
-          ember.setPosition(
-            Phaser.Math.Between(0, screenWidth),
-            screenHeight + 50
-          );
-          ember.setAlpha(Phaser.Math.FloatBetween(0.3, 0.8));
+        delay: Phaser.Math.Between(0, 3000),
+        onRepeat: () => {
+          dot.setPosition(Phaser.Math.Between(0, W), H + 20);
+          dot.setAlpha(alpha);
         }
       });
     }
   }
 
-  private createBonfireWithGlow(x: number, y: number): void {
-    // Create glow effect behind bonfire
-    const glow = this.add.pointlight(x, y, 0xff4500, 200, 0.5, 0.5);
-    
-    // Create bonfire animation using new campfire sprite
-    this.campfire = this.add.sprite(x, y, "campfire_overworld");
-    this.campfire.setScale(3);
-    
-    // Try to play animation, fallback if it fails
-    try {
-      this.campfire.play("campfire_burn");
-    } catch (error) {
-      console.warn("Campfire animation not found, using static sprite");
+  // ─────────────────────────────────────────────
+  //  ENTRANCE TRANSITION  (EventScene P3R-style)
+  // ─────────────────────────────────────────────
+
+  private playEntranceTransition(): void {
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    // Full-screen cover
+    const cover = this.add.rectangle(W / 2, H / 2, W, H, 0x050305)
+      .setOrigin(0.5).setAlpha(1).setDepth(9999);
+
+    // Diagonal slash wipes (P3R-style geometric cuts)
+    const slashCount = 6;
+    const slashes: Phaser.GameObjects.Rectangle[] = [];
+    for (let i = 0; i < slashCount; i++) {
+      const slashH = (H / slashCount) + 10;
+      const y = slashH * i + slashH / 2;
+      const fromLeft = i % 2 === 0;
+      const slash = this.add.rectangle(
+        fromLeft ? -W : W * 2,
+        y,
+        W + 200,
+        slashH,
+        Phaser.Math.RND.pick([0x0c0805, 0x100a06, 0x0a0603])
+      ).setOrigin(0.5).setAlpha(0.95).setDepth(9998);
+
+      slash.setRotation(fromLeft ? -0.02 : 0.02);
+      slashes.push(slash);
+
+      this.tweens.add({
+        targets: slash,
+        x: W / 2,
+        duration: 350,
+        ease: 'Power3',
+        delay: i * 60,
+      });
     }
-    
-    // Add flickering effect to glow
-    this.time.addEvent({
-      delay: 200,
-      callback: () => {
-        glow.intensity = Phaser.Math.FloatBetween(0.4, 0.7);
-        glow.radius = Phaser.Math.Between(180, 220);
-      },
-      callbackScope: this,
-      loop: true
+
+    // After slashes cover, fade them out with the main cover
+    this.time.delayedCall(500, () => {
+      this.tweens.add({
+        targets: cover,
+        alpha: 0,
+        duration: 500,
+        ease: 'Sine.easeInOut',
+        onComplete: () => cover.destroy()
+      });
+
+      slashes.forEach((slash, i) => {
+        this.tweens.add({
+          targets: slash,
+          alpha: 0,
+          x: (i % 2 === 0) ? W * 2 : -W,
+          duration: 400,
+          ease: 'Power2',
+          delay: i * 40,
+          onComplete: () => slash.destroy()
+        });
+      });
     });
+  }
+
+  private createBonfireWithGlow(x: number, y: number): void {
+    // Soft layered radial glow — no pointlight (avoids full-screen blotch)
+    const glowLayers = [
+      { radius: 160, color: 0xff4500, alpha: 0.04 },
+      { radius: 110, color: 0xff6600, alpha: 0.07 },
+      { radius: 70,  color: 0xff8800, alpha: 0.11 },
+      { radius: 42,  color: 0xffaa00, alpha: 0.16 },
+    ];
+    glowLayers.forEach(({ radius, color, alpha }, i) => {
+      const g = this.add.circle(x, y, radius, color, alpha).setDepth(2);
+      this.tweens.add({
+        targets: g,
+        scaleX: 1.10, scaleY: 1.10,
+        alpha: alpha * 0.55,
+        duration: 1800 + i * 300,
+        ease: 'Sine.easeInOut',
+        yoyo: true, repeat: -1,
+        delay: i * 150
+      });
+    });
+
+    // ── Campfire sprite (animated) ──
+    const campfireSprite = this.add.sprite(x, y, 'campfire_overworld')
+      .setScale(3)
+      .setDepth(3);
+    try {
+      campfireSprite.play('campfire_burn');
+    } catch {
+      // fallback: static sprite
+    }
+
+    // Floating ember sparks above the fire
+    for (let i = 0; i < 10; i++) {
+      const spark = this.add.circle(
+        x + Phaser.Math.Between(-22, 22),
+        y + Phaser.Math.Between(-10, 5),
+        Phaser.Math.Between(2, 4),
+        Phaser.Math.RND.pick([0xff6600, 0xffaa00, 0xff4400, 0xffcc44]),
+        Phaser.Math.FloatBetween(0.5, 1)
+      ).setDepth(4);
+
+      this.tweens.add({
+        targets: spark,
+        y: y - Phaser.Math.Between(70, 130),
+        x: spark.x + Phaser.Math.Between(-35, 35),
+        alpha: 0,
+        scaleX: 0.2, scaleY: 0.2,
+        duration: Phaser.Math.Between(1400, 3200),
+        ease: 'Power1',
+        repeat: -1,
+        delay: Phaser.Math.Between(0, 2500),
+        onRepeat: () => {
+          spark.setPosition(
+            x + Phaser.Math.Between(-22, 22),
+            y + Phaser.Math.Between(-10, 5)
+          );
+          spark.setAlpha(Phaser.Math.FloatBetween(0.5, 1));
+          spark.setScale(1);
+        }
+      });
+    }
   }
 
   private createPlayerHealthDisplay(): void {
@@ -224,18 +338,18 @@ export class Campfire extends Scene {
     const panelW = 320;
     const panelH = 92;
 
-    const healthPanelBg = this.add.rectangle(panelX, panelY, panelW, panelH, 0x150E10, 0.96);
+    const healthPanelBg = this.add.rectangle(panelX, panelY, panelW, panelH, 0x1a0b04, 0.96);
     const healthPanelOuter = this.add.rectangle(panelX, panelY, panelW + 6, panelH + 6, undefined, 0);
-    healthPanelOuter.setStrokeStyle(3, 0x77888C, 0.9);
+    healthPanelOuter.setStrokeStyle(3, 0xd4692a, 0.85);
     const healthPanelInner = this.add.rectangle(panelX, panelY, panelW + 2, panelH + 2, undefined, 0);
-    healthPanelInner.setStrokeStyle(2, 0x556065, 0.75);
+    healthPanelInner.setStrokeStyle(2, 0x7a3a12, 0.75);
     healthPanelBg.setName('healthBarPanelBg');
     healthPanelOuter.setName('healthBarPanelOuter');
     healthPanelInner.setName('healthBarPanelInner');
 
     // Create health bar background
-    const healthBarBg = this.add.rectangle(panelX, panelY + 16, 260, 22, 0x1b2327);
-    healthBarBg.setStrokeStyle(1, 0x77888C, 0.65);
+    const healthBarBg = this.add.rectangle(panelX, panelY + 16, 260, 22, 0x1f0e05);
+    healthBarBg.setStrokeStyle(1, 0xd4692a, 0.65);
     healthBarBg.setName('healthBarBg');
     
     // Create health bar fill
@@ -257,7 +371,7 @@ export class Campfire extends Scene {
       {
         fontFamily: "dungeon-mode",
         fontSize: 18,
-        color: "#77888C",
+        color: "#d4692a",
         align: "center",
       }
     ).setOrigin(0.5);
@@ -270,18 +384,18 @@ export class Campfire extends Scene {
     const panelW = 320;
     const panelH = 260;
 
-    const panelBg = this.add.rectangle(panelX, panelY, panelW, panelH, 0x150E10, 0.95);
+    const panelBg = this.add.rectangle(panelX, panelY, panelW, panelH, 0x1a0b04, 0.95);
     const panelOuter = this.add.rectangle(panelX, panelY, panelW + 6, panelH + 6, undefined, 0);
-    panelOuter.setStrokeStyle(3, 0x77888C, 0.9);
+    panelOuter.setStrokeStyle(3, 0xd4692a, 0.85);
     const panelInner = this.add.rectangle(panelX, panelY, panelW + 2, panelH + 2, undefined, 0);
-    panelInner.setStrokeStyle(2, 0x556065, 0.75);
+    panelInner.setStrokeStyle(2, 0x7a3a12, 0.75);
 
-    const headerBg = this.add.rectangle(panelX, panelY - panelH / 2 + 24, panelW - 22, 38, 0x1b2327, 0.72);
-    headerBg.setStrokeStyle(1, 0x77888C, 0.5);
+    const headerBg = this.add.rectangle(panelX, panelY - panelH / 2 + 24, panelW - 22, 38, 0x1f0e05, 0.72);
+    headerBg.setStrokeStyle(1, 0xd4692a, 0.5);
     const headerText = this.add.text(panelX, panelY - panelH / 2 + 24, "HERO", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
-      color: "#77888C",
+      color: "#d4692a",
       align: "center"
     }).setOrigin(0.5);
 
@@ -289,10 +403,10 @@ export class Campfire extends Scene {
     const playerKey = this.textures.exists("combat_player") ? "combat_player" : "";
 
     if (playerKey) {
-      const spriteBackdrop = this.add.rectangle(panelX, panelY + 10, 180, 170, 0x1b2327, 0.35)
+      const spriteBackdrop = this.add.rectangle(panelX, panelY + 10, 180, 170, 0x1f0e05, 0.35)
         .setOrigin(0.5)
         .setDepth(41);
-      spriteBackdrop.setStrokeStyle(1, 0x556065, 0.55);
+      spriteBackdrop.setStrokeStyle(1, 0x7a3a12, 0.55);
 
       const playerSprite = this.add.image(panelX, panelY + 10, playerKey).setOrigin(0.5);
       const maxW = 170;
@@ -314,7 +428,7 @@ export class Campfire extends Scene {
     this.add.text(panelX, panelY + panelH / 2 - 24, "Rest. Reflect. Prepare.", {
       fontFamily: "dungeon-mode",
       fontSize: 14,
-      color: "#77888C",
+      color: "#d4692a",
       align: "center"
     }).setOrigin(0.5).setDepth(41);
 
@@ -380,18 +494,18 @@ export class Campfire extends Scene {
       const button = this.add.container(x, y);
       
       // Main menu/tutorial style button body
-      const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10, 0.95);
-      background.setStrokeStyle(3, 0x77888C, 0.9);
-      
-      const innerGlow = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, 0x1b2327, 0.65);
-      innerGlow.setStrokeStyle(1, 0x556065, 0.7);
+      const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x1a0b04, 0.95);
+      background.setStrokeStyle(3, 0xd4692a, 0.85);
+
+      const innerGlow = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, 0x1f0e05, 0.65);
+      innerGlow.setStrokeStyle(1, 0x7a3a12, 0.7);
       
       const actionAccent = this.add.rectangle(-buttonWidth / 2 + 7, 0, 8, buttonHeight - 10, data.color, 0.85);
       
       const text = this.add.text(0, 0, data.text, {
         fontFamily: "dungeon-mode",
         fontSize: fontSize,
-        color: "#77888C",
+        color: "#d4692a",
         align: "center",
         wordWrap: { width: buttonWidth - 20 }
       }).setOrigin(0.5);
@@ -417,21 +531,21 @@ export class Campfire extends Scene {
       });
       
       button.on("pointerover", () => {
-        background.setFillStyle(0x1f1410, 1);
+        background.setFillStyle(0x2a1205, 1);
         innerGlow.setAlpha(0.9);
         text.setColor("#e8eced");
         actionAccent.setAlpha(1);
-        
+
         // Enhanced tooltip positioning
         const tooltipX = x;
         const tooltipY = y - buttonHeight/2 - 10;
         this.showResponsiveTooltip(data.description, tooltipX, tooltipY);
       });
-      
+
       button.on("pointerout", () => {
-        background.setFillStyle(0x150E10, 0.95);
+        background.setFillStyle(0x1a0b04, 0.95);
         innerGlow.setAlpha(0.65);
-        text.setColor("#77888C");
+        text.setColor("#d4692a");
         actionAccent.setAlpha(0.85);
         this.hideTooltip();
       });
@@ -458,15 +572,15 @@ export class Campfire extends Scene {
     const backButton = this.add.container(screenWidth / 2, screenHeight - Math.max(60, screenHeight * 0.1));
     
     // Create responsive button with shared UI style
-    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10, 0.95);
-    background.setStrokeStyle(3, 0x77888C, 0.9);
-    const innerBorder = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, 0x1b2327, 0.65);
-    innerBorder.setStrokeStyle(1, 0x556065, 0.7);
-    
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x1a0b04, 0.95);
+    background.setStrokeStyle(3, 0xd4692a, 0.85);
+    const innerBorder = this.add.rectangle(0, 0, buttonWidth - 6, buttonHeight - 6, 0x1f0e05, 0.65);
+    innerBorder.setStrokeStyle(1, 0x7a3a12, 0.7);
+
     const text = this.add.text(0, 0, "LEAVE BONFIRE", {
       fontFamily: "dungeon-mode",
       fontSize: fontSize,
-      color: "#77888C",
+      color: "#d4692a",
       wordWrap: { width: buttonWidth - 20 }
     }).setOrigin(0.5);
     
@@ -494,14 +608,14 @@ export class Campfire extends Scene {
     });
     
     backButton.on("pointerover", () => {
-      background.setFillStyle(0x1f1410);
+      background.setFillStyle(0x2a1205);
       text.setColor("#e8eced");
       this.showResponsiveTooltip("Return to your journey", screenWidth / 2, screenHeight - Math.max(120, screenHeight * 0.15));
     });
-    
+
     backButton.on("pointerout", () => {
-      background.setFillStyle(0x150E10, 0.95);
-      text.setColor("#77888C");
+      background.setFillStyle(0x1a0b04, 0.95);
+      text.setColor("#d4692a");
       this.hideTooltip();
     });
   }
@@ -2075,40 +2189,50 @@ export class Campfire extends Scene {
   }
 
   /**
-   * Persona 5-ish exit transition — warm horizontal bands slide out + fade to black.
+   * Exit transition — EventScene-style bars sweep in + fade to black.
    */
   private playExitTransition(onComplete: () => void): void {
-    const w = this.cameras.main.width;
-    const h = this.cameras.main.height;
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
 
-    // Warm overlay dims scene
-    const overlay = this.add.rectangle(w / 2, h / 2, w, h, 0x1a0a00)
+    const overlay = this.add.rectangle(W / 2, H / 2, W, H, 0x050305)
       .setOrigin(0.5).setAlpha(0).setDepth(9000);
-    this.tweens.add({ targets: overlay, alpha: 0.5, duration: 300, ease: 'Sine.easeIn' });
 
-    // Horizontal bands slide in from alternating sides
-    const bandCount = 6;
-    const bandH = h / bandCount;
-    for (let i = 0; i < bandCount; i++) {
-      const fromLeft = i % 2 === 0;
-      const band = this.add.rectangle(
-        fromLeft ? -w : w * 2, bandH * i + bandH / 2, w, bandH,
-        Phaser.Math.RND.pick([0x0d0400, 0x150600, 0x1a0800])
+    this.tweens.add({
+      targets: overlay,
+      alpha: 0.6,
+      duration: 300,
+      ease: 'Sine.easeIn'
+    });
+
+    const barCount = 5;
+    const barH = (H / barCount) + 4;
+    for (let i = 0; i < barCount; i++) {
+      const fromTop = i < barCount / 2;
+      const targetY = barH * i + barH / 2;
+      const bar = this.add.rectangle(
+        W / 2, fromTop ? -barH : H + barH, W, barH,
+        Phaser.Math.RND.pick([0x0c0805, 0x100a06, 0x050305])
       ).setOrigin(0.5).setAlpha(0.9).setDepth(9001);
 
+      const distFromEdge = fromTop ? i : (barCount - 1 - i);
       this.tweens.add({
-        targets: band, x: w / 2,
-        duration: 350, ease: 'Power2',
-        delay: i * 40
+        targets: bar,
+        y: targetY,
+        duration: 400,
+        ease: 'Sine.easeInOut',
+        delay: distFromEdge * 50
       });
     }
 
-    // Final black + callback
-    this.time.delayedCall(350 + bandCount * 40 + 50, () => {
-      const black = this.add.rectangle(w / 2, h / 2, w, h, 0x000000)
+    this.time.delayedCall(550, () => {
+      const black = this.add.rectangle(W / 2, H / 2, W, H, 0x000000)
         .setOrigin(0.5).setAlpha(0).setDepth(9002);
       this.tweens.add({
-        targets: black, alpha: 1, duration: 200, ease: 'Power2',
+        targets: black,
+        alpha: 1,
+        duration: 250,
+        ease: 'Sine.easeInOut',
         onComplete
       });
     });
