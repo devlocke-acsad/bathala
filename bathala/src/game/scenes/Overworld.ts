@@ -1473,6 +1473,13 @@ export class Overworld extends Scene {
           this.isMoving = false;
           this.checkNodeInteraction();
 
+          // Move nearby enemy nodes toward player during nighttime.
+          // This runs BEFORE recordAction() so that enemies chase based on
+          // the current cycle state, not a just-toggled one.  Otherwise the
+          // day→night toggle would make enemies lunge on the very step the
+          // night begins, which feels like a daytime chase to the player.
+          this.moveEnemiesNighttime();
+
           // Record the action for day/night cycle after movement completes
           this.gameState.recordAction();
 
@@ -1489,9 +1496,6 @@ export class Overworld extends Scene {
           if (this.fogOfWarManager) {
             this.fogOfWarManager.update(this.player.x, this.player.y);
           }
-
-          // Move nearby enemy nodes toward player during nighttime
-          this.moveEnemiesNighttime();
         }
       });
     } else {
