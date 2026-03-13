@@ -1075,7 +1075,7 @@ export class Shop extends Scene {
         .setOrigin(0.5);
       
       const ownedText = this.add.text(0, 0, "OWNED", {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 20,
         color: "#10b981",
         fontStyle: "bold"
@@ -1616,63 +1616,132 @@ export class Shop extends Scene {
       lineSpacing: 4
     }).setOrigin(0.5, 0);
 
+    const isOwned = this.player.relics.some(relic => relic.id === item.item.id);
+    const isInventoryFull = this.player.relics.length >= 6;
+
     const buyBtn = this.add.container(0, panelHeight / 2 - 44);
     const buyBg = this.add.graphics();
-    buyBg.fillStyle(0x150E10, 0.9);
-    buyBg.lineStyle(3, 0x77888C, 0.8);
-    buyBg.fillRoundedRect(-120, -24, 240, 48, 10);
-    buyBg.strokeRoundedRect(-120, -24, 240, 48, 10);
-    
-    const buyInnerGlow = this.add.graphics();
-    buyInnerGlow.lineStyle(1, 0x556065, 0.7);
-    buyInnerGlow.strokeRoundedRect(-118, -22, 236, 44, 9);
-    
-    const buyText = this.add.text(0, 0, "PURCHASE ITEM", {
-      fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#77888C"
-    }).setOrigin(0.5, 0.5);
-    
-    buyBtn.add([buyBg, buyInnerGlow, buyText]);
-    buyBtn.setSize(240, 48);
-    buyBtn.setInteractive({ useHandCursor: true });
-    buyBtn.on("pointerdown", () => {
-      // Clean up panel with animation and then proceed with purchase
-      this.tweens.add({
-        targets: panel,
-        scale: 0.8,
-        alpha: 0,
-        duration: 200,
-        ease: 'Back.easeIn',
-        onComplete: () => {
-          overlay.destroy();
-          panel.destroy();
-          this.unlockInput();
-          // Proceed with purchase (which may open another locked modal)
-          this.buyItem(item);
-        }
-      });
-    });
-    buyBtn.on("pointerover", () => {
-      this.input.setDefaultCursor('pointer');
-      buyBtn.setScale(1.05);
-      buyBg.clear();
-      buyBg.fillStyle(0x150E10, 1);
-      buyBg.lineStyle(3, 0x77888C, 1);
+
+    if (isOwned) {
+      // Owned state - green tinted, non-interactive
+      buyBg.fillStyle(0x0a1f0a, 0.9);
+      buyBg.lineStyle(3, 0x10b981, 0.6);
       buyBg.fillRoundedRect(-120, -24, 240, 48, 10);
       buyBg.strokeRoundedRect(-120, -24, 240, 48, 10);
-      buyText.setColor("#ffffff");
-    });
-    buyBtn.on("pointerout", () => {
-      this.input.setDefaultCursor('default');
-      buyBtn.setScale(1);
-      buyBg.clear();
+
+      const buyInnerGlow = this.add.graphics();
+      buyInnerGlow.lineStyle(1, 0x10b981, 0.3);
+      buyInnerGlow.strokeRoundedRect(-118, -22, 236, 44, 9);
+
+      const buyText = this.add.text(0, 0, "✓ ALREADY OWNED", {
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
+        color: "#10b981"
+      }).setOrigin(0.5, 0.5);
+
+      buyBtn.add([buyBg, buyInnerGlow, buyText]);
+    } else if (isInventoryFull) {
+      // Inventory full state - orange tinted, non-interactive
+      buyBg.fillStyle(0x1f150a, 0.9);
+      buyBg.lineStyle(3, 0xff9f43, 0.6);
+      buyBg.fillRoundedRect(-120, -24, 240, 48, 10);
+      buyBg.strokeRoundedRect(-120, -24, 240, 48, 10);
+
+      const buyInnerGlow = this.add.graphics();
+      buyInnerGlow.lineStyle(1, 0xff9f43, 0.3);
+      buyInnerGlow.strokeRoundedRect(-118, -22, 236, 44, 9);
+
+      const buyText = this.add.text(0, 0, "INVENTORY FULL", {
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
+        color: "#ff9f43"
+      }).setOrigin(0.5, 0.5);
+
+      buyBtn.add([buyBg, buyInnerGlow, buyText]);
+      buyBtn.setSize(240, 48);
+      buyBtn.setInteractive({ useHandCursor: true });
+      buyBtn.on("pointerdown", () => {
+        // Close panel and open discard dialog
+        this.tweens.add({
+          targets: panel,
+          scale: 0.8,
+          alpha: 0,
+          duration: 200,
+          ease: 'Back.easeIn',
+          onComplete: () => {
+            overlay.destroy();
+            panel.destroy();
+            this.unlockInput();
+            this.buyItem(item);
+          }
+        });
+      });
+      buyBtn.on("pointerover", () => {
+        this.input.setDefaultCursor('pointer');
+        buyBtn.setScale(1.05);
+      });
+      buyBtn.on("pointerout", () => {
+        this.input.setDefaultCursor('default');
+        buyBtn.setScale(1);
+      });
+    } else {
+      // Normal purchasable state
       buyBg.fillStyle(0x150E10, 0.9);
       buyBg.lineStyle(3, 0x77888C, 0.8);
       buyBg.fillRoundedRect(-120, -24, 240, 48, 10);
       buyBg.strokeRoundedRect(-120, -24, 240, 48, 10);
-      buyText.setColor("#77888C");
-    });
+
+      const buyInnerGlow = this.add.graphics();
+      buyInnerGlow.lineStyle(1, 0x556065, 0.7);
+      buyInnerGlow.strokeRoundedRect(-118, -22, 236, 44, 9);
+
+      const buyText = this.add.text(0, 0, "PURCHASE ITEM", {
+        fontFamily: "dungeon-mode",
+        fontSize: 18,
+        color: "#77888C"
+      }).setOrigin(0.5, 0.5);
+
+      buyBtn.add([buyBg, buyInnerGlow, buyText]);
+      buyBtn.setSize(240, 48);
+      buyBtn.setInteractive({ useHandCursor: true });
+      buyBtn.on("pointerdown", () => {
+        // Clean up panel with animation and then proceed with purchase
+        this.tweens.add({
+          targets: panel,
+          scale: 0.8,
+          alpha: 0,
+          duration: 200,
+          ease: 'Back.easeIn',
+          onComplete: () => {
+            overlay.destroy();
+            panel.destroy();
+            this.unlockInput();
+            // Proceed with purchase (which may open another locked modal)
+            this.buyItem(item);
+          }
+        });
+      });
+      buyBtn.on("pointerover", () => {
+        this.input.setDefaultCursor('pointer');
+        buyBtn.setScale(1.05);
+        buyBg.clear();
+        buyBg.fillStyle(0x150E10, 1);
+        buyBg.lineStyle(3, 0x77888C, 1);
+        buyBg.fillRoundedRect(-120, -24, 240, 48, 10);
+        buyBg.strokeRoundedRect(-120, -24, 240, 48, 10);
+        buyText.setColor("#ffffff");
+      });
+      buyBtn.on("pointerout", () => {
+        this.input.setDefaultCursor('default');
+        buyBtn.setScale(1);
+        buyBg.clear();
+        buyBg.fillStyle(0x150E10, 0.9);
+        buyBg.lineStyle(3, 0x77888C, 0.8);
+        buyBg.fillRoundedRect(-120, -24, 240, 48, 10);
+        buyBg.strokeRoundedRect(-120, -24, 240, 48, 10);
+        buyText.setColor("#77888C");
+      });
+    }
     
     panel.add([
       panelShadow,
@@ -1780,8 +1849,9 @@ export class Shop extends Scene {
       return;
     }
     
-    // Check if player has 6 relics - need to discard one first
+    // Check if player has 6 relics - show alert and offer discard
     if (this.player.relics.length >= 6) {
+      this.showMessage("Inventory full! Discard a relic to make room.", "#ff9f43");
       this.showRelicDiscardDialog(item);
       return;
     }
@@ -2088,8 +2158,6 @@ export class Shop extends Scene {
   private showRelicDiscardDialog(item: ShopItem): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
-    this.lockInput();
 
     // Create overlay that blocks all interactions beneath it
     const overlay = this.add.rectangle(
@@ -2118,7 +2186,7 @@ export class Shop extends Scene {
     
     // Title
     const title = this.add.text(0, -dialogHeight/2 + 30, "RELIC INVENTORY FULL!", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 24,
       color: "#ff9f43",
     }).setOrigin(0.5);
@@ -2126,7 +2194,7 @@ export class Shop extends Scene {
     
     // Instructions
     const instructions = this.add.text(0, -dialogHeight/2 + 65, "Choose a relic to discard:", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#e8eced",
     }).setOrigin(0.5);
@@ -2143,7 +2211,6 @@ export class Shop extends Scene {
     const cleanupDialog = () => {
       overlay.destroy();
       dialog.destroy();
-      this.unlockInput();
     };
 
     this.player.relics.forEach((relic, index) => {
@@ -2189,7 +2256,7 @@ export class Shop extends Scene {
       
       // Relic name (wrapped text, positioned at bottom)
       const nameText = this.add.text(0, 35, relic.name, {
-        fontFamily: "dungeon-mode-inverted",
+        fontFamily: "dungeon-mode",
         fontSize: 11,
         color: "#e8eced",
         align: "center",
@@ -2217,18 +2284,8 @@ export class Shop extends Scene {
         });
       });
       cardBg.on("pointerdown", () => {
-        if (this.isInputLocked()) return;
-        // Discard this relic and proceed with purchase
-        this.player.relics.splice(index, 1);
-        
-        // Clean up dialog
-        cleanupDialog();
-        
-        // Show purchase confirmation
-        this.showPurchaseConfirmation(item);
-        
-        // Show discard message
-        this.showMessage(`Discarded ${relic.name}`, "#ff9f43");
+        // Show confirmation before discarding
+        this.showDiscardConfirmation(relic, index, item, cleanupDialog);
       });
       
       dialog.add(relicCard);
@@ -2240,7 +2297,7 @@ export class Shop extends Scene {
     cancelBg.fillStyle(0xff4757, 0.9);
     cancelBg.fillRoundedRect(-60, -20, 120, 40, 5);
     const cancelText = this.add.text(0, 0, "CANCEL", {
-      fontFamily: "dungeon-mode-inverted",
+      fontFamily: "dungeon-mode",
       fontSize: 18,
       color: "#ffffff",
     }).setOrigin(0.5);
@@ -2249,7 +2306,6 @@ export class Shop extends Scene {
     cancelBtn.setSize(120, 40);
     cancelBtn.setInteractive({ useHandCursor: true });
     cancelBtn.on("pointerdown", () => {
-      if (this.isInputLocked()) return;
       cleanupDialog();
     });
     cancelBtn.on("pointerover", () => {
@@ -2265,15 +2321,209 @@ export class Shop extends Scene {
     
     dialog.add(cancelBtn);
   }
-  
+
+  /**
+   * Show confirmation modal before discarding a relic.
+   */
+  private showDiscardConfirmation(
+    relic: { id: string; name: string; emoji: string; spriteKey?: string },
+    relicIndex: number,
+    shopItem: ShopItem,
+    cleanupDiscardDialog: () => void
+  ): void {
+    const screenW = this.cameras.main.width;
+    const screenH = this.cameras.main.height;
+    const panelX = screenW / 2;
+    const panelY = screenH / 2;
+
+    const panelWidth = 440;
+    const panelHeight = 240;
+
+    const overlay = this.add.rectangle(panelX, panelY, screenW, screenH, 0x000000)
+      .setAlpha(0.7).setScrollFactor(0).setDepth(10010).setInteractive();
+
+    const panel = this.add.container(panelX, panelY).setScrollFactor(0).setDepth(10011);
+
+    const closeConfirm = () => {
+      overlay.destroy();
+      panel.destroy();
+    };
+
+    overlay.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      const bounds = {
+        left: panelX - panelWidth / 2,
+        right: panelX + panelWidth / 2,
+        top: panelY - panelHeight / 2,
+        bottom: panelY + panelHeight / 2
+      };
+      if (pointer.x < bounds.left || pointer.x > bounds.right || pointer.y < bounds.top || pointer.y > bounds.bottom) {
+        closeConfirm();
+      }
+    });
+
+    // Background
+    const panelShadow = this.add.rectangle(4, 4, panelWidth, panelHeight, 0x000000, 0.45).setOrigin(0.5);
+    const panelBg = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x150E10, 0.98).setOrigin(0.5);
+    const outerBorder = this.add.rectangle(0, 0, panelWidth + 6, panelHeight + 6, undefined, 0).setOrigin(0.5);
+    outerBorder.setStrokeStyle(3, 0xff9f43, 0.9);
+    const innerBorder = this.add.rectangle(0, 0, panelWidth + 2, panelHeight + 2, undefined, 0).setOrigin(0.5);
+    innerBorder.setStrokeStyle(2, 0x556065, 0.75);
+
+    // Title
+    const title = this.add.text(0, -panelHeight / 2 + 30, "DISCARD RELIC?", {
+      fontFamily: "dungeon-mode",
+      fontSize: 22,
+      color: "#ff9f43"
+    }).setOrigin(0.5);
+
+    // Relic icon + name
+    const spriteKey = relic.spriteKey;
+    let relicIcon: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+    if (spriteKey && this.textures.exists(spriteKey)) {
+      relicIcon = this.add.image(0, -10, spriteKey).setOrigin(0.5).setDisplaySize(40, 40);
+    } else {
+      relicIcon = this.add.text(0, -10, relic.emoji || "✦", { fontSize: 32 }).setOrigin(0.5);
+    }
+
+    const relicName = this.add.text(0, 25, relic.name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 16,
+      color: "#e8eced"
+    }).setOrigin(0.5);
+
+    const warningText = this.add.text(0, 50, "This action cannot be undone.", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#77888C"
+    }).setOrigin(0.5);
+
+    // Buttons
+    const btnWidth = 150;
+    const btnHeight = 44;
+    const btnGap = 20;
+    const btnY = panelHeight / 2 - 38;
+
+    // Confirm discard button
+    const confirmBtn = this.add.container(-btnWidth / 2 - btnGap / 2, btnY);
+    const confirmBg = this.add.graphics();
+    confirmBg.fillStyle(0x1f0a0a, 0.9);
+    confirmBg.lineStyle(3, 0xff4757, 0.8);
+    confirmBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+    confirmBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+    const confirmText = this.add.text(0, 0, "DISCARD", {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#ff4757"
+    }).setOrigin(0.5);
+    confirmBtn.add([confirmBg, confirmText]);
+    confirmBtn.setSize(btnWidth, btnHeight).setInteractive({ useHandCursor: true });
+    confirmBtn.on("pointerdown", () => {
+      // Perform the discard
+      this.player.relics.splice(relicIndex, 1);
+      this.restoreDiscardedRelicCard(relic.id);
+
+      // Close both the confirmation and the discard dialog
+      closeConfirm();
+      cleanupDiscardDialog();
+
+      // Show purchase confirmation for the new item
+      this.showPurchaseConfirmation(shopItem);
+      this.showMessage(`Discarded ${relic.name}`, "#ff9f43");
+    });
+    confirmBtn.on("pointerover", () => {
+      confirmBtn.setScale(1.05);
+      confirmBg.clear();
+      confirmBg.fillStyle(0x2a0a0a, 1);
+      confirmBg.lineStyle(3, 0xff4757, 1);
+      confirmBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      confirmBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      confirmText.setColor("#ff6b81");
+    });
+    confirmBtn.on("pointerout", () => {
+      confirmBtn.setScale(1);
+      confirmBg.clear();
+      confirmBg.fillStyle(0x1f0a0a, 0.9);
+      confirmBg.lineStyle(3, 0xff4757, 0.8);
+      confirmBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      confirmBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      confirmText.setColor("#ff4757");
+    });
+
+    // Cancel button (go back)
+    const cancelBtn = this.add.container(btnWidth / 2 + btnGap / 2, btnY);
+    const cancelBg = this.add.graphics();
+    cancelBg.fillStyle(0x150E10, 0.9);
+    cancelBg.lineStyle(3, 0x77888C, 0.8);
+    cancelBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+    cancelBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+    const cancelText = this.add.text(0, 0, "GO BACK", {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#77888C"
+    }).setOrigin(0.5);
+    cancelBtn.add([cancelBg, cancelText]);
+    cancelBtn.setSize(btnWidth, btnHeight).setInteractive({ useHandCursor: true });
+    cancelBtn.on("pointerdown", () => {
+      closeConfirm();
+    });
+    cancelBtn.on("pointerover", () => {
+      cancelBtn.setScale(1.05);
+      cancelBg.clear();
+      cancelBg.fillStyle(0x150E10, 1);
+      cancelBg.lineStyle(3, 0x77888C, 1);
+      cancelBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      cancelBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      cancelText.setColor("#ffffff");
+    });
+    cancelBtn.on("pointerout", () => {
+      cancelBtn.setScale(1);
+      cancelBg.clear();
+      cancelBg.fillStyle(0x150E10, 0.9);
+      cancelBg.lineStyle(3, 0x77888C, 0.8);
+      cancelBg.fillRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      cancelBg.strokeRoundedRect(-btnWidth / 2, -btnHeight / 2, btnWidth, btnHeight, 8);
+      cancelText.setColor("#77888C");
+    });
+
+    panel.add([panelShadow, outerBorder, innerBorder, panelBg, title, relicIcon, relicName, warningText, confirmBtn, cancelBtn]);
+
+    // Entrance animation
+    panel.setScale(0.8).setAlpha(0);
+    this.tweens.add({
+      targets: panel,
+      scale: 1,
+      alpha: 1,
+      duration: 250,
+      ease: "Back.easeOut"
+    });
+  }
+
+  /**
+   * After discarding a relic, restore its shop card if the relic is sold in this shop.
+   */
+  private restoreDiscardedRelicCard(relicId: string): void {
+    const shopIndex = this.shopItems.findIndex(si => si.item.id === relicId);
+    if (shopIndex === -1) return;
+
+    const oldCard = this.relicButtons[shopIndex];
+    if (!oldCard) return;
+
+    // Rebuild the card at the same position/size
+    const x = oldCard.x;
+    const y = (oldCard as any).originalY ?? oldCard.y;
+    const parent = oldCard.parentContainer;
+    oldCard.destroy();
+
+    const newCard = this.createDiscoverStyleCard(this.shopItems[shopIndex], x, y, 200, 260);
+    if (parent) parent.add(newCard);
+    this.relicButtons[shopIndex] = newCard;
+  }
+
   private proceedWithPurchase(item: ShopItem): void {
     // Calculate actual price with discounts
     const actualPrice = this.getActualPrice(item);
-    
-    // Deduct gold
-    this.player.ginto -= actualPrice;
-    
-    // Add relic to player
+
+    // Add relic to player (validate before deducting gold)
     if (item.type === "relic") {
       // Add relic to player (no duplicates) + apply acquisition effect
       const gain = RelicManager.tryGainRelic(this.player, item.item as Relic, { applyAcquisitionEffect: true });
@@ -2285,6 +2535,9 @@ export class Shop extends Scene {
         return;
       }
     }
+
+    // Deduct gold only after relic was successfully added
+    this.player.ginto -= actualPrice;
     
     // Update UI with new currency format (match compact header: value + separate icons)
     this.healthText.setText(`${this.player.currentHealth}/${this.player.maxHealth}`);
@@ -2298,63 +2551,54 @@ export class Shop extends Scene {
     if (itemIndex !== -1) {
       const button = this.relicButtons[itemIndex];
       if (button) {
-        // Animate the button
+        // Disable interactivity immediately to prevent hover from killing the animation
+        button.disableInteractive();
+
+        // Dim all card components and add owned overlay
+        const outerGlow = button.list[0] as Phaser.GameObjects.Rectangle;
+        const background = button.list[1] as Phaser.GameObjects.Rectangle;
+        const topBar = button.list[2] as Phaser.GameObjects.Rectangle;
+
+        // Disable interactivity on background
+        if (background && background.input) {
+          background.disableInteractive();
+        }
+
+        // Dim the entire card
         this.tweens.add({
-          targets: button,
-          scale: 1.1,
-          duration: 200,
-          yoyo: true,
-          repeat: 1,
-          onComplete: () => {
-            // Dim all card components and add owned overlay
-            // Find all relevant card components
-            const outerGlow = button.list[0] as Phaser.GameObjects.Rectangle;
-            const background = button.list[1] as Phaser.GameObjects.Rectangle;
-            const topBar = button.list[2] as Phaser.GameObjects.Rectangle;
-            
-            // Disable interactivity on background
-            if (background && background.input) {
-              background.disableInteractive();
-            }
-            
-            // Dim the entire card
+          targets: [outerGlow, background, topBar],
+          alpha: 0.4,
+          duration: 300
+        });
+
+        // Dim all other elements
+        button.list.forEach((child, index) => {
+          if (index > 2 && child instanceof Phaser.GameObjects.GameObject) {
             this.tweens.add({
-              targets: [outerGlow, background, topBar],
-              alpha: 0.4,
+              targets: child,
+              alpha: 0.5,
               duration: 300
             });
-            
-            // Dim all other elements
-            button.list.forEach((child, index) => {
-              if (index > 2 && child instanceof Phaser.GameObjects.GameObject) {
-                this.tweens.add({
-                  targets: child,
-                  alpha: 0.5,
-                  duration: 300
-                });
-              }
-            });
-            
-            // Add owned overlay (matching Discover style)
-            const ownedOverlay = this.add.rectangle(0, 0, 200, 260, 0x000000, 0.65)
-              .setOrigin(0.5);
-            
-            const checkMark = this.add.text(0, -30, "✓", {
-              fontSize: 42,
-              color: "#10b981",
-            }).setOrigin(0.5);
-            
-            const ownedText = this.add.text(0, 10, "OWNED", {
-              fontFamily: "dungeon-mode-inverted",
-              fontSize: 20,
-              color: "#10b981",
-              fontStyle: "bold"
-            }).setOrigin(0.5);
-            
-            button.add([ownedOverlay, checkMark, ownedText]);
-            button.setActive(false);
           }
         });
+
+        // Add owned overlay (matching Discover style)
+        const ownedOverlay = this.add.rectangle(0, 0, 200, 260, 0x000000, 0.65)
+          .setOrigin(0.5);
+
+        const checkMark = this.add.text(0, -30, "✓", {
+          fontSize: 42,
+          color: "#10b981",
+        }).setOrigin(0.5);
+
+        const ownedText = this.add.text(0, 10, "OWNED", {
+          fontFamily: "dungeon-mode",
+          fontSize: 20,
+          color: "#10b981",
+          fontStyle: "bold"
+        }).setOrigin(0.5);
+
+        button.add([ownedOverlay, checkMark, ownedText]);
       }
     }
   }
