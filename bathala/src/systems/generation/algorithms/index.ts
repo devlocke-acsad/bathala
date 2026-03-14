@@ -1,12 +1,28 @@
 /**
- * Generation Algorithms — low-level maze/terrain generation primitives.
- * 
- * These are framework-agnostic algorithms that produce grids.
- * They know nothing about Phaser, acts, or game-specific types.
- * 
+ * Algorithms — one subfolder per level's terrain generation strategy.
+ *
+ * 🎯  NEW DEV? Start here: copy `_start-here/` to create a new level algorithm.
+ *
+ * Each subfolder contains exactly two files:
+ *   [Name]Algorithm.ts  — pure math (no Phaser, no game entities)
+ *   [Name]ChunkAdapter.ts  — adapter that plugs the algorithm into the pipeline
+ *
  * @module algorithms
  */
 
-export { IntGrid } from './IntGrid';
-export { DelaunayMazeGenerator, Point, Edge, PathNode } from './DelaunayMazeGenerator';
-export { TemplateTerrainAlgorithm } from './TemplateTerrainAlgorithm';
+// === Delaunay Maze (Act 1: The Corrupted Ancestral Forests) ===
+export {
+	DelaunayMazeChunkAdapter,
+	DelaunayMazeChunkGenerator, // deprecated alias
+} from './delaunay-maze/DelaunayMazeChunkAdapter';
+export type { DelaunayMazeConfig } from './delaunay-maze/DelaunayMazeChunkAdapter';
+export { DelaunayMazeGenerator as DelaunayMazeAlgorithm, Point, Edge, PathNode } from './delaunay-maze/DelaunayMazeAlgorithm';
+
+// === Submerged Village (Act 2: The Submerged Barangays) ===
+export { SubmergedVillageChunkAdapter, VillageChunkType } from './submerged-village/SubmergedVillageChunkAdapter';
+export type { SubmergedVillageConfig } from './submerged-village/SubmergedVillageChunkAdapter';
+export { SubmergedVillageAlgorithm, TILE as VILLAGE_TILE, DEFAULT_VILLAGE_PARAMS } from './submerged-village/SubmergedVillageAlgorithm';
+export type { PlacedHouse, VillageLayoutParams } from './submerged-village/SubmergedVillageAlgorithm';
+
+// Future algorithms:
+// export { SkyIslandChunkAdapter } from './sky-island/SkyIslandChunkAdapter';
