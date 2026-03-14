@@ -1293,21 +1293,14 @@ export class Overworld_MazeGenManager {
       const destCX = newX + gridSize / 2;
       const destCY = newY + gridSize / 2;
 
-      // Animate sprite movement with dynamic timing
+      // Animate sprite movement with dynamic timing (keep scale stable)
       scene.tweens.add({
         targets: sprite,
         x: destCX,
         y: destCY,
         duration: isAggressiveMove ? 120 : 180, // Faster movement for elite enemies
         ease: 'Power2',
-        onStart: () => {
-          // Slightly scale up during movement for emphasis
-          sprite.setScale(1.6);
-        },
         onComplete: () => {
-          // Return to normal scale
-          sprite.setScale(1.5);
-
           // Check for collision with player after enemy movement completes
           this.checkEnemyPlayerCollision(enemyNode, gridSize, scene);
         }
