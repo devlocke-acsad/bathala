@@ -5,6 +5,7 @@ import { EnemyRegistry } from '../../core/registries/EnemyRegistry';
 import { ActRegistry } from '../../core/acts/ActRegistry';
 import { GameState } from '../../core/managers/GameState';
 import { ACT1 } from '../../acts/act1/Act1Definition';
+import { ACT2 } from '../../acts/act2/Act2Definition';
 
 /**
  * === DEBUG FLAG ===
@@ -89,6 +90,9 @@ export class Overworld_MazeGenManager {
       const actRegistry = ActRegistry.getInstance();
       if (!actRegistry.has(ACT1.id)) {
         actRegistry.register(ACT1);
+      }
+      if (!actRegistry.has(ACT2.id)) {
+        actRegistry.register(ACT2);
       }
 
       const chapterId = GameState.getInstance().getCurrentChapter();
