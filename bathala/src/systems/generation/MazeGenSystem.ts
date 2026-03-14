@@ -2,6 +2,9 @@ import { Scene } from 'phaser';
 import { OverworldGenerator } from './core/OverworldGenerator';
 import { MapNode } from '../../core/types/MapTypes';
 import { EnemyRegistry } from '../../core/registries/EnemyRegistry';
+import { ActRegistry } from '../../core/acts/ActRegistry';
+import { GameState } from '../../core/managers/GameState';
+import { ACT1 } from '../../acts/act1/Act1Definition';
 
 /**
  * === DEBUG FLAG ===
@@ -77,7 +80,21 @@ export class Overworld_MazeGenManager {
     this.scene = scene;
     this.gridSize = gridSize;
     this.devMode = devMode;
-    this.overworldGen = overworldGen!;
+
+    // Backward compatibility: main branch still instantiates MazeGenSystem
+    // without injecting an OverworldGenerator. Build a safe default in that case.
+    if (overworldGen) {
+      this.overworldGen = overworldGen;
+    } else {
+      const actRegistry = ActRegistry.getInstance();
+      if (!actRegistry.has(ACT1.id)) {
+        actRegistry.register(ACT1);
+      }
+
+      const chapterId = GameState.getInstance().getCurrentChapter();
+      const resolvedAct = actRegistry.tryGet(chapterId) ?? ACT1;
+      this.overworldGen = new OverworldGenerator(resolvedAct);
+    }
 
     if (DEBUG_ENEMY_AI) console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize, 'devMode:', devMode);
   }
