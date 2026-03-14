@@ -43,7 +43,9 @@ export const Act3EducationalEvents: EducationalEvent[] = [
               const availableRelics = commonRelics;
               // Find a bird related relic if possible, or random
               const relic = availableRelics.find(r => r.id.includes("sarimanok")) || availableRelics[0];
-              player.relics.push(relic);
+              if (!player.relics.some(r => r.id === relic.id)) {
+                player.relics.push(relic);
+              }
               return `The elder smiles and hands you a ${relic.name}. 'The bird brings fortune to those who seek it.'`;
            }
            player.ginto += 40;

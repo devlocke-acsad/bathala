@@ -286,9 +286,9 @@ export class GameState {
     this.playerPosition = null;
     this.overworldState = null;
     
-    // Reset player data to start fresh for new chapter
-    // Player gets a clean slate: full health, no relics, no potions, fresh deck
-    this.playerData = null;
+    // IMPORTANT: Do not wipe playerData entirely.
+    // Overworld.create() will initialize a "fresh" chapter start, but we must keep
+    // cross-chapter meta progression (e.g., Landás) available for carry-over.
     
     console.log("🎯 GameState reset for new chapter transition");
   }

@@ -24,6 +24,8 @@ export interface ChapterNarrative {
   title: string;
   /** Atmospheric opening narration — displayed with typewriter */
   entryText: string;
+  /** Optional cinematic slides shown right after the per-chapter transition */
+  cutsceneSlides?: string[];
   /** Extended narration slides for chapter intro (optional) */
   entrySlides?: string[];
   /** Text card shown after boss defeat, before next chapter */
@@ -37,6 +39,12 @@ export const CHAPTER_NARRATIVES: Record<number, ChapterNarrative> = {
     title: "The Enchanted Forest",
     entryText:
       "The balete roots rot with engkanto lies.\n\nAwaken the ancient relics. Hunt the Kapre Shade.\n\nPurify the earth before the shadow consumes all.",
+    cutsceneSlides: [
+      "The elders warned that when the balete roots blacken, it is not the trees that are sick — it is the stories.\n\nEngkanto whispers coil around every trunk, turning guardians into monsters in the minds of those who listen.",
+      "Once, the Kapre watched the mountain trails in silence, cigar embers guiding lost travelers home.\n\nThen the impostor god's lies reached even the highest branches, and smoke that once comforted began to choke the forest.",
+      "Bathala's true voice has fallen silent, buried beneath layers of fear and forgetfulness.\n\nYet in every leaf, in every anito's sigh, the old harmony waits to be remembered.",
+      "If you can cut through the engkanto's illusions, the forest will not simply be saved — it will remember what it was always meant to be.\n\nThis is where your Landás first bites into the roots of the world."
+    ],
     entrySlides: [],
     transitionToNext:
       "The Mangangaway's hexes shatter like glass against stone. The forest exhales — a breath held since the engkanto first whispered their lies.\n\nFrom the purified earth, the Lupa Diwa Shard rises: a crystallized fragment of Bathala's earthen breath, warm as soil after rain.\n\nBut even as roots mend, the ground beneath your feet grows damp. Somewhere below, floodwaters stir. The drowned barangays call — and the sea spirits' betrayals run deeper than any root.",
@@ -47,6 +55,12 @@ export const CHAPTER_NARRATIVES: Record<number, ChapterNarrative> = {
     title: "The Submerged Barangays",
     entryText:
       "The sunken barangays drown in deceitful tides.\n\nAttune to the ocean's relics. Face the Apoy-Tubig Fury.\n\nSummon the Bakunawa before the false moon rises.",
+    cutsceneSlides: [
+      "Beneath the waves lie streets that once echoed with laughter and prayer.\n\nNow only bubbles rise where drums and gongs once called the barangay together.",
+      "The sea spirits remember who pulled them into war.\n\nThe impostor god promised them a sky of their own if they swallowed the moonlight and drowned the old ways.",
+      "The Bakunawa coils around the sunken houses, more prisoner than predator.\n\nIts hunger was never for flesh or stone, but for a world that would not abandon it to darkness.",
+      "If the drowned villages are to rise in memory — if not in brick and bamboo — someone must choose which stories to bring back to the surface.\n\nYour Landás now reaches into the deepest waters of what was lost."
+    ],
     entrySlides: [],
     transitionToNext:
       "The Bakunawa's coils loosen as its ancient hunger finally stills. Seven moons — all that the serpent devoured in its madness — begin to reform in the sky above the waves.\n\nFrom the deepest trench, the Tubig Diwa Shard rises: a tear of Bathala, crystallized into sapphire light.\n\nThe waters calm, but above, thunder rolls across cloudless skies. The impostor's citadel hangs in the heavens like a stolen constellation — and within it, the final truth waits to be unmasked.",
@@ -57,6 +71,12 @@ export const CHAPTER_NARRATIVES: Record<number, ChapterNarrative> = {
     title: "The Skyward Citadel",
     entryText:
       "The ethereal citadel fractures under divine lies.\n\nMaster the celestial elements. Confront the False Bathala.\n\nUnmask the impostor before the sky falls.",
+    cutsceneSlides: [
+      "Above the clouds, the impostor builds a throne from stolen prayers.\n\nEvery forgotten myth becomes another stone in the citadel's shining walls.",
+      "The true Bathala's silence echoes louder here than anywhere.\n\nThe gods who once walked among mortals now bow to a story that was never theirs.",
+      "Ulilang Kaluluwa's jealousy and Galang Kaluluwa's grief are woven into every corridor.\n\nThe citadel is not just a fortress — it is a wound that never healed.",
+      "When you step into these halls, you are not only fighting a false god.\n\nYou are deciding what it means to be divine, and whether power exists to dominate — or to remember.",
+    ],
     entrySlides: [],
     narratorIntro:
       "In the sky, lies are hardest to hide — yet the greatest deception of all has taken root among the clouds. The gods themselves have been fooled. Only mortal eyes, unclouded by divinity, can see the truth.",

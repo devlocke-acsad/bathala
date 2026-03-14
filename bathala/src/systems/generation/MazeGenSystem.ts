@@ -68,6 +68,9 @@ export class Overworld_MazeGenManager {
   private enemyAlertSprites: Map<string, Phaser.GameObjects.Text> = new Map();
   private enemyAlerted: Set<string> = new Set(); // enemies that have already shown their first alert
 
+  // Tiles reserved during a single nighttime movement round to prevent stacking
+  private reservedTiles: Set<string> = new Set();
+
   /**
    * Constructor
    * @param scene - The Overworld scene instance
@@ -186,13 +189,26 @@ export class Overworld_MazeGenManager {
   }
 
   /**
-   * Check if a world-center position is already occupied by another enemy node.
+   * Convert a world-center position to a tile key for reservation tracking.
+   */
+  private tileKey(x: number, y: number): string {
+    return `${Math.round(x / this.gridSize)},${Math.round(y / this.gridSize)}`;
+  }
+
+  /**
+   * Check if a world-center position is already occupied by another enemy node
+   * or has been reserved by an enemy that already planned its move this round.
    * @param x - World center X coordinate to test
    * @param y - World center Y coordinate to test
    * @param excludeId - The id of the enemy currently moving (so it doesn't collide with itself)
-   * @returns true if another enemy is on that tile
+   * @returns true if another enemy is on that tile or the tile is reserved
    */
   private isOccupiedByEnemy(x: number, y: number, excludeId: string): boolean {
+    // Check the reservation set first (prevents stacking during the same movement round)
+    if (this.reservedTiles.has(this.tileKey(x, y))) {
+      return true;
+    }
+
     const half = this.gridSize / 2;
     for (const node of this.nodes) {
       if (node.id === excludeId) continue;
@@ -321,40 +337,24 @@ export class Overworld_MazeGenManager {
         return path;
       }
       
-      // Check neighbors (4-directional + diagonals)
+      // Check neighbors (4-directional only — no diagonals)
       const neighbors = [
-        // Cardinal directions
-        {x: current.x + this.gridSize, y: current.y, diagonal: false},
-        {x: current.x - this.gridSize, y: current.y, diagonal: false},
-        {x: current.x, y: current.y + this.gridSize, diagonal: false},
-        {x: current.x, y: current.y - this.gridSize, diagonal: false},
-        // Diagonals
-        {x: current.x + this.gridSize, y: current.y + this.gridSize, diagonal: true},
-        {x: current.x + this.gridSize, y: current.y - this.gridSize, diagonal: true},
-        {x: current.x - this.gridSize, y: current.y + this.gridSize, diagonal: true},
-        {x: current.x - this.gridSize, y: current.y - this.gridSize, diagonal: true},
+        {x: current.x + this.gridSize, y: current.y},
+        {x: current.x - this.gridSize, y: current.y},
+        {x: current.x, y: current.y + this.gridSize},
+        {x: current.x, y: current.y - this.gridSize},
       ];
-      
+
       for (const neighbor of neighbors) {
         const key = posKey(neighbor.x, neighbor.y);
-        
+
         // Skip if already evaluated
         if (closedSet.has(key)) continue;
-        
+
         // Check walkability
         if (!this.isValidPosition(neighbor.x, neighbor.y)) continue;
-        
-        // For diagonals, check adjacent tiles to prevent corner-cutting
-        if (neighbor.diagonal) {
-          const dx = neighbor.x - current.x;
-          const dy = neighbor.y - current.y;
-          if (!this.isValidPosition(current.x + dx, current.y) ||
-              !this.isValidPosition(current.x, current.y + dy)) {
-            continue; // Diagonal blocked
-          }
-        }
-        
-        const g = current.g + (neighbor.diagonal ? 1.414 : 1); // Diagonal costs more
+
+        const g = current.g + 1;
         
         // Skip if we already have a better g-score for this cell
         const prevG = bestG.get(key);
@@ -966,6 +966,11 @@ export class Overworld_MazeGenManager {
 
     if (DEBUG_ENEMY_AI) console.log(`🌙 Night: ${enemyNodes.length} enemies nearby player`);
 
+    // Clear tile reservations from previous round, then reserve the player's tile
+    // so no enemy can move onto it
+    this.reservedTiles.clear();
+    this.reservedTiles.add(this.tileKey(playerX, playerY));
+
     // Move each enemy node with enhanced AI
     enemyNodes.forEach((enemyNode: MapNode) => {
       // Show alert icon on first detection
@@ -995,34 +1000,38 @@ export class Overworld_MazeGenManager {
   /**
    * Enhanced AI movement system for enemies with A* pathfinding.
    * Now also advances the path cache and moves alert icons with the enemy.
+   * Enemies stop one tile away from the player and reserve their destination
+   * tile so other enemies cannot stack on top of them.
    */
   private moveEnemyWithEnhancedAI(enemyNode: MapNode, playerX: number, playerY: number, gridSize: number, scene: Scene): void {
     const currentX = enemyNode.x + gridSize / 2;
     const currentY = enemyNode.y + gridSize / 2;
     const distance = Phaser.Math.Distance.Between(currentX, currentY, playerX, playerY);
-    
+
     // Check if enemy is already at collision distance before moving
     if (distance < gridSize) {
       if (DEBUG_ENEMY_AI) console.log(`💥 Enemy already at collision distance: ${distance.toFixed(2)}`);
       this.checkEnemyPlayerCollision(enemyNode, gridSize, scene);
+      // Reserve current tile so other enemies don't stack here
+      this.reservedTiles.add(this.tileKey(currentX, currentY));
       return; // Don't move, collision check will handle it
     }
-    
+
     // Different movement strategies based on distance and enemy type
     const movementSpeed = this.calculateEnemyMovementSpeed(enemyNode, distance);
     const movements: {x: number, y: number}[] = [];
-    
+
     // Use A* pathfinding with path caching
     const enemyId = enemyNode.id;
     const path = this.getEnemyPath(enemyId, currentX, currentY, playerX, playerY);
-    
+
     if (path.length > 0) {
       if (DEBUG_ENEMY_AI) console.log(`🧭 Following A* path with ${path.length} waypoints`);
-      
+
       // Take as many steps from the path as movement speed allows
       for (let i = 0; i < Math.min(movementSpeed, path.length); i++) {
         const waypoint = path[i];
-        
+
         const stepPosition = {
           x: waypoint.x - gridSize / 2,
           y: waypoint.y - gridSize / 2
@@ -1031,19 +1040,19 @@ export class Overworld_MazeGenManager {
         const stepCX = stepPosition.x + gridSize / 2;
         const stepCY = stepPosition.y + gridSize / 2;
 
-        // Block move if another enemy already occupies this tile
+        // Block move if another enemy already occupies or reserved this tile
         if (this.isOccupiedByEnemy(stepCX, stepCY, enemyId)) {
           break; // Can't pass through — stop before the occupied tile
         }
-        
+
+        // Allow move onto the player's tile (collision will trigger combat),
+        // but don't continue past it
         const newDistance = Phaser.Math.Distance.Between(playerX, playerY, stepCX, stepCY);
-        
         if (newDistance < gridSize) {
           movements.push(stepPosition);
-          if (DEBUG_ENEMY_AI) console.log(`💥 Movement will cause collision. Distance after move: ${newDistance.toFixed(2)}`);
           break;
         }
-        
+
         movements.push(stepPosition);
       }
 
@@ -1055,44 +1064,53 @@ export class Overworld_MazeGenManager {
     } else {
       // Fallback to greedy single-step pathfinding if A* fails
       if (DEBUG_ENEMY_AI) console.log(`⚠️ A* failed, falling back to greedy pathfinding`);
-      
+
       for (let i = 0; i < movementSpeed; i++) {
         const lastX = movements.length > 0 ? movements[movements.length - 1].x + gridSize / 2 : currentX;
         const lastY = movements.length > 0 ? movements[movements.length - 1].y + gridSize / 2 : currentY;
-        
+
         const stepPosition = this.calculateSingleEnemyStep(
           lastX,
           lastY,
-          playerX, 
+          playerX,
           playerY,
           gridSize,
           enemyId
         );
-        
+
         if (stepPosition) {
           const stepCX = stepPosition.x + gridSize / 2;
           const stepCY = stepPosition.y + gridSize / 2;
 
-          // Block move if another enemy already occupies this tile
+          // Block move if another enemy already occupies or reserved this tile
           if (this.isOccupiedByEnemy(stepCX, stepCY, enemyId)) {
             break;
           }
 
+          // Allow move onto the player's tile (collision will trigger combat),
+          // but don't continue past it
           const newDistance = Phaser.Math.Distance.Between(playerX, playerY, stepCX, stepCY);
-          
           if (newDistance < gridSize) {
             movements.push(stepPosition);
-            if (DEBUG_ENEMY_AI) console.log(`💥 Movement will cause collision. Distance after move: ${newDistance.toFixed(2)}`);
             break;
           }
-          
+
           movements.push(stepPosition);
         } else {
           break;
         }
       }
     }
-    
+
+    // Reserve the enemy's final destination tile so other enemies can't move there
+    if (movements.length > 0) {
+      const lastMove = movements[movements.length - 1];
+      this.reservedTiles.add(this.tileKey(lastMove.x + gridSize / 2, lastMove.y + gridSize / 2));
+    } else {
+      // Enemy didn't move — reserve its current tile
+      this.reservedTiles.add(this.tileKey(currentX, currentY));
+    }
+
     // Execute the movements with staggered timing
     if (movements.length > 0) {
       this.executeMultiStepMovement(enemyNode, movements, gridSize, scene);
@@ -1139,33 +1157,8 @@ export class Overworld_MazeGenManager {
     const shouldMoveUp = deltaY < -gridSize / 2;
     
     // Build movement options with priorities (lower = higher priority)
-    // Priority 0: Direct diagonal movement toward player
-    // IMPORTANT: Diagonal movement requires BOTH adjacent tiles to be walkable to prevent corner-cutting
-    if (shouldMoveRight && shouldMoveDown && Math.random() < 0.3) {
-      // Only allow diagonal if both horizontal AND vertical paths are clear
-      if (this.isValidPosition(moveRight, currentY) && this.isValidPosition(currentX, moveDown)) {
-        movementOptions.push({x: moveRight, y: moveDown, priority: 0});
-      }
-    }
-    if (shouldMoveRight && shouldMoveUp && Math.random() < 0.3) {
-      // Only allow diagonal if both horizontal AND vertical paths are clear
-      if (this.isValidPosition(moveRight, currentY) && this.isValidPosition(currentX, moveUp)) {
-        movementOptions.push({x: moveRight, y: moveUp, priority: 0});
-      }
-    }
-    if (shouldMoveLeft && shouldMoveDown && Math.random() < 0.3) {
-      // Only allow diagonal if both horizontal AND vertical paths are clear
-      if (this.isValidPosition(moveLeft, currentY) && this.isValidPosition(currentX, moveDown)) {
-        movementOptions.push({x: moveLeft, y: moveDown, priority: 0});
-      }
-    }
-    if (shouldMoveLeft && shouldMoveUp && Math.random() < 0.3) {
-      // Only allow diagonal if both horizontal AND vertical paths are clear
-      if (this.isValidPosition(moveLeft, currentY) && this.isValidPosition(currentX, moveUp)) {
-        movementOptions.push({x: moveLeft, y: moveUp, priority: 0});
-      }
-    }
-    
+    // Cardinal directions only — no diagonal movement
+
     // Priority 1: Primary axis movement (toward player)
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
       // X-axis is primary
@@ -1279,34 +1272,34 @@ export class Overworld_MazeGenManager {
   }
 
   /**
-   * Check if enemy has collided with player and trigger combat if so
+   * Check if enemy has collided with player and trigger combat if so.
    */
   private checkEnemyPlayerCollision(enemyNode: MapNode, gridSize: number, scene: Scene): void {
     // Only check for combat/elite nodes
     if (enemyNode.type !== "combat" && enemyNode.type !== "elite") {
       return;
     }
-    
+
     const overworldScene = scene as any;
     if (!overworldScene.player) {
       return;
     }
-    
+
     const playerX = overworldScene.player.x;
     const playerY = overworldScene.player.y;
-    
+
     const distance = Phaser.Math.Distance.Between(
       playerX,
       playerY,
       enemyNode.x + gridSize / 2,
       enemyNode.y + gridSize / 2
     );
-    
+
     const collisionThreshold = gridSize;
-    
+
     if (distance < collisionThreshold) {
       if (DEBUG_ENEMY_AI) console.log(`💥 Enemy collision detected! Distance: ${distance.toFixed(2)}, Threshold: ${collisionThreshold}`);
-      
+
       if (typeof overworldScene.checkNodeInteraction === 'function') {
         overworldScene.checkNodeInteraction();
       }

@@ -61,7 +61,9 @@ export const Act2EducationalEvents: EducationalEvent[] = [
            if (player.relics.length < 6) {
             const availableRelics = [...commonRelics, ...treasureRelics];
             const randomRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
-            player.relics.push(randomRelic);
+            if (!player.relics.some(r => r.id === randomRelic.id)) {
+              player.relics.push(randomRelic);
+            }
             return `You find stillness amidst the chaos. The cosmic balance shifts, revealing a ${randomRelic.name} washed ashore. Peace brings its own rewards.`;
            }
            return "You find stillness. The moment passes, and the moon remains safe. You feel a deep sense of cosmic order.";

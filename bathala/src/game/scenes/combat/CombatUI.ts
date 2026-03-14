@@ -4155,7 +4155,35 @@ export class CombatUI {
     
     // Use relic.id if available, otherwise try to parse from relic object
     const relicId = relic.id || relic.name?.toLowerCase().replace(/[\s']/g, '_');
-    return effectDescriptions[relicId] || 'Unknown relic effect';
+
+    // Expand coverage to Act 2/3 relics (Combat.ts implements several of these directly)
+    const extended: Record<string, string> = {
+      // Act 2
+      'sirenas_scale': 'Heal 2 HP whenever you play at least one Tubig (Water) card in a hand',
+      'siyokoy_fin': 'Gain 3 Block whenever you deal splash damage to multiple enemies',
+      'santelmo_ember': 'Your Burn applications on enemies are intensified (Burn stacks effectively double on application)',
+      'berberoka_tide': 'Gain 10 Block whenever you play a hand containing only Tubig (Water) cards',
+      'magindara_song': 'Draw 1 card whenever you heal HP during combat',
+      'kataw_crown': 'Deal +5 damage when facing enemies with minions or summons',
+      'berbalang_spirit': 'Ignore the first Weak debuff applied to you each combat',
+      'bangkilan_veil': 'Gain +10% dodge chance while you have any debuff active',
+      'bakunawa_fang': 'Deal +5 damage whenever you activate a relic effect during combat',
+      'elemental_core': 'Deal +3 damage when playing Apoy (Fire) or Tubig (Water) cards',
+
+      // Act 3
+      'tigmamanukan_feather': 'Draw 1 additional card whenever you play a Straight or better',
+      'diwata_veil': 'Gain +10% dodge chance against all attacks',
+      'sarimanok_plumage': 'Gain 1 additional Special action charge at the start of combat (2 total)',
+      'bulalakaw_spark': 'Apply 3 Burn whenever you play a multi-element hand (2+ distinct elements)',
+      'minokawa_claw': 'Ignore the first enemy card steal/discard effect each combat',
+      'alan_wing': 'Deal +5 damage when you have allies/minions',
+      'ekek_fang': 'Deal +3 damage after turn 5 (second half of combat)',
+      'linti_bolt': 'Deal +5 damage whenever you play a hand with 3 or more different elements',
+      'apolaki_spear': 'Gain 2 Strength at combat start. Deal +5 damage on any multi-element hand (2+ distinct elements)',
+      'coconut_diwa': 'Ignore the first buff removal/nullify effect each combat',
+    };
+
+    return effectDescriptions[relicId] || extended[relicId] || relic.description || 'Unknown relic effect';
   }
   
   /**
