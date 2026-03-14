@@ -1,32 +1,70 @@
 /**
  * Generation Module — world generation pipeline for Bathala.
  *
- * Import everything from here instead of individual files:
- *   import { OverworldGenerator, MazeChunkGenerator, createSeededRNG } from '../../systems/generation';
+ * Import everything from here:
+ *   import { OverworldGenerator, DelaunayMazeChunkAdapter, createSeededRNG } from '../systems/generation';
  *
- * Architecture:
- *   OverworldGenerator (orchestrator + LRU cache)
- *     ├── IChunkGenerator.generate()  → RawChunk (terrain grid)
- *     └── NodePopulator.populate()    → MapNode[] (interactive nodes)
- *
- * To add a new terrain type:
- *   1. Create algorithm in  algorithms/   (raw generation logic, no game deps)
- *   2. Create generator in  generators/   (IChunkGenerator adapter)
- *   3. Return it from your  ActDefinition.createGenerator()
+ * ┌─────────────────────────────────────────────────────────────────────┐
+ * │  Directory Guide (for new developers)                              │
+ * │                                                                     │
+ * │  algorithms/     🎯 START HERE — one folder per level algorithm    │
+ * │    ├── _start-here/   Copy this to create a new level              │
+ * │    └── delaunay-maze/ Act 1's algorithm (reference example)        │
+ * │                                                                     │
+ * │  toolbox/        🔧 Reusable building blocks for ANY algorithm     │
+ * │    ├── IntGrid.ts     2D grid data structure                       │
+ * │    ├── SeededRNG.ts   Deterministic random numbers                 │
+ * │    ├── CaveGenerator  Cave-like terrain (cellular automata)        │
+ * │    └── RoadCarver     Road corridors (Bresenham's line)            │
+ * │                                                                     │
+ * │  node-spawning/  📍 What interactive things appear on maps         │
+ * │    ├── NodePopulator  Orchestrator: where + what to place          │
+ * │    ├── NodePlacement  Pure functions: finding valid spots           │
+ * │    └── resolvers/     What entity each node type becomes           │
+ * │                                                                     │
+ * │  core/           ⚙️  Pipeline infrastructure (rarely touched)      │
+ * │    ├── OverworldGenerator  Main coordinator + cache                │
+ * │    ├── ChunkCache         LRU cache for generated chunks           │
+ * │    ├── BorderConnections  Walkable openings at chunk edges         │
+ * │    └── ChunkConnectivity  Connections between chunks               │
+ * └─────────────────────────────────────────────────────────────────────┘
  *
  * @module generation
  */
 
-// === Orchestration ===
-export { OverworldGenerator } from './OverworldGenerator';
-export { NodePopulator } from './NodePopulator';
+// === Core (pipeline infrastructure) ===
+export { OverworldGenerator } from './core';
+export type { OverworldGeneratorConfig } from './core';
+export { ChunkCache } from './core';
+export type { CachedChunk, ChunkCacheConfig } from './core';
+export { findBorderConnections } from './core';
+export type { BorderConnectionConfig } from './core';
+export { ChunkConnectivityManager } from './core';
+export type { ConnectivityConfig } from './core';
 
-// === Seeded RNG ===
-export { createSeededRNG, chunkSeed } from './SeededRNG';
+// === Algorithms (terrain generation strategies) ===
+export {
+	DelaunayMazeChunkAdapter,
+	DelaunayMazeChunkGenerator, // deprecated alias
+	DelaunayMazeAlgorithm,
+} from './algorithms';
+export type { DelaunayMazeConfig } from './algorithms';
+export { SubmergedVillageChunkAdapter, SubmergedVillageAlgorithm, VILLAGE_TILE, VillageChunkType, DEFAULT_VILLAGE_PARAMS } from './algorithms';
+export type { SubmergedVillageConfig, VillageLayoutParams } from './algorithms';
 
-// === Chunk generators (one per terrain style) ===
-export { MazeChunkGenerator, TemplateChunkGenerator } from './generators';
-export type { MazeChunkConfig, TemplateChunkConfig } from './generators';
+// === Toolbox (reusable building blocks) ===
+export { CaveGenerator, CellularAutomataAlgorithm } from './toolbox';
+export type { CaveGeneratorConfig, CellularAutomataConfig } from './toolbox';
+export { RoadCarver, RoadNetworkAlgorithm } from './toolbox';
+export type { RoadCarverConfig, RoadNetworkConfig } from './toolbox';
+export { IntGrid, createSeededRNG, chunkSeed } from './toolbox';
 
-// === Raw algorithms (framework-agnostic) ===
-export { IntGrid, DelaunayMazeGenerator, TemplateTerrainAlgorithm } from './algorithms';
+// === Node Spawning (map content placement) ===
+export { NodePopulator } from './node-spawning';
+export type { NodePopulatorConfig, GridPosition, PlacementConfig } from './node-spawning';
+export type { INodeResolver, NodeResolution } from './node-spawning';
+export { EnemyNodeResolver, EventNodeResolver, DefaultNodeResolver } from './node-spawning';
+export { findValidPositions, selectSpacedPosition } from './node-spawning';
+
+// === MazeGenSystem (Phaser scene bridge — rendering + AI) ===
+export { MazeGenSystem } from './MazeGenSystem';
