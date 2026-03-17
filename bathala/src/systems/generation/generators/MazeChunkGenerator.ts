@@ -46,12 +46,10 @@ export class MazeChunkGenerator implements IChunkGenerator {
 
   /**
    * Generate a terrain grid using Delaunay triangulation + A* corridors.
-   * Determinism note: the underlying DelaunayMazeGenerator uses Math.random()
-   * internally (no per-call seed), so the RNG param is recorded for future
-   * refactoring but does not yet control generation.
+   * Determinism note: all randomness is sourced from the injected seeded RNG.
    */
-  generate(_chunkX: number, _chunkY: number, _rng: SeededRandom): RawChunk {
-    const gen = new DelaunayMazeGenerator();
+  generate(_chunkX: number, _chunkY: number, rng: SeededRandom): RawChunk {
+    const gen = new DelaunayMazeGenerator(() => rng.next());
     gen.levelSize = [this.chunkSize, this.chunkSize];
     gen.regionCount = Math.max(this.chunkSize, this.chunkSize) * this.regionCountMultiplier;
     gen.minRegionDistance = this.minRegionDistance;
