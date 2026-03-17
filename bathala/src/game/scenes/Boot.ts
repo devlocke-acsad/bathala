@@ -36,6 +36,10 @@ export class Boot extends Scene
         this.registerFontsFromCache().then(() => {
             // Load and apply persisted settings before any music starts.
             SettingsManager.getInstance().applyToAudio();
+            // Start the global ESC pause listener once, early.
+            if (!this.scene.isActive('PauseController')) {
+                this.scene.launch('PauseController');
+            }
             this.scene.start("Preloader");
         });
     }

@@ -68,6 +68,17 @@ export class PathNode {
         The A* weighting (tileCost + direction change cost) affects corridor sinuosity.
 */
 export class DelaunayMazeGenerator {
+    /**
+     * RNG provider for all randomness in this generator.
+     * Defaults to Math.random for backwards compatibility, but chunk generation
+     * should inject a seeded RNG for determinism.
+     */
+    private readonly rand: () => number;
+
+    constructor(rand: () => number = Math.random) {
+        this.rand = rand;
+    }
+
     // =============================
     // Tunable Generation Constants
     // =============================
@@ -172,8 +183,8 @@ export class DelaunayMazeGenerator {
 
         while (points.length < this.regionCount && attempts < this.MAX_REGION_POINT_ATTEMPTS) {
             attempts++;
-            const centerX = Math.floor(Math.random() * this.levelSize[0]);
-            const centerY = Math.floor(Math.random() * this.levelSize[1]);
+            const centerX = Math.floor(this.rand() * this.levelSize[0]);
+            const centerY = Math.floor(this.rand() * this.levelSize[1]);
             const newPoint = new Point(centerX, centerY);
 
             // Check minimum distance constraint
@@ -295,11 +306,11 @@ export class DelaunayMazeGenerator {
 
         // Decide on path style randomly
         const pathStyles = ['L_shape', 'step', 'zigzag'];
-        const pathStyle = pathStyles[Math.floor(Math.random() * pathStyles.length)];
+        const pathStyle = pathStyles[Math.floor(this.rand() * pathStyles.length)];
 
         if (pathStyle === 'L_shape') {
             // Create L-shaped path
-            if (Math.random() < this.L_SHAPE_FIRST_AXIS_PROB) {
+            if (this.rand() < this.L_SHAPE_FIRST_AXIS_PROB) {
                 // Horizontal first, then vertical
                 waypoints.push([end[0], start[1]]);
             } else {
@@ -312,8 +323,8 @@ export class DelaunayMazeGenerator {
             let midY = start[1] + Math.floor(dy / 2);
 
             // Add some randomness to the midpoint
-            const offsetX = Math.floor(Math.random() * (this.STEP_MIDPOINT_JITTER * 2 + 1)) - this.STEP_MIDPOINT_JITTER;
-            const offsetY = Math.floor(Math.random() * (this.STEP_MIDPOINT_JITTER * 2 + 1)) - this.STEP_MIDPOINT_JITTER;
+            const offsetX = Math.floor(this.rand() * (this.STEP_MIDPOINT_JITTER * 2 + 1)) - this.STEP_MIDPOINT_JITTER;
+            const offsetY = Math.floor(this.rand() * (this.STEP_MIDPOINT_JITTER * 2 + 1)) - this.STEP_MIDPOINT_JITTER;
 
             midX = Math.max(0, Math.min(this.levelSize[0] - 1, midX + offsetX));
             midY = Math.max(0, Math.min(this.levelSize[1] - 1, midY + offsetY));

@@ -71,6 +71,20 @@ export class Overworld_MazeGenManager {
   private enemyAlertSprites: Map<string, Phaser.GameObjects.Text> = new Map();
   private enemyAlerted: Set<string> = new Set(); // enemies that have already shown their first alert
 
+  // Tiles reserved during a single nighttime movement round to prevent stacking
+  private reservedTiles: Set<string> = new Set();
+
+  /**
+   * Convert a world-center position to a tile key for reservation tracking.
+   */
+  private tileKey(x: number, y: number): string {
+    return `${Math.round(x / this.gridSize)},${Math.round(y / this.gridSize)}`;
+  }
+
+  private reserveTileCenter(x: number, y: number): void {
+    this.reservedTiles.add(this.tileKey(x, y));
+  }
+
   /**
    * Constructor
    * @param scene - The Overworld scene instance
@@ -236,6 +250,11 @@ export class Overworld_MazeGenManager {
    * @returns true if another enemy is on that tile
    */
   private isOccupiedByEnemy(x: number, y: number, excludeId: string): boolean {
+    // Check the reservation set first (prevents stacking during the same movement round)
+    if (this.reservedTiles.has(this.tileKey(x, y))) {
+      return true;
+    }
+
     const half = this.gridSize / 2;
     for (const node of this.nodes) {
       if (node.id === excludeId) continue;
@@ -364,18 +383,13 @@ export class Overworld_MazeGenManager {
         return path;
       }
 
-      // Check neighbors (4-directional + diagonals)
+      // Check neighbors (4-directional only — no diagonal movement)
       const neighbors = [
         // Cardinal directions
         { x: current.x + this.gridSize, y: current.y, diagonal: false },
         { x: current.x - this.gridSize, y: current.y, diagonal: false },
         { x: current.x, y: current.y + this.gridSize, diagonal: false },
         { x: current.x, y: current.y - this.gridSize, diagonal: false },
-        // Diagonals
-        { x: current.x + this.gridSize, y: current.y + this.gridSize, diagonal: true },
-        { x: current.x + this.gridSize, y: current.y - this.gridSize, diagonal: true },
-        { x: current.x - this.gridSize, y: current.y + this.gridSize, diagonal: true },
-        { x: current.x - this.gridSize, y: current.y - this.gridSize, diagonal: true },
       ];
 
       for (const neighbor of neighbors) {
@@ -387,17 +401,7 @@ export class Overworld_MazeGenManager {
         // Check walkability
         if (!this.isValidPosition(neighbor.x, neighbor.y)) continue;
 
-        // For diagonals, check adjacent tiles to prevent corner-cutting
-        if (neighbor.diagonal) {
-          const dx = neighbor.x - current.x;
-          const dy = neighbor.y - current.y;
-          if (!this.isValidPosition(current.x + dx, current.y) ||
-            !this.isValidPosition(current.x, current.y + dy)) {
-            continue; // Diagonal blocked
-          }
-        }
-
-        const g = current.g + (neighbor.diagonal ? 1.414 : 1); // Diagonal costs more
+        const g = current.g + 1;
 
         // Skip if we already have a better g-score for this cell
         const prevG = bestG.get(key);
@@ -993,6 +997,9 @@ export class Overworld_MazeGenManager {
       return;
     }
 
+    // New movement round — clear reservations
+    this.reservedTiles.clear();
+
     // Define proximity threshold for enemy movement (in pixels)
     const movementRange = gridSize * 10; // 10 grid squares for breathing room
 
@@ -1084,12 +1091,15 @@ export class Overworld_MazeGenManager {
         const newDistance = Phaser.Math.Distance.Between(playerX, playerY, stepCX, stepCY);
 
         if (newDistance < gridSize) {
-          movements.push(stepPosition);
-          if (DEBUG_ENEMY_AI) console.log(`💥 Movement will cause collision. Distance after move: ${newDistance.toFixed(2)}`);
+          // Stop one tile away; trigger collision handling instead of stepping onto player.
+          if (DEBUG_ENEMY_AI) console.log(`💥 Would collide; stopping adjacent. Distance after move: ${newDistance.toFixed(2)}`);
+          this.checkEnemyPlayerCollision(enemyNode, gridSize, scene);
           break;
         }
 
         movements.push(stepPosition);
+        // Reserve immediately so other enemies can't pick this tile this round.
+        this.reserveTileCenter(stepCX, stepCY);
       }
 
       // Advance the cached path so next turn picks up where we left off
@@ -1126,12 +1136,13 @@ export class Overworld_MazeGenManager {
           const newDistance = Phaser.Math.Distance.Between(playerX, playerY, stepCX, stepCY);
 
           if (newDistance < gridSize) {
-            movements.push(stepPosition);
-            if (DEBUG_ENEMY_AI) console.log(`💥 Movement will cause collision. Distance after move: ${newDistance.toFixed(2)}`);
+            if (DEBUG_ENEMY_AI) console.log(`💥 Would collide; stopping adjacent. Distance after move: ${newDistance.toFixed(2)}`);
+            this.checkEnemyPlayerCollision(enemyNode, gridSize, scene);
             break;
           }
 
           movements.push(stepPosition);
+          this.reserveTileCenter(stepCX, stepCY);
         } else {
           break;
         }
@@ -1184,33 +1195,6 @@ export class Overworld_MazeGenManager {
     const shouldMoveUp = deltaY < -gridSize / 2;
 
     // Build movement options with priorities (lower = higher priority)
-    // Priority 0: Direct diagonal movement toward player
-    // IMPORTANT: Diagonal movement requires BOTH adjacent tiles to be walkable to prevent corner-cutting
-    if (shouldMoveRight && shouldMoveDown && Math.random() < 0.3) {
-      // Only allow diagonal if both horizontal AND vertical paths are clear
-      if (this.isValidPosition(moveRight, currentY) && this.isValidPosition(currentX, moveDown)) {
-        movementOptions.push({ x: moveRight, y: moveDown, priority: 0 });
-      }
-    }
-    if (shouldMoveRight && shouldMoveUp && Math.random() < 0.3) {
-      // Only allow diagonal if both horizontal AND vertical paths are clear
-      if (this.isValidPosition(moveRight, currentY) && this.isValidPosition(currentX, moveUp)) {
-        movementOptions.push({ x: moveRight, y: moveUp, priority: 0 });
-      }
-    }
-    if (shouldMoveLeft && shouldMoveDown && Math.random() < 0.3) {
-      // Only allow diagonal if both horizontal AND vertical paths are clear
-      if (this.isValidPosition(moveLeft, currentY) && this.isValidPosition(currentX, moveDown)) {
-        movementOptions.push({ x: moveLeft, y: moveDown, priority: 0 });
-      }
-    }
-    if (shouldMoveLeft && shouldMoveUp && Math.random() < 0.3) {
-      // Only allow diagonal if both horizontal AND vertical paths are clear
-      if (this.isValidPosition(moveLeft, currentY) && this.isValidPosition(currentX, moveUp)) {
-        movementOptions.push({ x: moveLeft, y: moveUp, priority: 0 });
-      }
-    }
-
     // Priority 1: Primary axis movement (toward player)
     if (Math.abs(deltaX) > Math.abs(deltaY)) {
       // X-axis is primary
@@ -1243,6 +1227,13 @@ export class Overworld_MazeGenManager {
         if (excludeId && this.isOccupiedByEnemy(option.x, option.y, excludeId)) {
           continue; // Tile is taken by another enemy — try next option
         }
+        // Prevent stepping onto the player tile. Stop one tile away and let collision trigger.
+        const distAfter = Phaser.Math.Distance.Between(playerX, playerY, option.x, option.y);
+        if (distAfter < gridSize) {
+          return null;
+        }
+        // Reserve chosen tile immediately so another enemy won't pick it later this round.
+        this.reserveTileCenter(option.x, option.y);
         // Convert back to node coordinates (top-left corner)
         return {
           x: option.x - gridSize / 2,
@@ -1295,6 +1286,9 @@ export class Overworld_MazeGenManager {
       // Destination center
       const destCX = newX + gridSize / 2;
       const destCY = newY + gridSize / 2;
+
+      // Keep reservation (also reserved during planning).
+      this.reserveTileCenter(destCX, destCY);
 
       // Animate sprite movement with dynamic timing (keep scale stable)
       scene.tweens.add({
