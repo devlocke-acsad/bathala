@@ -37,6 +37,11 @@ export const TILE = {
     HOUSE: 2,
     FENCE: 3,
     RUBBLE: 4,
+    CLIFF: 5,
+    HILL: 6,
+    GRASS_PATCH: 7,
+    SAND_PATCH: 8,
+    WATER: 9,
 } as const;
 
 // =========================================================================
@@ -87,6 +92,16 @@ export interface VillageLayoutParams {
     fixDoubleWide: boolean;
     /** Edge margin for house placement (tiles from chunk border) */
     edgeMargin: number;
+    /** Number of long cliff ranges stamped across non-path terrain */
+    cliffBandCount: number;
+    /** Number of hill clusters to place */
+    hillClusterCount: number;
+    /** Number of non-traversable grass patch clusters */
+    grassPatchCount: number;
+    /** Number of non-traversable sand patch clusters */
+    sandPatchCount: number;
+    /** Number of water pools used to form island silhouettes */
+    waterPoolCount: number;
 }
 
 /** Default params — matches the pre-rework sparse-village behavior. */
@@ -112,6 +127,11 @@ export const DEFAULT_VILLAGE_PARAMS: VillageLayoutParams = {
     detourMaxDistance: 13,
     fixDoubleWide: true,
     edgeMargin: 2,
+    cliffBandCount: 2,
+    hillClusterCount: 3,
+    grassPatchCount: 3,
+    sandPatchCount: 2,
+    waterPoolCount: 2,
 };
 
 // =========================================================================
@@ -333,8 +353,10 @@ export class SubmergedVillageAlgorithm {
             grid.setTile(Math.floor(w / 2), Math.floor(h / 2), TILE.PATH);
         }
 
-        // 6. Attach fences to some houses
-        this.placeFences(grid, houses, p.fenceChance);
+        // 6. Fences remain available but are disabled by preset (chance = 0).
+        if (p.fenceChance > 0) {
+            this.placeFences(grid, houses, p.fenceChance);
+        }
 
         // 7. Carve roads between house doors and to chunk edges
         this.carveRoads(grid, houses, p);
@@ -348,8 +370,10 @@ export class SubmergedVillageAlgorithm {
         // 10. Re-run connectivity after adding detours.
         this.ensureGlobalAccessibility(grid);
 
-        // 11. Scatter rubble near paths
-        this.scatterRubble(grid, p.rubbleChance);
+        // 11. Rubble remains available but is disabled by preset (chance = 0).
+        if (p.rubbleChance > 0) {
+            this.scatterRubble(grid, p.rubbleChance);
+        }
 
         // 12. Scatter decorative trees in cleared areas
         if (p.scatterTreeChance > 0) {
@@ -370,6 +394,9 @@ export class SubmergedVillageAlgorithm {
         this.fixDoubleWidePaths(grid);
         this.reduceDeadEnds(grid, houses);
         this.ensureGlobalAccessibility(grid);
+
+        // 16. Convert non-path terrain into Chapter 2 feature tiles (cliffs, hills, patches, water islands).
+        this.applyBiomeTerrainFeatures(grid, p);
 
         return grid;
     }
@@ -1169,6 +1196,177 @@ export class SubmergedVillageAlgorithm {
                 }
             }
         }
+    }
+
+    private applyBiomeTerrainFeatures(grid: IntGrid, params: VillageLayoutParams): void {
+        const [w, h] = this.levelSize;
+
+        // Reset all non-path tiles to a neutral land base before painting feature families.
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.PATH) {
+                    grid.setTile(x, y, TILE.FOREST);
+                }
+            }
+        }
+
+        this.paintWaterPools(grid, params.waterPoolCount);
+        this.paintCliffBands(grid, params.cliffBandCount);
+        this.paintTerrainClusters(grid, TILE.HILL, params.hillClusterCount, 2, 4, true);
+        this.paintTerrainClusters(grid, TILE.GRASS_PATCH, params.grassPatchCount, 2, 4, false);
+        this.paintTerrainClusters(grid, TILE.SAND_PATCH, params.sandPatchCount, 2, 4, false);
+
+        // Convert anything still on legacy terrain ids into current bundle-backed tiles.
+        this.normalizeResidualTerrain(grid);
+    }
+
+    private normalizeResidualTerrain(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const tile = grid.getTile(x, y);
+                if (tile === TILE.PATH || tile === TILE.CLIFF || tile === TILE.HILL || tile === TILE.GRASS_PATCH || tile === TILE.SAND_PATCH || tile === TILE.WATER) {
+                    continue;
+                }
+
+                // Legacy FOREST/HOUSE/FENCE/RUBBLE are remapped so Act 2 uses only current bundles.
+                const replacement = this.rng() < 0.35 ? TILE.SAND_PATCH : TILE.GRASS_PATCH;
+                grid.setTile(x, y, replacement);
+            }
+        }
+    }
+
+    private paintCliffBands(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+        const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+        for (let i = 0; i < count; i++) {
+            let x = this.randomInt(2, w - 3);
+            let y = this.randomInt(2, h - 3);
+            let [dx, dy] = dirs[this.randomInt(0, dirs.length - 1)];
+            const steps = this.randomInt(6, 16);
+            const width = this.rng() < 0.35 ? 1 : 0;
+
+            for (let step = 0; step < steps; step++) {
+                for (let spread = -width; spread <= width; spread++) {
+                    const px = dy !== 0 ? x + spread : x;
+                    const py = dx !== 0 ? y + spread : y;
+                    if (!this.isInBounds(px, py)) continue;
+                    if (grid.getTile(px, py) !== TILE.PATH) {
+                        grid.setTile(px, py, TILE.CLIFF);
+                    }
+                }
+
+                x += dx;
+                y += dy;
+                if (!this.isInBounds(x, y) || x < 1 || y < 1 || x >= w - 1 || y >= h - 1) {
+                    break;
+                }
+
+                // Gentle directional wobble creates both short and long cliff runs.
+                if (this.rng() < 0.22) {
+                    if (dx !== 0) {
+                        y = this.clamp(y + this.randomInt(-1, 1), 1, h - 2);
+                    } else {
+                        x = this.clamp(x + this.randomInt(-1, 1), 1, w - 2);
+                    }
+                }
+            }
+        }
+    }
+
+    private paintTerrainClusters(
+        grid: IntGrid,
+        tileType: number,
+        count: number,
+        minRadius: number,
+        maxRadius: number,
+        avoidPath: boolean,
+    ): void {
+        const [w, h] = this.levelSize;
+
+        for (let cluster = 0; cluster < count; cluster++) {
+            let attempts = 0;
+            let centerX = this.randomInt(2, w - 3);
+            let centerY = this.randomInt(2, h - 3);
+
+            while (attempts < 24) {
+                if (grid.getTile(centerX, centerY) !== TILE.PATH && (!avoidPath || !this.isNearPath(grid, centerX, centerY, 1))) {
+                    break;
+                }
+                centerX = this.randomInt(2, w - 3);
+                centerY = this.randomInt(2, h - 3);
+                attempts++;
+            }
+
+            const radiusX = this.randomInt(minRadius, maxRadius);
+            const radiusY = this.randomInt(minRadius, maxRadius);
+
+            for (let y = centerY - radiusY - 1; y <= centerY + radiusY + 1; y++) {
+                for (let x = centerX - radiusX - 1; x <= centerX + radiusX + 1; x++) {
+                    if (!this.isInBounds(x, y)) continue;
+                    if (grid.getTile(x, y) === TILE.PATH || grid.getTile(x, y) === TILE.WATER) continue;
+
+                    const nx = Math.abs(x - centerX) / Math.max(1, radiusX);
+                    const ny = Math.abs(y - centerY) / Math.max(1, radiusY);
+                    const threshold = 1.05 + this.rng() * 0.35;
+                    if (nx + ny > threshold) continue;
+
+                    if (avoidPath && this.isNearPath(grid, x, y, 1)) continue;
+                    if (tileType !== TILE.HILL && grid.getTile(x, y) !== TILE.FOREST) continue;
+
+                    grid.setTile(x, y, tileType);
+                }
+            }
+        }
+    }
+
+    private paintWaterPools(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+
+        for (let pool = 0; pool < count; pool++) {
+            const centerX = this.randomInt(3, w - 4);
+            const centerY = this.randomInt(3, h - 4);
+            const radiusX = this.randomInt(2, 4);
+            const radiusY = this.randomInt(2, 4);
+
+            for (let y = centerY - radiusY - 1; y <= centerY + radiusY + 1; y++) {
+                for (let x = centerX - radiusX - 1; x <= centerX + radiusX + 1; x++) {
+                    if (!this.isInBounds(x, y)) continue;
+                    if (grid.getTile(x, y) === TILE.PATH) continue;
+
+                    const nx = Math.abs(x - centerX) / Math.max(1, radiusX);
+                    const ny = Math.abs(y - centerY) / Math.max(1, radiusY);
+                    if (nx + ny <= 1.0 + this.rng() * 0.3) {
+                        grid.setTile(x, y, TILE.WATER);
+                    }
+                }
+            }
+
+            // Restore 1-2 small land bumps to sell the island silhouette.
+            const islandCount = this.rng() < 0.5 ? 1 : 2;
+            for (let i = 0; i < islandCount; i++) {
+                const ix = this.clamp(centerX + this.randomInt(-1, 1), 1, w - 2);
+                const iy = this.clamp(centerY + this.randomInt(-1, 1), 1, h - 2);
+                if (grid.getTile(ix, iy) === TILE.WATER) {
+                    grid.setTile(ix, iy, this.rng() < 0.5 ? TILE.FOREST : TILE.HILL);
+                }
+            }
+        }
+    }
+
+    private isNearPath(grid: IntGrid, x: number, y: number, radius: number): boolean {
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (!this.isInBounds(nx, ny)) continue;
+                if (grid.getTile(nx, ny) === TILE.PATH) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // =====================================================================

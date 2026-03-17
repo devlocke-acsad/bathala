@@ -51,6 +51,10 @@ export class Overworld_MazeGenManager {
 
   // Floor textures for randomization
   private floorTextures: string[] = ['floor1', 'floor2', 'floor3'];
+  private submergedVillagePathTextures: string[] = [
+    'sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4',
+    'sv_path_sand_1', 'sv_path_sand_2', 'sv_path_sand_3', 'sv_path_sand_4',
+  ];
 
   // Outer tile markers for chunk connections
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
@@ -118,6 +122,11 @@ export class Overworld_MazeGenManager {
     }
 
     if (DEBUG_ENEMY_AI) console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize, 'devMode:', devMode);
+
+    // Act 2 uses dedicated submerged village path tiles.
+    if (this.isAct2Chapter()) {
+      this.floorTextures = [...this.submergedVillagePathTextures];
+    }
   }
 
   /**
@@ -620,7 +629,7 @@ export class Overworld_MazeGenManager {
 
         if (tileValue !== 0) {
           // Non-walkable tile — pick texture based on tile type
-          const textureKey = this.getWallTexture(tileValue, chunkX, chunkY, x, y);
+          const textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y);
           const wallSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, textureKey);
           wallSprite.setDisplaySize(this.gridSize, this.gridSize);
           wallSprite.setOrigin(0.5);
@@ -660,27 +669,125 @@ export class Overworld_MazeGenManager {
   }
 
   /**
-   * Map a tile value to its wall texture key.
-   * Tile values:
-   *   1 — FOREST: random wall1–wall3 (trees)
-   *   2 — HOUSE:  wall4 (building placeholder)
-   *   3 — FENCE:  wall5 (broken fence placeholder)
-   *   4 — RUBBLE: wall6 (debris placeholder)
-   * For tile=1 (or any unrecognised value), falls back to the weighted
-   * wall texture pool used by Act 1.
+   * Map non-path tile values to texture keys.
+   * Act 2 favors submerged-village bundles with directional variants.
    */
-  private getWallTexture(tileValue: number, chunkX: number, chunkY: number, x: number, y: number): string {
+  private getWallTexture(tileValue: number, maze: number[][], chunkX: number, chunkY: number, x: number, y: number): string {
+    const isAct2 = this.isAct2Chapter();
+    const has = (dx: number, dy: number): boolean => {
+      const ny = y + dy;
+      const nx = x + dx;
+      return maze[ny]?.[nx] === tileValue;
+    };
+
+    if (tileValue === 5) {
+      const n = has(0, -1);
+      const s = has(0, 1);
+      const e = has(1, 0);
+      const w = has(-1, 0);
+
+      if (!n && !w) return 'sv_grass_cliff_nw';
+      if (!n && !e) return 'sv_grass_cliff_ne';
+      if (!s && !w) return 'sv_grass_cliff_sw';
+      if (!s && !e) return 'sv_grass_cliff_se';
+      if (!n) return 'sv_grass_cliff_n';
+      if (!s) return 'sv_grass_cliff_s';
+      if (!e) return 'sv_grass_cliff_e';
+      if (!w) return 'sv_grass_cliff_w';
+      return 'sv_grass_cliff_middle';
+    }
+
+    if (tileValue === 7) {
+      const n = has(0, -1);
+      const s = has(0, 1);
+      const e = has(1, 0);
+      const w = has(-1, 0);
+
+      if (!n && !w) return 'sv_patch_grass_sand_nw';
+      if (!n && !e) return 'sv_patch_grass_sand_ne';
+      if (!s && !w) return 'sv_patch_grass_sand_sw';
+      if (!s && !e) return 'sv_patch_grass_sand_se';
+      if (!n) return 'sv_patch_grass_sand_n';
+      if (!s) return 'sv_patch_grass_sand_s';
+      if (!e) return 'sv_patch_grass_sand_e';
+      if (!w) return 'sv_patch_grass_sand_w';
+      return 'sv_patch_grass_sand_middle';
+    }
+
+    if (tileValue === 8) {
+      const n = has(0, -1);
+      const s = has(0, 1);
+      const e = has(1, 0);
+      const w = has(-1, 0);
+
+      if (!n && !w) return 'sv_patch_sand_grass_nw';
+      if (!n && !e) return 'sv_patch_sand_grass_ne';
+      if (!s && !w) return 'sv_patch_sand_grass_sw';
+      if (!s && !e) return 'sv_patch_sand_grass_se';
+
+      const variants = ['sv_patch_sand_grass_nw', 'sv_patch_sand_grass_ne', 'sv_patch_sand_grass_sw', 'sv_patch_sand_grass_se'];
+      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, variants.length);
+      return variants[idx];
+    }
+
+    if (tileValue === 6) {
+      const variants = ['sv_grass_hill_nw', 'sv_grass_hill_ne', 'sv_grass_hill_sw', 'sv_grass_hill_se'];
+      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, variants.length);
+      return variants[idx];
+    }
+
+    if (tileValue === 9) {
+      const n = has(0, -1);
+      const s = has(0, 1);
+      const e = has(1, 0);
+      const w = has(-1, 0);
+      const ne = maze[y - 1]?.[x + 1] === tileValue;
+      const nw = maze[y - 1]?.[x - 1] === tileValue;
+      const se = maze[y + 1]?.[x + 1] === tileValue;
+      const sw = maze[y + 1]?.[x - 1] === tileValue;
+
+      // Outer corners make larger lakes and puddles read smoother.
+      if (n && s && e && w && !nw) return 'sv_water_outer_nw';
+      if (n && s && e && w && !ne) return 'sv_water_outer_ne';
+      if (n && s && e && w && !sw) return 'sv_water_outer_sw';
+      if (n && s && e && w && !se) return 'sv_water_outer_se';
+
+      if (!n && !w) return 'sv_water_shore_nw';
+      if (!n && !e) return 'sv_water_shore_ne';
+      if (!s && !w) return 'sv_water_shore_sw';
+      if (!s && !e) return 'sv_water_shore_se';
+      if (!n) return 'sv_water_shore_n';
+      if (!s) return 'sv_water_shore_s';
+      if (!e) return 'sv_water_shore_e';
+      if (!w) return 'sv_water_shore_w';
+
+      const deepVariants = ['sv_water_tile', 'sv_water_debris_1', 'sv_water_debris_2', 'sv_water_debris_3'];
+      const deepIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, deepVariants.length);
+      return deepVariants[deepIdx];
+    }
+
     switch (tileValue) {
       case 2: return 'wall4';   // House
       case 3: return 'wall5';   // Fence
       case 4: return 'wall6';   // Rubble
       default: {
+        if (isAct2) {
+          const act2Fallback = ['sv_patch_grass_sand_middle', 'sv_patch_grass_sand_n', 'sv_patch_grass_sand_s'];
+          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
+          return act2Fallback[idx];
+        }
         // Forest / generic wall — weighted random from wall1-3
         const forestTextures = ['wall1', 'wall1', 'wall2', 'wall2', 'wall3'];
         const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, forestTextures.length);
         return forestTextures[idx];
       }
     }
+  }
+
+  private isAct2Chapter(): boolean {
+    const chapter = GameState.getInstance().getCurrentChapter();
+    const normalized = String(chapter).toLowerCase();
+    return chapter === 2 || normalized === '2' || normalized.includes('act2') || normalized.includes('chapter2');
   }
 
   /**
