@@ -18,12 +18,10 @@ export { ActRegistry } from '../core/acts/ActRegistry';
 
 // === Act definitions (class-based) ===
 export { Act1Definition, ACT1 } from './act1/Act1Definition';
+export { Act2Definition, ACT2 } from './act2/Act2Definition';
+export { Act3Definition, ACT3 } from './act3/Act3Definition';
 
 // === Legacy plain-object configs (kept for backward-compat) ===
 export { ACT1_CONFIG } from './act1/Act1Config';
 
-// Future: Act 2 - The Submerged Barangays
-// export { Act2Definition, ACT2 } from './act2/Act2Definition';
-
-// Future: Act 3 - The Skyward Citadel
-// export { Act3Definition, ACT3 } from './act3/Act3Definition';
+// (Legacy configs remain available as needed.)
