@@ -786,6 +786,22 @@ export class Overworld_MazeGenManager {
       const s = has(0, 1);
       const e = has(1, 0);
       const w = has(-1, 0);
+      const ne = has(1, -1);
+      const nw = has(-1, -1);
+      const se = has(1, 1);
+      const sw = has(-1, 1);
+
+      // Outer corners for convex hill edges.
+      if (!n && !w) return 'sv_grass_hill_nw';
+      if (!n && !e) return 'sv_grass_hill_ne';
+      if (!s && !w) return 'sv_grass_hill_sw';
+      if (!s && !e) return 'sv_grass_hill_se';
+
+      // Inner corners for irregular/concave hill silhouettes.
+      if (n && w && !nw) return 'sv_grass_hill_inner_se';
+      if (n && e && !ne) return 'sv_grass_hill_inner_sw';
+      if (s && w && !sw) return 'sv_grass_hill_inner_ne';
+      if (s && e && !se) return 'sv_grass_hill_inner_nw';
 
       // Prefer quadrant that points toward connected hill body.
       if (e && s && !n && !w) return 'sv_grass_hill_nw';
@@ -798,6 +814,13 @@ export class Overworld_MazeGenManager {
       if (n && !s) return (x & 1) === 0 ? 'sv_grass_hill_sw' : 'sv_grass_hill_se';
       if (e && !w) return (y & 1) === 0 ? 'sv_grass_hill_nw' : 'sv_grass_hill_sw';
       if (w && !e) return (y & 1) === 0 ? 'sv_grass_hill_ne' : 'sv_grass_hill_se';
+
+      // Enclosed hill interiors use grass middle path tiles for cleaner fill.
+      if (fullyEnclosed()) {
+        const hillMiddle = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+        const middleIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, hillMiddle.length);
+        return hillMiddle[middleIdx];
+      }
 
       const variants = ['sv_grass_hill_nw', 'sv_grass_hill_ne', 'sv_grass_hill_sw', 'sv_grass_hill_se'];
       const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, variants.length);

@@ -1244,16 +1244,19 @@ export class SubmergedVillageAlgorithm {
         }
 
         this.paintSimpleWaterPonds(grid, params.waterPoolCount);
-        const totalCliffGroups = Math.max(2, params.cliffBandCount + params.hillClusterCount);
+        const totalCliffGroups = Math.max(1, params.cliffBandCount);
         const irregularCliffCount = Math.max(2, Math.ceil(totalCliffGroups * 0.7));
         const simpleCliffCount = Math.max(1, totalCliffGroups - irregularCliffCount);
         // Paint irregular first so natural shapes claim space before simple fallback rings.
         this.paintIrregularCliffHillFormations(grid, irregularCliffCount);
         this.paintSimpleCliffHillFormations(grid, simpleCliffCount);
 
+        const totalHillGroups = Math.max(1, params.hillClusterCount);
+        // Reverted by request: hills are simple 2x2 scatter only.
+        this.paintSimpleHillFormations(grid, totalHillGroups);
+
         // Finalize cliff masses first so later obstacle families honor stable cliff silhouettes.
         this.repairCliffGaps(grid);
-        this.backfillHillsBehindCliffs(grid);
 
         const totalPatchGroups = Math.max(2, params.grassPatchCount + params.sandPatchCount);
         const irregularPatchCount = Math.max(2, Math.ceil(totalPatchGroups * 0.65));
@@ -1267,6 +1270,7 @@ export class SubmergedVillageAlgorithm {
         // Finalize: cliffs must be surrounded by a 1-tile PATH moat.
         // Run last so no later pass can place obstacles back beside cliffs.
         this.enforceCliffObstacleClearance(grid, 1);
+        this.enforceHillObstacleClearance(grid, 1);
     }
 
     /**
@@ -1336,9 +1340,31 @@ export class SubmergedVillageAlgorithm {
                     }
                 }
 
-                // Optional tiny island for larger ponds.
-                if (halfW + halfH >= 4 && this.rng() < 0.45) {
-                    grid.setTile(cx, cy, TILE.HILL);
+                placed = true;
+            }
+        }
+    }
+
+    /**
+     * Stamp simple hill features as strict 2x2 clusters.
+     */
+    private paintSimpleHillFormations(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+
+        for (let i = 0; i < count; i++) {
+            let placed = false;
+            for (let attempt = 0; attempt < 40 && !placed; attempt++) {
+                const minX = this.randomInt(2, w - 4);
+                const minY = this.randomInt(2, h - 4);
+                const maxX = minX + 1;
+                const maxY = minY + 1;
+
+                if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, this.OBSTACLE_FORMATION_GAP)) continue;
+
+                for (let y = minY; y <= maxY; y++) {
+                    for (let x = minX; x <= maxX; x++) {
+                        grid.setTile(x, y, TILE.HILL);
+                    }
                 }
 
                 placed = true;
@@ -1525,34 +1551,6 @@ export class SubmergedVillageAlgorithm {
         }
     }
 
-    /**
-     * Fill interior cells just behind cliff walls with hill tiles so cliff formations read as complete masses.
-     */
-    private backfillHillsBehindCliffs(grid: IntGrid): void {
-        const [w, h] = this.levelSize;
-
-        for (let pass = 0; pass < 2; pass++) {
-            const fills: Array<[number, number]> = [];
-
-            for (let y = 1; y < h - 1; y++) {
-                for (let x = 1; x < w - 1; x++) {
-                    if (grid.getTile(x, y) !== TILE.FOREST) continue;
-                    if (this.isNearPath(grid, x, y, 1)) continue;
-
-                    const neighbors = this.neighbors8([x, y]);
-                    const cliffCount = neighbors.filter(([nx, ny]) => grid.getTile(nx, ny) === TILE.CLIFF).length;
-                    if (cliffCount >= 3) {
-                        fills.push([x, y]);
-                    }
-                }
-            }
-
-            for (const [x, y] of fills) {
-                grid.setTile(x, y, TILE.HILL);
-            }
-        }
-    }
-
     private isNearPath(grid: IntGrid, x: number, y: number, radius: number): boolean {
         for (let dy = -radius; dy <= radius; dy++) {
             for (let dx = -radius; dx <= radius; dx++) {
@@ -1621,6 +1619,34 @@ export class SubmergedVillageAlgorithm {
                         const t = grid.getTile(nx, ny);
                         // Keep cliff walls and hill interiors intact; force everything else to path.
                         if (t === TILE.CLIFF || t === TILE.HILL || t === TILE.PATH) continue;
+                        toPath.push([nx, ny]);
+                    }
+                }
+            }
+        }
+
+        for (const [x, y] of toPath) {
+            grid.setTile(x, y, TILE.PATH);
+        }
+    }
+
+    private enforceHillObstacleClearance(grid: IntGrid, radius: number): void {
+        const [w, h] = this.levelSize;
+        const toPath: Array<[number, number]> = [];
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.HILL) continue;
+
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (!this.isInBounds(nx, ny)) continue;
+
+                        const t = grid.getTile(nx, ny);
+                        // Keep hill and cliff masses intact, but separate from other obstacle families.
+                        if (t === TILE.HILL || t === TILE.CLIFF || t === TILE.PATH) continue;
                         toPath.push([nx, ny]);
                     }
                 }
