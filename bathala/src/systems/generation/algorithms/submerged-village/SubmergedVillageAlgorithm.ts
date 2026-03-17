@@ -397,8 +397,39 @@ export class SubmergedVillageAlgorithm {
 
         // 16. Convert non-path terrain into Chapter 2 feature tiles (cliffs, hills, patches, water islands).
         this.applyBiomeTerrainFeatures(grid, p);
+        this.repairPathGapsAfterBiome(grid);
 
         return grid;
+    }
+
+    /**
+     * Restore obvious single-tile path connectors that became visually blocked by biome overlays.
+     */
+    private repairPathGapsAfterBiome(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        const toPath: Array<[number, number]> = [];
+
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const tile = grid.getTile(x, y);
+                if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF) continue;
+
+                const north = grid.getTile(x, y - 1) === TILE.PATH;
+                const south = grid.getTile(x, y + 1) === TILE.PATH;
+                const east = grid.getTile(x + 1, y) === TILE.PATH;
+                const west = grid.getTile(x - 1, y) === TILE.PATH;
+                const pathNeighbors = Number(north) + Number(south) + Number(east) + Number(west);
+
+                // Bridge narrow blockers in straight corridors or path intersections.
+                if ((north && south) || (east && west) || pathNeighbors >= 3) {
+                    toPath.push([x, y]);
+                }
+            }
+        }
+
+        for (const [x, y] of toPath) {
+            grid.setTile(x, y, TILE.PATH);
+        }
     }
 
     // =====================================================================

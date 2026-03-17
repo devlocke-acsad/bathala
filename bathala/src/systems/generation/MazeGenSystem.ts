@@ -129,6 +129,18 @@ export class Overworld_MazeGenManager {
   }
 
   /**
+   * Determine if a tile value is traversable for overworld movement/spawn.
+   * Act 2 treats all pathTiles-backed land IDs as walkable.
+   */
+  private isTraversableTile(tileValue: number): boolean {
+    if (!this.isAct2Chapter()) {
+      return tileValue === 0;
+    }
+
+    return tileValue === 0 || tileValue === 1 || tileValue === 2 || tileValue === 3 || tileValue === 4;
+  }
+
+  /**
    * Initialize the maze generator and prepare for a new game
    * Clears the cache and prepares the initial chunk
    */
@@ -173,8 +185,8 @@ export class Overworld_MazeGenManager {
     let startX = chunkCenterX * this.gridSize + this.gridSize / 2;
     let startY = chunkCenterY * this.gridSize + this.gridSize / 2;
 
-    // If center is not PATH, find nearest PATH tile (tile 0).
-    if (initialChunk.maze[chunkCenterY][chunkCenterX] !== 0) {
+    // If center is not traversable, find nearest traversable tile.
+    if (!this.isTraversableTile(initialChunk.maze[chunkCenterY][chunkCenterX])) {
       if (DEBUG_ENEMY_AI) console.log('🗺️ Center is blocked, searching nearest path tile');
 
       let foundPath = false;
@@ -191,7 +203,7 @@ export class Overworld_MazeGenManager {
             const newX = chunkCenterX + dx;
             if (newY >= 0 && newY < initialChunk.maze.length &&
               newX >= 0 && newX < initialChunk.maze[0].length &&
-              initialChunk.maze[newY][newX] === 0) {
+              this.isTraversableTile(initialChunk.maze[newY][newX])) {
               startX = newX * this.gridSize + this.gridSize / 2;
               startY = newY * this.gridSize + this.gridSize / 2;
               foundPath = true;
@@ -201,11 +213,11 @@ export class Overworld_MazeGenManager {
         }
       }
 
-      // Fallback: first PATH tile scan (should rarely be needed, but prevents invalid spawn).
+      // Fallback: first traversable tile scan (should rarely be needed, but prevents invalid spawn).
       if (!foundPath) {
         for (let y = 0; y < initialChunk.maze.length && !foundPath; y++) {
           for (let x = 0; x < initialChunk.maze[0].length && !foundPath; x++) {
-            if (initialChunk.maze[y][x] === 0) {
+            if (this.isTraversableTile(initialChunk.maze[y][x])) {
               startX = x * this.gridSize + this.gridSize / 2;
               startY = y * this.gridSize + this.gridSize / 2;
               foundPath = true;
@@ -246,8 +258,8 @@ export class Overworld_MazeGenManager {
       return false;
     }
 
-    // Check if it's a path (0) not a wall (1)
-    return chunk.maze[gridY][gridX] === 0;
+    // Check traversability against the active chapter's walkable tile set.
+    return this.isTraversableTile(chunk.maze[gridY][gridX]);
   }
 
   /**
@@ -678,21 +690,43 @@ export class Overworld_MazeGenManager {
       const nx = x + dx;
       return maze[ny]?.[nx] === tileValue;
     };
+    const fullyEnclosed = (): boolean => {
+      return has(0, -1) && has(0, 1) && has(1, 0) && has(-1, 0)
+        && has(1, -1) && has(-1, -1) && has(1, 1) && has(-1, 1);
+    };
 
     if (tileValue === 5) {
       const n = has(0, -1);
       const s = has(0, 1);
       const e = has(1, 0);
       const w = has(-1, 0);
+      const ne = has(1, -1);
+      const nw = has(-1, -1);
+      const se = has(1, 1);
+      const sw = has(-1, 1);
 
       if (!n && !w) return 'sv_grass_cliff_nw';
       if (!n && !e) return 'sv_grass_cliff_ne';
       if (!s && !w) return 'sv_grass_cliff_sw';
       if (!s && !e) return 'sv_grass_cliff_se';
+
+      // Dedicated inner-corner routing for irregular/concave shapes.
+      if (n && w && !nw) return 'sv_grass_cliff_inner_se';
+      if (n && e && !ne) return 'sv_grass_cliff_inner_sw';
+      if (s && w && !sw) return 'sv_grass_cliff_inner_ne';
+      if (s && e && !se) return 'sv_grass_cliff_inner_nw';
+
       if (!n) return 'sv_grass_cliff_n';
       if (!s) return 'sv_grass_cliff_s';
       if (!e) return 'sv_grass_cliff_e';
       if (!w) return 'sv_grass_cliff_w';
+
+      if (!fullyEnclosed()) {
+        const diagonalVariants = ['sv_grass_cliff_n', 'sv_grass_cliff_s', 'sv_grass_cliff_e', 'sv_grass_cliff_w'];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, diagonalVariants.length);
+        return diagonalVariants[idx];
+      }
+
       return 'sv_grass_cliff_middle';
     }
 
@@ -701,15 +735,33 @@ export class Overworld_MazeGenManager {
       const s = has(0, 1);
       const e = has(1, 0);
       const w = has(-1, 0);
+      const ne = has(1, -1);
+      const nw = has(-1, -1);
+      const se = has(1, 1);
+      const sw = has(-1, 1);
 
       if (!n && !w) return 'sv_patch_grass_sand_nw';
       if (!n && !e) return 'sv_patch_grass_sand_ne';
       if (!s && !w) return 'sv_patch_grass_sand_sw';
       if (!s && !e) return 'sv_patch_grass_sand_se';
+
+      // Dedicated inner-corner routing for irregular patch boundaries.
+      if (n && w && !nw) return 'sv_patch_grass_sand_inner_se';
+      if (n && e && !ne) return 'sv_patch_grass_sand_inner_sw';
+      if (s && w && !sw) return 'sv_patch_grass_sand_inner_ne';
+      if (s && e && !se) return 'sv_patch_grass_sand_inner_nw';
+
       if (!n) return 'sv_patch_grass_sand_n';
       if (!s) return 'sv_patch_grass_sand_s';
       if (!e) return 'sv_patch_grass_sand_e';
       if (!w) return 'sv_patch_grass_sand_w';
+
+      if (!fullyEnclosed()) {
+        const sideVariants = ['sv_patch_grass_sand_n', 'sv_patch_grass_sand_s', 'sv_patch_grass_sand_e', 'sv_patch_grass_sand_w'];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, sideVariants.length);
+        return sideVariants[idx];
+      }
+
       return 'sv_patch_grass_sand_middle';
     }
 

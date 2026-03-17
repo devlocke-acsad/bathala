@@ -138,6 +138,10 @@ export class Preloader extends Scene {
     this.load.image("sv_grass_cliff_nw", "background/submergedvillageAssets/grassObstacles/GrassCliff_NW.png");
     this.load.image("sv_grass_cliff_se", "background/submergedvillageAssets/grassObstacles/GrassCliff_SE.png");
     this.load.image("sv_grass_cliff_sw", "background/submergedvillageAssets/grassObstacles/GrassCliff_SW.png");
+    this.load.image("sv_grass_cliff_inner_ne", "background/submergedvillageAssets/grassObstacles/GrassCliff_NE.png");
+    this.load.image("sv_grass_cliff_inner_nw", "background/submergedvillageAssets/grassObstacles/GrassCliff_NW.png");
+    this.load.image("sv_grass_cliff_inner_se", "background/submergedvillageAssets/grassObstacles/GrassCliff_SE.png");
+    this.load.image("sv_grass_cliff_inner_sw", "background/submergedvillageAssets/grassObstacles/GrassCliff_SW.png");
     this.load.image("sv_grass_cliff_middle", "background/submergedvillageAssets/grassObstacles/GrassCliff_Middle.png");
 
     this.load.image("sv_grass_hill_ne", "background/submergedvillageAssets/grassObstacles/GrassHill_NE.png");
@@ -149,6 +153,10 @@ export class Preloader extends Scene {
     this.load.image("sv_patch_grass_sand_ne", "background/submergedvillageAssets/grassObstacles/GrassSandPatch_NE.png");
     this.load.image("sv_patch_grass_sand_sw", "background/submergedvillageAssets/grassObstacles/GrassSandPatch_SW.png");
     this.load.image("sv_patch_grass_sand_se", "background/submergedvillageAssets/grassObstacles/GrassSandPatch_SE.png");
+    this.load.image("sv_patch_grass_sand_inner_nw", "background/submergedvillageAssets/grassObstacles/GrassSandPatch_NW.png");
+    this.load.image("sv_patch_grass_sand_inner_ne", "background/submergedvillageAssets/grassObstacles/GrassSandPatch_NE.png");
+    this.load.image("sv_patch_grass_sand_inner_sw", "background/submergedvillageAssets/grassObstacles/GrassSandPatch_SW.png");
+    this.load.image("sv_patch_grass_sand_inner_se", "background/submergedvillageAssets/grassObstacles/GrassSandPatch_SE.png");
     this.load.image("sv_patch_grass_sand_n", "background/submergedvillageAssets/grassObstacles/GrassSandPatch_N.png");
     this.load.image("sv_patch_grass_sand_s", "background/submergedvillageAssets/grassObstacles/GrassSandPatch_S.png");
     this.load.image("sv_patch_grass_sand_e", "background/submergedvillageAssets/grassObstacles/GrassSandPatch_E.png");
