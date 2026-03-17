@@ -312,6 +312,7 @@ export class SubmergedVillageAlgorithm {
     private readonly DEAD_END_LOOP_MAX_DIST = 10;
     private readonly CLIFF_FORMATION_GAP = 1;
     private readonly OBSTACLE_FORMATION_GAP = 1;
+    private readonly PATCH_FORMATION_GAP = 0;
 
     // --- Public config ---
     public levelSize: [number, number] = [20, 20];
@@ -1257,20 +1258,31 @@ export class SubmergedVillageAlgorithm {
 
         // Finalize cliff masses first so later obstacle families honor stable cliff silhouettes.
         this.repairCliffGaps(grid);
+        this.enforceCliffShellIntegrity(grid);
+        this.enforceStrictHillBundles(grid);
 
-        const totalPatchGroups = Math.max(2, params.grassPatchCount + params.sandPatchCount);
-        const irregularPatchCount = Math.max(2, Math.ceil(totalPatchGroups * 0.65));
-        const simplePatchCount = Math.max(1, totalPatchGroups - irregularPatchCount);
-        this.paintIrregularPatchFormations(grid, irregularPatchCount);
-        this.paintSimplePatchFormations(grid, simplePatchCount);
+        const grassTotal = Math.max(1, params.grassPatchCount);
+        const grassIrregular = grassTotal <= 1 ? 1 : Math.max(1, Math.ceil(grassTotal * 0.5));
+        const grassSimple = Math.max(0, grassTotal - grassIrregular);
+        this.paintIrregularPatchFormations(grid, grassIrregular, TILE.GRASS_PATCH);
+        if (grassSimple > 0) {
+            this.paintSimplePatchFormations(grid, grassSimple, TILE.GRASS_PATCH);
+        }
 
-        this.repairPatchGaps(grid, TILE.GRASS_PATCH);
-        this.repairPatchGaps(grid, TILE.SAND_PATCH);
+        const sandTotal = Math.max(1, params.sandPatchCount);
+        const sandIrregular = sandTotal <= 1 ? 1 : Math.max(1, Math.ceil(sandTotal * 0.5));
+        const sandSimple = Math.max(0, sandTotal - sandIrregular);
+        this.paintIrregularPatchFormations(grid, sandIrregular, TILE.SAND_PATCH);
+        if (sandSimple > 0) {
+            this.paintSimplePatchFormations(grid, sandSimple, TILE.SAND_PATCH);
+        }
 
         // Finalize: cliffs must be surrounded by a 1-tile PATH moat.
         // Run last so no later pass can place obstacles back beside cliffs.
         this.enforceCliffObstacleClearance(grid, 1);
-        this.enforceHillObstacleClearance(grid, 1);
+        this.enforceStrictHillBundles(grid);
+        this.removePatchFragments(grid, TILE.GRASS_PATCH, 5);
+        this.removePatchFragments(grid, TILE.SAND_PATCH, 5);
     }
 
     /**
@@ -1300,7 +1312,7 @@ export class SubmergedVillageAlgorithm {
                 for (let y = minY; y <= maxY; y++) {
                     for (let x = minX; x <= maxX; x++) {
                         const border = x === minX || x === maxX || y === minY || y === maxY;
-                        grid.setTile(x, y, border ? TILE.CLIFF : TILE.HILL);
+                        grid.setTile(x, y, border ? TILE.CLIFF : TILE.FOREST);
                     }
                 }
 
@@ -1373,6 +1385,121 @@ export class SubmergedVillageAlgorithm {
     }
 
     /**
+     * Hills must only exist as exact 2x2 components.
+     * Any other hill shape is removed.
+     */
+    private enforceStrictHillBundles(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        const visited = new Set<string>();
+        const toForest: Array<[number, number]> = [];
+        const toPath: Array<[number, number]> = [];
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.HILL) continue;
+                const startKey = `${x},${y}`;
+                if (visited.has(startKey)) continue;
+
+                const component: Array<[number, number]> = [];
+                const queue: Array<[number, number]> = [[x, y]];
+                visited.add(startKey);
+
+                while (queue.length > 0) {
+                    const [cx, cy] = queue.shift()!;
+                    component.push([cx, cy]);
+
+                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
+                        if (!this.isInBounds(nx, ny)) continue;
+                        if (grid.getTile(nx, ny) !== TILE.HILL) continue;
+                        const key = `${nx},${ny}`;
+                        if (visited.has(key)) continue;
+                        visited.add(key);
+                        queue.push([nx, ny]);
+                    }
+                }
+
+                if (component.length !== 4) {
+                    toForest.push(...component);
+                    continue;
+                }
+
+                const xs = component.map(([cx]) => cx);
+                const ys = component.map(([, cy]) => cy);
+                const minX = Math.min(...xs);
+                const maxX = Math.max(...xs);
+                const minY = Math.min(...ys);
+                const maxY = Math.max(...ys);
+
+                const is2x2 = (maxX - minX === 1) && (maxY - minY === 1)
+                    && component.some(([cx, cy]) => cx === minX && cy === minY)
+                    && component.some(([cx, cy]) => cx === minX && cy === maxY)
+                    && component.some(([cx, cy]) => cx === maxX && cy === minY)
+                    && component.some(([cx, cy]) => cx === maxX && cy === maxY);
+
+                if (!is2x2) {
+                    toForest.push(...component);
+                    continue;
+                }
+
+                // Hills must keep a 1-tile gap from cliffs; if they touch, demote hill bundle to PATH.
+                const nearCliff = component.some(([cx, cy]) =>
+                    this.neighbors8([cx, cy]).some(([nx, ny]) => this.isInBounds(nx, ny) && grid.getTile(nx, ny) === TILE.CLIFF)
+                );
+                if (nearCliff) {
+                    toPath.push(...component);
+                }
+            }
+        }
+
+        for (const [fx, fy] of toForest) {
+            grid.setTile(fx, fy, TILE.FOREST);
+        }
+        for (const [px, py] of toPath) {
+            grid.setTile(px, py, TILE.PATH);
+        }
+    }
+
+    private removePatchFragments(grid: IntGrid, patchType: number, minSize: number): void {
+        const [w, h] = this.levelSize;
+        const visited = new Set<string>();
+        const toForest: Array<[number, number]> = [];
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== patchType) continue;
+                const startKey = `${x},${y}`;
+                if (visited.has(startKey)) continue;
+
+                const component: Array<[number, number]> = [];
+                const queue: Array<[number, number]> = [[x, y]];
+                visited.add(startKey);
+
+                while (queue.length > 0) {
+                    const [cx, cy] = queue.shift()!;
+                    component.push([cx, cy]);
+
+                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
+                        if (!this.isInBounds(nx, ny)) continue;
+                        if (grid.getTile(nx, ny) !== patchType) continue;
+                        const key = `${nx},${ny}`;
+                        if (visited.has(key)) continue;
+                        visited.add(key);
+                        queue.push([nx, ny]);
+                    }
+                }
+
+                if (component.length < minSize) {
+                    toForest.push(...component);
+                }
+            }
+        }
+
+        for (const [fx, fy] of toForest) {
+            grid.setTile(fx, fy, TILE.FOREST);
+        }
+    }
+
+    /**
      * Build irregular but closed cliff/hill masses from blob masks.
      */
     private paintIrregularCliffHillFormations(grid: IntGrid, count: number): void {
@@ -1394,7 +1521,7 @@ export class SubmergedVillageAlgorithm {
                 for (const cell of mask) {
                     const [x, y] = cell.split(',').map(Number);
                     const border = this.neighbors4([x, y]).some(([nx, ny]) => !mask.has(`${nx},${ny}`));
-                    grid.setTile(x, y, border ? TILE.CLIFF : TILE.HILL);
+                    grid.setTile(x, y, border ? TILE.CLIFF : TILE.FOREST);
                 }
 
                 break;
@@ -1405,21 +1532,22 @@ export class SubmergedVillageAlgorithm {
     /**
      * Stamp simple closed patch shapes.
      */
-    private paintSimplePatchFormations(grid: IntGrid, count: number): void {
+    private paintSimplePatchFormations(grid: IntGrid, count: number, patchType: number): void {
         const [w, h] = this.levelSize;
 
         for (let i = 0; i < count; i++) {
-            const patchType = this.rng() < 0.7 ? TILE.GRASS_PATCH : TILE.SAND_PATCH;
             for (let attempt = 0; attempt < 20; attempt++) {
-                const halfW = this.randomInt(1, 3);
-                const halfH = this.randomInt(1, 2);
-                const cx = this.randomInt(halfW + 2, w - halfW - 3);
-                const cy = this.randomInt(halfH + 2, h - halfH - 3);
+                const width = this.randomInt(3, 4);
+                const height = this.randomInt(3, 4);
+                const minX = this.randomInt(2, w - width - 2);
+                const minY = this.randomInt(2, h - height - 2);
+                const maxX = minX + width - 1;
+                const maxY = minY + height - 1;
 
-                if (!this.isRegionForestWithGap(grid, cx - halfW, cx + halfW, cy - halfH, cy + halfH, this.OBSTACLE_FORMATION_GAP)) continue;
+                if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, this.PATCH_FORMATION_GAP)) continue;
 
-                for (let y = cy - halfH; y <= cy + halfH; y++) {
-                    for (let x = cx - halfW; x <= cx + halfW; x++) {
+                for (let y = minY; y <= maxY; y++) {
+                    for (let x = minX; x <= maxX; x++) {
                         grid.setTile(x, y, patchType);
                     }
                 }
@@ -1431,26 +1559,64 @@ export class SubmergedVillageAlgorithm {
     /**
      * Build irregular patch blobs while keeping their silhouettes complete.
      */
-    private paintIrregularPatchFormations(grid: IntGrid, count: number): void {
+    private paintIrregularPatchFormations(grid: IntGrid, count: number, patchType: number): void {
         const [w, h] = this.levelSize;
 
         for (let i = 0; i < count; i++) {
-            const patchType = this.rng() < 0.75 ? TILE.GRASS_PATCH : TILE.SAND_PATCH;
-            for (let attempt = 0; attempt < 56; attempt++) {
-                const seedX = this.randomInt(3, w - 4);
-                const seedY = this.randomInt(3, h - 4);
-                if (grid.getTile(seedX, seedY) !== TILE.FOREST) continue;
+            let placed = false;
+            for (let attempt = 0; attempt < 72 && !placed; attempt++) {
+                const seedX = this.randomInt(2, w - 5);
+                const seedY = this.randomInt(2, h - 5);
 
-                const mask = this.growMaskBlob(grid, seedX, seedY, this.randomInt(8, 20));
-                if (mask.size < 5) continue;
+                // Compose irregular patches from connected 3x3 macro-cells.
+                const targetBlocks = this.randomInt(2, 4);
+                const blocks = new Set<string>();
+                const queue: Array<[number, number]> = [[seedX, seedY]];
 
-                if (this.maskTouchesNonForestWithinGap(grid, mask, this.OBSTACLE_FORMATION_GAP)) continue;
+                while (queue.length > 0 && blocks.size < targetBlocks) {
+                    const idx = this.randomInt(0, queue.length - 1);
+                    const [bx, by] = queue.splice(idx, 1)[0];
+                    const key = `${bx},${by}`;
+                    if (blocks.has(key)) continue;
 
-                for (const cell of mask) {
-                    const [x, y] = cell.split(',').map(Number);
-                    grid.setTile(x, y, patchType);
+                    const minX = bx;
+                    const minY = by;
+                    const maxX = bx + 2;
+                    const maxY = by + 2;
+
+                    if (minX < 1 || minY < 1 || maxX >= w - 1 || maxY >= h - 1) continue;
+                    if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, this.PATCH_FORMATION_GAP)) continue;
+
+                    blocks.add(key);
+
+                    // Step by 2 for connected but irregular macro growth.
+                    const neighbors: Array<[number, number]> = [
+                        [bx + 2, by],
+                        [bx - 2, by],
+                        [bx, by + 2],
+                        [bx, by - 2],
+                    ];
+                    for (const [nx, ny] of neighbors) {
+                        if (this.rng() < 0.8) queue.push([nx, ny]);
+                    }
                 }
-                break;
+
+                if (blocks.size < 2) continue;
+
+                for (const cell of blocks) {
+                    const [bx, by] = cell.split(',').map(Number);
+                    for (let y = by; y <= by + 2; y++) {
+                        for (let x = bx; x <= bx + 2; x++) {
+                            grid.setTile(x, y, patchType);
+                        }
+                    }
+                }
+
+                placed = true;
+            }
+
+            if (!placed) {
+                this.paintSimplePatchFormations(grid, 1, patchType);
             }
         }
     }
@@ -1475,32 +1641,6 @@ export class SubmergedVillageAlgorithm {
         }
 
         return mask;
-    }
-
-    private repairPatchGaps(grid: IntGrid, patchType: number): void {
-        const [w, h] = this.levelSize;
-        for (let pass = 0; pass < 2; pass++) {
-            const fills: Array<[number, number]> = [];
-
-            for (let y = 1; y < h - 1; y++) {
-                for (let x = 1; x < w - 1; x++) {
-                    if (grid.getTile(x, y) !== TILE.FOREST) continue;
-
-                    const n = grid.getTile(x, y - 1) === patchType;
-                    const s = grid.getTile(x, y + 1) === patchType;
-                    const e = grid.getTile(x + 1, y) === patchType;
-                    const wSide = grid.getTile(x - 1, y) === patchType;
-                    const near = Number(n) + Number(s) + Number(e) + Number(wSide);
-                    if (near >= 2) {
-                        fills.push([x, y]);
-                    }
-                }
-            }
-
-            for (const [x, y] of fills) {
-                grid.setTile(x, y, patchType);
-            }
-        }
     }
 
     /**
@@ -1546,6 +1686,50 @@ export class SubmergedVillageAlgorithm {
             }
 
             for (const [x, y] of fills) {
+                grid.setTile(x, y, TILE.CLIFF);
+            }
+        }
+    }
+
+    /**
+     * Ensure cliff formations are complete shells with no visual holes:
+     * - Hill tiles cannot directly touch non-cliff terrain (promote to cliff).
+     * - Tiny interior shell holes are sealed by promoting enclosed cells to cliff.
+     */
+    private enforceCliffShellIntegrity(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+
+        for (let pass = 0; pass < 3; pass++) {
+            const toCliff: Array<[number, number]> = [];
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const tile = grid.getTile(x, y);
+
+                    // Rule 2: seal tiny non-mass holes enclosed by cliff/hill shell.
+                    if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF || tile === TILE.HILL) {
+                        continue;
+                    }
+
+                    const orth = this.neighbors4([x, y]);
+                    const orthMassCount = orth.filter(([nx, ny]) => {
+                        const nt = grid.getTile(nx, ny);
+                        return nt === TILE.CLIFF || nt === TILE.HILL;
+                    }).length;
+
+                    const diagMassCount = this.neighbors8([x, y]).filter(([nx, ny]) => {
+                        const nt = grid.getTile(nx, ny);
+                        return nt === TILE.CLIFF || nt === TILE.HILL;
+                    }).length;
+
+                    if (orthMassCount >= 3 || (orthMassCount >= 2 && diagMassCount >= 5)) {
+                        toCliff.push([x, y]);
+                    }
+                }
+            }
+
+            if (toCliff.length === 0) break;
+            for (const [x, y] of toCliff) {
                 grid.setTile(x, y, TILE.CLIFF);
             }
         }
@@ -1619,34 +1803,6 @@ export class SubmergedVillageAlgorithm {
                         const t = grid.getTile(nx, ny);
                         // Keep cliff walls and hill interiors intact; force everything else to path.
                         if (t === TILE.CLIFF || t === TILE.HILL || t === TILE.PATH) continue;
-                        toPath.push([nx, ny]);
-                    }
-                }
-            }
-        }
-
-        for (const [x, y] of toPath) {
-            grid.setTile(x, y, TILE.PATH);
-        }
-    }
-
-    private enforceHillObstacleClearance(grid: IntGrid, radius: number): void {
-        const [w, h] = this.levelSize;
-        const toPath: Array<[number, number]> = [];
-
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                if (grid.getTile(x, y) !== TILE.HILL) continue;
-
-                for (let dy = -radius; dy <= radius; dy++) {
-                    for (let dx = -radius; dx <= radius; dx++) {
-                        const nx = x + dx;
-                        const ny = y + dy;
-                        if (!this.isInBounds(nx, ny)) continue;
-
-                        const t = grid.getTile(nx, ny);
-                        // Keep hill and cliff masses intact, but separate from other obstacle families.
-                        if (t === TILE.HILL || t === TILE.CLIFF || t === TILE.PATH) continue;
                         toPath.push([nx, ny]);
                     }
                 }

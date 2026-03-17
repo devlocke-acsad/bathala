@@ -121,8 +121,8 @@ function densePreset(cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
         edgeMargin: 1,
         cliffBandCount: 3,
         hillClusterCount: 2,
-        grassPatchCount: 4,
-        sandPatchCount: 3,
+        grassPatchCount: 8,
+        sandPatchCount: 6,
         waterPoolCount: 1,
     };
 }
@@ -156,8 +156,8 @@ function transitionPreset(
         edgeMargin: 2,
         cliffBandCount: 3,
         hillClusterCount: 3,
-        grassPatchCount: 3,
-        sandPatchCount: 3,
+        grassPatchCount: 7,
+        sandPatchCount: 6,
         waterPoolCount: 2,
     };
 }
@@ -188,8 +188,8 @@ function forestPreset(_cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
         edgeMargin: 2,
         cliffBandCount: 2,
         hillClusterCount: 4,
-        grassPatchCount: 2,
-        sandPatchCount: 3,
+        grassPatchCount: 5,
+        sandPatchCount: 5,
         waterPoolCount: 3,
     };
 }

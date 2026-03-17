@@ -695,6 +695,55 @@ export class Overworld_MazeGenManager {
         && has(1, -1) && has(-1, -1) && has(1, 1) && has(-1, 1);
     };
 
+    const renderPatchTile = (
+      family: {
+        corners: { nw: string; ne: string; sw: string; se: string };
+        inner: { nw: string; ne: string; sw: string; se: string };
+        sides?: { n: string; s: string; e: string; w: string };
+        middle: string;
+      },
+    ): string => {
+      const n = has(0, -1);
+      const s = has(0, 1);
+      const e = has(1, 0);
+      const w = has(-1, 0);
+      const ne = has(1, -1);
+      const nw = has(-1, -1);
+      const se = has(1, 1);
+      const sw = has(-1, 1);
+      const orthCount = Number(n) + Number(s) + Number(e) + Number(w);
+
+      // Guard against tiny/thin fragments: these read better as solid middle
+      // than as directional corners that appear to "flip" between nearby tiles.
+      if (orthCount <= 1) return family.middle;
+      if (orthCount === 2 && ((n && s) || (e && w))) return family.middle;
+
+      if (!n && !w) return family.corners.nw;
+      if (!n && !e) return family.corners.ne;
+      if (!s && !w) return family.corners.sw;
+      if (!s && !e) return family.corners.se;
+
+      // Concave/inner corners map to dedicated duplicate keys.
+      if (n && w && !nw) return family.inner.se;
+      if (n && e && !ne) return family.inner.sw;
+      if (s && w && !sw) return family.inner.ne;
+      if (s && e && !se) return family.inner.nw;
+
+      if (family.sides) {
+        if (!n) return family.sides.n;
+        if (!s) return family.sides.s;
+        if (!e) return family.sides.e;
+        if (!w) return family.sides.w;
+      } else {
+        // Families without side sprites use their own middle to avoid cross-family mixing.
+        if (!n || !s || !e || !w) return family.middle;
+      }
+
+      if (n && s && e && w) return family.middle;
+      if (!fullyEnclosed()) return family.middle;
+      return family.middle;
+    };
+
     if (tileValue === 5) {
       const n = has(0, -1);
       const s = has(0, 1);
@@ -731,54 +780,45 @@ export class Overworld_MazeGenManager {
     }
 
     if (tileValue === 7) {
-      const n = has(0, -1);
-      const s = has(0, 1);
-      const e = has(1, 0);
-      const w = has(-1, 0);
-      const ne = has(1, -1);
-      const nw = has(-1, -1);
-      const se = has(1, 1);
-      const sw = has(-1, 1);
-
-      if (!n && !w) return 'sv_patch_grass_sand_nw';
-      if (!n && !e) return 'sv_patch_grass_sand_ne';
-      if (!s && !w) return 'sv_patch_grass_sand_sw';
-      if (!s && !e) return 'sv_patch_grass_sand_se';
-
-      // Dedicated inner-corner routing for irregular patch boundaries.
-      if (n && w && !nw) return 'sv_patch_grass_sand_inner_se';
-      if (n && e && !ne) return 'sv_patch_grass_sand_inner_sw';
-      if (s && w && !sw) return 'sv_patch_grass_sand_inner_ne';
-      if (s && e && !se) return 'sv_patch_grass_sand_inner_nw';
-
-      if (!n) return 'sv_patch_grass_sand_n';
-      if (!s) return 'sv_patch_grass_sand_s';
-      if (!e) return 'sv_patch_grass_sand_e';
-      if (!w) return 'sv_patch_grass_sand_w';
-
-      if (!fullyEnclosed()) {
-        const sideVariants = ['sv_patch_grass_sand_n', 'sv_patch_grass_sand_s', 'sv_patch_grass_sand_e', 'sv_patch_grass_sand_w'];
-        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, sideVariants.length);
-        return sideVariants[idx];
-      }
-
-      return 'sv_patch_grass_sand_middle';
+      return renderPatchTile({
+        corners: {
+          nw: 'sv_patch_grass_sand_nw',
+          ne: 'sv_patch_grass_sand_ne',
+          sw: 'sv_patch_grass_sand_sw',
+          se: 'sv_patch_grass_sand_se',
+        },
+        inner: {
+          nw: 'sv_patch_grass_sand_inner_nw',
+          ne: 'sv_patch_grass_sand_inner_ne',
+          sw: 'sv_patch_grass_sand_inner_sw',
+          se: 'sv_patch_grass_sand_inner_se',
+        },
+        sides: {
+          n: 'sv_patch_grass_sand_n',
+          s: 'sv_patch_grass_sand_s',
+          e: 'sv_patch_grass_sand_e',
+          w: 'sv_patch_grass_sand_w',
+        },
+        middle: 'sv_patch_grass_sand_middle',
+      });
     }
 
     if (tileValue === 8) {
-      const n = has(0, -1);
-      const s = has(0, 1);
-      const e = has(1, 0);
-      const w = has(-1, 0);
-
-      if (!n && !w) return 'sv_patch_sand_grass_nw';
-      if (!n && !e) return 'sv_patch_sand_grass_ne';
-      if (!s && !w) return 'sv_patch_sand_grass_sw';
-      if (!s && !e) return 'sv_patch_sand_grass_se';
-
-      const variants = ['sv_patch_sand_grass_nw', 'sv_patch_sand_grass_ne', 'sv_patch_sand_grass_sw', 'sv_patch_sand_grass_se'];
-      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, variants.length);
-      return variants[idx];
+      return renderPatchTile({
+        corners: {
+          nw: 'sv_patch_sand_grass_nw',
+          ne: 'sv_patch_sand_grass_ne',
+          sw: 'sv_patch_sand_grass_sw',
+          se: 'sv_patch_sand_grass_se',
+        },
+        inner: {
+          nw: 'sv_patch_sand_grass_inner_nw',
+          ne: 'sv_patch_sand_grass_inner_ne',
+          sw: 'sv_patch_sand_grass_inner_sw',
+          se: 'sv_patch_sand_grass_inner_se',
+        },
+        middle: 'sv_patch_sand_grass_middle',
+      });
     }
 
     if (tileValue === 6) {
@@ -790,6 +830,23 @@ export class Overworld_MazeGenManager {
       const nw = has(-1, -1);
       const se = has(1, 1);
       const sw = has(-1, 1);
+
+      const isPartOf2x2Hill = (): boolean => {
+        const isHill = (dx: number, dy: number) => maze[y + dy]?.[x + dx] === 6;
+        return (
+          (isHill(0, 0) && isHill(1, 0) && isHill(0, 1) && isHill(1, 1)) ||
+          (isHill(-1, 0) && isHill(0, 0) && isHill(-1, 1) && isHill(0, 1)) ||
+          (isHill(0, -1) && isHill(1, -1) && isHill(0, 0) && isHill(1, 0)) ||
+          (isHill(-1, -1) && isHill(0, -1) && isHill(-1, 0) && isHill(0, 0))
+        );
+      };
+
+      // Hard guard: hills must render only as 2x2 bundles.
+      if (!isPartOf2x2Hill()) {
+        const baseLand = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, baseLand.length);
+        return baseLand[idx];
+      }
 
       // Outer corners for convex hill edges.
       if (!n && !w) return 'sv_grass_hill_nw';
