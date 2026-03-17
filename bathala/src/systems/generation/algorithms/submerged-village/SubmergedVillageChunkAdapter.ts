@@ -98,7 +98,7 @@ const ZONE_DEFAULTS = {
 function densePreset(cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
     return {
         ...DEFAULT_VILLAGE_PARAMS,
-        houseCount: cfg.denseHouseCount,
+        houseCount: 0,
         houseMinSpacing: cfg.denseHouseSpacing,
         neighborhoodCount: 1,
         spreadFactor: 0.30,
@@ -133,7 +133,7 @@ function transitionPreset(
 ): VillageLayoutParams {
     return {
         ...DEFAULT_VILLAGE_PARAMS,
-        houseCount: cfg.transitionHouseCount,
+        houseCount: 0,
         houseMinSpacing: cfg.transitionHouseSpacing,
         neighborhoodCount: 1,
         spreadFactor: 0.24,
@@ -162,10 +162,10 @@ function transitionPreset(
     };
 }
 
-function forestPreset(cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
+function forestPreset(_cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
     return {
         ...DEFAULT_VILLAGE_PARAMS,
-        houseCount: cfg.forestHouseCount,
+        houseCount: 0,
         houseMinSpacing: 2,
         neighborhoodCount: 1,
         spreadFactor: 0.20,

@@ -1210,147 +1210,331 @@ export class SubmergedVillageAlgorithm {
             }
         }
 
-        this.paintWaterPools(grid, params.waterPoolCount);
-        this.paintCliffBands(grid, params.cliffBandCount);
-        this.paintTerrainClusters(grid, TILE.HILL, params.hillClusterCount, 2, 4, true);
-        this.paintTerrainClusters(grid, TILE.GRASS_PATCH, params.grassPatchCount, 2, 4, false);
-        this.paintTerrainClusters(grid, TILE.SAND_PATCH, params.sandPatchCount, 2, 4, false);
+        this.paintSimpleWaterPonds(grid, params.waterPoolCount);
+        const simpleCliffCount = Math.max(1, Math.floor((params.cliffBandCount + params.hillClusterCount) * 0.5));
+        const irregularCliffCount = Math.max(1, (params.cliffBandCount + params.hillClusterCount) - simpleCliffCount + 1);
+        this.paintSimpleCliffHillFormations(grid, simpleCliffCount);
+        this.paintIrregularCliffHillFormations(grid, irregularCliffCount);
 
-        // Convert anything still on legacy terrain ids into current bundle-backed tiles.
-        this.normalizeResidualTerrain(grid);
+        const simplePatchCount = Math.max(1, Math.floor((params.grassPatchCount + params.sandPatchCount) * 0.45));
+        const irregularPatchCount = Math.max(1, (params.grassPatchCount + params.sandPatchCount) - simplePatchCount + 1);
+        this.paintSimplePatchFormations(grid, simplePatchCount);
+        this.paintIrregularPatchFormations(grid, irregularPatchCount);
+
+        this.repairCliffGaps(grid);
+        this.backfillHillsBehindCliffs(grid);
+        this.repairPatchGaps(grid, TILE.GRASS_PATCH);
+        this.repairPatchGaps(grid, TILE.SAND_PATCH);
     }
 
-    private normalizeResidualTerrain(grid: IntGrid): void {
+    /**
+     * Stamp simple, fully-closed cliff rings with hill interiors.
+     * This intentionally avoids open/freehand chains so cliff tiles always complete.
+     */
+    private paintSimpleCliffHillFormations(grid: IntGrid, count: number): void {
         const [w, h] = this.levelSize;
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                const tile = grid.getTile(x, y);
-                if (tile === TILE.PATH || tile === TILE.CLIFF || tile === TILE.HILL || tile === TILE.GRASS_PATCH || tile === TILE.SAND_PATCH || tile === TILE.WATER) {
-                    continue;
-                }
-
-                // Legacy FOREST/HOUSE/FENCE/RUBBLE are remapped so Act 2 uses only current bundles.
-                const replacement = this.rng() < 0.35 ? TILE.SAND_PATCH : TILE.GRASS_PATCH;
-                grid.setTile(x, y, replacement);
-            }
-        }
-    }
-
-    private paintCliffBands(grid: IntGrid, count: number): void {
-        const [w, h] = this.levelSize;
-        const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
         for (let i = 0; i < count; i++) {
-            let x = this.randomInt(2, w - 3);
-            let y = this.randomInt(2, h - 3);
-            let [dx, dy] = dirs[this.randomInt(0, dirs.length - 1)];
-            const steps = this.randomInt(6, 16);
-            const width = this.rng() < 0.35 ? 1 : 0;
+            let placed = false;
 
-            for (let step = 0; step < steps; step++) {
-                for (let spread = -width; spread <= width; spread++) {
-                    const px = dy !== 0 ? x + spread : x;
-                    const py = dx !== 0 ? y + spread : y;
-                    if (!this.isInBounds(px, py)) continue;
-                    if (grid.getTile(px, py) !== TILE.PATH) {
-                        grid.setTile(px, py, TILE.CLIFF);
+            for (let attempt = 0; attempt < 28 && !placed; attempt++) {
+                const halfW = this.randomInt(2, 4);
+                const halfH = this.randomInt(1, 3);
+                const cx = this.randomInt(halfW + 2, w - halfW - 3);
+                const cy = this.randomInt(halfH + 2, h - halfH - 3);
+
+                const minX = cx - halfW;
+                const maxX = cx + halfW;
+                const minY = cy - halfH;
+                const maxY = cy + halfH;
+
+                let blocked = false;
+                for (let y = minY; y <= maxY && !blocked; y++) {
+                    for (let x = minX; x <= maxX; x++) {
+                        const t = grid.getTile(x, y);
+                        if (t === TILE.PATH || t === TILE.WATER) {
+                            blocked = true;
+                            break;
+                        }
+                        if (this.isNearPath(grid, x, y, 1)) {
+                            blocked = true;
+                            break;
+                        }
+                    }
+                }
+                if (blocked) continue;
+
+                for (let y = minY; y <= maxY; y++) {
+                    for (let x = minX; x <= maxX; x++) {
+                        const border = x === minX || x === maxX || y === minY || y === maxY;
+                        grid.setTile(x, y, border ? TILE.CLIFF : TILE.HILL);
                     }
                 }
 
-                x += dx;
-                y += dy;
-                if (!this.isInBounds(x, y) || x < 1 || y < 1 || x >= w - 1 || y >= h - 1) {
-                    break;
-                }
-
-                // Gentle directional wobble creates both short and long cliff runs.
-                if (this.rng() < 0.22) {
-                    if (dx !== 0) {
-                        y = this.clamp(y + this.randomInt(-1, 1), 1, h - 2);
-                    } else {
-                        x = this.clamp(x + this.randomInt(-1, 1), 1, w - 2);
-                    }
-                }
+                placed = true;
             }
         }
     }
 
-    private paintTerrainClusters(
-        grid: IntGrid,
-        tileType: number,
-        count: number,
-        minRadius: number,
-        maxRadius: number,
-        avoidPath: boolean,
-    ): void {
+    /**
+     * Stamp simple pond/lake bodies (compact rounded rectangles) to keep water readable.
+     */
+    private paintSimpleWaterPonds(grid: IntGrid, count: number): void {
         const [w, h] = this.levelSize;
 
-        for (let cluster = 0; cluster < count; cluster++) {
-            let attempts = 0;
-            let centerX = this.randomInt(2, w - 3);
-            let centerY = this.randomInt(2, h - 3);
+        for (let i = 0; i < count; i++) {
+            let placed = false;
 
-            while (attempts < 24) {
-                if (grid.getTile(centerX, centerY) !== TILE.PATH && (!avoidPath || !this.isNearPath(grid, centerX, centerY, 1))) {
-                    break;
+            for (let attempt = 0; attempt < 24 && !placed; attempt++) {
+                const halfW = this.randomInt(1, 3);
+                const halfH = this.randomInt(1, 2);
+                const cx = this.randomInt(halfW + 2, w - halfW - 3);
+                const cy = this.randomInt(halfH + 2, h - halfH - 3);
+
+                const minX = cx - halfW;
+                const maxX = cx + halfW;
+                const minY = cy - halfH;
+                const maxY = cy + halfH;
+
+                let blocked = false;
+                for (let y = minY; y <= maxY && !blocked; y++) {
+                    for (let x = minX; x <= maxX; x++) {
+                        const t = grid.getTile(x, y);
+                        if (t === TILE.PATH || t === TILE.CLIFF) {
+                            blocked = true;
+                            break;
+                        }
+                    }
                 }
-                centerX = this.randomInt(2, w - 3);
-                centerY = this.randomInt(2, h - 3);
-                attempts++;
-            }
+                if (blocked) continue;
 
-            const radiusX = this.randomInt(minRadius, maxRadius);
-            const radiusY = this.randomInt(minRadius, maxRadius);
-
-            for (let y = centerY - radiusY - 1; y <= centerY + radiusY + 1; y++) {
-                for (let x = centerX - radiusX - 1; x <= centerX + radiusX + 1; x++) {
-                    if (!this.isInBounds(x, y)) continue;
-                    if (grid.getTile(x, y) === TILE.PATH || grid.getTile(x, y) === TILE.WATER) continue;
-
-                    const nx = Math.abs(x - centerX) / Math.max(1, radiusX);
-                    const ny = Math.abs(y - centerY) / Math.max(1, radiusY);
-                    const threshold = 1.05 + this.rng() * 0.35;
-                    if (nx + ny > threshold) continue;
-
-                    if (avoidPath && this.isNearPath(grid, x, y, 1)) continue;
-                    if (tileType !== TILE.HILL && grid.getTile(x, y) !== TILE.FOREST) continue;
-
-                    grid.setTile(x, y, tileType);
-                }
-            }
-        }
-    }
-
-    private paintWaterPools(grid: IntGrid, count: number): void {
-        const [w, h] = this.levelSize;
-
-        for (let pool = 0; pool < count; pool++) {
-            const centerX = this.randomInt(3, w - 4);
-            const centerY = this.randomInt(3, h - 4);
-            const radiusX = this.randomInt(2, 4);
-            const radiusY = this.randomInt(2, 4);
-
-            for (let y = centerY - radiusY - 1; y <= centerY + radiusY + 1; y++) {
-                for (let x = centerX - radiusX - 1; x <= centerX + radiusX + 1; x++) {
-                    if (!this.isInBounds(x, y)) continue;
-                    if (grid.getTile(x, y) === TILE.PATH) continue;
-
-                    const nx = Math.abs(x - centerX) / Math.max(1, radiusX);
-                    const ny = Math.abs(y - centerY) / Math.max(1, radiusY);
-                    if (nx + ny <= 1.0 + this.rng() * 0.3) {
+                for (let y = minY; y <= maxY; y++) {
+                    for (let x = minX; x <= maxX; x++) {
+                        // Slight corner trimming for softer pond shapes.
+                        const corner = (x === minX || x === maxX) && (y === minY || y === maxY);
+                        if (corner && this.rng() < 0.55) continue;
                         grid.setTile(x, y, TILE.WATER);
                     }
                 }
+
+                // Optional tiny island for larger ponds.
+                if (halfW + halfH >= 4 && this.rng() < 0.45) {
+                    grid.setTile(cx, cy, TILE.HILL);
+                }
+
+                placed = true;
+            }
+        }
+    }
+
+    /**
+     * Build irregular but closed cliff/hill masses from blob masks.
+     */
+    private paintIrregularCliffHillFormations(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+
+        for (let i = 0; i < count; i++) {
+            for (let attempt = 0; attempt < 24; attempt++) {
+                const seedX = this.randomInt(3, w - 4);
+                const seedY = this.randomInt(3, h - 4);
+                if (this.isNearPath(grid, seedX, seedY, 1)) continue;
+                if (grid.getTile(seedX, seedY) !== TILE.FOREST) continue;
+
+                const mask = this.growMaskBlob(grid, seedX, seedY, this.randomInt(10, 26));
+                if (mask.size < 8) continue;
+
+                for (const cell of mask) {
+                    const [x, y] = cell.split(',').map(Number);
+                    const border = this.neighbors4([x, y]).some(([nx, ny]) => !mask.has(`${nx},${ny}`));
+                    grid.setTile(x, y, border ? TILE.CLIFF : TILE.HILL);
+                }
+
+                break;
+            }
+        }
+    }
+
+    /**
+     * Stamp simple closed patch shapes.
+     */
+    private paintSimplePatchFormations(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+
+        for (let i = 0; i < count; i++) {
+            const patchType = this.rng() < 0.7 ? TILE.GRASS_PATCH : TILE.SAND_PATCH;
+            for (let attempt = 0; attempt < 20; attempt++) {
+                const halfW = this.randomInt(1, 3);
+                const halfH = this.randomInt(1, 2);
+                const cx = this.randomInt(halfW + 2, w - halfW - 3);
+                const cy = this.randomInt(halfH + 2, h - halfH - 3);
+
+                let blocked = false;
+                for (let y = cy - halfH; y <= cy + halfH && !blocked; y++) {
+                    for (let x = cx - halfW; x <= cx + halfW; x++) {
+                        const t = grid.getTile(x, y);
+                        if (t !== TILE.FOREST) {
+                            blocked = true;
+                            break;
+                        }
+                    }
+                }
+                if (blocked) continue;
+
+                for (let y = cy - halfH; y <= cy + halfH; y++) {
+                    for (let x = cx - halfW; x <= cx + halfW; x++) {
+                        grid.setTile(x, y, patchType);
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    /**
+     * Build irregular patch blobs while keeping their silhouettes complete.
+     */
+    private paintIrregularPatchFormations(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+
+        for (let i = 0; i < count; i++) {
+            const patchType = this.rng() < 0.75 ? TILE.GRASS_PATCH : TILE.SAND_PATCH;
+            for (let attempt = 0; attempt < 24; attempt++) {
+                const seedX = this.randomInt(3, w - 4);
+                const seedY = this.randomInt(3, h - 4);
+                if (grid.getTile(seedX, seedY) !== TILE.FOREST) continue;
+
+                const mask = this.growMaskBlob(grid, seedX, seedY, this.randomInt(8, 20));
+                if (mask.size < 5) continue;
+
+                for (const cell of mask) {
+                    const [x, y] = cell.split(',').map(Number);
+                    grid.setTile(x, y, patchType);
+                }
+                break;
+            }
+        }
+    }
+
+    private growMaskBlob(grid: IntGrid, seedX: number, seedY: number, targetSize: number): Set<string> {
+        const mask = new Set<string>();
+        const queue: Array<[number, number]> = [[seedX, seedY]];
+
+        while (queue.length > 0 && mask.size < targetSize) {
+            const idx = this.randomInt(0, queue.length - 1);
+            const [x, y] = queue.splice(idx, 1)[0];
+            if (!this.isInBounds(x, y) || x < 1 || y < 1 || x >= this.levelSize[0] - 1 || y >= this.levelSize[1] - 1) continue;
+            if (mask.has(`${x},${y}`)) continue;
+            if (grid.getTile(x, y) !== TILE.FOREST) continue;
+
+            mask.add(`${x},${y}`);
+            for (const [nx, ny] of this.neighbors4([x, y])) {
+                if (this.rng() < 0.8) {
+                    queue.push([nx, ny]);
+                }
+            }
+        }
+
+        return mask;
+    }
+
+    private repairPatchGaps(grid: IntGrid, patchType: number): void {
+        const [w, h] = this.levelSize;
+        for (let pass = 0; pass < 2; pass++) {
+            const fills: Array<[number, number]> = [];
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    if (grid.getTile(x, y) !== TILE.FOREST) continue;
+
+                    const n = grid.getTile(x, y - 1) === patchType;
+                    const s = grid.getTile(x, y + 1) === patchType;
+                    const e = grid.getTile(x + 1, y) === patchType;
+                    const wSide = grid.getTile(x - 1, y) === patchType;
+                    const near = Number(n) + Number(s) + Number(e) + Number(wSide);
+                    if (near >= 2) {
+                        fills.push([x, y]);
+                    }
+                }
             }
 
-            // Restore 1-2 small land bumps to sell the island silhouette.
-            const islandCount = this.rng() < 0.5 ? 1 : 2;
-            for (let i = 0; i < islandCount; i++) {
-                const ix = this.clamp(centerX + this.randomInt(-1, 1), 1, w - 2);
-                const iy = this.clamp(centerY + this.randomInt(-1, 1), 1, h - 2);
-                if (grid.getTile(ix, iy) === TILE.WATER) {
-                    grid.setTile(ix, iy, this.rng() < 0.5 ? TILE.FOREST : TILE.HILL);
+            for (const [x, y] of fills) {
+                grid.setTile(x, y, patchType);
+            }
+        }
+    }
+
+    /**
+     * Close local cliff gaps so cliff chains remain visually complete.
+     */
+    private repairCliffGaps(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+
+        for (let pass = 0; pass < 3; pass++) {
+            const fills: Array<[number, number]> = [];
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const tile = grid.getTile(x, y);
+                    if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF) continue;
+
+                    const n = grid.getTile(x, y - 1) === TILE.CLIFF;
+                    const s = grid.getTile(x, y + 1) === TILE.CLIFF;
+                    const e = grid.getTile(x + 1, y) === TILE.CLIFF;
+                    const wSide = grid.getTile(x - 1, y) === TILE.CLIFF;
+                    const ne = grid.getTile(x + 1, y - 1) === TILE.CLIFF;
+                    const nw = grid.getTile(x - 1, y - 1) === TILE.CLIFF;
+                    const se = grid.getTile(x + 1, y + 1) === TILE.CLIFF;
+                    const sw = grid.getTile(x - 1, y + 1) === TILE.CLIFF;
+
+                    const orthCount = Number(n) + Number(s) + Number(e) + Number(wSide);
+                    if (orthCount < 2) continue;
+
+                    const connects =
+                        (n && e) || (e && s) || (s && wSide) || (wSide && n) ||
+                        (n && s) || (e && wSide);
+
+                    const diagonalNearMiss =
+                        ((nw && se) || (ne && sw)) && (orthCount >= 1);
+
+                    const almostClosedPocket =
+                        (Number(ne) + Number(nw) + Number(se) + Number(sw) >= 3) && orthCount >= 1;
+
+                    if (connects || diagonalNearMiss || almostClosedPocket) {
+                        fills.push([x, y]);
+                    }
                 }
+            }
+
+            for (const [x, y] of fills) {
+                grid.setTile(x, y, TILE.CLIFF);
+            }
+        }
+    }
+
+    /**
+     * Fill interior cells just behind cliff walls with hill tiles so cliff formations read as complete masses.
+     */
+    private backfillHillsBehindCliffs(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+
+        for (let pass = 0; pass < 2; pass++) {
+            const fills: Array<[number, number]> = [];
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    if (grid.getTile(x, y) !== TILE.FOREST) continue;
+                    if (this.isNearPath(grid, x, y, 1)) continue;
+
+                    const neighbors = this.neighbors8([x, y]);
+                    const cliffCount = neighbors.filter(([nx, ny]) => grid.getTile(nx, ny) === TILE.CLIFF).length;
+                    if (cliffCount >= 3) {
+                        fills.push([x, y]);
+                    }
+                }
+            }
+
+            for (const [x, y] of fills) {
+                grid.setTile(x, y, TILE.HILL);
             }
         }
     }

@@ -6,7 +6,6 @@ import { ActRegistry } from '../../core/acts/ActRegistry';
 import { GameState } from '../../core/managers/GameState';
 import { ACT1 } from '../../acts/act1/Act1Definition';
 import { ACT2 } from '../../acts/act2/Act2Definition';
-import { OverworldGenerator } from './core/OverworldGenerator';
 
 /**
  * === DEBUG FLAG ===
@@ -731,48 +730,89 @@ export class Overworld_MazeGenManager {
     }
 
     if (tileValue === 6) {
+      const n = has(0, -1);
+      const s = has(0, 1);
+      const e = has(1, 0);
+      const w = has(-1, 0);
+
+      // Prefer quadrant that points toward connected hill body.
+      if (e && s && !n && !w) return 'sv_grass_hill_nw';
+      if (w && s && !n && !e) return 'sv_grass_hill_ne';
+      if (e && n && !s && !w) return 'sv_grass_hill_sw';
+      if (w && n && !s && !e) return 'sv_grass_hill_se';
+
+      // For wider free-form shapes, alternate side quadrants deterministically.
+      if (s && !n) return (x & 1) === 0 ? 'sv_grass_hill_nw' : 'sv_grass_hill_ne';
+      if (n && !s) return (x & 1) === 0 ? 'sv_grass_hill_sw' : 'sv_grass_hill_se';
+      if (e && !w) return (y & 1) === 0 ? 'sv_grass_hill_nw' : 'sv_grass_hill_sw';
+      if (w && !e) return (y & 1) === 0 ? 'sv_grass_hill_ne' : 'sv_grass_hill_se';
+
       const variants = ['sv_grass_hill_nw', 'sv_grass_hill_ne', 'sv_grass_hill_sw', 'sv_grass_hill_se'];
       const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, variants.length);
       return variants[idx];
     }
 
     if (tileValue === 9) {
+      const tileAt = (dx: number, dy: number): number => maze[y + dy]?.[x + dx] ?? -1;
       const n = has(0, -1);
       const s = has(0, 1);
       const e = has(1, 0);
       const w = has(-1, 0);
-      const ne = maze[y - 1]?.[x + 1] === tileValue;
-      const nw = maze[y - 1]?.[x - 1] === tileValue;
-      const se = maze[y + 1]?.[x + 1] === tileValue;
-      const sw = maze[y + 1]?.[x - 1] === tileValue;
 
-      // Outer corners make larger lakes and puddles read smoother.
-      if (n && s && e && w && !nw) return 'sv_water_outer_nw';
-      if (n && s && e && w && !ne) return 'sv_water_outer_ne';
-      if (n && s && e && w && !sw) return 'sv_water_outer_sw';
-      if (n && s && e && w && !se) return 'sv_water_outer_se';
+      const isCliffNeighbor = (dx: number, dy: number): boolean => {
+        const t = tileAt(dx, dy);
+        return t === 5 || t === 6;
+      };
 
-      if (!n && !w) return 'sv_water_shore_nw';
-      if (!n && !e) return 'sv_water_shore_ne';
-      if (!s && !w) return 'sv_water_shore_sw';
-      if (!s && !e) return 'sv_water_shore_se';
-      if (!n) return 'sv_water_shore_n';
-      if (!s) return 'sv_water_shore_s';
-      if (!e) return 'sv_water_shore_e';
-      if (!w) return 'sv_water_shore_w';
+      const cornerTexture = (
+        shoreKey: string,
+        cliffKey: string,
+        sideACliff: boolean,
+        sideBCliff: boolean,
+      ): string => (sideACliff || sideBCliff ? cliffKey : shoreKey);
 
-      const deepVariants = ['sv_water_tile', 'sv_water_debris_1', 'sv_water_debris_2', 'sv_water_debris_3'];
+      if (!n && !w) {
+        return cornerTexture('sv_water_shore_nw', 'sv_water_cliff_nw', isCliffNeighbor(0, -1), isCliffNeighbor(-1, 0));
+      }
+      if (!n && !e) {
+        return cornerTexture('sv_water_shore_ne', 'sv_water_cliff_ne', isCliffNeighbor(0, -1), isCliffNeighbor(1, 0));
+      }
+      if (!s && !w) {
+        return cornerTexture('sv_water_shore_sw', 'sv_water_cliff_sw', isCliffNeighbor(0, 1), isCliffNeighbor(-1, 0));
+      }
+      if (!s && !e) {
+        return cornerTexture('sv_water_shore_se', 'sv_water_cliff_se', isCliffNeighbor(0, 1), isCliffNeighbor(1, 0));
+      }
+
+      if (!n) return isCliffNeighbor(0, -1) ? 'sv_water_cliff_n' : 'sv_water_shore_n';
+      if (!s) return isCliffNeighbor(0, 1) ? 'sv_water_cliff_s' : 'sv_water_shore_s';
+      if (!e) return isCliffNeighbor(1, 0) ? 'sv_water_cliff_e' : 'sv_water_shore_e';
+      if (!w) return isCliffNeighbor(-1, 0) ? 'sv_water_cliff_w' : 'sv_water_shore_w';
+
+      const deepVariants = ['sv_water_middle', 'sv_water_middle', 'sv_water_debris_1', 'sv_water_debris_2', 'sv_water_debris_3'];
       const deepIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, deepVariants.length);
       return deepVariants[deepIdx];
     }
 
+    if (isAct2 && tileValue === 1) {
+      const baseLand = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, baseLand.length);
+      return baseLand[idx];
+    }
+
     switch (tileValue) {
-      case 2: return 'wall4';   // House
-      case 3: return 'wall5';   // Fence
-      case 4: return 'wall6';   // Rubble
+      case 2:
+      case 3:
+      case 4:
+        if (isAct2) {
+          const act2Fallback = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
+          return act2Fallback[idx];
+        }
+        return tileValue === 2 ? 'wall4' : tileValue === 3 ? 'wall5' : 'wall6';
       default: {
         if (isAct2) {
-          const act2Fallback = ['sv_patch_grass_sand_middle', 'sv_patch_grass_sand_n', 'sv_patch_grass_sand_s'];
+          const act2Fallback = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
           const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
           return act2Fallback[idx];
         }

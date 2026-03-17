@@ -159,7 +159,7 @@ export class Preloader extends Scene {
     this.load.image("sv_patch_sand_grass_sw", "background/submergedvillageAssets/grassObstacles/SandGrassPatch_SW.png");
     this.load.image("sv_patch_sand_grass_se", "background/submergedvillageAssets/grassObstacles/SandGrassPatch_SE.png");
 
-    this.load.image("sv_water_tile", "background/submergedvillageAssets/waterboundTiles/water_tile.png");
+    this.load.image("sv_water_middle", "background/submergedvillageAssets/waterboundTiles/water_tile_middle.png");
     this.load.image("sv_water_shore_n", "background/submergedvillageAssets/waterboundTiles/water_beachshore_N.png");
     this.load.image("sv_water_shore_s", "background/submergedvillageAssets/waterboundTiles/water_beachshore_S.png");
     this.load.image("sv_water_shore_e", "background/submergedvillageAssets/waterboundTiles/water_beachshore_E.png");
@@ -168,6 +168,14 @@ export class Preloader extends Scene {
     this.load.image("sv_water_shore_nw", "background/submergedvillageAssets/waterboundTiles/water_beachshore_NW.png");
     this.load.image("sv_water_shore_se", "background/submergedvillageAssets/waterboundTiles/water_beachshore_SE.png");
     this.load.image("sv_water_shore_sw", "background/submergedvillageAssets/waterboundTiles/water_beachshore_SW.png");
+    this.load.image("sv_water_cliff_n", "background/submergedvillageAssets/waterboundTiles/water_cliff_N.png");
+    this.load.image("sv_water_cliff_s", "background/submergedvillageAssets/waterboundTiles/water_cliff_S.png");
+    this.load.image("sv_water_cliff_e", "background/submergedvillageAssets/waterboundTiles/water_cliff_E.png");
+    this.load.image("sv_water_cliff_w", "background/submergedvillageAssets/waterboundTiles/water_cliff_W.png");
+    this.load.image("sv_water_cliff_ne", "background/submergedvillageAssets/waterboundTiles/water_cliff_NE.png");
+    this.load.image("sv_water_cliff_nw", "background/submergedvillageAssets/waterboundTiles/water_cliff_NW.png");
+    this.load.image("sv_water_cliff_se", "background/submergedvillageAssets/waterboundTiles/water_cliff_SE.png");
+    this.load.image("sv_water_cliff_sw", "background/submergedvillageAssets/waterboundTiles/water_cliff_SW.png");
     this.load.image("sv_water_outer_ne", "background/submergedvillageAssets/waterboundTiles/water_beachshoreOuter_NE.png");
     this.load.image("sv_water_outer_nw", "background/submergedvillageAssets/waterboundTiles/water_beachshoreOuter_NW.png");
     this.load.image("sv_water_outer_sw", "background/submergedvillageAssets/waterboundTiles/water_beachshoreOuter_SW.png");
