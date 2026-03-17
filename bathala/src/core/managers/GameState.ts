@@ -16,6 +16,10 @@ export class GameState {
   public playerPosition: { x: number; y: number } | null = null;
   public overworldState: any = null;
 
+  // Persisted deterministic terrain seeds per chapter so that if the Overworld scene
+  // is recreated (e.g., after combat), walkability logic still matches the rendered terrain.
+  private overworldSeeds: Map<Chapter, number> = new Map();
+
   // Chapter progression tracking
   public currentChapter: Chapter = 1;
   public unlockedChapters: Set<Chapter> = new Set([1]);
@@ -123,6 +127,7 @@ export class GameState {
     this.playerData = null;
     this.playerPosition = null;
     this.overworldState = null;
+    this.overworldSeeds.clear();
     
     // Reset chapter progression
     this.currentChapter = 1;
@@ -265,6 +270,7 @@ export class GameState {
     this.currentNodeId = null;
     this.lastCompletedNodeId = null;
     this.combatVictory = false;
+    this.overworldSeeds.delete(this.currentChapter);
     // Note: We keep playerData intact - only the map resets
     console.log("🗺️ Map state reset for chapter transition");
   }
@@ -285,12 +291,25 @@ export class GameState {
     this.combatVictory = false;
     this.playerPosition = null;
     this.overworldState = null;
+    this.overworldSeeds.clear();
     
     // IMPORTANT: Do not wipe playerData entirely.
     // Overworld.create() will initialize a "fresh" chapter start, but we must keep
     // cross-chapter meta progression (e.g., Landás) available for carry-over.
     
     console.log("🎯 GameState reset for new chapter transition");
+  }
+
+  /**
+   * Get (or lazily create) the deterministic overworld seed for a chapter.
+   * Prevents terrain/walkability mismatches if Overworld is recreated.
+   */
+  getOrCreateOverworldSeed(chapter: Chapter): number {
+    const existing = this.overworldSeeds.get(chapter);
+    if (existing !== undefined) return existing;
+    const seed = Math.floor(Math.random() * 100000);
+    this.overworldSeeds.set(chapter, seed);
+    return seed;
   }
 
   /**
