@@ -1259,6 +1259,7 @@ export class SubmergedVillageAlgorithm {
         // Finalize cliff masses first so later obstacle families honor stable cliff silhouettes.
         this.repairCliffGaps(grid);
         this.enforceCliffShellIntegrity(grid);
+        this.removeCliffFragments(grid, 8);
         this.enforceStrictHillBundles(grid);
 
         const grassTotal = Math.max(1, params.grassPatchCount);
@@ -1270,19 +1271,19 @@ export class SubmergedVillageAlgorithm {
         }
 
         const sandTotal = Math.max(1, params.sandPatchCount);
-        const sandIrregular = sandTotal <= 1 ? 1 : Math.max(1, Math.ceil(sandTotal * 0.5));
-        const sandSimple = Math.max(0, sandTotal - sandIrregular);
-        this.paintIrregularPatchFormations(grid, sandIrregular, TILE.SAND_PATCH);
-        if (sandSimple > 0) {
-            this.paintSimplePatchFormations(grid, sandSimple, TILE.SAND_PATCH);
-        }
+        // SandGrass Bush family is strict 2x2 only.
+        this.paintSimpleSandPatch2x2Formations(grid, sandTotal);
 
         // Finalize: cliffs must be surrounded by a 1-tile PATH moat.
         // Run last so no later pass can place obstacles back beside cliffs.
         this.enforceCliffObstacleClearance(grid, 1);
+        this.removeCliffFragments(grid, 8);
         this.enforceStrictHillBundles(grid);
+        this.enforceStrictSandPatchBundles(grid);
+        this.enforcePatchFamilySeparation(grid);
         this.removePatchFragments(grid, TILE.GRASS_PATCH, 5);
-        this.removePatchFragments(grid, TILE.SAND_PATCH, 5);
+        this.removePatchFragments(grid, TILE.SAND_PATCH, 4);
+        this.enforceStrictSandPatchBundles(grid);
     }
 
     /**
@@ -1381,6 +1382,94 @@ export class SubmergedVillageAlgorithm {
 
                 placed = true;
             }
+        }
+    }
+
+    /**
+     * SandGrass Bush patches must exist only as strict 2x2 bundles.
+     */
+    private paintSimpleSandPatch2x2Formations(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+
+        for (let i = 0; i < count; i++) {
+            let placed = false;
+            for (let attempt = 0; attempt < 40 && !placed; attempt++) {
+                const minX = this.randomInt(2, w - 4);
+                const minY = this.randomInt(2, h - 4);
+                const maxX = minX + 1;
+                const maxY = minY + 1;
+
+                if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, this.PATCH_FORMATION_GAP)) continue;
+
+                for (let y = minY; y <= maxY; y++) {
+                    for (let x = minX; x <= maxX; x++) {
+                        grid.setTile(x, y, TILE.SAND_PATCH);
+                    }
+                }
+
+                placed = true;
+            }
+        }
+    }
+
+    /**
+     * SandGrass Bush must only exist as exact 2x2 components.
+     */
+    private enforceStrictSandPatchBundles(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        const visited = new Set<string>();
+        const toForest: Array<[number, number]> = [];
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.SAND_PATCH) continue;
+                const startKey = `${x},${y}`;
+                if (visited.has(startKey)) continue;
+
+                const component: Array<[number, number]> = [];
+                const queue: Array<[number, number]> = [[x, y]];
+                visited.add(startKey);
+
+                while (queue.length > 0) {
+                    const [cx, cy] = queue.shift()!;
+                    component.push([cx, cy]);
+
+                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
+                        if (!this.isInBounds(nx, ny)) continue;
+                        if (grid.getTile(nx, ny) !== TILE.SAND_PATCH) continue;
+                        const key = `${nx},${ny}`;
+                        if (visited.has(key)) continue;
+                        visited.add(key);
+                        queue.push([nx, ny]);
+                    }
+                }
+
+                if (component.length !== 4) {
+                    toForest.push(...component);
+                    continue;
+                }
+
+                const xs = component.map(([cx]) => cx);
+                const ys = component.map(([, cy]) => cy);
+                const minX = Math.min(...xs);
+                const maxX = Math.max(...xs);
+                const minY = Math.min(...ys);
+                const maxY = Math.max(...ys);
+
+                const is2x2 = (maxX - minX === 1) && (maxY - minY === 1)
+                    && component.some(([cx, cy]) => cx === minX && cy === minY)
+                    && component.some(([cx, cy]) => cx === minX && cy === maxY)
+                    && component.some(([cx, cy]) => cx === maxX && cy === minY)
+                    && component.some(([cx, cy]) => cx === maxX && cy === maxY);
+
+                if (!is2x2) {
+                    toForest.push(...component);
+                }
+            }
+        }
+
+        for (const [fx, fy] of toForest) {
+            grid.setTile(fx, fy, TILE.FOREST);
         }
     }
 
@@ -1490,6 +1579,75 @@ export class SubmergedVillageAlgorithm {
 
                 if (component.length < minSize) {
                     toForest.push(...component);
+                }
+            }
+        }
+
+        for (const [fx, fy] of toForest) {
+            grid.setTile(fx, fy, TILE.FOREST);
+        }
+    }
+
+    /**
+     * Remove tiny cliff components that create broken/stray cliff artifacts.
+     */
+    private removeCliffFragments(grid: IntGrid, minSize: number): void {
+        const [w, h] = this.levelSize;
+        const visited = new Set<string>();
+        const toForest: Array<[number, number]> = [];
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.CLIFF) continue;
+                const startKey = `${x},${y}`;
+                if (visited.has(startKey)) continue;
+
+                const component: Array<[number, number]> = [];
+                const queue: Array<[number, number]> = [[x, y]];
+                visited.add(startKey);
+
+                while (queue.length > 0) {
+                    const [cx, cy] = queue.shift()!;
+                    component.push([cx, cy]);
+
+                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
+                        if (!this.isInBounds(nx, ny)) continue;
+                        if (grid.getTile(nx, ny) !== TILE.CLIFF) continue;
+                        const key = `${nx},${ny}`;
+                        if (visited.has(key)) continue;
+                        visited.add(key);
+                        queue.push([nx, ny]);
+                    }
+                }
+
+                if (component.length < minSize) {
+                    toForest.push(...component);
+                }
+            }
+        }
+
+        for (const [fx, fy] of toForest) {
+            grid.setTile(fx, fy, TILE.FOREST);
+        }
+    }
+
+    /**
+     * Ensure GrassPatch and SandPatch families do not touch directly,
+     * preventing mixed-family corner artifacts at boundaries.
+     */
+    private enforcePatchFamilySeparation(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        const toForest: Array<[number, number]> = [];
+
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const t = grid.getTile(x, y);
+                if (t !== TILE.GRASS_PATCH && t !== TILE.SAND_PATCH) continue;
+
+                const opposite = t === TILE.GRASS_PATCH ? TILE.SAND_PATCH : TILE.GRASS_PATCH;
+                const touchesOpposite = this.neighbors4([x, y]).some(([nx, ny]) => grid.getTile(nx, ny) === opposite);
+                if (touchesOpposite) {
+                    toForest.push([x, y]);
                 }
             }
         }

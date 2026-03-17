@@ -175,6 +175,10 @@ export class Preloader extends Scene {
     this.load.image("sv_patch_sand_grass_inner_sw", "background/submergedvillageAssets/grassObstacles/SandGrassPatch_SW.png");
     this.load.image("sv_patch_sand_grass_inner_se", "background/submergedvillageAssets/grassObstacles/SandGrassPatch_SE.png");
     this.load.image("sv_patch_sand_grass_middle", "background/submergedvillageAssets/grassObstacles/SandGrassPatch_Middle.png");
+    this.load.image("sv_patch_sand_grass_bush_nw", "background/submergedvillageAssets/grassObstacles/SandGrass_Bush_NW.png");
+    this.load.image("sv_patch_sand_grass_bush_ne", "background/submergedvillageAssets/grassObstacles/SandGrass_Bush_NE.png");
+    this.load.image("sv_patch_sand_grass_bush_sw", "background/submergedvillageAssets/grassObstacles/SandGrass_Bush_SW.png");
+    this.load.image("sv_patch_sand_grass_bush_se", "background/submergedvillageAssets/grassObstacles/SandGrass_Bush_SE.png");
 
     this.load.image("sv_water_middle", "background/submergedvillageAssets/waterboundTiles/water_tile_middle.png");
     this.load.image("sv_water_shore_n", "background/submergedvillageAssets/waterboundTiles/water_beachshore_N.png");

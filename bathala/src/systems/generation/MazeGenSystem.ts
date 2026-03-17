@@ -695,14 +695,7 @@ export class Overworld_MazeGenManager {
         && has(1, -1) && has(-1, -1) && has(1, 1) && has(-1, 1);
     };
 
-    const renderPatchTile = (
-      family: {
-        corners: { nw: string; ne: string; sw: string; se: string };
-        inner: { nw: string; ne: string; sw: string; se: string };
-        sides?: { n: string; s: string; e: string; w: string };
-        middle: string;
-      },
-    ): string => {
+    const renderGrassSandPatchTile = (): string => {
       const n = has(0, -1);
       const s = has(0, 1);
       const e = has(1, 0);
@@ -712,36 +705,53 @@ export class Overworld_MazeGenManager {
       const se = has(1, 1);
       const sw = has(-1, 1);
       const orthCount = Number(n) + Number(s) + Number(e) + Number(w);
+      if (!n && !w) return 'sv_patch_grass_sand_nw';
+      if (!n && !e) return 'sv_patch_grass_sand_ne';
+      if (!s && !w) return 'sv_patch_grass_sand_sw';
+      if (!s && !e) return 'sv_patch_grass_sand_se';
 
-      // Guard against tiny/thin fragments: these read better as solid middle
-      // than as directional corners that appear to "flip" between nearby tiles.
-      if (orthCount <= 1) return family.middle;
-      if (orthCount === 2 && ((n && s) || (e && w))) return family.middle;
-
-      if (!n && !w) return family.corners.nw;
-      if (!n && !e) return family.corners.ne;
-      if (!s && !w) return family.corners.sw;
-      if (!s && !e) return family.corners.se;
-
-      // Concave/inner corners map to dedicated duplicate keys.
-      if (n && w && !nw) return family.inner.se;
-      if (n && e && !ne) return family.inner.sw;
-      if (s && w && !sw) return family.inner.ne;
-      if (s && e && !se) return family.inner.nw;
-
-      if (family.sides) {
-        if (!n) return family.sides.n;
-        if (!s) return family.sides.s;
-        if (!e) return family.sides.e;
-        if (!w) return family.sides.w;
-      } else {
-        // Families without side sprites use their own middle to avoid cross-family mixing.
-        if (!n || !s || !e || !w) return family.middle;
+      // Use inner corners only on denser shapes; thin elbows should remain side/corner tiles.
+      if (orthCount >= 3) {
+        // GrassSand inner corners in this set are oriented opposite to missing diagonal.
+        if (n && w && !nw) return 'sv_patch_grass_sand_inner_se';
+        if (n && e && !ne) return 'sv_patch_grass_sand_inner_sw';
+        if (s && w && !sw) return 'sv_patch_grass_sand_inner_ne';
+        if (s && e && !se) return 'sv_patch_grass_sand_inner_nw';
       }
 
-      if (n && s && e && w) return family.middle;
-      if (!fullyEnclosed()) return family.middle;
-      return family.middle;
+      if (!n) return 'sv_patch_grass_sand_n';
+      if (!s) return 'sv_patch_grass_sand_s';
+      if (!e) return 'sv_patch_grass_sand_e';
+      if (!w) return 'sv_patch_grass_sand_w';
+
+      return fullyEnclosed() ? 'sv_patch_grass_sand_middle' : 'sv_patch_grass_sand_n';
+    };
+
+    const renderSandGrassPatchTile = (): string => {
+      // SandGrass Bush is intentionally strict: only render as 2x2 bundles.
+      const isType = (tx: number, ty: number): boolean => maze[ty]?.[tx] === tileValue;
+      const anchors: Array<[number, number]> = [
+        [x, y],
+        [x - 1, y],
+        [x, y - 1],
+        [x - 1, y - 1],
+      ];
+
+      for (const [ax, ay] of anchors) {
+        if (!isType(ax, ay) || !isType(ax + 1, ay) || !isType(ax, ay + 1) || !isType(ax + 1, ay + 1)) {
+          continue;
+        }
+
+        if (x === ax && y === ay) return 'sv_patch_sand_grass_bush_nw';
+        if (x === ax + 1 && y === ay) return 'sv_patch_sand_grass_bush_ne';
+        if (x === ax && y === ay + 1) return 'sv_patch_sand_grass_bush_sw';
+        if (x === ax + 1 && y === ay + 1) return 'sv_patch_sand_grass_bush_se';
+      }
+
+      // Hard visual guard against artifacting when a non-2x2 remnant survives generation.
+      const baseLand = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, baseLand.length);
+      return baseLand[idx];
     };
 
     if (tileValue === 5) {
@@ -753,6 +763,7 @@ export class Overworld_MazeGenManager {
       const nw = has(-1, -1);
       const se = has(1, 1);
       const sw = has(-1, 1);
+      const orthCount = Number(n) + Number(s) + Number(e) + Number(w);
 
       if (!n && !w) return 'sv_grass_cliff_nw';
       if (!n && !e) return 'sv_grass_cliff_ne';
@@ -760,10 +771,13 @@ export class Overworld_MazeGenManager {
       if (!s && !e) return 'sv_grass_cliff_se';
 
       // Dedicated inner-corner routing for irregular/concave shapes.
-      if (n && w && !nw) return 'sv_grass_cliff_inner_se';
-      if (n && e && !ne) return 'sv_grass_cliff_inner_sw';
-      if (s && w && !sw) return 'sv_grass_cliff_inner_ne';
-      if (s && e && !se) return 'sv_grass_cliff_inner_nw';
+      // Gate this so narrow cliff elbows do not pick concave tiles and appear broken.
+      if (orthCount >= 3) {
+        if (n && w && !nw) return 'sv_grass_cliff_inner_se';
+        if (n && e && !ne) return 'sv_grass_cliff_inner_sw';
+        if (s && w && !sw) return 'sv_grass_cliff_inner_ne';
+        if (s && e && !se) return 'sv_grass_cliff_inner_nw';
+      }
 
       if (!n) return 'sv_grass_cliff_n';
       if (!s) return 'sv_grass_cliff_s';
@@ -780,45 +794,11 @@ export class Overworld_MazeGenManager {
     }
 
     if (tileValue === 7) {
-      return renderPatchTile({
-        corners: {
-          nw: 'sv_patch_grass_sand_nw',
-          ne: 'sv_patch_grass_sand_ne',
-          sw: 'sv_patch_grass_sand_sw',
-          se: 'sv_patch_grass_sand_se',
-        },
-        inner: {
-          nw: 'sv_patch_grass_sand_inner_nw',
-          ne: 'sv_patch_grass_sand_inner_ne',
-          sw: 'sv_patch_grass_sand_inner_sw',
-          se: 'sv_patch_grass_sand_inner_se',
-        },
-        sides: {
-          n: 'sv_patch_grass_sand_n',
-          s: 'sv_patch_grass_sand_s',
-          e: 'sv_patch_grass_sand_e',
-          w: 'sv_patch_grass_sand_w',
-        },
-        middle: 'sv_patch_grass_sand_middle',
-      });
+      return renderGrassSandPatchTile();
     }
 
     if (tileValue === 8) {
-      return renderPatchTile({
-        corners: {
-          nw: 'sv_patch_sand_grass_nw',
-          ne: 'sv_patch_sand_grass_ne',
-          sw: 'sv_patch_sand_grass_sw',
-          se: 'sv_patch_sand_grass_se',
-        },
-        inner: {
-          nw: 'sv_patch_sand_grass_inner_nw',
-          ne: 'sv_patch_sand_grass_inner_ne',
-          sw: 'sv_patch_sand_grass_inner_sw',
-          se: 'sv_patch_sand_grass_inner_se',
-        },
-        middle: 'sv_patch_sand_grass_middle',
-      });
+      return renderSandGrassPatchTile();
     }
 
     if (tileValue === 6) {
