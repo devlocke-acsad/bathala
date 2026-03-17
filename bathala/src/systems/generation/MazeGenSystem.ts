@@ -713,10 +713,10 @@ export class Overworld_MazeGenManager {
 
       // Concave routing for junctions between snakes and quadrilateral patches.
       if (orthCount >= 3) {
-        if (n && w && !nw) return 'sv_patch_grass_sand_inner_bush_nw';
-        if (n && e && !ne) return 'sv_patch_grass_sand_inner_bush_ne';
-        if (s && w && !sw) return 'sv_patch_grass_sand_inner_bush_sw';
-        if (s && e && !se) return 'sv_patch_grass_sand_inner_bush_se';
+        if (n && w && !nw) return 'sv_patch_grass_sand_inner_bush_se';
+        if (n && e && !ne) return 'sv_patch_grass_sand_inner_bush_sw';
+        if (s && w && !sw) return 'sv_patch_grass_sand_inner_bush_ne';
+        if (s && e && !se) return 'sv_patch_grass_sand_inner_bush_nw';
       }
 
       if (!n) return 'sv_patch_grass_sand_n';
@@ -726,10 +726,10 @@ export class Overworld_MazeGenManager {
 
       // Snake/irregular shapes must not use middle tiles.
       if (!fullyEnclosed()) {
-        if (n && w && !nw) return 'sv_patch_grass_sand_inner_bush_nw';
-        if (n && e && !ne) return 'sv_patch_grass_sand_inner_bush_ne';
-        if (s && w && !sw) return 'sv_patch_grass_sand_inner_bush_sw';
-        if (s && e && !se) return 'sv_patch_grass_sand_inner_bush_se';
+        if (n && w && !nw) return 'sv_patch_grass_sand_inner_bush_se';
+        if (n && e && !ne) return 'sv_patch_grass_sand_inner_bush_sw';
+        if (s && w && !sw) return 'sv_patch_grass_sand_inner_bush_ne';
+        if (s && e && !se) return 'sv_patch_grass_sand_inner_bush_nw';
 
         const edgeVariants = ['sv_patch_grass_sand_n', 'sv_patch_grass_sand_s', 'sv_patch_grass_sand_e', 'sv_patch_grass_sand_w'];
         const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, edgeVariants.length);
