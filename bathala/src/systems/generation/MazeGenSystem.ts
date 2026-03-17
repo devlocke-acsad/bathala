@@ -15,12 +15,6 @@ import { ACT2 } from '../../acts/act2/Act2Definition';
 const DEBUG_ENEMY_AI = false;
 
 /**
- * === CHUNK DIAGNOSTICS FLAG ===
- * Set to true to enable chunk rendering diagnostics for Act 2.
- */
-const DEBUG_CHUNK_RENDERING = true;
-
-/**
  * === DEPTH LAYER CONFIGURATION ===
  * Centralized depth values for easy editing
  */
@@ -53,17 +47,6 @@ export class Overworld_MazeGenManager {
   private visibleChunks: Map<string, { maze: number[][], graphics: Phaser.GameObjects.GameObject }> = new Map();
   private nodes: MapNode[] = [];
   private nodeSprites: Map<string, Phaser.GameObjects.Sprite> = new Map();
-
-  // Texture cache for faster lookups
-  private textureCache: Map<string, string> = new Map();
-
-  // Chunk rendering diagnostics
-  private chunkRenderStats = {
-    totalChunks: 0,
-    totalRenderTime: 0,
-    averageRenderTime: 0,
-    slowestChunk: null as { coords: string; time: number } | null,
-  };
 
   // Floor textures for randomization
   private floorTextures: string[] = ['floor1', 'floor2', 'floor3'];
@@ -172,17 +155,6 @@ export class Overworld_MazeGenManager {
     this.nodes = [];
     this.nodeSprites.clear();
 
-    // Clear texture cache to free memory
-    this.textureCache.clear();
-
-    // Reset render stats
-    this.chunkRenderStats = {
-      totalChunks: 0,
-      totalRenderTime: 0,
-      averageRenderTime: 0,
-      slowestChunk: null,
-    };
-
     // Clear outer tile markers
     this.outerTileMarkers.forEach(marker => marker.destroy());
     this.outerTileMarkers = [];
@@ -192,10 +164,6 @@ export class Overworld_MazeGenManager {
     this.enemyAlertSprites.forEach((s) => s.destroy());
     this.enemyAlertSprites.clear();
     this.enemyAlerted.clear();
-
-    if (DEBUG_CHUNK_RENDERING && this.isAct2Chapter()) {
-      console.log('🔄 Act 2 chunk rendering statistics reset');
-    }
   }
 
   /**
@@ -657,8 +625,6 @@ export class Overworld_MazeGenManager {
    * @returns Phaser GameObject containing the rendered chunk
    */
   private renderChunk(chunkX: number, chunkY: number, maze: number[][]): Phaser.GameObjects.GameObject {
-    const startTime = DEBUG_CHUNK_RENDERING && this.isAct2Chapter() ? performance.now() : 0;
-
     // Create a container with tile sprites for better performance
     const container = this.scene.add.container(0, 0);
     const chunkSize = this.overworldGen.chunkSize;
@@ -666,68 +632,29 @@ export class Overworld_MazeGenManager {
     const offsetX = chunkX * chunkSizePixels;
     const offsetY = chunkY * chunkSizePixels;
 
-    // Batch sprite creation to reduce overhead
-    const sprites: Phaser.GameObjects.Image[] = [];
-
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[0].length; x++) {
         const tileX = offsetX + x * this.gridSize;
         const tileY = offsetY + y * this.gridSize;
         const tileValue = maze[y][x];
 
-        let textureKey: string;
-        
         if (tileValue !== 0) {
           // Non-walkable tile — pick texture based on tile type
-          textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y);
+          const textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y);
+          const wallSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, textureKey);
+          wallSprite.setDisplaySize(this.gridSize, this.gridSize);
+          wallSprite.setOrigin(0.5);
+          wallSprite.clearTint();
+          container.add(wallSprite);
         } else {
           // Path - Use one of the floor assets with deterministic selection
           const floorIndex = this.getDeterministicIndex(chunkX, chunkY, x, y, this.floorTextures.length);
-          textureKey = this.floorTextures[floorIndex];
+          const floorSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, this.floorTextures[floorIndex]);
+          floorSprite.setDisplaySize(this.gridSize, this.gridSize);
+          floorSprite.setOrigin(0.5);
+          floorSprite.clearTint();
+          container.add(floorSprite);
         }
-
-        const sprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, textureKey);
-        sprite.setDisplaySize(this.gridSize, this.gridSize);
-        sprite.setOrigin(0.5);
-        sprite.clearTint();
-        sprites.push(sprite);
-      }
-    }
-
-    // Add all sprites at once for better performance
-    container.add(sprites);
-
-    // Track rendering performance for Act 2
-    if (DEBUG_CHUNK_RENDERING && this.isAct2Chapter()) {
-      const endTime = performance.now();
-      const renderTime = endTime - startTime;
-      
-      this.chunkRenderStats.totalChunks++;
-      this.chunkRenderStats.totalRenderTime += renderTime;
-      this.chunkRenderStats.averageRenderTime = this.chunkRenderStats.totalRenderTime / this.chunkRenderStats.totalChunks;
-
-      if (!this.chunkRenderStats.slowestChunk || renderTime > this.chunkRenderStats.slowestChunk.time) {
-        this.chunkRenderStats.slowestChunk = {
-          coords: `(${chunkX}, ${chunkY})`,
-          time: renderTime,
-        };
-      }
-
-      console.log(`🎨 Rendered chunk (${chunkX}, ${chunkY}) in ${renderTime.toFixed(2)}ms | Avg: ${this.chunkRenderStats.averageRenderTime.toFixed(2)}ms | Total: ${this.chunkRenderStats.totalChunks} chunks`);
-
-      // Log detailed stats every 20 chunks
-      if (this.chunkRenderStats.totalChunks % 20 === 0) {
-        console.log(`
-╔════════════════════════════════════════════════════════════════╗
-║           ACT 2 CHUNK RENDERING DIAGNOSTICS                    ║
-╠════════════════════════════════════════════════════════════════╣
-║ Total Chunks Rendered: ${this.chunkRenderStats.totalChunks.toString().padEnd(38)}║
-║ Total Render Time:     ${this.chunkRenderStats.totalRenderTime.toFixed(2)}ms${' '.repeat(38 - this.chunkRenderStats.totalRenderTime.toFixed(2).length)}║
-║ Average Render Time:   ${this.chunkRenderStats.averageRenderTime.toFixed(2)}ms per chunk${' '.repeat(29 - this.chunkRenderStats.averageRenderTime.toFixed(2).length)}║
-║ Slowest Chunk:         ${this.chunkRenderStats.slowestChunk?.coords || 'N/A'} - ${this.chunkRenderStats.slowestChunk?.time.toFixed(2) || '0'}ms${' '.repeat(30 - (this.chunkRenderStats.slowestChunk?.coords?.length || 0))}║
-║ Texture Cache Size:    ${this.textureCache.size} entries${' '.repeat(38 - this.textureCache.size.toString().length)}║
-╚════════════════════════════════════════════════════════════════╝
-        `);
       }
     }
 
@@ -755,14 +682,8 @@ export class Overworld_MazeGenManager {
   /**
    * Map non-path tile values to texture keys.
    * Act 2 favors submerged-village bundles with directional variants.
-   * Uses caching to avoid redundant calculations.
    */
   private getWallTexture(tileValue: number, maze: number[][], chunkX: number, chunkY: number, x: number, y: number): string {
-    // Create cache key
-    const cacheKey = `${chunkX},${chunkY},${x},${y},${tileValue}`;
-    const cached = this.textureCache.get(cacheKey);
-    if (cached) return cached;
-
     const isAct2 = this.isAct2Chapter();
     const has = (dx: number, dy: number): boolean => {
       const ny = y + dy;
@@ -773,8 +694,6 @@ export class Overworld_MazeGenManager {
       return has(0, -1) && has(0, 1) && has(1, 0) && has(-1, 0)
         && has(1, -1) && has(-1, -1) && has(1, 1) && has(-1, 1);
     };
-
-    let result: string;
 
     const renderGrassSandPatchTile = (): string => {
       const n = has(0, -1);
@@ -858,42 +777,43 @@ export class Overworld_MazeGenManager {
       const sw = has(-1, 1);
       const orthCount = Number(n) + Number(s) + Number(e) + Number(w);
 
-      if (!n && !w) result = 'sv_grass_cliff_nw';
-      else if (!n && !e) result = 'sv_grass_cliff_ne';
-      else if (!s && !w) result = 'sv_grass_cliff_sw';
-      else if (!s && !e) result = 'sv_grass_cliff_se';
-      else if (orthCount >= 3) {
-        if (n && w && !nw) result = 'sv_grass_cliff_inner_se';
-        else if (n && e && !ne) result = 'sv_grass_cliff_inner_sw';
-        else if (s && w && !sw) result = 'sv_grass_cliff_inner_ne';
-        else if (s && e && !se) result = 'sv_grass_cliff_inner_nw';
-        else if (!n) result = 'sv_grass_cliff_n';
-        else if (!s) result = 'sv_grass_cliff_s';
-        else if (!e) result = 'sv_grass_cliff_e';
-        else if (!w) result = 'sv_grass_cliff_w';
-        else result = 'sv_grass_cliff_middle';
-      } else if (!n) result = 'sv_grass_cliff_n';
-      else if (!s) result = 'sv_grass_cliff_s';
-      else if (!e) result = 'sv_grass_cliff_e';
-      else if (!w) result = 'sv_grass_cliff_w';
-      else if (!fullyEnclosed()) {
+      if (!n && !w) return 'sv_grass_cliff_nw';
+      if (!n && !e) return 'sv_grass_cliff_ne';
+      if (!s && !w) return 'sv_grass_cliff_sw';
+      if (!s && !e) return 'sv_grass_cliff_se';
+
+      // Dedicated inner-corner routing for irregular/concave shapes.
+      // Gate this so narrow cliff elbows do not pick concave tiles and appear broken.
+      if (orthCount >= 3) {
+        if (n && w && !nw) return 'sv_grass_cliff_inner_se';
+        if (n && e && !ne) return 'sv_grass_cliff_inner_sw';
+        if (s && w && !sw) return 'sv_grass_cliff_inner_ne';
+        if (s && e && !se) return 'sv_grass_cliff_inner_nw';
+      }
+
+      if (!n) return 'sv_grass_cliff_n';
+      if (!s) return 'sv_grass_cliff_s';
+      if (!e) return 'sv_grass_cliff_e';
+      if (!w) return 'sv_grass_cliff_w';
+
+      if (!fullyEnclosed()) {
         const diagonalVariants = ['sv_grass_cliff_n', 'sv_grass_cliff_s', 'sv_grass_cliff_e', 'sv_grass_cliff_w'];
         const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, diagonalVariants.length);
-        result = diagonalVariants[idx];
-      } else {
-        result = 'sv_grass_cliff_middle';
+        return diagonalVariants[idx];
       }
+
+      return 'sv_grass_cliff_middle';
     }
 
-    else if (tileValue === 7) {
-      result = renderGrassSandPatchTile();
+    if (tileValue === 7) {
+      return renderGrassSandPatchTile();
     }
 
-    else if (tileValue === 8) {
-      result = renderSandGrassPatchTile();
+    if (tileValue === 8) {
+      return renderSandGrassPatchTile();
     }
 
-    else if (tileValue === 6) {
+    if (tileValue === 6) {
       const n = has(0, -1);
       const s = has(0, 1);
       const e = has(1, 0);
@@ -909,24 +829,24 @@ export class Overworld_MazeGenManager {
         );
       };
 
+      // Hard guard: hills must render only as 2x2 bundles.
       if (!isPartOf2x2Hill()) {
         const baseLand = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
         const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, baseLand.length);
-        result = baseLand[idx];
-      } else if (!n && !w) {
-        result = 'sv_grass_hill_nw';
-      } else if (!n && !e) {
-        result = 'sv_grass_hill_ne';
-      } else if (!s && !w) {
-        result = 'sv_grass_hill_sw';
-      } else if (!s && !e) {
-        result = 'sv_grass_hill_se';
-      } else {
-        result = 'sv_grass_hill_nw';
+        return baseLand[idx];
       }
+
+      // Outer corners for convex hill edges.
+      if (!n && !w) return 'sv_grass_hill_nw';
+      if (!n && !e) return 'sv_grass_hill_ne';
+      if (!s && !w) return 'sv_grass_hill_sw';
+      if (!s && !e) return 'sv_grass_hill_se';
+
+      // Strict 2x2 hills should resolve to one of the four corners only.
+      return 'sv_grass_hill_nw';
     }
 
-    else if (tileValue === 9) {
+    if (tileValue === 9) {
       const tileAt = (dx: number, dy: number): number => maze[y + dy]?.[x + dx] ?? -1;
       const n = has(0, -1);
       const s = has(0, 1);
@@ -946,63 +866,56 @@ export class Overworld_MazeGenManager {
       ): string => (sideACliff || sideBCliff ? cliffKey : shoreKey);
 
       if (!n && !w) {
-        result = cornerTexture('sv_water_shore_nw', 'sv_water_cliff_nw', isCliffNeighbor(0, -1), isCliffNeighbor(-1, 0));
-      } else if (!n && !e) {
-        result = cornerTexture('sv_water_shore_ne', 'sv_water_cliff_ne', isCliffNeighbor(0, -1), isCliffNeighbor(1, 0));
-      } else if (!s && !w) {
-        result = cornerTexture('sv_water_shore_sw', 'sv_water_cliff_sw', isCliffNeighbor(0, 1), isCliffNeighbor(-1, 0));
-      } else if (!s && !e) {
-        result = cornerTexture('sv_water_shore_se', 'sv_water_cliff_se', isCliffNeighbor(0, 1), isCliffNeighbor(1, 0));
-      } else if (!n) {
-        result = isCliffNeighbor(0, -1) ? 'sv_water_cliff_n' : 'sv_water_shore_n';
-      } else if (!s) {
-        result = isCliffNeighbor(0, 1) ? 'sv_water_cliff_s' : 'sv_water_shore_s';
-      } else if (!e) {
-        result = isCliffNeighbor(1, 0) ? 'sv_water_cliff_e' : 'sv_water_shore_e';
-      } else if (!w) {
-        result = isCliffNeighbor(-1, 0) ? 'sv_water_cliff_w' : 'sv_water_shore_w';
-      } else {
-        const deepVariants = ['sv_water_middle', 'sv_water_middle', 'sv_water_debris_1', 'sv_water_debris_2', 'sv_water_debris_3'];
-        const deepIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, deepVariants.length);
-        result = deepVariants[deepIdx];
+        return cornerTexture('sv_water_shore_nw', 'sv_water_cliff_nw', isCliffNeighbor(0, -1), isCliffNeighbor(-1, 0));
       }
+      if (!n && !e) {
+        return cornerTexture('sv_water_shore_ne', 'sv_water_cliff_ne', isCliffNeighbor(0, -1), isCliffNeighbor(1, 0));
+      }
+      if (!s && !w) {
+        return cornerTexture('sv_water_shore_sw', 'sv_water_cliff_sw', isCliffNeighbor(0, 1), isCliffNeighbor(-1, 0));
+      }
+      if (!s && !e) {
+        return cornerTexture('sv_water_shore_se', 'sv_water_cliff_se', isCliffNeighbor(0, 1), isCliffNeighbor(1, 0));
+      }
+
+      if (!n) return isCliffNeighbor(0, -1) ? 'sv_water_cliff_n' : 'sv_water_shore_n';
+      if (!s) return isCliffNeighbor(0, 1) ? 'sv_water_cliff_s' : 'sv_water_shore_s';
+      if (!e) return isCliffNeighbor(1, 0) ? 'sv_water_cliff_e' : 'sv_water_shore_e';
+      if (!w) return isCliffNeighbor(-1, 0) ? 'sv_water_cliff_w' : 'sv_water_shore_w';
+
+      const deepVariants = ['sv_water_middle', 'sv_water_middle', 'sv_water_debris_1', 'sv_water_debris_2', 'sv_water_debris_3'];
+      const deepIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, deepVariants.length);
+      return deepVariants[deepIdx];
     }
 
-    else if (isAct2 && tileValue === 1) {
+    if (isAct2 && tileValue === 1) {
       const baseLand = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
       const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, baseLand.length);
-      result = baseLand[idx];
+      return baseLand[idx];
     }
 
-    else {
-      switch (tileValue) {
-        case 2:
-        case 3:
-        case 4:
-          if (isAct2) {
-            const act2Fallback = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
-            const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
-            result = act2Fallback[idx];
-          } else {
-            result = tileValue === 2 ? 'wall4' : tileValue === 3 ? 'wall5' : 'wall6';
-          }
-          break;
-        default:
-          if (isAct2) {
-            const act2Fallback = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
-            const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
-            result = act2Fallback[idx];
-          } else {
-            const forestTextures = ['wall1', 'wall1', 'wall2', 'wall2', 'wall3'];
-            const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, forestTextures.length);
-            result = forestTextures[idx];
-          }
+    switch (tileValue) {
+      case 2:
+      case 3:
+      case 4:
+        if (isAct2) {
+          const act2Fallback = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
+          return act2Fallback[idx];
+        }
+        return tileValue === 2 ? 'wall4' : tileValue === 3 ? 'wall5' : 'wall6';
+      default: {
+        if (isAct2) {
+          const act2Fallback = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
+          return act2Fallback[idx];
+        }
+        // Forest / generic wall — weighted random from wall1-3
+        const forestTextures = ['wall1', 'wall1', 'wall2', 'wall2', 'wall3'];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, forestTextures.length);
+        return forestTextures[idx];
       }
     }
-
-    // Cache and return
-    this.textureCache.set(cacheKey, result);
-    return result;
   }
 
   private isAct2Chapter(): boolean {

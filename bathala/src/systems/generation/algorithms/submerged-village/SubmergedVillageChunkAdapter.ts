@@ -1,13 +1,13 @@
 /**
  * SubmergedVillageChunkAdapter — IChunkGenerator for Act 2: The Submerged Barangays.
  *
- * Uses a **zone-based system** to create terrain with varying density:
- *   DENSE      — Tightly packed terrain features
- *   TRANSITION — Terrain tapering into forest
- *   FOREST     — Forest with paths
+ * Uses a **zone-based system** to create Filipino-style village clusters:
+ *   DENSE      — Tightly packed houses with narrow alleys (village core)
+ *   TRANSITION — Houses tapering into forest (village edge)
+ *   FOREST     — Forest with paths, maybe an isolated hut
  *
  * Zone layout is deterministic based on chunk coordinates:
- *   Centers repeat every `villageSpacing` chunks.
+ *   Village centers repeat every `villageSpacing` chunks.
  *   Dense zone extends `denseRadius` chunks from center (Chebyshev).
  *   Transition zone extends `transitionRadius` chunks further.
  *   Everything beyond is forest.
@@ -15,11 +15,9 @@
  * Tile values in the output grid:
  *   0 — PATH  (walkable)
  *   1 — FOREST (tree walls)
- *   5 — CLIFF
- *   6 — HILL
- *   7 — GRASS_PATCH
- *   8 — SAND_PATCH
- *   9 — WATER
+ *   2 — HOUSE  (building walls)
+ *   3 — FENCE  (broken fence walls)
+ *   4 — RUBBLE (debris walls)
  *
  * @module SubmergedVillageChunkAdapter
  */
@@ -33,148 +31,15 @@ import { SubmergedVillageAlgorithm, DEFAULT_VILLAGE_PARAMS, VillageLayoutParams 
 import { findBorderConnections } from '../../core/BorderConnections';
 
 // =========================================================================
-// Diagnostic Logging
-// =========================================================================
-
-/**
- * DIAGNOSTICS OUTPUT EXAMPLE:
- * 
- * When exploring Act 2, you'll see console logs like:
- * 
- * 🗺️ Generating chunk (0, 0) - Type: dense
- * ✅ Chunk (0, 0) generated in 12.45ms
- * 🎨 Rendered chunk (0, 0) in 3.21ms | Avg: 3.21ms | Total: 1 chunks
- * 
- * Every 10 chunks generated:
- * ╔════════════════════════════════════════════════════════════════╗
- * ║           ACT 2 CHUNK GENERATION DIAGNOSTICS                   ║
- * ╠════════════════════════════════════════════════════════════════╣
- * ║ Total Chunks Generated: 10                                     ║
- * ║ - Dense:      2                                                ║
- * ║ - Transition: 4                                                ║
- * ║ - Forest:     4                                                ║
- * ╠════════════════════════════════════════════════════════════════╣
- * ║ Performance:                                                   ║
- * ║ - Total Time:   125.34ms                                       ║
- * ║ - Average Time: 12.53ms per chunk                              ║
- * ║ - Slowest:      (2, 1) (transition) - 18.92ms                  ║
- * ╚════════════════════════════════════════════════════════════════╝
- * 
- * Every 20 chunks rendered:
- * ╔════════════════════════════════════════════════════════════════╗
- * ║           ACT 2 CHUNK RENDERING DIAGNOSTICS                    ║
- * ╠════════════════════════════════════════════════════════════════╣
- * ║ Total Chunks Rendered: 20                                      ║
- * ║ Total Render Time:     64.23ms                                 ║
- * ║ Average Render Time:   3.21ms per chunk                        ║
- * ║ Slowest Chunk:         (3, 2) - 5.67ms                         ║
- * ║ Texture Cache Size:    450 entries                             ║
- * ╚════════════════════════════════════════════════════════════════╝
- */
-
-const ENABLE_DIAGNOSTICS = true; // Set to false to disable chunk generation logging
-
-interface ChunkGenerationStats {
-    totalChunks: number;
-    denseChunks: number;
-    transitionChunks: number;
-    forestChunks: number;
-    totalGenerationTime: number;
-    averageGenerationTime: number;
-    slowestChunk: { coords: string; time: number; type: string } | null;
-}
-
-class ChunkDiagnostics {
-    private stats: ChunkGenerationStats = {
-        totalChunks: 0,
-        denseChunks: 0,
-        transitionChunks: 0,
-        forestChunks: 0,
-        totalGenerationTime: 0,
-        averageGenerationTime: 0,
-        slowestChunk: null,
-    };
-
-    recordChunkGeneration(chunkX: number, chunkY: number, type: VillageChunkType, generationTime: number): void {
-        this.stats.totalChunks++;
-        this.stats.totalGenerationTime += generationTime;
-        this.stats.averageGenerationTime = this.stats.totalGenerationTime / this.stats.totalChunks;
-
-        switch (type) {
-            case VillageChunkType.DENSE:
-                this.stats.denseChunks++;
-                break;
-            case VillageChunkType.TRANSITION:
-                this.stats.transitionChunks++;
-                break;
-            case VillageChunkType.FOREST:
-                this.stats.forestChunks++;
-                break;
-        }
-
-        if (!this.stats.slowestChunk || generationTime > this.stats.slowestChunk.time) {
-            this.stats.slowestChunk = {
-                coords: `(${chunkX}, ${chunkY})`,
-                time: generationTime,
-                type,
-            };
-        }
-
-        // Log every 10 chunks
-        if (this.stats.totalChunks % 10 === 0) {
-            this.logStats();
-        }
-    }
-
-    logStats(): void {
-        if (!ENABLE_DIAGNOSTICS) return;
-
-        console.log(`
-╔════════════════════════════════════════════════════════════════╗
-║           ACT 2 CHUNK GENERATION DIAGNOSTICS                   ║
-╠════════════════════════════════════════════════════════════════╣
-║ Total Chunks Generated: ${this.stats.totalChunks.toString().padEnd(38)}║
-║ - Dense:      ${this.stats.denseChunks.toString().padEnd(48)}║
-║ - Transition: ${this.stats.transitionChunks.toString().padEnd(48)}║
-║ - Forest:     ${this.stats.forestChunks.toString().padEnd(48)}║
-╠════════════════════════════════════════════════════════════════╣
-║ Performance:                                                   ║
-║ - Total Time:   ${this.stats.totalGenerationTime.toFixed(2)}ms${' '.repeat(40 - this.stats.totalGenerationTime.toFixed(2).length)}║
-║ - Average Time: ${this.stats.averageGenerationTime.toFixed(2)}ms per chunk${' '.repeat(31 - this.stats.averageGenerationTime.toFixed(2).length)}║
-║ - Slowest:      ${this.stats.slowestChunk?.coords || 'N/A'} (${this.stats.slowestChunk?.type || 'N/A'}) - ${this.stats.slowestChunk?.time.toFixed(2) || '0'}ms${' '.repeat(20 - (this.stats.slowestChunk?.coords?.length || 0))}║
-╚════════════════════════════════════════════════════════════════╝
-        `);
-    }
-
-    reset(): void {
-        this.stats = {
-            totalChunks: 0,
-            denseChunks: 0,
-            transitionChunks: 0,
-            forestChunks: 0,
-            totalGenerationTime: 0,
-            averageGenerationTime: 0,
-            slowestChunk: null,
-        };
-    }
-
-    getStats(): ChunkGenerationStats {
-        return { ...this.stats };
-    }
-}
-
-const diagnostics = new ChunkDiagnostics();
-
-// =========================================================================
 // Chunk Type
 // =========================================================================
 
 export enum VillageChunkType {
-    /** Dense terrain features */
+    /** Dense housing — tightly packed, narrow alleys, village core */
     DENSE = 'dense',
-    /** Transition — terrain tapering into forest */
+    /** Transition — houses tapering into forest */
     TRANSITION = 'transition',
-    /** Forest — trees with paths */
+    /** Forest — trees with paths, maybe an isolated hut */
     FOREST = 'forest',
 }
 
@@ -186,8 +51,8 @@ export interface SubmergedVillageConfig {
     /** Grid dimension of each chunk (square). Default 20 */
     readonly chunkSize?: number;
 
-    // ── Zone Layout (how terrain clusters tile across the world) ──────
-    /** Chunks between centers. 3 = frequent, 6 = sparse. Default 4 */
+    // ── Zone Layout (how village clusters tile across the world) ──────
+    /** Chunks between village centers. 3 = frequent villages, 6 = sparse. Default 4 */
     readonly villageSpacing?: number;
     /** Dense zone Chebyshev radius in chunks. 0 = center chunk only, 1 = 3×3 core. Default 0 */
     readonly denseRadius?: number;
@@ -195,42 +60,57 @@ export interface SubmergedVillageConfig {
     readonly transitionRadius?: number;
 
     // ── Dense Village Chunks ─────────────────────────────────────────
-    // House generation removed
+    /** Houses per dense chunk (8–16 typical). Default 12 */
+    readonly denseHouseCount?: number;
+    /** Tiles between houses in dense (0 = wall-to-wall, 1 = narrow alleys). Default 1 */
+    readonly denseHouseSpacing?: number;
+    /** Clear forest within N tiles of each house to create open ground. Default 1 */
+    readonly denseClearRadius?: number;
 
     // ── Transition Chunks ────────────────────────────────────────────
-    // House generation removed
+    /** Houses per transition chunk (2–6 typical). Default 4 */
+    readonly transitionHouseCount?: number;
+    /** Tiles between houses in transition. Default 1 */
+    readonly transitionHouseSpacing?: number;
 
     // ── Forest Chunks ────────────────────────────────────────────────
-    // House generation removed
+    /** Houses per forest chunk (0 = empty forest). Default 0 */
+    readonly forestHouseCount?: number;
 }
 
 // ── Sensible defaults ────────────────────────────────────────────────────
 
 const ZONE_DEFAULTS = {
-    chunkSize: 10,
+    chunkSize: 20,
     villageSpacing: 4,
     denseRadius: 0,
     transitionRadius: 1,
+    denseHouseCount: 12,
+    denseHouseSpacing: 1,
+    denseClearRadius: 1,
+    transitionHouseCount: 4,
+    transitionHouseSpacing: 1,
+    forestHouseCount: 0,
 };
 
 // ── Per-chunk-type layout presets ────────────────────────────────────────
 
-function densePreset(_cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
+function densePreset(cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
     return {
         ...DEFAULT_VILLAGE_PARAMS,
         houseCount: 0,
-        houseMinSpacing: 0,
-        neighborhoodCount: 0,
-        spreadFactor: 0,
+        houseMinSpacing: cfg.denseHouseSpacing,
+        neighborhoodCount: 1,
+        spreadFactor: 0.30,
         houseClearRadius: 0,
         scatterTreeChance: 0.08,
-        villageGroundGrowth: 0,
+        villageGroundGrowth: 1,
         fenceChance: 0,
         rubbleChance: 0,
         centerBias: null,
         houseSizePreference: 'small',
-        roadNeighborCount: 0,
-        doorStubLength: 0,
+        roadNeighborCount: 2,
+        doorStubLength: 2,
         borderJitter: 6,
         connectorBend: 5,
         edgeConnectionsPerSide: 2,
@@ -248,24 +128,24 @@ function densePreset(_cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
 }
 
 function transitionPreset(
-    _cfg: typeof ZONE_DEFAULTS,
+    cfg: typeof ZONE_DEFAULTS,
     bias: { x: number; y: number },
 ): VillageLayoutParams {
     return {
         ...DEFAULT_VILLAGE_PARAMS,
         houseCount: 0,
-        houseMinSpacing: 0,
-        neighborhoodCount: 0,
-        spreadFactor: 0,
+        houseMinSpacing: cfg.transitionHouseSpacing,
+        neighborhoodCount: 1,
+        spreadFactor: 0.24,
         houseClearRadius: 0,
         scatterTreeChance: 0.05,
-        villageGroundGrowth: 0,
+        villageGroundGrowth: 1,
         fenceChance: 0,
         rubbleChance: 0,
         centerBias: bias,
         houseSizePreference: 'all',
-        roadNeighborCount: 0,
-        doorStubLength: 0,
+        roadNeighborCount: 2,
+        doorStubLength: 1,
         borderJitter: 5,
         connectorBend: 4,
         edgeConnectionsPerSide: 2,
@@ -286,9 +166,9 @@ function forestPreset(_cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
     return {
         ...DEFAULT_VILLAGE_PARAMS,
         houseCount: 0,
-        houseMinSpacing: 0,
-        neighborhoodCount: 0,
-        spreadFactor: 0,
+        houseMinSpacing: 2,
+        neighborhoodCount: 1,
+        spreadFactor: 0.20,
         houseClearRadius: 0,
         scatterTreeChance: 0,
         villageGroundGrowth: 0,
@@ -296,8 +176,8 @@ function forestPreset(_cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
         rubbleChance: 0,
         centerBias: null,
         houseSizePreference: 'large',
-        roadNeighborCount: 0,
-        doorStubLength: 0,
+        roadNeighborCount: 1,
+        doorStubLength: 1,
         borderJitter: 3,
         connectorBend: 4,
         edgeConnectionsPerSide: 2,
@@ -331,36 +211,18 @@ export class SubmergedVillageChunkAdapter implements IChunkGenerator {
             villageSpacing: config.villageSpacing ?? ZONE_DEFAULTS.villageSpacing,
             denseRadius: config.denseRadius ?? ZONE_DEFAULTS.denseRadius,
             transitionRadius: config.transitionRadius ?? ZONE_DEFAULTS.transitionRadius,
+            denseHouseCount: config.denseHouseCount ?? ZONE_DEFAULTS.denseHouseCount,
+            denseHouseSpacing: config.denseHouseSpacing ?? ZONE_DEFAULTS.denseHouseSpacing,
+            denseClearRadius: config.denseClearRadius ?? ZONE_DEFAULTS.denseClearRadius,
+            transitionHouseCount: config.transitionHouseCount ?? ZONE_DEFAULTS.transitionHouseCount,
+            transitionHouseSpacing: config.transitionHouseSpacing ?? ZONE_DEFAULTS.transitionHouseSpacing,
+            forestHouseCount: config.forestHouseCount ?? ZONE_DEFAULTS.forestHouseCount,
         };
     }
 
     /**
-     * Get current generation statistics
-     */
-    getGenerationStats(): ChunkGenerationStats {
-        return diagnostics.getStats();
-    }
-
-    /**
-     * Reset generation statistics (useful when starting a new game)
-     */
-    resetGenerationStats(): void {
-        diagnostics.reset();
-        if (ENABLE_DIAGNOSTICS) {
-            console.log('🔄 Act 2 chunk generation statistics reset');
-        }
-    }
-
-    /**
-     * Log current statistics on demand
-     */
-    logGenerationStats(): void {
-        diagnostics.logStats();
-    }
-
-    /**
-     * Determine what kind of terrain chunk this position produces.
-     * Uses Chebyshev distance to the nearest center.
+     * Determine what kind of village chunk this position produces.
+     * Uses Chebyshev distance to the nearest village center.
      */
     getChunkType(chunkX: number, chunkY: number): {
         type: VillageChunkType;
@@ -385,15 +247,9 @@ export class SubmergedVillageChunkAdapter implements IChunkGenerator {
         return { type: VillageChunkType.FOREST, bias: null };
     }
 
-    /** Generate terrain using zone-appropriate parameters. */
+    /** Generate terrain using zone-appropriate village parameters. */
     generate(chunkX: number, chunkY: number, rng: SeededRandom): RawChunk {
-        const startTime = performance.now();
-
         const { type, bias } = this.getChunkType(chunkX, chunkY);
-
-        if (ENABLE_DIAGNOSTICS) {
-            console.log(`🗺️ Generating chunk (${chunkX}, ${chunkY}) - Type: ${type}`);
-        }
 
         let params: VillageLayoutParams;
         switch (type) {
@@ -432,17 +288,6 @@ export class SubmergedVillageChunkAdapter implements IChunkGenerator {
         this.forceInternalConnectivity(grid);
 
         const borderConnections = findBorderConnections(grid, this.chunkSize);
-
-        const endTime = performance.now();
-        const generationTime = endTime - startTime;
-
-        // Record diagnostics
-        diagnostics.recordChunkGeneration(chunkX, chunkY, type, generationTime);
-
-        if (ENABLE_DIAGNOSTICS) {
-            console.log(`✅ Chunk (${chunkX}, ${chunkY}) generated in ${generationTime.toFixed(2)}ms`);
-        }
-
         return { grid, width: this.chunkSize, height: this.chunkSize, borderConnections };
     }
 
