@@ -243,11 +243,15 @@ export class Overworld_MazeGenManager {
   }
 
   /**
-   * Check if a world-center position is already occupied by another enemy node.
+   * Check if a world-center position is already occupied by another node.
+   *
+   * Nighttime enemies should not stack on each other *or* move onto special nodes
+   * like treasure/shop/campfire/event/boss.
+   *
    * @param x - World center X coordinate to test
    * @param y - World center Y coordinate to test
    * @param excludeId - The id of the enemy currently moving (so it doesn't collide with itself)
-   * @returns true if another enemy is on that tile
+   * @returns true if another node is on that tile
    */
   private isOccupiedByEnemy(x: number, y: number, excludeId: string): boolean {
     // Check the reservation set first (prevents stacking during the same movement round)
@@ -258,7 +262,6 @@ export class Overworld_MazeGenManager {
     const half = this.gridSize / 2;
     for (const node of this.nodes) {
       if (node.id === excludeId) continue;
-      if (node.type !== 'combat' && node.type !== 'elite') continue;
       const nx = node.x + half;
       const ny = node.y + half;
       if (Math.abs(nx - x) < half && Math.abs(ny - y) < half) {
