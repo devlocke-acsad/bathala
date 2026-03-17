@@ -311,6 +311,7 @@ export class SubmergedVillageAlgorithm {
     private readonly DEAD_END_LOOP_MIN_DIST = 3;
     private readonly DEAD_END_LOOP_MAX_DIST = 10;
     private readonly CLIFF_FORMATION_GAP = 1;
+    private readonly OBSTACLE_FORMATION_GAP = 1;
 
     // --- Public config ---
     public levelSize: [number, number] = [20, 20];
@@ -1243,18 +1244,23 @@ export class SubmergedVillageAlgorithm {
         }
 
         this.paintSimpleWaterPonds(grid, params.waterPoolCount);
-        const simpleCliffCount = Math.max(1, Math.floor((params.cliffBandCount + params.hillClusterCount) * 0.5));
-        const irregularCliffCount = Math.max(1, (params.cliffBandCount + params.hillClusterCount) - simpleCliffCount + 1);
-        this.paintSimpleCliffHillFormations(grid, simpleCliffCount);
+        const totalCliffGroups = Math.max(2, params.cliffBandCount + params.hillClusterCount);
+        const irregularCliffCount = Math.max(2, Math.ceil(totalCliffGroups * 0.7));
+        const simpleCliffCount = Math.max(1, totalCliffGroups - irregularCliffCount);
+        // Paint irregular first so natural shapes claim space before simple fallback rings.
         this.paintIrregularCliffHillFormations(grid, irregularCliffCount);
+        this.paintSimpleCliffHillFormations(grid, simpleCliffCount);
 
-        const simplePatchCount = Math.max(1, Math.floor((params.grassPatchCount + params.sandPatchCount) * 0.45));
-        const irregularPatchCount = Math.max(1, (params.grassPatchCount + params.sandPatchCount) - simplePatchCount + 1);
-        this.paintSimplePatchFormations(grid, simplePatchCount);
-        this.paintIrregularPatchFormations(grid, irregularPatchCount);
-
+        // Finalize cliff masses first so later obstacle families honor stable cliff silhouettes.
         this.repairCliffGaps(grid);
         this.backfillHillsBehindCliffs(grid);
+
+        const totalPatchGroups = Math.max(2, params.grassPatchCount + params.sandPatchCount);
+        const irregularPatchCount = Math.max(2, Math.ceil(totalPatchGroups * 0.65));
+        const simplePatchCount = Math.max(1, totalPatchGroups - irregularPatchCount);
+        this.paintIrregularPatchFormations(grid, irregularPatchCount);
+        this.paintSimplePatchFormations(grid, simplePatchCount);
+
         this.repairPatchGaps(grid, TILE.GRASS_PATCH);
         this.repairPatchGaps(grid, TILE.SAND_PATCH);
     }
@@ -1280,31 +1286,8 @@ export class SubmergedVillageAlgorithm {
                 const minY = cy - halfH;
                 const maxY = cy + halfH;
 
-                const gapMinX = Math.max(1, minX - this.CLIFF_FORMATION_GAP);
-                const gapMaxX = Math.min(w - 2, maxX + this.CLIFF_FORMATION_GAP);
-                const gapMinY = Math.max(1, minY - this.CLIFF_FORMATION_GAP);
-                const gapMaxY = Math.min(h - 2, maxY + this.CLIFF_FORMATION_GAP);
-
-                let blocked = false;
-                for (let y = gapMinY; y <= gapMaxY && !blocked; y++) {
-                    for (let x = gapMinX; x <= gapMaxX; x++) {
-                        const t = grid.getTile(x, y);
-                        if (t === TILE.PATH || t === TILE.WATER) {
-                            blocked = true;
-                            break;
-                        }
-                        // Keep a minimum gap so separate cliff formations do not visually merge.
-                        if (t === TILE.CLIFF) {
-                            blocked = true;
-                            break;
-                        }
-                        if (this.isNearPath(grid, x, y, 1)) {
-                            blocked = true;
-                            break;
-                        }
-                    }
-                }
-                if (blocked) continue;
+                const requiredGap = Math.max(this.CLIFF_FORMATION_GAP, this.OBSTACLE_FORMATION_GAP);
+                if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, requiredGap)) continue;
 
                 for (let y = minY; y <= maxY; y++) {
                     for (let x = minX; x <= maxX; x++) {
@@ -1338,17 +1321,7 @@ export class SubmergedVillageAlgorithm {
                 const minY = cy - halfH;
                 const maxY = cy + halfH;
 
-                let blocked = false;
-                for (let y = minY; y <= maxY && !blocked; y++) {
-                    for (let x = minX; x <= maxX; x++) {
-                        const t = grid.getTile(x, y);
-                        if (t === TILE.PATH || t === TILE.CLIFF) {
-                            blocked = true;
-                            break;
-                        }
-                    }
-                }
-                if (blocked) continue;
+                if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, this.OBSTACLE_FORMATION_GAP)) continue;
 
                 for (let y = minY; y <= maxY; y++) {
                     for (let x = minX; x <= maxX; x++) {
@@ -1376,24 +1349,17 @@ export class SubmergedVillageAlgorithm {
         const [w, h] = this.levelSize;
 
         for (let i = 0; i < count; i++) {
-            for (let attempt = 0; attempt < 24; attempt++) {
+            for (let attempt = 0; attempt < 64; attempt++) {
                 const seedX = this.randomInt(3, w - 4);
                 const seedY = this.randomInt(3, h - 4);
                 if (this.isNearPath(grid, seedX, seedY, 1)) continue;
                 if (grid.getTile(seedX, seedY) !== TILE.FOREST) continue;
 
-                const mask = this.growMaskBlob(grid, seedX, seedY, this.randomInt(10, 26));
-                if (mask.size < 8) continue;
+                const mask = this.growMaskBlob(grid, seedX, seedY, this.randomInt(12, 30));
+                if (mask.size < 10) continue;
 
-                let tooCloseToExistingCliff = false;
-                for (const cell of mask) {
-                    const [x, y] = cell.split(',').map(Number);
-                    if (this.hasNearbyTileType(grid, x, y, TILE.CLIFF, this.CLIFF_FORMATION_GAP)) {
-                        tooCloseToExistingCliff = true;
-                        break;
-                    }
-                }
-                if (tooCloseToExistingCliff) continue;
+                const requiredGap = Math.max(this.CLIFF_FORMATION_GAP, this.OBSTACLE_FORMATION_GAP);
+                if (this.maskTouchesNonForestWithinGap(grid, mask, requiredGap)) continue;
 
                 for (const cell of mask) {
                     const [x, y] = cell.split(',').map(Number);
@@ -1420,17 +1386,7 @@ export class SubmergedVillageAlgorithm {
                 const cx = this.randomInt(halfW + 2, w - halfW - 3);
                 const cy = this.randomInt(halfH + 2, h - halfH - 3);
 
-                let blocked = false;
-                for (let y = cy - halfH; y <= cy + halfH && !blocked; y++) {
-                    for (let x = cx - halfW; x <= cx + halfW; x++) {
-                        const t = grid.getTile(x, y);
-                        if (t !== TILE.FOREST) {
-                            blocked = true;
-                            break;
-                        }
-                    }
-                }
-                if (blocked) continue;
+                if (!this.isRegionForestWithGap(grid, cx - halfW, cx + halfW, cy - halfH, cy + halfH, this.OBSTACLE_FORMATION_GAP)) continue;
 
                 for (let y = cy - halfH; y <= cy + halfH; y++) {
                     for (let x = cx - halfW; x <= cx + halfW; x++) {
@@ -1450,13 +1406,15 @@ export class SubmergedVillageAlgorithm {
 
         for (let i = 0; i < count; i++) {
             const patchType = this.rng() < 0.75 ? TILE.GRASS_PATCH : TILE.SAND_PATCH;
-            for (let attempt = 0; attempt < 24; attempt++) {
+            for (let attempt = 0; attempt < 56; attempt++) {
                 const seedX = this.randomInt(3, w - 4);
                 const seedY = this.randomInt(3, h - 4);
                 if (grid.getTile(seedX, seedY) !== TILE.FOREST) continue;
 
                 const mask = this.growMaskBlob(grid, seedX, seedY, this.randomInt(8, 20));
                 if (mask.size < 5) continue;
+
+                if (this.maskTouchesNonForestWithinGap(grid, mask, this.OBSTACLE_FORMATION_GAP)) continue;
 
                 for (const cell of mask) {
                     const [x, y] = cell.split(',').map(Number);
@@ -1605,17 +1563,54 @@ export class SubmergedVillageAlgorithm {
         return false;
     }
 
-    private hasNearbyTileType(grid: IntGrid, x: number, y: number, tileType: number, radius: number): boolean {
+    private isRegionForestWithGap(
+        grid: IntGrid,
+        minX: number,
+        maxX: number,
+        minY: number,
+        maxY: number,
+        gap: number,
+    ): boolean {
+        const [w, h] = this.levelSize;
+        const fromX = this.clamp(minX - gap, 1, w - 2);
+        const toX = this.clamp(maxX + gap, 1, w - 2);
+        const fromY = this.clamp(minY - gap, 1, h - 2);
+        const toY = this.clamp(maxY + gap, 1, h - 2);
+
+        for (let y = fromY; y <= toY; y++) {
+            for (let x = fromX; x <= toX; x++) {
+                if (grid.getTile(x, y) !== TILE.FOREST) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private maskTouchesNonForestWithinGap(grid: IntGrid, mask: Set<string>, gap: number): boolean {
+        for (const cell of mask) {
+            const [x, y] = cell.split(',').map(Number);
+            if (this.hasNearbyNonForestTile(grid, x, y, gap)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private hasNearbyNonForestTile(grid: IntGrid, x: number, y: number, radius: number): boolean {
         for (let dy = -radius; dy <= radius; dy++) {
             for (let dx = -radius; dx <= radius; dx++) {
                 const nx = x + dx;
                 const ny = y + dy;
                 if (!this.isInBounds(nx, ny)) continue;
-                if (grid.getTile(nx, ny) === tileType) {
+                if (grid.getTile(nx, ny) !== TILE.FOREST) {
                     return true;
                 }
             }
         }
+
         return false;
     }
 
