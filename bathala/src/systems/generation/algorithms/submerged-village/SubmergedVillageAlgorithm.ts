@@ -1278,6 +1278,7 @@ export class SubmergedVillageAlgorithm {
         this.enforceStrictHillBundles(grid);
         this.enforceStrictSandPatchBundles(grid);
         this.enforceGrassPatchMinThickness(grid);
+        this.enforceGrassPatchShapeQuality(grid);
     }
 
     /**
@@ -1288,25 +1289,16 @@ export class SubmergedVillageAlgorithm {
         if (total <= 0) return;
 
         let placed = 0;
-        let slot = 0;
         let globalAttempts = Math.max(20, total * 16);
 
         while (placed < total && globalAttempts > 0) {
             globalAttempts--;
 
-            // First two successful slots bias toward mixed composition.
-            const preferRectangle = slot === 0;
-            const preferSnake = slot === 1 && total > 1;
-            const rollSnake = this.rng() < 0.58;
+            // Keep snakes as occasional accents and prioritize stable rectangular bundles.
+            const rollSnake = this.rng() < 0.22;
 
             let success = false;
-            if (preferRectangle) {
-                success = this.tryPlaceSimplePatchFormation(grid, TILE.GRASS_PATCH)
-                    || this.tryPlaceSnakePatchFormation(grid, TILE.GRASS_PATCH);
-            } else if (preferSnake) {
-                success = this.tryPlaceSnakePatchFormation(grid, TILE.GRASS_PATCH)
-                    || this.tryPlaceSimplePatchFormation(grid, TILE.GRASS_PATCH);
-            } else if (rollSnake) {
+            if (rollSnake) {
                 success = this.tryPlaceSnakePatchFormation(grid, TILE.GRASS_PATCH)
                     || this.tryPlaceSimplePatchFormation(grid, TILE.GRASS_PATCH);
             } else {
@@ -1314,7 +1306,6 @@ export class SubmergedVillageAlgorithm {
                     || this.tryPlaceSnakePatchFormation(grid, TILE.GRASS_PATCH);
             }
 
-            slot++;
             if (success) placed++;
         }
     }
@@ -1688,56 +1679,102 @@ export class SubmergedVillageAlgorithm {
         const [w, h] = this.levelSize;
 
         for (let attempt = 0; attempt < 120; attempt++) {
-            const startX = this.randomInt(2, w - 6);
-            const startY = this.randomInt(2, h - 6);
+            const startX = this.randomInt(2, w - 5);
+            const startY = this.randomInt(2, h - 5);
+
+            // Strict snake rule: exactly 2-tiles thick strips only.
+            // Allowed shapes are straight, single-turn L, or T forms.
+            const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+            const [dx1, dy1] = dirs[this.randomInt(0, dirs.length - 1)];
+            const shapeRoll = this.rng();
+            const shapeMode: 'straight' | 'l' | 't' =
+                shapeRoll < 0.28 ? 'straight' : shapeRoll < 0.68 ? 'l' : 't';
+
+            const lenA = shapeMode === 't'
+                ? (this.rng() < 0.6 ? 3 : 5) // odd block count so stem has a clean center anchor
+                : this.randomInt(2, 5);
+            const lenB = shapeMode === 'straight' ? 0 : this.randomInt(2, 4);
+
+            const blockAnchors: Array<[number, number]> = [];
+            const blockKeys = new Set<string>();
+
+            const pushBlock = (bx: number, by: number): boolean => {
+                const key = `${bx},${by}`;
+                if (blockKeys.has(key)) return false;
+                blockKeys.add(key);
+                blockAnchors.push([bx, by]);
+                return true;
+            };
+
+            let ok = pushBlock(startX, startY);
+            if (!ok) continue;
+
+            // Primary segment.
+            for (let s = 1; s < lenA && ok; s++) {
+                const bx = startX + (dx1 * 2 * s);
+                const by = startY + (dy1 * 2 * s);
+                ok = pushBlock(bx, by);
+            }
+            if (!ok) continue;
+
+            // Optional one-time 90-degree branch.
+            if (shapeMode === 'l' || shapeMode === 't') {
+                const leftTurn: [number, number] = [-dy1, dx1];
+                const rightTurn: [number, number] = [dy1, -dx1];
+                const [dx2, dy2] = this.rng() < 0.5 ? leftTurn : rightTurn;
+
+                if (shapeMode === 'l') {
+                    // L: branch starts at the bar end.
+                    const cornerX = startX + (dx1 * 2 * (lenA - 1));
+                    const cornerY = startY + (dy1 * 2 * (lenA - 1));
+
+                    for (let s = 1; s < lenB && ok; s++) {
+                        const bx = cornerX + (dx2 * 2 * s);
+                        const by = cornerY + (dy2 * 2 * s);
+                        ok = pushBlock(bx, by);
+                    }
+                } else {
+                    // T: branch starts from the center anchor and extends outward.
+                    const mid = Math.floor((lenA - 1) / 2);
+                    const centerX = startX + (dx1 * 2 * mid);
+                    const centerY = startY + (dy1 * 2 * mid);
+
+                    for (let s = 1; s < lenB && ok; s++) {
+                        const bx = centerX + (dx2 * 2 * s);
+                        const by = centerY + (dy2 * 2 * s);
+                        ok = pushBlock(bx, by);
+                    }
+                }
+            }
+
+            if (!ok || blockAnchors.length < 3) continue;
 
             const cells = new Set<string>();
-            const shapeRoll = this.rng();
-            const lenA = this.randomInt(2, 4);
-            const lenB = this.randomInt(2, 4);
-
-            const stampBlock = (bx: number, by: number): void => {
+            for (const [bx, by] of blockAnchors) {
                 cells.add(`${bx},${by}`);
                 cells.add(`${bx + 1},${by}`);
                 cells.add(`${bx},${by + 1}`);
                 cells.add(`${bx + 1},${by + 1}`);
-            };
-
-            const stampLine = (bx: number, by: number, dx: number, dy: number, steps: number): void => {
-                for (let s = 0; s < steps; s++) {
-                    stampBlock(bx + (dx * 2 * s), by + (dy * 2 * s));
-                }
-            };
-
-            if (shapeRoll < 0.25) {
-                // L shape
-                stampLine(startX, startY, 1, 0, lenA);
-                stampLine(startX + (lenA - 1) * 2, startY, 0, 1, lenB);
-            } else if (shapeRoll < 0.5) {
-                // T shape
-                const trunk = this.randomInt(2, 4);
-                stampLine(startX, startY, 1, 0, lenA);
-                const midX = startX + (Math.floor(lenA / 2) * 2);
-                stampLine(midX, startY, 0, 1, trunk);
-            } else if (shapeRoll < 0.75) {
-                // C shape
-                const arm = this.randomInt(2, 4);
-                stampLine(startX, startY, 1, 0, lenA);
-                stampLine(startX, startY, 0, 1, arm);
-                stampLine(startX, startY + (arm - 1) * 2, 1, 0, lenA);
-            } else {
-                // S shape (zig-zag)
-                const seg = this.randomInt(2, 3);
-                stampLine(startX, startY, 1, 0, seg);
-                stampLine(startX + (seg - 1) * 2, startY, 0, 1, 2);
-                stampLine(startX + (seg - 1) * 2, startY + 2, -1, 0, seg);
-                stampLine(startX - (seg - 2) * 2, startY + 2, 0, 1, 2);
-                stampLine(startX - (seg - 2) * 2, startY + 4, 1, 0, seg);
             }
 
-            if (cells.size < 8) continue;
-
             const coords = Array.from(cells).map((v) => v.split(',').map(Number) as [number, number]);
+            if (coords.length < 12) continue;
+
+            // Safety: each snake tile must be part of at least one 2x2 patch block.
+            let strictTwoTileThick = true;
+            const hasPatch = (px: number, py: number): boolean => cells.has(`${px},${py}`);
+            for (const [x, y] of coords) {
+                const partOf2x2 =
+                    (hasPatch(x, y) && hasPatch(x + 1, y) && hasPatch(x, y + 1) && hasPatch(x + 1, y + 1)) ||
+                    (hasPatch(x - 1, y) && hasPatch(x, y) && hasPatch(x - 1, y + 1) && hasPatch(x, y + 1)) ||
+                    (hasPatch(x, y - 1) && hasPatch(x + 1, y - 1) && hasPatch(x, y) && hasPatch(x + 1, y)) ||
+                    (hasPatch(x - 1, y - 1) && hasPatch(x, y - 1) && hasPatch(x - 1, y) && hasPatch(x, y));
+                if (!partOf2x2) {
+                    strictTwoTileThick = false;
+                    break;
+                }
+            }
+            if (!strictTwoTileThick) continue;
 
             // Keep snakes isolated from rectangles and other snakes.
             const requiredGap = Math.max(1, this.PATCH_FORMATION_GAP);
@@ -1822,6 +1859,64 @@ export class SubmergedVillageAlgorithm {
             for (const [x, y] of toForest) {
                 grid.setTile(x, y, TILE.FOREST);
             }
+        }
+    }
+
+    /**
+     * Remove malformed GrassSand components that read as failed snake artifacts.
+     *
+     * Guardrails:
+     * - Component must span at least 3x3 footprint
+     * - Component must have at least 9 tiles
+     *
+     * These checks preserve intentional rectangles/curves while culling thin strips.
+     */
+    private enforceGrassPatchShapeQuality(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        const visited = new Set<string>();
+        const toForest: Array<[number, number]> = [];
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.GRASS_PATCH) continue;
+
+                const startKey = `${x},${y}`;
+                if (visited.has(startKey)) continue;
+
+                const component: Array<[number, number]> = [];
+                const queue: Array<[number, number]> = [[x, y]];
+                visited.add(startKey);
+
+                while (queue.length > 0) {
+                    const [cx, cy] = queue.shift()!;
+                    component.push([cx, cy]);
+
+                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
+                        if (!this.isInBounds(nx, ny)) continue;
+                        if (grid.getTile(nx, ny) !== TILE.GRASS_PATCH) continue;
+                        const key = `${nx},${ny}`;
+                        if (visited.has(key)) continue;
+                        visited.add(key);
+                        queue.push([nx, ny]);
+                    }
+                }
+
+                const xs = component.map(([cx]) => cx);
+                const ys = component.map(([, cy]) => cy);
+                const width = Math.max(...xs) - Math.min(...xs) + 1;
+                const height = Math.max(...ys) - Math.min(...ys) + 1;
+
+                const hasHealthyFootprint = width >= 3 && height >= 3;
+                const hasHealthyArea = component.length >= 9;
+
+                if (!hasHealthyFootprint || !hasHealthyArea) {
+                    toForest.push(...component);
+                }
+            }
+        }
+
+        for (const [fx, fy] of toForest) {
+            grid.setTile(fx, fy, TILE.FOREST);
         }
     }
 
