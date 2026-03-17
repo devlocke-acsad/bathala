@@ -6,6 +6,7 @@ import { ActRegistry } from '../../core/acts/ActRegistry';
 import { GameState } from '../../core/managers/GameState';
 import { ACT1 } from '../../acts/act1/Act1Definition';
 import { ACT2 } from '../../acts/act2/Act2Definition';
+import { OverworldGenerator } from './core/OverworldGenerator';
 
 /**
  * === DEBUG FLAG ===
@@ -97,7 +98,9 @@ export class Overworld_MazeGenManager {
 
       const chapterId = GameState.getInstance().getCurrentChapter();
       const resolvedAct = actRegistry.tryGet(chapterId) ?? ACT1;
-      this.overworldGen = new OverworldGenerator(resolvedAct);
+      const gameState = GameState.getInstance();
+      const seed = gameState.getOrCreateOverworldSeed(chapterId);
+      this.overworldGen = new OverworldGenerator(resolvedAct, { seed });
     }
 
     if (DEBUG_ENEMY_AI) console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize, 'devMode:', devMode);
