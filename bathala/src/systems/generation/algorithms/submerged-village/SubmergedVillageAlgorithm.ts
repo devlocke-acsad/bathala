@@ -310,6 +310,7 @@ export class SubmergedVillageAlgorithm {
     private readonly DEAD_END_CHAIN_MAX = 32;
     private readonly DEAD_END_LOOP_MIN_DIST = 3;
     private readonly DEAD_END_LOOP_MAX_DIST = 10;
+    private readonly CLIFF_FORMATION_GAP = 1;
 
     // --- Public config ---
     public levelSize: [number, number] = [20, 20];
@@ -1279,11 +1280,21 @@ export class SubmergedVillageAlgorithm {
                 const minY = cy - halfH;
                 const maxY = cy + halfH;
 
+                const gapMinX = Math.max(1, minX - this.CLIFF_FORMATION_GAP);
+                const gapMaxX = Math.min(w - 2, maxX + this.CLIFF_FORMATION_GAP);
+                const gapMinY = Math.max(1, minY - this.CLIFF_FORMATION_GAP);
+                const gapMaxY = Math.min(h - 2, maxY + this.CLIFF_FORMATION_GAP);
+
                 let blocked = false;
-                for (let y = minY; y <= maxY && !blocked; y++) {
-                    for (let x = minX; x <= maxX; x++) {
+                for (let y = gapMinY; y <= gapMaxY && !blocked; y++) {
+                    for (let x = gapMinX; x <= gapMaxX; x++) {
                         const t = grid.getTile(x, y);
                         if (t === TILE.PATH || t === TILE.WATER) {
+                            blocked = true;
+                            break;
+                        }
+                        // Keep a minimum gap so separate cliff formations do not visually merge.
+                        if (t === TILE.CLIFF) {
                             blocked = true;
                             break;
                         }
@@ -1373,6 +1384,16 @@ export class SubmergedVillageAlgorithm {
 
                 const mask = this.growMaskBlob(grid, seedX, seedY, this.randomInt(10, 26));
                 if (mask.size < 8) continue;
+
+                let tooCloseToExistingCliff = false;
+                for (const cell of mask) {
+                    const [x, y] = cell.split(',').map(Number);
+                    if (this.hasNearbyTileType(grid, x, y, TILE.CLIFF, this.CLIFF_FORMATION_GAP)) {
+                        tooCloseToExistingCliff = true;
+                        break;
+                    }
+                }
+                if (tooCloseToExistingCliff) continue;
 
                 for (const cell of mask) {
                     const [x, y] = cell.split(',').map(Number);
@@ -1577,6 +1598,20 @@ export class SubmergedVillageAlgorithm {
                 const ny = y + dy;
                 if (!this.isInBounds(nx, ny)) continue;
                 if (grid.getTile(nx, ny) === TILE.PATH) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private hasNearbyTileType(grid: IntGrid, x: number, y: number, tileType: number, radius: number): boolean {
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (!this.isInBounds(nx, ny)) continue;
+                if (grid.getTile(nx, ny) === tileType) {
                     return true;
                 }
             }
