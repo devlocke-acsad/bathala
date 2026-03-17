@@ -122,6 +122,9 @@ export class Shop extends Scene {
     this.shopItems = chapterShopItems.filter(
       item => item.item.id !== 'merchants_scale' && !this.player.relics.some(relic => relic.id === item.item.id)
     );
+
+    // Reset relic buttons so stale destroyed containers from previous chapters don't persist
+    this.relicButtons = [];
   }
 
   /**
