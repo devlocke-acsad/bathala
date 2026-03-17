@@ -705,18 +705,18 @@ export class Overworld_MazeGenManager {
       const se = has(1, 1);
       const sw = has(-1, 1);
       const orthCount = Number(n) + Number(s) + Number(e) + Number(w);
+
       if (!n && !w) return 'sv_patch_grass_sand_nw';
       if (!n && !e) return 'sv_patch_grass_sand_ne';
       if (!s && !w) return 'sv_patch_grass_sand_sw';
       if (!s && !e) return 'sv_patch_grass_sand_se';
 
-      // Use inner corners only on denser shapes; thin elbows should remain side/corner tiles.
+      // Concave routing for junctions between snakes and quadrilateral patches.
       if (orthCount >= 3) {
-        // GrassSand inner corners in this set are oriented opposite to missing diagonal.
-        if (n && w && !nw) return 'sv_patch_grass_sand_inner_se';
-        if (n && e && !ne) return 'sv_patch_grass_sand_inner_sw';
-        if (s && w && !sw) return 'sv_patch_grass_sand_inner_ne';
-        if (s && e && !se) return 'sv_patch_grass_sand_inner_nw';
+        if (n && w && !nw) return 'sv_patch_grass_sand_inner_bush_nw';
+        if (n && e && !ne) return 'sv_patch_grass_sand_inner_bush_ne';
+        if (s && w && !sw) return 'sv_patch_grass_sand_inner_bush_sw';
+        if (s && e && !se) return 'sv_patch_grass_sand_inner_bush_se';
       }
 
       if (!n) return 'sv_patch_grass_sand_n';
@@ -724,7 +724,19 @@ export class Overworld_MazeGenManager {
       if (!e) return 'sv_patch_grass_sand_e';
       if (!w) return 'sv_patch_grass_sand_w';
 
-      return fullyEnclosed() ? 'sv_patch_grass_sand_middle' : 'sv_patch_grass_sand_n';
+      // Snake/irregular shapes must not use middle tiles.
+      if (!fullyEnclosed()) {
+        if (n && w && !nw) return 'sv_patch_grass_sand_inner_bush_nw';
+        if (n && e && !ne) return 'sv_patch_grass_sand_inner_bush_ne';
+        if (s && w && !sw) return 'sv_patch_grass_sand_inner_bush_sw';
+        if (s && e && !se) return 'sv_patch_grass_sand_inner_bush_se';
+
+        const edgeVariants = ['sv_patch_grass_sand_n', 'sv_patch_grass_sand_s', 'sv_patch_grass_sand_e', 'sv_patch_grass_sand_w'];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, edgeVariants.length);
+        return edgeVariants[idx];
+      }
+
+      return 'sv_patch_grass_sand_middle';
     };
 
     const renderSandGrassPatchTile = (): string => {
@@ -806,10 +818,6 @@ export class Overworld_MazeGenManager {
       const s = has(0, 1);
       const e = has(1, 0);
       const w = has(-1, 0);
-      const ne = has(1, -1);
-      const nw = has(-1, -1);
-      const se = has(1, 1);
-      const sw = has(-1, 1);
 
       const isPartOf2x2Hill = (): boolean => {
         const isHill = (dx: number, dy: number) => maze[y + dy]?.[x + dx] === 6;
@@ -834,34 +842,8 @@ export class Overworld_MazeGenManager {
       if (!s && !w) return 'sv_grass_hill_sw';
       if (!s && !e) return 'sv_grass_hill_se';
 
-      // Inner corners for irregular/concave hill silhouettes.
-      if (n && w && !nw) return 'sv_grass_hill_inner_se';
-      if (n && e && !ne) return 'sv_grass_hill_inner_sw';
-      if (s && w && !sw) return 'sv_grass_hill_inner_ne';
-      if (s && e && !se) return 'sv_grass_hill_inner_nw';
-
-      // Prefer quadrant that points toward connected hill body.
-      if (e && s && !n && !w) return 'sv_grass_hill_nw';
-      if (w && s && !n && !e) return 'sv_grass_hill_ne';
-      if (e && n && !s && !w) return 'sv_grass_hill_sw';
-      if (w && n && !s && !e) return 'sv_grass_hill_se';
-
-      // For wider free-form shapes, alternate side quadrants deterministically.
-      if (s && !n) return (x & 1) === 0 ? 'sv_grass_hill_nw' : 'sv_grass_hill_ne';
-      if (n && !s) return (x & 1) === 0 ? 'sv_grass_hill_sw' : 'sv_grass_hill_se';
-      if (e && !w) return (y & 1) === 0 ? 'sv_grass_hill_nw' : 'sv_grass_hill_sw';
-      if (w && !e) return (y & 1) === 0 ? 'sv_grass_hill_ne' : 'sv_grass_hill_se';
-
-      // Enclosed hill interiors use grass middle path tiles for cleaner fill.
-      if (fullyEnclosed()) {
-        const hillMiddle = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
-        const middleIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, hillMiddle.length);
-        return hillMiddle[middleIdx];
-      }
-
-      const variants = ['sv_grass_hill_nw', 'sv_grass_hill_ne', 'sv_grass_hill_sw', 'sv_grass_hill_se'];
-      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, variants.length);
-      return variants[idx];
+      // Strict 2x2 hills should resolve to one of the four corners only.
+      return 'sv_grass_hill_nw';
     }
 
     if (tileValue === 9) {

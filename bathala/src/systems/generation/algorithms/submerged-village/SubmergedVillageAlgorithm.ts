@@ -1263,12 +1263,9 @@ export class SubmergedVillageAlgorithm {
         this.enforceStrictHillBundles(grid);
 
         const grassTotal = Math.max(1, params.grassPatchCount);
-        const grassIrregular = grassTotal <= 1 ? 1 : Math.max(1, Math.ceil(grassTotal * 0.5));
-        const grassSimple = Math.max(0, grassTotal - grassIrregular);
-        this.paintIrregularPatchFormations(grid, grassIrregular, TILE.GRASS_PATCH);
-        if (grassSimple > 0) {
-            this.paintSimplePatchFormations(grid, grassSimple, TILE.GRASS_PATCH);
-        }
+        this.paintGrassPatchesSequentially(grid, grassTotal);
+
+        this.enforceGrassPatchMinThickness(grid);
 
         const sandTotal = Math.max(1, params.sandPatchCount);
         // SandGrass Bush family is strict 2x2 only.
@@ -1280,10 +1277,46 @@ export class SubmergedVillageAlgorithm {
         this.removeCliffFragments(grid, 8);
         this.enforceStrictHillBundles(grid);
         this.enforceStrictSandPatchBundles(grid);
-        this.enforcePatchFamilySeparation(grid);
-        this.removePatchFragments(grid, TILE.GRASS_PATCH, 5);
-        this.removePatchFragments(grid, TILE.SAND_PATCH, 4);
-        this.enforceStrictSandPatchBundles(grid);
+        this.enforceGrassPatchMinThickness(grid);
+    }
+
+    /**
+     * Place GrassSand patches strictly one object at a time:
+     * generate candidate -> validate rules -> stamp -> move to next.
+     */
+    private paintGrassPatchesSequentially(grid: IntGrid, total: number): void {
+        if (total <= 0) return;
+
+        let placed = 0;
+        let slot = 0;
+        let globalAttempts = Math.max(20, total * 16);
+
+        while (placed < total && globalAttempts > 0) {
+            globalAttempts--;
+
+            // First two successful slots bias toward mixed composition.
+            const preferRectangle = slot === 0;
+            const preferSnake = slot === 1 && total > 1;
+            const rollSnake = this.rng() < 0.58;
+
+            let success = false;
+            if (preferRectangle) {
+                success = this.tryPlaceSimplePatchFormation(grid, TILE.GRASS_PATCH)
+                    || this.tryPlaceSnakePatchFormation(grid, TILE.GRASS_PATCH);
+            } else if (preferSnake) {
+                success = this.tryPlaceSnakePatchFormation(grid, TILE.GRASS_PATCH)
+                    || this.tryPlaceSimplePatchFormation(grid, TILE.GRASS_PATCH);
+            } else if (rollSnake) {
+                success = this.tryPlaceSnakePatchFormation(grid, TILE.GRASS_PATCH)
+                    || this.tryPlaceSimplePatchFormation(grid, TILE.GRASS_PATCH);
+            } else {
+                success = this.tryPlaceSimplePatchFormation(grid, TILE.GRASS_PATCH)
+                    || this.tryPlaceSnakePatchFormation(grid, TILE.GRASS_PATCH);
+            }
+
+            slot++;
+            if (success) placed++;
+        }
     }
 
     /**
@@ -1548,46 +1581,6 @@ export class SubmergedVillageAlgorithm {
         }
     }
 
-    private removePatchFragments(grid: IntGrid, patchType: number, minSize: number): void {
-        const [w, h] = this.levelSize;
-        const visited = new Set<string>();
-        const toForest: Array<[number, number]> = [];
-
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                if (grid.getTile(x, y) !== patchType) continue;
-                const startKey = `${x},${y}`;
-                if (visited.has(startKey)) continue;
-
-                const component: Array<[number, number]> = [];
-                const queue: Array<[number, number]> = [[x, y]];
-                visited.add(startKey);
-
-                while (queue.length > 0) {
-                    const [cx, cy] = queue.shift()!;
-                    component.push([cx, cy]);
-
-                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
-                        if (!this.isInBounds(nx, ny)) continue;
-                        if (grid.getTile(nx, ny) !== patchType) continue;
-                        const key = `${nx},${ny}`;
-                        if (visited.has(key)) continue;
-                        visited.add(key);
-                        queue.push([nx, ny]);
-                    }
-                }
-
-                if (component.length < minSize) {
-                    toForest.push(...component);
-                }
-            }
-        }
-
-        for (const [fx, fy] of toForest) {
-            grid.setTile(fx, fy, TILE.FOREST);
-        }
-    }
-
     /**
      * Remove tiny cliff components that create broken/stray cliff artifacts.
      */
@@ -1632,32 +1625,6 @@ export class SubmergedVillageAlgorithm {
     }
 
     /**
-     * Ensure GrassPatch and SandPatch families do not touch directly,
-     * preventing mixed-family corner artifacts at boundaries.
-     */
-    private enforcePatchFamilySeparation(grid: IntGrid): void {
-        const [w, h] = this.levelSize;
-        const toForest: Array<[number, number]> = [];
-
-        for (let y = 1; y < h - 1; y++) {
-            for (let x = 1; x < w - 1; x++) {
-                const t = grid.getTile(x, y);
-                if (t !== TILE.GRASS_PATCH && t !== TILE.SAND_PATCH) continue;
-
-                const opposite = t === TILE.GRASS_PATCH ? TILE.SAND_PATCH : TILE.GRASS_PATCH;
-                const touchesOpposite = this.neighbors4([x, y]).some(([nx, ny]) => grid.getTile(nx, ny) === opposite);
-                if (touchesOpposite) {
-                    toForest.push([x, y]);
-                }
-            }
-        }
-
-        for (const [fx, fy] of toForest) {
-            grid.setTile(fx, fy, TILE.FOREST);
-        }
-    }
-
-    /**
      * Build irregular but closed cliff/hill masses from blob masks.
      */
     private paintIrregularCliffHillFormations(grid: IntGrid, count: number): void {
@@ -1687,94 +1654,173 @@ export class SubmergedVillageAlgorithm {
         }
     }
 
-    /**
-     * Stamp simple closed patch shapes.
-     */
-    private paintSimplePatchFormations(grid: IntGrid, count: number, patchType: number): void {
+    private tryPlaceSimplePatchFormation(grid: IntGrid, patchType: number): boolean {
         const [w, h] = this.levelSize;
 
-        for (let i = 0; i < count; i++) {
-            for (let attempt = 0; attempt < 20; attempt++) {
-                const width = this.randomInt(3, 4);
-                const height = this.randomInt(3, 4);
-                const minX = this.randomInt(2, w - width - 2);
-                const minY = this.randomInt(2, h - height - 2);
-                const maxX = minX + width - 1;
-                const maxY = minY + height - 1;
+        for (let attempt = 0; attempt < 20; attempt++) {
+            // Slightly wider range so rectangles are easier to notice in-play.
+            const width = this.randomInt(3, 6);
+            const height = this.randomInt(3, 6);
+            const minX = this.randomInt(2, w - width - 2);
+            const minY = this.randomInt(2, h - height - 2);
+            const maxX = minX + width - 1;
+            const maxY = minY + height - 1;
 
-                if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, this.PATCH_FORMATION_GAP)) continue;
-
-                for (let y = minY; y <= maxY; y++) {
-                    for (let x = minX; x <= maxX; x++) {
-                        grid.setTile(x, y, patchType);
-                    }
+            const cells: Array<[number, number]> = [];
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    cells.push([x, y]);
                 }
-                break;
             }
+
+            // Keep a hard one-tile moat so separate patch shapes never merge into hybrids.
+            const requiredGap = Math.max(1, this.PATCH_FORMATION_GAP);
+            if (!this.isPatchCellsPlaceableWithGap(grid, cells, requiredGap)) continue;
+
+            this.stampPatchCells(grid, cells, patchType);
+            return true;
+        }
+
+        return false;
+    }
+
+    private tryPlaceSnakePatchFormation(grid: IntGrid, patchType: number): boolean {
+        const [w, h] = this.levelSize;
+
+        for (let attempt = 0; attempt < 120; attempt++) {
+            const startX = this.randomInt(2, w - 6);
+            const startY = this.randomInt(2, h - 6);
+
+            const cells = new Set<string>();
+            const shapeRoll = this.rng();
+            const lenA = this.randomInt(2, 4);
+            const lenB = this.randomInt(2, 4);
+
+            const stampBlock = (bx: number, by: number): void => {
+                cells.add(`${bx},${by}`);
+                cells.add(`${bx + 1},${by}`);
+                cells.add(`${bx},${by + 1}`);
+                cells.add(`${bx + 1},${by + 1}`);
+            };
+
+            const stampLine = (bx: number, by: number, dx: number, dy: number, steps: number): void => {
+                for (let s = 0; s < steps; s++) {
+                    stampBlock(bx + (dx * 2 * s), by + (dy * 2 * s));
+                }
+            };
+
+            if (shapeRoll < 0.25) {
+                // L shape
+                stampLine(startX, startY, 1, 0, lenA);
+                stampLine(startX + (lenA - 1) * 2, startY, 0, 1, lenB);
+            } else if (shapeRoll < 0.5) {
+                // T shape
+                const trunk = this.randomInt(2, 4);
+                stampLine(startX, startY, 1, 0, lenA);
+                const midX = startX + (Math.floor(lenA / 2) * 2);
+                stampLine(midX, startY, 0, 1, trunk);
+            } else if (shapeRoll < 0.75) {
+                // C shape
+                const arm = this.randomInt(2, 4);
+                stampLine(startX, startY, 1, 0, lenA);
+                stampLine(startX, startY, 0, 1, arm);
+                stampLine(startX, startY + (arm - 1) * 2, 1, 0, lenA);
+            } else {
+                // S shape (zig-zag)
+                const seg = this.randomInt(2, 3);
+                stampLine(startX, startY, 1, 0, seg);
+                stampLine(startX + (seg - 1) * 2, startY, 0, 1, 2);
+                stampLine(startX + (seg - 1) * 2, startY + 2, -1, 0, seg);
+                stampLine(startX - (seg - 2) * 2, startY + 2, 0, 1, 2);
+                stampLine(startX - (seg - 2) * 2, startY + 4, 1, 0, seg);
+            }
+
+            if (cells.size < 8) continue;
+
+            const coords = Array.from(cells).map((v) => v.split(',').map(Number) as [number, number]);
+
+            // Keep snakes isolated from rectangles and other snakes.
+            const requiredGap = Math.max(1, this.PATCH_FORMATION_GAP);
+            if (!this.isPatchCellsPlaceableWithGap(grid, coords, requiredGap)) continue;
+
+            this.stampPatchCells(grid, coords, patchType);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Exact-shape patch validator used by sequential placement:
+     * each candidate cell must be FOREST, and the requested gap ring
+     * around that exact shape must only contain FOREST/PATH.
+     */
+    private isPatchCellsPlaceableWithGap(
+        grid: IntGrid,
+        cells: Array<[number, number]>,
+        gap: number,
+    ): boolean {
+        const core = new Set(cells.map(([x, y]) => `${x},${y}`));
+
+        for (const [x, y] of cells) {
+            if (!this.isInBounds(x, y)) return false;
+            if (x <= 0 || y <= 0 || x >= this.levelSize[0] - 1 || y >= this.levelSize[1] - 1) return false;
+            if (grid.getTile(x, y) !== TILE.FOREST) return false;
+        }
+
+        for (const [x, y] of cells) {
+            for (let dy = -gap; dy <= gap; dy++) {
+                for (let dx = -gap; dx <= gap; dx++) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (!this.isInBounds(nx, ny)) continue;
+                    if (core.has(`${nx},${ny}`)) continue;
+                    const t = grid.getTile(nx, ny);
+                    if (t !== TILE.FOREST && t !== TILE.PATH) return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private stampPatchCells(grid: IntGrid, cells: Array<[number, number]>, patchType: number): void {
+        for (const [x, y] of cells) {
+            grid.setTile(x, y, patchType);
         }
     }
 
     /**
-     * Build irregular patch blobs while keeping their silhouettes complete.
+     * Remove accidental 1-thick GrassSand segments.
+     * Allowed local patterns are corners, T/junctions, or 2-thick ribbon/rectangle cells.
      */
-    private paintIrregularPatchFormations(grid: IntGrid, count: number, patchType: number): void {
+    private enforceGrassPatchMinThickness(grid: IntGrid): void {
         const [w, h] = this.levelSize;
 
-        for (let i = 0; i < count; i++) {
-            let placed = false;
-            for (let attempt = 0; attempt < 72 && !placed; attempt++) {
-                const seedX = this.randomInt(2, w - 5);
-                const seedY = this.randomInt(2, h - 5);
+        for (let pass = 0; pass < 3; pass++) {
+            const toForest: Array<[number, number]> = [];
 
-                // Compose irregular patches from connected 3x3 macro-cells.
-                const targetBlocks = this.randomInt(2, 4);
-                const blocks = new Set<string>();
-                const queue: Array<[number, number]> = [[seedX, seedY]];
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    if (grid.getTile(x, y) !== TILE.GRASS_PATCH) continue;
 
-                while (queue.length > 0 && blocks.size < targetBlocks) {
-                    const idx = this.randomInt(0, queue.length - 1);
-                    const [bx, by] = queue.splice(idx, 1)[0];
-                    const key = `${bx},${by}`;
-                    if (blocks.has(key)) continue;
+                    // Hard rule: every GrassSand patch tile must be part of at least one 2x2.
+                    const isPatch = (tx: number, ty: number): boolean => grid.getTile(tx, ty) === TILE.GRASS_PATCH;
+                    const partOf2x2 =
+                        (isPatch(x, y) && isPatch(x + 1, y) && isPatch(x, y + 1) && isPatch(x + 1, y + 1)) ||
+                        (isPatch(x - 1, y) && isPatch(x, y) && isPatch(x - 1, y + 1) && isPatch(x, y + 1)) ||
+                        (isPatch(x, y - 1) && isPatch(x + 1, y - 1) && isPatch(x, y) && isPatch(x + 1, y)) ||
+                        (isPatch(x - 1, y - 1) && isPatch(x, y - 1) && isPatch(x - 1, y) && isPatch(x, y));
 
-                    const minX = bx;
-                    const minY = by;
-                    const maxX = bx + 2;
-                    const maxY = by + 2;
-
-                    if (minX < 1 || minY < 1 || maxX >= w - 1 || maxY >= h - 1) continue;
-                    if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, this.PATCH_FORMATION_GAP)) continue;
-
-                    blocks.add(key);
-
-                    // Step by 2 for connected but irregular macro growth.
-                    const neighbors: Array<[number, number]> = [
-                        [bx + 2, by],
-                        [bx - 2, by],
-                        [bx, by + 2],
-                        [bx, by - 2],
-                    ];
-                    for (const [nx, ny] of neighbors) {
-                        if (this.rng() < 0.8) queue.push([nx, ny]);
+                    if (!partOf2x2) {
+                        toForest.push([x, y]);
                     }
                 }
-
-                if (blocks.size < 2) continue;
-
-                for (const cell of blocks) {
-                    const [bx, by] = cell.split(',').map(Number);
-                    for (let y = by; y <= by + 2; y++) {
-                        for (let x = bx; x <= bx + 2; x++) {
-                            grid.setTile(x, y, patchType);
-                        }
-                    }
-                }
-
-                placed = true;
             }
 
-            if (!placed) {
-                this.paintSimplePatchFormations(grid, 1, patchType);
+            if (toForest.length === 0) break;
+            for (const [x, y] of toForest) {
+                grid.setTile(x, y, TILE.FOREST);
             }
         }
     }
