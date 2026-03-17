@@ -2159,6 +2159,10 @@ export class Shop extends Scene {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
 
+    // Treat discard selection as a modal to prevent other shop interactions
+    // (and to ensure input lock state is always restored after closing).
+    this.lockInput();
+
     // Create overlay that blocks all interactions beneath it
     const overlay = this.add.rectangle(
       screenWidth / 2,
@@ -2211,6 +2215,7 @@ export class Shop extends Scene {
     const cleanupDialog = () => {
       overlay.destroy();
       dialog.destroy();
+      this.unlockInput();
     };
 
     this.player.relics.forEach((relic, index) => {
