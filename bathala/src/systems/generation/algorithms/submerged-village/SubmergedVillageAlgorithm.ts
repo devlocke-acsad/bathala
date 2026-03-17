@@ -1263,6 +1263,10 @@ export class SubmergedVillageAlgorithm {
 
         this.repairPatchGaps(grid, TILE.GRASS_PATCH);
         this.repairPatchGaps(grid, TILE.SAND_PATCH);
+
+        // Finalize: cliffs must be surrounded by a 1-tile PATH moat.
+        // Run last so no later pass can place obstacles back beside cliffs.
+        this.enforceCliffObstacleClearance(grid, 1);
     }
 
     /**
@@ -1597,6 +1601,35 @@ export class SubmergedVillageAlgorithm {
         }
 
         return false;
+    }
+
+    private enforceCliffObstacleClearance(grid: IntGrid, radius: number): void {
+        const [w, h] = this.levelSize;
+        const toPath: Array<[number, number]> = [];
+
+        // Scan outward from each cliff tile so its perimeter is guaranteed PATH.
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.CLIFF) continue;
+
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (!this.isInBounds(nx, ny)) continue;
+
+                        const t = grid.getTile(nx, ny);
+                        // Keep cliff walls and hill interiors intact; force everything else to path.
+                        if (t === TILE.CLIFF || t === TILE.HILL || t === TILE.PATH) continue;
+                        toPath.push([nx, ny]);
+                    }
+                }
+            }
+        }
+
+        for (const [x, y] of toPath) {
+            grid.setTile(x, y, TILE.PATH);
+        }
     }
 
     private hasNearbyNonForestTile(grid: IntGrid, x: number, y: number, radius: number): boolean {
