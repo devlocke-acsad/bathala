@@ -9,6 +9,8 @@ import { InputSystem } from "../../systems/shared/InputSystem";
 import { MazeGenSystem } from "../../systems/generation/MazeGenSystem";
 import { ActRegistry } from "../../core/acts/ActRegistry";
 import { ACT1 } from "../../acts/act1/Act1Definition";
+import { ACT2 } from "../../acts/act2/Act2Definition";
+import { ACT3 } from "../../acts/act3/Act3Definition";
 import { TooltipSystem } from "../../systems/world/TooltipSystem";
 import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
@@ -312,10 +314,16 @@ export class Overworld extends Scene {
     }
 
     // Initialize maze generation manager with act-aware overworld generator
-    // Register Act 1 in the registry (idempotent)
+    // Register acts in the registry (idempotent)
     const actRegistry = ActRegistry.getInstance();
     if (!actRegistry.has(ACT1.id)) {
       actRegistry.register(ACT1);
+    }
+    if (!actRegistry.has(ACT2.id)) {
+      actRegistry.register(ACT2);
+    }
+    if (!actRegistry.has(ACT3.id)) {
+      actRegistry.register(ACT3);
     }
     this.mazeGenManager = new MazeGenSystem(this, 32, this.testButtonsVisible);
 

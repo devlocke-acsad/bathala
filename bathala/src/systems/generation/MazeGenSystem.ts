@@ -6,6 +6,7 @@ import { ActRegistry } from '../../core/acts/ActRegistry';
 import { GameState } from '../../core/managers/GameState';
 import { ACT1 } from '../../acts/act1/Act1Definition';
 import { ACT2 } from '../../acts/act2/Act2Definition';
+import { ACT3 } from '../../acts/act3/Act3Definition';
 
 /**
  * === DEBUG FLAG ===
@@ -111,6 +112,9 @@ export class Overworld_MazeGenManager {
       }
       if (!actRegistry.has(ACT2.id)) {
         actRegistry.register(ACT2);
+      }
+      if (!actRegistry.has(ACT3.id)) {
+        actRegistry.register(ACT3);
       }
 
       const chapterId = GameState.getInstance().getCurrentChapter();
@@ -1148,10 +1152,13 @@ export class Overworld_MazeGenManager {
     // Add hover functionality for all interactive nodes
     if (node.type === "combat" || node.type === "elite" || node.type === "boss" ||
       node.type === "shop" || node.type === "event" || node.type === "campfire" || node.type === "treasure") {
-      // Set interactive with explicit hit area to prevent cursor issues
-      const hitAreaSize = targetSize;
+      // Set interactive with an explicit hit area centered on the sprite.
+      // NOTE: Phaser hit areas are defined in the GameObject's local space (unscaled),
+      // so we compensate for the sprite scale to keep the on-screen hit radius stable.
+      const hitAreaSize = targetSize; // desired on-screen diameter
+      const localRadius = (hitAreaSize / Math.max(scale, 0.0001)) / 2;
       nodeSprite.setInteractive(
-        new Phaser.Geom.Circle(0, 0, hitAreaSize / 2),
+        new Phaser.Geom.Circle(nodeSprite.width / 2, nodeSprite.height / 2, localRadius),
         Phaser.Geom.Circle.Contains
       );
 
