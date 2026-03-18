@@ -55,6 +55,9 @@ export class Overworld_MazeGenManager {
     'sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4',
     'sv_path_sand_1', 'sv_path_sand_2', 'sv_path_sand_3', 'sv_path_sand_4',
   ];
+  private skywardCitadelPathTextures: string[] = [
+    'cloud_path1', 'cloud_path2', 'cloud_path3', 'cloud_path4',
+  ];
 
   // Outer tile markers for chunk connections
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
@@ -129,6 +132,10 @@ export class Overworld_MazeGenManager {
     // Act 2 uses dedicated submerged village path tiles.
     if (this.isAct2Chapter()) {
       this.floorTextures = [...this.submergedVillagePathTextures];
+    }
+    // Act 3 uses cloud platform path tiles.
+    if (this.isAct3Chapter()) {
+      this.floorTextures = [...this.skywardCitadelPathTextures];
     }
   }
 
@@ -689,6 +696,7 @@ export class Overworld_MazeGenManager {
    */
   private getWallTexture(tileValue: number, maze: number[][], chunkX: number, chunkY: number, x: number, y: number): string {
     const isAct2 = this.isAct2Chapter();
+    const isAct3 = this.isAct3Chapter();
     const has = (dx: number, dy: number): boolean => {
       const ny = y + dy;
       const nx = x + dx;
@@ -921,6 +929,12 @@ export class Overworld_MazeGenManager {
           const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
           return act2Fallback[idx];
         }
+        if (isAct3) {
+          // Cloud walls for Skyward Citadel
+          const cloudWalls = ['cloud_wall1', 'cloud_wall2', 'cloud_wall3'];
+          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, cloudWalls.length);
+          return cloudWalls[idx];
+        }
         // Forest / generic wall — weighted random from wall1-3
         const forestTextures = ['wall1', 'wall1', 'wall2', 'wall2', 'wall3'];
         const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, forestTextures.length);
@@ -933,6 +947,12 @@ export class Overworld_MazeGenManager {
     const chapter = GameState.getInstance().getCurrentChapter();
     const normalized = String(chapter).toLowerCase();
     return chapter === 2 || normalized === '2' || normalized.includes('act2') || normalized.includes('chapter2');
+  }
+
+  private isAct3Chapter(): boolean {
+    const chapter = GameState.getInstance().getCurrentChapter();
+    const normalized = String(chapter).toLowerCase();
+    return chapter === 3 || normalized === '3' || normalized.includes('act3') || normalized.includes('chapter3');
   }
 
   /**

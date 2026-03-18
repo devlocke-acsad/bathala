@@ -24,5 +24,10 @@ export type { SubmergedVillageConfig } from './submerged-village/SubmergedVillag
 export { SubmergedVillageAlgorithm, TILE as VILLAGE_TILE, DEFAULT_VILLAGE_PARAMS } from './submerged-village/SubmergedVillageAlgorithm';
 export type { PlacedHouse, VillageLayoutParams } from './submerged-village/SubmergedVillageAlgorithm';
 
-// Future algorithms:
-// export { SkyIslandChunkAdapter } from './sky-island/SkyIslandChunkAdapter';
+// === Skyward Citadel (Act 3: The Skyward Citadel) ===
+export {
+	SkywardCitadelChunkAdapter,
+	SkywardCitadelChunkGenerator, // deprecated alias
+} from './skyward-citadel/SkywardCitadelChunkAdapter';
+export type { SkywardCitadelConfig } from './skyward-citadel/SkywardCitadelChunkAdapter';
+export { SkywardCitadelGenerator as SkywardCitadelAlgorithm } from './skyward-citadel/SkywardCitadelAlgorithm';

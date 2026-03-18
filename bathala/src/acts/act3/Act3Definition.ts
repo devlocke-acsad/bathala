@@ -8,7 +8,7 @@
 import { Suit } from '../../core/types/CombatTypes';
 import { IChunkGenerator, EnemyPoolEntry, NodeDistributionConfig, DEFAULT_NODE_DISTRIBUTION } from '../../core/types/GenerationTypes';
 import { ActDefinition, ActTheme, ActAssets, ActProgression } from '../../core/acts/ActDefinition';
-import { MazeChunkGenerator } from '../../systems/generation/generators/MazeChunkGenerator';
+import { DelaunayMazeChunkAdapter } from '../../systems/generation/algorithms/delaunay-maze/DelaunayMazeChunkAdapter';
 
 // Creature configs — single source of truth for names / sprites
 import {
@@ -40,13 +40,13 @@ export class Act3Definition extends ActDefinition {
     },
   };
 
-  // === Assets (placeholders until Act 3 gets bespoke art) ===
+  // === Assets ===
   readonly assets: ActAssets = {
-    backgroundKey: 'forest_bg',
-    musicKey: 'overworld_ambient',
+    backgroundKey: 'forest_bg',         // TODO: Replace with sky_bg when available
+    musicKey: 'overworld_ambient',      // TODO: Replace with skyward_ambient
     ambientSounds: ['forest_ambient', 'wind_whispers'],
-    tilesetKey: 'forest_tileset',
-    combatBackgroundKey: 'forest_combat_bg',
+    tilesetKey: 'cloud_tileset',        // Cloud platform tileset
+    combatBackgroundKey: 'forest_combat_bg', // TODO: Replace with sky_combat_bg
   };
 
   // === Progression ===
@@ -121,8 +121,8 @@ export class Act3Definition extends ActDefinition {
 
   // === Generator factory ===
   createGenerator(): IChunkGenerator {
-    // Placeholder: reuse maze generator until Sky Islands terrain lands.
-    return new MazeChunkGenerator({
+    // Reuse Chapter 1's Delaunay Maze algorithm with cloud tileset visuals
+    return new DelaunayMazeChunkAdapter({
       chunkSize: 20,
       regionCountMultiplier: 2,
       minRegionDistance: 3,
