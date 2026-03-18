@@ -37,6 +37,12 @@ export const TILE = {
     HOUSE: 2,
     FENCE: 3,
     RUBBLE: 4,
+    CLIFF: 5,
+    HILL: 6,
+    GRASS_PATCH: 7,
+    SAND_PATCH: 8,
+    WATER: 9,
+    OBSTACLE: 10,
 } as const;
 
 // =========================================================================
@@ -87,6 +93,16 @@ export interface VillageLayoutParams {
     fixDoubleWide: boolean;
     /** Edge margin for house placement (tiles from chunk border) */
     edgeMargin: number;
+    /** Number of long cliff ranges stamped across non-path terrain */
+    cliffBandCount: number;
+    /** Number of hill clusters to place */
+    hillClusterCount: number;
+    /** Number of non-traversable grass patch clusters */
+    grassPatchCount: number;
+    /** Number of non-traversable sand patch clusters */
+    sandPatchCount: number;
+    /** Number of water pools used to form island silhouettes */
+    waterPoolCount: number;
 }
 
 /** Default params — matches the pre-rework sparse-village behavior. */
@@ -112,6 +128,11 @@ export const DEFAULT_VILLAGE_PARAMS: VillageLayoutParams = {
     detourMaxDistance: 13,
     fixDoubleWide: true,
     edgeMargin: 2,
+    cliffBandCount: 2,
+    hillClusterCount: 3,
+    grassPatchCount: 3,
+    sandPatchCount: 2,
+    waterPoolCount: 2,
 };
 
 // =========================================================================
@@ -290,6 +311,9 @@ export class SubmergedVillageAlgorithm {
     private readonly DEAD_END_CHAIN_MAX = 32;
     private readonly DEAD_END_LOOP_MIN_DIST = 3;
     private readonly DEAD_END_LOOP_MAX_DIST = 10;
+    private readonly CLIFF_FORMATION_GAP = 1;
+    private readonly OBSTACLE_FORMATION_GAP = 1;
+    private readonly PATCH_FORMATION_GAP = 0;
 
     // --- Public config ---
     public levelSize: [number, number] = [20, 20];
@@ -333,8 +357,10 @@ export class SubmergedVillageAlgorithm {
             grid.setTile(Math.floor(w / 2), Math.floor(h / 2), TILE.PATH);
         }
 
-        // 6. Attach fences to some houses
-        this.placeFences(grid, houses, p.fenceChance);
+        // 6. Fences remain available but are disabled by preset (chance = 0).
+        if (p.fenceChance > 0) {
+            this.placeFences(grid, houses, p.fenceChance);
+        }
 
         // 7. Carve roads between house doors and to chunk edges
         this.carveRoads(grid, houses, p);
@@ -348,8 +374,10 @@ export class SubmergedVillageAlgorithm {
         // 10. Re-run connectivity after adding detours.
         this.ensureGlobalAccessibility(grid);
 
-        // 11. Scatter rubble near paths
-        this.scatterRubble(grid, p.rubbleChance);
+        // 11. Rubble remains available but is disabled by preset (chance = 0).
+        if (p.rubbleChance > 0) {
+            this.scatterRubble(grid, p.rubbleChance);
+        }
 
         // 12. Scatter decorative trees in cleared areas
         if (p.scatterTreeChance > 0) {
@@ -371,7 +399,44 @@ export class SubmergedVillageAlgorithm {
         this.reduceDeadEnds(grid, houses);
         this.ensureGlobalAccessibility(grid);
 
+        // 16. Convert non-path terrain into Chapter 2 feature tiles (cliffs, hills, patches, water islands).
+        this.applyBiomeTerrainFeatures(grid, p);
+        this.repairPathGapsAfterBiome(grid);
+
+        // 17. Scatter obstacles on FOREST tiles (after all terrain features are placed)
+        this.scatterObstacles(grid);
+
         return grid;
+    }
+
+    /**
+     * Restore obvious single-tile path connectors that became visually blocked by biome overlays.
+     */
+    private repairPathGapsAfterBiome(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        const toPath: Array<[number, number]> = [];
+
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const tile = grid.getTile(x, y);
+                if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF) continue;
+
+                const north = grid.getTile(x, y - 1) === TILE.PATH;
+                const south = grid.getTile(x, y + 1) === TILE.PATH;
+                const east = grid.getTile(x + 1, y) === TILE.PATH;
+                const west = grid.getTile(x - 1, y) === TILE.PATH;
+                const pathNeighbors = Number(north) + Number(south) + Number(east) + Number(west);
+
+                // Bridge narrow blockers in straight corridors or path intersections.
+                if ((north && south) || (east && west) || pathNeighbors >= 3) {
+                    toPath.push([x, y]);
+                }
+            }
+        }
+
+        for (const [x, y] of toPath) {
+            grid.setTile(x, y, TILE.PATH);
+        }
     }
 
     // =====================================================================
@@ -1169,6 +1234,924 @@ export class SubmergedVillageAlgorithm {
                 }
             }
         }
+    }
+
+    // =====================================================================
+    // Obstacle Scattering
+    // =====================================================================
+
+    /**
+     * Convert all remaining FOREST tiles to OBSTACLE tiles.
+     * Like Enchanted Forest (Act 1), only PATH tiles are traversable.
+     * All non-path terrain becomes obstacles that block movement.
+     */
+    private scatterObstacles(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+
+        for (let x = 0; x < w; x++) {
+            for (let y = 0; y < h; y++) {
+                // Convert all FOREST tiles to OBSTACLE tiles
+                if (grid.getTile(x, y) === TILE.FOREST) {
+                    grid.setTile(x, y, TILE.OBSTACLE);
+                }
+            }
+        }
+    }
+
+    private applyBiomeTerrainFeatures(grid: IntGrid, params: VillageLayoutParams): void {
+        const [w, h] = this.levelSize;
+
+        // Reset all non-path tiles to a neutral land base before painting feature families.
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.PATH) {
+                    grid.setTile(x, y, TILE.FOREST);
+                }
+            }
+        }
+
+        this.paintSimpleWaterPonds(grid, params.waterPoolCount);
+        const totalCliffGroups = Math.max(1, params.cliffBandCount);
+        const irregularCliffCount = Math.max(2, Math.ceil(totalCliffGroups * 0.7));
+        const simpleCliffCount = Math.max(1, totalCliffGroups - irregularCliffCount);
+        // Paint irregular first so natural shapes claim space before simple fallback rings.
+        this.paintIrregularCliffHillFormations(grid, irregularCliffCount);
+        this.paintSimpleCliffHillFormations(grid, simpleCliffCount);
+
+        const totalHillGroups = Math.max(1, params.hillClusterCount);
+        // Reverted by request: hills are simple 2x2 scatter only.
+        this.paintSimpleHillFormations(grid, totalHillGroups);
+
+        // Finalize cliff masses first so later obstacle families honor stable cliff silhouettes.
+        this.repairCliffGaps(grid);
+        this.enforceCliffShellIntegrity(grid);
+        this.removeCliffFragments(grid, 8);
+        this.enforceStrictHillBundles(grid);
+
+        const grassTotal = Math.max(1, params.grassPatchCount);
+        this.paintGrassPatchesSequentially(grid, grassTotal);
+
+        this.enforceGrassPatchMinThickness(grid);
+
+        const sandTotal = Math.max(1, params.sandPatchCount);
+        // SandGrass Bush family is strict 2x2 only.
+        this.paintSimpleSandPatch2x2Formations(grid, sandTotal);
+
+        // Finalize: cliffs must be surrounded by a 1-tile PATH moat.
+        // Run last so no later pass can place obstacles back beside cliffs.
+        this.enforceCliffObstacleClearance(grid, 1);
+        this.removeCliffFragments(grid, 8);
+        this.enforceStrictHillBundles(grid);
+        this.enforceStrictSandPatchBundles(grid);
+        this.enforceGrassPatchMinThickness(grid);
+        this.enforceGrassPatchShapeQuality(grid);
+    }
+
+    /**
+     * Place GrassSand patches strictly one object at a time:
+     * generate candidate -> validate rules -> stamp -> move to next.
+     */
+    private paintGrassPatchesSequentially(grid: IntGrid, total: number): void {
+        if (total <= 0) return;
+
+        let placed = 0;
+        let globalAttempts = Math.max(20, total * 16);
+
+        while (placed < total && globalAttempts > 0) {
+            globalAttempts--;
+
+            // Keep snakes as occasional accents and prioritize stable rectangular bundles.
+            const rollSnake = this.rng() < 0.22;
+
+            let success = false;
+            if (rollSnake) {
+                success = this.tryPlaceSnakePatchFormation(grid, TILE.GRASS_PATCH)
+                    || this.tryPlaceSimplePatchFormation(grid, TILE.GRASS_PATCH);
+            } else {
+                success = this.tryPlaceSimplePatchFormation(grid, TILE.GRASS_PATCH)
+                    || this.tryPlaceSnakePatchFormation(grid, TILE.GRASS_PATCH);
+            }
+
+            if (success) placed++;
+        }
+    }
+
+    /**
+     * Stamp simple, fully-closed cliff rings with hill interiors.
+     * This intentionally avoids open/freehand chains so cliff tiles always complete.
+     */
+    private paintSimpleCliffHillFormations(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+
+        for (let i = 0; i < count; i++) {
+            let placed = false;
+
+            for (let attempt = 0; attempt < 28 && !placed; attempt++) {
+                const halfW = this.randomInt(2, 4);
+                const halfH = this.randomInt(1, 3);
+                const cx = this.randomInt(halfW + 2, w - halfW - 3);
+                const cy = this.randomInt(halfH + 2, h - halfH - 3);
+
+                const minX = cx - halfW;
+                const maxX = cx + halfW;
+                const minY = cy - halfH;
+                const maxY = cy + halfH;
+
+                const requiredGap = Math.max(this.CLIFF_FORMATION_GAP, this.OBSTACLE_FORMATION_GAP);
+                if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, requiredGap)) continue;
+
+                for (let y = minY; y <= maxY; y++) {
+                    for (let x = minX; x <= maxX; x++) {
+                        const border = x === minX || x === maxX || y === minY || y === maxY;
+                        grid.setTile(x, y, border ? TILE.CLIFF : TILE.FOREST);
+                    }
+                }
+
+                placed = true;
+            }
+        }
+    }
+
+    /**
+     * Stamp simple pond/lake bodies (compact rounded rectangles) to keep water readable.
+     */
+    private paintSimpleWaterPonds(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+
+        for (let i = 0; i < count; i++) {
+            let placed = false;
+
+            for (let attempt = 0; attempt < 24 && !placed; attempt++) {
+                const halfW = this.randomInt(1, 3);
+                const halfH = this.randomInt(1, 2);
+                const cx = this.randomInt(halfW + 2, w - halfW - 3);
+                const cy = this.randomInt(halfH + 2, h - halfH - 3);
+
+                const minX = cx - halfW;
+                const maxX = cx + halfW;
+                const minY = cy - halfH;
+                const maxY = cy + halfH;
+
+                if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, this.OBSTACLE_FORMATION_GAP)) continue;
+
+                for (let y = minY; y <= maxY; y++) {
+                    for (let x = minX; x <= maxX; x++) {
+                        // Slight corner trimming for softer pond shapes.
+                        const corner = (x === minX || x === maxX) && (y === minY || y === maxY);
+                        if (corner && this.rng() < 0.55) continue;
+                        grid.setTile(x, y, TILE.WATER);
+                    }
+                }
+
+                placed = true;
+            }
+        }
+    }
+
+    /**
+     * Stamp simple hill features as strict 2x2 clusters.
+     */
+    private paintSimpleHillFormations(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+
+        for (let i = 0; i < count; i++) {
+            let placed = false;
+            for (let attempt = 0; attempt < 40 && !placed; attempt++) {
+                const minX = this.randomInt(2, w - 4);
+                const minY = this.randomInt(2, h - 4);
+                const maxX = minX + 1;
+                const maxY = minY + 1;
+
+                if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, this.OBSTACLE_FORMATION_GAP)) continue;
+
+                for (let y = minY; y <= maxY; y++) {
+                    for (let x = minX; x <= maxX; x++) {
+                        grid.setTile(x, y, TILE.HILL);
+                    }
+                }
+
+                placed = true;
+            }
+        }
+    }
+
+    /**
+     * SandGrass Bush patches must exist only as strict 2x2 bundles.
+     */
+    private paintSimpleSandPatch2x2Formations(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+
+        for (let i = 0; i < count; i++) {
+            let placed = false;
+            for (let attempt = 0; attempt < 40 && !placed; attempt++) {
+                const minX = this.randomInt(2, w - 4);
+                const minY = this.randomInt(2, h - 4);
+                const maxX = minX + 1;
+                const maxY = minY + 1;
+
+                if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, this.PATCH_FORMATION_GAP)) continue;
+
+                for (let y = minY; y <= maxY; y++) {
+                    for (let x = minX; x <= maxX; x++) {
+                        grid.setTile(x, y, TILE.SAND_PATCH);
+                    }
+                }
+
+                placed = true;
+            }
+        }
+    }
+
+    /**
+     * SandGrass Bush must only exist as exact 2x2 components.
+     */
+    private enforceStrictSandPatchBundles(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        const visited = new Set<string>();
+        const toForest: Array<[number, number]> = [];
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.SAND_PATCH) continue;
+                const startKey = `${x},${y}`;
+                if (visited.has(startKey)) continue;
+
+                const component: Array<[number, number]> = [];
+                const queue: Array<[number, number]> = [[x, y]];
+                visited.add(startKey);
+
+                while (queue.length > 0) {
+                    const [cx, cy] = queue.shift()!;
+                    component.push([cx, cy]);
+
+                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
+                        if (!this.isInBounds(nx, ny)) continue;
+                        if (grid.getTile(nx, ny) !== TILE.SAND_PATCH) continue;
+                        const key = `${nx},${ny}`;
+                        if (visited.has(key)) continue;
+                        visited.add(key);
+                        queue.push([nx, ny]);
+                    }
+                }
+
+                if (component.length !== 4) {
+                    toForest.push(...component);
+                    continue;
+                }
+
+                const xs = component.map(([cx]) => cx);
+                const ys = component.map(([, cy]) => cy);
+                const minX = Math.min(...xs);
+                const maxX = Math.max(...xs);
+                const minY = Math.min(...ys);
+                const maxY = Math.max(...ys);
+
+                const is2x2 = (maxX - minX === 1) && (maxY - minY === 1)
+                    && component.some(([cx, cy]) => cx === minX && cy === minY)
+                    && component.some(([cx, cy]) => cx === minX && cy === maxY)
+                    && component.some(([cx, cy]) => cx === maxX && cy === minY)
+                    && component.some(([cx, cy]) => cx === maxX && cy === maxY);
+
+                if (!is2x2) {
+                    toForest.push(...component);
+                }
+            }
+        }
+
+        for (const [fx, fy] of toForest) {
+            grid.setTile(fx, fy, TILE.FOREST);
+        }
+    }
+
+    /**
+     * Hills must only exist as exact 2x2 components.
+     * Any other hill shape is removed.
+     */
+    private enforceStrictHillBundles(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        const visited = new Set<string>();
+        const toForest: Array<[number, number]> = [];
+        const toPath: Array<[number, number]> = [];
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.HILL) continue;
+                const startKey = `${x},${y}`;
+                if (visited.has(startKey)) continue;
+
+                const component: Array<[number, number]> = [];
+                const queue: Array<[number, number]> = [[x, y]];
+                visited.add(startKey);
+
+                while (queue.length > 0) {
+                    const [cx, cy] = queue.shift()!;
+                    component.push([cx, cy]);
+
+                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
+                        if (!this.isInBounds(nx, ny)) continue;
+                        if (grid.getTile(nx, ny) !== TILE.HILL) continue;
+                        const key = `${nx},${ny}`;
+                        if (visited.has(key)) continue;
+                        visited.add(key);
+                        queue.push([nx, ny]);
+                    }
+                }
+
+                if (component.length !== 4) {
+                    toForest.push(...component);
+                    continue;
+                }
+
+                const xs = component.map(([cx]) => cx);
+                const ys = component.map(([, cy]) => cy);
+                const minX = Math.min(...xs);
+                const maxX = Math.max(...xs);
+                const minY = Math.min(...ys);
+                const maxY = Math.max(...ys);
+
+                const is2x2 = (maxX - minX === 1) && (maxY - minY === 1)
+                    && component.some(([cx, cy]) => cx === minX && cy === minY)
+                    && component.some(([cx, cy]) => cx === minX && cy === maxY)
+                    && component.some(([cx, cy]) => cx === maxX && cy === minY)
+                    && component.some(([cx, cy]) => cx === maxX && cy === maxY);
+
+                if (!is2x2) {
+                    toForest.push(...component);
+                    continue;
+                }
+
+                // Hills must keep a 1-tile gap from cliffs; if they touch, demote hill bundle to PATH.
+                const nearCliff = component.some(([cx, cy]) =>
+                    this.neighbors8([cx, cy]).some(([nx, ny]) => this.isInBounds(nx, ny) && grid.getTile(nx, ny) === TILE.CLIFF)
+                );
+                if (nearCliff) {
+                    toPath.push(...component);
+                }
+            }
+        }
+
+        for (const [fx, fy] of toForest) {
+            grid.setTile(fx, fy, TILE.FOREST);
+        }
+        for (const [px, py] of toPath) {
+            grid.setTile(px, py, TILE.PATH);
+        }
+    }
+
+    /**
+     * Remove tiny cliff components that create broken/stray cliff artifacts.
+     */
+    private removeCliffFragments(grid: IntGrid, minSize: number): void {
+        const [w, h] = this.levelSize;
+        const visited = new Set<string>();
+        const toForest: Array<[number, number]> = [];
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.CLIFF) continue;
+                const startKey = `${x},${y}`;
+                if (visited.has(startKey)) continue;
+
+                const component: Array<[number, number]> = [];
+                const queue: Array<[number, number]> = [[x, y]];
+                visited.add(startKey);
+
+                while (queue.length > 0) {
+                    const [cx, cy] = queue.shift()!;
+                    component.push([cx, cy]);
+
+                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
+                        if (!this.isInBounds(nx, ny)) continue;
+                        if (grid.getTile(nx, ny) !== TILE.CLIFF) continue;
+                        const key = `${nx},${ny}`;
+                        if (visited.has(key)) continue;
+                        visited.add(key);
+                        queue.push([nx, ny]);
+                    }
+                }
+
+                if (component.length < minSize) {
+                    toForest.push(...component);
+                }
+            }
+        }
+
+        for (const [fx, fy] of toForest) {
+            grid.setTile(fx, fy, TILE.FOREST);
+        }
+    }
+
+    /**
+     * Build irregular but closed cliff/hill masses from blob masks.
+     */
+    private paintIrregularCliffHillFormations(grid: IntGrid, count: number): void {
+        const [w, h] = this.levelSize;
+
+        for (let i = 0; i < count; i++) {
+            for (let attempt = 0; attempt < 64; attempt++) {
+                const seedX = this.randomInt(3, w - 4);
+                const seedY = this.randomInt(3, h - 4);
+                if (this.isNearPath(grid, seedX, seedY, 1)) continue;
+                if (grid.getTile(seedX, seedY) !== TILE.FOREST) continue;
+
+                const mask = this.growMaskBlob(grid, seedX, seedY, this.randomInt(12, 30));
+                if (mask.size < 10) continue;
+
+                const requiredGap = Math.max(this.CLIFF_FORMATION_GAP, this.OBSTACLE_FORMATION_GAP);
+                if (this.maskTouchesNonForestWithinGap(grid, mask, requiredGap)) continue;
+
+                for (const cell of mask) {
+                    const [x, y] = cell.split(',').map(Number);
+                    const border = this.neighbors4([x, y]).some(([nx, ny]) => !mask.has(`${nx},${ny}`));
+                    grid.setTile(x, y, border ? TILE.CLIFF : TILE.FOREST);
+                }
+
+                break;
+            }
+        }
+    }
+
+    private tryPlaceSimplePatchFormation(grid: IntGrid, patchType: number): boolean {
+        const [w, h] = this.levelSize;
+
+        for (let attempt = 0; attempt < 20; attempt++) {
+            // Slightly wider range so rectangles are easier to notice in-play.
+            const width = this.randomInt(3, 6);
+            const height = this.randomInt(3, 6);
+            const minX = this.randomInt(2, w - width - 2);
+            const minY = this.randomInt(2, h - height - 2);
+            const maxX = minX + width - 1;
+            const maxY = minY + height - 1;
+
+            const cells: Array<[number, number]> = [];
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    cells.push([x, y]);
+                }
+            }
+
+            // Keep a hard one-tile moat so separate patch shapes never merge into hybrids.
+            const requiredGap = Math.max(1, this.PATCH_FORMATION_GAP);
+            if (!this.isPatchCellsPlaceableWithGap(grid, cells, requiredGap)) continue;
+
+            this.stampPatchCells(grid, cells, patchType);
+            return true;
+        }
+
+        return false;
+    }
+
+    private tryPlaceSnakePatchFormation(grid: IntGrid, patchType: number): boolean {
+        const [w, h] = this.levelSize;
+
+        for (let attempt = 0; attempt < 120; attempt++) {
+            const startX = this.randomInt(2, w - 5);
+            const startY = this.randomInt(2, h - 5);
+
+            // Strict snake rule: exactly 2-tiles thick strips only.
+            // Allowed shapes are straight, single-turn L, or T forms.
+            const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+            const [dx1, dy1] = dirs[this.randomInt(0, dirs.length - 1)];
+            const shapeRoll = this.rng();
+            const shapeMode: 'straight' | 'l' | 't' =
+                shapeRoll < 0.28 ? 'straight' : shapeRoll < 0.68 ? 'l' : 't';
+
+            const lenA = shapeMode === 't'
+                ? (this.rng() < 0.6 ? 3 : 5) // odd block count so stem has a clean center anchor
+                : this.randomInt(2, 5);
+            const lenB = shapeMode === 'straight' ? 0 : this.randomInt(2, 4);
+
+            const blockAnchors: Array<[number, number]> = [];
+            const blockKeys = new Set<string>();
+
+            const pushBlock = (bx: number, by: number): boolean => {
+                const key = `${bx},${by}`;
+                if (blockKeys.has(key)) return false;
+                blockKeys.add(key);
+                blockAnchors.push([bx, by]);
+                return true;
+            };
+
+            let ok = pushBlock(startX, startY);
+            if (!ok) continue;
+
+            // Primary segment.
+            for (let s = 1; s < lenA && ok; s++) {
+                const bx = startX + (dx1 * 2 * s);
+                const by = startY + (dy1 * 2 * s);
+                ok = pushBlock(bx, by);
+            }
+            if (!ok) continue;
+
+            // Optional one-time 90-degree branch.
+            if (shapeMode === 'l' || shapeMode === 't') {
+                const leftTurn: [number, number] = [-dy1, dx1];
+                const rightTurn: [number, number] = [dy1, -dx1];
+                const [dx2, dy2] = this.rng() < 0.5 ? leftTurn : rightTurn;
+
+                if (shapeMode === 'l') {
+                    // L: branch starts at the bar end.
+                    const cornerX = startX + (dx1 * 2 * (lenA - 1));
+                    const cornerY = startY + (dy1 * 2 * (lenA - 1));
+
+                    for (let s = 1; s < lenB && ok; s++) {
+                        const bx = cornerX + (dx2 * 2 * s);
+                        const by = cornerY + (dy2 * 2 * s);
+                        ok = pushBlock(bx, by);
+                    }
+                } else {
+                    // T: branch starts from the center anchor and extends outward.
+                    const mid = Math.floor((lenA - 1) / 2);
+                    const centerX = startX + (dx1 * 2 * mid);
+                    const centerY = startY + (dy1 * 2 * mid);
+
+                    for (let s = 1; s < lenB && ok; s++) {
+                        const bx = centerX + (dx2 * 2 * s);
+                        const by = centerY + (dy2 * 2 * s);
+                        ok = pushBlock(bx, by);
+                    }
+                }
+            }
+
+            if (!ok || blockAnchors.length < 3) continue;
+
+            const cells = new Set<string>();
+            for (const [bx, by] of blockAnchors) {
+                cells.add(`${bx},${by}`);
+                cells.add(`${bx + 1},${by}`);
+                cells.add(`${bx},${by + 1}`);
+                cells.add(`${bx + 1},${by + 1}`);
+            }
+
+            const coords = Array.from(cells).map((v) => v.split(',').map(Number) as [number, number]);
+            if (coords.length < 12) continue;
+
+            // Safety: each snake tile must be part of at least one 2x2 patch block.
+            let strictTwoTileThick = true;
+            const hasPatch = (px: number, py: number): boolean => cells.has(`${px},${py}`);
+            for (const [x, y] of coords) {
+                const partOf2x2 =
+                    (hasPatch(x, y) && hasPatch(x + 1, y) && hasPatch(x, y + 1) && hasPatch(x + 1, y + 1)) ||
+                    (hasPatch(x - 1, y) && hasPatch(x, y) && hasPatch(x - 1, y + 1) && hasPatch(x, y + 1)) ||
+                    (hasPatch(x, y - 1) && hasPatch(x + 1, y - 1) && hasPatch(x, y) && hasPatch(x + 1, y)) ||
+                    (hasPatch(x - 1, y - 1) && hasPatch(x, y - 1) && hasPatch(x - 1, y) && hasPatch(x, y));
+                if (!partOf2x2) {
+                    strictTwoTileThick = false;
+                    break;
+                }
+            }
+            if (!strictTwoTileThick) continue;
+
+            // Keep snakes isolated from rectangles and other snakes.
+            const requiredGap = Math.max(1, this.PATCH_FORMATION_GAP);
+            if (!this.isPatchCellsPlaceableWithGap(grid, coords, requiredGap)) continue;
+
+            this.stampPatchCells(grid, coords, patchType);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Exact-shape patch validator used by sequential placement:
+     * each candidate cell must be FOREST, and the requested gap ring
+     * around that exact shape must only contain FOREST/PATH.
+     */
+    private isPatchCellsPlaceableWithGap(
+        grid: IntGrid,
+        cells: Array<[number, number]>,
+        gap: number,
+    ): boolean {
+        const core = new Set(cells.map(([x, y]) => `${x},${y}`));
+
+        for (const [x, y] of cells) {
+            if (!this.isInBounds(x, y)) return false;
+            if (x <= 0 || y <= 0 || x >= this.levelSize[0] - 1 || y >= this.levelSize[1] - 1) return false;
+            if (grid.getTile(x, y) !== TILE.FOREST) return false;
+        }
+
+        for (const [x, y] of cells) {
+            for (let dy = -gap; dy <= gap; dy++) {
+                for (let dx = -gap; dx <= gap; dx++) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    if (!this.isInBounds(nx, ny)) continue;
+                    if (core.has(`${nx},${ny}`)) continue;
+                    const t = grid.getTile(nx, ny);
+                    if (t !== TILE.FOREST && t !== TILE.PATH) return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private stampPatchCells(grid: IntGrid, cells: Array<[number, number]>, patchType: number): void {
+        for (const [x, y] of cells) {
+            grid.setTile(x, y, patchType);
+        }
+    }
+
+    /**
+     * Remove accidental 1-thick GrassSand segments.
+     * Allowed local patterns are corners, T/junctions, or 2-thick ribbon/rectangle cells.
+     */
+    private enforceGrassPatchMinThickness(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+
+        for (let pass = 0; pass < 3; pass++) {
+            const toForest: Array<[number, number]> = [];
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    if (grid.getTile(x, y) !== TILE.GRASS_PATCH) continue;
+
+                    // Hard rule: every GrassSand patch tile must be part of at least one 2x2.
+                    const isPatch = (tx: number, ty: number): boolean => grid.getTile(tx, ty) === TILE.GRASS_PATCH;
+                    const partOf2x2 =
+                        (isPatch(x, y) && isPatch(x + 1, y) && isPatch(x, y + 1) && isPatch(x + 1, y + 1)) ||
+                        (isPatch(x - 1, y) && isPatch(x, y) && isPatch(x - 1, y + 1) && isPatch(x, y + 1)) ||
+                        (isPatch(x, y - 1) && isPatch(x + 1, y - 1) && isPatch(x, y) && isPatch(x + 1, y)) ||
+                        (isPatch(x - 1, y - 1) && isPatch(x, y - 1) && isPatch(x - 1, y) && isPatch(x, y));
+
+                    if (!partOf2x2) {
+                        toForest.push([x, y]);
+                    }
+                }
+            }
+
+            if (toForest.length === 0) break;
+            for (const [x, y] of toForest) {
+                grid.setTile(x, y, TILE.FOREST);
+            }
+        }
+    }
+
+    /**
+     * Remove malformed GrassSand components that read as failed snake artifacts.
+     *
+     * Guardrails:
+     * - Component must span at least 3x3 footprint
+     * - Component must have at least 9 tiles
+     *
+     * These checks preserve intentional rectangles/curves while culling thin strips.
+     */
+    private enforceGrassPatchShapeQuality(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        const visited = new Set<string>();
+        const toForest: Array<[number, number]> = [];
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.GRASS_PATCH) continue;
+
+                const startKey = `${x},${y}`;
+                if (visited.has(startKey)) continue;
+
+                const component: Array<[number, number]> = [];
+                const queue: Array<[number, number]> = [[x, y]];
+                visited.add(startKey);
+
+                while (queue.length > 0) {
+                    const [cx, cy] = queue.shift()!;
+                    component.push([cx, cy]);
+
+                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
+                        if (!this.isInBounds(nx, ny)) continue;
+                        if (grid.getTile(nx, ny) !== TILE.GRASS_PATCH) continue;
+                        const key = `${nx},${ny}`;
+                        if (visited.has(key)) continue;
+                        visited.add(key);
+                        queue.push([nx, ny]);
+                    }
+                }
+
+                const xs = component.map(([cx]) => cx);
+                const ys = component.map(([, cy]) => cy);
+                const width = Math.max(...xs) - Math.min(...xs) + 1;
+                const height = Math.max(...ys) - Math.min(...ys) + 1;
+
+                const hasHealthyFootprint = width >= 3 && height >= 3;
+                const hasHealthyArea = component.length >= 9;
+
+                if (!hasHealthyFootprint || !hasHealthyArea) {
+                    toForest.push(...component);
+                }
+            }
+        }
+
+        for (const [fx, fy] of toForest) {
+            grid.setTile(fx, fy, TILE.FOREST);
+        }
+    }
+
+    private growMaskBlob(grid: IntGrid, seedX: number, seedY: number, targetSize: number): Set<string> {
+        const mask = new Set<string>();
+        const queue: Array<[number, number]> = [[seedX, seedY]];
+
+        while (queue.length > 0 && mask.size < targetSize) {
+            const idx = this.randomInt(0, queue.length - 1);
+            const [x, y] = queue.splice(idx, 1)[0];
+            if (!this.isInBounds(x, y) || x < 1 || y < 1 || x >= this.levelSize[0] - 1 || y >= this.levelSize[1] - 1) continue;
+            if (mask.has(`${x},${y}`)) continue;
+            if (grid.getTile(x, y) !== TILE.FOREST) continue;
+
+            mask.add(`${x},${y}`);
+            for (const [nx, ny] of this.neighbors4([x, y])) {
+                if (this.rng() < 0.8) {
+                    queue.push([nx, ny]);
+                }
+            }
+        }
+
+        return mask;
+    }
+
+    /**
+     * Close local cliff gaps so cliff chains remain visually complete.
+     */
+    private repairCliffGaps(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+
+        for (let pass = 0; pass < 3; pass++) {
+            const fills: Array<[number, number]> = [];
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const tile = grid.getTile(x, y);
+                    if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF) continue;
+
+                    const n = grid.getTile(x, y - 1) === TILE.CLIFF;
+                    const s = grid.getTile(x, y + 1) === TILE.CLIFF;
+                    const e = grid.getTile(x + 1, y) === TILE.CLIFF;
+                    const wSide = grid.getTile(x - 1, y) === TILE.CLIFF;
+                    const ne = grid.getTile(x + 1, y - 1) === TILE.CLIFF;
+                    const nw = grid.getTile(x - 1, y - 1) === TILE.CLIFF;
+                    const se = grid.getTile(x + 1, y + 1) === TILE.CLIFF;
+                    const sw = grid.getTile(x - 1, y + 1) === TILE.CLIFF;
+
+                    const orthCount = Number(n) + Number(s) + Number(e) + Number(wSide);
+                    if (orthCount < 2) continue;
+
+                    const connects =
+                        (n && e) || (e && s) || (s && wSide) || (wSide && n) ||
+                        (n && s) || (e && wSide);
+
+                    const diagonalNearMiss =
+                        ((nw && se) || (ne && sw)) && (orthCount >= 1);
+
+                    const almostClosedPocket =
+                        (Number(ne) + Number(nw) + Number(se) + Number(sw) >= 3) && orthCount >= 1;
+
+                    if (connects || diagonalNearMiss || almostClosedPocket) {
+                        fills.push([x, y]);
+                    }
+                }
+            }
+
+            for (const [x, y] of fills) {
+                grid.setTile(x, y, TILE.CLIFF);
+            }
+        }
+    }
+
+    /**
+     * Ensure cliff formations are complete shells with no visual holes:
+     * - Hill tiles cannot directly touch non-cliff terrain (promote to cliff).
+     * - Tiny interior shell holes are sealed by promoting enclosed cells to cliff.
+     */
+    private enforceCliffShellIntegrity(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+
+        for (let pass = 0; pass < 3; pass++) {
+            const toCliff: Array<[number, number]> = [];
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const tile = grid.getTile(x, y);
+
+                    // Rule 2: seal tiny non-mass holes enclosed by cliff/hill shell.
+                    if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF || tile === TILE.HILL) {
+                        continue;
+                    }
+
+                    const orth = this.neighbors4([x, y]);
+                    const orthMassCount = orth.filter(([nx, ny]) => {
+                        const nt = grid.getTile(nx, ny);
+                        return nt === TILE.CLIFF || nt === TILE.HILL;
+                    }).length;
+
+                    const diagMassCount = this.neighbors8([x, y]).filter(([nx, ny]) => {
+                        const nt = grid.getTile(nx, ny);
+                        return nt === TILE.CLIFF || nt === TILE.HILL;
+                    }).length;
+
+                    if (orthMassCount >= 3 || (orthMassCount >= 2 && diagMassCount >= 5)) {
+                        toCliff.push([x, y]);
+                    }
+                }
+            }
+
+            if (toCliff.length === 0) break;
+            for (const [x, y] of toCliff) {
+                grid.setTile(x, y, TILE.CLIFF);
+            }
+        }
+    }
+
+    private isNearPath(grid: IntGrid, x: number, y: number, radius: number): boolean {
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (!this.isInBounds(nx, ny)) continue;
+                if (grid.getTile(nx, ny) === TILE.PATH) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private isRegionForestWithGap(
+        grid: IntGrid,
+        minX: number,
+        maxX: number,
+        minY: number,
+        maxY: number,
+        gap: number,
+    ): boolean {
+        const [w, h] = this.levelSize;
+        const fromX = this.clamp(minX - gap, 1, w - 2);
+        const toX = this.clamp(maxX + gap, 1, w - 2);
+        const fromY = this.clamp(minY - gap, 1, h - 2);
+        const toY = this.clamp(maxY + gap, 1, h - 2);
+
+        for (let y = fromY; y <= toY; y++) {
+            for (let x = fromX; x <= toX; x++) {
+                if (grid.getTile(x, y) !== TILE.FOREST) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private maskTouchesNonForestWithinGap(grid: IntGrid, mask: Set<string>, gap: number): boolean {
+        for (const cell of mask) {
+            const [x, y] = cell.split(',').map(Number);
+            if (this.hasNearbyNonForestTile(grid, x, y, gap)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private enforceCliffObstacleClearance(grid: IntGrid, radius: number): void {
+        const [w, h] = this.levelSize;
+        const toPath: Array<[number, number]> = [];
+
+        // Scan outward from each cliff tile so its perimeter is guaranteed PATH.
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.CLIFF) continue;
+
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (!this.isInBounds(nx, ny)) continue;
+
+                        const t = grid.getTile(nx, ny);
+                        // Keep cliff walls and hill interiors intact; force everything else to path.
+                        if (t === TILE.CLIFF || t === TILE.HILL || t === TILE.PATH) continue;
+                        toPath.push([nx, ny]);
+                    }
+                }
+            }
+        }
+
+        for (const [x, y] of toPath) {
+            grid.setTile(x, y, TILE.PATH);
+        }
+    }
+
+    private hasNearbyNonForestTile(grid: IntGrid, x: number, y: number, radius: number): boolean {
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (!this.isInBounds(nx, ny)) continue;
+                if (grid.getTile(nx, ny) !== TILE.FOREST) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     // =====================================================================

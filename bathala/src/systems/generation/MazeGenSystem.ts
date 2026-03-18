@@ -51,6 +51,10 @@ export class Overworld_MazeGenManager {
 
   // Floor textures for randomization
   private floorTextures: string[] = ['floor1', 'floor2', 'floor3'];
+  private submergedVillagePathTextures: string[] = [
+    'sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4',
+    'sv_path_sand_1', 'sv_path_sand_2', 'sv_path_sand_3', 'sv_path_sand_4',
+  ];
 
   // Outer tile markers for chunk connections
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
@@ -121,6 +125,23 @@ export class Overworld_MazeGenManager {
     }
 
     if (DEBUG_ENEMY_AI) console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize, 'devMode:', devMode);
+
+    // Act 2 uses dedicated submerged village path tiles.
+    if (this.isAct2Chapter()) {
+      this.floorTextures = [...this.submergedVillagePathTextures];
+    }
+  }
+
+  /**
+   * Determine if a tile value is traversable for overworld movement/spawn.
+   * Act 2 treats all pathTiles-backed land IDs as walkable.
+   */
+  private isTraversableTile(tileValue: number): boolean {
+    if (!this.isAct2Chapter()) {
+      return tileValue === 0;
+    }
+
+    return tileValue === 0 || tileValue === 1 || tileValue === 2 || tileValue === 3 || tileValue === 4;
   }
 
   /**
@@ -168,8 +189,8 @@ export class Overworld_MazeGenManager {
     let startX = chunkCenterX * this.gridSize + this.gridSize / 2;
     let startY = chunkCenterY * this.gridSize + this.gridSize / 2;
 
-    // If center is not PATH, find nearest PATH tile (tile 0).
-    if (initialChunk.maze[chunkCenterY][chunkCenterX] !== 0) {
+    // If center is not traversable, find nearest traversable tile.
+    if (!this.isTraversableTile(initialChunk.maze[chunkCenterY][chunkCenterX])) {
       if (DEBUG_ENEMY_AI) console.log('🗺️ Center is blocked, searching nearest path tile');
 
       let foundPath = false;
@@ -186,7 +207,7 @@ export class Overworld_MazeGenManager {
             const newX = chunkCenterX + dx;
             if (newY >= 0 && newY < initialChunk.maze.length &&
               newX >= 0 && newX < initialChunk.maze[0].length &&
-              initialChunk.maze[newY][newX] === 0) {
+              this.isTraversableTile(initialChunk.maze[newY][newX])) {
               startX = newX * this.gridSize + this.gridSize / 2;
               startY = newY * this.gridSize + this.gridSize / 2;
               foundPath = true;
@@ -196,11 +217,11 @@ export class Overworld_MazeGenManager {
         }
       }
 
-      // Fallback: first PATH tile scan (should rarely be needed, but prevents invalid spawn).
+      // Fallback: first traversable tile scan (should rarely be needed, but prevents invalid spawn).
       if (!foundPath) {
         for (let y = 0; y < initialChunk.maze.length && !foundPath; y++) {
           for (let x = 0; x < initialChunk.maze[0].length && !foundPath; x++) {
-            if (initialChunk.maze[y][x] === 0) {
+            if (this.isTraversableTile(initialChunk.maze[y][x])) {
               startX = x * this.gridSize + this.gridSize / 2;
               startY = y * this.gridSize + this.gridSize / 2;
               foundPath = true;
@@ -241,8 +262,8 @@ export class Overworld_MazeGenManager {
       return false;
     }
 
-    // Check if it's a path (0) not a wall (1)
-    return chunk.maze[gridY][gridX] === 0;
+    // Check traversability against the active chapter's walkable tile set.
+    return this.isTraversableTile(chunk.maze[gridY][gridX]);
   }
 
   /**
@@ -623,7 +644,7 @@ export class Overworld_MazeGenManager {
 
         if (tileValue !== 0) {
           // Non-walkable tile — pick texture based on tile type
-          const textureKey = this.getWallTexture(tileValue, chunkX, chunkY, x, y);
+          const textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y);
           const wallSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, textureKey);
           wallSprite.setDisplaySize(this.gridSize, this.gridSize);
           wallSprite.setOrigin(0.5);
@@ -663,27 +684,255 @@ export class Overworld_MazeGenManager {
   }
 
   /**
-   * Map a tile value to its wall texture key.
-   * Tile values:
-   *   1 — FOREST: random wall1–wall3 (trees)
-   *   2 — HOUSE:  wall4 (building placeholder)
-   *   3 — FENCE:  wall5 (broken fence placeholder)
-   *   4 — RUBBLE: wall6 (debris placeholder)
-   * For tile=1 (or any unrecognised value), falls back to the weighted
-   * wall texture pool used by Act 1.
+   * Map non-path tile values to texture keys.
+   * Act 2 favors submerged-village bundles with directional variants.
    */
-  private getWallTexture(tileValue: number, chunkX: number, chunkY: number, x: number, y: number): string {
+  private getWallTexture(tileValue: number, maze: number[][], chunkX: number, chunkY: number, x: number, y: number): string {
+    const isAct2 = this.isAct2Chapter();
+    const has = (dx: number, dy: number): boolean => {
+      const ny = y + dy;
+      const nx = x + dx;
+      return maze[ny]?.[nx] === tileValue;
+    };
+    const fullyEnclosed = (): boolean => {
+      return has(0, -1) && has(0, 1) && has(1, 0) && has(-1, 0)
+        && has(1, -1) && has(-1, -1) && has(1, 1) && has(-1, 1);
+    };
+
+    const renderGrassSandPatchTile = (): string => {
+      const n = has(0, -1);
+      const s = has(0, 1);
+      const e = has(1, 0);
+      const w = has(-1, 0);
+      const ne = has(1, -1);
+      const nw = has(-1, -1);
+      const se = has(1, 1);
+      const sw = has(-1, 1);
+      const orthCount = Number(n) + Number(s) + Number(e) + Number(w);
+
+      if (!n && !w) return 'sv_patch_grass_sand_nw';
+      if (!n && !e) return 'sv_patch_grass_sand_ne';
+      if (!s && !w) return 'sv_patch_grass_sand_sw';
+      if (!s && !e) return 'sv_patch_grass_sand_se';
+
+      // Concave routing for junctions between snakes and quadrilateral patches.
+      if (orthCount >= 3) {
+        if (n && w && !nw) return 'sv_patch_grass_sand_inner_bush_se';
+        if (n && e && !ne) return 'sv_patch_grass_sand_inner_bush_sw';
+        if (s && w && !sw) return 'sv_patch_grass_sand_inner_bush_ne';
+        if (s && e && !se) return 'sv_patch_grass_sand_inner_bush_nw';
+      }
+
+      if (!n) return 'sv_patch_grass_sand_n';
+      if (!s) return 'sv_patch_grass_sand_s';
+      if (!e) return 'sv_patch_grass_sand_e';
+      if (!w) return 'sv_patch_grass_sand_w';
+
+      // Snake/irregular shapes must not use middle tiles.
+      if (!fullyEnclosed()) {
+        if (n && w && !nw) return 'sv_patch_grass_sand_inner_bush_se';
+        if (n && e && !ne) return 'sv_patch_grass_sand_inner_bush_sw';
+        if (s && w && !sw) return 'sv_patch_grass_sand_inner_bush_ne';
+        if (s && e && !se) return 'sv_patch_grass_sand_inner_bush_nw';
+
+        const edgeVariants = ['sv_patch_grass_sand_n', 'sv_patch_grass_sand_s', 'sv_patch_grass_sand_e', 'sv_patch_grass_sand_w'];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, edgeVariants.length);
+        return edgeVariants[idx];
+      }
+
+      return 'sv_patch_grass_sand_middle';
+    };
+
+    const renderSandGrassPatchTile = (): string => {
+      // SandGrass Bush is intentionally strict: only render as 2x2 bundles.
+      const isType = (tx: number, ty: number): boolean => maze[ty]?.[tx] === tileValue;
+      const anchors: Array<[number, number]> = [
+        [x, y],
+        [x - 1, y],
+        [x, y - 1],
+        [x - 1, y - 1],
+      ];
+
+      for (const [ax, ay] of anchors) {
+        if (!isType(ax, ay) || !isType(ax + 1, ay) || !isType(ax, ay + 1) || !isType(ax + 1, ay + 1)) {
+          continue;
+        }
+
+        if (x === ax && y === ay) return 'sv_patch_sand_grass_bush_nw';
+        if (x === ax + 1 && y === ay) return 'sv_patch_sand_grass_bush_ne';
+        if (x === ax && y === ay + 1) return 'sv_patch_sand_grass_bush_sw';
+        if (x === ax + 1 && y === ay + 1) return 'sv_patch_sand_grass_bush_se';
+      }
+
+      // Hard visual guard against artifacting when a non-2x2 remnant survives generation.
+      const baseLand = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, baseLand.length);
+      return baseLand[idx];
+    };
+
+    if (tileValue === 5) {
+      const n = has(0, -1);
+      const s = has(0, 1);
+      const e = has(1, 0);
+      const w = has(-1, 0);
+      const ne = has(1, -1);
+      const nw = has(-1, -1);
+      const se = has(1, 1);
+      const sw = has(-1, 1);
+      const orthCount = Number(n) + Number(s) + Number(e) + Number(w);
+
+      if (!n && !w) return 'sv_grass_cliff_nw';
+      if (!n && !e) return 'sv_grass_cliff_ne';
+      if (!s && !w) return 'sv_grass_cliff_sw';
+      if (!s && !e) return 'sv_grass_cliff_se';
+
+      // Dedicated inner-corner routing for irregular/concave shapes.
+      // Gate this so narrow cliff elbows do not pick concave tiles and appear broken.
+      if (orthCount >= 3) {
+        if (n && w && !nw) return 'sv_grass_cliff_inner_se';
+        if (n && e && !ne) return 'sv_grass_cliff_inner_sw';
+        if (s && w && !sw) return 'sv_grass_cliff_inner_ne';
+        if (s && e && !se) return 'sv_grass_cliff_inner_nw';
+      }
+
+      if (!n) return 'sv_grass_cliff_n';
+      if (!s) return 'sv_grass_cliff_s';
+      if (!e) return 'sv_grass_cliff_e';
+      if (!w) return 'sv_grass_cliff_w';
+
+      if (!fullyEnclosed()) {
+        const diagonalVariants = ['sv_grass_cliff_n', 'sv_grass_cliff_s', 'sv_grass_cliff_e', 'sv_grass_cliff_w'];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, diagonalVariants.length);
+        return diagonalVariants[idx];
+      }
+
+      return 'sv_grass_cliff_middle';
+    }
+
+    if (tileValue === 7) {
+      return renderGrassSandPatchTile();
+    }
+
+    if (tileValue === 8) {
+      return renderSandGrassPatchTile();
+    }
+
+    if (tileValue === 6) {
+      const n = has(0, -1);
+      const s = has(0, 1);
+      const e = has(1, 0);
+      const w = has(-1, 0);
+
+      const isPartOf2x2Hill = (): boolean => {
+        const isHill = (dx: number, dy: number) => maze[y + dy]?.[x + dx] === 6;
+        return (
+          (isHill(0, 0) && isHill(1, 0) && isHill(0, 1) && isHill(1, 1)) ||
+          (isHill(-1, 0) && isHill(0, 0) && isHill(-1, 1) && isHill(0, 1)) ||
+          (isHill(0, -1) && isHill(1, -1) && isHill(0, 0) && isHill(1, 0)) ||
+          (isHill(-1, -1) && isHill(0, -1) && isHill(-1, 0) && isHill(0, 0))
+        );
+      };
+
+      // Hard guard: hills must render only as 2x2 bundles.
+      if (!isPartOf2x2Hill()) {
+        const baseLand = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, baseLand.length);
+        return baseLand[idx];
+      }
+
+      // Outer corners for convex hill edges.
+      if (!n && !w) return 'sv_grass_hill_nw';
+      if (!n && !e) return 'sv_grass_hill_ne';
+      if (!s && !w) return 'sv_grass_hill_sw';
+      if (!s && !e) return 'sv_grass_hill_se';
+
+      // Strict 2x2 hills should resolve to one of the four corners only.
+      return 'sv_grass_hill_nw';
+    }
+
+    if (tileValue === 9) {
+      const tileAt = (dx: number, dy: number): number => maze[y + dy]?.[x + dx] ?? -1;
+      const n = has(0, -1);
+      const s = has(0, 1);
+      const e = has(1, 0);
+      const w = has(-1, 0);
+
+      const isCliffNeighbor = (dx: number, dy: number): boolean => {
+        const t = tileAt(dx, dy);
+        return t === 5 || t === 6;
+      };
+
+      const cornerTexture = (
+        shoreKey: string,
+        cliffKey: string,
+        sideACliff: boolean,
+        sideBCliff: boolean,
+      ): string => (sideACliff || sideBCliff ? cliffKey : shoreKey);
+
+      if (!n && !w) {
+        return cornerTexture('sv_water_shore_nw', 'sv_water_cliff_nw', isCliffNeighbor(0, -1), isCliffNeighbor(-1, 0));
+      }
+      if (!n && !e) {
+        return cornerTexture('sv_water_shore_ne', 'sv_water_cliff_ne', isCliffNeighbor(0, -1), isCliffNeighbor(1, 0));
+      }
+      if (!s && !w) {
+        return cornerTexture('sv_water_shore_sw', 'sv_water_cliff_sw', isCliffNeighbor(0, 1), isCliffNeighbor(-1, 0));
+      }
+      if (!s && !e) {
+        return cornerTexture('sv_water_shore_se', 'sv_water_cliff_se', isCliffNeighbor(0, 1), isCliffNeighbor(1, 0));
+      }
+
+      if (!n) return isCliffNeighbor(0, -1) ? 'sv_water_cliff_n' : 'sv_water_shore_n';
+      if (!s) return isCliffNeighbor(0, 1) ? 'sv_water_cliff_s' : 'sv_water_shore_s';
+      if (!e) return isCliffNeighbor(1, 0) ? 'sv_water_cliff_e' : 'sv_water_shore_e';
+      if (!w) return isCliffNeighbor(-1, 0) ? 'sv_water_cliff_w' : 'sv_water_shore_w';
+
+      const deepVariants = ['sv_water_middle', 'sv_water_middle', 'sv_water_debris_1', 'sv_water_debris_2', 'sv_water_debris_3'];
+      const deepIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, deepVariants.length);
+      return deepVariants[deepIdx];
+    }
+
+    if (isAct2 && tileValue === 1) {
+      const baseLand = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, baseLand.length);
+      return baseLand[idx];
+    }
+
+    // Obstacle tiles (TILE.OBSTACLE = 10) - randomly select from available obstacle sprites
+    if (tileValue === 10) {
+      const obstacles = ['sv_obstacle_tree', 'sv_obstacle_medium_tree', 'sv_obstacle_small_tree', 'sv_obstacle_stump'];
+      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, obstacles.length);
+      return obstacles[idx];
+    }
+
     switch (tileValue) {
-      case 2: return 'wall4';   // House
-      case 3: return 'wall5';   // Fence
-      case 4: return 'wall6';   // Rubble
+      case 2:
+      case 3:
+      case 4:
+        if (isAct2) {
+          const act2Fallback = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
+          return act2Fallback[idx];
+        }
+        return tileValue === 2 ? 'wall4' : tileValue === 3 ? 'wall5' : 'wall6';
       default: {
+        if (isAct2) {
+          const act2Fallback = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
+          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
+          return act2Fallback[idx];
+        }
         // Forest / generic wall — weighted random from wall1-3
         const forestTextures = ['wall1', 'wall1', 'wall2', 'wall2', 'wall3'];
         const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, forestTextures.length);
         return forestTextures[idx];
       }
     }
+  }
+
+  private isAct2Chapter(): boolean {
+    const chapter = GameState.getInstance().getCurrentChapter();
+    const normalized = String(chapter).toLowerCase();
+    return chapter === 2 || normalized === '2' || normalized.includes('act2') || normalized.includes('chapter2');
   }
 
   /**

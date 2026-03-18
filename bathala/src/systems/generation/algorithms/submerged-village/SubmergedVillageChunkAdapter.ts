@@ -98,15 +98,15 @@ const ZONE_DEFAULTS = {
 function densePreset(cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
     return {
         ...DEFAULT_VILLAGE_PARAMS,
-        houseCount: cfg.denseHouseCount,
+        houseCount: 0,
         houseMinSpacing: cfg.denseHouseSpacing,
         neighborhoodCount: 1,
         spreadFactor: 0.30,
         houseClearRadius: 0,
         scatterTreeChance: 0.08,
         villageGroundGrowth: 1,
-        fenceChance: 0.3,
-        rubbleChance: 0.10,
+        fenceChance: 0,
+        rubbleChance: 0,
         centerBias: null,
         houseSizePreference: 'small',
         roadNeighborCount: 2,
@@ -119,6 +119,11 @@ function densePreset(cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
         detourMaxDistance: 14,
         fixDoubleWide: true,
         edgeMargin: 1,
+        cliffBandCount: 3,
+        hillClusterCount: 2,
+        grassPatchCount: 8,
+        sandPatchCount: 6,
+        waterPoolCount: 1,
     };
 }
 
@@ -128,15 +133,15 @@ function transitionPreset(
 ): VillageLayoutParams {
     return {
         ...DEFAULT_VILLAGE_PARAMS,
-        houseCount: cfg.transitionHouseCount,
+        houseCount: 0,
         houseMinSpacing: cfg.transitionHouseSpacing,
         neighborhoodCount: 1,
         spreadFactor: 0.24,
         houseClearRadius: 0,
         scatterTreeChance: 0.05,
         villageGroundGrowth: 1,
-        fenceChance: 0.4,
-        rubbleChance: 0.08,
+        fenceChance: 0,
+        rubbleChance: 0,
         centerBias: bias,
         houseSizePreference: 'all',
         roadNeighborCount: 2,
@@ -149,21 +154,26 @@ function transitionPreset(
         detourMaxDistance: 12,
         fixDoubleWide: true,
         edgeMargin: 2,
+        cliffBandCount: 3,
+        hillClusterCount: 3,
+        grassPatchCount: 7,
+        sandPatchCount: 6,
+        waterPoolCount: 2,
     };
 }
 
-function forestPreset(cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
+function forestPreset(_cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
     return {
         ...DEFAULT_VILLAGE_PARAMS,
-        houseCount: cfg.forestHouseCount,
+        houseCount: 0,
         houseMinSpacing: 2,
         neighborhoodCount: 1,
         spreadFactor: 0.20,
         houseClearRadius: 0,
         scatterTreeChance: 0,
         villageGroundGrowth: 0,
-        fenceChance: 0.5,
-        rubbleChance: 0.04,
+        fenceChance: 0,
+        rubbleChance: 0,
         centerBias: null,
         houseSizePreference: 'large',
         roadNeighborCount: 1,
@@ -176,6 +186,11 @@ function forestPreset(cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
         detourMaxDistance: 16,
         fixDoubleWide: true,
         edgeMargin: 2,
+        cliffBandCount: 2,
+        hillClusterCount: 4,
+        grassPatchCount: 5,
+        sandPatchCount: 5,
+        waterPoolCount: 3,
     };
 }
 
