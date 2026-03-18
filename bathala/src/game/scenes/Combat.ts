@@ -2473,7 +2473,10 @@ export class Combat extends Scene {
    * (e.g. Act 2/3 enemies). Uses actual enemy name and chapter relic pool for rewards.
    */
   private buildChapterFallbackDialogue(
-    enemy: CombatEntity & { tier?: "common" | "elite" | "boss"; dialogue?: { defeat?: string } },
+    enemy: CombatEntity & {
+      tier?: "common" | "elite" | "boss";
+      dialogue?: { defeat?: string; spare?: string; slay?: string };
+    },
     chapter: Chapter
   ): CreatureDialogue {
     const tier = enemy.tier ?? "common";
@@ -2487,14 +2490,13 @@ export class Combat extends Scene {
     const killDiamante = tier === "boss" ? 5 : tier === "elite" ? 2 : 1;
     const spareHeal = tier === "boss" ? 30 : tier === "elite" ? 20 : 8;
     const defeatLine = enemy.dialogue?.defeat ?? "";
+    const spareLine = enemy.dialogue?.spare ?? "";
+    const slayLine = enemy.dialogue?.slay ?? "";
     return {
       name: enemy.name,
-      spareDialogue: defeatLine
-        ? "Your mercy is remembered. Take this blessing."
-        : "Your compassion has been noted. Take this gift.",
-      killDialogue: defeatLine
-        ? "Your choice has been recorded."
-        : "So be it.",
+      // Prefer enemy-specific spare/slay lines when available (Acts 2-3 creature configs include these).
+      spareDialogue: spareLine || (defeatLine ? "Your mercy is remembered. Take this blessing." : "Your compassion has been noted. Take this gift."),
+      killDialogue: slayLine || (defeatLine ? "Your choice has been recorded." : "So be it."),
       spareReward: {
         ginto: spareGinto,
         diamante: spareDiamante,
@@ -3579,6 +3581,13 @@ export class Combat extends Scene {
 
       if (isBossDefeatChapterTransition) {
         console.log("🎉 Boss defeated! Triggering chapter transition...");
+
+        // Persist meta progression BEFORE we reset for the next chapter.
+        // Landás is intended to carry across chapters, but this branch bypasses the
+        // normal post-combat save block (which would otherwise write landasScore).
+        gameState.updatePlayerData({
+          landasScore: this.combatState.player.landasScore,
+        });
 
         // Mark current node as completed BEFORE chapter progression resets
         gameState.completeCurrentNode(true);
