@@ -216,6 +216,28 @@ export class Preloader extends Scene {
     this.load.image("sv_water_debris_2", "background/submergedvillageAssets/waterboundTiles/water_debris2.png");
     this.load.image("sv_water_debris_3", "background/submergedvillageAssets/waterboundTiles/water_debris3.png");
 
+    // Act 3 overworld tile set - skyward citadel (cloud platforms)
+    this.load.image("cloud_blank", "background/skywardcitadelAssets/cloud_blank.png");
+    this.load.image("cloud_edge_n1", "background/skywardcitadelAssets/cloud_edge_N1.png");
+    this.load.image("cloud_edge_n2", "background/skywardcitadelAssets/cloud_edge_N2.png");
+    this.load.image("cloud_edge_s1", "background/skywardcitadelAssets/cloud_edge_S1.png");
+    this.load.image("cloud_edge_s2", "background/skywardcitadelAssets/cloud_edge_S2.png");
+    this.load.image("cloud_edge_e1", "background/skywardcitadelAssets/cloud_edge_E1.png");
+    this.load.image("cloud_edge_e2", "background/skywardcitadelAssets/cloud_edge_E2.png");
+    this.load.image("cloud_edge_w1", "background/skywardcitadelAssets/cloud_edge_W1.png");
+    this.load.image("cloud_edge_w2", "background/skywardcitadelAssets/cloud_edge_W2.png");
+    this.load.image("cloud_edge_ne", "background/skywardcitadelAssets/cloud_edge_NE.png");
+    this.load.image("cloud_edge_nw", "background/skywardcitadelAssets/cloud_edge_NW.png");
+    this.load.image("cloud_edge_se", "background/skywardcitadelAssets/cloud_edge_SE.png");
+    this.load.image("cloud_edge_sw", "background/skywardcitadelAssets/cloud_edge_SW.png");
+    this.load.image("cloud_path1", "background/skywardcitadelAssets/cloudPath/cloud_path1.png");
+    this.load.image("cloud_path2", "background/skywardcitadelAssets/cloudPath/cloud_path2.png");
+    this.load.image("cloud_path3", "background/skywardcitadelAssets/cloudPath/cloud_path3.png");
+    this.load.image("cloud_path4", "background/skywardcitadelAssets/cloudPath/cloud_path4.png");
+    this.load.image("cloud_wall1", "background/skywardcitadelAssets/cloudWall/cloud_wall1.png");
+    this.load.image("cloud_wall2", "background/skywardcitadelAssets/cloudWall/cloud_wall2.png");
+    this.load.image("cloud_wall3", "background/skywardcitadelAssets/cloudWall/cloud_wall3.png");
+
     // Fonts
     this.loadFont("Chivo", "fonts/chivo/Chivo-Medium.ttf");
     this.loadFont("dungeon-mode", "fonts/dungeon-mode/dungeon-mode.ttf");
