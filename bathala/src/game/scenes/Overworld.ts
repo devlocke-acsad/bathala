@@ -225,6 +225,21 @@ export class Overworld extends Scene {
 
     // Check if we need to reset player data (fresh game start or new chapter)
     const gameState = GameState.getInstance();
+    const currentChapter = gameState.getCurrentChapter();
+
+    // Add Chapter 2 blue-ish tint overlay for underwater atmosphere
+    if (currentChapter === 2) {
+      const screenWidth = this.cameras.main.width;
+      const screenHeight = this.cameras.main.height;
+      this.add.rectangle(
+        screenWidth / 2,
+        screenHeight / 2,
+        screenWidth,
+        screenHeight,
+        0x1a3a5c, // Deep ocean blue matching Act2Definition theme
+        0.5
+      ).setScrollFactor(0).setDepth(DEPTH.NIGHT_OVERLAY); // Same depth as night overlay
+    }
     const savedPlayerData = gameState.getPlayerData();
 
     // Track which chapter this scene was created for (used to detect chapter changes on resume)
