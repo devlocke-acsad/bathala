@@ -894,6 +894,13 @@ export class Overworld_MazeGenManager {
       return baseLand[idx];
     }
 
+    // Obstacle tiles (TILE.OBSTACLE = 10) - randomly select from available obstacle sprites
+    if (tileValue === 10) {
+      const obstacles = ['sv_obstacle_tree', 'sv_obstacle_medium_tree', 'sv_obstacle_small_tree', 'sv_obstacle_stump'];
+      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, obstacles.length);
+      return obstacles[idx];
+    }
+
     switch (tileValue) {
       case 2:
       case 3:

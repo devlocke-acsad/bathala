@@ -185,6 +185,12 @@ export class Preloader extends Scene {
     this.load.image("sv_patch_grass_sand_inner_bush_sw", "background/submergedvillageAssets/grassObstacles/SandGrass_Bush_SW.png");
     this.load.image("sv_patch_grass_sand_inner_bush_se", "background/submergedvillageAssets/grassObstacles/SandGrass_Bush_SE.png");
 
+    // Obstacles - scattered decorative blocking elements
+    this.load.image("sv_obstacle_tree", "background/submergedvillageAssets/obstacles/Tree_Obstacle.png");
+    this.load.image("sv_obstacle_medium_tree", "background/submergedvillageAssets/obstacles/MediumTree_Obstacle.png");
+    this.load.image("sv_obstacle_small_tree", "background/submergedvillageAssets/obstacles/SmallTree_Obstacle.png");
+    this.load.image("sv_obstacle_stump", "background/submergedvillageAssets/obstacles/Stump_Obstacle.png");
+
     this.load.image("sv_water_middle", "background/submergedvillageAssets/waterboundTiles/water_tile_middle.png");
     this.load.image("sv_water_shore_n", "background/submergedvillageAssets/waterboundTiles/water_beachshore_N.png");
     this.load.image("sv_water_shore_s", "background/submergedvillageAssets/waterboundTiles/water_beachshore_S.png");

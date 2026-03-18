@@ -42,6 +42,7 @@ export const TILE = {
     GRASS_PATCH: 7,
     SAND_PATCH: 8,
     WATER: 9,
+    OBSTACLE: 10,
 } as const;
 
 // =========================================================================
@@ -401,6 +402,9 @@ export class SubmergedVillageAlgorithm {
         // 16. Convert non-path terrain into Chapter 2 feature tiles (cliffs, hills, patches, water islands).
         this.applyBiomeTerrainFeatures(grid, p);
         this.repairPathGapsAfterBiome(grid);
+
+        // 17. Scatter obstacles on FOREST tiles (after all terrain features are placed)
+        this.scatterObstacles(grid);
 
         return grid;
     }
@@ -1227,6 +1231,28 @@ export class SubmergedVillageAlgorithm {
 
                 if (this.rng() < chance) {
                     grid.setTile(x, y, TILE.RUBBLE);
+                }
+            }
+        }
+    }
+
+    // =====================================================================
+    // Obstacle Scattering
+    // =====================================================================
+
+    /**
+     * Convert all remaining FOREST tiles to OBSTACLE tiles.
+     * Like Enchanted Forest (Act 1), only PATH tiles are traversable.
+     * All non-path terrain becomes obstacles that block movement.
+     */
+    private scatterObstacles(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+
+        for (let x = 0; x < w; x++) {
+            for (let y = 0; y < h; y++) {
+                // Convert all FOREST tiles to OBSTACLE tiles
+                if (grid.getTile(x, y) === TILE.FOREST) {
+                    grid.setTile(x, y, TILE.OBSTACLE);
                 }
             }
         }
