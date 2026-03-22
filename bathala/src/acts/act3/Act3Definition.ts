@@ -46,7 +46,7 @@ export class Act3Definition extends ActDefinition {
     musicKey: 'overworld_ambient',      // TODO: Replace with skyward_ambient
     ambientSounds: ['forest_ambient', 'wind_whispers'],
     tilesetKey: 'cloud_tileset',        // Cloud platform tileset
-    combatBackgroundKey: 'forest_combat_bg', // TODO: Replace with sky_combat_bg
+    combatBackgroundKey: 'chap3_combat_bg',
   };
 
   // === Progression ===

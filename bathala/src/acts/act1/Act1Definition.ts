@@ -55,7 +55,7 @@ export class Act1Definition extends ActDefinition {
     musicKey: 'overworld_ambient',
     ambientSounds: ['forest_ambient', 'wind_whispers'],
     tilesetKey: 'forest_tileset',
-    combatBackgroundKey: 'forest_combat_bg',
+    combatBackgroundKey: 'chap1_combat_bg',
   };
 
   // === Progression ===

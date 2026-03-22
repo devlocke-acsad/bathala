@@ -252,6 +252,21 @@ export class Combat extends Scene {
     return this.bestHandAchieved;
   }
 
+  private getCombatBackgroundKeyForChapter(chapter: Chapter): string {
+    switch (chapter) {
+      case 2:
+      case "Chapter 2":
+        return "chap2_combat_bg";
+      case 3:
+      case "Chapter 3":
+        return "chap3_combat_bg";
+      case 1:
+      case "Chapter 1":
+      default:
+        return "chap1_combat_bg";
+    }
+  }
+
   create(data: {
     nodeType: string;
     enemyId?: string;
@@ -269,8 +284,13 @@ export class Combat extends Scene {
       return;
     }
 
-    // Add forest background
-    const bg = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, "forest_bg");
+    const gameState = GameState.getInstance();
+    const currentChapter = gameState.getCurrentChapter() as Chapter;
+    const backgroundKey = this.getCombatBackgroundKeyForChapter(currentChapter);
+    const resolvedBackgroundKey = this.textures.exists(backgroundKey) ? backgroundKey : "forest_bg";
+
+    // Add chapter-specific combat background
+    const bg = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, resolvedBackgroundKey);
     bg.setDisplaySize(this.cameras.main.width, this.cameras.main.height);
 
     // Add 50% opacity overlay with #150E10 to dim the background (Prologue style)
@@ -289,8 +309,6 @@ export class Combat extends Scene {
     }
 
     // Apply chapter-specific visual theme
-    const gameState = GameState.getInstance();
-    const currentChapter = gameState.getCurrentChapter();
     const themeManager = new VisualThemeManager(this);
     themeManager.applyChapterTheme(currentChapter);
 

@@ -119,6 +119,9 @@ export class Preloader extends Scene {
     this.load.image("wall5", "background/wall5.png");
     this.load.image("wall6", "background/wall6.png");
     this.load.image("chap1_no_leaves_boss", "background/chap1_no_leaves_boss.png");
+    this.load.image("chap1_combat_bg", "background/chap1_combat.jpg");
+    this.load.image("chap2_combat_bg", "background/chap2_combat.jpg");
+    this.load.image("chap3_combat_bg", "background/chap3_combat.jpg");
 
     // Act 2 overworld tile set - submerged village
     this.load.image("sv_path_grass_1", "background/submergedvillageAssets/pathTiles/Path_Grass1.png");
