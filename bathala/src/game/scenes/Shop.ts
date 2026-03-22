@@ -157,103 +157,54 @@ export class Shop extends Scene {
     this.musicLifecycle = new MusicLifecycleSystem(this);
     this.musicLifecycle.start();
 
-    // ── Mysterious merchant entrance transition ──
-    const w = this.cameras.main.width;
-    const h = this.cameras.main.height;
-    const purpleCover = this.add.rectangle(w / 2, h / 2, w, h, 0x0d0015)
-      .setOrigin(0.5).setAlpha(1).setDepth(9999);
-    const shimmer = this.add.circle(w / 2, h / 2, w * 0.3, 0x9b59b6, 0.12)
-      .setDepth(9998);
-    this.tweens.add({
-      targets: purpleCover, alpha: 0,
-      duration: 700, ease: 'Power2', delay: 80,
-      onComplete: () => purpleCover.destroy()
-    });
-    this.tweens.add({
-      targets: shimmer, alpha: 0, radius: w * 0.5,
-      duration: 900, ease: 'Power2', delay: 100,
-      onComplete: () => shimmer.destroy()
-    });
+    // Build atmospheric background first (forest/vignette/particles)
+    this.createAtmosphericBackground();
 
-    // Add forest background image
-    const forestBg = this.add.image(
-      this.cameras.main.width / 2,
-      this.cameras.main.height / 2,
-      "forest_bg"
-    );
-    // Scale to cover the entire screen
-    const scaleX = this.cameras.main.width / forestBg.width;
-    const scaleY = this.cameras.main.height / forestBg.height;
-    const scale = Math.max(scaleX, scaleY);
-    forestBg.setScale(scale);
-    forestBg.setDepth(0); // Behind everything
-    
-    // Dim only the background image (not the whole screen)
-    forestBg.setAlpha(0.4); // 40% visible = nicely dimmed background
-
-    // Night-time overlay: subtle dark blue tint when it's nighttime in the overworld
-    if (!OverworldGameState.getInstance().isDay) {
-      forestBg.setAlpha(0.3);
-      this.add.rectangle(w / 2, h / 2, w, h, 0x000033, 0.3).setDepth(1);
-    }
-
-    // Create animated background elements
-    this.createBackgroundElements();
+    // P3R-style diagonal slash entrance transition
+    this.playEntranceTransition();
 
     // Create mysterious merchant character on the left
     this.createMerchantCharacter();
 
-    // Create modern title section
+    // ── Cinematic title — no boxy panel, plain text on atmospheric background ──
     const screenWidth = this.cameras.main.width;
-    
-    // Title background panel with prologue/combat theme - taller for better spacing
-    const titlePanel = this.add.graphics();
-    titlePanel.fillStyle(0x150E10, 0.9);
-    titlePanel.fillRoundedRect(screenWidth/2 - 350, 10, 700, 75, 12); // Increased height from 60px to 75px
-    titlePanel.lineStyle(3, 0x77888C, 0.9);
-    titlePanel.strokeRoundedRect(screenWidth/2 - 350, 10, 700, 75, 12); // Increased height from 60px to 75px
-    titlePanel.lineStyle(2, 0x556065, 0.75);
-    titlePanel.strokeRoundedRect(screenWidth/2 - 348, 12, 696, 71, 10);
-    titlePanel.setDepth(2000); // Ensure title stays on top and doesn't scroll
-    
-    // Main title with prologue/combat styling
+    const screenHeight = this.cameras.main.height;
+    const titleY = Math.max(55, screenHeight * 0.07);
+
     const title = this.add.text(
       screenWidth / 2,
-      35,
+      titleY,
       "MYSTERIOUS MERCHANT",
       {
         fontFamily: "dungeon-mode",
-        fontSize: 28,
-        color: "#77888C",
+        fontSize: 38,
+        color: "#e8eced",
         align: "center",
       }
-    ).setOrigin(0.5).setDepth(2001); // Ensure title text stays on top
-    
-    // Subtitle - better positioned with more breathing room
-    const subtitle = this.add.text(
+    ).setOrigin(0.5).setDepth(5);
+
+    // Accent line beneath title
+    const accentLineY = titleY + 32;
+    const lineGfx = this.add.graphics().setDepth(5);
+    lineGfx.lineStyle(3, 0x9b59b6, 0.8);
+    lineGfx.beginPath();
+    lineGfx.moveTo(screenWidth / 2 - 100, accentLineY);
+    lineGfx.lineTo(screenWidth / 2 + 100, accentLineY);
+    lineGfx.strokePath();
+
+    // Subtitle
+    this.add.text(
       screenWidth / 2,
-      63,
-      "• Rare Relics & Mystical Artifacts •",
+      accentLineY + 18,
+      "RARE RELICS & MYSTICAL ARTIFACTS",
       {
         fontFamily: "dungeon-mode",
-        fontSize: 14,
-        color: "#77888C",
+        fontSize: 13,
+        color: "#9b59b6",
         align: "center",
+        letterSpacing: 4,
       }
-    ).setOrigin(0.5).setDepth(2001); // Ensure subtitle text stays on top
-    
-    // Title animation
-    title.setScale(0.8).setAlpha(0);
-    subtitle.setScale(0.8).setAlpha(0);
-    
-    this.tweens.add({
-      targets: [title, subtitle],
-      scale: 1,
-      alpha: 1,
-      duration: 800,
-      ease: 'Back.easeOut',
-      delay: 200
-    });
+    ).setOrigin(0.5).setAlpha(0.75).setDepth(5);
 
     // Create currency display
     this.createCurrencyDisplay();
@@ -297,166 +248,230 @@ export class Shop extends Scene {
     this.events.off('shutdown', this.cleanup, this);
   }
 
-  private createBackgroundElements(): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    
-    // Create a sophisticated background matching prologue/combat theme
-    const bgOverlay = this.add.graphics();
-    bgOverlay.fillStyle(0x150E10, 1);
-    bgOverlay.fillRect(0, 0, screenWidth, screenHeight);
-    
-    // Add subtle geometric pattern with prologue/combat colors - reduced for performance
-    for (let i = 0; i < 6; i++) { // Reduced from 12 to 6
-      const size = Phaser.Math.Between(15, 45);
-      const x = Phaser.Math.Between(0, screenWidth);
-      const y = Phaser.Math.Between(0, screenHeight);
-      
-      const shape = this.add.graphics();
-      shape.lineStyle(1, 0x77888C, 0.1); // Reduced opacity
-      shape.beginPath();
-      shape.moveTo(x, y);
-      shape.lineTo(x + size, y);
-      shape.lineTo(x + size/2, y - size * 0.866);
-      shape.closePath();
-      shape.strokePath();
-      
-      // Slower rotation animation for better performance
-      this.tweens.add({
-        targets: shape,
-        rotation: Math.PI * 2,
-        duration: Phaser.Math.Between(30000, 45000), // Slower rotation
-        repeat: -1,
-        ease: 'Linear'
-      });
+  // ─────────────────────────────────────────────
+  //  ATMOSPHERIC BACKGROUND  (Campfire-style)
+  // ─────────────────────────────────────────────
+
+  private createAtmosphericBackground(): void {
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+    const bgLayer = this.add.container(0, 0).setDepth(0);
+
+    // Forest backdrop
+    if (this.textures.exists('forest_bg')) {
+      const forestBg = this.add.image(W / 2, H / 2, 'forest_bg');
+      const scaleX = W / forestBg.width;
+      const scaleY = H / forestBg.height;
+      forestBg.setScale(Math.max(scaleX, scaleY)).setAlpha(0.45);
+      bgLayer.add(forestBg);
     }
-    
-    // Reduce particle count for better performance
-    for (let i = 0; i < 8; i++) { // Reduced from 20 to 8
-      const particle = this.add.circle(
-        Phaser.Math.Between(0, screenWidth),
-        Phaser.Math.Between(0, screenHeight),
-        Phaser.Math.Between(1, 2),
-        0x77888C,
-        0.2 // Reduced opacity
-      );
-      
-      // Simpler floating animation
-      this.tweens.add({
-        targets: particle,
-        x: '+=' + Phaser.Math.Between(-60, 60), // Reduced movement range
-        y: '+=' + Phaser.Math.Between(-60, 60),
-        alpha: 0.4,
-        duration: Phaser.Math.Between(8000, 12000), // Slower animation
-        repeat: -1,
-        yoyo: true,
-        ease: 'Sine.easeInOut'
-      });
+
+    // Semi-transparent dark base overlay
+    const base = this.add.rectangle(W / 2, H / 2, W, H, 0x0d0a12, 0.6);
+    bgLayer.add(base);
+
+    // Circular vignette via canvas radial gradient
+    const vigKey = 'shop_vignette';
+    if (this.textures.exists(vigKey)) { this.textures.remove(vigKey); }
+    const vigCanvas = this.textures.createCanvas(vigKey, W, H) as Phaser.Textures.CanvasTexture;
+    const vigCtx = vigCanvas.getContext();
+    const cx = W / 2, cy = H / 2;
+    const innerR = Math.min(W, H) * 0.3;
+    const outerR = Math.sqrt(W * W + H * H) / 2;
+    const radGrad = vigCtx.createRadialGradient(cx, cy, innerR, cx, cy, outerR);
+    radGrad.addColorStop(0,   'rgba(0,0,0,0)');
+    radGrad.addColorStop(0.5, 'rgba(0,0,0,0.35)');
+    radGrad.addColorStop(1,   'rgba(0,0,0,0.88)');
+    vigCtx.fillStyle = radGrad;
+    vigCtx.fillRect(0, 0, W, H);
+    vigCanvas.refresh();
+    const vignette = this.add.image(W / 2, H / 2, vigKey);
+    bgLayer.add(vignette);
+
+    // Warm purple-tinted wash
+    const wash = this.add.rectangle(W / 2, H / 2, W, H, 0x1a0f2e, 0.3);
+    bgLayer.add(wash);
+
+    // Night-time overlay
+    if (!OverworldGameState.getInstance().isDay) {
+      const nightOverlay = this.add.rectangle(W / 2, H / 2, W, H, 0x000033, 0.25);
+      bgLayer.add(nightOverlay);
     }
-    
-    // Add corner decorative elements with prologue/combat theme
-    const cornerSize = 40;
-    
-    // Top-left corner
-    const topLeft = this.add.graphics();
-    topLeft.lineStyle(3, 0x77888C, 0.8);
-    topLeft.beginPath();
-    topLeft.moveTo(20, cornerSize + 20);
-    topLeft.lineTo(20, 20);
-    topLeft.lineTo(cornerSize + 20, 20);
-    topLeft.strokePath();
-    
-    // Top-right corner
-    const topRight = this.add.graphics();
-    topRight.lineStyle(3, 0x77888C, 0.8);
-    topRight.beginPath();
-    topRight.moveTo(screenWidth - cornerSize - 20, 20);
-    topRight.lineTo(screenWidth - 20, 20);
-    topRight.lineTo(screenWidth - 20, cornerSize + 20);
-    topRight.strokePath();
-    
-    // Bottom-left corner
-    const bottomLeft = this.add.graphics();
-    bottomLeft.lineStyle(3, 0x77888C, 0.8);
-    bottomLeft.beginPath();
-    bottomLeft.moveTo(20, screenHeight - cornerSize - 20);
-    bottomLeft.lineTo(20, screenHeight - 20);
-    bottomLeft.lineTo(cornerSize + 20, screenHeight - 20);
-    bottomLeft.strokePath();
-    
-    // Bottom-right corner
-    const bottomRight = this.add.graphics();
-    bottomRight.lineStyle(3, 0x77888C, 0.8);
-    bottomRight.beginPath();
-    bottomRight.moveTo(screenWidth - cornerSize - 20, screenHeight - 20);
-    bottomRight.lineTo(screenWidth - 20, screenHeight - 20);
-    bottomRight.lineTo(screenWidth - 20, screenHeight - cornerSize - 20);
-    bottomRight.strokePath();
-    
-    // Add a subtle pulsing effect to corners - optimized
-    const corners = [topLeft, topRight, bottomLeft, bottomRight];
-    corners.forEach((corner, index) => {
+
+    // Scanline texture overlay
+    const scanGfx = this.make.graphics({});
+    scanGfx.fillStyle(0x000000, 1);
+    scanGfx.fillRect(0, 0, 4, 2);
+    scanGfx.fillStyle(0xffffff, 1);
+    scanGfx.fillRect(0, 2, 4, 2);
+    scanGfx.generateTexture('shop_scanline', 4, 4);
+    scanGfx.destroy();
+
+    if (this.textures.exists('shop_scanline')) {
+      const scanlines = this.add.tileSprite(0, 0, W, H, 'shop_scanline')
+        .setOrigin(0).setAlpha(0.04).setTint(0x3a2a40);
+      bgLayer.add(scanlines);
+    }
+
+    // Floating purple/gold particles
+    this.createShopFloatingParticles(bgLayer, W, H);
+  }
+
+  private createShopFloatingParticles(bgLayer: Phaser.GameObjects.Container, W: number, H: number): void {
+    const count = 25;
+    for (let i = 0; i < count; i++) {
+      const x = Phaser.Math.Between(0, W);
+      const y = Phaser.Math.Between(0, H);
+      const radius = Phaser.Math.FloatBetween(1.5, 4);
+      const alpha  = Phaser.Math.FloatBetween(0.08, 0.3);
+      const color  = Phaser.Math.RND.pick([0x9b59b6, 0xc5a56a, 0x8a6fdf, 0xd4a747]);
+
+      const dot = this.add.circle(x, y, radius, color, alpha).setDepth(1);
+      bgLayer.add(dot);
+
+      const duration = Phaser.Math.Between(4000, 8000);
       this.tweens.add({
-        targets: corner,
-        alpha: 0.4,
-        duration: 3000, // Slower pulse for better performance
-        repeat: -1,
-        yoyo: true,
+        targets: dot,
+        y: y - Phaser.Math.Between(80, 200),
+        alpha: 0,
+        duration,
         ease: 'Sine.easeInOut',
-        delay: index * 500 // Stagger the animations
+        repeat: -1,
+        delay: Phaser.Math.Between(0, 3000),
+        onRepeat: () => {
+          dot.setPosition(Phaser.Math.Between(0, W), H + 20);
+          dot.setAlpha(alpha);
+        }
+      });
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  //  ENTRANCE TRANSITION  (P3R diagonal slash)
+  // ─────────────────────────────────────────────
+
+  private playEntranceTransition(): void {
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    // Full-screen cover
+    const cover = this.add.rectangle(W / 2, H / 2, W, H, 0x050305)
+      .setOrigin(0.5).setAlpha(1).setDepth(9999);
+
+    // Diagonal slash wipes (P3R-style geometric cuts)
+    const slashCount = 6;
+    const slashes: Phaser.GameObjects.Rectangle[] = [];
+    for (let i = 0; i < slashCount; i++) {
+      const slashH = (H / slashCount) + 10;
+      const y = slashH * i + slashH / 2;
+      const fromLeft = i % 2 === 0;
+      const slash = this.add.rectangle(
+        fromLeft ? -W : W * 2,
+        y,
+        W + 200,
+        slashH,
+        Phaser.Math.RND.pick([0x0c0507, 0x0f0810, 0x080510])
+      ).setOrigin(0.5).setAlpha(0.95).setDepth(9998);
+
+      slash.setRotation(fromLeft ? -0.02 : 0.02);
+      slashes.push(slash);
+
+      this.tweens.add({
+        targets: slash,
+        x: W / 2,
+        duration: 350,
+        ease: 'Power3',
+        delay: i * 60,
+      });
+    }
+
+    // After slashes cover, fade them out with the main cover
+    this.time.delayedCall(500, () => {
+      this.tweens.add({
+        targets: cover,
+        alpha: 0,
+        duration: 500,
+        ease: 'Sine.easeInOut',
+        onComplete: () => cover.destroy()
+      });
+
+      slashes.forEach((slash, i) => {
+        this.tweens.add({
+          targets: slash,
+          alpha: 0,
+          x: (i % 2 === 0) ? W * 2 : -W,
+          duration: 400,
+          ease: 'Power2',
+          delay: i * 40,
+          onComplete: () => slash.destroy()
+        });
       });
     });
   }
 
   private createMerchantCharacter(): void {
     const screenHeight = this.cameras.main.height;
-    
+
     // Position merchant on the left side
-    const merchantX = 180;
-    const merchantY = screenHeight * 0.5;
-    
+    const merchantX = 150;
+    const merchantY = screenHeight * 0.52;
+
+    // Atmospheric glow behind portrait (no frame boxes)
+    const outerGlow = this.add.circle(merchantX, merchantY, 110, 0x9b59b6, 0.06).setDepth(49);
+    this.tweens.add({
+      targets: outerGlow,
+      scaleX: 1.1, scaleY: 1.1,
+      alpha: 0.03,
+      duration: 3000,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1
+    });
+    this.add.circle(merchantX, merchantY, 70, 0xc5a56a, 0.07).setDepth(49);
+
     // Create container for merchant
     this.merchantCharacter = this.add.container(merchantX, merchantY);
     this.merchantCharacter.setDepth(500);
 
-    // Build a framed square portrait for the merchant faceset.
-    const frameSize = 170;
-    const frameOuter = this.add.rectangle(0, 0, frameSize + 14, frameSize + 14, 0x1d1922, 0.95);
-    frameOuter.setStrokeStyle(4, 0xc5a56a, 1);
+    const portraitSize = 160;
 
-    const frameInner = this.add.rectangle(0, 0, frameSize, frameSize, 0x0f1118, 0.95);
-    frameInner.setStrokeStyle(2, 0x5e4b2e, 1);
+    // Single subtle backing — very thin gold border only
+    const portraitBg = this.add.rectangle(0, 0, portraitSize + 10, portraitSize + 10, 0x0d0a12, 0.6)
+      .setStrokeStyle(1, 0xc5a56a, 0.4);
 
     const merchantSprite = this.add.sprite(0, 0, 'merchant_faceset');
-    merchantSprite.setDisplaySize(frameSize, frameSize);
-    
+    merchantSprite.setDisplaySize(portraitSize, portraitSize);
+
+    // "MERCHANT" label below
+    const merchantLabel = this.add.text(0, portraitSize / 2 + 18, 'MERCHANT', {
+      fontFamily: 'dungeon-mode',
+      fontSize: 11,
+      color: '#c5a56a',
+      letterSpacing: 3,
+    }).setOrigin(0.5).setAlpha(0.7);
+
     // Create dialogue system
     this.createMerchantDialogueSystem();
-    
-    // Add framed portrait and sprite to container.
-    this.merchantCharacter.add([
-      frameOuter,
-      frameInner,
-      merchantSprite
-    ]);
-    
-    // Make the entire merchant container interactive for dialogue.
-    this.merchantCharacter.setSize(frameSize + 24, frameSize + 24);
+
+    this.merchantCharacter.add([portraitBg, merchantSprite, merchantLabel]);
+
+    // Make interactive for dialogue
+    this.merchantCharacter.setSize(portraitSize + 10, portraitSize + 10);
     this.merchantCharacter.setInteractive()
       .on('pointerdown', () => {
         if (this.isInputLocked()) return;
         this.showMerchantDialogue();
       })
       .on('pointerover', () => {
-        merchantSprite.setTint(0xdddddd); // Slight tint on hover
+        merchantSprite.setTint(0xdddddd);
         this.input.setDefaultCursor('pointer');
       })
       .on('pointerout', () => {
         merchantSprite.clearTint();
         this.input.setDefaultCursor('default');
       });
-    
-    // Add simple floating animation for the merchant panel
+
+    // Floating animation
     this.tweens.add({
       targets: this.merchantCharacter,
       y: merchantY - 8,
@@ -526,7 +541,7 @@ export class Shop extends Scene {
 
     // Dialogue box background - matching game style
     const boxWidth = Math.min(screenWidth - 100, 800);
-    const boxHeight = 100;
+    const boxHeight = 110;
 
     // Main dialogue background
     const dialogueBg = this.add.graphics();
@@ -563,7 +578,7 @@ export class Shop extends Scene {
       fontSize: 16,
       color: '#E8E8E8',
       align: 'center',
-      wordWrap: { width: boxWidth - 40 }
+      wordWrap: { width: boxWidth - 60 }
     }).setOrigin(0.5);
 
     // Continue indicator
@@ -722,60 +737,48 @@ export class Shop extends Scene {
 
   private createCurrencyDisplay(): void {
     const screenWidth = this.cameras.main.width;
-    
-    // Health and Currency display - positioned in top-right corner with background panel
-    const topRightX = screenWidth - 20; // Right edge with padding
-    const topY = 40; // Aligned below title panel
-    
-    // Background panel for stats (compact design)
-    // Make panel wider so large gold values never overflow visually
-    const panelWidth = 220;
-    const panelHeight = 70;
-    const panelX = screenWidth - panelWidth / 2 - 20;
-    const panelY = topY;
-    
-    const statsBg = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x150E10, 0.96)
+
+    // Stats display top-right — minimal, no boxy panel, just text on atmospheric bg
+    const panelWidth = 200;
+    const panelHeight = 64;
+    const panelX = screenWidth - panelWidth / 2 - 16;
+    const panelY = Math.max(44, 44);
+
+    // Single thin-border panel matching the atmospheric style
+    const statsBg = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x0a0710, 0.82)
+      .setStrokeStyle(1, 0x4a3a5e, 0.7)
       .setOrigin(0.5)
       .setDepth(2000);
-    const statsOuterBorder = this.add.rectangle(panelX, panelY, panelWidth + 6, panelHeight + 6, undefined, 0)
-      .setOrigin(0.5)
-      .setDepth(2000);
-    statsOuterBorder.setStrokeStyle(3, 0x77888C, 0.9);
-    const statsInnerBorder = this.add.rectangle(panelX, panelY, panelWidth + 2, panelHeight + 2, undefined, 0)
-      .setOrigin(0.5)
-      .setDepth(2000);
-    statsInnerBorder.setStrokeStyle(2, 0x556065, 0.75);
-    
-    // Health display with combat styling
-    const healthY = topY - 12;
+
+    const topRightX = screenWidth - 20;
+    const healthY = panelY - 11;
+    const goldY = panelY + 11;
+
     const healthIcon = this.add.text(topRightX - 25, healthY, "♥", {
-      fontSize: 20,
+      fontSize: 18,
       color: "#ff6b6b",
     }).setOrigin(1, 0.5).setDepth(2001);
-    
+
     this.healthText = this.add.text(
-      topRightX - 35,
+      topRightX - 32,
       healthY,
       `${this.player.currentHealth}/${this.player.maxHealth}`,
       {
         fontFamily: "dungeon-mode",
-        fontSize: 16,
+        fontSize: 15,
         color: "#e8eced",
-        fontStyle: "bold"
       }
     ).setOrigin(1, 0.5).setDepth(2001);
-    
-    // Gold display - positioned below health
-    const goldY = topY + 13;
+
     const gintoIcon = this.add.text(topRightX - 25, goldY, "♦", {
-      fontSize: 18,
-    }).setOrigin(1, 0.5).setDepth(2001);
-    
-    this.gintoText = this.add.text(topRightX - 35, goldY, `${this.player.ginto}`, {
-      fontFamily: "dungeon-mode",
       fontSize: 16,
       color: "#fbbf24",
-      fontStyle: "bold"
+    }).setOrigin(1, 0.5).setDepth(2001);
+
+    this.gintoText = this.add.text(topRightX - 32, goldY, `${this.player.ginto}`, {
+      fontFamily: "dungeon-mode",
+      fontSize: 15,
+      color: "#fbbf24",
     }).setOrigin(1, 0.5).setDepth(2001);
     
     // Add subtle pulse animation to currency
@@ -907,7 +910,7 @@ export class Shop extends Scene {
     scrollContainer: Phaser.GameObjects.Container
   ): { contentBottom: number } {
     // Responsive grid so cards never overlap and any number of items can fit via rows + scrolling.
-    const leftMargin = 370; // Keep clear of merchant area
+    const leftMargin = 300; // Keep clear of merchant area (matches panel strip width)
     const rightMargin = 70;
     const availableWidth = Math.max(220, screenWidth - leftMargin - rightMargin);
 
@@ -942,247 +945,137 @@ export class Shop extends Scene {
   }
 
   /**
-   * Create a single Discover-style premium card for shop item
+   * Clean atmospheric card for a shop item — no boxy frames, floating item feel
    */
   private createDiscoverStyleCard(item: ShopItem, x: number, y: number, width: number, height: number): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
-    
-    // Check if player already owns this relic
-    const isOwned = this.player.relics.some(relic => relic.id === item.item.id);
-    
-    // Determine rarity/type color (gold for shop items)
-    const typeColorHex = "#fbbf24"; // Gold color for shop items
-    const typeColor = 0xfbbf24;
-    
-    // Layered card background for depth (matching Discover)
-    const outerGlow = this.add.rectangle(0, 0, width, height, typeColor, isOwned ? 0.04 : 0.08)
-      .setOrigin(0.5);
-      
-    const background = this.add.rectangle(0, 0, width - 8, height - 8, 0x150E10, 0.98)
-      .setStrokeStyle(3, 0x77888C, 0.85)
-      .setOrigin(0.5);
 
-    const innerBorder = this.add.rectangle(0, 0, width - 12, height - 12, undefined, 0)
-      .setStrokeStyle(2, 0x556065, 0.75)
-      .setOrigin(0.5);
-    
-    // Name badge at top - moved up now that decorative bar is removed
+    const isOwned = this.player.relics.some(relic => relic.id === item.item.id);
     const actualPrice = this.getActualPrice(item);
     const hasDiscount = actualPrice < item.price;
-    
-    // Calculate badge width based on name length
-    const estimatedWidth = Math.min(Math.max(item.name.length * 8 + 20, 120), width - 20);
-    const nameBadge = this.add.rectangle(0, -height/2 + 20, estimatedWidth, 28, 0x1b2327, 0.8)
-      .setStrokeStyle(1, 0x77888C, 0.5)
+
+    // Single subtle card background — dark purple tint, thin border
+    const cardBg = this.add.rectangle(0, 0, width, height, 0x0a0710, 0.88)
+      .setStrokeStyle(1, isOwned ? 0x333344 : 0x4a3a5e, isOwned ? 0.4 : 0.7)
       .setOrigin(0.5);
-      
-    const nameBadgeText = this.add.text(0, -height/2 + 20, item.name, {
-      fontFamily: "dungeon-mode",
-      fontSize: 13,
-      color: isOwned ? "#9ca3af" : typeColorHex,
-      fontStyle: "bold",
-      wordWrap: { width: estimatedWidth - 10 },
-      align: "center"
-    }).setOrigin(0.5);
-    
-    // Sprite container frame - keep safe vertical gap from bottom price panel
-    const spriteFrameSize = 156;
-    const spriteY = -6;
-    const spriteFrame = this.add.rectangle(0, spriteY, spriteFrameSize, spriteFrameSize, 0x150E10, 1)
-      .setStrokeStyle(2, 0x556065, 0.75)
-      .setOrigin(0.5);
-    
-    // Get sprite key for this relic
+
+    // Get sprite and display it large, centered slightly above middle
     const spriteKey = getRelicSpriteKey(item.item.id);
-    
-    // Character sprite - NATURAL ASPECT RATIO with max width constraint
+    const spriteY = -30;
+    const maxSpriteSize = 140;
+
     let itemVisual: Phaser.GameObjects.GameObject;
     if (this.textures.exists(spriteKey)) {
       const sprite = this.add.image(0, spriteY, spriteKey).setOrigin(0.5);
-      const texture = this.textures.get(spriteKey);
-      const frame = texture.get();
-      const aspectRatio = frame.width / frame.height;
-      const maxWidth = spriteFrameSize - 12;
-      const maxHeight = spriteFrameSize - 12;
-      
-      let displayWidth, displayHeight;
-      if (aspectRatio > 1) {
-        displayWidth = Math.min(maxWidth, frame.width);
-        displayHeight = displayWidth / aspectRatio;
-      } else {
-        displayHeight = Math.min(maxHeight, frame.height);
-        displayWidth = displayHeight * aspectRatio;
-      }
-      
-      sprite.setDisplaySize(displayWidth, displayHeight);
-      if (isOwned) sprite.setAlpha(0.6);
+      const tex = this.textures.get(spriteKey);
+      const frame = tex.get();
+      const aspect = frame.width / frame.height;
+      const displayW = aspect >= 1 ? maxSpriteSize : maxSpriteSize * aspect;
+      const displayH = aspect >= 1 ? maxSpriteSize / aspect : maxSpriteSize;
+      sprite.setDisplaySize(displayW, displayH);
+      if (isOwned) sprite.setAlpha(0.5);
       itemVisual = sprite;
     } else {
-      const symbolText = this.add.text(0, spriteY, item.emoji, {
-        fontSize: 80, // Larger to match increased frame size
-        color: "#e8eced"
-      }).setOrigin(0.5);
-      if (isOwned) symbolText.setAlpha(0.6);
-      itemVisual = symbolText;
+      const sym = this.add.text(0, spriteY, item.emoji, { fontSize: 72 }).setOrigin(0.5);
+      if (isOwned) sym.setAlpha(0.5);
+      itemVisual = sym;
     }
-    
-    // Bottom panel - keep fully inside inner card bounds
-    const bottomPanelHeight = 46;
-    const bottomPanelY = height / 2 - bottomPanelHeight / 2 - 8;
-    const pricePanel = this.add.rectangle(0, bottomPanelY, width - 20, bottomPanelHeight, 0x1b2327, 0.72)
-      .setStrokeStyle(1, 0x77888C, 0.55)
-      .setOrigin(0.5);
-    
-    // Build components array starting with base elements
-    const components: Phaser.GameObjects.GameObject[] = [
-      outerGlow, background, innerBorder, nameBadge, nameBadgeText, spriteFrame, 
-      itemVisual, pricePanel
-    ];
-    
-    // Add price information in the bottom panel (centered vertically)
+
+    // Item name — gold, no badge rectangle
+    const nameText = this.add.text(0, height / 2 - 58, item.name, {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: isOwned ? "#556070" : "#c5a56a",
+      fontStyle: "bold",
+      wordWrap: { width: width - 20 },
+      align: "center",
+    }).setOrigin(0.5);
+
+    // Thin separator line
+    const sep = this.add.graphics();
+    sep.lineStyle(1, 0x4a3a5e, 0.5);
+    sep.beginPath();
+    sep.moveTo(-40, height / 2 - 40);
+    sep.lineTo(40, height / 2 - 40);
+    sep.strokePath();
+
+    // Price display
+    const components: Phaser.GameObjects.GameObject[] = [cardBg, itemVisual, nameText, sep];
+
     if (hasDiscount && !isOwned) {
-      // Original price with strikethrough (left side)
-      const discountText = this.add.text(-40, bottomPanelY, `${item.price}`, {
+      const oldPrice = this.add.text(0, height / 2 - 26, `${item.price}`, {
         fontFamily: "dungeon-mode",
-        fontSize: 13,
-        color: "#9ca3af"
+        fontSize: 12,
+        color: "#556070",
       }).setOrigin(0.5);
-      discountText.setStroke("#666666", 1);
-      
-      // Sale label and discounted price (right side)
-      const saleLabel = this.add.text(35, bottomPanelY - 8, "SALE", {
+      oldPrice.setStroke("#333", 1);
+
+      const newPrice = this.add.text(0, height / 2 - 10, `${actualPrice} ♦  SALE`, {
+        fontFamily: "dungeon-mode",
+        fontSize: 14,
+        color: "#2ed573",
+      }).setOrigin(0.5);
+      components.push(oldPrice, newPrice);
+    } else {
+      const priceLabel = this.add.text(0, height / 2 - 26, "PRICE", {
         fontFamily: "dungeon-mode",
         fontSize: 10,
-        color: "#2ed573"
+        color: "#556070",
       }).setOrigin(0.5);
-      
-      const finalPriceValue = this.add.text(35, bottomPanelY + 8, `${actualPrice} ♦`, {
+
+      const priceValue = this.add.text(0, height / 2 - 10, `${actualPrice} ♦`, {
         fontFamily: "dungeon-mode",
         fontSize: 15,
-        color: "#2ed573"
+        color: isOwned ? "#444455" : "#fbbf24",
       }).setOrigin(0.5);
-      
-      components.push(discountText, saleLabel, finalPriceValue);
-    } else {
-      // Normal price display (no discount) - centered
-      const finalPriceLabel = this.add.text(0, bottomPanelY - 8, "PRICE", {
-        fontFamily: "dungeon-mode",
-        fontSize: 11,
-        color: "#77888C"
-      }).setOrigin(0.5);
-      
-      const finalPriceValue = this.add.text(0, bottomPanelY + 8, `${actualPrice} ♦`, {
-        fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: isOwned ? "#666666" : "#fbbf24"
-      }).setOrigin(0.5);
-      
-      components.push(finalPriceLabel, finalPriceValue);
+      components.push(priceLabel, priceValue);
     }
-    
-    // Owned overlay (matching Discover style)
+
+    // Owned overlay
     if (isOwned) {
-      const ownedOverlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.65)
-        .setOrigin(0.5);
-      
-      const ownedText = this.add.text(0, 0, "OWNED", {
-        fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#10b981",
-        fontStyle: "bold"
+      const ownedOverlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.5).setOrigin(0.5);
+      const checkMark = this.add.text(0, -18, "✓", { fontSize: 32, color: "#10b981" }).setOrigin(0.5);
+      const ownedText = this.add.text(0, 14, "OWNED", {
+        fontFamily: "dungeon-mode", fontSize: 16, color: "#10b981", fontStyle: "bold"
       }).setOrigin(0.5);
-      
-      const checkMark = this.add.text(0, -30, "✓", {
-        fontSize: 36,
-        color: "#10b981",
-      }).setOrigin(0.5);
-      
       components.push(ownedOverlay, checkMark, ownedText);
     }
-    
+
     container.add(components);
-    
-    // Store original Y position on the container for reliable hover reset
     (container as any).originalY = y;
-    
-    // Enhanced hover effects (matching Discover) - make the entire container interactive
+
     if (!isOwned) {
-      // Create an invisible hit area that covers the entire card
-      const hitArea = this.add.rectangle(0, 0, width, height, 0x000000, 0)
-        .setOrigin(0.5);
+      const hitArea = this.add.rectangle(0, 0, width, height, 0x000000, 0).setOrigin(0.5);
       container.add(hitArea);
-      
-      // Make the container itself interactive using the full card dimensions
+
       container.setSize(width, height);
       container.setInteractive()
         .on('pointerdown', () => {
           if (this.isInputLocked()) return;
-          // 40% chance to trigger merchant dialogue
-          if (Math.random() < 0.4) {
-            this.showRandomRelicDialogue(item);
-          }
+          if (Math.random() < 0.4) this.showRandomRelicDialogue(item);
           this.showItemDetails(item);
         })
         .on('pointerover', () => {
           if (this.isInputLocked()) return;
-          // Change cursor to pointer
           this.input.setDefaultCursor('pointer');
-          
-          // Kill any existing tweens on these targets to prevent conflicts
-          this.tweens.killTweensOf([outerGlow, container]);
-          
-          // Store current Y if not already stored (in case container moved)
+          this.tweens.killTweensOf(container);
           const originalY = (container as any).originalY;
-          
-          // Glow effect
-          this.tweens.add({
-            targets: outerGlow,
-            alpha: 0.25,
-            scaleX: 1.02,
-            scaleY: 1.02,
-            duration: 200,
-            ease: 'Power2'
-          });
-          
-          // Subtle lift - use stored original Y
-          this.tweens.add({
-            targets: container,
-            y: originalY - 5,
-            duration: 200,
-            ease: 'Power2'
-          });
+          // Highlight border
+          cardBg.setStrokeStyle(1, 0x9b59b6, 1);
+          cardBg.setFillStyle(0x150f22, 0.95);
+          this.tweens.add({ targets: container, y: originalY - 5, duration: 180, ease: 'Power2' });
         })
         .on('pointerout', () => {
           if (this.isInputLocked()) return;
-          // Reset cursor
           this.input.setDefaultCursor('default');
-          
-          // Kill any existing tweens on these targets to prevent conflicts
-          this.tweens.killTweensOf([outerGlow, container]);
-          
-          // Get stored original Y position
+          this.tweens.killTweensOf(container);
           const originalY = (container as any).originalY;
-          
-          // Reset glow
-          this.tweens.add({
-            targets: outerGlow,
-            alpha: 0.12,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 200,
-            ease: 'Power2'
-          });
-          
-          // Reset position to original Y
-          this.tweens.add({
-            targets: container,
-            y: originalY,
-            duration: 200,
-            ease: 'Power2'
-          });
+          cardBg.setStrokeStyle(1, 0x4a3a5e, 0.7);
+          cardBg.setFillStyle(0x0a0710, 0.88);
+          this.tweens.add({ targets: container, y: originalY, duration: 180, ease: 'Power2' });
         });
     }
-    
+
     return container;
   }
 
@@ -1266,94 +1159,52 @@ export class Shop extends Scene {
 
   private createBackButton(): void {
     const screenHeight = this.cameras.main.height;
-    
+
     const buttonText = "Leave Shop";
-    const baseWidth = 220; // Increased from 200
-    const textWidth = buttonText.length * 12; // Increased per character width
-    const buttonWidth = Math.max(baseWidth, textWidth + 40); // Increased padding
-    const buttonHeight = 60; // Increased from 50
-    
-    const backButton = this.add.container(50 + buttonWidth/2, screenHeight - 50);
-    
-    // Create shadow
-    const shadow = this.add.graphics();
-    shadow.fillStyle(0x000000, 0.3);
-    shadow.fillRoundedRect(-buttonWidth/2 + 3, -buttonHeight/2 + 3, buttonWidth, buttonHeight, 12);
-    
-    // Create button background with prologue/combat double border design
-    const outerBorder = this.add.graphics();
-    outerBorder.lineStyle(2, 0x77888C);
-    outerBorder.strokeRoundedRect(-buttonWidth/2 - 4, -buttonHeight/2 - 4, buttonWidth + 8, buttonHeight + 8, 12);
-    
+    const buttonWidth = 200;
+    const buttonHeight = 52;
+
+    const backButton = this.add.container(40 + buttonWidth / 2, screenHeight - 44);
+    backButton.setDepth(2000);
+
     const bg = this.add.graphics();
-    bg.fillStyle(0x150E10, 0.9);
-    bg.lineStyle(2, 0x77888C, 0.8);
-    bg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
-    bg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
-    
-    // Inner highlight
-    const innerGlow = this.add.graphics();
-    innerGlow.lineStyle(1, 0x77888C, 0.3);
-    innerGlow.strokeRoundedRect(-buttonWidth/2 + 2, -buttonHeight/2 + 2, buttonWidth - 4, buttonHeight - 4, 10);
-    
-    // Button text with prologue/combat styling
+    bg.fillStyle(0x0d0a12, 0.88);
+    bg.lineStyle(2, 0x77888C, 0.6);
+    bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+    bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+
     const text = this.add.text(0, 0, buttonText, {
       fontFamily: "dungeon-mode",
-      fontSize: 20, // Increased from 18
-      color: "#77888C",
-      fontStyle: "bold"
+      fontSize: 18,
+      color: "#a0aab0",
     }).setOrigin(0.5, 0.5);
-    
-    backButton.add([shadow, outerBorder, bg, innerGlow, text]);
-    
-    // Set depth
-    backButton.setDepth(2000);
-    
-    // Make interactive with proper size
+
+    backButton.add([bg, text]);
     backButton.setSize(buttonWidth, buttonHeight);
     backButton.setInteractive();
-    
-    // Enhanced hover effects with prologue/combat theme
+
     backButton.on("pointerover", () => {
       if (this.isInputLocked()) return;
       this.input.setDefaultCursor('pointer');
-      this.tweens.add({
-        targets: backButton,
-        scale: 1.05,
-        duration: 200,
-        ease: 'Power2.easeOut'
-      });
-      
-      // Enhanced styling on hover
       bg.clear();
-      bg.fillStyle(0x150E10, 1);
-      bg.lineStyle(2, 0x77888C, 1);
-      bg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
-      bg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
-      
-      text.setColor("#ffffff");
+      bg.fillStyle(0x0d0a12, 0.95);
+      bg.lineStyle(2, 0xc5a56a, 0.9);
+      bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+      bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+      text.setColor("#c5a56a");
     });
-    
+
     backButton.on("pointerout", () => {
       if (this.isInputLocked()) return;
       this.input.setDefaultCursor('default');
-      this.tweens.add({
-        targets: backButton,
-        scale: 1,
-        duration: 200,
-        ease: 'Power2.easeOut'
-      });
-      
-      // Reset styling
       bg.clear();
-      bg.fillStyle(0x150E10, 0.9);
-      bg.lineStyle(2, 0x77888C, 0.8);
-      bg.fillRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
-      bg.strokeRoundedRect(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight, 12);
-      
-      text.setColor("#77888C");
+      bg.fillStyle(0x0d0a12, 0.88);
+      bg.lineStyle(2, 0x77888C, 0.6);
+      bg.fillRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+      bg.strokeRoundedRect(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight, 10);
+      text.setColor("#a0aab0");
     });
-    
+
     backButton.on("pointerdown", () => {
       if (this.isInputLocked()) return;
       this.hideItemTooltip();
@@ -2570,48 +2421,18 @@ export class Shop extends Scene {
         // Disable interactivity immediately to prevent hover from killing the animation
         button.disableInteractive();
 
-        // Dim all card components and add owned overlay
-        const outerGlow = button.list[0] as Phaser.GameObjects.Rectangle;
-        const background = button.list[1] as Phaser.GameObjects.Rectangle;
-        const topBar = button.list[2] as Phaser.GameObjects.Rectangle;
-
-        // Disable interactivity on background
-        if (background && background.input) {
-          background.disableInteractive();
-        }
-
-        // Dim the entire card
-        this.tweens.add({
-          targets: [outerGlow, background, topBar],
-          alpha: 0.4,
-          duration: 300
-        });
-
-        // Dim all other elements
-        button.list.forEach((child, index) => {
-          if (index > 2 && child instanceof Phaser.GameObjects.GameObject) {
-            this.tweens.add({
-              targets: child,
-              alpha: 0.5,
-              duration: 300
-            });
+        // Dim all card elements
+        button.list.forEach(child => {
+          if (child instanceof Phaser.GameObjects.GameObject) {
+            this.tweens.add({ targets: child, alpha: 0.45, duration: 300 });
           }
         });
 
-        // Add owned overlay (matching Discover style)
-        const ownedOverlay = this.add.rectangle(0, 0, 200, 260, 0x000000, 0.65)
-          .setOrigin(0.5);
-
-        const checkMark = this.add.text(0, -30, "✓", {
-          fontSize: 42,
-          color: "#10b981",
-        }).setOrigin(0.5);
-
-        const ownedText = this.add.text(0, 10, "OWNED", {
-          fontFamily: "dungeon-mode",
-          fontSize: 20,
-          color: "#10b981",
-          fontStyle: "bold"
+        // Add owned overlay
+        const ownedOverlay = this.add.rectangle(0, 0, 200, 260, 0x000000, 0.5).setOrigin(0.5);
+        const checkMark = this.add.text(0, -18, "✓", { fontSize: 32, color: "#10b981" }).setOrigin(0.5);
+        const ownedText = this.add.text(0, 14, "OWNED", {
+          fontFamily: "dungeon-mode", fontSize: 16, color: "#10b981", fontStyle: "bold"
         }).setOrigin(0.5);
 
         button.add([ownedOverlay, checkMark, ownedText]);
@@ -2696,7 +2517,7 @@ export class Shop extends Scene {
 
     // Dialogue box background - matching game style
     const boxWidth = Math.min(screenWidth - 100, 800);
-    const boxHeight = 100;
+    const boxHeight = 110;
 
     // Main dialogue background
     const dialogueBg = this.add.graphics();
