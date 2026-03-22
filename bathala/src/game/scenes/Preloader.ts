@@ -424,10 +424,10 @@ export class Preloader extends Scene {
     this.load.image("big_demon_f2", "sprites/overworld/elite/big_demon_idle_anim_f2.png");
     this.load.image("big_demon_f3", "sprites/overworld/elite/big_demon_idle_anim_f3.png");
 
-    // Campfire node sprite (6-frame animation, 32x48 per frame)
-    this.load.spritesheet("campfire_overworld", "sprites/overworld/campfire/campfire_overworld.png", {
-      frameWidth: 32,
-      frameHeight: 48,
+    // Campfire node sprite (7-frame animation, 16x16 per frame)
+    this.load.spritesheet("campfire_overworld", "sprites/overworld/campfire/campfire.png", {
+      frameWidth: 16,
+      frameHeight: 16,
     });
 
     // Shop node sprite (merchant)
@@ -679,11 +679,11 @@ export class Preloader extends Scene {
     });
     console.log("Created big_demon_idle animation");
 
-    // Campfire node animation (angel)
-    // Campfire animation (6 frames from spritesheet)
+    // Campfire node animation
+    // Campfire animation (7 frames from spritesheet)
     this.anims.create({
       key: "campfire_burn",
-      frames: this.anims.generateFrameNumbers("campfire_overworld", { start: 0, end: 5 }),
+      frames: this.anims.generateFrameNumbers("campfire_overworld", { start: 0, end: 6 }),
       frameRate: 8,
       repeat: -1,
     });

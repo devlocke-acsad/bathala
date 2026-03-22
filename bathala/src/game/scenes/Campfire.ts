@@ -292,7 +292,7 @@ export class Campfire extends Scene {
 
     // ── Campfire sprite (animated) ──
     const campfireSprite = this.add.sprite(x, y, 'campfire_overworld')
-      .setScale(3)
+      .setScale(8)
       .setDepth(3);
     try {
       campfireSprite.play('campfire_burn');
