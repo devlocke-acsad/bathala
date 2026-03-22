@@ -1110,7 +1110,7 @@ export class Overworld_MazeGenManager {
           spriteKey = EnemyRegistry.getOverworldSprite(node.enemyId);
         } else {
           // Fallback to a generic sprite if no enemyId is present
-          spriteKey = node.type === "elite" ? "big_demon_f0" : "chort_f0";
+          spriteKey = node.type === "elite" ? "kapre_overworld" : "duwende_overworld";
         }
         break;
       case "boss":
@@ -1118,7 +1118,7 @@ export class Overworld_MazeGenManager {
           spriteKey = EnemyRegistry.getOverworldSprite(node.enemyId);
         } else {
           // Fallback to a generic sprite if no enemyId is present
-          spriteKey = "big_demon_f0";
+          spriteKey = "kapre_overworld";
         }
         break;
       case "shop":
@@ -1151,6 +1151,20 @@ export class Overworld_MazeGenManager {
         return null;
     }
 
+    // If the expected texture was removed, skip sprite creation gracefully.
+    if (!this.scene.textures.exists(spriteKey)) {
+      const fallbackCircle = this.scene.add.circle(
+        node.x + this.gridSize / 2,
+        node.y + this.gridSize / 2,
+        this.gridSize / 4,
+        0xffffff,
+        1
+      );
+      fallbackCircle.setOrigin(0.5);
+      fallbackCircle.setDepth(DEPTH.FALLBACK_CIRCLE);
+      return null;
+    }
+
     // Create the sprite
     const nodeSprite = this.scene.add.sprite(
       node.x + this.gridSize / 2,
@@ -1162,7 +1176,7 @@ export class Overworld_MazeGenManager {
 
     // Scale the sprite to fit within the grid while maintaining aspect ratio
     const biggerSprites = ["amomongo_overworld", "balete_overworld", "tawonglipod_overworld", "kapre_overworld", "mangangaway_overworld", "tikbalang_overworld"];
-    const targetSize = biggerSprites.includes(spriteKey) ? 48 : 32;
+    const targetSize = spriteKey === "merchant_overworld" ? 26 : (biggerSprites.includes(spriteKey) ? 48 : 32);
     const scale = targetSize / Math.max(nodeSprite.width, nodeSprite.height);
     nodeSprite.setScale(scale);
 
@@ -1225,6 +1239,10 @@ export class Overworld_MazeGenManager {
 
     // Play the animation if it exists
     if (animKey && this.scene.anims.exists(animKey)) {
+      const animation = this.scene.anims.get(animKey);
+      if (!animation || animation.frames.length === 0) {
+        return nodeSprite;
+      }
       nodeSprite.play(animKey);
     }
 

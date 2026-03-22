@@ -413,25 +413,22 @@ export class Preloader extends Scene {
     this.load.image("falsebathala_overworld", "sprites/combat/enemy/chapter3/false_bathala_battle.png");
 
     // Overworld node sprites
-    // Combat node sprites (chort)
-    this.load.image("chort_f0", "sprites/overworld/combat/chort_idle_anim_f0.png");
-    this.load.image("chort_f1", "sprites/overworld/combat/chort_idle_anim_f1.png");
-    this.load.image("chort_f2", "sprites/overworld/combat/chort_idle_anim_f2.png");
+    // Combat/elite node fallback sprites (legacy keys kept for compatibility)
+    this.load.image("chort_f0", "sprites/overworld/enemy/chapter1/duwende_overworld.png");
+    this.load.image("chort_f1", "sprites/overworld/enemy/chapter1/duwende_overworld.png");
+    this.load.image("chort_f2", "sprites/overworld/enemy/chapter1/duwende_overworld.png");
 
-    // Elite node sprites (big demon)
-    this.load.image("big_demon_f0", "sprites/overworld/elite/big_demon_idle_anim_f0.png");
-    this.load.image("big_demon_f1", "sprites/overworld/elite/big_demon_idle_anim_f1.png");
-    this.load.image("big_demon_f2", "sprites/overworld/elite/big_demon_idle_anim_f2.png");
-    this.load.image("big_demon_f3", "sprites/overworld/elite/big_demon_idle_anim_f3.png");
+    this.load.image("big_demon_f0", "sprites/overworld/enemy/chapter1/kapre_overworld.png");
+    this.load.image("big_demon_f1", "sprites/overworld/enemy/chapter1/kapre_overworld.png");
+    this.load.image("big_demon_f2", "sprites/overworld/enemy/chapter1/kapre_overworld.png");
+    this.load.image("big_demon_f3", "sprites/overworld/enemy/chapter1/kapre_overworld.png");
 
-    // Campfire node sprite (7-frame animation, 16x16 per frame)
-    this.load.spritesheet("campfire_overworld", "sprites/overworld/campfire/campfire.png", {
-      frameWidth: 16,
-      frameHeight: 16,
-    });
+    // Campfire node sprite is now a static image
+    this.load.image("campfire_overworld", "sprites/overworld/campfire/campfire_overworld.png");
 
     // Shop node sprite (merchant)
     this.load.image("merchant_overworld", "sprites/overworld/shop/merchant_overworld.png");
+    this.load.image("merchant_faceset", "sprites/overworld/shop/merchant_faceset.png");
 
     // Event node sprite (portal spritesheet: 3x2 frames, 32x32 each)
     this.load.spritesheet("event_overworld", "sprites/overworld/event/portal.png", {
@@ -545,6 +542,9 @@ export class Preloader extends Scene {
     if (this.textures.exists("merchant_overworld")) {
       this.textures.get("merchant_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
+    if (this.textures.exists("merchant_faceset")) {
+      this.textures.get("merchant_faceset").setFilter(Phaser.Textures.FilterMode.NEAREST);
+    }
     if (this.textures.exists("event_overworld")) {
       this.textures.get("event_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
@@ -655,42 +655,38 @@ export class Preloader extends Scene {
   private createNodeAnimations(): void {
     console.log("Creating node animations");
 
-    // Combat node animation (chort)
-    this.anims.create({
-      key: "chort_idle",
-      frames: [
-        { key: "chort_f0" },
-        { key: "chort_f1" },
-        { key: "chort_f2" }
-      ],
-      frameRate: 4,
-      repeat: -1,
-    });
-    console.log("Created chort_idle animation");
+    const chortFrames = ["chort_f0", "chort_f1", "chort_f2"]
+      .filter((key) => this.textures.exists(key))
+      .map((key) => ({ key }));
+    if (chortFrames.length > 0) {
+      this.anims.create({
+        key: "chort_idle",
+        frames: chortFrames,
+        frameRate: 4,
+        repeat: -1,
+      });
+      console.log("Created chort_idle animation");
+    } else {
+      console.warn("Skipped chort_idle animation (no frames loaded)");
+    }
 
-    // Elite node animation (big demon)
-    this.anims.create({
-      key: "big_demon_idle",
-      frames: [
-        { key: "big_demon_f0" },
-        { key: "big_demon_f1" },
-        { key: "big_demon_f2" },
-        { key: "big_demon_f3" }
-      ],
-      frameRate: 4,
-      repeat: -1,
-    });
-    console.log("Created big_demon_idle animation");
+    const bigDemonFrames = ["big_demon_f0", "big_demon_f1", "big_demon_f2", "big_demon_f3"]
+      .filter((key) => this.textures.exists(key))
+      .map((key) => ({ key }));
+    if (bigDemonFrames.length > 0) {
+      this.anims.create({
+        key: "big_demon_idle",
+        frames: bigDemonFrames,
+        frameRate: 4,
+        repeat: -1,
+      });
+      console.log("Created big_demon_idle animation");
+    } else {
+      console.warn("Skipped big_demon_idle animation (no frames loaded)");
+    }
 
-    // Campfire node animation
-    // Campfire animation (7 frames from spritesheet)
-    this.anims.create({
-      key: "campfire_burn",
-      frames: this.anims.generateFrameNumbers("campfire_overworld", { start: 0, end: 6 }),
-      frameRate: 8,
-      repeat: -1,
-    });
-    console.log("Created campfire_burn animation");
+    // Campfire uses a static sprite for now.
+    console.log("Campfire node uses static sprite (no animation)");
 
     // Shop node - static merchant sprite (no animation needed)
     console.log("Shop merchant sprite loaded (static)");

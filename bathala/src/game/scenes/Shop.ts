@@ -418,22 +418,30 @@ export class Shop extends Scene {
     // Create container for merchant
     this.merchantCharacter = this.add.container(merchantX, merchantY);
     this.merchantCharacter.setDepth(500);
-    
-    // Create the static merchant sprite - no card background
-    const merchantSprite = this.add.sprite(0, 0, 'merchant_main');
-    merchantSprite.setScale(0.8);
+
+    // Build a framed square portrait for the merchant faceset.
+    const frameSize = 170;
+    const frameOuter = this.add.rectangle(0, 0, frameSize + 14, frameSize + 14, 0x1d1922, 0.95);
+    frameOuter.setStrokeStyle(4, 0xc5a56a, 1);
+
+    const frameInner = this.add.rectangle(0, 0, frameSize, frameSize, 0x0f1118, 0.95);
+    frameInner.setStrokeStyle(2, 0x5e4b2e, 1);
+
+    const merchantSprite = this.add.sprite(0, 0, 'merchant_faceset');
+    merchantSprite.setDisplaySize(frameSize, frameSize);
     
     // Create dialogue system
     this.createMerchantDialogueSystem();
     
-    // Add only the sprite to container (removed all card decorations)
+    // Add framed portrait and sprite to container.
     this.merchantCharacter.add([
+      frameOuter,
+      frameInner,
       merchantSprite
     ]);
     
-    // Make the entire merchant container interactive for dialogue
-    // Size based on sprite dimensions (approximate visible area)
-    this.merchantCharacter.setSize(200, 300);
+    // Make the entire merchant container interactive for dialogue.
+    this.merchantCharacter.setSize(frameSize + 24, frameSize + 24);
     this.merchantCharacter.setInteractive()
       .on('pointerdown', () => {
         if (this.isInputLocked()) return;
