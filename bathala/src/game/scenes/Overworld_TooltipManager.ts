@@ -489,7 +489,7 @@ export class Overworld_TooltipManager {
         name: "Mysterious Event",
         type: "event", 
         spriteKey: "event_overworld",
-        animationKey: null, // Static sprite, no animation
+        animationKey: "event_portal_loop",
         stats: "Outcome: Variable\nRisk: Medium\nReward: Unique Benefits",
         description: "Strange occurrences and mysterious encounters await. These events may offer unique opportunities, challenging choices, or unexpected rewards for the brave."
       },

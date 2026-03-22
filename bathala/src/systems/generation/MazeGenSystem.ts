@@ -1127,7 +1127,7 @@ export class Overworld_MazeGenManager {
         break;
       case "event":
         spriteKey = "event_overworld";
-        animKey = null; // Static sprite, no animation
+        animKey = "event_portal_loop";
         break;
       case "campfire":
         spriteKey = "campfire_overworld";

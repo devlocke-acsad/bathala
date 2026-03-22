@@ -433,8 +433,11 @@ export class Preloader extends Scene {
     // Shop node sprite (merchant)
     this.load.image("merchant_overworld", "sprites/overworld/shop/merchant_overworld.png");
 
-    // Event node sprite
-    this.load.image("event_overworld", "sprites/overworld/event/event_overworld.png");
+    // Event node sprite (portal spritesheet: 3x2 frames, 32x32 each)
+    this.load.spritesheet("event_overworld", "sprites/overworld/event/portal.png", {
+      frameWidth: 32,
+      frameHeight: 32,
+    });
 
     // Act 1 Event splash art
     this.load.image("event_anito_shrine", "events(act1)/anito shrine.png");
@@ -692,8 +695,14 @@ export class Preloader extends Scene {
     // Shop node - static merchant sprite (no animation needed)
     console.log("Shop merchant sprite loaded (static)");
 
-    // Event node - static sprite (no animation needed)
-    console.log("Event sprite loaded (static)");
+    // Event node animation (portal loop: 6 frames from 3x2 spritesheet)
+    this.anims.create({
+      key: "event_portal_loop",
+      frames: this.anims.generateFrameNumbers("event_overworld", { start: 0, end: 5 }),
+      frameRate: 8,
+      repeat: -1,
+    });
+    console.log("Created event_portal_loop animation");
 
     // Treasure node animation (chest)
     this.anims.create({
