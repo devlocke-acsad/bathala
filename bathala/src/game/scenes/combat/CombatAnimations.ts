@@ -19,50 +19,22 @@ export class CombatAnimations {
    * @param y Y position for animation (usually enemy position)
    * @param scale Optional scale factor (default 1.2)
    */
-  public apoySpecialAnimation(x: number, y: number, scale: number = 1.2): void {
-    // Check all frame keys exist before creating animation
-    const missingFrames: string[] = [];
-    for (let i = 0; i <= 83; i++) {
-      const frameKey = `fire_special_${i.toString().padStart(2, "0")}`;
-      if (!this.scene.textures.exists(frameKey)) {
-        missingFrames.push(frameKey);
-      }
-    }
-    if (missingFrames.length > 0) {
-      console.error("Missing Apoy special animation frames:", missingFrames);
-      // Optionally, show a fallback or skip animation
-      return;
-    }
-    // Create the animation if it doesn't exist
+  public apoySpecialAnimation(x: number, y: number, scale: number = 8): void {
+    // fire.png: 200x30, frameWidth=25 → 8 frames
     if (!this.scene.anims.exists("apoy_special_anim")) {
       this.scene.anims.create({
         key: "apoy_special_anim",
-        frames: Array.from({ length: 84 }, (_, i) => ({ key: `fire_special_${i.toString().padStart(2, "0")}` })),
-        frameRate: 40,
+        frames: this.scene.anims.generateFrameNumbers("action_fire", { start: 0, end: 7 }),
+        frameRate: 10,
         repeat: 0
       });
     }
-    // Position: just below enemy sprite, but above its bottom
-    // Try to get enemy sprite height if available
-    let fireY = y;
-    const enemySprite = this.getCurrentEnemySprite?.() ?? null;
-    if (enemySprite && enemySprite.displayHeight) {
-      fireY = enemySprite.y + enemySprite.displayHeight / 2 - 32; // 32px above bottom
-    } else {
-      fireY = y + 40;
-    }
-    // Make the fire animation larger
-    const fireScale = 1.7;
-    const apoyAnim = this.scene.add.sprite(x, fireY, `fire_special_00`)
-      .setOrigin(0.5)
-      .setScale(fireScale)
-      .setDepth(1002)
-      .setAlpha(1);
-    // Play animation faster
-    apoyAnim.anims.play({ key: "apoy_special_anim", frameRate: 90 });
-    apoyAnim.on("animationcomplete", () => {
-      apoyAnim.destroy();
-    });
+    const anim = this.scene.add.sprite(x, y, "action_fire", 0)
+      .setOrigin(0.5, 1)
+      .setScale(scale)
+      .setDepth(1002);
+    anim.play("apoy_special_anim");
+    anim.on("animationcomplete", () => anim.destroy());
   }
   /**
    * Play the Tubig (Tidal Slash) special animation using the tubig_special spritesheet
@@ -70,40 +42,23 @@ export class CombatAnimations {
    * @param y Y position for animation (usually enemy position)
    * @param scale Optional scale factor (default 1.2)
    */
-  public tubigSpecialAnimation(x: number, y: number, scale: number = 1.2): void {
-    // Check all frame keys exist before creating animation
-    const missingFrames: string[] = [];
-    for (let i = 0; i < 42; i++) {
-      const frameKey = `water${(90000 + i).toString()}`;
-      if (!this.scene.textures.exists(frameKey)) {
-        missingFrames.push(frameKey);
-      }
-    }
-    if (missingFrames.length > 0) {
-      console.error("Missing Tubig special animation frames:", missingFrames);
-      // Optionally, show a fallback or skip animation
-      return;
-    }
-    // Create the animation if it doesn't exist
+  public tubigSpecialAnimation(x: number, y: number, scale: number = 8): void {
     if (!this.scene.anims.exists("tubig_special_anim")) {
+      // water.png: 270x41, frameWidth=30 → 9 frames exactly
       this.scene.anims.create({
         key: "tubig_special_anim",
-        frames: Array.from({ length: 42 }, (_, i) => ({ key: `water${(90000 + i).toString()}` })),
-        frameRate: 40,
+        frames: this.scene.anims.generateFrameNumbers("action_water", { start: 0, end: 8 }),
+        frameRate: 10,
         repeat: 0
       });
     }
-    // Add the sprite and play the animation
-    const enemySpriteScale = 0.4; // Use the same scale as enemy sprites for consistency
-    const tubigAnim = this.scene.add.sprite(x, y, `water90000`)
-      .setOrigin(0.5)
-      .setScale(enemySpriteScale)
-      .setDepth(1002)
-      .setAlpha(1);
-    tubigAnim.play("tubig_special_anim");
-    tubigAnim.on("animationcomplete", () => {
-      tubigAnim.destroy();
-    });
+
+    const anim = this.scene.add.sprite(x, y, "action_water", 0)
+      .setOrigin(0.5, 1)
+      .setScale(scale)
+      .setDepth(1002);
+    anim.play("tubig_special_anim");
+    anim.on("animationcomplete", () => anim.destroy());
   }
   /**
    * Play the Lupa (Earth Crusher) special animation using the lupa_special spritesheet
@@ -111,26 +66,23 @@ export class CombatAnimations {
    * @param y Y position for animation (usually enemy position)
    * @param scale Optional scale factor (default 1.2)
    */
-  public lupaSpecialAnimation(x: number, y: number, scale: number = 1.2): void {
-    // Create the animation if it doesn't exist
+  public lupaSpecialAnimation(x: number, y: number, scale: number = 8): void {
     if (!this.scene.anims.exists("lupa_special_anim")) {
+      // earth.png: 540x48, frameWidth=54 → 10 frames exactly
       this.scene.anims.create({
         key: "lupa_special_anim",
-        frames: this.scene.anims.generateFrameNumbers("lupa_special", { start: 0, end: 99 }),
-        frameRate: 40,
+        frames: this.scene.anims.generateFrameNumbers("action_earth", { start: 0, end: 9 }),
+        frameRate: 10,
         repeat: 0
       });
     }
-    // Add the sprite and play the animation
-    const lupaAnim = this.scene.add.sprite(x, y, "lupa_special", 0)
-      .setOrigin(0.5)
+
+    const anim = this.scene.add.sprite(x, y, "action_earth", 0)
+      .setOrigin(0.5, 1)
       .setScale(scale)
-      .setDepth(1002)
-      .setAlpha(1);
-    lupaAnim.play("lupa_special_anim");
-    lupaAnim.on("animationcomplete", () => {
-      lupaAnim.destroy();
-    });
+      .setDepth(1002);
+    anim.play("lupa_special_anim");
+    anim.on("animationcomplete", () => anim.destroy());
   }
   private scene: Combat;
 
@@ -297,81 +249,230 @@ export class CombatAnimations {
 
   /** Animate special action with cinematic effects */
   public animateSpecialAction(suit: Suit): void {
-    // Create cinematic effect for special action sequence
-    this.createCinematicBars();
-    
-    // First announce the attack, then perform it
-    this.announceSpecialAttack(suit);
+    this.createCinematicBars(suit);
   }
 
   /**
-   * Announce the special attack with dramatic text and effects, then perform the attack
+   * Full-screen impact frame with suit-themed letterbox, color flash, and sliding attack name.
+   * Triggers performSpecialAttack once the reveal finishes.
    */
-  private announceSpecialAttack(suit: Suit): void {
-    const screenWidth = this.scene.cameras.main.width;
-    const screenHeight = this.scene.cameras.main.height;
-    
-    // Get suit-specific attack names
-    const attackNames: Record<Suit, string> = {
-      "Apoy": "INFERNO STRIKE!",
-      "Tubig": "TIDAL SLASH!",
-      "Lupa": "EARTH CRUSHER!",
-      "Hangin": "WIND CUTTER!"
+  private createCinematicBars(suit: Suit): void {
+    const W = this.scene.cameras.main.width;
+    const H = this.scene.cameras.main.height;
+
+    (this.scene as any).hideUIForSpecialAttack();
+
+    // --- Per-suit theming ---
+    const suitConfig: Record<Suit, { color: number; hex: string; dim: number; dimHex: string; name: string; subtitle: string }> = {
+      "Apoy":  { color: 0xff6a00, hex: "#ff6a00", dim: 0x7a2000, dimHex: "#7a2000", name: "INFERNO STRIKE!", subtitle: "· APOY ·"  },
+      "Tubig": { color: 0x38b6ff, hex: "#38b6ff", dim: 0x0a3a6e, dimHex: "#0a3a6e", name: "TIDAL SLASH!",    subtitle: "· TUBIG ·" },
+      "Lupa":  { color: 0x7ed957, hex: "#7ed957", dim: 0x1e4a10, dimHex: "#1e4a10", name: "EARTH CRUSHER!",  subtitle: "· LUPA ·"  },
+      "Hangin":{ color: 0xb8f0ff, hex: "#b8f0ff", dim: 0x1a4a5a, dimHex: "#1a4a5a", name: "WIND CUTTER!",    subtitle: "· HANGIN ·"},
     };
-    
-    const attackName = attackNames[suit];
-    
-    // Create dramatic announcement text
-    const announcementText = this.scene.add.text(
-      screenWidth / 2,
-      screenHeight / 2 - 50,
-      attackName,
+    const { color, hex, dim, name, subtitle } = suitConfig[suit];
+    const BAR_H = H * 0.20;
+    const DEPTH = 1000;
+
+    // --- 1. Full vignette behind everything (stays the whole time) ---
+    const vignette = this.scene.add.rectangle(W / 2, H / 2, W, H, 0x000000)
+      .setAlpha(0).setDepth(DEPTH);
+    this.scene.tweens.add({
+      targets: vignette,
+      alpha: 0.65,
+      duration: 180,
+      ease: 'Cubic.Out'
+    });
+
+    // --- 2. Letterbox bars — solid black with a colored inner edge line ---
+    const topBar = this.scene.add.rectangle(W / 2, -BAR_H / 2, W, BAR_H, 0x000000)
+      .setDepth(DEPTH + 1).setAlpha(1);
+    const bottomBar = this.scene.add.rectangle(W / 2, H + BAR_H / 2, W, BAR_H, 0x000000)
+      .setDepth(DEPTH + 1).setAlpha(1);
+    // Inner edge glow lines (sit just inside each bar, revealed as bars slam in)
+    const topEdge = this.scene.add.rectangle(W / 2, -2, W, 2, color)
+      .setDepth(DEPTH + 2).setAlpha(0.9);
+    const bottomEdge = this.scene.add.rectangle(W / 2, H + 2, W, 2, color)
+      .setDepth(DEPTH + 2).setAlpha(0.9);
+
+    this.scene.tweens.add({
+      targets: topBar,
+      y: BAR_H / 2,
+      duration: 180,
+      ease: 'Expo.Out'
+    });
+    this.scene.tweens.add({
+      targets: bottomBar,
+      y: H - BAR_H / 2,
+      duration: 180,
+      ease: 'Expo.Out'
+    });
+    this.scene.tweens.add({
+      targets: topEdge,
+      y: BAR_H,
+      duration: 180,
+      ease: 'Expo.Out'
+    });
+    this.scene.tweens.add({
+      targets: bottomEdge,
+      y: H - BAR_H,
+      duration: 180,
+      ease: 'Expo.Out'
+    });
+
+    // --- 3. Impact flash — hard white then suit color ---
+    const flashWhite = this.scene.add.rectangle(W / 2, H / 2, W, H, 0xffffff)
+      .setAlpha(0).setDepth(DEPTH + 3);
+    this.scene.tweens.add({
+      targets: flashWhite,
+      alpha: { from: 0.6, to: 0 },
+      duration: 120,
+      ease: 'Expo.Out',
+      delay: 140,
+      onComplete: () => flashWhite.destroy()
+    });
+    const flashColor = this.scene.add.rectangle(W / 2, H / 2, W, H, color)
+      .setAlpha(0).setDepth(DEPTH + 3);
+    this.scene.tweens.add({
+      targets: flashColor,
+      alpha: { from: 0.35, to: 0 },
+      duration: 400,
+      ease: 'Cubic.Out',
+      delay: 200,
+      onComplete: () => flashColor.destroy()
+    });
+
+    // --- 4. Speed lines — 5 horizontal streaks shooting left to right ---
+    for (let i = 0; i < 5; i++) {
+      const lineY = BAR_H + (H - BAR_H * 2) * (0.15 + i * 0.18);
+      const lineH = i === 2 ? 3 : 1;
+      const streak = this.scene.add.rectangle(
+        -W * 0.3, lineY, W * (0.4 + Math.random() * 0.5), lineH, color
+      ).setOrigin(0, 0.5).setAlpha(0.7).setDepth(DEPTH + 2);
+      this.scene.tweens.add({
+        targets: streak,
+        x: W * 1.4,
+        alpha: 0,
+        duration: 220 + i * 30,
+        ease: 'Cubic.Out',
+        delay: 150 + i * 20,
+        onComplete: () => streak.destroy()
+      });
+    }
+
+    // --- 5. Dim suit-colored panel spanning full width ---
+    const panel = this.scene.add.rectangle(W / 2, H / 2, W, H - BAR_H * 2, dim)
+      .setOrigin(0.5, 0.5).setAlpha(0).setDepth(DEPTH + 1);
+    this.scene.tweens.add({
+      targets: panel,
+      alpha: 0.55,
+      duration: 200,
+      ease: 'Cubic.Out',
+      delay: 180
+    });
+
+    // --- 6. Attack name — suit color, no outline ---
+    const attackText = this.scene.add.text(
+      W * 0.06, H / 2 - 18,
+      name,
       {
         fontFamily: "dungeon-mode",
         fontSize: 72,
-        color: '#ffffff',
-        align: "center"
+        color: hex,
       }
-    ).setOrigin(0.5).setAlpha(0).setScale(0.3).setDepth(1003);
-    
-    // Get suit color for effects
-    const suitColors: Record<Suit, number> = {
-      "Apoy": 0xff4500,    // Fire red/orange
-      "Tubig": 0x1e90ff,   // Water blue
-      "Lupa": 0x32cd32,    // Earth green
-      "Hangin": 0x87ceeb    // Wind light blue
-    };
-    
-    const color = suitColors[suit];
-    
-    // Animate announcement text in
+    ).setOrigin(0, 0.5).setAlpha(0).setDepth(DEPTH + 4).setScale(1.4);
+
     this.scene.tweens.add({
-      targets: announcementText,
+      targets: attackText,
+      scale: 1,
       alpha: 1,
-      scale: 1.2,
-      duration: 600,
-      ease: 'Back.Out',
-      onComplete: () => {
-        // Change text color to suit color after initial appearance
-        announcementText.setColor(`#${color.toString(16).padStart(6, '0')}`);
-        
-        // Hold for dramatic effect, then start the actual attack
-        this.scene.time.delayedCall(800, () => {
-          // Fade out announcement
-          this.scene.tweens.add({
-            targets: announcementText,
-            alpha: 0,
-            scale: 0.8,
-            duration: 400,
-            ease: 'Cubic.In',
-            onComplete: () => {
-              announcementText.destroy();
-              // Now perform the actual attack
-              this.performSpecialAttack(suit);
-            }
-          });
-        });
+      duration: 220,
+      ease: 'Expo.Out',
+      delay: 220,
+    });
+
+    // --- 7. Subtitle — white, wide tracking, smaller ---
+    const subtitleText = this.scene.add.text(
+      W * 0.06, H / 2 + 32,
+      subtitle,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 22,
+        color: "#ffffff",
+        letterSpacing: 10,
       }
+    ).setOrigin(0, 0.5).setAlpha(0).setDepth(DEPTH + 4);
+
+    this.scene.tweens.add({
+      targets: subtitleText,
+      alpha: 1,
+      duration: 200,
+      ease: 'Cubic.Out',
+      delay: 360,
+    });
+
+    // --- 8. Second camera shake punch after text lands ---
+    this.scene.time.delayedCall(140, () => {
+      this.scene.cameras.main.shake(120, 0.012);
+    });
+    this.scene.time.delayedCall(280, () => {
+      this.scene.cameras.main.shake(80, 0.006);
+    });
+
+    // --- 9. Exit: fire attack, slam everything out ---
+    this.scene.time.delayedCall(1050, () => {
+      this.performSpecialAttack(suit);
+
+      // Text fades out quickly
+      this.scene.tweens.add({
+        targets: [attackText, subtitleText, panel],
+        alpha: 0,
+        duration: 200,
+        ease: 'Cubic.In',
+      });
+
+      // Bars slam back out
+      this.scene.tweens.add({
+        targets: topBar,
+        y: -BAR_H / 2,
+        duration: 200,
+        ease: 'Expo.In',
+        onComplete: () => topBar.destroy()
+      });
+      this.scene.tweens.add({
+        targets: bottomBar,
+        y: H + BAR_H / 2,
+        duration: 200,
+        ease: 'Expo.In',
+        onComplete: () => bottomBar.destroy()
+      });
+      this.scene.tweens.add({
+        targets: topEdge,
+        y: -2,
+        duration: 200,
+        ease: 'Expo.In',
+        onComplete: () => topEdge.destroy()
+      });
+      this.scene.tweens.add({
+        targets: bottomEdge,
+        y: H + 2,
+        duration: 200,
+        ease: 'Expo.In',
+        onComplete: () => bottomEdge.destroy()
+      });
+      this.scene.tweens.add({
+        targets: vignette,
+        alpha: 0,
+        duration: 300,
+        ease: 'Cubic.In',
+        delay: 100,
+        onComplete: () => {
+          vignette.destroy();
+          attackText.destroy();
+          subtitleText.destroy();
+          panel.destroy();
+          (this.scene as any).restoreUIAfterSpecialAttack();
+        }
+      });
     });
   }
 
@@ -380,313 +481,60 @@ export class CombatAnimations {
    */
   private performSpecialAttack(suit: Suit): void {
     const enemySprite = this.scene.getEnemySprite();
+    const spawnX = enemySprite.x;
+    const spawnY = enemySprite.y + enemySprite.displayHeight / 2;
     if (suit === "Lupa") {
-      this.lupaSpecialAnimation(enemySprite.x, enemySprite.y, 1.2);
-      // Add impact effects and damage feedback during the animation
+      this.lupaSpecialAnimation(spawnX, spawnY);
       this.scene.time.delayedCall(300, () => {
         this.scene.cameras.main.shake(150, 0.01);
-        const impactFlash = this.scene.add.rectangle(
-          enemySprite.x,
-          enemySprite.y,
-          120,
-          120,
-          0x32cd32 // Earth green
-        ).setAlpha(0).setDepth(1004);
-        this.scene.tweens.add({
-          targets: impactFlash,
-          alpha: [0, 0.3, 0],
-          duration: 200,
-          ease: 'Cubic.Out',
-          onComplete: () => {
-            impactFlash.destroy();
-          }
-        });
-        // Damage feedback: flash red and show damage number
         this.animateSpriteDamage(enemySprite);
         this.showDamageNumber(enemySprite.x, enemySprite.y, this.getSpecialAttackDamage(suit));
       });
     } else if (suit === "Tubig") {
-      this.tubigSpecialAnimation(enemySprite.x, enemySprite.y);
-      // Add impact effects and damage feedback during the animation
+      this.tubigSpecialAnimation(spawnX, spawnY);
       this.scene.time.delayedCall(300, () => {
         this.scene.cameras.main.shake(150, 0.01);
-        const impactFlash = this.scene.add.rectangle(
-          enemySprite.x,
-          enemySprite.y,
-          120,
-          120,
-          0x1e90ff // Water blue
-        ).setAlpha(0).setDepth(1004);
-        this.scene.tweens.add({
-          targets: impactFlash,
-          alpha: [0, 0.3, 0],
-          duration: 200,
-          ease: 'Cubic.Out',
-          onComplete: () => {
-            impactFlash.destroy();
-          }
-        });
-        // Damage feedback: flash red and show damage number
         this.animateSpriteDamage(enemySprite);
         this.showDamageNumber(enemySprite.x, enemySprite.y, this.getSpecialAttackDamage(suit));
       });
     } else if (suit === "Apoy") {
-      this.apoySpecialAnimation(enemySprite.x, enemySprite.y);
-      // Add impact effects and damage feedback during the animation
+      this.apoySpecialAnimation(spawnX, spawnY);
       this.scene.time.delayedCall(300, () => {
         this.scene.cameras.main.shake(150, 0.01);
-        const impactFlash = this.scene.add.rectangle(
-          enemySprite.x,
-          enemySprite.y,
-          120,
-          120,
-          0xff4500 // Fire red/orange
-        ).setAlpha(0).setDepth(1004);
-        this.scene.tweens.add({
-          targets: impactFlash,
-          alpha: [0, 0.3, 0],
-          duration: 200,
-          ease: 'Cubic.Out',
-          onComplete: () => {
-            impactFlash.destroy();
-          }
-        });
-        // Damage feedback: flash red and show damage number
         this.animateSpriteDamage(enemySprite);
         this.showDamageNumber(enemySprite.x, enemySprite.y, this.getSpecialAttackDamage(suit));
       });
     } else {
-      // Other suits use slash animation
+      // Hangin uses air slash animation
       this.animateCharacterSlash(suit);
       this.scene.time.delayedCall(300, () => {
         this.scene.cameras.main.shake(150, 0.01);
-        const impactFlash = this.scene.add.rectangle(
-          this.scene.cameras.main.width / 2,
-          this.scene.cameras.main.height / 2,
-          this.scene.cameras.main.width,
-          this.scene.cameras.main.height,
-          0xffffff
-        ).setAlpha(0).setDepth(1004);
-        this.scene.tweens.add({
-          targets: impactFlash,
-          alpha: [0, 0.3, 0],
-          duration: 200,
-          ease: 'Cubic.Out',
-          onComplete: () => {
-            impactFlash.destroy();
-          }
-        });
       });
     }
   }
   
-  /** Create immersive cinematic effect for special action sequence (Final Fantasy horizontal focus style) */
-  private createCinematicBars(): void {
-    const screenWidth = this.scene.cameras.main.width;
-    const screenHeight = this.scene.cameras.main.height;
-    const playerSprite = this.scene.getPlayerSprite();
-    const enemySprite = this.scene.getEnemySprite();
-    
-    // Focus effect only - no top/bottom bars
-    
-    // No zooming in this version - just horizontal focus on hero and enemy
-    // Focus camera horizontally between hero and enemy without zooming
-    const combatCenterX = (playerSprite.x + enemySprite.x) / 2;
-    const combatCenterY = (playerSprite.y + enemySprite.y) / 2;
-    
-    // Calculate focus area around hero and enemy - span entire screen width
-    const focusWidth = screenWidth; // Use full screen width for maximum span
-    const focusHeight = screenHeight * 0.4; // Use 40% of screen height
-    const focusX = screenWidth / 2; // Center horizontally across entire screen
-    const focusY = combatCenterY;
-    
-    // Hide all UI elements during special attack
-    (this.scene as any).hideUIForSpecialAttack();
-    
-    // Create focus effect using multiple rectangles instead of mask
-    // Top overlay (above focus area)
-    const topOverlay = this.scene.add.rectangle(
-      screenWidth / 2,
-      (focusY - focusHeight / 2) / 2,
-      screenWidth,
-      focusY - focusHeight / 2,
-      0x000000
-    ).setAlpha(0).setDepth(1000);
-    
-    // Bottom overlay (below focus area)
-    const bottomOverlay = this.scene.add.rectangle(
-      screenWidth / 2,
-      focusY + focusHeight / 2 + (screenHeight - (focusY + focusHeight / 2)) / 2,
-      screenWidth,
-      screenHeight - (focusY + focusHeight / 2),
-      0x000000
-    ).setAlpha(0).setDepth(1000);
-    
-    // Left overlay (left of focus area)
-    const leftOverlay = this.scene.add.rectangle(
-      (focusX - focusWidth / 2) / 2,
-      focusY,
-      focusX - focusWidth / 2,
-      focusHeight,
-      0x000000
-    ).setAlpha(0).setDepth(1000);
-    
-    // Right overlay (right of focus area)
-    const rightOverlay = this.scene.add.rectangle(
-      focusX + focusWidth / 2 + (screenWidth - (focusX + focusWidth / 2)) / 2,
-      focusY,
-      screenWidth - (focusX + focusWidth / 2),
-      focusHeight,
-      0x000000
-    ).setAlpha(0).setDepth(1000);
-    
-    // Animate all overlays to create focus effect
-    const allOverlays = [topOverlay, bottomOverlay, leftOverlay, rightOverlay];
-    this.scene.tweens.add({
-      targets: allOverlays,
-      alpha: 0.8,
-      duration: 500,
-      ease: 'Cubic.Out'
-    });
-    
-    // Instead of zooming, we'll move the camera slightly to center the action
-    this.scene.tweens.add({
-      targets: this.scene.cameras.main,
-      scrollX: combatCenterX - (screenWidth / 2),
-      duration: 500,
-      ease: 'Cubic.Out',
-      hold: 1000, // Hold the horizontal focus during the special move
-      completeDelay: 300, // Wait before returning to normal view
-      onComplete: () => {
-        // Return to original camera position
-        this.scene.tweens.add({
-          targets: this.scene.cameras.main,
-          scrollX: 0,
-          duration: 300,
-          ease: 'Cubic.In'
-        });
-      }
-    });
-    
-    // No flash effect - just focus overlay
-    
-    // Create a "Special Move" text display like in Final Fantasy
-    const specialMoveText = this.scene.add.text(
-      screenWidth / 2,
-      screenHeight / 3,
-      "SPECIAL ATTACK!",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 64,
-        color: '#ffd700', // Gold color like in Final Fantasy
-        align: "center"
-      }
-    ).setOrigin(0.5).setAlpha(0).setScale(0.5).setDepth(1001);
-    
-    // Animate the special move text
-    this.scene.tweens.add({
-      targets: specialMoveText,
-      alpha: 1,
-      scale: 1.1,
-      duration: 300,
-      ease: 'Back.Out',
-      yoyo: true,
-      repeat: 0
-    });
-    
-    // Animate the bars out after the special move
-    this.scene.time.delayedCall(1800, () => {
-      // Animate special move text out
-      this.scene.tweens.add({
-        targets: specialMoveText,
-        alpha: 0,
-        scale: 0.8,
-        duration: 300,
-        ease: 'Cubic.In',
-        onComplete: () => {
-          specialMoveText.destroy();
-        }
-      });
-      
-      // Animate the focus overlay out
-      this.scene.tweens.add({
-        targets: allOverlays,
-        alpha: 0,
-        duration: 500,
-        ease: 'Cubic.In',
-        onComplete: () => {
-          allOverlays.forEach(overlay => overlay.destroy());
-          // Restore UI after special attack
-          (this.scene as any).restoreUIAfterSpecialAttack();
-        }
-      });
-    });
-    
-    // Create camera shake effect for impact
-    this.scene.cameras.main.shake(200, 0.008);
-  }
 
-  /** Animate character slash animation */
-  public animateCharacterSlash(suit: Suit): void {
-    const playerSprite = this.scene.getPlayerSprite();
-    const originalX = playerSprite.x;
-    const originalScale = playerSprite.scaleX;
+  /** Animate character slash animation (Hangin special — uses air spritesheet) */
+  public animateCharacterSlash(_suit: Suit): void {
     const enemySprite = this.scene.getEnemySprite();
-    const slashX = enemySprite.x - 40;
-    const slashY = enemySprite.y;
+    const spawnX = enemySprite.x;
+    const spawnY = enemySprite.y + enemySprite.displayHeight / 2;
 
-    // Create slash attack animation from PNG sequence
-    if (!this.scene.anims.exists("slash_attack_anim")) {
+    if (!this.scene.anims.exists("air_special_anim")) {
+      // air.png: 360x40, frameWidth=40 → 9 frames exactly
       this.scene.anims.create({
-        key: "slash_attack_anim",
-        frames: [
-          { key: "slash_00001" },
-          { key: "slash_00002" },
-          { key: "slash_00003" },
-          { key: "slash_00004" },
-          { key: "slash_00005" },
-          { key: "slash_00006" },
-          { key: "slash_00007" },
-          { key: "slash_00008" },
-          { key: "slash_00009" },
-          { key: "slash_00010" },
-          { key: "slash_00011" },
-          { key: "slash_00012" }
-        ],
-        frameRate: 24,
+        key: "air_special_anim",
+        frames: this.scene.anims.generateFrameNumbers("action_air", { start: 0, end: 8 }),
+        frameRate: 10,
         repeat: 0
       });
     }
-    const slashAnim = this.scene.add.sprite(slashX, slashY, "slash_00001")
-      .setOrigin(0.5)
-      .setScale(1.2)
-      .setDepth(1002)
-      .setAlpha(1);
-    slashAnim.play("slash_attack_anim");
-    slashAnim.on("animationcomplete", () => {
-      slashAnim.destroy();
-    });
-
-    // Animate player dash
-    this.scene.tweens.add({
-      targets: playerSprite,
-      x: slashX - 40,
-      scaleX: playerSprite.scaleX * 1.2,
-      scaleY: playerSprite.scaleY * 1.2,
-      duration: 150,
-      ease: 'Power3.Out',
-      onComplete: () => {
-        // Return player to original position
-        this.scene.tweens.add({
-          targets: playerSprite,
-          x: originalX,
-          scaleX: originalScale,
-          scaleY: originalScale,
-          duration: 120,
-          ease: 'Power3.In'
-        });
-      }
-    });
+    const slashAnim = this.scene.add.sprite(spawnX, spawnY, "action_air", 0)
+      .setOrigin(0.5, 1)
+      .setScale(8)
+      .setDepth(1002);
+    slashAnim.play("air_special_anim");
+    slashAnim.on("animationcomplete", () => slashAnim.destroy());
   }
   
   /** Create dramatic slash effect visualization for cinematic special attacks */
@@ -1001,14 +849,14 @@ export class CombatAnimations {
     });
   }
 
-  /** Animate player attack movement */
-  public animatePlayerAttack(): void {
+  /** Animate player attack — picks slash variant based on damage, spawns at bottom of enemy */
+  public animatePlayerAttack(damage: number = 0): void {
     const playerSprite = this.scene.getPlayerSprite();
-    if (!playerSprite) return;
+    const enemySprite = this.scene.getEnemySprite();
+    if (!enemySprite || !playerSprite) return;
 
+    // Player dash toward enemy
     const originalX = playerSprite.x;
-
-    // Move player forward
     this.scene.tweens.add({
       targets: playerSprite,
       x: originalX + 50,
@@ -1017,50 +865,70 @@ export class CombatAnimations {
       yoyo: true
     });
 
-    // Show slash attack animation at enemy position
-    const enemySprite = this.scene.getEnemySprite();
-        if (!playerSprite) return;
-  const slashX = enemySprite.x - 60; // Move animation further left
-  const slashY = enemySprite.y;
+    const spawnX = enemySprite.x;
+    const spawnY = enemySprite.y + enemySprite.displayHeight / 2;
+
     // Remove any previous slash animation
     const prevSlash = this.scene.children.getByName("slash_effect");
-    if (prevSlash) {
-      prevSlash.destroy();
+    if (prevSlash) prevSlash.destroy();
+
+    // Pick variant based on damage: <10 slash, <20 slash_curved, <35 slash_double, >=35 slash_double_curved
+    let textureKey: string;
+    let animKey: string;
+    if (damage >= 35) {
+      textureKey = "action_slash_double_curved";
+      animKey = "slash_double_curved_anim";
+    } else if (damage >= 20) {
+      textureKey = "action_slash_double";
+      animKey = "slash_double_anim";
+    } else if (damage >= 10) {
+      textureKey = "action_slash_curved";
+      animKey = "slash_curved_anim";
+    } else {
+      textureKey = "action_slash";
+      animKey = "slash_anim";
     }
 
-    // Create animation if not exists
-    if (!this.scene.anims.exists("slash_attack_anim")) {
+    if (!this.scene.anims.exists(animKey)) {
       this.scene.anims.create({
-        key: "slash_attack_anim",
-        frames: [
-          { key: "slash_00001" },
-          { key: "slash_00002" },
-          { key: "slash_00003" },
-          { key: "slash_00004" },
-          { key: "slash_00005" },
-          { key: "slash_00006" },
-          { key: "slash_00007" },
-          { key: "slash_00008" },
-          { key: "slash_00009" },
-          { key: "slash_00010" },
-          { key: "slash_00011" },
-          { key: "slash_00012" }
-        ],
+        key: animKey,
+        frames: this.scene.anims.generateFrameNumbers(textureKey, { start: 0, end: -1 }),
         frameRate: 24,
         repeat: 0
       });
     }
 
-    // Add animated sprite using first frame
-    const slashAnim = this.scene.add.sprite(slashX, slashY, "slash_00001")
-      .setOrigin(0.5, 0.5)
-      .setScale(2.2)
+    const slashAnim = this.scene.add.sprite(spawnX, spawnY, textureKey, 0)
+      .setOrigin(0.5, 1)
+      .setScale(8)
       .setName("slash_effect")
       .setDepth(100);
-    slashAnim.play("slash_attack_anim");
-    slashAnim.on("animationcomplete", () => {
-      slashAnim.destroy();
-    });
+    slashAnim.play(animKey);
+    slashAnim.on("animationcomplete", () => slashAnim.destroy());
+  }
+
+  /** Animate player defend — plays the defend spritesheet on the player hero */
+  public animatePlayerDefend(): void {
+    const playerSprite = this.scene.getPlayerSprite();
+    if (!playerSprite) return;
+
+    if (!this.scene.anims.exists("defend_anim")) {
+      this.scene.anims.create({
+        key: "defend_anim",
+        frames: this.scene.anims.generateFrameNumbers("action_defend", { start: 0, end: -1 }),
+        frameRate: 18,
+        repeat: 0
+      });
+    }
+
+    const spawnX = playerSprite.x;
+    const spawnY = playerSprite.y + playerSprite.displayHeight / 2;
+    const defendAnim = this.scene.add.sprite(spawnX, spawnY, "action_defend", 0)
+      .setOrigin(0.5, 1)
+      .setScale(8)
+      .setDepth(playerSprite.depth + 1);
+    defendAnim.play("defend_anim");
+    defendAnim.on("animationcomplete", () => defendAnim.destroy());
   }
 
   public animateEnemySlash(): void {

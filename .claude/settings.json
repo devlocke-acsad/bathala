@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(grep -r \"chapter.*skip\\\\|skip.*chapter\" /c/Users/exequel/code/bathala/bathala/src --include=*.ts)"
+      "Bash(grep -r \"chapter.*skip\\\\|skip.*chapter\" /c/Users/exequel/code/bathala/bathala/src --include=*.ts)",
+      "Bash(find /c/Users/exequel/code/bathala -type d -name *combat* -o -type d -name *animation*)",
+      "Bash(find /c/Users/exequel/code/bathala/bathala/src -name *.ts -type f)",
+      "Bash(python3 -c \":*)",
+      "Bash(node -e \":*)"
     ]
   }
 }
