@@ -606,281 +606,13 @@ export class Overworld extends Scene {
     ).setScrollFactor(0).setDepth(1000); // Fix to camera and set depth
     this.bossText.setShadow(2, 2, '#000000', 2, false, true);
 
-    // Create container for all test buttons BEFORE adding buttons to it
+    // Stub container kept for MazeGenSystem.setDevMode compatibility
     this.testButtonsContainer = this.add.container(0, 0);
     this.testButtonsContainer.setScrollFactor(0);
     this.testButtonsContainer.setDepth(2000);
+    this.testButtonsContainer.setVisible(false);
 
-    // Create action buttons on the top right side of the screen (fixed to camera)
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    const buttonX = screenWidth - 150; // Position from right edge
-    let buttonY = 100;
-
-    // Combat test button
-    this.createActionButton(buttonX, buttonY, "Combat", "#ff0000", () => {
-      this.startCombat("combat");
-    }, this.testButtonsContainer);
-    buttonY += 60;
-
-    // Elite test button
-    this.createActionButton(buttonX, buttonY, "Elite", "#ffa500", () => {
-      this.startCombat("elite");
-    }, this.testButtonsContainer);
-    buttonY += 60;
-
-    // Boss test button
-    this.createActionButton(buttonX, buttonY, "Boss Fight", "#8b5cf6", () => {
-      this.startCombat("boss");
-    }, this.testButtonsContainer);
-    buttonY += 60;
-
-    // Shop test button
-    this.createActionButton(buttonX, buttonY, "Shop", "#00ff00", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-
-      // Pause this scene and launch shop scene with actual player data
-      this.scene.pause();
-      this.scene.launch("Shop", {
-        player: this.playerData
-      });
-    }, this.testButtonsContainer);
-    buttonY += 60;
-
-    // Event test button
-    this.createActionButton(buttonX, buttonY, "Event", "#0000ff", () => {
-      // Check if player data exists, if not create a default one
-      const safePlayerData = this.playerData || {
-        id: "player",
-        name: "Hero",
-        maxHealth: 120,
-        currentHealth: 120,
-        block: 0,
-        statusEffects: [],
-        hand: [],
-        deck: [],
-        discardPile: [],
-        drawPile: [],
-        playedHand: [],
-        landasScore: 0,
-        ginto: 100,
-        diamante: 0,
-        relics: [],
-        potions: [],
-        discardCharges: 3,
-        maxDiscardCharges: 3
-      };
-
-      // Save player position before transitioning
-      const gameState4 = GameState.getInstance();
-      gameState4.savePlayerPosition(this.player.x, this.player.y);
-
-      // Pause this scene and launch event scene with player data
-      this.scene.pause();
-      this.scene.launch("EventScene", {
-        player: safePlayerData
-      });
-    }, this.testButtonsContainer);
-    buttonY += 60;
-
-    // Campfire test button
-    this.createActionButton(buttonX, buttonY, "Campfire", "#ff4500", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-
-      // Pause this scene and launch campfire scene
-      this.scene.pause();
-      this.scene.launch("Campfire", {
-        player: this.playerData
-      });
-    }, this.testButtonsContainer);
-    buttonY += 60;
-
-    // Treasure test button
-    this.createActionButton(buttonX, buttonY, "Treasure", "#ffff00", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-
-      // Pause this scene and launch treasure scene
-      this.scene.pause();
-      this.scene.launch("Treasure", {
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 120,
-          currentHealth: 120,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          diamante: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
-      });
-    }, this.testButtonsContainer);
-
-    // Create additional easily accessible test buttons at the bottom of the screen (fixed to camera)
-    const bottomButtonY = screenHeight - 100;
-
-    // Calculate total width needed for all buttons to center them
-    const buttonCount = 8; // Number of bottom buttons
-    const buttonSpacing = 200; // Increased spacing between buttons
-    const totalWidth = (buttonCount - 1) * buttonSpacing; // Total width of spacing between buttons
-    const bottomButtonX = (screenWidth - totalWidth) / 2; // Center the group of buttons
-
-    let currentButtonX = bottomButtonX;
-
-    // Quick Boss Fight button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Boss", "#8b5cf6", () => {
-      this.startCombat("boss");
-    }, this.testButtonsContainer);
-
-    currentButtonX += 200;
-
-    // Quick Combat button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Combat", "#ff0000", () => {
-      this.startCombat("combat");
-    }, this.testButtonsContainer);
-
-    currentButtonX += 200;
-
-    // Quick Elite button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Elite", "#ffa500", () => {
-      this.startCombat("elite");
-    }, this.testButtonsContainer);
-
-    currentButtonX += 200;
-
-    // Quick Campfire button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Campfire", "#ff4500", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-
-      // Pause this scene and launch campfire scene
-      this.scene.pause();
-      this.scene.launch("Campfire", {
-        player: this.playerData
-      });
-    }, this.testButtonsContainer);
-
-    currentButtonX += 200;
-
-    // Quick Shop button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Shop", "#00ff00", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-
-      // Pause this scene and launch shop scene with actual player data
-      this.scene.pause();
-      this.scene.launch("Shop", {
-        player: this.playerData
-      });
-    }, this.testButtonsContainer);
-
-    currentButtonX += 200;
-
-    // Quick Treasure button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Treasure", "#ffff00", () => {
-      // Save player position before transitioning
-      const gameState = GameState.getInstance();
-      gameState.savePlayerPosition(this.player.x, this.player.y);
-
-      // Pause this scene and launch treasure scene
-      this.scene.pause();
-      this.scene.launch("Treasure", {
-        player: {
-          id: "player",
-          name: "Hero",
-          maxHealth: 120,
-          currentHealth: 120,
-          block: 0,
-          statusEffects: [],
-          hand: [],
-          deck: [],
-          discardPile: [],
-          drawPile: [],
-          playedHand: [],
-          landasScore: 0,
-          ginto: 100,
-          diamante: 0,
-          relics: [
-            {
-              id: "placeholder_relic",
-              name: "Placeholder Relic",
-              description: "This is a placeholder relic.",
-              emoji: "⚙️",
-            },
-          ],
-        }
-      });
-    }, this.testButtonsContainer);
-
-    currentButtonX += 200;
-
-    // Quick Event button at bottom
-    this.createActionButton(currentButtonX, bottomButtonY, "Quick Event", "#0000ff", () => {
-      // Check if player data exists, if not create a default one
-      const safePlayerData = this.playerData || {
-        id: "player",
-        name: "Hero",
-        maxHealth: 120,
-        currentHealth: 120,
-        block: 0,
-        statusEffects: [],
-        hand: [],
-        deck: [],
-        discardPile: [],
-        drawPile: [],
-        playedHand: [],
-        landasScore: 0,
-        ginto: 100,
-        diamante: 0,
-        relics: [],
-        potions: [],
-        discardCharges: 3,
-        maxDiscardCharges: 3
-      };
-
-      // Save player position before transitioning
-      const gameState4 = GameState.getInstance();
-      gameState4.savePlayerPosition(this.player.x, this.player.y);
-
-      // Pause this scene and launch event scene with player data
-      this.scene.pause();
-      this.scene.launch("EventScene", {
-        player: safePlayerData
-      });
-    }, this.testButtonsContainer);
-
-    currentButtonX += 200;
-
-    // DDA Debug button at bottom  
-    this.createActionButton(currentButtonX, bottomButtonY, "DDA Debug", "#9c27b0", () => {
-      this.scene.launch("DDADebugScene");
-      this.scene.pause();
-    }, this.testButtonsContainer);
-
-    // Container is already created above, just proceed to toggle button
-
-    // Create toggle button
+    // Create the [DEV] toggle button (top-right corner)
     this.createToggleButton();
 
     // Create overworld UI panel
@@ -1080,85 +812,64 @@ export class Overworld extends Scene {
   createToggleButton(): void {
     const screenWidth = this.cameras.main.width;
 
-    // Position toggle button at top-right corner
+    // [DEV] button — top-right, opens DevHubScene overlay
     const toggleX = screenWidth - 60;
     const toggleY = 50;
 
     this.toggleButton = this.add.container(toggleX, toggleY);
 
-    // Create a temporary text object to measure the actual text width
-    const tempText = this.add.text(0, 0, "Dev Mode", {
+    const buttonWidth  = 100;
+    const buttonHeight = 30;
+
+    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x14141f);
+    background.setStrokeStyle(1, 0xffd93d);
+    background.setAlpha(0.85);
+
+    const buttonText = this.add.text(0, 0, "[DEV]", {
       fontFamily: 'dungeon-mode',
-      fontSize: '12px',
-      color: '#ffffff'
-    });
-
-    // Get the actual width of the text
-    const textWidth = tempText.width;
-    const textHeight = tempText.height;
-    tempText.destroy(); // Remove the temporary text
-
-    // Set button dimensions with proper padding
-    const padding = 20;
-    const buttonWidth = Math.max(100, textWidth + padding); // Minimum width of 100px
-    const buttonHeight = Math.max(30, textHeight + 10); // Minimum height of 30px
-
-    const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x333333);
-    background.setStrokeStyle(2, 0xffffff);
-
-    const buttonText = this.add.text(0, 0, "Dev Mode", {
-      fontFamily: 'dungeon-mode',
-      fontSize: '12px',
-      color: '#ffffff',
+      fontSize: '14px',
+      color: '#ffd93d',
       align: 'center'
     }).setOrigin(0.5);
 
     this.toggleButton.add([background, buttonText]);
     this.toggleButton.setInteractive(new Phaser.Geom.Rectangle(-buttonWidth / 2, -buttonHeight / 2, buttonWidth, buttonHeight), Phaser.Geom.Rectangle.Contains);
     this.toggleButton.setScrollFactor(0);
-    this.toggleButton.setDepth(2000); // Ensure it's above other UI elements
+    this.toggleButton.setDepth(2000);
 
-    this.toggleButton.on('pointerdown', () => {
-      this.toggleTestButtons();
-    });
+    this.toggleButton.on('pointerdown', () => this.openDevHub());
+    this.toggleButton.on('pointerover', () => { background.setAlpha(1); buttonText.setColor('#ffffff'); });
+    this.toggleButton.on('pointerout',  () => { background.setAlpha(0.85); buttonText.setColor('#ffd93d'); });
 
-    this.toggleButton.on('pointerover', () => {
-      background.setFillStyle(0x555555);
-    });
+    // F2 shortcut from the overworld
+    this.input.keyboard?.on('keydown-F2', () => this.openDevHub());
+  }
 
-    this.toggleButton.on('pointerout', () => {
-      background.setFillStyle(0x333333);
-    });
-
-    // Initially hide all test buttons since dev mode is off by default
-    this.hideTestButtons();
+  private openDevHub(): void {
+    if (!this.scene.isActive('DevHubScene')) {
+      this.scene.launch('DevHubScene');
+      this.scene.get('DevHubScene').events.once('create', () => {
+        const s = this.scene.get('DevHubScene') as any;
+        if (s?.show) s.show();
+      });
+    } else {
+      const s = this.scene.get('DevHubScene') as any;
+      if (s?.show) s.show();
+    }
   }
 
   toggleTestButtons(): void {
+    // Kept for MazeGenSystem compatibility — no longer shows legacy buttons
     this.testButtonsVisible = !this.testButtonsVisible;
-
-    // Update toggle button text
-    const buttonText = this.toggleButton.getAt(1) as Phaser.GameObjects.Text;
-    buttonText.setText("Dev Mode");
-
-    // Toggle container visibility (all buttons are children of this container)
-    if (this.testButtonsContainer) {
-      this.testButtonsContainer.setVisible(this.testButtonsVisible);
-    }
-
-    // Update dev mode in MazeGenManager
     if (this.mazeGenManager) {
       this.mazeGenManager.setDevMode(this.testButtonsVisible);
     }
   }
 
   hideTestButtons(): void {
-    // Hide the dev buttons container
     if (this.testButtonsContainer) {
       this.testButtonsContainer.setVisible(false);
     }
-
-    // Update dev mode in MazeGenManager
     if (this.mazeGenManager) {
       this.mazeGenManager.setDevMode(false);
     }

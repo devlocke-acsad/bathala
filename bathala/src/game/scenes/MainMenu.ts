@@ -32,37 +32,23 @@ export class MainMenu extends Scene {
     // Create UI elements
     this.createUI();
     
-    // Dev mode: Backtick (`) key to open Combat Debug Scene
-    this.input.keyboard?.on('keydown-BACKTICK', () => {
-      console.log('Opening Combat Debug Scene...');
-      if (!this.scene.isActive('CombatDebugScene')) {
-        const debugScene = this.scene.launch('CombatDebugScene');
-        // Use scene's create event to know when it's ready
-        this.scene.get('CombatDebugScene').events.once('create', () => {
-          const scene = this.scene.get('CombatDebugScene') as any;
-          if (scene && scene.show) scene.show();
-        });
-      } else {
-        const debugScene = this.scene.get('CombatDebugScene') as any;
-        if (debugScene && debugScene.show) debugScene.show();
-      }
-    });
-    
-    // Dev mode: Also bind to "1" key for easier access
-    this.input.keyboard?.on('keydown-ONE', () => {
-      console.log('Opening Combat Debug Scene...');
-      if (!this.scene.isActive('CombatDebugScene')) {
-        this.scene.launch('CombatDebugScene');
-        // Use scene's create event to know when it's ready
-        this.scene.get('CombatDebugScene').events.once('create', () => {
-          const scene = this.scene.get('CombatDebugScene') as any;
-          if (scene && scene.show) scene.show();
-        });
-      } else {
-        const debugScene = this.scene.get('CombatDebugScene') as any;
-        if (debugScene && debugScene.show) debugScene.show();
-      }
-    });
+    // F2 / backtick — open Dev Hub
+    const openDevHub = () => this.launchDevHub();
+    this.input.keyboard?.on('keydown-F2',      openDevHub);
+    this.input.keyboard?.on('keydown-BACKTICK', openDevHub);
+  }
+
+  private launchDevHub(): void {
+    if (!this.scene.isActive('DevHubScene')) {
+      this.scene.launch('DevHubScene');
+      this.scene.get('DevHubScene').events.once('create', () => {
+        const s = this.scene.get('DevHubScene') as any;
+        if (s?.show) s.show();
+      });
+    } else {
+      const s = this.scene.get('DevHubScene') as any;
+      if (s?.show) s.show();
+    }
   }
 
   /**
@@ -262,70 +248,20 @@ export class MainMenu extends Scene {
       this.menuButtons.push(btn);
     });
     
-    // Add Dev Mode button in bottom right corner
+    // Single DEV button — opens the unified DevHubScene
     this.add
-      .text(screenWidth - 40, screenHeight - 80, "[Dev Mode]", {
+      .text(screenWidth - 40, screenHeight - 60, "[DEV]", {
         fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#ffd93d", // Yellow to stand out
+        fontSize: 18,
+        color: "#ffd93d",
         align: "right",
       })
       .setOrigin(1, 1)
+      .setAlpha(0.6)
       .setInteractive({ useHandCursor: true })
-      .on("pointerdown", () => {
-        console.log('Opening Combat Debug Scene...');
-        // Launch the scene if not already running
-        if (!this.scene.isActive('CombatDebugScene')) {
-          this.scene.launch('CombatDebugScene');
-          // Use scene's create event to know when it's ready
-          this.scene.get('CombatDebugScene').events.once('create', () => {
-            const scene = this.scene.get('CombatDebugScene') as any;
-            if (scene && scene.show) scene.show();
-          });
-        } else {
-          // Scene already active, show immediately
-          const debugScene = this.scene.get('CombatDebugScene') as any;
-          if (debugScene && debugScene.show) debugScene.show();
-        }
-      })
-      .on("pointerover", function(this: Phaser.GameObjects.Text) {
-        this.setColor("#ffffff"); // White on hover
-      })
-      .on("pointerout", function(this: Phaser.GameObjects.Text) {
-        this.setColor("#ffd93d"); // Back to yellow
-      });
-
-    // Add Educational Debug Mode button (Above Dev Mode)
-    this.add
-      .text(screenWidth - 40, screenHeight - 110, "[Edu Mode]", {
-        fontFamily: "dungeon-mode",
-        fontSize: 20,
-        color: "#2ed573", // Green to distinguish
-        align: "right",
-      })
-      .setOrigin(1, 1)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerdown", () => {
-        console.log('Opening Educational Events Debug Scene...');
-        if (!this.scene.isActive('EducationalEventsDebugScene')) {
-          this.scene.launch('EducationalEventsDebugScene');
-          // Use scene's create event to know when it's ready
-          this.scene.get('EducationalEventsDebugScene').events.once('create', () => {
-            const scene = this.scene.get('EducationalEventsDebugScene') as any;
-            if (scene && scene.show) scene.show();
-          });
-        } else {
-          // Scene already active, show immediately
-          const debugScene = this.scene.get('EducationalEventsDebugScene') as any;
-          if (debugScene && debugScene.show) debugScene.show();
-        }
-      })
-      .on("pointerover", function(this: Phaser.GameObjects.Text) {
-        this.setColor("#ffffff");
-      })
-      .on("pointerout", function(this: Phaser.GameObjects.Text) {
-        this.setColor("#2ed573");
-      });
+      .on("pointerdown", () => this.launchDevHub())
+      .on("pointerover", function(this: Phaser.GameObjects.Text) { this.setAlpha(1).setColor("#ffffff"); })
+      .on("pointerout",  function(this: Phaser.GameObjects.Text) { this.setAlpha(0.6).setColor("#ffd93d"); });
   }
 
   /**
