@@ -529,6 +529,18 @@ export class Preloader extends Scene {
       this.textures.get("player_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
 
+    // Apply NEAREST filtering to action spritesheets for crisp pixel art at large scales
+    for (const key of [
+      "action_air", "action_slash", "action_slash_curved",
+      "action_slash_double", "action_slash_double_curved",
+      "action_defend", "action_earth1", "action_earth2",
+      "action_fire", "action_water1", "action_water2"
+    ]) {
+      if (this.textures.exists(key)) {
+        this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+      }
+    }
+
     // Apply NEAREST filtering to overworld node sprites for crisp pixel art
     if (this.textures.exists("merchant_overworld")) {
       this.textures.get("merchant_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);

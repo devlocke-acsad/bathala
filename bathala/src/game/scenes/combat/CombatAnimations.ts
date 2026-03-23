@@ -19,7 +19,7 @@ export class CombatAnimations {
    * @param y Y position for animation (usually enemy position)
    * @param scale Optional scale factor (default 1.2)
    */
-  public apoySpecialAnimation(x: number, y: number, scale: number = 3): void {
+  public apoySpecialAnimation(x: number, y: number, scale: number = 8): void {
     if (!this.scene.anims.exists("apoy_special_anim")) {
       this.scene.anims.create({
         key: "apoy_special_anim",
@@ -29,7 +29,7 @@ export class CombatAnimations {
       });
     }
     const anim = this.scene.add.sprite(x, y, "action_fire", 0)
-      .setOrigin(0.5)
+      .setOrigin(0.5, 1)
       .setScale(scale)
       .setDepth(1002);
     anim.play("apoy_special_anim");
@@ -41,7 +41,7 @@ export class CombatAnimations {
    * @param y Y position for animation (usually enemy position)
    * @param scale Optional scale factor (default 1.2)
    */
-  public tubigSpecialAnimation(x: number, y: number, scale: number = 3): void {
+  public tubigSpecialAnimation(x: number, y: number, scale: number = 8): void {
     // Alternate between water1 and water2 each time
     const variant = (this as any)._tubigVariant ? "tubig_special_anim2" : "tubig_special_anim1";
     (this as any)._tubigVariant = !(this as any)._tubigVariant;
@@ -65,7 +65,7 @@ export class CombatAnimations {
 
     const textureKey = variant === "tubig_special_anim1" ? "action_water1" : "action_water2";
     const anim = this.scene.add.sprite(x, y, textureKey, 0)
-      .setOrigin(0.5)
+      .setOrigin(0.5, 1)
       .setScale(scale)
       .setDepth(1002);
     anim.play(variant);
@@ -77,7 +77,7 @@ export class CombatAnimations {
    * @param y Y position for animation (usually enemy position)
    * @param scale Optional scale factor (default 1.2)
    */
-  public lupaSpecialAnimation(x: number, y: number, scale: number = 3): void {
+  public lupaSpecialAnimation(x: number, y: number, scale: number = 8): void {
     // Alternate between earth1 and earth2 each time
     const variant = (this as any)._lupaVariant ? "lupa_special_anim2" : "lupa_special_anim1";
     (this as any)._lupaVariant = !(this as any)._lupaVariant;
@@ -101,7 +101,7 @@ export class CombatAnimations {
 
     const textureKey = variant === "lupa_special_anim1" ? "action_earth1" : "action_earth2";
     const anim = this.scene.add.sprite(x, y, textureKey, 0)
-      .setOrigin(0.5)
+      .setOrigin(0.5, 1)
       .setScale(scale)
       .setDepth(1002);
     anim.play(variant);
@@ -355,102 +355,34 @@ export class CombatAnimations {
    */
   private performSpecialAttack(suit: Suit): void {
     const enemySprite = this.scene.getEnemySprite();
+    const spawnX = enemySprite.x;
+    const spawnY = enemySprite.y + enemySprite.displayHeight / 2;
     if (suit === "Lupa") {
-      this.lupaSpecialAnimation(enemySprite.x, enemySprite.y, 1.2);
-      // Add impact effects and damage feedback during the animation
+      this.lupaSpecialAnimation(spawnX, spawnY);
       this.scene.time.delayedCall(300, () => {
         this.scene.cameras.main.shake(150, 0.01);
-        const impactFlash = this.scene.add.rectangle(
-          enemySprite.x,
-          enemySprite.y,
-          120,
-          120,
-          0x32cd32 // Earth green
-        ).setAlpha(0).setDepth(1004);
-        this.scene.tweens.add({
-          targets: impactFlash,
-          alpha: [0, 0.3, 0],
-          duration: 200,
-          ease: 'Cubic.Out',
-          onComplete: () => {
-            impactFlash.destroy();
-          }
-        });
-        // Damage feedback: flash red and show damage number
         this.animateSpriteDamage(enemySprite);
         this.showDamageNumber(enemySprite.x, enemySprite.y, this.getSpecialAttackDamage(suit));
       });
     } else if (suit === "Tubig") {
-      this.tubigSpecialAnimation(enemySprite.x, enemySprite.y);
-      // Add impact effects and damage feedback during the animation
+      this.tubigSpecialAnimation(spawnX, spawnY);
       this.scene.time.delayedCall(300, () => {
         this.scene.cameras.main.shake(150, 0.01);
-        const impactFlash = this.scene.add.rectangle(
-          enemySprite.x,
-          enemySprite.y,
-          120,
-          120,
-          0x1e90ff // Water blue
-        ).setAlpha(0).setDepth(1004);
-        this.scene.tweens.add({
-          targets: impactFlash,
-          alpha: [0, 0.3, 0],
-          duration: 200,
-          ease: 'Cubic.Out',
-          onComplete: () => {
-            impactFlash.destroy();
-          }
-        });
-        // Damage feedback: flash red and show damage number
         this.animateSpriteDamage(enemySprite);
         this.showDamageNumber(enemySprite.x, enemySprite.y, this.getSpecialAttackDamage(suit));
       });
     } else if (suit === "Apoy") {
-      this.apoySpecialAnimation(enemySprite.x, enemySprite.y);
-      // Add impact effects and damage feedback during the animation
+      this.apoySpecialAnimation(spawnX, spawnY);
       this.scene.time.delayedCall(300, () => {
         this.scene.cameras.main.shake(150, 0.01);
-        const impactFlash = this.scene.add.rectangle(
-          enemySprite.x,
-          enemySprite.y,
-          120,
-          120,
-          0xff4500 // Fire red/orange
-        ).setAlpha(0).setDepth(1004);
-        this.scene.tweens.add({
-          targets: impactFlash,
-          alpha: [0, 0.3, 0],
-          duration: 200,
-          ease: 'Cubic.Out',
-          onComplete: () => {
-            impactFlash.destroy();
-          }
-        });
-        // Damage feedback: flash red and show damage number
         this.animateSpriteDamage(enemySprite);
         this.showDamageNumber(enemySprite.x, enemySprite.y, this.getSpecialAttackDamage(suit));
       });
     } else {
-      // Other suits use slash animation
+      // Hangin uses air slash animation
       this.animateCharacterSlash(suit);
       this.scene.time.delayedCall(300, () => {
         this.scene.cameras.main.shake(150, 0.01);
-        const impactFlash = this.scene.add.rectangle(
-          this.scene.cameras.main.width / 2,
-          this.scene.cameras.main.height / 2,
-          this.scene.cameras.main.width,
-          this.scene.cameras.main.height,
-          0xffffff
-        ).setAlpha(0).setDepth(1004);
-        this.scene.tweens.add({
-          targets: impactFlash,
-          alpha: [0, 0.3, 0],
-          duration: 200,
-          ease: 'Cubic.Out',
-          onComplete: () => {
-            impactFlash.destroy();
-          }
-        });
       });
     }
   }
@@ -603,12 +535,9 @@ export class CombatAnimations {
 
   /** Animate character slash animation (Hangin special — uses air spritesheet) */
   public animateCharacterSlash(suit: Suit): void {
-    const playerSprite = this.scene.getPlayerSprite();
-    const originalX = playerSprite.x;
-    const originalScale = playerSprite.scaleX;
     const enemySprite = this.scene.getEnemySprite();
-    const slashX = enemySprite.x - 40;
-    const slashY = enemySprite.y;
+    const spawnX = enemySprite.x;
+    const spawnY = enemySprite.y + enemySprite.displayHeight / 2;
 
     if (!this.scene.anims.exists("air_special_anim")) {
       this.scene.anims.create({
@@ -618,32 +547,12 @@ export class CombatAnimations {
         repeat: 0
       });
     }
-    const slashAnim = this.scene.add.sprite(slashX, slashY, "action_air", 0)
-      .setOrigin(0.5)
-      .setScale(3)
+    const slashAnim = this.scene.add.sprite(spawnX, spawnY, "action_air", 0)
+      .setOrigin(0.5, 1)
+      .setScale(8)
       .setDepth(1002);
     slashAnim.play("air_special_anim");
     slashAnim.on("animationcomplete", () => slashAnim.destroy());
-
-    // Animate player dash
-    this.scene.tweens.add({
-      targets: playerSprite,
-      x: slashX - 40,
-      scaleX: playerSprite.scaleX * 1.2,
-      scaleY: playerSprite.scaleY * 1.2,
-      duration: 150,
-      ease: 'Power3.Out',
-      onComplete: () => {
-        this.scene.tweens.add({
-          targets: playerSprite,
-          x: originalX,
-          scaleX: originalScale,
-          scaleY: originalScale,
-          duration: 120,
-          ease: 'Power3.In'
-        });
-      }
-    });
   }
   
   /** Create dramatic slash effect visualization for cinematic special attacks */
@@ -958,14 +867,15 @@ export class CombatAnimations {
     });
   }
 
-  /** Animate player attack movement — picks slash variant based on damage strength */
+  /** Animate player attack — picks slash variant based on damage, spawns at bottom of enemy */
   public animatePlayerAttack(damage: number = 0): void {
     const playerSprite = this.scene.getPlayerSprite();
-    if (!playerSprite) return;
+    const enemySprite = this.scene.getEnemySprite();
+    if (!enemySprite || !playerSprite) return;
 
+    // Player dash toward enemy
     const originalX = playerSprite.x;
-
-    // Move player forward
+    const originalScale = playerSprite.scaleX;
     this.scene.tweens.add({
       targets: playerSprite,
       x: originalX + 50,
@@ -974,9 +884,8 @@ export class CombatAnimations {
       yoyo: true
     });
 
-    const enemySprite = this.scene.getEnemySprite();
-    const slashX = enemySprite.x - 60;
-    const slashY = enemySprite.y;
+    const spawnX = enemySprite.x;
+    const spawnY = enemySprite.y + enemySprite.displayHeight / 2;
 
     // Remove any previous slash animation
     const prevSlash = this.scene.children.getByName("slash_effect");
@@ -999,7 +908,6 @@ export class CombatAnimations {
       animKey = "slash_anim";
     }
 
-    // Create animation if not exists
     if (!this.scene.anims.exists(animKey)) {
       this.scene.anims.create({
         key: animKey,
@@ -1009,9 +917,9 @@ export class CombatAnimations {
       });
     }
 
-    const slashAnim = this.scene.add.sprite(slashX, slashY, textureKey, 0)
-      .setOrigin(0.5)
-      .setScale(3)
+    const slashAnim = this.scene.add.sprite(spawnX, spawnY, textureKey, 0)
+      .setOrigin(0.5, 1)
+      .setScale(8)
       .setName("slash_effect")
       .setDepth(100);
     slashAnim.play(animKey);
@@ -1032,9 +940,11 @@ export class CombatAnimations {
       });
     }
 
-    const defendAnim = this.scene.add.sprite(playerSprite.x, playerSprite.y, "action_defend", 0)
-      .setOrigin(0.5)
-      .setScale(3)
+    const spawnX = playerSprite.x;
+    const spawnY = playerSprite.y + playerSprite.displayHeight / 2;
+    const defendAnim = this.scene.add.sprite(spawnX, spawnY, "action_defend", 0)
+      .setOrigin(0.5, 1)
+      .setScale(8)
       .setDepth(playerSprite.depth + 1);
     defendAnim.play("defend_anim");
     defendAnim.on("animationcomplete", () => defendAnim.destroy());
