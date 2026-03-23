@@ -19,50 +19,21 @@ export class CombatAnimations {
    * @param y Y position for animation (usually enemy position)
    * @param scale Optional scale factor (default 1.2)
    */
-  public apoySpecialAnimation(x: number, y: number, scale: number = 1.2): void {
-    // Check all frame keys exist before creating animation
-    const missingFrames: string[] = [];
-    for (let i = 0; i <= 83; i++) {
-      const frameKey = `fire_special_${i.toString().padStart(2, "0")}`;
-      if (!this.scene.textures.exists(frameKey)) {
-        missingFrames.push(frameKey);
-      }
-    }
-    if (missingFrames.length > 0) {
-      console.error("Missing Apoy special animation frames:", missingFrames);
-      // Optionally, show a fallback or skip animation
-      return;
-    }
-    // Create the animation if it doesn't exist
+  public apoySpecialAnimation(x: number, y: number, scale: number = 3): void {
     if (!this.scene.anims.exists("apoy_special_anim")) {
       this.scene.anims.create({
         key: "apoy_special_anim",
-        frames: Array.from({ length: 84 }, (_, i) => ({ key: `fire_special_${i.toString().padStart(2, "0")}` })),
-        frameRate: 40,
+        frames: this.scene.anims.generateFrameNumbers("action_fire", { start: 0, end: -1 }),
+        frameRate: 18,
         repeat: 0
       });
     }
-    // Position: just below enemy sprite, but above its bottom
-    // Try to get enemy sprite height if available
-    let fireY = y;
-    const enemySprite = this.getCurrentEnemySprite?.() ?? null;
-    if (enemySprite && enemySprite.displayHeight) {
-      fireY = enemySprite.y + enemySprite.displayHeight / 2 - 32; // 32px above bottom
-    } else {
-      fireY = y + 40;
-    }
-    // Make the fire animation larger
-    const fireScale = 1.7;
-    const apoyAnim = this.scene.add.sprite(x, fireY, `fire_special_00`)
+    const anim = this.scene.add.sprite(x, y, "action_fire", 0)
       .setOrigin(0.5)
-      .setScale(fireScale)
-      .setDepth(1002)
-      .setAlpha(1);
-    // Play animation faster
-    apoyAnim.anims.play({ key: "apoy_special_anim", frameRate: 90 });
-    apoyAnim.on("animationcomplete", () => {
-      apoyAnim.destroy();
-    });
+      .setScale(scale)
+      .setDepth(1002);
+    anim.play("apoy_special_anim");
+    anim.on("animationcomplete", () => anim.destroy());
   }
   /**
    * Play the Tubig (Tidal Slash) special animation using the tubig_special spritesheet
@@ -70,40 +41,35 @@ export class CombatAnimations {
    * @param y Y position for animation (usually enemy position)
    * @param scale Optional scale factor (default 1.2)
    */
-  public tubigSpecialAnimation(x: number, y: number, scale: number = 1.2): void {
-    // Check all frame keys exist before creating animation
-    const missingFrames: string[] = [];
-    for (let i = 0; i < 42; i++) {
-      const frameKey = `water${(90000 + i).toString()}`;
-      if (!this.scene.textures.exists(frameKey)) {
-        missingFrames.push(frameKey);
-      }
-    }
-    if (missingFrames.length > 0) {
-      console.error("Missing Tubig special animation frames:", missingFrames);
-      // Optionally, show a fallback or skip animation
-      return;
-    }
-    // Create the animation if it doesn't exist
-    if (!this.scene.anims.exists("tubig_special_anim")) {
+  public tubigSpecialAnimation(x: number, y: number, scale: number = 3): void {
+    // Alternate between water1 and water2 each time
+    const variant = (this as any)._tubigVariant ? "tubig_special_anim2" : "tubig_special_anim1";
+    (this as any)._tubigVariant = !(this as any)._tubigVariant;
+
+    if (!this.scene.anims.exists("tubig_special_anim1")) {
       this.scene.anims.create({
-        key: "tubig_special_anim",
-        frames: Array.from({ length: 42 }, (_, i) => ({ key: `water${(90000 + i).toString()}` })),
-        frameRate: 40,
+        key: "tubig_special_anim1",
+        frames: this.scene.anims.generateFrameNumbers("action_water1", { start: 0, end: -1 }),
+        frameRate: 18,
         repeat: 0
       });
     }
-    // Add the sprite and play the animation
-    const enemySpriteScale = 0.4; // Use the same scale as enemy sprites for consistency
-    const tubigAnim = this.scene.add.sprite(x, y, `water90000`)
+    if (!this.scene.anims.exists("tubig_special_anim2")) {
+      this.scene.anims.create({
+        key: "tubig_special_anim2",
+        frames: this.scene.anims.generateFrameNumbers("action_water2", { start: 0, end: -1 }),
+        frameRate: 18,
+        repeat: 0
+      });
+    }
+
+    const textureKey = variant === "tubig_special_anim1" ? "action_water1" : "action_water2";
+    const anim = this.scene.add.sprite(x, y, textureKey, 0)
       .setOrigin(0.5)
-      .setScale(enemySpriteScale)
-      .setDepth(1002)
-      .setAlpha(1);
-    tubigAnim.play("tubig_special_anim");
-    tubigAnim.on("animationcomplete", () => {
-      tubigAnim.destroy();
-    });
+      .setScale(scale)
+      .setDepth(1002);
+    anim.play(variant);
+    anim.on("animationcomplete", () => anim.destroy());
   }
   /**
    * Play the Lupa (Earth Crusher) special animation using the lupa_special spritesheet
@@ -111,26 +77,35 @@ export class CombatAnimations {
    * @param y Y position for animation (usually enemy position)
    * @param scale Optional scale factor (default 1.2)
    */
-  public lupaSpecialAnimation(x: number, y: number, scale: number = 1.2): void {
-    // Create the animation if it doesn't exist
-    if (!this.scene.anims.exists("lupa_special_anim")) {
+  public lupaSpecialAnimation(x: number, y: number, scale: number = 3): void {
+    // Alternate between earth1 and earth2 each time
+    const variant = (this as any)._lupaVariant ? "lupa_special_anim2" : "lupa_special_anim1";
+    (this as any)._lupaVariant = !(this as any)._lupaVariant;
+
+    if (!this.scene.anims.exists("lupa_special_anim1")) {
       this.scene.anims.create({
-        key: "lupa_special_anim",
-        frames: this.scene.anims.generateFrameNumbers("lupa_special", { start: 0, end: 99 }),
-        frameRate: 40,
+        key: "lupa_special_anim1",
+        frames: this.scene.anims.generateFrameNumbers("action_earth1", { start: 0, end: -1 }),
+        frameRate: 18,
         repeat: 0
       });
     }
-    // Add the sprite and play the animation
-    const lupaAnim = this.scene.add.sprite(x, y, "lupa_special", 0)
+    if (!this.scene.anims.exists("lupa_special_anim2")) {
+      this.scene.anims.create({
+        key: "lupa_special_anim2",
+        frames: this.scene.anims.generateFrameNumbers("action_earth2", { start: 0, end: -1 }),
+        frameRate: 18,
+        repeat: 0
+      });
+    }
+
+    const textureKey = variant === "lupa_special_anim1" ? "action_earth1" : "action_earth2";
+    const anim = this.scene.add.sprite(x, y, textureKey, 0)
       .setOrigin(0.5)
       .setScale(scale)
-      .setDepth(1002)
-      .setAlpha(1);
-    lupaAnim.play("lupa_special_anim");
-    lupaAnim.on("animationcomplete", () => {
-      lupaAnim.destroy();
-    });
+      .setDepth(1002);
+    anim.play(variant);
+    anim.on("animationcomplete", () => anim.destroy());
   }
   private scene: Combat;
 
@@ -626,7 +601,7 @@ export class CombatAnimations {
     this.scene.cameras.main.shake(200, 0.008);
   }
 
-  /** Animate character slash animation */
+  /** Animate character slash animation (Hangin special — uses air spritesheet) */
   public animateCharacterSlash(suit: Suit): void {
     const playerSprite = this.scene.getPlayerSprite();
     const originalX = playerSprite.x;
@@ -635,37 +610,20 @@ export class CombatAnimations {
     const slashX = enemySprite.x - 40;
     const slashY = enemySprite.y;
 
-    // Create slash attack animation from PNG sequence
-    if (!this.scene.anims.exists("slash_attack_anim")) {
+    if (!this.scene.anims.exists("air_special_anim")) {
       this.scene.anims.create({
-        key: "slash_attack_anim",
-        frames: [
-          { key: "slash_00001" },
-          { key: "slash_00002" },
-          { key: "slash_00003" },
-          { key: "slash_00004" },
-          { key: "slash_00005" },
-          { key: "slash_00006" },
-          { key: "slash_00007" },
-          { key: "slash_00008" },
-          { key: "slash_00009" },
-          { key: "slash_00010" },
-          { key: "slash_00011" },
-          { key: "slash_00012" }
-        ],
+        key: "air_special_anim",
+        frames: this.scene.anims.generateFrameNumbers("action_air", { start: 0, end: -1 }),
         frameRate: 24,
         repeat: 0
       });
     }
-    const slashAnim = this.scene.add.sprite(slashX, slashY, "slash_00001")
+    const slashAnim = this.scene.add.sprite(slashX, slashY, "action_air", 0)
       .setOrigin(0.5)
-      .setScale(1.2)
-      .setDepth(1002)
-      .setAlpha(1);
-    slashAnim.play("slash_attack_anim");
-    slashAnim.on("animationcomplete", () => {
-      slashAnim.destroy();
-    });
+      .setScale(3)
+      .setDepth(1002);
+    slashAnim.play("air_special_anim");
+    slashAnim.on("animationcomplete", () => slashAnim.destroy());
 
     // Animate player dash
     this.scene.tweens.add({
@@ -676,7 +634,6 @@ export class CombatAnimations {
       duration: 150,
       ease: 'Power3.Out',
       onComplete: () => {
-        // Return player to original position
         this.scene.tweens.add({
           targets: playerSprite,
           x: originalX,
@@ -1001,8 +958,8 @@ export class CombatAnimations {
     });
   }
 
-  /** Animate player attack movement */
-  public animatePlayerAttack(): void {
+  /** Animate player attack movement — picks slash variant based on damage strength */
+  public animatePlayerAttack(damage: number = 0): void {
     const playerSprite = this.scene.getPlayerSprite();
     if (!playerSprite) return;
 
@@ -1017,50 +974,70 @@ export class CombatAnimations {
       yoyo: true
     });
 
-    // Show slash attack animation at enemy position
     const enemySprite = this.scene.getEnemySprite();
-        if (!playerSprite) return;
-  const slashX = enemySprite.x - 60; // Move animation further left
-  const slashY = enemySprite.y;
+    const slashX = enemySprite.x - 60;
+    const slashY = enemySprite.y;
+
     // Remove any previous slash animation
     const prevSlash = this.scene.children.getByName("slash_effect");
-    if (prevSlash) {
-      prevSlash.destroy();
+    if (prevSlash) prevSlash.destroy();
+
+    // Pick variant based on damage: <10 slash, <20 slash_curved, <35 slash_double, >=35 slash_double_curved
+    let textureKey: string;
+    let animKey: string;
+    if (damage >= 35) {
+      textureKey = "action_slash_double_curved";
+      animKey = "slash_double_curved_anim";
+    } else if (damage >= 20) {
+      textureKey = "action_slash_double";
+      animKey = "slash_double_anim";
+    } else if (damage >= 10) {
+      textureKey = "action_slash_curved";
+      animKey = "slash_curved_anim";
+    } else {
+      textureKey = "action_slash";
+      animKey = "slash_anim";
     }
 
     // Create animation if not exists
-    if (!this.scene.anims.exists("slash_attack_anim")) {
+    if (!this.scene.anims.exists(animKey)) {
       this.scene.anims.create({
-        key: "slash_attack_anim",
-        frames: [
-          { key: "slash_00001" },
-          { key: "slash_00002" },
-          { key: "slash_00003" },
-          { key: "slash_00004" },
-          { key: "slash_00005" },
-          { key: "slash_00006" },
-          { key: "slash_00007" },
-          { key: "slash_00008" },
-          { key: "slash_00009" },
-          { key: "slash_00010" },
-          { key: "slash_00011" },
-          { key: "slash_00012" }
-        ],
+        key: animKey,
+        frames: this.scene.anims.generateFrameNumbers(textureKey, { start: 0, end: -1 }),
         frameRate: 24,
         repeat: 0
       });
     }
 
-    // Add animated sprite using first frame
-    const slashAnim = this.scene.add.sprite(slashX, slashY, "slash_00001")
-      .setOrigin(0.5, 0.5)
-      .setScale(2.2)
+    const slashAnim = this.scene.add.sprite(slashX, slashY, textureKey, 0)
+      .setOrigin(0.5)
+      .setScale(3)
       .setName("slash_effect")
       .setDepth(100);
-    slashAnim.play("slash_attack_anim");
-    slashAnim.on("animationcomplete", () => {
-      slashAnim.destroy();
-    });
+    slashAnim.play(animKey);
+    slashAnim.on("animationcomplete", () => slashAnim.destroy());
+  }
+
+  /** Animate player defend — plays the defend spritesheet on the player hero */
+  public animatePlayerDefend(): void {
+    const playerSprite = this.scene.getPlayerSprite();
+    if (!playerSprite) return;
+
+    if (!this.scene.anims.exists("defend_anim")) {
+      this.scene.anims.create({
+        key: "defend_anim",
+        frames: this.scene.anims.generateFrameNumbers("action_defend", { start: 0, end: -1 }),
+        frameRate: 18,
+        repeat: 0
+      });
+    }
+
+    const defendAnim = this.scene.add.sprite(playerSprite.x, playerSprite.y, "action_defend", 0)
+      .setOrigin(0.5)
+      .setScale(3)
+      .setDepth(playerSprite.depth + 1);
+    defendAnim.play("defend_anim");
+    defendAnim.on("animationcomplete", () => defendAnim.destroy());
   }
 
   public animateEnemySlash(): void {

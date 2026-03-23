@@ -74,32 +74,24 @@ export class Preloader extends Scene {
 
     // Healing potion asset for Treasure scene
     this.load.image("heal_potion", "potion/heal_potion.png");
-    // Tubig special animation (Tidal Slash) - load as PNG sequence (water90000.png to water90041.png)
-    for (let i = 0; i < 42; i++) {
-      const frameNum = (90000 + i).toString();
-      this.load.image(
-        `water${frameNum}`,
-        `animation/attack/special_tubig/water${frameNum}.png`
-      );
-    }
-    // Fire special animation (Apoy) - load as PNG sequence (png_00.png to png_83.png)
-    for (let i = 0; i <= 83; i++) {
-      const frameNum = i.toString().padStart(2, "0");
-      this.load.image(
-        `fire_special_${frameNum}`,
-        `animation/attack/special_fire/png_${frameNum}.png`
-      );
-    }
-    // Lupa special animation (Earth Crusher)
-    this.load.spritesheet(
-      "lupa_special",
-      "animation/attack/special_lupa/lupa_special.png",
-      {
-        frameWidth: 96,
-        frameHeight: 96,
-        endFrame: 99 // 100 frames, 0-indexed
-      }
-    );
+    // --- Action spritesheets (new) ---
+    // Air / Hangin special
+    this.load.spritesheet("action_air", "action/air/air.png", { frameWidth: 35, frameHeight: 35 });
+    // Attack variations (weak: slash, medium: slash_curved, strong: slash_double, very strong: slash_double_curved)
+    this.load.spritesheet("action_slash", "action/attack/slash.png", { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("action_slash_curved", "action/attack/slash_curved.png", { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("action_slash_double", "action/attack/slash_double.png", { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet("action_slash_double_curved", "action/attack/slash_double_curved.png", { frameWidth: 32, frameHeight: 32 });
+    // Defend
+    this.load.spritesheet("action_defend", "action/defend/defend.png", { frameWidth: 24, frameHeight: 26 });
+    // Earth (Lupa) - two variants to alternate
+    this.load.spritesheet("action_earth1", "action/earth/earth1.png", { frameWidth: 45, frameHeight: 48 });
+    this.load.spritesheet("action_earth2", "action/earth/earth2.png", { frameWidth: 30, frameHeight: 28 });
+    // Fire (Apoy)
+    this.load.spritesheet("action_fire", "action/fire/fire.png", { frameWidth: 25, frameHeight: 30 });
+    // Water (Tubig) - two variants to alternate
+    this.load.spritesheet("action_water1", "action/water/water1.png", { frameWidth: 45, frameHeight: 41 });
+    this.load.spritesheet("action_water2", "action/water/water2.png", { frameWidth: 40, frameHeight: 33 });
     //  Load the assets for the game
     this.load.setPath("assets");
 
@@ -251,11 +243,7 @@ export class Preloader extends Scene {
     // Player sprite for Combat
     this.load.image("combat_player", "sprites/combat/player/mc_combat.png");
 
-    // Slash attack animation (12 frames as PNG sequence)
-    for (let i = 1; i <= 12; i++) {
-      const frameNum = i.toString().padStart(5, '0');
-      this.load.image(`slash_${frameNum}`, `animation/attack/skash_${frameNum}.png`);
-    }
+    // Slash attack animation — now loaded as spritesheets above (action_slash etc.)
 
     // Player sprite for Overworld - static image
     this.load.image("player_overworld", "sprites/overworld/player/mc_overworld.png");

@@ -4198,7 +4198,7 @@ export class Combat extends Scene {
     // STEP 7: Execute damage/block
     if (damage > 0) {
       console.log(`Animating player attack and dealing ${damage} damage`);
-      this.animations.animatePlayerAttack(); // Add animation when attacking
+      this.animations.animatePlayerAttack(damage); // Add animation when attacking
       this.showFloatingDamage(damage); // Show floating damage counter like Prologue
       this.damageEnemy(damage);
 
@@ -4219,6 +4219,7 @@ export class Combat extends Scene {
     }
 
     if (block > 0) {
+      this.animations.animatePlayerDefend(); // Show defend animation on player
       this.combatState.player.block += block;
       this.ui.updatePlayerUI();
       // Result already shown above with detailed calculation
