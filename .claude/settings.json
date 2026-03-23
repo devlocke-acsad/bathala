@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"chapter.*skip\\\\|skip.*chapter\" /c/Users/exequel/code/bathala/bathala/src --include=*.ts)"
+    ]
+  }
+}

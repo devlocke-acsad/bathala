@@ -14,6 +14,8 @@ import { Settings } from "./scenes/Settings";
 import { DDADebugScene } from "./scenes/debug/DDADebugScene";
 import { CombatDebugScene } from "./scenes/debug/CombatDebugScene";
 import { EducationalEventsDebugScene } from "./scenes/debug/EducationalEventsDebugScene";
+import { DevHubScene } from "./scenes/debug/DevHubScene";
+import { NodeShowcaseScene } from "./scenes/debug/NodeShowcaseScene";
 import { PokerHandReference } from "./scenes/PokerHandReference";
 import { EventScene } from './scenes/Event';
 import { ChapterTransition } from "./scenes/ChapterTransition";
@@ -55,6 +57,8 @@ const config: Phaser.Types.Core.GameConfig = {
     DDADebugScene,
     CombatDebugScene,
     EducationalEventsDebugScene,
+    DevHubScene,
+    NodeShowcaseScene,
     GameOver,
     PokerHandReference,
   ],

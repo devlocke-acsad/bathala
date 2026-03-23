@@ -602,10 +602,18 @@ export class Campfire extends Scene {
     );
     
     backButton.on("pointerdown", () => {
-      // Complete the campfire node and return to overworld
+      // Complete the campfire node
       const gameState = GameState.getInstance();
       gameState.updatePlayerData(this.player);
       gameState.completeCurrentNode(true);
+
+      // Return to DevHub if it launched us, otherwise resume Overworld
+      if (this.scene.isActive('DevHubScene')) {
+        this.scene.stop();
+        const hub = this.scene.get('DevHubScene') as any;
+        if (hub?.show) hub.show();
+        return;
+      }
 
       this.playExitTransition(() => {
         const overworldScene = this.scene.get("Overworld");
