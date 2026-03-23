@@ -409,8 +409,11 @@ export class Combat extends Scene {
         }
       });
     } else {
-      // No transition overlay, start player turn immediately
-      this.startPlayerTurn();
+      // No transition overlay (e.g. Dev Hub launch): defer one tick so scene activation
+      // is complete before first-turn UI builds.
+      this.time.delayedCall(0, () => {
+        this.startPlayerTurn();
+      });
       // Show start of battle dialogue
       this.time.delayedCall(100, () => {
         this.dialogue.showBattleStartDialogue();
