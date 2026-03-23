@@ -43,10 +43,7 @@ export class TutorialManager {
             this.scene.cameras.main.height / 2,
             'hero_bg'
         );
-        const scaleX = this.scene.cameras.main.width / bg.width;
-        const scaleY = this.scene.cameras.main.height / bg.height;
-        const scale = Math.max(scaleX, scaleY);
-        bg.setScale(scale * 1.05); // Slightly larger for parallax effect
+        bg.setDisplaySize(this.scene.cameras.main.width, this.scene.cameras.main.height);
 
         // Layered overlays for depth
         const overlay1 = this.scene.add.rectangle(
@@ -678,10 +675,7 @@ export class TutorialManager {
             height / 2,
             'hero_bg'
         );
-        const scaleX = width / completionBg.width;
-        const scaleY = height / completionBg.height;
-        const scale = Math.max(scaleX, scaleY);
-        completionBg.setScale(scale).setDepth(2900).setAlpha(0);
+        completionBg.setScale(Math.max(width / completionBg.width, height / completionBg.height)).setDepth(2900).setAlpha(0);
 
         // Add overlay (matching prologue style)
         const completionOverlay = this.scene.add.rectangle(

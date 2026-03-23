@@ -80,106 +80,96 @@ export class MainMenu extends Scene {
   }
 
   /**
-   * Create epic atmospheric background effects
+   * Blasphemous-inspired cinematic background
    */
   private createBackgroundEffects(): void {
-    // Safety check for cameras
-    if (!this.cameras || !this.cameras.main) {
-      console.warn("Cameras not available yet, skipping background effects");
-      return;
+    if (!this.cameras?.main) return;
+
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
+
+    // Full-bleed hero artwork
+    const bgImage = this.add.image(W / 2, H / 2, 'hero_bg');
+    bgImage.setScale(Math.max(W / bgImage.width, H / bgImage.height)).setDepth(-100);
+
+    // Dark overlay — keep artwork visible but moody (~50% like original)
+    this.add.rectangle(W / 2, H / 2, W, H, 0x150E10, 0.52).setDepth(-90);
+
+    // Radial vignette — edges darker
+    const grad = this.add.graphics().setDepth(-88);
+    for (let i = 0; i < 14; i++) {
+      const r = Math.max(W, H) * (1.1 - i * 0.045);
+      grad.fillStyle(0x080408, 0.06);
+      grad.fillCircle(W / 2, H / 2, r);
     }
-    
-    const width = this.cameras.main.width;
-    const height = this.cameras.main.height;
-    
-    // Add background image
-    const bgImage = this.add.image(width / 2, height / 2, 'hero_bg');
-    
-    // Scale the background to cover the screen
-    const scaleX = width / bgImage.width;
-    const scaleY = height / bgImage.height;
-    const scale = Math.max(scaleX, scaleY);
-    bgImage.setScale(scale);
-    bgImage.setDepth(-100);
-    
-    // Add lighter overlay - 50% opacity to show more background
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x150E10, 0.50);
-    overlay.setDepth(-90);
-    
-    // Create highly visible floating embers/spirits
-    const particles = this.add.particles(0, 0, '__WHITE', {
-      x: { min: 0, max: width },
-      y: { min: -20, max: height + 20 },
-      lifespan: 5000,
-      speed: { min: 20, max: 60 },
-      angle: { min: 75, max: 105 }, // Slight drift
-      scale: { start: 1.2, end: 0.3 }, // Much larger
-      alpha: { start: 0.7, end: 0 }, // Very visible
+
+
+    // ── Blasphemous-style particles ─────────────────────────────────────────
+    // Layer 1: large slow golden embers rising from the bottom
+    this.add.particles(0, 0, '__WHITE', {
+      x: { min: 0, max: W },
+      y: { min: H * 0.6, max: H + 20 },
+      lifespan: { min: 7000, max: 12000 },
+      speedX: { min: -12, max: 12 },
+      speedY: { min: -30, max: -10 },
+      scale: { start: 1.4, end: 0 },
+      alpha: { start: 0.45, end: 0 },
       blendMode: 'ADD',
-      frequency: 80, // Spawn faster
-      tint: 0x77888C,
-      maxParticles: 100, // Many more particles
-      gravityY: 15 // Gentle downward pull
-    });
-    particles.setDepth(-70);
-    
-    // Add second layer of smaller, faster particles for depth
-    const dustParticles = this.add.particles(0, 0, '__WHITE', {
-      x: { min: 0, max: width },
-      y: { min: -10, max: height + 10 },
-      lifespan: 3000,
-      speed: { min: 30, max: 80 },
-      angle: { min: 70, max: 110 },
-      scale: { start: 0.5, end: 0.1 },
-      alpha: { start: 0.5, end: 0 },
+      frequency: 320,
+      tint: [ 0xc8882a, 0xe8a040, 0xb06818, 0xd4942e ],
+      maxParticles: 40,
+      rotate: { min: 0, max: 360 },
+    }).setDepth(-70);
+
+    // Layer 2: tiny fast sparks that drift and die quickly
+    this.add.particles(0, 0, '__WHITE', {
+      x: { min: W * 0.05, max: W * 0.95 },
+      y: { min: H * 0.4, max: H },
+      lifespan: { min: 2500, max: 5000 },
+      speedX: { min: -20, max: 20 },
+      speedY: { min: -55, max: -15 },
+      scale: { start: 0.35, end: 0 },
+      alpha: { start: 0.55, end: 0 },
       blendMode: 'ADD',
-      frequency: 60,
-      tint: 0x99aabb,
-      maxParticles: 80,
-      gravityY: 20
-    });
-    dustParticles.setDepth(-75);
-    
-    // Create proper vignette effect with theme color #150E10
-    const vignette = this.add.graphics();
-    
-    // Draw radial gradient manually with circles using #150E10
-    const centerX = width / 2;
-    const centerY = height / 2;
-    const maxRadius = Math.max(width, height);
-    
-    for (let i = 0; i < 20; i++) {
-      const radius = maxRadius * (1 - i / 20);
-      const alpha = (i / 20) * 0.5; // Fade from 0 to 0.5 (reduced for visibility)
-      vignette.fillStyle(0x150E10, alpha); // Using theme color
-      vignette.fillCircle(centerX, centerY, radius);
-    }
-    
-    vignette.setDepth(-80);
-    
-    // Subtle vignette pulse
-    this.tweens.add({
-      targets: vignette,
-      alpha: 0.8,
-      duration: 5000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
+      frequency: 180,
+      tint: [ 0xffd080, 0xffb840, 0xffe0a0 ],
+      maxParticles: 60,
+    }).setDepth(-69);
+
+    // Layer 3: very slow large translucent motes — the haze / soul wisps
+    this.add.particles(0, 0, '__WHITE', {
+      x: { min: W * 0.15, max: W * 0.85 },
+      y: { min: H * 0.3, max: H * 0.85 },
+      lifespan: { min: 14000, max: 20000 },
+      speedX: { min: -6, max: 6 },
+      speedY: { min: -12, max: -3 },
+      scale: { start: 3.5, end: 0 },
+      alpha: { start: 0.06, end: 0 },
+      blendMode: 'ADD',
+      frequency: 600,
+      tint: 0xa07840,
+      maxParticles: 18,
+    }).setDepth(-72);
+
+    // Subtle scanlines
+    const g = this.make.graphics({ x: 0, y: 0 });
+    g.fillStyle(0x000000, 1); g.fillRect(0, 0, 2, 1);
+    g.fillStyle(0x000000, 0); g.fillRect(0, 1, 2, 1);
+    g.generateTexture('menu_scanline', 2, 2); g.destroy();
+    this.add.tileSprite(0, 0, W, H, 'menu_scanline').setOrigin(0).setAlpha(0.06).setDepth(-68);
   }
 
   /**
    * Create UI elements
    */
   private createUI(): void {
-    // Clear existing menu buttons
     this.menuButtons = [];
 
-    // Get screen dimensions
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
-    
-    // Add version text with fade-in (matching tutorial text style)
+    const centerY = screenHeight / 2;
+
+    // Version — top-right
     this.versionText = this.add
       .text(screenWidth - 40, 40, "0.5.0", {
         fontFamily: "dungeon-mode",
@@ -189,18 +179,11 @@ export class MainMenu extends Scene {
       })
       .setOrigin(1, 0)
       .setAlpha(0);
+    this.tweens.add({ targets: this.versionText, alpha: 1, duration: 600, delay: 200, ease: 'Power2' });
 
-    this.tweens.add({
-      targets: this.versionText,
-      alpha: 1,
-      duration: 600,
-      delay: 200,
-      ease: 'Power2'
-    });
-
-    // Add footer text with fade-in
+    // Footer — bottom-centre
     this.footerText = this.add
-      .text(screenWidth/2, screenHeight - 40, "Bathala. Developed by Devlocke. Copyright 2025.", {
+      .text(screenWidth / 2, screenHeight - 40, "Bathala. Developed by Devlocke. Copyright 2025.", {
         fontFamily: "dungeon-mode",
         fontSize: 16,
         color: "#77888C",
@@ -208,30 +191,20 @@ export class MainMenu extends Scene {
       })
       .setOrigin(0.5, 1)
       .setAlpha(0);
+    this.tweens.add({ targets: this.footerText, alpha: 1, duration: 600, delay: 200, ease: 'Power2' });
 
-    this.tweens.add({
-      targets: this.footerText,
-      alpha: 1,
-      duration: 600,
-      delay: 200,
-      ease: 'Power2'
-    });
+    // Title — above centre
+    this.createBathalaText(screenWidth / 2, centerY - 150);
 
-    // Center the content vertically on the screen
-    const centerY = screenHeight / 2;
-    
-    // Create "bathala" text with special handling for font loading
-    this.createBathalaText(screenWidth/2, centerY - 150);
-
-    // Menu buttons using createButton (matching tutorial phase button style)
+    // Menu buttons — below centre
     const menuOptions = ["Play", "Discover", "Credits", "Settings"];
     const startY = centerY + 30;
     const spacing = 70;
     const fixedWidth = 220;
-    
+
     menuOptions.forEach((option, i) => {
       const targetY = startY + i * spacing;
-      
+
       const btn = createButton(
         this,
         screenWidth / 2,
@@ -240,68 +213,50 @@ export class MainMenu extends Scene {
         () => {
           switch (option) {
             case "Play":
-              console.log('🎮 Starting new game - resetting all game state...');
+              console.log('Starting new game - resetting all game state...');
               GameState.getInstance().reset();
               OverworldGameState.getInstance().reset();
               RuleBasedDDA.getInstance().resetSession();
               this.scene.start("Prologue");
               break;
-            case "Discover":
-              this.scene.start("Discover");
-              break;
-            case "Credits":
-              this.scene.start("Credits");
-              break;
-            case "Settings":
-              this.scene.start("Settings");
-              break;
+            case "Discover":  this.scene.start("Discover");  break;
+            case "Credits":   this.scene.start("Credits");   break;
+            case "Settings":  this.scene.start("Settings");  break;
           }
         },
         fixedWidth
       );
-      
-      // Start hidden for entrance animation
+
       btn.setAlpha(0);
-      
-      // Staggered slide-up + fade-in (matching tutorial element animations)
       this.tweens.add({
         targets: btn,
         alpha: 1,
         y: targetY,
         duration: 600,
         delay: 500 + i * 150,
-        ease: 'Power3.easeOut'
+        ease: 'Power3.easeOut',
       });
-      
+
       this.menuButtons.push(btn);
     });
-    
-    // [DEV] button — bottom-right, with loading indicator
+
+    // [DEV] button — bottom-right
     const BW = 100, BH = 30;
     const devBtn = this.add.container(screenWidth - BW / 2 - 16, screenHeight - BH / 2 - 16);
     devBtn.setDepth(1000);
-
-    const devBg = this.add.rectangle(0, 0, BW, BH, 0x14141f);
-    devBg.setStrokeStyle(1, 0xffd93d);
-    devBg.setAlpha(0.7);
-
-    const devTxt = this.add.text(0, 0, "[DEV]", {
-      fontFamily: "dungeon-mode", fontSize: 16, color: "#ffd93d",
-    }).setOrigin(0.5);
-
+    const devBg = this.add.rectangle(0, 0, BW, BH, 0x14141f).setStrokeStyle(1, 0xffd93d).setAlpha(0.7);
+    const devTxt = this.add.text(0, 0, "[DEV]", { fontFamily: "dungeon-mode", fontSize: 16, color: "#ffd93d" }).setOrigin(0.5);
     devBtn.add([devBg, devTxt]);
     devBtn.setInteractive(new Phaser.Geom.Rectangle(-BW / 2, -BH / 2, BW, BH), Phaser.Geom.Rectangle.Contains);
-
     devBtn.on("pointerdown", () => this.launchDevHub(devBg, devTxt));
     devBtn.on("pointerover", () => { if (!this._devLoading) { devBg.setAlpha(1); devTxt.setColor("#ffffff"); } });
     devBtn.on("pointerout",  () => { if (!this._devLoading) { devBg.setAlpha(0.7); devTxt.setColor("#ffd93d"); } });
   }
 
   /**
-   * Create the "bathala" text with special font loading handling
+   * Create the "bathala" title text
    */
   private createBathalaText(x: number, y: number): void {
-    // Create the text
     const titleText = this.add
       .text(x, y, "bathala", {
         fontFamily: "Pixeled English Font",
@@ -311,17 +266,15 @@ export class MainMenu extends Scene {
       .setOrigin(0.5)
       .setAlpha(0)
       .setY(y - 20);
-    
-    // Fade-in + slide-up entrance animation
+
     this.tweens.add({
       targets: titleText,
       alpha: 1,
-      y: y,
+      y,
       duration: 800,
-      ease: 'Power3.easeOut'
+      ease: 'Power3.easeOut',
     });
 
-    // Add subtle pulsing glow effect (no shadow) — starts after entrance
     this.tweens.add({
       targets: titleText,
       alpha: 0.85,
@@ -329,13 +282,10 @@ export class MainMenu extends Scene {
       yoyo: true,
       repeat: -1,
       ease: 'Sine.easeInOut',
-      delay: 800
+      delay: 800,
     });
-    
-    // Force refresh after a short delay
-    this.time.delayedCall(50, () => {
-      titleText.setText("bathala");
-    });
+
+    this.time.delayedCall(50, () => titleText.setText("bathala"));
   }
 
   /**

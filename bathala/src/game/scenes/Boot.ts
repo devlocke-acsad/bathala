@@ -15,11 +15,14 @@ export class Boot extends Scene
 
         // Create a simple background
         this.load.image('bg', 'assets/bg.png');
+        // Hero artwork used on loading/title screens — must be ready before Preloader.init()
+        this.load.image('hero_bg', 'assets/hero.jpg');
         
-        // Load the dungeon-mode font files directly
+        // Load font files directly so they're registered before Preloader.init()
         this.load.setPath("");
         this.load.binary('dungeon-mode', 'assets/fonts/dungeon-mode/dungeon-mode.ttf');
         this.load.binary('dungeon-mode-inverted', 'assets/fonts/dungeon-mode/dungeon-mode-inverted.ttf');
+        this.load.binary('pixeled-english', 'assets/fonts/pixeled-english/Pixeled English Font.ttf');
         this.load.setPath("assets");
     }
 
@@ -54,16 +57,21 @@ export class Boot extends Scene
         }
         const docFonts = (document as any).fonts as FontFaceSet;
         const promises: Promise<void>[] = [];
-        for (const key of ["dungeon-mode", "dungeon-mode-inverted"] as const) {
-            const data = this.cache.binary.get(key);
+        const fontMap: Record<string, string> = {
+            'dungeon-mode': 'dungeon-mode',
+            'dungeon-mode-inverted': 'dungeon-mode-inverted',
+            'pixeled-english': 'Pixeled English Font',
+        };
+        for (const [cacheKey, fontFamily] of Object.entries(fontMap)) {
+            const data = this.cache.binary.get(cacheKey);
             if (!data) continue;
             const buffer = data instanceof ArrayBuffer ? data : (data as Uint8Array).buffer;
-            const font = new FontFace(key, buffer);
+            const font = new FontFace(fontFamily, buffer);
             promises.push(
                 font.load().then(() => {
                     docFonts.add(font);
                 }).catch((err) => {
-                    console.warn(`Boot: failed to register font "${key}"`, err);
+                    console.warn(`Boot: failed to register font "${fontFamily}"`, err);
                 })
             );
         }

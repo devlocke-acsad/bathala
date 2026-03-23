@@ -14,58 +14,71 @@ export class Preloader extends Scene {
   }
 
   init() {
-    // Set background color
-    this.cameras.main.setBackgroundColor(0x150E10);
+    this.cameras.main.setBackgroundColor(0x000000);
 
-    //  We loaded this image in our Boot Scene, so we can display it here
-    //  Position the background in the center of the screen
-    const screenWidth = this.game.config.width as number;
-    const screenHeight = this.game.config.height as number;
+    const W = this.cameras.main.width;
+    const H = this.cameras.main.height;
 
-    // Add "BATHALA" text in the center using dungeon-mode-inverted font
-    this.loadingText = this.add.text(screenWidth / 2, screenHeight / 2 - 100, 'BATHALA', {
-      fontFamily: 'dungeon-mode-inverted',
-      fontSize: 48,
-      color: '#77888C',
-    }).setOrigin(0.5);
+    // Full-cover hero artwork
+    const bg = this.add.image(W / 2, H / 2, 'hero_bg');
+    bg.setScale(Math.max(W / bg.width, H / bg.height)).setDepth(-10);
 
-    // Add loading status text using dungeon-mode font
-    this.add.text(screenWidth / 2, screenHeight / 2 - 30, 'GATHERING THE ELEMENTS...', {
+    // Dark overlay so text is legible
+    this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.55).setDepth(-5);
+
+    // Soft edge vignette
+    const vig = this.add.graphics().setDepth(-4);
+    for (let i = 0; i < 10; i++) {
+      vig.fillStyle(0x000000, 0.07);
+      vig.fillCircle(W / 2, H / 2, Math.max(W, H) * (1.05 - i * 0.04));
+    }
+
+    // Game title — same font as MainMenu hero text
+    const titleY = H * 0.5 - 30;
+    this.add.text(W / 2, titleY, 'bathala', {
+      fontFamily: 'Pixeled English Font',
+      fontSize: 220,
+      color: '#7a6a58',
+    }).setOrigin(0.5).setDepth(2).setAlpha(0.9);
+
+    // ── Loading bar — directly below title ─────────────────────────────────
+    const barY = titleY + 150;
+    const barW = Math.min(W * 0.36, 420);
+
+    // Track
+    this.progressBox = this.add.rectangle(W / 2, barY, barW, 2, 0x3a3028, 1)
+      .setDepth(3).setOrigin(0.5);
+
+    // Fill — grows left-to-right from the left edge of the track
+    this.progressBar = this.add.rectangle(W / 2 - barW / 2, barY, 0, 2, 0xc8a878, 1)
+      .setDepth(4).setOrigin(0, 0.5);
+
+    // End-cap ornaments
+    this.add.rectangle(W / 2 - barW / 2, barY, 1, 8, 0xc8a878, 0.6).setDepth(3);
+    this.add.rectangle(W / 2 + barW / 2, barY, 1, 8, 0xc8a878, 0.6).setDepth(3);
+
+    // Status label
+    this.loadingText = this.add.text(W / 2, barY + 14, 'LOADING...', {
       fontFamily: 'dungeon-mode',
-      fontSize: 16,
-      color: '#77888C',
-    }).setOrigin(0.5);
+      fontSize: 11,
+      color: '#6a5a4a',
+      letterSpacing: 4,
+    }).setOrigin(0.5, 0).setDepth(3);
 
-    //  A simple progress bar. This is the outline of the bar.
-    this.progressBox = this.add.rectangle(screenWidth / 2, screenHeight / 2, 400, 20).setStrokeStyle(2, 0x77888C);
-
-    //  This is the progress bar itself. It will increase in size from the left based on the % of progress.
-    this.progressBar = this.add.rectangle((screenWidth / 2) - 195, screenHeight / 2, 10, 16, 0x77888C);
-
-    //  Use the 'progress' event emitted by the LoaderPlugin to update the loading bar
     this.load.on("progress", (progress: number) => {
-      //  Update the progress bar (our bar is 390px wide, so 100% = 390px)
-      this.progressBar.width = 10 + 380 * progress;
+      this.progressBar.width = barW * progress;
+      const pct = Math.floor(progress * 100);
+      this.loadingText.setText(pct < 100 ? `LOADING...  ${pct}%` : 'PREPARING...');
     });
 
-    // Create more subtle retro CRT scanline effect
-    this.scanlines = this.add.tileSprite(0, 0, screenWidth, screenHeight, '__WHITE')
-      .setOrigin(0)
-      .setAlpha(0.15)
-      .setTint(0x77888C);
-
-    // Create a subtle scanline pattern
-    const graphics = this.make.graphics({ x: 0, y: 0 });
-    graphics.fillStyle(0x000000, 1);
-    graphics.fillRect(0, 0, 4, 1);
-    graphics.fillStyle(0xffffff, 1);
-    graphics.fillRect(0, 1, 4, 1);
-
-    const texture = graphics.generateTexture('preloader_scanline', 4, 2);
-    this.scanlines.setTexture('preloader_scanline');
-
-    // Move scanlines to the back
-    this.scanlines.setDepth(-10);
+    // Scanlines
+    const g = this.make.graphics({ x: 0, y: 0 });
+    g.fillStyle(0x000000, 1); g.fillRect(0, 0, 4, 1);
+    g.fillStyle(0x000000, 0); g.fillRect(0, 1, 4, 1);
+    g.generateTexture('preloader_scanline', 4, 2);
+    g.destroy();
+    this.scanlines = this.add.tileSprite(0, 0, W, H, 'preloader_scanline')
+      .setOrigin(0).setAlpha(0.05).setDepth(5);
   }
 
   preload() {
@@ -97,7 +110,7 @@ export class Preloader extends Scene {
     this.load.image("logo", "logo.png");
     this.load.image("bg", "bg.png");
     this.load.image("forest_bg", "forest_bg.png");
-    this.load.image("hero_bg", "hero.jpg");
+    // hero_bg is loaded in Boot so it's available in Preloader.init()
 
     // Background assets
     this.load.image("floor1", "background/floor1.png");

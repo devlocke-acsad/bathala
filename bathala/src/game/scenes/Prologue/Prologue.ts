@@ -49,12 +49,7 @@ export class Prologue extends Scene {
 
         // Add background image
         const introBgImage = this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2, 'hero_bg');
-
-        // Scale the background to cover the screen
-        const scaleX = this.cameras.main.width / introBgImage.width;
-        const scaleY = this.cameras.main.height / introBgImage.height;
-        const scale = Math.max(scaleX, scaleY);
-        introBgImage.setScale(scale);
+        introBgImage.setScale(Math.max(this.cameras.main.width / introBgImage.width, this.cameras.main.height / introBgImage.height));
 
         // Add 90% opacity overlay with #150E10
         const introOverlay = this.add.rectangle(this.cameras.main.width / 2, this.cameras.main.height / 2, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.90);

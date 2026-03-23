@@ -291,7 +291,7 @@ export class Combat extends Scene {
 
     // Add chapter-specific combat background
     const bg = this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, resolvedBackgroundKey);
-    bg.setDisplaySize(this.cameras.main.width, this.cameras.main.height);
+    bg.setScale(Math.max(this.cameras.main.width / bg.width, this.cameras.main.height / bg.height));
 
     // Add 50% opacity overlay with #150E10 to dim the background (Prologue style)
     const overlay = this.add.rectangle(this.cameras.main.centerX, this.cameras.main.centerY, this.cameras.main.width, this.cameras.main.height, 0x150E10).setAlpha(0.50);

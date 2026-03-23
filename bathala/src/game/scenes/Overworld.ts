@@ -2296,7 +2296,6 @@ export class Overworld extends Scene {
       cameraWidth / 2, cameraHeight / 2 - 20, '!', {
       fontFamily: 'dungeon-mode', fontSize: isElite ? '140px' : '120px',
       color: isElite ? '#ff2020' : '#ff4444',
-      stroke: '#000000', strokeThickness: 8,
     }
     ).setOrigin(0.5).setScrollFactor(0).setDepth(2012).setAlpha(0).setScale(3);
 

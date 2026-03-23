@@ -42,13 +42,7 @@ export class Disclaimer extends Scene {
     
     // Add background image
     const bgImage = this.add.image(width / 2, height / 2, 'hero_bg');
-    
-    // Scale the background to cover the screen
-    const scaleX = width / bgImage.width;
-    const scaleY = height / bgImage.height;
-    const scale = Math.max(scaleX, scaleY);
-    bgImage.setScale(scale);
-    bgImage.setDepth(-100);
+    bgImage.setScale(Math.max(width / bgImage.width, height / bgImage.height)).setDepth(-100);
     
     // Add overlay - 50% opacity
     const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x150E10, 0.50);
