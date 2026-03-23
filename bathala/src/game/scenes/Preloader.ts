@@ -423,8 +423,11 @@ export class Preloader extends Scene {
     this.load.image("big_demon_f2", "sprites/overworld/enemy/chapter1/kapre_overworld.png");
     this.load.image("big_demon_f3", "sprites/overworld/enemy/chapter1/kapre_overworld.png");
 
-    // Campfire node sprite is now a static image
-    this.load.image("campfire_overworld", "sprites/overworld/campfire/campfire_overworld.png");
+    // Campfire node sprite (7-frame animation, 16x16 per frame)
+    this.load.spritesheet("campfire_overworld", "sprites/overworld/campfire/campfire.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
 
     // Shop node sprite (merchant)
     this.load.image("merchant_overworld", "sprites/overworld/shop/merchant_overworld.png");
@@ -685,8 +688,18 @@ export class Preloader extends Scene {
       console.warn("Skipped big_demon_idle animation (no frames loaded)");
     }
 
-    // Campfire uses a static sprite for now.
-    console.log("Campfire node uses static sprite (no animation)");
+    // Campfire animation (7 frames from spritesheet)
+    if (this.textures.exists("campfire_overworld")) {
+      this.anims.create({
+        key: "campfire_burn",
+        frames: this.anims.generateFrameNumbers("campfire_overworld", { start: 0, end: 6 }),
+        frameRate: 8,
+        repeat: -1,
+      });
+      console.log("Created campfire_burn animation");
+    } else {
+      console.warn("Skipped campfire_burn animation (campfire_overworld texture missing)");
+    }
 
     // Shop node - static merchant sprite (no animation needed)
     console.log("Shop merchant sprite loaded (static)");
