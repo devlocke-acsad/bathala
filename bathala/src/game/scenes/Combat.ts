@@ -378,6 +378,9 @@ export class Combat extends Scene {
     // Create auto-win test buttons for DDA scenario testing
     this.dda.createAutoWinButtons();
 
+    // [DEV] button — opens DevHubScene overlay from inside combat
+    this.createDevButton();
+
     // Draw initial hand
     this.drawInitialHand();
 
@@ -2112,6 +2115,16 @@ export class Combat extends Scene {
         // Reset cursor before transitioning
         this.input.setDefaultCursor('default');
 
+        // Return to DevHub if it launched us (skip GameOver screen)
+        if (this.scene.isActive('DevHubScene')) {
+          this.input.removeAllListeners();
+          this.time.removeAllEvents();
+          this.scene.stop();
+          const hub = this.scene.get('DevHubScene') as any;
+          if (hub?.show) hub.show();
+          return;
+        }
+
         // Stop the Overworld scene if it's running (paused from combat launch)
         if (this.scene.isActive('Overworld') || this.scene.isPaused('Overworld')) {
           this.scene.stop('Overworld');
@@ -3600,6 +3613,16 @@ export class Combat extends Scene {
       if (isBossDefeatChapterTransition) {
         console.log("🎉 Boss defeated! Triggering chapter transition...");
 
+        // Return to DevHub if it launched us (skip chapter transition)
+        if (this.scene.isActive('DevHubScene')) {
+          this.input.removeAllListeners();
+          this.time.removeAllEvents();
+          this.scene.stop();
+          const hub = this.scene.get('DevHubScene') as any;
+          if (hub?.show) hub.show();
+          return;
+        }
+
         // Persist meta progression BEFORE we reset for the next chapter.
         // Landás is intended to carry across chapters, but this branch bypasses the
         // normal post-combat save block (which would otherwise write landasScore).
@@ -3687,6 +3710,16 @@ export class Combat extends Scene {
       if (defeatedEnemy === "False Bathala" && currentChapter === 3) {
         console.log("🎉 Act 3 boss defeated! Game complete! Triggering epilogue...");
         this.triggerEpilogue();
+        return;
+      }
+
+      // Return to DevHub if it launched us
+      if (this.scene.isActive('DevHubScene')) {
+        this.input.removeAllListeners();
+        this.time.removeAllEvents();
+        this.scene.stop();
+        const hub = this.scene.get('DevHubScene') as any;
+        if (hub?.show) hub.show();
         return;
       }
 
@@ -4384,6 +4417,80 @@ export class Combat extends Scene {
         this.ui.showSpecialEffectNotification("Hangin", "Weak", "Applied 2 stacks of Weak (50% damage reduction)");
         break;
     }
+  }
+
+  /**
+   * [DEV] button — launches DevHubScene overlay from inside combat
+   */
+  private _devLoading = false;
+  private _devLoadingTimer?: Phaser.Time.TimerEvent;
+
+  private createDevButton(): void {
+    const sw = this.cameras.main.width;
+    const sh = this.cameras.main.height;
+
+    const BW = 100, BH = 30;
+    const btn = this.add.container(sw - BW / 2 - 16, sh - BH / 2 - 16);
+    btn.setDepth(9999);
+    btn.setScrollFactor(0);
+
+    const bg = this.add.rectangle(0, 0, BW, BH, 0x14141f);
+    bg.setStrokeStyle(1, 0xffd93d);
+    bg.setAlpha(0.7);
+
+    const txt = this.add.text(0, 0, '[DEV]', {
+      fontFamily: 'dungeon-mode', fontSize: '14px', color: '#ffd93d',
+    }).setOrigin(0.5);
+
+    btn.add([bg, txt]);
+    btn.setInteractive(new Phaser.Geom.Rectangle(-BW / 2, -BH / 2, BW, BH), Phaser.Geom.Rectangle.Contains);
+
+    btn.on('pointerdown', () => this.openDevHub(bg, txt));
+    btn.on('pointerover', () => { if (!this._devLoading) { bg.setAlpha(1); txt.setColor('#ffffff'); } });
+    btn.on('pointerout',  () => { if (!this._devLoading) { bg.setAlpha(0.7); txt.setColor('#ffd93d'); } });
+
+    // F2 shortcut
+    this.input.keyboard?.on('keydown-F2', () => this.openDevHub(bg, txt));
+  }
+
+  private openDevHub(
+    bg?: Phaser.GameObjects.Rectangle,
+    txt?: Phaser.GameObjects.Text
+  ): void {
+    if (this.scene.isActive('DevHubScene')) {
+      const s = this.scene.get('DevHubScene') as any;
+      if (s?.show) s.show();
+      return;
+    }
+
+    // Show loading indicator on the button
+    if (bg && txt && !this._devLoading) {
+      this._devLoading = true;
+      bg.setStrokeStyle(1, 0x77888c);
+      bg.setAlpha(0.9);
+      let dots = 0;
+      this._devLoadingTimer = this.time.addEvent({
+        delay: 300,
+        loop: true,
+        callback: () => {
+          dots = (dots + 1) % 4;
+          txt.setText('[DEV' + '.'.repeat(dots) + ']');
+        }
+      });
+    }
+
+    this.scene.launch('DevHubScene');
+    this.scene.get('DevHubScene').events.once('create', () => {
+      // Restore button
+      this._devLoadingTimer?.remove(false);
+      this._devLoadingTimer = undefined;
+      this._devLoading = false;
+      if (txt) { txt.setText('[DEV]'); txt.setColor('#ffd93d'); }
+      if (bg)  { bg.setStrokeStyle(1, 0xffd93d); bg.setAlpha(0.7); }
+
+      const s = this.scene.get('DevHubScene') as any;
+      if (s?.show) s.show();
+    });
   }
 
   /**

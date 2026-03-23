@@ -1297,6 +1297,14 @@ export class Treasure extends Scene {
    * Common exit: play transition then stop scene and resume Overworld.
    */
   private exitToOverworld(): void {
+    // Return to DevHub if it launched us
+    if (this.scene.isActive('DevHubScene')) {
+      this.scene.stop();
+      const hub = this.scene.get('DevHubScene') as any;
+      if (hub?.show) hub.show();
+      return;
+    }
+
     this.playExitTransition(() => {
       const overworldScene = this.scene.get("Overworld");
       if (overworldScene) {

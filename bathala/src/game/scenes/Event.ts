@@ -1106,7 +1106,10 @@ export class EventScene extends Scene {
 
   private completeEvent(): void {
     this.time.delayedCall(600, () => {
-      // Check if from debug
+      // If DevHub launched this scene, return to it instead of Overworld
+      if (this.returnToDevHub()) return;
+
+      // Legacy debug source (EducationalEventsDebugScene)
       if (this.currentEvent && (this.currentEvent as any)._debugSource) {
         this.scene.stop('EventScene');
         this.scene.wake('EducationalEventsDebugScene');
@@ -1129,6 +1132,15 @@ export class EventScene extends Scene {
         this.scene.resume('Overworld');
       });
     });
+  }
+
+  /** Stop this scene and re-show DevHub if it launched us. Returns true if handled. */
+  private returnToDevHub(): boolean {
+    if (!this.scene.isActive('DevHubScene')) return false;
+    this.scene.stop('EventScene');
+    const hub = this.scene.get('DevHubScene') as any;
+    if (hub?.show) hub.show();
+    return true;
   }
 
   /**

@@ -32,23 +32,51 @@ export class MainMenu extends Scene {
     // Create UI elements
     this.createUI();
     
-    // F2 / backtick — open Dev Hub
+    // F2 / backtick — open Dev Hub (no loading indicator for keyboard path)
     const openDevHub = () => this.launchDevHub();
-    this.input.keyboard?.on('keydown-F2',      openDevHub);
+    this.input.keyboard?.on('keydown-F2',       openDevHub);
     this.input.keyboard?.on('keydown-BACKTICK', openDevHub);
   }
 
-  private launchDevHub(): void {
-    if (!this.scene.isActive('DevHubScene')) {
-      this.scene.launch('DevHubScene');
-      this.scene.get('DevHubScene').events.once('create', () => {
-        const s = this.scene.get('DevHubScene') as any;
-        if (s?.show) s.show();
-      });
-    } else {
+  private _devLoading = false;
+  private _devLoadingTimer?: Phaser.Time.TimerEvent;
+
+  private launchDevHub(
+    bg?: Phaser.GameObjects.Rectangle,
+    txt?: Phaser.GameObjects.Text
+  ): void {
+    if (this.scene.isActive('DevHubScene')) {
       const s = this.scene.get('DevHubScene') as any;
       if (s?.show) s.show();
+      return;
     }
+
+    if (bg && txt && !this._devLoading) {
+      this._devLoading = true;
+      bg.setStrokeStyle(1, 0x77888c);
+      bg.setAlpha(0.9);
+      let dots = 0;
+      this._devLoadingTimer = this.time.addEvent({
+        delay: 300,
+        loop: true,
+        callback: () => {
+          dots = (dots + 1) % 4;
+          txt.setText('[DEV' + '.'.repeat(dots) + ']');
+        }
+      });
+    }
+
+    this.scene.launch('DevHubScene');
+    this.scene.get('DevHubScene').events.once('create', () => {
+      this._devLoadingTimer?.remove(false);
+      this._devLoadingTimer = undefined;
+      this._devLoading = false;
+      if (txt) { txt.setText('[DEV]'); txt.setColor('#ffd93d'); }
+      if (bg)  { bg.setStrokeStyle(1, 0xffd93d); bg.setAlpha(0.7); }
+
+      const s = this.scene.get('DevHubScene') as any;
+      if (s?.show) s.show();
+    });
   }
 
   /**
@@ -248,20 +276,25 @@ export class MainMenu extends Scene {
       this.menuButtons.push(btn);
     });
     
-    // Single DEV button — opens the unified DevHubScene
-    this.add
-      .text(screenWidth - 40, screenHeight - 60, "[DEV]", {
-        fontFamily: "dungeon-mode",
-        fontSize: 18,
-        color: "#ffd93d",
-        align: "right",
-      })
-      .setOrigin(1, 1)
-      .setAlpha(0.6)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerdown", () => this.launchDevHub())
-      .on("pointerover", function(this: Phaser.GameObjects.Text) { this.setAlpha(1).setColor("#ffffff"); })
-      .on("pointerout",  function(this: Phaser.GameObjects.Text) { this.setAlpha(0.6).setColor("#ffd93d"); });
+    // [DEV] button — bottom-right, with loading indicator
+    const BW = 100, BH = 30;
+    const devBtn = this.add.container(screenWidth - BW / 2 - 16, screenHeight - BH / 2 - 16);
+    devBtn.setDepth(1000);
+
+    const devBg = this.add.rectangle(0, 0, BW, BH, 0x14141f);
+    devBg.setStrokeStyle(1, 0xffd93d);
+    devBg.setAlpha(0.7);
+
+    const devTxt = this.add.text(0, 0, "[DEV]", {
+      fontFamily: "dungeon-mode", fontSize: 16, color: "#ffd93d",
+    }).setOrigin(0.5);
+
+    devBtn.add([devBg, devTxt]);
+    devBtn.setInteractive(new Phaser.Geom.Rectangle(-BW / 2, -BH / 2, BW, BH), Phaser.Geom.Rectangle.Contains);
+
+    devBtn.on("pointerdown", () => this.launchDevHub(devBg, devTxt));
+    devBtn.on("pointerover", () => { if (!this._devLoading) { devBg.setAlpha(1); devTxt.setColor("#ffffff"); } });
+    devBtn.on("pointerout",  () => { if (!this._devLoading) { devBg.setAlpha(0.7); devTxt.setColor("#ffd93d"); } });
   }
 
   /**

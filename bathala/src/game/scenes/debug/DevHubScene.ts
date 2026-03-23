@@ -344,6 +344,7 @@ export class DevHubScene extends Scene {
     cont.add(this.enemyDetailContainer);
 
     // Store layout refs for refresh
+    (cont as any)._cw        = cw;
     (cont as any)._listX     = listX;
     (cont as any)._listW     = listW;
     (cont as any)._detailX   = detailX;
@@ -385,7 +386,7 @@ export class DevHubScene extends Scene {
       { ch: 2, name: 'Ch 2 · Submerged' },
       { ch: 3, name: 'Ch 3 · Skyward'   },
     ];
-    const cw = (cont as any)._listW + 20 + ((cont as any)._detailW ?? 700);
+    const cw: number = (cont as any)._cw ?? 1540;
     const btnW = 240, btnH = 40, gap = 20;
     const totalW = chapters.length * btnW + (chapters.length - 1) * gap;
     let bx = (cw - totalW) / 2;
@@ -654,7 +655,7 @@ export class DevHubScene extends Scene {
         wordWrap: { width: cardW - 24 },
       }).setOrigin(0.5);
       const badge = isActive ? this.add.text(0, 30, '● ACTIVE', { fontFamily: 'dungeon-mode', fontSize: 12, color: c.color }).setOrigin(0.5) : null;
-      const jumpBtn = this.makeSolidButton(0, 52, 180, 36, isActive ? 'CURRENT' : 'JUMP HERE', isActive ? '#555555' : c.color, isActive ? 0x1a1a1a : C.bg, () => {
+      const jumpBtn = this.makeSolidButton(0, 52, 200, 36, isActive ? '● CURRENT' : '→ LAUNCH CHAPTER', isActive ? '#555555' : c.color, isActive ? 0x1a1a1a : C.bg, () => {
         if (!isActive) this.jumpToChapter(c.ch);
       });
 
@@ -727,14 +728,25 @@ export class DevHubScene extends Scene {
   }
 
   private jumpToChapter(chapter: Chapter): void {
+    // Set chapter in game state (unlocks if locked), then clear the map
+    // so Overworld generates a fresh one for this chapter on boot.
     this.gameState.setCurrentChapter(chapter);
+    this.gameState.resetMapState();
+
+    // Update enemy list for the new chapter in the combat tab
     this.buildEnemyList(chapter);
+
+    // Refresh both affected tabs
     this.refreshChaptersTab();
-    // Also refresh combat tab if visible
     if (this.activeTab === 'combat') {
       this.refreshCombatTab();
     }
-    console.log(`[DevHub] Jumped to Chapter ${chapter}`);
+
+    // Navigate to Overworld — it will regenerate the map for the active chapter
+    this.hide();
+    this.scene.start('Overworld');
+
+    console.log(`[DevHub] Jumped to Chapter ${chapter} → restarting Overworld`);
   }
 
   // ─── EVENTS TAB ─────────────────────────────────────────────────────────────

@@ -1213,6 +1213,14 @@ export class Shop extends Scene {
       gameState.updatePlayerData(this.player);
       gameState.completeCurrentNode(true);
 
+      // Return to DevHub if it launched us
+      if (this.scene.isActive('DevHubScene')) {
+        this.scene.stop();
+        const hub = this.scene.get('DevHubScene') as any;
+        if (hub?.show) hub.show();
+        return;
+      }
+
       this.playExitTransition(() => {
         const overworldScene = this.scene.get("Overworld");
         if (overworldScene) {

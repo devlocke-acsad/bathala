@@ -612,7 +612,7 @@ export class Overworld extends Scene {
     this.testButtonsContainer.setDepth(2000);
     this.testButtonsContainer.setVisible(false);
 
-    // Create the [DEV] toggle button (top-right corner)
+    // Create the [DEV] toggle button (bottom-right corner)
     this.createToggleButton();
 
     // Create overworld UI panel
@@ -810,20 +810,20 @@ export class Overworld extends Scene {
   }
 
   createToggleButton(): void {
-    const screenWidth = this.cameras.main.width;
+    const screenWidth  = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
 
-    // [DEV] button — top-right, opens DevHubScene overlay
-    const toggleX = screenWidth - 60;
-    const toggleY = 50;
+    // [DEV] button — bottom-right corner
+    const buttonWidth  = 100;
+    const buttonHeight = 30;
+    const toggleX = screenWidth  - buttonWidth / 2 - 16;
+    const toggleY = screenHeight - buttonHeight / 2 - 16;
 
     this.toggleButton = this.add.container(toggleX, toggleY);
 
-    const buttonWidth  = 100;
-    const buttonHeight = 30;
-
     const background = this.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x14141f);
     background.setStrokeStyle(1, 0xffd93d);
-    background.setAlpha(0.85);
+    background.setAlpha(0.7);
 
     const buttonText = this.add.text(0, 0, "[DEV]", {
       fontFamily: 'dungeon-mode',
@@ -837,25 +837,59 @@ export class Overworld extends Scene {
     this.toggleButton.setScrollFactor(0);
     this.toggleButton.setDepth(2000);
 
-    this.toggleButton.on('pointerdown', () => this.openDevHub());
-    this.toggleButton.on('pointerover', () => { background.setAlpha(1); buttonText.setColor('#ffffff'); });
-    this.toggleButton.on('pointerout',  () => { background.setAlpha(0.85); buttonText.setColor('#ffd93d'); });
+    this.toggleButton.on('pointerdown', () => this.openDevHub(background, buttonText));
+    this.toggleButton.on('pointerover', () => { if (!this._devLoading) { background.setAlpha(1); buttonText.setColor('#ffffff'); } });
+    this.toggleButton.on('pointerout',  () => { if (!this._devLoading) { background.setAlpha(0.7); buttonText.setColor('#ffd93d'); } });
 
     // F2 shortcut from the overworld
-    this.input.keyboard?.on('keydown-F2', () => this.openDevHub());
+    this.input.keyboard?.on('keydown-F2', () => this.openDevHub(background, buttonText));
   }
 
-  private openDevHub(): void {
-    if (!this.scene.isActive('DevHubScene')) {
-      this.scene.launch('DevHubScene');
-      this.scene.get('DevHubScene').events.once('create', () => {
-        const s = this.scene.get('DevHubScene') as any;
-        if (s?.show) s.show();
-      });
-    } else {
+  private _devLoading = false;
+  private _devLoadingTween?: Phaser.Tweens.Tween;
+
+  private openDevHub(
+    bg?: Phaser.GameObjects.Rectangle,
+    txt?: Phaser.GameObjects.Text
+  ): void {
+    if (this.scene.isActive('DevHubScene')) {
       const s = this.scene.get('DevHubScene') as any;
       if (s?.show) s.show();
+      return;
     }
+
+    // Show loading state on the button
+    if (bg && txt && !this._devLoading) {
+      this._devLoading = true;
+      txt.setText('[DEV ...]');
+      bg.setStrokeStyle(1, 0x77888c);
+      bg.setAlpha(0.9);
+      // Pulse the dots
+      let dots = 0;
+      this._devLoadingTween = this.time.addEvent({
+        delay: 300,
+        loop: true,
+        callback: () => {
+          dots = (dots + 1) % 4;
+          txt.setText('[DEV' + '.'.repeat(dots) + ']');
+        }
+      }) as any;
+    }
+
+    this.scene.launch('DevHubScene');
+    this.scene.get('DevHubScene').events.once('create', () => {
+      // Stop loading indicator
+      if (this._devLoadingTween) {
+        (this._devLoadingTween as any).remove?.();
+        this._devLoadingTween = undefined;
+      }
+      this._devLoading = false;
+      if (txt) { txt.setText('[DEV]'); txt.setColor('#ffd93d'); }
+      if (bg)  { bg.setStrokeStyle(1, 0xffd93d); bg.setAlpha(0.7); }
+
+      const s = this.scene.get('DevHubScene') as any;
+      if (s?.show) s.show();
+    });
   }
 
   toggleTestButtons(): void {
@@ -3677,11 +3711,11 @@ export class Overworld extends Scene {
       this.bossText.setPosition(10 + offsetX, 40 + offsetY);
     }
 
-    // Toggle button (top right)
+    // Toggle button (bottom right)
     if (this.toggleButton) {
       this.toggleButton.setScale(uiScale);
-      const toggleX = cameraWidth - 60 - offsetX;
-      const toggleY = 50 + offsetY;
+      const toggleX = cameraWidth - 50 - offsetX;
+      const toggleY = cameraHeight - 32 - offsetY;
       this.toggleButton.setPosition(toggleX, toggleY);
     }
 
