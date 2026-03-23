@@ -41,7 +41,7 @@ export class TutorialManager {
         const bg = this.scene.add.image(
             this.scene.cameras.main.width / 2,
             this.scene.cameras.main.height / 2,
-            'chap1_no_leaves_boss'
+            'hero_bg'
         );
         const scaleX = this.scene.cameras.main.width / bg.width;
         const scaleY = this.scene.cameras.main.height / bg.height;
@@ -676,7 +676,7 @@ export class TutorialManager {
         const completionBg = this.scene.add.image(
             width / 2,
             height / 2,
-            'chap1_no_leaves_boss'
+            'hero_bg'
         );
         const scaleX = width / completionBg.width;
         const scaleY = height / completionBg.height;

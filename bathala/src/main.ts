@@ -244,7 +244,7 @@ const showMobileRecommendationWarning = (): void => {
             align-items: center;
             justify-content: center;
             padding: 20px;
-            background: linear-gradient(rgba(21, 14, 16, 0.86), rgba(21, 14, 16, 0.86)), url('/assets/background/chap1_no_leaves_boss.png');
+            background: linear-gradient(rgba(21, 14, 16, 0.86), rgba(21, 14, 16, 0.86)), url('/assets/hero.jpg');
             background-size: cover;
             background-position: center;
         `);
@@ -310,7 +310,7 @@ const setupMobileLandscapeGuard = (onViewportChange?: () => void): void => {
             align-items: center;
             justify-content: center;
             padding: 20px;
-            background: linear-gradient(rgba(21, 14, 16, 0.86), rgba(21, 14, 16, 0.86)), url('/assets/background/chap1_no_leaves_boss.png');
+            background: linear-gradient(rgba(21, 14, 16, 0.86), rgba(21, 14, 16, 0.86)), url('/assets/hero.jpg');
             background-size: cover;
             background-position: center;
         `);

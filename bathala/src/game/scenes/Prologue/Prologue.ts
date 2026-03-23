@@ -48,7 +48,7 @@ export class Prologue extends Scene {
         const spaceKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
 
         // Add background image
-        const introBgImage = this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2, 'chap1_no_leaves_boss');
+        const introBgImage = this.add.image(this.cameras.main.width / 2, this.cameras.main.height / 2, 'hero_bg');
 
         // Scale the background to cover the screen
         const scaleX = this.cameras.main.width / introBgImage.width;

@@ -41,7 +41,7 @@ export class Disclaimer extends Scene {
     const height = this.cameras.main.height;
     
     // Add background image
-    const bgImage = this.add.image(width / 2, height / 2, 'chap1_no_leaves_boss');
+    const bgImage = this.add.image(width / 2, height / 2, 'hero_bg');
     
     // Scale the background to cover the screen
     const scaleX = width / bgImage.width;

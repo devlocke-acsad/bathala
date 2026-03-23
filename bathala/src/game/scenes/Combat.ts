@@ -2677,7 +2677,7 @@ export class Combat extends Scene {
     const sf = Math.max(0.8, Math.min(1.2, sw / 1024));
 
     // Background and mood overlay
-    const bgImage = this.add.image(sw / 2, sh / 2, 'chap1_no_leaves_boss');
+    const bgImage = this.add.image(sw / 2, sh / 2, 'hero_bg');
     bgImage.setScale(Math.max(sw / bgImage.width, sh / bgImage.height)).setDepth(-100);
 
     const overlay = this.add.rectangle(sw / 2, sh / 2, sw, sh, 0x080608, 0.93)

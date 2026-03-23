@@ -97,6 +97,7 @@ export class Preloader extends Scene {
     this.load.image("logo", "logo.png");
     this.load.image("bg", "bg.png");
     this.load.image("forest_bg", "forest_bg.png");
+    this.load.image("hero_bg", "hero.jpg");
 
     // Background assets
     this.load.image("floor1", "background/floor1.png");

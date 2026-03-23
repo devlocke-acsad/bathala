@@ -1668,8 +1668,6 @@ export class Overworld_MazeGenManager {
       fontFamily: 'Arial Black, Arial, sans-serif',
       fontSize: '20px',
       color: '#ff3333',
-      stroke: '#000000',
-      strokeThickness: 3,
       align: 'center'
     });
     alert.setOrigin(0.5);
