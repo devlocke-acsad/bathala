@@ -76,7 +76,7 @@ export class Preloader extends Scene {
     this.load.image("heal_potion", "potion/heal_potion.png");
     // --- Action spritesheets (new) ---
     // Air / Hangin special
-    this.load.spritesheet("action_air", "action/air/air.png", { frameWidth: 35, frameHeight: 35 });
+    this.load.spritesheet("action_air", "action/air/air.png", { frameWidth: 40, frameHeight: 40 }); // 360/40 = 9 frames exactly
     // Attack variations (weak: slash, medium: slash_curved, strong: slash_double, very strong: slash_double_curved)
     this.load.spritesheet("action_slash", "action/attack/slash.png", { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet("action_slash_curved", "action/attack/slash_curved.png", { frameWidth: 32, frameHeight: 32 });
@@ -85,13 +85,11 @@ export class Preloader extends Scene {
     // Defend
     this.load.spritesheet("action_defend", "action/defend/defend.png", { frameWidth: 24, frameHeight: 26 });
     // Earth (Lupa) - two variants to alternate
-    this.load.spritesheet("action_earth1", "action/earth/earth1.png", { frameWidth: 45, frameHeight: 48 });
-    this.load.spritesheet("action_earth2", "action/earth/earth2.png", { frameWidth: 30, frameHeight: 28 });
+    this.load.spritesheet("action_earth", "action/earth/earth.png", { frameWidth: 54, frameHeight: 48 }); // 540/54 = 10 frames exactly
     // Fire (Apoy)
     this.load.spritesheet("action_fire", "action/fire/fire.png", { frameWidth: 25, frameHeight: 30 });
     // Water (Tubig) - two variants to alternate
-    this.load.spritesheet("action_water1", "action/water/water1.png", { frameWidth: 45, frameHeight: 41 });
-    this.load.spritesheet("action_water2", "action/water/water2.png", { frameWidth: 40, frameHeight: 33 });
+    this.load.spritesheet("action_water", "action/water/water.png", { frameWidth: 30, frameHeight: 41 }); // 270/30 = 9 frames exactly
     //  Load the assets for the game
     this.load.setPath("assets");
 
@@ -533,8 +531,8 @@ export class Preloader extends Scene {
     for (const key of [
       "action_air", "action_slash", "action_slash_curved",
       "action_slash_double", "action_slash_double_curved",
-      "action_defend", "action_earth1", "action_earth2",
-      "action_fire", "action_water1", "action_water2"
+      "action_defend", "action_earth",
+      "action_fire", "action_water"
     ]) {
       if (this.textures.exists(key)) {
         this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
