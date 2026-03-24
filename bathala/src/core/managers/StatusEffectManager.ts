@@ -11,7 +11,8 @@ export interface StatusEffectDefinition {
   id: string;
   name: string;
   type: 'buff' | 'debuff';
-  emoji: string;
+  /** Phaser texture key for the pixelarticon (e.g. 'icon_burn'). */
+  icon: string;
   description: string;
   triggerTiming: StatusEffectTriggerTiming;
   stackable: boolean;
@@ -59,7 +60,7 @@ export class StatusEffectManager {
         id: 'burn',
         name: 'Burn',
         type: 'debuff',
-        emoji: '🔥',
+        icon: 'icon_burn',
         description: 'Takes damage at start of turn, then reduces by 1',
         triggerTiming: 'start_of_turn',
         stackable: true,
@@ -84,7 +85,7 @@ export class StatusEffectManager {
         id: 'poison',
         name: 'Poison',
         type: 'debuff',
-        emoji: '☠️',
+        icon: 'icon_poison',
         description: 'Takes damage at start of turn, then reduces by 1',
         triggerTiming: 'start_of_turn',
         stackable: true,
@@ -111,7 +112,7 @@ export class StatusEffectManager {
         id: 'weak',
         name: 'Weak',
         type: 'debuff',
-        emoji: '⚠️',
+        icon: 'icon_weak',
         description: 'Attack actions deal 25% less damage per stack',
         triggerTiming: 'persistent',
         stackable: true,
@@ -121,7 +122,7 @@ export class StatusEffectManager {
         id: 'plated_armor',
         name: 'Plated Armor',
         type: 'buff',
-        emoji: '🛡️',
+        icon: 'icon_plated_armor',
         description: 'Gain block at start of turn, then reduces by 1',
         triggerTiming: 'start_of_turn',
         stackable: true,
@@ -148,7 +149,7 @@ export class StatusEffectManager {
         id: 'regeneration',
         name: 'Regeneration',
         type: 'buff',
-        emoji: '💚',
+        icon: 'icon_regeneration',
         description: 'Heal HP at start of turn, then reduces by 1',
         triggerTiming: 'start_of_turn',
         stackable: true,
@@ -180,7 +181,7 @@ export class StatusEffectManager {
         id: 'regeneration_potion',
         name: 'Regeneration',
         type: 'buff',
-        emoji: '♻️',
+        icon: 'icon_regeneration',
         description: 'Heals 2 HP at start of turn for 3 turns',
         triggerTiming: 'start_of_turn',
         stackable: false,
@@ -207,7 +208,7 @@ export class StatusEffectManager {
         id: 'strength',
         name: 'Strength',
         type: 'buff',
-        emoji: '💪',
+        icon: 'icon_strength',
         description: 'Attack actions deal +3 damage per stack',
         triggerTiming: 'persistent',
         stackable: true,
@@ -216,7 +217,7 @@ export class StatusEffectManager {
         id: 'vulnerable',
         name: 'Vulnerable',
         type: 'debuff',
-        emoji: '🛡️💔',
+        icon: 'icon_vulnerable',
         description: 'Takes 50% more damage from all sources',
         triggerTiming: 'persistent',
         stackable: false,
@@ -225,7 +226,7 @@ export class StatusEffectManager {
         id: 'frail',
         name: 'Frail',
         type: 'debuff',
-        emoji: '🔻',
+        icon: 'icon_frail',
         description: 'Defend actions grant 25% less block per stack',
         triggerTiming: 'persistent',
         stackable: true,
@@ -235,7 +236,7 @@ export class StatusEffectManager {
         id: 'ritual',
         name: 'Ritual',
         type: 'buff',
-        emoji: '✨',
+        icon: 'icon_ritual',
         description: 'Gain +1 Strength at end of turn',
         triggerTiming: 'end_of_turn',
         stackable: true,
@@ -255,7 +256,7 @@ export class StatusEffectManager {
         id: 'stunned',
         name: 'Stunned',
         type: 'debuff',
-        emoji: '💫',
+        icon: 'icon_weak',
         description: 'Cannot act. Expires at end of turn.',
         triggerTiming: 'end_of_turn',
         stackable: false,
@@ -411,7 +412,7 @@ export class StatusEffectManager {
         name: definition.name,
         type: definition.type,
         value: finalStacks,
-        emoji: definition.emoji,
+        icon: definition.icon,
         description: definition.description,
         source: source // Track what caused this effect
       };

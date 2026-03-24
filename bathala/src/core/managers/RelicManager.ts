@@ -98,7 +98,7 @@ export class RelicManager {
       type: "buff" as const,
       value: value,
       description: "Gain +1 additional block per stack with Defend actions.",
-      emoji: "⛨",
+      icon: "icon_plated_armor",
       source: relicId ? {
         type: 'relic',
         id: relicId,
@@ -124,7 +124,7 @@ export class RelicManager {
       type: "buff" as const,
       value: value,
       description: "Deal +3 additional damage per stack with Attack actions.",
-      emoji: "†",
+      icon: "icon_strength",
       source: relicId ? {
         type: 'relic',
         id: relicId,

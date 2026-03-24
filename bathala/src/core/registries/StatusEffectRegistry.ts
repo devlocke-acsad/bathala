@@ -21,7 +21,10 @@ export interface StatusEffectEntry {
   id: string;
   name: string;
   category: EffectCategory;
-  emoji: string;
+  /** Phaser texture key for the pixelarticon (e.g. 'icon_burn'). */
+  icon: string;
+  /** @deprecated Use icon instead. Kept for backwards-compatibility during transition. */
+  emoji?: string;
   timing: EffectTiming;
   stackable: boolean;
   maxStacks?: number;
@@ -54,7 +57,7 @@ const ENTRIES: ReadonlyMap<StatusId, StatusEffectEntry> = new Map<StatusId, Stat
     id: STATUS_IDS.BURN,
     name: 'Burn',
     category: 'debuff',
-    emoji: '🔥',
+    icon: 'icon_burn',
     timing: 'start_of_turn',
     stackable: true,
     perStackValue: 2,
@@ -65,7 +68,7 @@ const ENTRIES: ReadonlyMap<StatusId, StatusEffectEntry> = new Map<StatusId, Stat
     id: STATUS_IDS.POISON,
     name: 'Poison',
     category: 'debuff',
-    emoji: '☠️',
+    icon: 'icon_poison',
     timing: 'start_of_turn',
     stackable: true,
     perStackValue: 2,
@@ -76,7 +79,7 @@ const ENTRIES: ReadonlyMap<StatusId, StatusEffectEntry> = new Map<StatusId, Stat
     id: STATUS_IDS.WEAK,
     name: 'Weak',
     category: 'debuff',
-    emoji: '💫',
+    icon: 'icon_weak',
     timing: 'persistent',
     stackable: true,
     maxStacks: 3,
@@ -88,7 +91,7 @@ const ENTRIES: ReadonlyMap<StatusId, StatusEffectEntry> = new Map<StatusId, Stat
     id: STATUS_IDS.PLATED_ARMOR,
     name: 'Plated Armor',
     category: 'buff',
-    emoji: '🛡️',
+    icon: 'icon_plated_armor',
     timing: 'start_of_turn',
     stackable: true,
     perStackValue: 3,
@@ -99,7 +102,7 @@ const ENTRIES: ReadonlyMap<StatusId, StatusEffectEntry> = new Map<StatusId, Stat
     id: STATUS_IDS.REGENERATION,
     name: 'Regeneration',
     category: 'buff',
-    emoji: '💚',
+    icon: 'icon_regeneration',
     timing: 'start_of_turn',
     stackable: true,
     perStackValue: 2,
@@ -110,7 +113,7 @@ const ENTRIES: ReadonlyMap<StatusId, StatusEffectEntry> = new Map<StatusId, Stat
     id: STATUS_IDS.STRENGTH,
     name: 'Strength',
     category: 'buff',
-    emoji: '⚔️',
+    icon: 'icon_strength',
     timing: 'persistent',
     stackable: true,
     perStackValue: 3,
@@ -121,7 +124,7 @@ const ENTRIES: ReadonlyMap<StatusId, StatusEffectEntry> = new Map<StatusId, Stat
     id: STATUS_IDS.VULNERABLE,
     name: 'Vulnerable',
     category: 'debuff',
-    emoji: '🎯',
+    icon: 'icon_vulnerable',
     timing: 'persistent',
     stackable: false,
     perStackValue: 0.5,
@@ -132,7 +135,7 @@ const ENTRIES: ReadonlyMap<StatusId, StatusEffectEntry> = new Map<StatusId, Stat
     id: STATUS_IDS.FRAIL,
     name: 'Frail',
     category: 'debuff',
-    emoji: '🦴',
+    icon: 'icon_frail',
     timing: 'persistent',
     stackable: true,
     maxStacks: 3,
@@ -144,7 +147,7 @@ const ENTRIES: ReadonlyMap<StatusId, StatusEffectEntry> = new Map<StatusId, Stat
     id: STATUS_IDS.RITUAL,
     name: 'Ritual',
     category: 'buff',
-    emoji: '🕯️',
+    icon: 'icon_ritual',
     timing: 'end_of_turn',
     stackable: true,
     perStackValue: 1,
@@ -190,9 +193,9 @@ export class StatusEffectRegistry {
     return ENTRIES.get(id as StatusId)?.name ?? id;
   }
 
-  /** Emoji for a status ID, with fallback. */
-  static emojiOf(id: string): string {
-    return ENTRIES.get(id as StatusId)?.emoji ?? '❓';
+  /** Phaser texture key for a status ID icon, with fallback. */
+  static iconOf(id: string): string {
+    return ENTRIES.get(id as StatusId)?.icon ?? 'icon_unknown';
   }
 
   /**

@@ -439,350 +439,283 @@ export class PokerHandReference extends Scene {
   }
 
   private createElementalEffectsContent(): void {
-    this.elementalEffectsContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2 + 20).setDepth(10).setVisible(false);
+    // Anchor near top of visible area so content isn't compressed
+    // Container centered in the content area (below tab bar, inside panel)
+    const cY = this.cameras.main.height / 2 + 30;
+    this.elementalEffectsContainer = this.add.container(this.cameras.main.width / 2, cY).setDepth(10).setVisible(false);
+
     const elementalInfo = [
-      { suit: "Apoy", icon: "🔥", name: "Fire", effect: "Burn", effectDesc: "Applies 3 stacks of Burn to enemy (6 damage/turn)", description: "Offensive element. Fire Special inflicts Burn, dealing damage over time.", color: "#FF6B6B" },
-      { suit: "Tubig", icon: "💧", name: "Water", effect: "Frail", effectDesc: "Applies 2 stacks of Frail (50% block reduction)", description: "Defensive disruption. Water Special weakens enemy defenses with Frail.", color: "#54A0FF" },
-      { suit: "Lupa", icon: "🌿", name: "Earth", effect: "Vulnerable", effectDesc: "Applies 1 stack of Vulnerable (50% more damage taken)", description: "Damage amplifier. Earth Special makes enemies Vulnerable to all attacks.", color: "#00D2D3" },
-      { suit: "Hangin", icon: "💨", name: "Air", effect: "Weak", effectDesc: "Applies 2 stacks of Weak (50% attack reduction)", description: "Survivability element. Air Special reduces enemy attack power with Weak.", color: "#A29BFE" }
+      { suit: "Apoy",   iconKey: "icon_element_fire",  name: "Fire",  effectDesc: "Applies 3 stacks of Burn (6 damage/turn)",       description: "Offensive element. Fire Special inflicts Burn, dealing damage over time.",   color: "#FF6B6B" },
+      { suit: "Tubig",  iconKey: "icon_element_water", name: "Water", effectDesc: "Applies 2 stacks of Frail (50% block reduction)", description: "Defensive disruption. Water Special weakens enemy defenses with Frail.",     color: "#54A0FF" },
+      { suit: "Lupa",   iconKey: "icon_element_earth", name: "Earth", effectDesc: "Applies 1 stack of Vulnerable (+50% damage)",     description: "Damage amplifier. Earth Special makes enemies Vulnerable to all attacks.",  color: "#00D2D3" },
+      { suit: "Hangin", iconKey: "icon_element_air",   name: "Air",   effectDesc: "Applies 2 stacks of Weak (−50% attack power)",   description: "Survivability element. Air Special reduces enemy attack power with Weak.",  color: "#A29BFE" },
     ];
 
-    let yPos = -210;
-    const entrySpacing = 140;
-    
-    elementalInfo.forEach(info => {
-      // Clean single-layer background
-      const bg = this.add.rectangle(0, yPos, 880, 124, 0x1a1a1a, 0.92);
-      bg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(info.color).color, 0.6);
-      
-      const innerAccent = this.add.rectangle(0, yPos, 870, 114, undefined, 0);
-      innerAccent.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(info.color).color, 0.3);
-      
-      // Icon with subtle background
-      const iconBg = this.add.circle(-390, yPos, 32, 0x0a0a0a, 0.9);
-      iconBg.setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(info.color).color, 0.5);
-      
-      const icon = this.add.text(-390, yPos, info.icon, { 
-        fontSize: 44 
-      }).setOrigin(0.5);
-      
-      // Element name - clean, no stroke
-      const name = this.add.text(-320, yPos - 40, info.suit.toUpperCase(), { 
-        fontFamily: "dungeon-mode", 
-        fontSize: 22, 
-        color: info.color
+    const cardW = 380;
+    const cardH = 140;
+    const colGap = 24;
+    const rowGap = 20;
+    const noteH = 56;
+    const noteGap = 20;
+
+    // Total height: 2 rows of cards + note
+    const totalH = 2 * (cardH + rowGap) - rowGap + noteGap + noteH;
+    const startY = -totalH / 2 + cardH / 2;
+
+    const leftX  = -(cardW / 2 + colGap / 2);
+    const rightX =  (cardW / 2 + colGap / 2);
+
+    elementalInfo.forEach((info, i) => {
+      const cx = i % 2 === 0 ? leftX : rightX;
+      const cy = startY + Math.floor(i / 2) * (cardH + rowGap);
+      const col = Phaser.Display.Color.HexStringToColor(info.color).color;
+
+      const bg = this.add.rectangle(cx, cy, cardW, cardH, 0x0e0e0e, 1);
+      bg.setStrokeStyle(1.5, col, 0.5);
+
+      // Large icon on the left side of the card
+      const iconBg = this.add.circle(cx - cardW / 2 + 44, cy, 28, 0x060606, 1);
+      iconBg.setStrokeStyle(1.5, col, 0.7);
+      const iconImg = this.add.image(cx - cardW / 2 + 44, cy, info.iconKey)
+        .setDisplaySize(28, 28).setTint(col).setOrigin(0.5);
+
+      // Text starting after the icon
+      const tx = cx - cardW / 2 + 88;
+      const suitName = this.add.text(tx, cy - 38, info.suit.toUpperCase(), {
+        fontFamily: "dungeon-mode", fontSize: 18, color: info.color,
       }).setOrigin(0, 0.5);
-      
-      const subName = this.add.text(-320, yPos - 18, info.name, { 
-        fontFamily: "dungeon-mode", 
-        fontSize: 12, 
-        color: "#888888"
+
+      const subName = this.add.text(tx, cy - 16, info.name, {
+        fontFamily: "dungeon-mode", fontSize: 11, color: "#555555",
       }).setOrigin(0, 0.5);
-      
-      // Special action effect highlight
-      const effectText = this.add.text(-320, yPos + 8, `Special: ${info.effectDesc}`, { 
-        fontFamily: "dungeon-mode", 
-        fontSize: 13, 
-        color: "#FFD700", 
-        wordWrap: { width: 650 },
-        lineSpacing: 2
+
+      const effectText = this.add.text(tx, cy + 10, `Special: ${info.effectDesc}`, {
+        fontFamily: "dungeon-mode", fontSize: 11, color: "#FFD700",
+        wordWrap: { width: cardW - 100 }, lineSpacing: 2,
       }).setOrigin(0, 0.5);
-      
-      // Description - clean, well-spaced
-      const description = this.add.text(-320, yPos + 34, info.description, { 
-        fontFamily: "dungeon-mode", 
-        fontSize: 12, 
-        color: "#C8CCCE", 
-        wordWrap: { width: 650 },
-        lineSpacing: 2
+
+      const descText = this.add.text(tx, cy + 42, info.description, {
+        fontFamily: "dungeon-mode", fontSize: 10, color: "#6e8a90",
+        wordWrap: { width: cardW - 100 }, lineSpacing: 2,
       }).setOrigin(0, 0.5);
-      
-      this.elementalEffectsContainer.add([bg, innerAccent, iconBg, icon, name, subName, effectText, description]);
-      yPos += entrySpacing;
+
+      this.elementalEffectsContainer.add([bg, iconBg, iconImg, suitName, subName, effectText, descText]);
     });
 
-    // Bottom note with clean styling
-    const noteBg = this.add.rectangle(0, yPos + 40, 750, 70, 0x1a1a1a, 0.92);
-    noteBg.setStrokeStyle(2, 0xFFD700, 0.7);
-    
-    const noteAccent = this.add.rectangle(0, yPos + 40, 740, 60, undefined, 0);
-    noteAccent.setStrokeStyle(1, 0xFFD700, 0.4);
-    
-    const note = this.add.text(0, yPos + 40, 
-      "Special actions apply status effects based on your dominant element.\nEach element's Special can only be used once per combat!", 
-      { 
-        fontFamily: "dungeon-mode", 
-        fontSize: 14, 
-        color: "#FFD700", 
-        wordWrap: { width: 700 }, 
-        align: "center",
-        lineSpacing: 2
-      }).setOrigin(0.5);
-    this.elementalEffectsContainer.add([noteBg, noteAccent, note]);
+    // Note centred below the 2-row grid
+    const noteY = startY + 2 * (cardH + rowGap) - rowGap + noteGap + noteH / 2;
+    const noteBg = this.add.rectangle(0, noteY, cardW * 2 + colGap, noteH, 0x0e0e0e, 1);
+    noteBg.setStrokeStyle(1.5, 0xFFD700, 0.5);
+    const note = this.add.text(0, noteY,
+      "Special actions apply status effects based on your dominant element.  Each element's Special can only be used once per combat!",
+      { fontFamily: "dungeon-mode", fontSize: 12, color: "#c8a830", wordWrap: { width: cardW * 2 + colGap - 32 }, align: "center", lineSpacing: 3 }
+    ).setOrigin(0.5);
+    this.elementalEffectsContainer.add([noteBg, note]);
   }
 
   private createStatusEffectsContent(): void {
-    this.statusEffectsContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2 + 20).setDepth(10).setVisible(false);
-    
+    this.statusEffectsContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2 + 30).setDepth(10).setVisible(false);
+
     const buffs = [
-      { emoji: "💪", name: "Strength", desc: "+3 attack damage per stack. Persistent - lasts until removed.", color: "#FF6B6B" },
-      { emoji: "🛡️", name: "Plated Armor", desc: "Gain block at start of turn (stacks × 3), then reduces by 1.", color: "#54A0FF" },
-      { emoji: "💚", name: "Regeneration", desc: "Heal HP at start of turn (stacks × 2), then reduces by 1.", color: "#00D2D3" },
-      { emoji: "✨", name: "Ritual", desc: "Gain +1 Strength at end of each turn. Stacks compound over time.", color: "#A29BFE" },
+      { iconKey: "icon_strength",    name: "Strength",     desc: "+3 attack per stack. Persistent.",             color: "#f0c040" },
+      { iconKey: "icon_plated_armor",name: "Plated Armor", desc: "Gain block each turn (×3), then −1 stack.",    color: "#54A0FF" },
+      { iconKey: "icon_regeneration",name: "Regeneration", desc: "Heal each turn (×2 HP), then −1 stack.",      color: "#2ed573" },
+      { iconKey: "icon_ritual",      name: "Ritual",       desc: "Gain +1 Strength at end of turn.",            color: "#A29BFE" },
     ];
 
     const debuffs = [
-      { emoji: "🔥", name: "Burn", desc: "Deals damage at start of turn (stacks × 2), then reduces by 1. Usually applied by player effects.", color: "#FF6B6B" },
-      { emoji: "☠️", name: "Poison", desc: "Deals damage at start of turn (stacks × 2), then reduces by 1. Usually applied by enemy effects.", color: "#A8E6A3" },
-      { emoji: "⚠️", name: "Weak", desc: "Attack actions deal 25% less damage per stack. Max 3 stacks (75%).", color: "#FF9F43" },
-      { emoji: "🛡️💔", name: "Vulnerable", desc: "Takes 50% more damage from ALL sources. Non-stackable (binary).", color: "#E74C3C" },
-      { emoji: "🔻", name: "Frail", desc: "Defend actions grant 25% less block per stack. Max 3 stacks (75%).", color: "#A29BFE" },
+      { iconKey: "icon_burn",       name: "Burn",       desc: "Damage each turn (×2), then −1 stack.",  color: "#e05030" },
+      { iconKey: "icon_poison",     name: "Poison",     desc: "Damage each turn (×2), then −1 stack.",  color: "#7ddb8a" },
+      { iconKey: "icon_weak",       name: "Weak",       desc: "−25% attack damage per stack. Max 3.",   color: "#FF9F43" },
+      { iconKey: "icon_vulnerable", name: "Vulnerable", desc: "+50% damage taken. Non-stackable.",      color: "#E74C3C" },
+      { iconKey: "icon_frail",      name: "Frail",      desc: "−25% block per stack. Max 3.",           color: "#c060f0" },
     ];
 
-    // Section header: Buffs
-    const buffsHeader = this.add.text(0, -270, "BUFFS", {
-      fontFamily: "dungeon-mode",
-      fontSize: 22,
-      color: "#2ed573",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    const buffsSubheader = this.add.text(0, -245, "Beneficial effects that enhance your power", {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#888888",
-      align: "center"
-    }).setOrigin(0.5);
+    const colW   = 375;
+    const cardH  = 72;
+    const gap    = 10;
+    const hdrH   = 38;
+    const noteH  = 50;
+    const leftX  = -(colW / 2 + 12);
+    const rightX =  (colW / 2 + 12);
 
-    this.statusEffectsContainer.add([buffsHeader, buffsSubheader]);
+    // Total height: header + tallest column rows + gap + note
+    const maxRows = Math.max(buffs.length, debuffs.length);
+    const colContentH = hdrH + gap + maxRows * (cardH + gap) - gap;
+    const totalH = colContentH + gap + noteH;
+    const startY = -totalH / 2;
 
-    let yPos = -210;
-    const entryHeight = 58;
-
-    buffs.forEach(info => {
-      const bg = this.add.rectangle(0, yPos, 880, 50, 0x1a1a1a, 0.92);
-      bg.setStrokeStyle(1, 0x2ed573, 0.4);
-      
-      const emoji = this.add.text(-410, yPos, info.emoji, { fontSize: 24 }).setOrigin(0.5);
-      
-      const name = this.add.text(-370, yPos - 12, info.name, {
-        fontFamily: "dungeon-mode",
-        fontSize: 15,
-        color: info.color
-      }).setOrigin(0, 0.5);
-      
-      const desc = this.add.text(-370, yPos + 12, info.desc, {
-        fontFamily: "dungeon-mode",
-        fontSize: 11,
-        color: "#C8CCCE",
-        wordWrap: { width: 730 }
-      }).setOrigin(0, 0.5);
-
-      this.statusEffectsContainer.add([bg, emoji, name, desc]);
-      yPos += entryHeight;
-    });
-
-    // Section header: Debuffs
-    yPos += 28;
-    const debuffsHeader = this.add.text(0, yPos, "DEBUFFS", {
-      fontFamily: "dungeon-mode",
-      fontSize: 22,
-      color: "#ff4757",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    const debuffsSubheader = this.add.text(0, yPos + 25, "Harmful effects that weaken combatants", {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#888888",
-      align: "center"
-    }).setOrigin(0.5);
-
-    this.statusEffectsContainer.add([debuffsHeader, debuffsSubheader]);
-    yPos += 58;
-
-    debuffs.forEach(info => {
-      const bg = this.add.rectangle(0, yPos, 880, 50, 0x1a1a1a, 0.92);
-      bg.setStrokeStyle(1, 0xff4757, 0.4);
-      
-      const emoji = this.add.text(-410, yPos, info.emoji, { fontSize: 24 }).setOrigin(0.5);
-      
-      const name = this.add.text(-370, yPos - 12, info.name, {
-        fontFamily: "dungeon-mode",
-        fontSize: 15,
-        color: info.color
-      }).setOrigin(0, 0.5);
-      
-      const desc = this.add.text(-370, yPos + 12, info.desc, {
-        fontFamily: "dungeon-mode",
-        fontSize: 11,
-        color: "#C8CCCE",
-        wordWrap: { width: 730 }
-      }).setOrigin(0, 0.5);
-
-      this.statusEffectsContainer.add([bg, emoji, name, desc]);
-      yPos += entryHeight;
-    });
-
-    // Timing note
-    yPos += 22;
-    const noteBg = this.add.rectangle(0, yPos, 750, 60, 0x1a1a1a, 0.92);
-    noteBg.setStrokeStyle(2, 0xFFD700, 0.7);
-    
-    const note = this.add.text(0, yPos,
-      "Turn order: Start-of-turn effects trigger → Actions → End-of-turn effects\nEffects at 0 stacks are automatically removed.",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 12,
-        color: "#FFD700",
-        wordWrap: { width: 700 },
-        align: "center",
-        lineSpacing: 5
+    const makeColumn = (
+      items: typeof buffs,
+      cx: number,
+      headerLabel: string,
+      headerColor: string,
+      borderCol: number
+    ) => {
+      // Column header
+      const hdrBg = this.add.rectangle(cx, startY + hdrH / 2, colW, hdrH, 0x060606, 1);
+      hdrBg.setStrokeStyle(1, borderCol, 0.5);
+      const hdrText = this.add.text(cx, startY + hdrH / 2, headerLabel, {
+        fontFamily: "dungeon-mode", fontSize: 16, color: headerColor, align: "center",
       }).setOrigin(0.5);
+      this.statusEffectsContainer.add([hdrBg, hdrText]);
+
+      let rowY = startY + hdrH + gap + cardH / 2;
+      items.forEach(info => {
+        const col = Phaser.Display.Color.HexStringToColor(info.color).color;
+        const bg = this.add.rectangle(cx, rowY, colW, cardH, 0x0e0e0e, 1);
+        bg.setStrokeStyle(1, borderCol, 0.25);
+
+        const iconBg = this.add.circle(cx - colW / 2 + 30, rowY, 20, 0x060606, 1);
+        iconBg.setStrokeStyle(1.5, col, 0.65);
+        const iconImg = this.add.image(cx - colW / 2 + 30, rowY, info.iconKey)
+          .setDisplaySize(18, 18).setTint(col).setOrigin(0.5);
+
+        const tx = cx - colW / 2 + 60;
+        const name = this.add.text(tx, rowY - 14, info.name, {
+          fontFamily: "dungeon-mode", fontSize: 14, color: info.color,
+        }).setOrigin(0, 0.5);
+        const desc = this.add.text(tx, rowY + 12, info.desc, {
+          fontFamily: "dungeon-mode", fontSize: 10, color: "#6e8a90",
+          wordWrap: { width: colW - 72 }, lineSpacing: 2,
+        }).setOrigin(0, 0.5);
+
+        this.statusEffectsContainer.add([bg, iconBg, iconImg, name, desc]);
+        rowY += cardH + gap;
+      });
+    };
+
+    makeColumn(buffs,   leftX,  "BUFFS",   "#2ed573", 0x2ed573);
+    makeColumn(debuffs, rightX, "DEBUFFS", "#ff4757",  0xff4757);
+
+    // Bottom note — anchored relative to startY so content is centred
+    const noteY = startY + colContentH + gap + noteH / 2;
+    const noteBg = this.add.rectangle(0, noteY, colW * 2 + 24, noteH, 0x0e0e0e, 1);
+    noteBg.setStrokeStyle(1.5, 0xFFD700, 0.5);
+    const note = this.add.text(0, noteY,
+      "Start-of-turn effects → Actions → End-of-turn effects.  Effects at 0 stacks are removed.",
+      { fontFamily: "dungeon-mode", fontSize: 11, color: "#c8a830", wordWrap: { width: colW * 2 }, align: "center", lineSpacing: 3 }
+    ).setOrigin(0.5);
     this.statusEffectsContainer.add([noteBg, note]);
   }
 
   private createAffinitiesContent(): void {
-    this.affinitiesContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2 + 20).setDepth(10).setVisible(false);
+    this.affinitiesContainer = this.add.container(this.cameras.main.width / 2, this.cameras.main.height / 2 + 30).setDepth(10).setVisible(false);
 
-    // Title
-    const title = this.add.text(0, -270, "ELEMENTAL WEAKNESS & RESISTANCE", {
-      fontFamily: "dungeon-mode",
-      fontSize: 22,
-      color: "#FFD700",
-      align: "center"
+    // ── Layout constants ───────────────────────────────────────────────────
+    const pillW      = 370;
+    const pillH      = 72;
+    const pillGap    = 16;   // gap between pills and table header label
+    const hdrLabelH  = 24;   // "AFFINITY PATTERNS" text
+    const hdrLabelGap = 14;
+    const colHdrH    = 20;   // column labels row
+    const rowH       = 68;
+    const rowGap     = 8;
+    const tipH       = 48;
+    const tipGap     = 16;
+    const numRows    = 4;    // affinityPatterns.length
+
+    const tableW = pillW * 2 + 24;
+
+    // Total height of all content
+    const totalH =
+      pillH +
+      pillGap + hdrLabelH +
+      hdrLabelGap + colHdrH +
+      numRows * (rowH + rowGap) - rowGap +
+      tipGap + tipH;
+
+    // startY: top of first element, centred around container origin
+    const startY = -totalH / 2;
+
+    // ── Top explanation pills ──────────────────────────────────────────────
+    const pillCY = startY + pillH / 2;
+
+    // Each pill spans half the table width minus a small centre gap
+    const halfTableW = tableW / 2 - 6;
+
+    const makeExplainPill = (cx: number, iconKey: string, tintCol: number, title: string, titleColor: string, body: string) => {
+      const pw = halfTableW;
+      const textAreaW = pw - 68; // space after icon
+      const bg = this.add.rectangle(cx, pillCY, pw, pillH, 0x0e0e0e, 1);
+      bg.setStrokeStyle(1.5, tintCol, 0.55);
+      const iconBg = this.add.circle(cx - pw / 2 + 30, pillCY, 22, 0x060606, 1).setStrokeStyle(1.5, tintCol, 0.7);
+      const icon   = this.add.image(cx - pw / 2 + 30, pillCY, iconKey).setDisplaySize(20, 20).setTint(tintCol).setOrigin(0.5);
+      const t1 = this.add.text(cx - pw / 2 + 62, pillCY - 13, title, { fontFamily: "dungeon-mode", fontSize: 13, color: titleColor, wordWrap: { width: textAreaW } }).setOrigin(0, 0.5);
+      const t2 = this.add.text(cx - pw / 2 + 62, pillCY + 13, body,  { fontFamily: "dungeon-mode", fontSize: 11, color: "#6e8a90",   wordWrap: { width: textAreaW } }).setOrigin(0, 0.5);
+      this.affinitiesContainer.add([bg, iconBg, icon, t1, t2]);
+    };
+
+    const pillHalfGap = tableW / 4 + 3; // cx for left and right pills
+    makeExplainPill(-pillHalfGap, "icon_strength",     0xff6b6b, "WEAKNESS  (1.5× Damage)",   "#ff9d9d", "Deal 50% MORE damage with this element.");
+    makeExplainPill( pillHalfGap, "icon_plated_armor", 0x54A0FF, "RESISTANCE  (0.75× Damage)", "#98c8f0", "Deal 25% LESS damage with this element.");
+
+    // ── "AFFINITY PATTERNS" section label ─────────────────────────────────
+    const hdrLabelY = startY + pillH + pillGap + hdrLabelH / 2;
+    const tableHeader = this.add.text(0, hdrLabelY, "AFFINITY PATTERNS", {
+      fontFamily: "dungeon-mode", fontSize: 15, color: "#FFD700", align: "center",
     }).setOrigin(0.5);
+    this.affinitiesContainer.add(tableHeader);
 
-    const subtitle = this.add.text(0, -244, "Every enemy has one weakness and one resistance", {
-      fontFamily: "dungeon-mode",
-      fontSize: 13,
-      color: "#888888",
-      align: "center"
-    }).setOrigin(0.5);
+    // ── Column header labels ───────────────────────────────────────────────
+    const colHdrY = hdrLabelY + hdrLabelH / 2 + hdrLabelGap + colHdrH / 2;
 
-    this.affinitiesContainer.add([title, subtitle]);
-
-    // Explanation cards
-    const weaknessBg = this.add.rectangle(-225, -185, 420, 80, 0x1a1a1a, 0.92);
-    weaknessBg.setStrokeStyle(2, 0xff6b6b, 0.6);
-    
-    const weaknessTitle = this.add.text(-225, -204, "⚔️  WEAKNESS  (1.5× Damage)", {
-      fontFamily: "dungeon-mode",
-      fontSize: 16,
-      color: "#ff6b6b",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    const weaknessDesc = this.add.text(-225, -174, "Deal 50% MORE damage with this element", {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#E8ECED",
-      align: "center"
-    }).setOrigin(0.5);
-
-    const resistBg = this.add.rectangle(225, -185, 420, 80, 0x1a1a1a, 0.92);
-    resistBg.setStrokeStyle(2, 0x54A0FF, 0.6);
-    
-    const resistTitle = this.add.text(225, -204, "🛡️  RESISTANCE  (0.75× Damage)", {
-      fontFamily: "dungeon-mode",
-      fontSize: 16,
-      color: "#54A0FF",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    const resistDesc = this.add.text(225, -174, "Deal 25% LESS damage with this element", {
-      fontFamily: "dungeon-mode",
-      fontSize: 12,
-      color: "#E8ECED",
-      align: "center"
-    }).setOrigin(0.5);
-
-    this.affinitiesContainer.add([weaknessBg, weaknessTitle, weaknessDesc, resistBg, resistTitle, resistDesc]);
-
-    // Common affinity patterns header
-    const patternHeader = this.add.text(0, -116, "COMMON AFFINITY PATTERNS", {
-      fontFamily: "dungeon-mode",
-      fontSize: 17,
-      color: "#FFD700",
-      align: "center"
-    }).setOrigin(0.5);
-    this.affinitiesContainer.add(patternHeader);
-
-    // Affinity cycle display
     const affinityPatterns = [
-      { icon: "🔥", name: "Fire Creatures", weak: "💧 Water", resist: "🌿 Earth", color: "#FF6B6B" },
-      { icon: "💧", name: "Water Creatures", weak: "🌿 Earth", resist: "🔥 Fire", color: "#54A0FF" },
-      { icon: "🌿", name: "Earth Creatures", weak: "💨 Air", resist: "💧 Water", color: "#00D2D3" },
-      { icon: "💨", name: "Air Creatures", weak: "🔥 Fire", resist: "💨 Air", color: "#A29BFE" },
+      { iconKey: "icon_element_fire",  name: "Fire",  weakIconKey: "icon_element_water", weakLabel: "Water",  resistIconKey: "icon_element_earth", resistLabel: "Earth", color: "#FF6B6B" },
+      { iconKey: "icon_element_water", name: "Water", weakIconKey: "icon_element_earth", weakLabel: "Earth",  resistIconKey: "icon_element_fire",  resistLabel: "Fire",  color: "#54A0FF" },
+      { iconKey: "icon_element_earth", name: "Earth", weakIconKey: "icon_element_air",   weakLabel: "Air",    resistIconKey: "icon_element_water", resistLabel: "Water", color: "#00D2D3" },
+      { iconKey: "icon_element_air",   name: "Air",   weakIconKey: "icon_element_fire",  weakLabel: "Fire",   resistIconKey: "icon_element_air",   resistLabel: "Air",   color: "#A29BFE" },
     ];
 
-    let yPos = -76;
-    const rowHeight = 60;
+    // Column positions relative to container center
+    const colCreatureX = -tableW / 2 + 100;
+    const colWeakX     = -tableW / 2 + 310;
+    const colResistX   = -tableW / 2 + 530;
 
-    // Column headers
-    const colNameX = -260;
-    const colWeakX = 80;
-    const colResistX = 300;
-    
-    const headerName = this.add.text(colNameX, yPos, "CREATURE TYPE", {
-      fontFamily: "dungeon-mode", fontSize: 12, color: "#888888"
-    }).setOrigin(0, 0.5);
-    const headerWeak = this.add.text(colWeakX, yPos, "WEAK TO", {
-      fontFamily: "dungeon-mode", fontSize: 12, color: "#ff6b6b"
-    }).setOrigin(0, 0.5);
-    const headerResist = this.add.text(colResistX, yPos, "RESISTS", {
-      fontFamily: "dungeon-mode", fontSize: 12, color: "#54A0FF"
-    }).setOrigin(0, 0.5);
-    this.affinitiesContainer.add([headerName, headerWeak, headerResist]);
-    
-    yPos += 36;
+    this.affinitiesContainer.add([
+      this.add.text(colCreatureX, colHdrY, "CREATURE", { fontFamily: "dungeon-mode", fontSize: 10, color: "#444444" }).setOrigin(0.5),
+      this.add.text(colWeakX,     colHdrY, "WEAK TO",  { fontFamily: "dungeon-mode", fontSize: 10, color: "#ff6b6b" }).setOrigin(0.5),
+      this.add.text(colResistX,   colHdrY, "RESISTS",  { fontFamily: "dungeon-mode", fontSize: 10, color: "#54A0FF" }).setOrigin(0.5),
+    ]);
 
+    // ── Affinity rows ──────────────────────────────────────────────────────
+    let rowY = colHdrY + colHdrH / 2 + rowH / 2;
     affinityPatterns.forEach(info => {
-      const bg = this.add.rectangle(0, yPos, 880, 50, 0x1a1a1a, 0.92);
-      bg.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(info.color).color, 0.3);
+      const col = Phaser.Display.Color.HexStringToColor(info.color).color;
 
-      const icon = this.add.text(colNameX - 40, yPos, info.icon, { fontSize: 26 }).setOrigin(0.5);
-      
-      const name = this.add.text(colNameX, yPos, info.name, {
-        fontFamily: "dungeon-mode", fontSize: 15, color: info.color
-      }).setOrigin(0, 0.5);
+      const bg = this.add.rectangle(0, rowY, tableW, rowH, 0x0e0e0e, 1);
+      bg.setStrokeStyle(1, col, 0.2);
 
-      const weak = this.add.text(colWeakX, yPos, info.weak, {
-        fontFamily: "dungeon-mode", fontSize: 15, color: "#ff6b6b"
-      }).setOrigin(0, 0.5);
+      // Creature cell
+      const cIconBg = this.add.circle(colCreatureX - 34, rowY, 22, 0x060606, 1).setStrokeStyle(1.5, col, 0.6);
+      const cIcon   = this.add.image(colCreatureX - 34, rowY, info.iconKey).setDisplaySize(20, 20).setTint(col).setOrigin(0.5);
+      const cName   = this.add.text(colCreatureX + 2, rowY, info.name, { fontFamily: "dungeon-mode", fontSize: 15, color: info.color }).setOrigin(0, 0.5);
 
-      const resist = this.add.text(colResistX, yPos, info.resist, {
-        fontFamily: "dungeon-mode", fontSize: 15, color: "#54A0FF"
-      }).setOrigin(0, 0.5);
+      // Weak to cell
+      const wIconBg = this.add.circle(colWeakX - 34, rowY, 22, 0x060606, 1).setStrokeStyle(1.5, 0xff6b6b, 0.5);
+      const wIcon   = this.add.image(colWeakX - 34, rowY, info.weakIconKey).setDisplaySize(18, 18).setTint(0xff9d9d).setOrigin(0.5);
+      const wName   = this.add.text(colWeakX + 2, rowY, info.weakLabel, { fontFamily: "dungeon-mode", fontSize: 15, color: "#ff9d9d" }).setOrigin(0, 0.5);
 
-      this.affinitiesContainer.add([bg, icon, name, weak, resist]);
-      yPos += rowHeight;
+      // Resists cell
+      const rIconBg = this.add.circle(colResistX - 34, rowY, 22, 0x060606, 1).setStrokeStyle(1.5, 0x54A0FF, 0.5);
+      const rIcon   = this.add.image(colResistX - 34, rowY, info.resistIconKey).setDisplaySize(18, 18).setTint(0x98f0ea).setOrigin(0.5);
+      const rName   = this.add.text(colResistX + 2, rowY, info.resistLabel, { fontFamily: "dungeon-mode", fontSize: 15, color: "#98f0ea" }).setOrigin(0, 0.5);
+
+      this.affinitiesContainer.add([bg, cIconBg, cIcon, cName, wIconBg, wIcon, wName, rIconBg, rIcon, rName]);
+      rowY += rowH + rowGap;
     });
 
-    // How to identify section
-    yPos += 28;
-    const identifyBg = this.add.rectangle(0, yPos + 20, 750, 90, 0x1a1a1a, 0.92);
-    identifyBg.setStrokeStyle(2, 0xFFD700, 0.7);
-    
-    const identifyTitle = this.add.text(0, yPos + 2, "HOW TO IDENTIFY", {
-      fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#FFD700",
-      align: "center"
-    }).setOrigin(0.5);
-    
-    const identifyText = this.add.text(0, yPos + 28,
-      "Look for element symbols above enemy health bars in combat.\nExploit weaknesses and avoid resistances for optimal damage!",
-      {
-        fontFamily: "dungeon-mode",
-        fontSize: 12,
-        color: "#E8ECED",
-        wordWrap: { width: 700 },
-        align: "center",
-        lineSpacing: 5
-      }).setOrigin(0.5);
-    this.affinitiesContainer.add([identifyBg, identifyTitle, identifyText]);
+    // ── Bottom tip ─────────────────────────────────────────────────────────
+    const tipY = rowY - rowH / 2 + tipGap + tipH / 2;
+    const tipBg = this.add.rectangle(0, tipY, tableW, tipH, 0x0e0e0e, 1);
+    tipBg.setStrokeStyle(1.5, 0xFFD700, 0.5);
+    const tip = this.add.text(0, tipY,
+      "Look for element icons above enemy health bars.  Exploit weaknesses — avoid resistances!",
+      { fontFamily: "dungeon-mode", fontSize: 12, color: "#c8a830", wordWrap: { width: tableW - 32 }, align: "center", lineSpacing: 3 }
+    ).setOrigin(0.5);
+    this.affinitiesContainer.add([tipBg, tip]);
   }
+
 
   private createBackButton(): void {
     const button = this.add.container(70, 40).setDepth(21);

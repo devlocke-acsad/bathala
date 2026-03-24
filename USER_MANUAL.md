@@ -266,9 +266,8 @@ Your choices after combat determine your **Landás Score**.
 3.  **Night Pacing:** Only take Elite fights at Night if you have a full health bar and a powerful potion.
 
 ### Troubleshooting
-*   **Game won't load:** Clear your browser cache and ensure JavaScript is enabled.
-*   **Lag on Mobile:** Close other background apps and use the Fullscreen button.
-*   **Broken Save:** If a run gets stuck, you can "Reset Run" from the main menu (you will still keep your Spirit Fragments).
+*   **Game won't load:** Hard refresh the page, then make sure JavaScript is enabled in your browser settings.
+*   **Lag on mobile:** Close background apps, switch to a stable connection, and use Fullscreen mode for smoother performance.
 
 ---
 

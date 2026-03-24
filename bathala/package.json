@@ -32,6 +32,7 @@
     },
     "dependencies": {
         "phaser": "^3.90.0",
+        "pixelarticons": "^2.0.2",
         "terser": "^5.39.0"
     }
 }

@@ -133,7 +133,10 @@ export interface StatusEffect {
   type: "buff" | "debuff";
   value: number;  // Stack count (removed duration)
   description: string;
-  emoji: string;
+  /** Phaser texture key for the pixelarticon (e.g. 'icon_burn'). */
+  icon?: string;
+  /** @deprecated Legacy field kept for test backwards-compatibility. */
+  emoji?: string;
   source?: {
     type: 'relic' | 'enemy' | 'card' | 'other';
     id: string;      // Relic ID or enemy name

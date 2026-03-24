@@ -260,11 +260,11 @@ export class ElementalAffinitySystem {
     resistanceText: string;
   } {
     const elementIcons: Record<Element, string> = {
-      fire: '🔥',
-      water: '💧',
-      earth: '🌿',
-      air: '💨',
-      neutral: '⚪'
+      fire: 'icon_element_fire',
+      water: 'icon_element_water',
+      earth: 'icon_element_earth',
+      air: 'icon_element_air',
+      neutral: 'icon_element_neutral'
     };
 
     const elementNames: Record<Element, string> = {
@@ -336,13 +336,13 @@ export class ElementalAffinitySystem {
    */
   static getElementIcon(element: Element): string {
     const icons: Record<Element, string> = {
-      fire: '🔥',
-      water: '💧',
-      earth: '🌿',
-      air: '💨',
-      neutral: '⚪'
+      fire: 'icon_element_fire',
+      water: 'icon_element_water',
+      earth: 'icon_element_earth',
+      air: 'icon_element_air',
+      neutral: 'icon_element_neutral'
     };
 
-    return icons[element] || '❓';
+    return icons[element] || 'icon_unknown';
   }
 }

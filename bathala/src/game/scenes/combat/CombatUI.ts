@@ -687,15 +687,12 @@ export class CombatUI {
         color: config.labelColor,
         align: "left",
       }).setOrigin(0, 0.5);
-      const weaknessIcon = this.scene.add.text(
+      const weaknessIcon = this.scene.add.image(
         -chipWidth / 2 + chipPadding + labelWidth + chipPadding + 8,
         0,
-        config.icon,
-        {
-        fontSize: 16,
-        align: "center",
-      }).setOrigin(0.5);
-      
+        config.icon
+      ).setDisplaySize(14, 14).setTint(config.type === 'weak' ? 0xff9d9d : 0x98f0ea).setOrigin(0.5);
+
       weaknessContainer.add([weaknessBg, weaknessLabel, weaknessIcon]);
       
       // Make interactive for tooltip with a forgiving hit area
@@ -1607,10 +1604,12 @@ export class CombatUI {
         0.95
       ).setStrokeStyle(2, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b, 0.9);
       
-      const icon = this.scene.add.text(-12, 0, effect.emoji, {
-        fontSize: '18px',
-      }).setOrigin(0.5);
-      
+      const tint = effect.type === 'buff' ? 0xf0c040 : 0xe05030;
+      const icon = this.scene.add.image(-12, 0, effect.icon ?? 'icon_unknown')
+        .setDisplaySize(16, 16)
+        .setTint(tint)
+        .setOrigin(0.5);
+
       const stackText = this.scene.add.text(16, 0, `x${effect.value}`, {
         fontFamily: "dungeon-mode",
         fontSize: 12,
@@ -1618,7 +1617,7 @@ export class CombatUI {
         stroke: "#000000",
         strokeThickness: 2,
       }).setOrigin(0.5);
-      
+
       effectContainer.add([chipBg, icon, stackText]);
       
       // Show source relic icon below if available - better aligned
@@ -1684,7 +1683,7 @@ export class CombatUI {
         const tooltipBg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
 
         const titleTextY = -tooltipHeight / 2 + 24;
-        const titleText = this.scene.add.text(0, titleTextY, `${effect.emoji} ${effect.name}`, {
+        const titleText = this.scene.add.text(0, titleTextY, effect.name, {
           fontFamily: "dungeon-mode",
           fontSize: 16,
           color: effect.type === 'buff' ? "#2ed573" : "#ff6b6b",
@@ -3644,7 +3643,7 @@ export class CombatUI {
   public showStatusEffectApplication(
     target: CombatEntity,
     effectId: string,
-    emoji: string,
+    iconKey: string,
     stacks: number,
     type: 'buff' | 'debuff'
   ): void {
@@ -3679,12 +3678,13 @@ export class CombatUI {
     // Background
     const bg = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.95);
     
-    // Effect emoji
-    const emojiText = this.scene.add.text(0, -8, emoji, {
-      fontSize: 36,
-      align: "center"
-    }).setOrigin(0.5);
-    
+    // Effect icon
+    const tint = type === 'buff' ? 0xf0c040 : 0xe05030;
+    const iconImg = this.scene.add.image(0, -8, iconKey)
+      .setDisplaySize(32, 32)
+      .setTint(tint)
+      .setOrigin(0.5);
+
     // Stack count
     const stackText = this.scene.add.text(0, 18, `+${stacks}`, {
       fontFamily: "dungeon-mode-inverted",
@@ -3693,9 +3693,9 @@ export class CombatUI {
       align: "center",
       fontStyle: "bold"
     }).setOrigin(0.5);
-    
+
     // Add elements to badge
-    badge.add([outerBorder, innerBorder, bg, emojiText, stackText]);
+    badge.add([outerBorder, innerBorder, bg, iconImg, stackText]);
     
     // Entrance animation - pop in and fade in
     badge.setScale(0.5);
@@ -3744,7 +3744,7 @@ export class CombatUI {
   public showStatusEffectExpiration(
     target: CombatEntity,
     effectId: string,
-    emoji: string,
+    iconKey: string,
     type: 'buff' | 'debuff'
   ): void {
     const screenWidth = this.scene.cameras.main.width;
@@ -3773,14 +3773,15 @@ export class CombatUI {
     // Background (will fade)
     const bg = this.scene.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.7);
     
-    // Effect emoji (will fade and shrink)
-    const emojiText = this.scene.add.text(0, 0, emoji, {
-      fontSize: 32,
-      align: "center"
-    }).setOrigin(0.5);
-    
+    // Effect icon (will fade and shrink)
+    const tint = type === 'buff' ? 0xf0c040 : 0xe05030;
+    const iconImg = this.scene.add.image(0, 0, iconKey)
+      .setDisplaySize(28, 28)
+      .setTint(tint)
+      .setOrigin(0.5);
+
     // Add elements to indicator
-    indicator.add([outerBorder, bg, emojiText]);
+    indicator.add([outerBorder, bg, iconImg]);
     
     // Exit animation - fade out and shrink
     this.scene.tweens.add({
@@ -3841,28 +3842,28 @@ export class CombatUI {
     this.showStatusEffectApplication(
       target,
       effectId,
-      effect.emoji,
+      effect.icon,
       stacks,
       effect.type
     );
   }
-  
+
   /**
    * Show status effect expiration with visual feedback
    * This should be called when a status effect reaches 0 stacks
    * @param target - The entity losing the status effect
    * @param effectId - The ID of the status effect
-   * @param emoji - The emoji icon for the effect
+   * @param iconKey - The pixelarticon texture key for the effect
    * @param type - Whether it's a buff or debuff
    */
   public showStatusEffectExpirationFeedback(
     target: CombatEntity,
     effectId: string,
-    emoji: string,
+    iconKey: string,
     type: 'buff' | 'debuff'
   ): void {
     // Show the expiration animation
-    this.showStatusEffectExpiration(target, effectId, emoji, type);
+    this.showStatusEffectExpiration(target, effectId, iconKey, type);
   }
   
   /**
