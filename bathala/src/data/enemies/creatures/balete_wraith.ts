@@ -17,7 +17,7 @@ export const BALETE_WRAITH: EnemyConfig = {
   attackPattern: ['attack', 'strengthen', 'attack'],
   elementalAffinity: { weakness: 'air', resistance: 'water' },
   initialStatusEffects: [
-    { id: 'vulnerable', name: 'Vulnerable', type: 'debuff', value: 1, description: 'Takes 50% more damage from all sources.', emoji: '🛡️💔' },
+    { id: 'vulnerable', name: 'Vulnerable', type: 'debuff', value: 1, description: 'Takes 50% more damage from all sources.', icon: 'icon_vulnerable' },
   ],
 
   // === Visuals ===

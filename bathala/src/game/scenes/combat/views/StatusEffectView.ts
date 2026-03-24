@@ -89,9 +89,14 @@ export class StatusEffectView {
     const bg = this.scene.add.circle(0, 0, ICON_SIZE / 2, 0x1f1410).setStrokeStyle(1, TOOLTIP_BORDER);
     c.add(bg);
 
-    // Emoji icon
-    const emoji = this.scene.add.text(0, -2, effect.emoji ?? '⚡', { fontSize: '14px' }).setOrigin(0.5);
-    c.add(emoji);
+    // Pixelart icon — tint gold for buffs, red for debuffs
+    const iconKey = effect.icon ?? 'icon_unknown';
+    const tint = effect.type === 'buff' ? 0xf0c040 : 0xe05030;
+    const iconImg = this.scene.add.image(0, 0, iconKey)
+      .setDisplaySize(16, 16)
+      .setTint(tint)
+      .setOrigin(0.5);
+    c.add(iconImg);
 
     // Stack count
     if (effect.value && effect.value > 1) {

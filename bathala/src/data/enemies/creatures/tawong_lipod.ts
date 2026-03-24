@@ -17,7 +17,7 @@ export const TAWONG_LIPOD: EnemyConfig = {
   attackPattern: ['stun', 'attack', 'defend'],
   elementalAffinity: { weakness: 'fire', resistance: 'air' },
   initialStatusEffects: [
-    { id: 'dexterity', name: 'Dexterity', type: 'buff', value: 2, description: 'Gain +2 block per stack when using Defend actions. Represents the elusive, wind-dancing nature of Tawong Lipod.', emoji: '💨' },
+    { id: 'dexterity', name: 'Dexterity', type: 'buff', value: 2, description: 'Gain +2 block per stack when using Defend actions. Represents the elusive, wind-dancing nature of Tawong Lipod.', icon: 'icon_weak' },
   ],
 
   // === Visuals ===

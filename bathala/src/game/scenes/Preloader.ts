@@ -87,6 +87,24 @@ export class Preloader extends Scene {
 
     // Healing potion asset for Treasure scene
     this.load.image("heal_potion", "potion/heal_potion.png");
+
+    // Status effect icons (pixelarticons)
+    this.load.svg("icon_strength",   "icons/status/sword.svg",         { width: 24, height: 24 });
+    this.load.svg("icon_plated_armor","icons/status/shield.svg",       { width: 24, height: 24 });
+    this.load.svg("icon_regeneration","icons/status/heart.svg",        { width: 24, height: 24 });
+    this.load.svg("icon_ritual",      "icons/status/sparkle.svg",      { width: 24, height: 24 });
+    this.load.svg("icon_burn",        "icons/status/fire.svg",         { width: 24, height: 24 });
+    this.load.svg("icon_poison",      "icons/status/skull.svg",        { width: 24, height: 24 });
+    this.load.svg("icon_weak",        "icons/status/arrow-big-down.svg",{ width: 24, height: 24 });
+    this.load.svg("icon_vulnerable",  "icons/status/target.svg",       { width: 24, height: 24 });
+    this.load.svg("icon_frail",       "icons/status/zap-off.svg",      { width: 24, height: 24 });
+    this.load.svg("icon_unknown",     "icons/status/zap.svg",          { width: 24, height: 24 });
+    // Elemental affinity icons
+    this.load.svg("icon_element_fire",   "icons/status/element_fire.svg",    { width: 24, height: 24 });
+    this.load.svg("icon_element_water",  "icons/status/element_water.svg",   { width: 24, height: 24 });
+    this.load.svg("icon_element_earth",  "icons/status/element_earth.svg",   { width: 24, height: 24 });
+    this.load.svg("icon_element_air",    "icons/status/element_air.svg",     { width: 24, height: 24 });
+    this.load.svg("icon_element_neutral","icons/status/element_neutral.svg", { width: 24, height: 24 });
     // --- Action spritesheets (new) ---
     // Air / Hangin special
     this.load.spritesheet("action_air", "action/air/air.png", { frameWidth: 40, frameHeight: 40 }); // 360/40 = 9 frames exactly

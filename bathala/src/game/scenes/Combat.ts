@@ -1274,7 +1274,7 @@ export class Combat extends Scene {
     timing: 'start_of_turn' | 'end_of_turn'
   ): void {
     // Store effects before processing to detect expirations
-    const effectsBefore = target.statusEffects.map(e => ({ id: e.id, emoji: e.emoji, type: e.type }));
+    const effectsBefore = target.statusEffects.map(e => ({ id: e.id, icon: e.icon, type: e.type }));
 
     // Process status effects at the specified timing
     const results = StatusEffectManager.processStatusEffects(target, timing);
@@ -1297,7 +1297,7 @@ export class Combat extends Scene {
         this.ui.showStatusEffectExpirationFeedback(
           target,
           effectBefore.id,
-          effectBefore.emoji,
+          effectBefore.icon,
           effectBefore.type
         );
       }
@@ -5027,11 +5027,12 @@ export class Combat extends Scene {
       // Background
       const bg = this.add.rectangle(0, 0, badgeWidth, badgeHeight, bgColor, 0.95);
 
-      // Effect emoji (large and centered)
-      const emojiText = this.add.text(0, -8, effect.emoji, {
-        fontSize: 28,
-        align: "center"
-      }).setOrigin(0.5);
+      // Effect icon (large and centered)
+      const iconTint = effect.type === 'buff' ? 0xf0c040 : 0xe05030;
+      const emojiText = this.add.image(0, -8, effect.icon ?? 'icon_unknown')
+        .setDisplaySize(28, 28)
+        .setTint(iconTint)
+        .setOrigin(0.5);
 
       // Stack counter (bottom of badge) - using value instead of duration
       const stackText = this.add.text(0, 16, `${effect.value} stack${effect.value !== 1 ? 's' : ''}`, {

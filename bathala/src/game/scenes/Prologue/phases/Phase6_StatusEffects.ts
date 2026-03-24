@@ -150,7 +150,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         const regeneration = StatusEffectManager.getDefinition('regeneration');
         const ritual = StatusEffectManager.getDefinition('ritual');
 
-        const dialogue = `Status effects shape battles. First, BUFFS:\n\n${strength?.emoji} ${strength?.name.toUpperCase()}: ${strength?.description}\n${platedArmor?.emoji} ${platedArmor?.name.toUpperCase()}: ${platedArmor?.description}\n${regeneration?.emoji} ${regeneration?.name.toUpperCase()}: ${regeneration?.description}\n${ritual?.emoji} ${ritual?.name.toUpperCase()}: ${ritual?.description}\n\nBuffs stack up! Use them strategically to overpower enemies.`;
+        const dialogue = `Status effects shape battles. First, BUFFS:\n\n${strength?.name.toUpperCase()}: ${strength?.description}\n${platedArmor?.name.toUpperCase()}: ${platedArmor?.description}\n${regeneration?.name.toUpperCase()}: ${regeneration?.description}\n${ritual?.name.toUpperCase()}: ${ritual?.description}\n\nBuffs stack up! Use them strategically to overpower enemies.`;
 
         this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
@@ -217,7 +217,7 @@ export class Phase6_StatusEffects extends TutorialPhase {
         const vulnerable = StatusEffectManager.getDefinition('vulnerable');
         const frail = StatusEffectManager.getDefinition('frail');
 
-        const dialogue = `Now DEBUFFS - harmful effects:\n\n${burn?.emoji} ${burn?.name.toUpperCase()}: You inflict this on enemies with Fire Special\n   ${burn?.description}\n\n${poison?.emoji} ${poison?.name.toUpperCase()}: Enemies inflict this on you\n   ${poison?.description}\n\n${weak?.emoji} ${weak?.name.toUpperCase()}: ${weak?.description}\n${vulnerable?.emoji} ${vulnerable?.name.toUpperCase()}: ${vulnerable?.description}\n${frail?.emoji} ${frail?.name.toUpperCase()}: ${frail?.description}\n\nBurn and Poison are now separate status effects with distinct identities.`;
+        const dialogue = `Now DEBUFFS - harmful effects:\n\n${burn?.name.toUpperCase()}: You inflict this on enemies with Fire Special\n   ${burn?.description}\n\n${poison?.name.toUpperCase()}: Enemies inflict this on you\n   ${poison?.description}\n\n${weak?.name.toUpperCase()}: ${weak?.description}\n${vulnerable?.name.toUpperCase()}: ${vulnerable?.description}\n${frail?.name.toUpperCase()}: ${frail?.description}\n\nBurn and Poison are now separate status effects with distinct identities.`;
 
         this.delayedCall(700, () => {
             const dialogueBox = showDialogue(this.scene, dialogue, () => {
