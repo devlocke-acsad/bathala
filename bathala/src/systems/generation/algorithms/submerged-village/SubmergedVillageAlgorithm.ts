@@ -27,6 +27,7 @@
  */
 
 import { IntGrid } from '../../toolbox/IntGrid';
+import { generationWasmBridge } from '../../wasm/GenerationWasmBridge';
 
 // =========================================================================
 // Tile Constants
@@ -2159,6 +2160,18 @@ export class SubmergedVillageAlgorithm {
     // =====================================================================
 
     private fixDoubleWidePaths(grid: IntGrid): void {
+        const usedWasm = generationWasmBridge.tryFixDoubleWide(
+            grid,
+            this.levelSize[0],
+            this.levelSize[1],
+            TILE.PATH,
+            TILE.FOREST,
+            this.MAX_DOUBLE_WIDE_FIX_ITER,
+        );
+        if (usedWasm) {
+            return;
+        }
+
         const [w, h] = this.levelSize;
         let changed = true;
         let iter = 0;

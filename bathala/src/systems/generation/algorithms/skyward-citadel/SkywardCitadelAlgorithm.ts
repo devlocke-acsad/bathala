@@ -1,4 +1,5 @@
 import { IntGrid } from '../../toolbox/IntGrid';
+import { generationWasmBridge } from '../../wasm/GenerationWasmBridge';
 
 /**
  * SkywardCitadelAlgorithm — Pure terrain generation for floating cloud platforms.
@@ -388,6 +389,18 @@ export class SkywardCitadelGenerator {
      * Remove 2x2 path blocks.
      */
     private fixDoubleWidePaths(intGrid: IntGrid): void {
+        const usedWasm = generationWasmBridge.tryFixDoubleWide(
+            intGrid,
+            this.levelSize[0],
+            this.levelSize[1],
+            this.PATH_TILE,
+            this.VOID_TILE,
+            this.MAX_DOUBLE_WIDE_FIX_ITER,
+        );
+        if (usedWasm) {
+            return;
+        }
+
         let changesMade = true;
         let iterations = 0;
 
