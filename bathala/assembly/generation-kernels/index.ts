@@ -1,3 +1,4 @@
+// @ts-nocheck
 const MAX_WIDTH: i32 = 128;
 const MAX_HEIGHT: i32 = 128;
 const MAX_CELLS: i32 = MAX_WIDTH * MAX_HEIGHT;
