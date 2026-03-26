@@ -90,6 +90,8 @@ export class CombatUI {
   public playerSprite!: Phaser.GameObjects.Sprite;
   public playerShadow!: Phaser.GameObjects.Graphics;
   private playerHealthBarFill!: Phaser.GameObjects.Rectangle;
+  private specialMeterBarFill!: Phaser.GameObjects.Rectangle;
+  private specialMeterLabel!: Phaser.GameObjects.Text;
   
   // Enemy UI Elements
   public enemyHealthText!: Phaser.GameObjects.Text;
@@ -105,8 +107,9 @@ export class CombatUI {
   private enemyHealthBarFill!: Phaser.GameObjects.Rectangle;
   
   private readonly SIDE_PANEL_WIDTH = 270;
-  private readonly SIDE_PANEL_HEIGHT = 190;
+  private readonly SIDE_PANEL_HEIGHT = 230;
   private readonly HEALTH_BAR_WIDTH = 220;
+  private readonly METER_BAR_WIDTH = 220;
   private readonly SIDE_PANEL_MARGIN = 34;
   
   // Card UI Elements
@@ -387,6 +390,32 @@ export class CombatUI {
       align: "center",
     }).setOrigin(0.5);
     this.playerStatusContainer = this.scene.add.container(0, 58);
+
+    // Special meter bar
+    const meterY = 92;
+    const meterLabel = this.scene.add.text(0, meterY - 14, "SPECIAL", {
+      fontFamily: "dungeon-mode",
+      fontSize: 13,
+      color: "#77888C",
+      align: "center",
+    }).setOrigin(0.5);
+    const specialMeterBarBg = this.scene.add.rectangle(
+      -this.METER_BAR_WIDTH / 2, meterY,
+      this.METER_BAR_WIDTH, 14,
+      0x1b2327, 0.95
+    ).setOrigin(0, 0.5).setStrokeStyle(1, 0x77888C, 0.7);
+    this.specialMeterBarFill = this.scene.add.rectangle(
+      -this.METER_BAR_WIDTH / 2, meterY,
+      0, 14,
+      0xffaa00, 1
+    ).setOrigin(0, 0.5);
+    this.specialMeterLabel = this.scene.add.text(0, meterY, "0 / 100", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#e8eced",
+      align: "center",
+    }).setOrigin(0.5);
+
     this.playerInfoContainer.add([
       playerOuterBorder,
       playerInnerBorder,
@@ -398,6 +427,10 @@ export class CombatUI {
       this.playerBlockText,
       playerStatusLabel,
       this.playerStatusContainer,
+      meterLabel,
+      specialMeterBarBg,
+      this.specialMeterBarFill,
+      this.specialMeterLabel,
     ]);
 
     this.updatePlayerUI();
@@ -1361,7 +1394,18 @@ export class CombatUI {
     // Schedule relic inventory update instead of immediate update
     this.scheduleRelicInventoryUpdate();
   }
-  
+
+  /** Update the special meter bar inside the hero status panel */
+  public updateSpecialMeter(current: number, max: number, active: boolean): void {
+    if (!this.specialMeterBarFill || !this.specialMeterLabel) return;
+    const pct = Phaser.Math.Clamp(current / max, 0, 1);
+    this.specialMeterBarFill.width = this.METER_BAR_WIDTH * pct;
+    const ready = pct >= 1;
+    this.specialMeterBarFill.setFillStyle(active ? (ready ? 0x00ff99 : 0xffaa00) : 0x444444, active ? 1 : 0.4);
+    this.specialMeterLabel.setText(active ? `${current} / ${max}` : "FREE");
+    this.specialMeterLabel.setColor(active ? (ready ? "#00ff99" : "#e8eced") : "#ffd93d");
+  }
+
   /**
    * Update enemy UI elements
    */

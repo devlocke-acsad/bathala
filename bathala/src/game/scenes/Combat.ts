@@ -84,6 +84,8 @@ export class Combat extends Scene {
   private maxDiscardsPerTurn: number = 3;  // Increased from 1 to 3
   private specialUsedThisCombat: boolean = false;  // Track if Special has been used
   private bonusSpecialUsedThisCombat: boolean = false; // Sarimanok Plumage bonus special charge
+  private specialMeter: number = 0;           // 0–100, fills by attacking/defending after first use
+  private specialMeterMax: number = 100;
   private minokawaDiscardNegatedThisCombat: boolean = false;
   private coconutBuffRemovalNegatedThisCombat: boolean = false;
   private actionsText!: Phaser.GameObjects.Text;  // Shows Discard and Special counters on one line
@@ -577,6 +579,7 @@ export class Combat extends Scene {
     this.isActionProcessing = false;
     this.specialUsedThisCombat = false; // Reset Special usage for new combat
     this.bonusSpecialUsedThisCombat = false;
+    this.specialMeter = 0; // Reset special meter for new combat
     this.minokawaDiscardNegatedThisCombat = false;
     this.coconutBuffRemovalNegatedThisCombat = false;
 
@@ -1887,10 +1890,27 @@ export class Combat extends Scene {
     try {
       // Cache text values to avoid unnecessary setText calls
       const turnText = `Turn: ${this.combatState.turn}`;
-      const maxSpecialCharges = this.combatState.player.relics.some(r => r.id === "sarimanok_plumage") ? 2 : 1;
+      const hasSarimanokPlumage = this.combatState.player.relics.some(r => r.id === "sarimanok_plumage");
+      const maxSpecialCharges = hasSarimanokPlumage ? 2 : 1;
       const usedSpecialCharges = (this.specialUsedThisCombat ? 1 : 0) + (this.bonusSpecialUsedThisCombat ? 1 : 0);
       const remainingSpecialCharges = Math.max(0, maxSpecialCharges - usedSpecialCharges);
-      const specialStatus = remainingSpecialCharges > 0 ? `${remainingSpecialCharges} LEFT` : "USED";
+
+      // Determine whether meter mode is active (free charges spent)
+      const freeChargesSpent = this.specialUsedThisCombat &&
+        (!hasSarimanokPlumage || this.bonusSpecialUsedThisCombat);
+      const meterReady = this.specialMeter >= this.specialMeterMax;
+
+      let specialStatus: string;
+      if (remainingSpecialCharges > 0) {
+        specialStatus = `${remainingSpecialCharges} LEFT`;
+      } else if (freeChargesSpent && meterReady) {
+        specialStatus = "READY";
+      } else if (freeChargesSpent) {
+        specialStatus = "CHARGING";
+      } else {
+        specialStatus = "USED";
+      }
+
       const actionsText = `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`;
 
       // Only update if text has actually changed
@@ -1901,11 +1921,23 @@ export class Combat extends Scene {
       if (this.actionsText.text !== actionsText) {
         this.actionsText.setText(actionsText);
 
-        // Color code the special status within the text - only when text changes
-        const newColor = remainingSpecialCharges > 0 ? "#ffd93d" : "#cccccc";
+        // Color code the special status
+        let newColor = "#cccccc";
+        if (remainingSpecialCharges > 0) {
+          newColor = "#ffd93d";
+        } else if (freeChargesSpent && meterReady) {
+          newColor = "#00ff99";
+        } else if (freeChargesSpent) {
+          newColor = "#aaaaaa";
+        }
         if (this.actionsText.style.color !== newColor) {
           this.actionsText.setColor(newColor);
         }
+      }
+
+      // Update special meter bar inside hero status panel
+      if (this.ui && this.ui.updateSpecialMeter) {
+        this.ui.updateSpecialMeter(this.specialMeter, this.specialMeterMax, freeChargesSpent);
       }
 
       // Only update hand indicator if needed (this can be expensive)
@@ -1918,12 +1950,37 @@ export class Combat extends Scene {
   }
 
   private canUseSpecialAction(): boolean {
+    // First use is always free
     if (!this.specialUsedThisCombat) {
       return true;
     }
 
+    // Sarimanok Plumage grants one bonus free charge before meter kicks in
     const hasSarimanokPlumage = this.combatState.player.relics.some(r => r.id === "sarimanok_plumage");
-    return hasSarimanokPlumage && !this.bonusSpecialUsedThisCombat;
+    if (hasSarimanokPlumage && !this.bonusSpecialUsedThisCombat) {
+      return true;
+    }
+
+    // After free charges are spent, meter must be full
+    return this.specialMeter >= this.specialMeterMax;
+  }
+
+  /** Gain special meter points from attacking or defending (only active after free charges spent) */
+  private gainSpecialMeter(amount: number): void {
+    // Meter only matters once the free use(s) are spent
+    const hasSarimanokPlumage = this.combatState.player.relics.some(r => r.id === "sarimanok_plumage");
+    const freeChargesSpent = this.specialUsedThisCombat &&
+      (!hasSarimanokPlumage || this.bonusSpecialUsedThisCombat);
+
+    if (!freeChargesSpent) return;
+
+    const wasReady = this.specialMeter >= this.specialMeterMax;
+    this.specialMeter = Math.min(this.specialMeterMax, this.specialMeter + amount);
+    this.updateTurnUI();
+
+    if (!wasReady && this.specialMeter >= this.specialMeterMax) {
+      this.showActionResult("Special READY!");
+    }
   }
 
   private getEnemyWeakMultiplier(enemy: CombatEntity): number {
@@ -4159,6 +4216,8 @@ export class Combat extends Scene {
         } else {
           this.bonusSpecialUsedThisCombat = true;
         }
+        // Reset meter when special is consumed via meter charge
+        this.specialMeter = 0;
         this.updateTurnUI();
 
         // PRIORITY 3: Start cinematic special action animation with standardized timing
@@ -4223,6 +4282,11 @@ export class Combat extends Scene {
       this.combatState.player.block += block;
       this.ui.updatePlayerUI();
       // Result already shown above with detailed calculation
+    }
+
+    // Gain special meter from attack/defend actions (only after first free use is spent)
+    if (actionType === "attack" || actionType === "defend") {
+      this.gainSpecialMeter(actionType === "attack" ? 25 : 20);
     }
 
     // PRIORITY 2 & 3: Process enemy turn with standardized delay
