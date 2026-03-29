@@ -5,12 +5,6 @@
  * Re-exports all kernel functions from modular files.
  * Each module operates on the shared GRID buffer defined in common/grid.ts.
  *
- * Build command:
- *   asc assembly/generation-kernels/index.ts \
- *       --target release --runtime stub \
- *       --outFile public/wasm/generation-kernels.wasm \
- *       --textFile public/wasm/generation-kernels.wat
- *
  * @module generation-kernels
  */
 
@@ -34,3 +28,6 @@ export { enforceCliffShellIntegrityInPlace } from './shared/cliff-shell-integrit
 
 // ── SubmergedVillage-specific kernels ───────────────────────────────────
 export { findRoadPathAStar } from './submerged-village/find-road-astar';
+
+// ── SubmergedVillage full algorithm (runs entire pipeline in WASM) ───────
+export { getParamsPtr, generateSubmergedVillage } from './submerged-village/algorithm';

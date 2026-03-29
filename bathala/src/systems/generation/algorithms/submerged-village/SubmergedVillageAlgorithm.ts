@@ -309,14 +309,52 @@ export class SubmergedVillageAlgorithm {
 
     /**
      * Main entry point. Returns an IntGrid populated with village terrain.
+     * Delegates to the full WASM pipeline for maximum performance.
      * @param rng     PRNG function returning [0,1). If omitted, Math.random is used.
      * @param params  Layout parameters (dense / transition / forest presets).
      */
     generateLayout(rng?: () => number, params?: Partial<VillageLayoutParams>): IntGrid {
         if (rng) this.rng = rng;
         const p: VillageLayoutParams = { ...DEFAULT_VILLAGE_PARAMS, ...params };
-
         const [w, h] = this.levelSize;
+
+        // ─── WASM fast path: run entire pipeline in AssemblyScript ────
+        const seed = this.rng ? Math.floor(this.rng() * 0x7FFFFFFF) : (Date.now() & 0x7FFFFFFF);
+        const wasmParams: Record<string, number> = {
+            houseCount: p.houseCount,
+            houseMinSpacing: p.houseMinSpacing,
+            neighborhoodCount: p.neighborhoodCount,
+            spreadFactor: p.spreadFactor,
+            houseClearRadius: p.houseClearRadius,
+            scatterTreeChance: p.scatterTreeChance,
+            villageGroundGrowth: p.villageGroundGrowth,
+            fenceChance: p.fenceChance,
+            rubbleChance: p.rubbleChance,
+            centerBiasX: p.centerBias?.x as any,
+            centerBiasY: p.centerBias?.y as any,
+            houseSizePreference: p.houseSizePreference === 'small' ? 0 : p.houseSizePreference === 'large' ? 2 : 1,
+            roadNeighborCount: p.roadNeighborCount,
+            doorStubLength: p.doorStubLength,
+            borderJitter: p.borderJitter,
+            connectorBend: p.connectorBend,
+            edgeConnectionsPerSide: p.edgeConnectionsPerSide,
+            detourCount: p.detourCount,
+            detourMinDistance: p.detourMinDistance,
+            detourMaxDistance: p.detourMaxDistance,
+            fixDoubleWide: p.fixDoubleWide ? 1 : 0,
+            edgeMargin: p.edgeMargin,
+            cliffBandCount: p.cliffBandCount,
+            hillClusterCount: p.hillClusterCount,
+            grassPatchCount: p.grassPatchCount,
+            sandPatchCount: p.sandPatchCount,
+            waterPoolCount: p.waterPoolCount,
+        };
+
+        const wasmResult = generationWasmBridge.tryGenerateSubmergedVillage(w, h, seed, wasmParams);
+        if (wasmResult) return wasmResult;
+
+        // ─── TypeScript fallback (only if WASM unavailable) ──────────
+        console.warn('[SubmergedVillage] WASM pipeline unavailable, falling back to TypeScript');
         const grid = new IntGrid(w, h);
 
         // 1. Fill with forest
