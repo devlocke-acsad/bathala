@@ -165,20 +165,6 @@ interface HouseTemplate {
     doorCandidates: Array<{ dx: number; dy: number; facing: 'n' | 's' | 'e' | 'w' }>;
 }
 
-/** A* search node for road carving. */
-class RoadNode {
-    public f: number;
-    constructor(
-        public pos: [number, number],
-        public parent: RoadNode | null,
-        public g: number,
-        public h: number,
-    ) {
-        this.f = g + h;
-    }
-    key(): string { return `${this.pos[0]},${this.pos[1]}`; }
-}
-
 // =========================================================================
 // House Templates
 // =========================================================================
@@ -842,73 +828,26 @@ export class SubmergedVillageAlgorithm {
      * Fences can be carved through (they're breakable).
      */
     private findRoad(start: [number, number], end: [number, number], grid: IntGrid): [number, number][] | null {
-        const [w, h] = this.levelSize;
-        const open: RoadNode[] = [];
-        const closed = new Set<string>();
-        const nodes = new Map<string, RoadNode>();
-
-        const startNode = new RoadNode(start, null, 0, this.manhattan(start, end));
-        open.push(startNode);
-        nodes.set(startNode.key(), startNode);
-
-        while (open.length > 0) {
-            // Simple sort for priority (fine for small grids)
-            open.sort((a, b) => a.f - b.f);
-            const current = open.shift()!;
-
-            if (current.pos[0] === end[0] && current.pos[1] === end[1]) {
-                return this.reconstructRoad(current);
-            }
-
-            closed.add(current.key());
-
-            for (const [nx, ny] of this.neighbors4(current.pos)) {
-                if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
-                const nk = `${nx},${ny}`;
-                if (closed.has(nk)) continue;
-
-                const tile = grid.getTile(nx, ny);
-
-                // Cannot path through HOUSE tiles
-                if (tile === TILE.HOUSE) continue;
-
-                // Cost calculation
-                let cost = this.BASE_TILE_COST;
-                if (tile === TILE.PATH) {
-                    cost = this.EXISTING_PATH_COST; // Prefer reusing existing paths
-                } else if (tile === TILE.FENCE) {
-                    cost = this.BASE_TILE_COST * 1.5; // Can carve through fences but prefer not to
-                }
-
-                // Direction change penalty
-                if (current.parent) {
-                    const prevDx = current.pos[0] - current.parent.pos[0];
-                    const prevDy = current.pos[1] - current.parent.pos[1];
-                    const nextDx = nx - current.pos[0];
-                    const nextDy = ny - current.pos[1];
-                    if (prevDx !== nextDx || prevDy !== nextDy) {
-                        cost += this.DIRECTION_CHANGE_PENALTY;
-                    }
-                }
-
-                const newG = current.g + cost;
-
-                if (!nodes.has(nk)) {
-                    const node = new RoadNode([nx, ny], current, newG, this.manhattan([nx, ny], end));
-                    nodes.set(nk, node);
-                    open.push(node);
-                } else {
-                    const existing = nodes.get(nk)!;
-                    if (newG < existing.g && !closed.has(nk)) {
-                        existing.parent = current;
-                        existing.g = newG;
-                        existing.f = newG + existing.h;
-                    }
-                }
-            }
+        const wasmPath = generationWasmBridge.tryFindRoadPath(
+            grid,
+            this.levelSize[0],
+            this.levelSize[1],
+            start[0],
+            start[1],
+            end[0],
+            end[1],
+            TILE.HOUSE,
+            TILE.PATH,
+            TILE.FENCE,
+            this.BASE_TILE_COST,
+            this.EXISTING_PATH_COST,
+            1.5,
+            this.DIRECTION_CHANGE_PENALTY,
+        );
+        if (wasmPath === undefined) {
+            throw new Error(`SubmergedVillage requires generation-kernels.wasm for road pathfinding (reason: ${generationWasmBridge.getUnavailableReason()})`);
         }
-
-        return null; // No path found
+        return wasmPath;
     }
 
     /**
@@ -1284,15 +1223,18 @@ export class SubmergedVillageAlgorithm {
         this.paintSimpleHillFormations(grid, totalHillGroups);
 
         // Finalize cliff masses first so later obstacle families honor stable cliff silhouettes.
-        this.repairCliffGaps(grid);
-        this.enforceCliffShellIntegrity(grid);
-        this.removeCliffFragments(grid, 8);
-        this.enforceStrictHillBundles(grid);
+        const earlyBatchApplied = generationWasmBridge.runKernelBatch(grid, w, h, [
+            (e) => e.repairCliffGapsInPlace(w, h, TILE.PATH, TILE.WATER, TILE.CLIFF, 3),
+            (e) => e.enforceCliffShellIntegrityInPlace(w, h, TILE.PATH, TILE.WATER, TILE.CLIFF, TILE.HILL, 3),
+            (e) => e.removeSmallComponentsInPlace(w, h, TILE.CLIFF, TILE.FOREST, 8),
+            (e) => e.enforceExact2x2BundlesInPlace(w, h, TILE.HILL, TILE.FOREST, 1, TILE.CLIFF, TILE.PATH),
+        ]);
+        if (!earlyBatchApplied) {
+            throw new Error('SubmergedVillage requires generation-kernels.wasm for terrain post-processing (early batch)');
+        }
 
         const grassTotal = Math.max(1, params.grassPatchCount);
         this.paintGrassPatchesSequentially(grid, grassTotal);
-
-        this.enforceGrassPatchMinThickness(grid);
 
         const sandTotal = Math.max(1, params.sandPatchCount);
         // SandGrass Bush family is strict 2x2 only.
@@ -1301,11 +1243,17 @@ export class SubmergedVillageAlgorithm {
         // Finalize: cliffs must be surrounded by a 1-tile PATH moat.
         // Run last so no later pass can place obstacles back beside cliffs.
         this.enforceCliffObstacleClearance(grid, 1);
-        this.removeCliffFragments(grid, 8);
-        this.enforceStrictHillBundles(grid);
-        this.enforceStrictSandPatchBundles(grid);
-        this.enforceGrassPatchMinThickness(grid);
-        this.enforceGrassPatchShapeQuality(grid);
+
+        const finalBatchApplied = generationWasmBridge.runKernelBatch(grid, w, h, [
+            (e) => e.removeSmallComponentsInPlace(w, h, TILE.CLIFF, TILE.FOREST, 8),
+            (e) => e.enforceExact2x2BundlesInPlace(w, h, TILE.HILL, TILE.FOREST, 1, TILE.CLIFF, TILE.PATH),
+            (e) => e.enforceExact2x2BundlesInPlace(w, h, TILE.SAND_PATCH, TILE.FOREST, 0, TILE.CLIFF, TILE.PATH),
+            (e) => e.enforceMinThickness2x2InPlace(w, h, TILE.GRASS_PATCH, TILE.FOREST, 3),
+            (e) => e.filterComponentsBySizeAndFootprintInPlace(w, h, TILE.GRASS_PATCH, TILE.FOREST, 9, 3, 3),
+        ]);
+        if (!finalBatchApplied) {
+            throw new Error('SubmergedVillage requires generation-kernels.wasm for terrain post-processing (final batch)');
+        }
     }
 
     /**
@@ -1460,185 +1408,6 @@ export class SubmergedVillageAlgorithm {
 
                 placed = true;
             }
-        }
-    }
-
-    /**
-     * SandGrass Bush must only exist as exact 2x2 components.
-     */
-    private enforceStrictSandPatchBundles(grid: IntGrid): void {
-        const [w, h] = this.levelSize;
-        const visited = new Set<string>();
-        const toForest: Array<[number, number]> = [];
-
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                if (grid.getTile(x, y) !== TILE.SAND_PATCH) continue;
-                const startKey = `${x},${y}`;
-                if (visited.has(startKey)) continue;
-
-                const component: Array<[number, number]> = [];
-                const queue: Array<[number, number]> = [[x, y]];
-                visited.add(startKey);
-
-                while (queue.length > 0) {
-                    const [cx, cy] = queue.shift()!;
-                    component.push([cx, cy]);
-
-                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
-                        if (!this.isInBounds(nx, ny)) continue;
-                        if (grid.getTile(nx, ny) !== TILE.SAND_PATCH) continue;
-                        const key = `${nx},${ny}`;
-                        if (visited.has(key)) continue;
-                        visited.add(key);
-                        queue.push([nx, ny]);
-                    }
-                }
-
-                if (component.length !== 4) {
-                    toForest.push(...component);
-                    continue;
-                }
-
-                const xs = component.map(([cx]) => cx);
-                const ys = component.map(([, cy]) => cy);
-                const minX = Math.min(...xs);
-                const maxX = Math.max(...xs);
-                const minY = Math.min(...ys);
-                const maxY = Math.max(...ys);
-
-                const is2x2 = (maxX - minX === 1) && (maxY - minY === 1)
-                    && component.some(([cx, cy]) => cx === minX && cy === minY)
-                    && component.some(([cx, cy]) => cx === minX && cy === maxY)
-                    && component.some(([cx, cy]) => cx === maxX && cy === minY)
-                    && component.some(([cx, cy]) => cx === maxX && cy === maxY);
-
-                if (!is2x2) {
-                    toForest.push(...component);
-                }
-            }
-        }
-
-        for (const [fx, fy] of toForest) {
-            grid.setTile(fx, fy, TILE.FOREST);
-        }
-    }
-
-    /**
-     * Hills must only exist as exact 2x2 components.
-     * Any other hill shape is removed.
-     */
-    private enforceStrictHillBundles(grid: IntGrid): void {
-        const [w, h] = this.levelSize;
-        const visited = new Set<string>();
-        const toForest: Array<[number, number]> = [];
-        const toPath: Array<[number, number]> = [];
-
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                if (grid.getTile(x, y) !== TILE.HILL) continue;
-                const startKey = `${x},${y}`;
-                if (visited.has(startKey)) continue;
-
-                const component: Array<[number, number]> = [];
-                const queue: Array<[number, number]> = [[x, y]];
-                visited.add(startKey);
-
-                while (queue.length > 0) {
-                    const [cx, cy] = queue.shift()!;
-                    component.push([cx, cy]);
-
-                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
-                        if (!this.isInBounds(nx, ny)) continue;
-                        if (grid.getTile(nx, ny) !== TILE.HILL) continue;
-                        const key = `${nx},${ny}`;
-                        if (visited.has(key)) continue;
-                        visited.add(key);
-                        queue.push([nx, ny]);
-                    }
-                }
-
-                if (component.length !== 4) {
-                    toForest.push(...component);
-                    continue;
-                }
-
-                const xs = component.map(([cx]) => cx);
-                const ys = component.map(([, cy]) => cy);
-                const minX = Math.min(...xs);
-                const maxX = Math.max(...xs);
-                const minY = Math.min(...ys);
-                const maxY = Math.max(...ys);
-
-                const is2x2 = (maxX - minX === 1) && (maxY - minY === 1)
-                    && component.some(([cx, cy]) => cx === minX && cy === minY)
-                    && component.some(([cx, cy]) => cx === minX && cy === maxY)
-                    && component.some(([cx, cy]) => cx === maxX && cy === minY)
-                    && component.some(([cx, cy]) => cx === maxX && cy === maxY);
-
-                if (!is2x2) {
-                    toForest.push(...component);
-                    continue;
-                }
-
-                // Hills must keep a 1-tile gap from cliffs; if they touch, demote hill bundle to PATH.
-                const nearCliff = component.some(([cx, cy]) =>
-                    this.neighbors8([cx, cy]).some(([nx, ny]) => this.isInBounds(nx, ny) && grid.getTile(nx, ny) === TILE.CLIFF)
-                );
-                if (nearCliff) {
-                    toPath.push(...component);
-                }
-            }
-        }
-
-        for (const [fx, fy] of toForest) {
-            grid.setTile(fx, fy, TILE.FOREST);
-        }
-        for (const [px, py] of toPath) {
-            grid.setTile(px, py, TILE.PATH);
-        }
-    }
-
-    /**
-     * Remove tiny cliff components that create broken/stray cliff artifacts.
-     */
-    private removeCliffFragments(grid: IntGrid, minSize: number): void {
-        const [w, h] = this.levelSize;
-        const visited = new Set<string>();
-        const toForest: Array<[number, number]> = [];
-
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                if (grid.getTile(x, y) !== TILE.CLIFF) continue;
-                const startKey = `${x},${y}`;
-                if (visited.has(startKey)) continue;
-
-                const component: Array<[number, number]> = [];
-                const queue: Array<[number, number]> = [[x, y]];
-                visited.add(startKey);
-
-                while (queue.length > 0) {
-                    const [cx, cy] = queue.shift()!;
-                    component.push([cx, cy]);
-
-                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
-                        if (!this.isInBounds(nx, ny)) continue;
-                        if (grid.getTile(nx, ny) !== TILE.CLIFF) continue;
-                        const key = `${nx},${ny}`;
-                        if (visited.has(key)) continue;
-                        visited.add(key);
-                        queue.push([nx, ny]);
-                    }
-                }
-
-                if (component.length < minSize) {
-                    toForest.push(...component);
-                }
-            }
-        }
-
-        for (const [fx, fy] of toForest) {
-            grid.setTile(fx, fy, TILE.FOREST);
         }
     }
 
@@ -1854,99 +1623,6 @@ export class SubmergedVillageAlgorithm {
         }
     }
 
-    /**
-     * Remove accidental 1-thick GrassSand segments.
-     * Allowed local patterns are corners, T/junctions, or 2-thick ribbon/rectangle cells.
-     */
-    private enforceGrassPatchMinThickness(grid: IntGrid): void {
-        const [w, h] = this.levelSize;
-
-        for (let pass = 0; pass < 3; pass++) {
-            const toForest: Array<[number, number]> = [];
-
-            for (let y = 1; y < h - 1; y++) {
-                for (let x = 1; x < w - 1; x++) {
-                    if (grid.getTile(x, y) !== TILE.GRASS_PATCH) continue;
-
-                    // Hard rule: every GrassSand patch tile must be part of at least one 2x2.
-                    const isPatch = (tx: number, ty: number): boolean => grid.getTile(tx, ty) === TILE.GRASS_PATCH;
-                    const partOf2x2 =
-                        (isPatch(x, y) && isPatch(x + 1, y) && isPatch(x, y + 1) && isPatch(x + 1, y + 1)) ||
-                        (isPatch(x - 1, y) && isPatch(x, y) && isPatch(x - 1, y + 1) && isPatch(x, y + 1)) ||
-                        (isPatch(x, y - 1) && isPatch(x + 1, y - 1) && isPatch(x, y) && isPatch(x + 1, y)) ||
-                        (isPatch(x - 1, y - 1) && isPatch(x, y - 1) && isPatch(x - 1, y) && isPatch(x, y));
-
-                    if (!partOf2x2) {
-                        toForest.push([x, y]);
-                    }
-                }
-            }
-
-            if (toForest.length === 0) break;
-            for (const [x, y] of toForest) {
-                grid.setTile(x, y, TILE.FOREST);
-            }
-        }
-    }
-
-    /**
-     * Remove malformed GrassSand components that read as failed snake artifacts.
-     *
-     * Guardrails:
-     * - Component must span at least 3x3 footprint
-     * - Component must have at least 9 tiles
-     *
-     * These checks preserve intentional rectangles/curves while culling thin strips.
-     */
-    private enforceGrassPatchShapeQuality(grid: IntGrid): void {
-        const [w, h] = this.levelSize;
-        const visited = new Set<string>();
-        const toForest: Array<[number, number]> = [];
-
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                if (grid.getTile(x, y) !== TILE.GRASS_PATCH) continue;
-
-                const startKey = `${x},${y}`;
-                if (visited.has(startKey)) continue;
-
-                const component: Array<[number, number]> = [];
-                const queue: Array<[number, number]> = [[x, y]];
-                visited.add(startKey);
-
-                while (queue.length > 0) {
-                    const [cx, cy] = queue.shift()!;
-                    component.push([cx, cy]);
-
-                    for (const [nx, ny] of this.neighbors4([cx, cy])) {
-                        if (!this.isInBounds(nx, ny)) continue;
-                        if (grid.getTile(nx, ny) !== TILE.GRASS_PATCH) continue;
-                        const key = `${nx},${ny}`;
-                        if (visited.has(key)) continue;
-                        visited.add(key);
-                        queue.push([nx, ny]);
-                    }
-                }
-
-                const xs = component.map(([cx]) => cx);
-                const ys = component.map(([, cy]) => cy);
-                const width = Math.max(...xs) - Math.min(...xs) + 1;
-                const height = Math.max(...ys) - Math.min(...ys) + 1;
-
-                const hasHealthyFootprint = width >= 3 && height >= 3;
-                const hasHealthyArea = component.length >= 9;
-
-                if (!hasHealthyFootprint || !hasHealthyArea) {
-                    toForest.push(...component);
-                }
-            }
-        }
-
-        for (const [fx, fy] of toForest) {
-            grid.setTile(fx, fy, TILE.FOREST);
-        }
-    }
-
     private growMaskBlob(grid: IntGrid, seedX: number, seedY: number, targetSize: number): Set<string> {
         const mask = new Set<string>();
         const queue: Array<[number, number]> = [[seedX, seedY]];
@@ -1967,98 +1643,6 @@ export class SubmergedVillageAlgorithm {
         }
 
         return mask;
-    }
-
-    /**
-     * Close local cliff gaps so cliff chains remain visually complete.
-     */
-    private repairCliffGaps(grid: IntGrid): void {
-        const [w, h] = this.levelSize;
-
-        for (let pass = 0; pass < 3; pass++) {
-            const fills: Array<[number, number]> = [];
-
-            for (let y = 1; y < h - 1; y++) {
-                for (let x = 1; x < w - 1; x++) {
-                    const tile = grid.getTile(x, y);
-                    if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF) continue;
-
-                    const n = grid.getTile(x, y - 1) === TILE.CLIFF;
-                    const s = grid.getTile(x, y + 1) === TILE.CLIFF;
-                    const e = grid.getTile(x + 1, y) === TILE.CLIFF;
-                    const wSide = grid.getTile(x - 1, y) === TILE.CLIFF;
-                    const ne = grid.getTile(x + 1, y - 1) === TILE.CLIFF;
-                    const nw = grid.getTile(x - 1, y - 1) === TILE.CLIFF;
-                    const se = grid.getTile(x + 1, y + 1) === TILE.CLIFF;
-                    const sw = grid.getTile(x - 1, y + 1) === TILE.CLIFF;
-
-                    const orthCount = Number(n) + Number(s) + Number(e) + Number(wSide);
-                    if (orthCount < 2) continue;
-
-                    const connects =
-                        (n && e) || (e && s) || (s && wSide) || (wSide && n) ||
-                        (n && s) || (e && wSide);
-
-                    const diagonalNearMiss =
-                        ((nw && se) || (ne && sw)) && (orthCount >= 1);
-
-                    const almostClosedPocket =
-                        (Number(ne) + Number(nw) + Number(se) + Number(sw) >= 3) && orthCount >= 1;
-
-                    if (connects || diagonalNearMiss || almostClosedPocket) {
-                        fills.push([x, y]);
-                    }
-                }
-            }
-
-            for (const [x, y] of fills) {
-                grid.setTile(x, y, TILE.CLIFF);
-            }
-        }
-    }
-
-    /**
-     * Ensure cliff formations are complete shells with no visual holes:
-     * - Hill tiles cannot directly touch non-cliff terrain (promote to cliff).
-     * - Tiny interior shell holes are sealed by promoting enclosed cells to cliff.
-     */
-    private enforceCliffShellIntegrity(grid: IntGrid): void {
-        const [w, h] = this.levelSize;
-
-        for (let pass = 0; pass < 3; pass++) {
-            const toCliff: Array<[number, number]> = [];
-
-            for (let y = 1; y < h - 1; y++) {
-                for (let x = 1; x < w - 1; x++) {
-                    const tile = grid.getTile(x, y);
-
-                    // Rule 2: seal tiny non-mass holes enclosed by cliff/hill shell.
-                    if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF || tile === TILE.HILL) {
-                        continue;
-                    }
-
-                    const orth = this.neighbors4([x, y]);
-                    const orthMassCount = orth.filter(([nx, ny]) => {
-                        const nt = grid.getTile(nx, ny);
-                        return nt === TILE.CLIFF || nt === TILE.HILL;
-                    }).length;
-
-                    const diagMassCount = this.neighbors8([x, y]).filter(([nx, ny]) => {
-                        const nt = grid.getTile(nx, ny);
-                        return nt === TILE.CLIFF || nt === TILE.HILL;
-                    }).length;
-
-                    if (orthMassCount >= 3 || (orthMassCount >= 2 && diagMassCount >= 5)) {
-                        toCliff.push([x, y]);
-                    }
-                }
-            }
-
-            if (toCliff.length === 0) break;
-            for (const [x, y] of toCliff) {
-                grid.setTile(x, y, TILE.CLIFF);
-            }
-        }
     }
 
     private isNearPath(grid: IntGrid, x: number, y: number, radius: number): boolean {
@@ -2168,52 +1752,8 @@ export class SubmergedVillageAlgorithm {
             TILE.FOREST,
             this.MAX_DOUBLE_WIDE_FIX_ITER,
         );
-        if (usedWasm) {
-            return;
-        }
-
-        const [w, h] = this.levelSize;
-        let changed = true;
-        let iter = 0;
-
-        while (changed && iter < this.MAX_DOUBLE_WIDE_FIX_ITER) {
-            changed = false;
-            iter++;
-
-            for (let x = 0; x < w - 1; x++) {
-                for (let y = 0; y < h - 1; y++) {
-                    // Check for 2×2 PATH block
-                    if (grid.getTile(x, y) === TILE.PATH &&
-                        grid.getTile(x + 1, y) === TILE.PATH &&
-                        grid.getTile(x, y + 1) === TILE.PATH &&
-                        grid.getTile(x + 1, y + 1) === TILE.PATH) {
-
-                        // Pick the tile with fewest external PATH connections to revert
-                        const block: [number, number][] = [
-                            [x, y], [x + 1, y], [x, y + 1], [x + 1, y + 1]
-                        ];
-
-                        const scores = block.map(([bx, by]) => {
-                            const external = this.neighbors4([bx, by])
-                                .filter(([nx, ny]) =>
-                                    !block.some(([bx2, by2]) => bx2 === nx && by2 === ny)
-                                )
-                                .filter(([nx, ny]) =>
-                                    nx >= 0 && nx < w && ny >= 0 && ny < h &&
-                                    grid.getTile(nx, ny) === TILE.PATH
-                                ).length;
-                            return { pos: [bx, by] as [number, number], external };
-                        });
-
-                        scores.sort((a, b) => a.external - b.external);
-                        const victim = scores[0];
-
-                        // Strictly enforce single-width routes: always break 2x2 PATH blocks.
-                        grid.setTile(victim.pos[0], victim.pos[1], TILE.FOREST);
-                        changed = true;
-                    }
-                }
-            }
+        if (!usedWasm) {
+            throw new Error('SubmergedVillage requires generation-kernels.wasm for double-wide path fixing');
         }
     }
 
@@ -2570,13 +2110,4 @@ export class SubmergedVillageAlgorithm {
         ];
     }
 
-    private reconstructRoad(endNode: RoadNode): [number, number][] {
-        const path: [number, number][] = [];
-        let node: RoadNode | null = endNode;
-        while (node) {
-            path.unshift(node.pos);
-            node = node.parent;
-        }
-        return path;
-    }
 }

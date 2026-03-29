@@ -1,0 +1,22 @@
+{
+  "targets": {
+    "release": {
+      "outFile": "public/wasm/generation-kernels.wasm",
+      "textFile": "public/wasm/generation-kernels.wat",
+      "optimizeLevel": 3,
+      "shrinkLevel": 1,
+      "noAssert": true
+    },
+    "debug": {
+      "outFile": "public/wasm/generation-kernels.wasm",
+      "textFile": "public/wasm/generation-kernels.wat",
+      "debug": true
+    }
+  },
+  "entries": [
+    "assembly/generation-kernels/index.ts"
+  ],
+  "options": {
+    "runtime": "stub"
+  }
+}

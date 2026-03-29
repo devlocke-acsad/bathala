@@ -16,7 +16,7 @@
     "scripts": {
         "dev": "node log.js dev & vite --config vite/config.dev.mjs",
         "build": "node log.js build & vite build --config vite/config.prod.mjs",
-        "build:wasm:generation": "asc assembly/generation-kernels/index.ts --target release --runtime stub --outFile public/wasm/generation-kernels.wasm --textFile public/wasm/generation-kernels.wat",
+        "build:wasm:generation": "asc assembly/generation-kernels/index.ts --target release --runtime stub --noAssert --outFile public/wasm/generation-kernels.wasm --textFile public/wasm/generation-kernels.wat",
         "dev-nolog": "vite --config vite/config.dev.mjs",
         "build-nolog": "vite build --config vite/config.prod.mjs",
         "test": "jest",
