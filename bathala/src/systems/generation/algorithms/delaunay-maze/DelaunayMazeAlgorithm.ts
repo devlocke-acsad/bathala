@@ -1,4 +1,5 @@
 import { IntGrid } from '../../toolbox/IntGrid';
+import { generationWasmBridge } from '../../wasm/GenerationWasmBridge';
 
 /** Immutable 2D point used for region seeds and triangulation. */
 export class Point {
@@ -446,6 +447,18 @@ export class DelaunayMazeGenerator {
      * impact connectivity (fewest external connections heuristic). Prevents wide corridors.
      */
     private fixDoubleWidePaths(intGrid: IntGrid): void {
+        const usedWasm = generationWasmBridge.tryFixDoubleWide(
+            intGrid,
+            this.levelSize[0],
+            this.levelSize[1],
+            this.PATH_TILE,
+            this.REGION_TILE,
+            this.MAX_DOUBLE_WIDE_FIX_ITER,
+        );
+        if (usedWasm) {
+            return;
+        }
+
         let changesMade = true;
         let iterations = 0;
         const maxIterations = this.MAX_DOUBLE_WIDE_FIX_ITER; // Prevent infinite loops
@@ -620,6 +633,17 @@ export class DelaunayMazeGenerator {
      * Simple dead-end reduction
      */
     private reduceDeadEnds(intGrid: IntGrid): void {
+        const usedWasm = generationWasmBridge.tryExtendDeadEnds(
+            intGrid,
+            this.levelSize[0],
+            this.levelSize[1],
+            this.PATH_TILE,
+            5,
+        );
+        if (usedWasm) {
+            return;
+        }
+
         // Find all path tiles
         const pathTiles: [number, number][] = [];
         for (let x = 0; x < this.levelSize[0]; x++) {
