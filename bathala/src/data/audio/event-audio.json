@@ -1,0 +1,11 @@
+{
+  "ui.button.hover": "ui_hover",
+  "ui.button.press": "ui_click",
+  "ui.confirm": "ui_confirm",
+  "ui.cancel": "ui_cancel",
+  "player.step": "player_step",
+  "combat.attack.light": "attack_basic",
+  "combat.attack.special": "attack_special",
+  "item.consume": "item_use",
+  "combat.card.draw": "card_draw"
+}

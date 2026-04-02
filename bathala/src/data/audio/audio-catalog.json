@@ -1,0 +1,57 @@
+{
+  "defaultChannelVolumes": {
+    "master": 1,
+    "music": 1,
+    "ambient": 0.8,
+    "sfx": 1,
+    "ui": 1,
+    "voice": 1
+  },
+  "assets": [
+    {
+      "key": "placeholder_music",
+      "path": "music/bathalaMusicPLHDR.mp3",
+      "type": "music",
+      "channel": "music",
+      "baseVolume": 1,
+      "loop": true,
+      "tags": ["bgm", "placeholder"]
+    },
+    {
+      "key": "disclaimer_music",
+      "path": "music/bathalaMusicPLHDR.mp3",
+      "type": "music",
+      "channel": "music",
+      "baseVolume": 1,
+      "loop": true,
+      "tags": ["bgm", "disclaimer"]
+    },
+    {
+      "key": "main_menu_music",
+      "path": "music/Bathala_Soundtrack/Bathala_MainMenu.mp3",
+      "type": "music",
+      "channel": "music",
+      "baseVolume": 1,
+      "loop": true,
+      "tags": ["bgm", "menu"]
+    },
+    {
+      "key": "battle_music_1",
+      "path": "music/Bathala_Soundtrack/Bathala_BattleTheme_1.mp3",
+      "type": "music",
+      "channel": "music",
+      "baseVolume": 1,
+      "loop": true,
+      "tags": ["bgm", "combat"]
+    },
+    {
+      "key": "npc_interaction_music",
+      "path": "music/Bathala_Soundtrack/Scraps/FunkyKatutubo.mp3",
+      "type": "music",
+      "channel": "music",
+      "baseVolume": 1,
+      "loop": true,
+      "tags": ["bgm", "npc"]
+    }
+  ]
+}

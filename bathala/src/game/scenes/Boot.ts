@@ -1,5 +1,6 @@
 import { Scene } from 'phaser';
 import { SettingsManager } from '../../core/managers/SettingsManager';
+import { AudioSystem } from '../../systems/audio/AudioSystem';
 
 export class Boot extends Scene
 {
@@ -37,6 +38,9 @@ export class Boot extends Scene
         // Otherwise the Preloader's loading screen text uses a fallback font on first load
         // and only shows the correct style after reload (when fonts are cached).
         this.registerFontsFromCache().then(() => {
+            // Validate data-driven audio profiles early so missing keys are visible
+            // before gameplay scenes start.
+            AudioSystem.getInstance().validateProfiles(true);
             // Load and apply persisted settings before any music starts.
             SettingsManager.getInstance().applyToAudio();
             // Start the global ESC pause listener once, early.

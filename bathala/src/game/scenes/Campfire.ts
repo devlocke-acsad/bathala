@@ -3,7 +3,7 @@ import { GameState } from "../../core/managers/GameState";
 import { Player, PlayingCard } from "../../core/types/CombatTypes";
 import { DeckManager } from "../../utils/DeckManager";
 import { RelicManager } from "../../core/managers/RelicManager";
-import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 
 export class Campfire extends Scene {

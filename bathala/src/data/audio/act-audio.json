@@ -1,0 +1,20 @@
+{
+  "1": {
+    "actId": 1,
+    "overworldBgmKey": "placeholder_music",
+    "combatBgmKey": "battle_music_1",
+    "ambientLoopKeys": ["forest_ambient", "wind_whispers"]
+  },
+  "2": {
+    "actId": 2,
+    "overworldBgmKey": "placeholder_music",
+    "combatBgmKey": "battle_music_1",
+    "ambientLoopKeys": ["rain_ambient"]
+  },
+  "3": {
+    "actId": 3,
+    "overworldBgmKey": "placeholder_music",
+    "combatBgmKey": "battle_music_1",
+    "ambientLoopKeys": ["wind_whispers"]
+  }
+}

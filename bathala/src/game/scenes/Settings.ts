@@ -1,6 +1,6 @@
 import { Scene, GameObjects } from "phaser";
 import { MusicManager } from "../../core/managers/MusicManager";
-import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 import { SettingsManager } from "../../core/managers/SettingsManager";
 import { createButton } from "../ui/Button";
 

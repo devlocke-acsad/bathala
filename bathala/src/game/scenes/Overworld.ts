@@ -12,7 +12,7 @@ import { ACT1 } from "../../acts/act1/Act1Definition";
 import { ACT2 } from "../../acts/act2/Act2Definition";
 import { ACT3 } from "../../acts/act3/Act3Definition";
 import { TooltipSystem } from "../../systems/world/TooltipSystem";
-import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { getRelicSpriteKey } from "../../utils/RelicSpriteUtils";
 import { FogOfWarSystem } from "../../systems/world/FogOfWarSystem";

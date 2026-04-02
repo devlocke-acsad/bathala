@@ -1,0 +1,8 @@
+{
+  "buttonHover": "ui_hover",
+  "buttonPress": "ui_click",
+  "panelOpen": "ui_panel_open",
+  "panelClose": "ui_panel_close",
+  "confirm": "ui_confirm",
+  "cancel": "ui_cancel"
+}

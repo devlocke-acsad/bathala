@@ -5,7 +5,7 @@ import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { Player, Relic } from "../../core/types/CombatTypes";
 import { allShopItems, ShopItem, getChapterShopItems } from "../../data/relics/ShopItems";
 import { getRelicById } from "../../data/relics";
-import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 import { getRelicSpriteKey } from "../../utils/RelicSpriteUtils";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 

@@ -1,4 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
+import { AudioSystem } from '../../systems/audio/AudioSystem';
 
 export function createButton(
     scene: Scene,
@@ -8,6 +9,7 @@ export function createButton(
     callback: () => void,
     fixedWidth?: number // Optional fixed width parameter
 ): GameObjects.Container {
+  const audioSystem = AudioSystem.getInstance();
     const screenWidth = scene.cameras.main.width;
     const baseButtonWidth = 140;
     const baseButtonHeight = 45;
@@ -58,6 +60,8 @@ export function createButton(
       if ((scene as any).getIsActionProcessing && (scene as any).getIsActionProcessing()) {
         return;
       }
+
+      audioSystem.triggerEvent(scene, "ui.button.press");
       
       scene.tweens.add({
         targets: button,
@@ -77,6 +81,7 @@ export function createButton(
     });
     
     button.on("pointerover", () => {
+      audioSystem.triggerEvent(scene, "ui.button.hover", { volume: 0.6 });
       bg.setFillStyle(0x1f1410);
       buttonText.setColor("#e8eced");
       scene.tweens.add({
