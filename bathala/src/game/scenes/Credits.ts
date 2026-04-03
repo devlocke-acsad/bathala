@@ -1,4 +1,5 @@
 import { Scene, GameObjects } from "phaser";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 
 export class Credits extends Scene {
   background: GameObjects.Image;
@@ -16,6 +17,8 @@ export class Credits extends Scene {
   }
 
   create() {
+    new MusicLifecycleSystem(this).start();
+
     // Set camera background color to custom background color ONLY
     this.cameras.main.setBackgroundColor(0x150E10); // Updated background color (#150E10)
 

@@ -2,6 +2,7 @@ import { Scene, GameObjects } from "phaser";
 import { CHAPTER_NARRATIVES } from "../../data/NarrativeData";
 import { ActManager } from "../../core/managers/ActManager";
 import { createButton } from "../ui/Button";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 
 /** Theme for cutscene VFX: bg, particle colors, and effect style */
 interface ChapterEffectTheme {
@@ -68,6 +69,7 @@ export class ChapterCutscene extends Scene {
   private effectObjects: Phaser.GameObjects.GameObject[] = [];
   private skipButton?: GameObjects.Container;
   private isFinishing: boolean = false;
+  private musicLifecycle?: MusicLifecycleSystem;
 
   constructor() {
     super({ key: "ChapterCutscene" });
@@ -80,6 +82,9 @@ export class ChapterCutscene extends Scene {
   }
 
   create(): void {
+    this.musicLifecycle = new MusicLifecycleSystem(this, { actId: this.targetChapter });
+    this.musicLifecycle.start();
+
     const { width, height } = this.cameras.main;
     const theme = getChapterEffectTheme(this.targetChapter);
 

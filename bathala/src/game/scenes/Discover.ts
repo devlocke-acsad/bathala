@@ -1,6 +1,7 @@
 import { Scene, GameObjects } from "phaser";
 import { EnemyRegistry } from "../../core/registries/EnemyRegistry";
 import { bootstrapEnemies } from "../../data/enemies/EnemyBootstrap";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 
 export class Discover extends Scene {
   private title: GameObjects.Text;
@@ -77,6 +78,8 @@ export class Discover extends Scene {
   }
 
   create() {
+    new MusicLifecycleSystem(this).start();
+
     // Set camera background color to match the dark fantasy aesthetic
     this.cameras.main.setBackgroundColor(0x150E10);
 

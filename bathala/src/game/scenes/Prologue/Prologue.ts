@@ -1,11 +1,13 @@
 import { Scene, GameObjects } from 'phaser';
 import { TutorialManager } from './TutorialManager';
 import { createButton } from '../../ui/Button';
+import { MusicLifecycleSystem } from '../../../systems/audio/MusicLifecycleSystem';
 
 export class Prologue extends Scene {
     private isStoryPhase: boolean = true;
     private skipButton: GameObjects.Container;
     private typingTimer: Phaser.Time.TimerEvent | null = null;
+    private musicLifecycle?: MusicLifecycleSystem;
 
 
     constructor() {
@@ -13,6 +15,9 @@ export class Prologue extends Scene {
     }
 
     create() {
+        this.musicLifecycle = new MusicLifecycleSystem(this);
+        this.musicLifecycle.start();
+
         if (this.cameras.main) {
             this.cameras.main.setBackgroundColor(0x000000);
         }

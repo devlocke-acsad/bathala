@@ -55,13 +55,15 @@ export function createButton(
       new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
+    // This component already emits its own hover/press audio.
+    button.setData('disableGlobalInteractiveAudio', true);
     
     button.on("pointerdown", () => {
       if ((scene as any).getIsActionProcessing && (scene as any).getIsActionProcessing()) {
         return;
       }
 
-      audioSystem.triggerEvent(scene, "ui.button.press");
+      audioSystem.triggerUIAction(scene, "buttonPress");
       
       scene.tweens.add({
         targets: button,
@@ -81,7 +83,7 @@ export function createButton(
     });
     
     button.on("pointerover", () => {
-      audioSystem.triggerEvent(scene, "ui.button.hover", { volume: 0.6 });
+      audioSystem.triggerUIAction(scene, "buttonHover", { volume: 0.6 });
       bg.setFillStyle(0x1f1410);
       buttonText.setColor("#e8eced");
       scene.tweens.add({

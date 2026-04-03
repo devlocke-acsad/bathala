@@ -41,6 +41,8 @@ export class Boot extends Scene
             // Validate data-driven audio profiles early so missing keys are visible
             // before gameplay scenes start.
             AudioSystem.getInstance().validateProfiles(true);
+            // Auto-bind hover/press SFX to interactive objects across all scenes.
+            AudioSystem.getInstance().enableGlobalInteractiveAudio(this.game);
             // Load and apply persisted settings before any music starts.
             SettingsManager.getInstance().applyToAudio();
             // Start the global ESC pause listener once, early.

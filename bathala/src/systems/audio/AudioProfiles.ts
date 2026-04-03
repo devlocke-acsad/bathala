@@ -34,6 +34,10 @@ export interface ActAudioProfile {
   overworldBgmKey: string;
   combatBgmKey: string;
   ambientLoopKeys: string[];
+  sceneBgmOverrides?: Record<string, string>;
+  sceneBgmVolumeOverrides?: Record<string, number>;
+  sceneAmbientOverrides?: Record<string, string[]>;
+  eventAudioOverrides?: Record<string, string>;
 }
 
 export interface UIAudioProfile {
@@ -191,11 +195,36 @@ function normalizeActProfiles(raw: unknown): Record<number, ActAudioProfile> {
       ? item.ambientLoopKeys.filter((entry): entry is string => typeof entry === "string")
       : [];
 
+    const sceneBgmOverrides = normalizeStringMap(item.sceneBgmOverrides);
+    const eventAudioOverrides = normalizeStringMap(item.eventAudioOverrides);
+
+    const rawVolumeOverrides = (item.sceneBgmVolumeOverrides as Record<string, unknown>) ?? {};
+    const sceneBgmVolumeOverrides: Record<string, number> = {};
+    for (const [sceneKey, volume] of Object.entries(rawVolumeOverrides)) {
+      if (typeof volume !== "number" || !Number.isFinite(volume)) {
+        continue;
+      }
+      sceneBgmVolumeOverrides[sceneKey] = Math.max(0, Math.min(1, volume));
+    }
+
+    const rawAmbientOverrides = (item.sceneAmbientOverrides as Record<string, unknown>) ?? {};
+    const sceneAmbientOverrides: Record<string, string[]> = {};
+    for (const [sceneKey, value] of Object.entries(rawAmbientOverrides)) {
+      if (!Array.isArray(value)) {
+        continue;
+      }
+      sceneAmbientOverrides[sceneKey] = value.filter((entry): entry is string => typeof entry === "string");
+    }
+
     output[actId] = {
       actId,
       overworldBgmKey,
       combatBgmKey,
       ambientLoopKeys,
+      sceneBgmOverrides,
+      sceneBgmVolumeOverrides,
+      sceneAmbientOverrides,
+      eventAudioOverrides,
     };
   }
 
@@ -255,6 +284,32 @@ export function validateAudioProfiles(): string[] {
     for (const ambientKey of profile.ambientLoopKeys) {
       if (!assetKeys.has(ambientKey)) {
         issues.push(`Act profile '${actId}' references missing ambient key '${ambientKey}'.`);
+      }
+    }
+
+    if (profile.sceneBgmOverrides) {
+      for (const [sceneKey, key] of Object.entries(profile.sceneBgmOverrides)) {
+        if (!assetKeys.has(key)) {
+          issues.push(`Act profile '${actId}' scene bgm override '${sceneKey}' references missing key '${key}'.`);
+        }
+      }
+    }
+
+    if (profile.sceneAmbientOverrides) {
+      for (const [sceneKey, keys] of Object.entries(profile.sceneAmbientOverrides)) {
+        for (const key of keys) {
+          if (!assetKeys.has(key)) {
+            issues.push(`Act profile '${actId}' scene ambient override '${sceneKey}' references missing key '${key}'.`);
+          }
+        }
+      }
+    }
+
+    if (profile.eventAudioOverrides) {
+      for (const [eventName, key] of Object.entries(profile.eventAudioOverrides)) {
+        if (!assetKeys.has(key)) {
+          issues.push(`Act profile '${actId}' event override '${eventName}' references missing key '${key}'.`);
+        }
       }
     }
   }

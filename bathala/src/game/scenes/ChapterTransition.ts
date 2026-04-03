@@ -1,6 +1,7 @@
 import { Scene } from "phaser";
 import { ActManager } from "../../core/managers/ActManager";
 import { CHAPTER_NARRATIVES } from "../../data/NarrativeData";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 
 /**
  * ChapterTransition Scene
@@ -11,6 +12,7 @@ import { CHAPTER_NARRATIVES } from "../../data/NarrativeData";
 export class ChapterTransition extends Scene {
   private targetChapter: number = 1;
   private isSkipping: boolean = false;
+  private musicLifecycle?: MusicLifecycleSystem;
 
   constructor() {
     super({ key: "ChapterTransition" });
@@ -23,6 +25,9 @@ export class ChapterTransition extends Scene {
   }
 
   create(): void {
+    this.musicLifecycle = new MusicLifecycleSystem(this, { actId: this.targetChapter });
+    this.musicLifecycle.start();
+
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
 

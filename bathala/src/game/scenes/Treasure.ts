@@ -21,6 +21,7 @@ import { allShopItems } from "../../data/relics/ShopItems";
 import { Potion, getChapterCommonPotions } from "../../data/potions";
 import { getRelicSpriteKey } from "../../utils/RelicSpriteUtils";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 
 // Treasure reward can be either a Relic or a Potion
 type TreasureReward =
@@ -157,6 +158,8 @@ export class Treasure extends Scene {
   }
 
   create(): void {
+    new MusicLifecycleSystem(this).start();
+
     // Safety check for camera
     if (!this.cameras.main) {
       return;
