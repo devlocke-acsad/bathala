@@ -3,7 +3,7 @@
     "actId": 1,
     "overworldBgmKey": "placeholder_music",
     "combatBgmKey": "battle_music_1",
-    "ambientLoopKeys": ["forest_ambient", "wind_whispers"],
+    "ambientLoopKeys": ["act1_ambiance_scaryforest_1", "act1_ambiance_scaryforest_2"],
     "sceneBgmOverrides": {
       "Overworld": "placeholder_music",
       "Combat": "battle_music_1",
@@ -18,8 +18,8 @@
       "Combat": 0.5
     },
     "sceneAmbientOverrides": {
-      "Overworld": ["forest_ambient", "wind_whispers"],
-      "ChapterCutscene": ["forest_ambient", "wind_whispers"],
+      "Overworld": ["act1_ambiance_scaryforest_1", "act1_ambiance_scaryforest_2"],
+      "ChapterCutscene": ["act1_ambiance_scaryforest_1", "act1_ambiance_scaryforest_2"],
       "ChapterTransition": [],
       "Combat": []
     },

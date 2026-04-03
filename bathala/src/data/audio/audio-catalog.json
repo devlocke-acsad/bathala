@@ -205,6 +205,24 @@
       "baseVolume": 0.48,
       "loop": true,
       "tags": ["ambient", "rain", "wind", "act2", "layer"]
+    },
+    {
+      "key": "act1_ambiance_scaryforest_1",
+      "path": "sfx/ambient/ambiance_scaryforest1.mp3",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.5,
+      "loop": true,
+      "tags": ["ambient", "forest", "scary", "act1", "layer"]
+    },
+    {
+      "key": "act1_ambiance_scaryforest_2",
+      "path": "sfx/ambient/ambiance_scaryforest2.mp3",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.47,
+      "loop": true,
+      "tags": ["ambient", "forest", "scary", "act1", "layer"]
     }
   ]
 }
