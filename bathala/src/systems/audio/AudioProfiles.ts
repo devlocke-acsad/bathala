@@ -27,6 +27,8 @@ export interface SceneAudioProfile {
   bgmLayerKeys?: string[];
   bgmVolume: number;
   fadeIn: boolean;
+  resumeFromLastPosition?: boolean;
+  restartMusicWhenEnteredFromScenes?: string[];
   ambientLoopKeys: string[];
 }
 
@@ -163,6 +165,12 @@ function normalizeSceneProfiles(raw: unknown): Record<string, SceneAudioProfile>
         : 1;
 
     const fadeIn = typeof item.fadeIn === "boolean" ? item.fadeIn : true;
+    const resumeFromLastPosition = typeof item.resumeFromLastPosition === "boolean"
+      ? item.resumeFromLastPosition
+      : undefined;
+    const restartMusicWhenEnteredFromScenes = Array.isArray(item.restartMusicWhenEnteredFromScenes)
+      ? item.restartMusicWhenEnteredFromScenes.filter((entry): entry is string => typeof entry === "string")
+      : undefined;
     const bgmLayerKeys = Array.isArray(item.bgmLayerKeys)
       ? item.bgmLayerKeys.filter((entry): entry is string => typeof entry === "string")
       : undefined;
@@ -175,6 +183,8 @@ function normalizeSceneProfiles(raw: unknown): Record<string, SceneAudioProfile>
       bgmLayerKeys,
       bgmVolume,
       fadeIn,
+      resumeFromLastPosition,
+      restartMusicWhenEnteredFromScenes,
       ambientLoopKeys,
     };
   }

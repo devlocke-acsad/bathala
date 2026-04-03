@@ -12,6 +12,10 @@ const AMBIENT_MIN_PREP_MS = 1000;
 const AMBIENT_TRACK_OFFSET_MS = 2200;
 const AMBIENT_OFFSET_JITTER_MS = 600;
 const AMBIENT_INITIAL_FADE_IN_MS = 2000;
+const AMBIENT_LAYER_FADE_IN_MS = 900;
+const AMBIENT_LAYER_FADE_OUT_MS = 700;
+const MUSIC_LAYER_FADE_IN_MS = 800;
+const MUSIC_LAYER_FADE_OUT_MS = 650;
 
 interface AmbientSoundState {
   sound: Phaser.Sound.BaseSound;
@@ -25,11 +29,14 @@ interface AmbientLayerState {
   standby?: AmbientSoundState;
   crossfadeTimer?: Phaser.Time.TimerEvent;
   isCrossfading: boolean;
+  parked: boolean;
 }
 
 interface MusicLayerState {
   sound: Phaser.Sound.BaseSound;
   inputVolume: number;
+  appliedVolume: number;
+  parked: boolean;
 }
 
 /**
@@ -39,6 +46,7 @@ interface MusicLayerState {
 export class MusicLifecycleSystem {
   private static persistentMusicLayers: Map<string, MusicLayerState> = new Map();
   private static persistentAmbientLoops: Map<string, AmbientLayerState> = new Map();
+  private static lastStartedSceneKey?: string;
 
   private scene: Scene;
   private music?: Phaser.Sound.BaseSound;
@@ -56,14 +64,16 @@ export class MusicLifecycleSystem {
    */
   start(): void {
     const musicSystem = MusicSystem.getInstance();
+    const shouldResumeFromLastPosition = this.shouldResumeFromLastPosition();
 
     if (!this.hasEntered) {
       musicSystem.triggerSceneEvent(this.scene, "enter");
       this.hasEntered = true;
     }
 
-    this.startMusic();
-    this.startAmbientLoops();
+    this.startMusic(shouldResumeFromLastPosition);
+    this.startAmbientLoops(shouldResumeFromLastPosition);
+    MusicLifecycleSystem.lastStartedSceneKey = this.scene.scene.key;
     if (!this.isSetup) {
       this.setupLifecycle();
       this.isSetup = true;
@@ -85,7 +95,7 @@ export class MusicLifecycleSystem {
     return this.music;
   }
 
-  private startMusic(): void {
+  private startMusic(allowResumeFromLastPosition: boolean): void {
     const musicSystem = MusicSystem.getInstance();
     const currentChapter = this.getCurrentChapter();
     const musicLayers = musicSystem.getMusicLayersForScene(this.scene.scene.key, currentChapter);
@@ -99,32 +109,45 @@ export class MusicLifecycleSystem {
 
     for (const layer of musicLayers) {
       const inputVolume = layer.volume ?? 1;
+      const targetVolume = musicSystem.getEffectiveVolumeForKey(layer.musicKey, inputVolume);
       const existing = MusicLifecycleSystem.persistentMusicLayers.get(layer.musicKey);
+
       if (existing) {
         existing.inputVolume = inputVolume;
-        this.setSoundVolume(existing.sound, musicSystem.getEffectiveVolumeForKey(layer.musicKey, inputVolume));
-        if (!existing.sound.isPlaying) {
-          try {
-            existing.sound.play();
-          } catch {
-            // ignore replay errors
+        if (!allowResumeFromLastPosition) {
+          this.destroySound(existing.sound);
+          MusicLifecycleSystem.persistentMusicLayers.delete(layer.musicKey);
+        } else {
+          existing.parked = false;
+
+          if (this.isSoundPaused(existing.sound)) {
+            this.resumeSound(existing.sound);
+          } else if (!existing.sound.isPlaying) {
+            this.playSound(existing.sound);
           }
+
+          this.tweenMusicLayerVolume(existing, targetVolume, MUSIC_LAYER_FADE_IN_MS);
+          continue;
         }
-        continue;
       }
 
       try {
         const sound = this.scene.sound.add(layer.musicKey, {
-          volume: musicSystem.getEffectiveVolumeForKey(layer.musicKey, inputVolume),
+          volume: 0,
           loop: true,
         });
         sound.play();
-        MusicLifecycleSystem.persistentMusicLayers.set(layer.musicKey, {
+        const state: MusicLayerState = {
           sound,
           inputVolume,
-        });
+          appliedVolume: 0,
+          parked: false,
+        };
+        MusicLifecycleSystem.persistentMusicLayers.set(layer.musicKey, state);
+        this.tweenMusicLayerVolume(state, targetVolume, MUSIC_LAYER_FADE_IN_MS);
       } catch (error) {
         console.warn(`MusicLifecycle: Failed to play music layer '${layer.musicKey}' for ${this.scene.scene.key}:`, error);
+        continue;
       }
     }
 
@@ -132,8 +155,13 @@ export class MusicLifecycleSystem {
       if (desiredKeys.has(key)) {
         continue;
       }
-      this.destroySound(state.sound);
-      MusicLifecycleSystem.persistentMusicLayers.delete(key);
+
+      if (allowResumeFromLastPosition) {
+        this.parkMusicLayer(state);
+      } else {
+        this.destroySound(state.sound);
+        MusicLifecycleSystem.persistentMusicLayers.delete(key);
+      }
     }
 
     const primaryLayer = musicLayers[0];
@@ -157,6 +185,103 @@ export class MusicLifecycleSystem {
     volumeAware.setVolume?.(value);
   }
 
+  private playSound(sound: Phaser.Sound.BaseSound): void {
+    try {
+      sound.play();
+    } catch {
+      // ignore play errors
+    }
+  }
+
+  private resumeSound(sound: Phaser.Sound.BaseSound): void {
+    const pauseAware = sound as Phaser.Sound.BaseSound & {
+      resume?: () => void;
+    };
+    try {
+      pauseAware.resume?.();
+    } catch {
+      // ignore resume errors
+    }
+  }
+
+  private pauseSound(sound: Phaser.Sound.BaseSound): void {
+    const pauseAware = sound as Phaser.Sound.BaseSound & {
+      pause?: () => void;
+    };
+    try {
+      pauseAware.pause?.();
+    } catch {
+      // ignore pause errors
+    }
+  }
+
+  private isSoundPaused(sound: Phaser.Sound.BaseSound): boolean {
+    const pauseAware = sound as Phaser.Sound.BaseSound & {
+      isPaused?: boolean;
+    };
+    return pauseAware.isPaused === true;
+  }
+
+  private tweenMusicLayerVolume(
+    state: MusicLayerState,
+    targetVolume: number,
+    durationMs: number,
+    onComplete?: () => void,
+  ): void {
+    if (durationMs <= 0) {
+      state.appliedVolume = targetVolume;
+      this.setSoundVolume(state.sound, targetVolume);
+      onComplete?.();
+      return;
+    }
+
+    try {
+      this.scene.tweens.killTweensOf(state);
+      this.scene.tweens.add({
+        targets: state,
+        appliedVolume: targetVolume,
+        duration: durationMs,
+        ease: "Sine.easeInOut",
+        onUpdate: () => {
+          this.setSoundVolume(state.sound, state.appliedVolume);
+        },
+        onComplete: () => {
+          this.setSoundVolume(state.sound, state.appliedVolume);
+          onComplete?.();
+        },
+      });
+    } catch {
+      state.appliedVolume = targetVolume;
+      this.setSoundVolume(state.sound, targetVolume);
+      onComplete?.();
+    }
+  }
+
+  private parkMusicLayer(state: MusicLayerState): void {
+    if (state.parked) {
+      return;
+    }
+
+    state.parked = true;
+    const resumeVolume = state.appliedVolume;
+
+    this.tweenMusicLayerVolume(state, 0, MUSIC_LAYER_FADE_OUT_MS, () => {
+      this.pauseSound(state.sound);
+      state.appliedVolume = resumeVolume;
+    });
+
+    // Safety net: if tween completion is skipped during rapid scene transitions,
+    // force the parked layer to pause so it cannot bleed into the next scene.
+    this.scene.time.delayedCall(MUSIC_LAYER_FADE_OUT_MS + 25, () => {
+      if (!state.parked) {
+        return;
+      }
+      this.setSoundVolume(state.sound, 0);
+      this.pauseSound(state.sound);
+      state.appliedVolume = resumeVolume;
+    });
+  }
+
   private destroySound(sound: Phaser.Sound.BaseSound): void {
     try {
       sound.stop();
@@ -166,7 +291,7 @@ export class MusicLifecycleSystem {
     }
   }
 
-  private startAmbientLoops(): void {
+  private startAmbientLoops(allowResumeFromLastPosition: boolean): void {
     const musicSystem = MusicSystem.getInstance();
     const currentChapter = this.getCurrentChapter();
     const ambientKeys = musicSystem.getAmbientLoopKeysForScene(this.scene.scene.key, currentChapter);
@@ -177,10 +302,20 @@ export class MusicLifecycleSystem {
     for (const key of desired) {
       const existingLayer = MusicLifecycleSystem.persistentAmbientLoops.get(key);
       if (existingLayer) {
-        this.rebindAmbientLayerScene(existingLayer, this.scene);
-        this.ensureAmbientLayerRunning(existingLayer, desiredIndex);
-        desiredIndex += 1;
-        continue;
+        if (!allowResumeFromLastPosition) {
+          this.destroyAmbientLayer(existingLayer);
+          MusicLifecycleSystem.persistentAmbientLoops.delete(key);
+        } else {
+          this.rebindAmbientLayerScene(existingLayer, this.scene);
+          if (existingLayer.parked) {
+            this.unparkAmbientLayer(existingLayer, desiredIndex);
+            desiredIndex += 1;
+            continue;
+          }
+          this.ensureAmbientLayerRunning(existingLayer, desiredIndex);
+          desiredIndex += 1;
+          continue;
+        }
       }
 
       const layer = this.createAmbientLayer(key, this.scene);
@@ -193,8 +328,14 @@ export class MusicLifecycleSystem {
       if (desired.has(key)) {
         continue;
       }
-      this.destroyAmbientLayer(layer);
-      MusicLifecycleSystem.persistentAmbientLoops.delete(key);
+
+      if (allowResumeFromLastPosition) {
+        this.rebindAmbientLayerScene(layer, this.scene);
+        this.parkAmbientLayer(layer);
+      } else {
+        this.destroyAmbientLayer(layer);
+        MusicLifecycleSystem.persistentAmbientLoops.delete(key);
+      }
     }
   }
 
@@ -210,10 +351,16 @@ export class MusicLifecycleSystem {
       key,
       scene,
       isCrossfading: false,
+      parked: false,
     };
   }
 
   private ensureAmbientLayerRunning(layer: AmbientLayerState, orderIndex: number): void {
+    if (layer.parked) {
+      this.unparkAmbientLayer(layer, orderIndex);
+      return;
+    }
+
     if (layer.active?.sound.isPlaying) {
       this.applyAmbientVolume(layer, layer.active);
       if (layer.standby?.sound.isPlaying) {
@@ -245,6 +392,7 @@ export class MusicLifecycleSystem {
 
   private startAmbientLayer(layer: AmbientLayerState, delayMs: number, introFade: boolean): void {
     this.clearAmbientTimer(layer);
+    layer.parked = false;
 
     if (delayMs > 0) {
       layer.crossfadeTimer = layer.scene.time.delayedCall(delayMs, () => {
@@ -298,7 +446,7 @@ export class MusicLifecycleSystem {
   }
 
   private scheduleNextAmbientCrossfade(layer: AmbientLayerState): void {
-    if (!layer.active?.sound.isPlaying) {
+    if (layer.parked || !layer.active?.sound.isPlaying) {
       return;
     }
 
@@ -322,7 +470,7 @@ export class MusicLifecycleSystem {
   }
 
   private crossfadeAmbientLayer(layer: AmbientLayerState): void {
-    if (!layer.active || layer.isCrossfading) {
+    if (!layer.active || layer.isCrossfading || layer.parked) {
       return;
     }
 
@@ -414,10 +562,12 @@ export class MusicLifecycleSystem {
 
     layer.isCrossfading = false;
 
-    if (layer.active?.sound.isPlaying) {
-      layer.active.localVolume = 1;
-      this.applyAmbientVolume(layer, layer.active);
-      this.scheduleNextAmbientCrossfade(layer);
+    if (layer.active?.sound && (layer.active.sound.isPlaying || this.isSoundPaused(layer.active.sound))) {
+      if (!layer.parked) {
+        layer.active.localVolume = 1;
+        this.applyAmbientVolume(layer, layer.active);
+        this.scheduleNextAmbientCrossfade(layer);
+      }
       return;
     }
 
@@ -433,6 +583,65 @@ export class MusicLifecycleSystem {
     layer.active = undefined;
     layer.standby = undefined;
     layer.isCrossfading = false;
+    layer.parked = false;
+  }
+
+  private parkAmbientLayer(layer: AmbientLayerState): void {
+    if (layer.parked) {
+      return;
+    }
+
+    this.clearAmbientTweens(layer, layer.scene);
+    this.clearAmbientTimer(layer);
+    layer.parked = true;
+
+    if (layer.standby) {
+      this.destroyAmbientSound(layer.standby);
+      layer.standby = undefined;
+    }
+
+    if (!layer.active || !layer.active.sound.isPlaying) {
+      return;
+    }
+
+    const resumeVolume = Math.max(layer.active.localVolume, 0.05);
+    this.tweenAmbientVolume(layer, layer.active, 0, AMBIENT_LAYER_FADE_OUT_MS, () => {
+      layer.active!.localVolume = resumeVolume;
+      this.pauseSound(layer.active!.sound);
+    });
+
+    // Safety net: guarantee parked ambient is muted+paused even if tween completion is skipped.
+    layer.scene.time.delayedCall(AMBIENT_LAYER_FADE_OUT_MS + 25, () => {
+      if (!layer.parked || !layer.active) {
+        return;
+      }
+      layer.active.localVolume = resumeVolume;
+      this.setSoundVolume(layer.active.sound, 0);
+      this.pauseSound(layer.active.sound);
+    });
+  }
+
+  private unparkAmbientLayer(layer: AmbientLayerState, orderIndex: number): void {
+    layer.parked = false;
+
+    if (!layer.active) {
+      this.startAmbientLayer(layer, this.getAmbientStartDelayMs(orderIndex), true);
+      return;
+    }
+
+    const target = Math.max(layer.active.localVolume, 0.05);
+    layer.active.localVolume = 0;
+    this.applyAmbientVolume(layer, layer.active);
+
+    if (this.isSoundPaused(layer.active.sound)) {
+      this.resumeSound(layer.active.sound);
+    } else if (!layer.active.sound.isPlaying) {
+      this.playSound(layer.active.sound);
+    }
+
+    this.tweenAmbientVolume(layer, layer.active, target, AMBIENT_LAYER_FADE_IN_MS, () => {
+      this.scheduleNextAmbientCrossfade(layer);
+    });
   }
 
   private destroyAmbientSound(state?: AmbientSoundState): void {
@@ -529,8 +738,9 @@ export class MusicLifecycleSystem {
 
     this.scene.events.on("resume", () => {
       MusicSystem.getInstance().triggerSceneEvent(this.scene, "resume");
-      this.startMusic();
-      this.startAmbientLoops();
+      const shouldResumeFromLastPosition = this.shouldResumeFromLastPosition();
+      this.startMusic(shouldResumeFromLastPosition);
+      this.startAmbientLoops(shouldResumeFromLastPosition);
     });
 
     this.scene.events.on("destroy", () => {
@@ -542,17 +752,25 @@ export class MusicLifecycleSystem {
     const audioSystem = MusicSystem.getInstance();
 
     for (const [key, state] of MusicLifecycleSystem.persistentMusicLayers.entries()) {
+      if (state.parked) {
+        continue;
+      }
       try {
         const volumeAware = state.sound as Phaser.Sound.BaseSound & {
           setVolume?: (value: number) => void;
         };
-        volumeAware.setVolume?.(audioSystem.getEffectiveVolumeForKey(key, state.inputVolume));
+        const effective = audioSystem.getEffectiveVolumeForKey(key, state.inputVolume);
+        state.appliedVolume = effective;
+        volumeAware.setVolume?.(effective);
       } catch {
         // ignore runtime volume update errors
       }
     }
 
     for (const layer of MusicLifecycleSystem.persistentAmbientLoops.values()) {
+      if (layer.parked) {
+        continue;
+      }
       if (layer.active) {
         try {
           const volumeAware = layer.active.sound as Phaser.Sound.BaseSound & {
@@ -575,5 +793,21 @@ export class MusicLifecycleSystem {
         }
       }
     }
+  }
+
+  private shouldResumeFromLastPosition(): boolean {
+    const profile = MusicSystem.getInstance().getSceneAudioProfile(this.scene.scene.key);
+
+    const previousSceneKey = MusicLifecycleSystem.lastStartedSceneKey;
+    if (profile?.restartMusicWhenEnteredFromScenes && previousSceneKey) {
+      if (profile.restartMusicWhenEnteredFromScenes.includes(previousSceneKey)) {
+        return false;
+      }
+    }
+
+    if (typeof profile?.resumeFromLastPosition === "boolean") {
+      return profile.resumeFromLastPosition;
+    }
+    return true;
   }
 }

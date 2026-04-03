@@ -59,7 +59,8 @@
       "Overworld": "placeholder_music",
       "Combat": "battle_music_1",
       "ChapterTransition": "placeholder_music",
-      "ChapterCutscene": "placeholder_music"
+      "ChapterCutscene": "placeholder_music",
+      "Credits": "battle_music_1"
     },
     "sceneBgmVolumeOverrides": {
       "ChapterTransition": 0.35,
