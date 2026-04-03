@@ -29,7 +29,7 @@
     "actId": 2,
     "overworldBgmKey": "placeholder_music",
     "combatBgmKey": "battle_music_1",
-    "ambientLoopKeys": ["rain_ambient"],
+    "ambientLoopKeys": ["act2_ambiance_rain", "act2_ambiance_rain_wind"],
     "sceneBgmOverrides": {
       "Overworld": "placeholder_music",
       "Combat": "battle_music_1",
@@ -43,8 +43,8 @@
       "Combat": 0.5
     },
     "sceneAmbientOverrides": {
-      "Overworld": ["rain_ambient"],
-      "ChapterCutscene": ["rain_ambient"],
+      "Overworld": ["act2_ambiance_rain", "act2_ambiance_rain_wind"],
+      "ChapterCutscene": ["act2_ambiance_rain", "act2_ambiance_rain_wind"],
       "ChapterTransition": [],
       "Combat": []
     },

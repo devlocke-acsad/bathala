@@ -187,6 +187,24 @@
       "baseVolume": 0.55,
       "loop": true,
       "tags": ["ambient", "rain", "act2"]
+    },
+    {
+      "key": "act2_ambiance_rain",
+      "path": "sfx/ambient/ambiance_rain1.mp3",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.5,
+      "loop": true,
+      "tags": ["ambient", "rain", "act2", "layer"]
+    },
+    {
+      "key": "act2_ambiance_rain_wind",
+      "path": "sfx/ambient/ambiance_rain_wind1.mp3",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.48,
+      "loop": true,
+      "tags": ["ambient", "rain", "wind", "act2", "layer"]
     }
   ]
 }

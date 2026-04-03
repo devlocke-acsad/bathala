@@ -11,6 +11,7 @@ export {
 
 export type {
   AudioAsset,
+  SceneMusicLayerConfig,
   SceneMusicConfig,
   SoundConfig,
 } from "../../systems/audio/MusicSystem";

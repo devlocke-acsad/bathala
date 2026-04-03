@@ -24,6 +24,7 @@ export interface AudioCatalog {
 
 export interface SceneAudioProfile {
   bgmKey: string;
+  bgmLayerKeys?: string[];
   bgmVolume: number;
   fadeIn: boolean;
   ambientLoopKeys: string[];
@@ -35,6 +36,7 @@ export interface ActAudioProfile {
   combatBgmKey: string;
   ambientLoopKeys: string[];
   sceneBgmOverrides?: Record<string, string>;
+  sceneBgmLayerOverrides?: Record<string, string[]>;
   sceneBgmVolumeOverrides?: Record<string, number>;
   sceneAmbientOverrides?: Record<string, string[]>;
   eventAudioOverrides?: Record<string, string>;
@@ -161,12 +163,16 @@ function normalizeSceneProfiles(raw: unknown): Record<string, SceneAudioProfile>
         : 1;
 
     const fadeIn = typeof item.fadeIn === "boolean" ? item.fadeIn : true;
+    const bgmLayerKeys = Array.isArray(item.bgmLayerKeys)
+      ? item.bgmLayerKeys.filter((entry): entry is string => typeof entry === "string")
+      : undefined;
     const ambientLoopKeys = Array.isArray(item.ambientLoopKeys)
       ? item.ambientLoopKeys.filter((entry): entry is string => typeof entry === "string")
       : [];
 
     output[sceneKey] = {
       bgmKey,
+      bgmLayerKeys,
       bgmVolume,
       fadeIn,
       ambientLoopKeys,
@@ -196,6 +202,7 @@ function normalizeActProfiles(raw: unknown): Record<number, ActAudioProfile> {
       : [];
 
     const sceneBgmOverrides = normalizeStringMap(item.sceneBgmOverrides);
+    const sceneBgmLayerOverrides = normalizeStringArrayMap(item.sceneBgmLayerOverrides);
     const eventAudioOverrides = normalizeStringMap(item.eventAudioOverrides);
 
     const rawVolumeOverrides = (item.sceneBgmVolumeOverrides as Record<string, unknown>) ?? {};
@@ -222,6 +229,7 @@ function normalizeActProfiles(raw: unknown): Record<number, ActAudioProfile> {
       combatBgmKey,
       ambientLoopKeys,
       sceneBgmOverrides,
+      sceneBgmLayerOverrides,
       sceneBgmVolumeOverrides,
       sceneAmbientOverrides,
       eventAudioOverrides,
@@ -240,6 +248,26 @@ function normalizeStringMap(raw: unknown): Record<string, string> {
       continue;
     }
     output[key] = value;
+  }
+
+  return output;
+}
+
+function normalizeStringArrayMap(raw: unknown): Record<string, string[]> {
+  const input = (raw as Record<string, unknown>) ?? {};
+  const output: Record<string, string[]> = {};
+
+  for (const [key, value] of Object.entries(input)) {
+    if (!Array.isArray(value)) {
+      continue;
+    }
+
+    const normalized = value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+    if (normalized.length === 0) {
+      continue;
+    }
+
+    output[key] = normalized;
   }
 
   return output;
@@ -267,6 +295,15 @@ export function validateAudioProfiles(): string[] {
     if (!assetKeys.has(profile.bgmKey)) {
       issues.push(`Scene profile '${sceneKey}' references missing bgm key '${profile.bgmKey}'.`);
     }
+
+    if (profile.bgmLayerKeys) {
+      for (const layerKey of profile.bgmLayerKeys) {
+        if (!assetKeys.has(layerKey)) {
+          issues.push(`Scene profile '${sceneKey}' references missing bgm layer key '${layerKey}'.`);
+        }
+      }
+    }
+
     for (const ambientKey of profile.ambientLoopKeys) {
       if (!assetKeys.has(ambientKey)) {
         issues.push(`Scene profile '${sceneKey}' references missing ambient key '${ambientKey}'.`);
@@ -291,6 +328,16 @@ export function validateAudioProfiles(): string[] {
       for (const [sceneKey, key] of Object.entries(profile.sceneBgmOverrides)) {
         if (!assetKeys.has(key)) {
           issues.push(`Act profile '${actId}' scene bgm override '${sceneKey}' references missing key '${key}'.`);
+        }
+      }
+    }
+
+    if (profile.sceneBgmLayerOverrides) {
+      for (const [sceneKey, keys] of Object.entries(profile.sceneBgmLayerOverrides)) {
+        for (const key of keys) {
+          if (!assetKeys.has(key)) {
+            issues.push(`Act profile '${actId}' scene bgm layer override '${sceneKey}' references missing key '${key}'.`);
+          }
         }
       }
     }

@@ -35,6 +35,12 @@ export interface SceneMusicConfig {
   fadeIn: boolean;
 }
 
+export interface SceneMusicLayerConfig {
+  musicKey: string;
+  volume: number;
+  fadeIn: boolean;
+}
+
 /**
  * Sound effect configuration.
  */
@@ -182,48 +188,41 @@ export class AudioSystem {
     console.log(`AudioSystem: Registered ${type} - \"${key}\" at ${path}.`);
   }
 
+  getMusicLayersForScene(sceneKey: string, actId?: number): SceneMusicLayerConfig[] {
+    const resolved = this.resolveSceneMusicState(sceneKey, actId);
+    if (!resolved) {
+      return [];
+    }
+
+    return resolved.musicKeys.map((musicKey) => ({
+      musicKey,
+      volume: resolved.volume,
+      fadeIn: resolved.fadeIn,
+    }));
+  }
+
   getMusicKeyForScene(sceneKey: string, actId?: number): SceneMusicConfig | null {
-    const profile = SCENE_AUDIO_PROFILES[sceneKey];
-    if (!profile) {
+    const layers = this.getMusicLayersForScene(sceneKey, actId);
+    const primary = layers[0];
+    if (!primary) {
       return null;
     }
 
-    let musicKey = profile.bgmKey;
-    let volume = profile.bgmVolume;
-    const resolvedActId = this.resolveActId(actId);
-    const actProfile = typeof resolvedActId === "number" ? ACT_AUDIO_PROFILES[resolvedActId] : undefined;
-
-    if (actProfile) {
-      const sceneOverride = actProfile.sceneBgmOverrides?.[sceneKey];
-      if (sceneOverride) {
-        musicKey = sceneOverride;
-      } else if (sceneKey === "Overworld") {
-        musicKey = actProfile.overworldBgmKey;
-      } else if (sceneKey === "Combat") {
-        musicKey = actProfile.combatBgmKey;
-      }
-
-      const volumeOverride = actProfile.sceneBgmVolumeOverrides?.[sceneKey];
-      if (typeof volumeOverride === "number") {
-        volume = volumeOverride;
-      }
-    }
-
     return {
-      musicKey,
-      volume,
-      fadeIn: profile.fadeIn,
+      musicKey: primary.musicKey,
+      volume: primary.volume,
+      fadeIn: primary.fadeIn,
     };
   }
 
   getSceneMusicMap(): Record<string, SceneMusicConfig> {
     const map: Record<string, SceneMusicConfig> = {};
-    for (const [sceneKey, profile] of Object.entries(SCENE_AUDIO_PROFILES)) {
-      map[sceneKey] = {
-        musicKey: profile.bgmKey,
-        volume: profile.bgmVolume,
-        fadeIn: profile.fadeIn,
-      };
+    for (const sceneKey of Object.keys(SCENE_AUDIO_PROFILES)) {
+      const primary = this.getMusicKeyForScene(sceneKey);
+      if (!primary) {
+        continue;
+      }
+      map[sceneKey] = primary;
     }
     return map;
   }
@@ -721,5 +720,74 @@ export class AudioSystem {
     } catch {
       return undefined;
     }
+  }
+
+  private resolveSceneMusicState(
+    sceneKey: string,
+    actId?: number,
+  ): { musicKeys: string[]; volume: number; fadeIn: boolean } | null {
+    const profile = SCENE_AUDIO_PROFILES[sceneKey];
+    if (!profile) {
+      return null;
+    }
+
+    const baseLayers = profile.bgmLayerKeys?.length
+      ? profile.bgmLayerKeys
+      : [profile.bgmKey];
+
+    let musicKeys = this.uniqueNonEmpty(baseLayers);
+    let volume = profile.bgmVolume;
+    const resolvedActId = this.resolveActId(actId);
+    const actProfile = typeof resolvedActId === "number" ? ACT_AUDIO_PROFILES[resolvedActId] : undefined;
+
+    if (actProfile) {
+      const layerOverride = actProfile.sceneBgmLayerOverrides?.[sceneKey];
+      if (Array.isArray(layerOverride) && layerOverride.length > 0) {
+        musicKeys = this.uniqueNonEmpty(layerOverride);
+      } else {
+        let primaryKey = musicKeys[0] ?? profile.bgmKey;
+        const sceneOverride = actProfile.sceneBgmOverrides?.[sceneKey];
+        if (sceneOverride) {
+          primaryKey = sceneOverride;
+        } else if (sceneKey === "Overworld") {
+          primaryKey = actProfile.overworldBgmKey;
+        } else if (sceneKey === "Combat") {
+          primaryKey = actProfile.combatBgmKey;
+        }
+
+        if (musicKeys.length === 0) {
+          musicKeys.push(primaryKey);
+        } else {
+          musicKeys[0] = primaryKey;
+        }
+        musicKeys = this.uniqueNonEmpty(musicKeys);
+      }
+
+      const volumeOverride = actProfile.sceneBgmVolumeOverrides?.[sceneKey];
+      if (typeof volumeOverride === "number") {
+        volume = volumeOverride;
+      }
+    }
+
+    return {
+      musicKeys,
+      volume,
+      fadeIn: profile.fadeIn,
+    };
+  }
+
+  private uniqueNonEmpty(values: string[]): string[] {
+    const unique = new Set<string>();
+    for (const value of values) {
+      if (typeof value !== "string") {
+        continue;
+      }
+      const normalized = value.trim();
+      if (!normalized) {
+        continue;
+      }
+      unique.add(normalized);
+    }
+    return Array.from(unique);
   }
 }

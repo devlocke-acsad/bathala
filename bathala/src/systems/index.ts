@@ -47,6 +47,7 @@ export {
 } from './audio';
 export type {
   AudioAsset,
+  SceneMusicLayerConfig,
   SceneMusicConfig,
   SoundConfig,
   SceneAudioProfile,

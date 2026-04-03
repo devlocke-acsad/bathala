@@ -17,6 +17,7 @@ export type { PooledCard } from './CardSpritePool';
 export { MusicSystem } from './MusicSystem';
 export type {
 	AudioAsset,
+	SceneMusicLayerConfig,
 	SceneMusicConfig,
 	SoundConfig,
 } from './MusicSystem';
