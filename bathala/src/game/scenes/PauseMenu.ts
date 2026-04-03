@@ -12,6 +12,7 @@ const SCENES_TO_STOP_ON_MAIN_MENU = [
   'EventScene',
   'Campfire',
   'Treasure',
+  'Settings',
   'PauseMenu',
   'PokerHandReference',
 ] as const;
@@ -82,7 +83,8 @@ export class PauseMenu extends Scene {
 
     const resumeBtn = createButton(this, cx, startY, 'Resume', () => this.resume(), buttonW).setDepth(PauseMenu.DEPTH_BASE + 4);
     const helpBtn = createButton(this, cx, startY + gap, 'Help', () => this.openHelp(), buttonW).setDepth(PauseMenu.DEPTH_BASE + 4);
-    const menuBtn = createButton(this, cx, startY + gap * 2, 'Main Menu', () => this.goToMainMenu(), buttonW).setDepth(PauseMenu.DEPTH_BASE + 4);
+    const settingsBtn = createButton(this, cx, startY + gap * 2, 'Settings', () => this.openSettings(), buttonW).setDepth(PauseMenu.DEPTH_BASE + 4);
+    const menuBtn = createButton(this, cx, startY + gap * 3, 'Main Menu', () => this.goToMainMenu(), buttonW).setDepth(PauseMenu.DEPTH_BASE + 4);
 
     // Allow clicking outside panel to resume (small UX win).
     const hit = this.add
@@ -134,6 +136,26 @@ export class PauseMenu extends Scene {
     ref.events.once('shutdown', () => {
       this.input.enabled = true;
       this.scene.bringToTop('PauseMenu');
+    });
+  }
+
+  private openSettings(): void {
+    if (this.scene.isActive('Settings')) return;
+
+    // Disable pause menu interactions while settings overlay is open.
+    this.input.enabled = false;
+    this.scene.launch('Settings', {
+      launchedFromPause: true,
+      returnSceneKey: this.returnSceneKey,
+    });
+    this.scene.bringToTop('Settings');
+
+    const settings = this.scene.get('Settings');
+    settings.events.once('shutdown', () => {
+      this.input.enabled = true;
+      if (this.scene.isActive('PauseMenu')) {
+        this.scene.bringToTop('PauseMenu');
+      }
     });
   }
 }

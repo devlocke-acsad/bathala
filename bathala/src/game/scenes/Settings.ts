@@ -4,6 +4,11 @@ import { AudioSystem } from "../../systems/audio/AudioSystem";
 import { SettingsManager, type GameSettings } from "../../core/managers/SettingsManager";
 import { createButton } from "../ui/Button";
 
+type SettingsSceneData = {
+  launchedFromPause?: boolean;
+  returnSceneKey?: string;
+};
+
 export class Settings extends Scene {
   background: GameObjects.Image;
   title: GameObjects.Text;
@@ -15,9 +20,14 @@ export class Settings extends Scene {
   backButton: GameObjects.Text;
   private musicLifecycle!: MusicLifecycleSystem;
   private settings = SettingsManager.getInstance();
+  private launchedFromPause: boolean = false;
 
   constructor() {
     super("Settings");
+  }
+
+  init(data?: SettingsSceneData): void {
+    this.launchedFromPause = !!data?.launchedFromPause;
   }
 
   create() {
@@ -35,6 +45,13 @@ export class Settings extends Scene {
     // Ensure persisted audio settings are applied (music volume/mute).
     this.settings.applyToAudio();
     this.showRoot();
+
+    const esc = this.input.keyboard?.addKey('ESC');
+    esc?.on('down', () => {
+      if (this.launchedFromPause) {
+        this.exitToPauseMenu();
+      }
+    });
   }
 
   /**
@@ -149,7 +166,7 @@ export class Settings extends Scene {
       { label: "Audio", action: () => this.showAudioSettings() },
       { label: "Video", action: () => this.showVideoSettings() },
       { label: "Controls", action: () => this.showControls() },
-      { label: "Back", action: () => this.scene.start("MainMenu") },
+      { label: "Back", action: () => this.handleRootBackAction() },
     ];
 
     const startY = centerY - 30;
@@ -532,6 +549,21 @@ export class Settings extends Scene {
     this.clearSettingsUI();
     this.createBackgroundEffects();
     this.createUI();
+  }
+
+  private handleRootBackAction(): void {
+    if (this.launchedFromPause) {
+      this.exitToPauseMenu();
+      return;
+    }
+    this.scene.start("MainMenu");
+  }
+
+  private exitToPauseMenu(): void {
+    this.scene.stop();
+    if (this.scene.isActive('PauseMenu')) {
+      this.scene.bringToTop('PauseMenu');
+    }
   }
 
   /**
