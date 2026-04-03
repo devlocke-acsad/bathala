@@ -35,13 +35,33 @@ export {
   OverworldHUD,
 } from './world';
 
+// Audio systems
+export {
+  AudioSystem,
+  MusicSystem,
+  MusicLifecycleSystem,
+  ACTION_AUDIO_PROFILE,
+  ACT_AUDIO_PROFILES,
+  SCENE_AUDIO_PROFILES,
+  UI_AUDIO_PROFILE,
+} from './audio';
+export type {
+  AudioAsset,
+  SceneMusicLayerConfig,
+  SceneMusicConfig,
+  SoundConfig,
+  SceneAudioProfile,
+  ActAudioProfile,
+  UIAudioProfile,
+  ActionAudioProfile,
+} from './audio';
+
 // Shared / cross-scene utilities
 export {
   SceneTransitionController,
   CursorManager,
   FloatingTextPool,
   CardSpritePool,
-  MusicLifecycleSystem,
   InputSystem,
 } from './shared';
 export type {

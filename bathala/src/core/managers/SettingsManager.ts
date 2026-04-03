@@ -1,4 +1,5 @@
-import { MusicManager } from './MusicManager';
+import { AudioSystem } from '../../systems/audio/AudioSystem';
+import { MusicLifecycleSystem } from '../../systems/audio/MusicLifecycleSystem';
 
 export type Toggle = boolean;
 
@@ -6,10 +7,16 @@ export interface GameSettings {
   // Audio
   masterVolume: number; // 0..1
   musicVolume: number;  // 0..1
+  ambientVolume: number; // 0..1
   sfxVolume: number;    // 0..1
+  uiVolume: number;     // 0..1
+  voiceVolume: number;  // 0..1
   muteMaster: Toggle;
   muteMusic: Toggle;
+  muteAmbient: Toggle;
   muteSfx: Toggle;
+  muteUi: Toggle;
+  muteVoice: Toggle;
 
   // Video
   fullscreen: Toggle;
@@ -24,10 +31,16 @@ const STORAGE_KEY = 'bathala_settings_v1';
 const DEFAULT_SETTINGS: GameSettings = {
   masterVolume: 1.0,
   musicVolume: 0.5,
+  ambientVolume: 0.8,
   sfxVolume: 0.7,
+  uiVolume: 1.0,
+  voiceVolume: 1.0,
   muteMaster: false,
   muteMusic: false,
+  muteAmbient: false,
   muteSfx: false,
+  muteUi: false,
+  muteVoice: false,
   fullscreen: false,
   showScanlines: true,
   reducedMotion: false,
@@ -66,7 +79,10 @@ export class SettingsManager {
 
     next.masterVolume = clamp01(next.masterVolume);
     next.musicVolume = clamp01(next.musicVolume);
+    next.ambientVolume = clamp01(next.ambientVolume);
     next.sfxVolume = clamp01(next.sfxVolume);
+    next.uiVolume = clamp01(next.uiVolume);
+    next.voiceVolume = clamp01(next.voiceVolume);
 
     this.settings = next;
     this.save();
@@ -90,7 +106,10 @@ export class SettingsManager {
         ...parsed,
         masterVolume: clamp01(parsed.masterVolume ?? DEFAULT_SETTINGS.masterVolume),
         musicVolume: clamp01(parsed.musicVolume ?? DEFAULT_SETTINGS.musicVolume),
+        ambientVolume: clamp01(parsed.ambientVolume ?? DEFAULT_SETTINGS.ambientVolume),
         sfxVolume: clamp01(parsed.sfxVolume ?? DEFAULT_SETTINGS.sfxVolume),
+        uiVolume: clamp01(parsed.uiVolume ?? DEFAULT_SETTINGS.uiVolume),
+        voiceVolume: clamp01(parsed.voiceVolume ?? DEFAULT_SETTINGS.voiceVolume),
       };
       return this.get();
     } catch {
@@ -110,23 +129,37 @@ export class SettingsManager {
 
   /**
    * Apply current settings to global managers.
-   * Music volume is applied via MusicLifecycleSystem (effective volume).
+   * Any active persistent music/ambient loops are refreshed after changes.
    */
   applyToAudio(): void {
-    const mm = MusicManager.getInstance();
-    mm.setMasterVolume(this.settings.masterVolume);
-    mm.setMusicVolume(this.settings.musicVolume);
-    mm.setSFXVolume(this.settings.sfxVolume);
+    const audioSystem = AudioSystem.getInstance();
+    audioSystem.setMasterVolume(this.settings.masterVolume);
+    audioSystem.setMusicVolume(this.settings.musicVolume);
+    audioSystem.setSFXVolume(this.settings.sfxVolume);
+    audioSystem.setChannelVolume('ambient', this.settings.ambientVolume);
+    audioSystem.setChannelVolume('ui', this.settings.uiVolume);
+    audioSystem.setChannelVolume('voice', this.settings.voiceVolume);
 
     // Mutes
-    if (this.settings.muteMaster) mm.muteAll();
-    else mm.unmuteAll();
+    if (this.settings.muteMaster) audioSystem.muteAll();
+    else audioSystem.unmuteAll();
 
-    if (this.settings.muteMusic) mm.muteMusic();
-    else mm.unmuteMusic();
+    if (this.settings.muteMusic) audioSystem.muteMusic();
+    else audioSystem.unmuteMusic();
 
-    if (this.settings.muteSfx) mm.muteSFX();
-    else mm.unmuteSFX();
+    if (this.settings.muteSfx) audioSystem.muteSFX();
+    else audioSystem.unmuteSFX();
+
+    if (this.settings.muteAmbient) audioSystem.muteChannel('ambient');
+    else audioSystem.unmuteChannel('ambient');
+
+    if (this.settings.muteUi) audioSystem.muteChannel('ui');
+    else audioSystem.unmuteChannel('ui');
+
+    if (this.settings.muteVoice) audioSystem.muteChannel('voice');
+    else audioSystem.unmuteChannel('voice');
+
+    MusicLifecycleSystem.refreshPersistentMix();
   }
 }
 

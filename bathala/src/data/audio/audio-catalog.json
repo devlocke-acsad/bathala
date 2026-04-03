@@ -1,0 +1,228 @@
+{
+  "defaultChannelVolumes": {
+    "master": 1,
+    "music": 1,
+    "ambient": 0.8,
+    "sfx": 1,
+    "ui": 1,
+    "voice": 1
+  },
+  "assets": [
+    {
+      "key": "placeholder_music",
+      "path": "music/bgm/shared/placeholder.mp3",
+      "type": "music",
+      "channel": "music",
+      "baseVolume": 1,
+      "loop": true,
+      "tags": ["bgm", "placeholder"]
+    },
+    {
+      "key": "disclaimer_music",
+      "path": "music/bgm/menu/main_menu.mp3",
+      "type": "music",
+      "channel": "music",
+      "baseVolume": 1,
+      "loop": true,
+      "tags": ["bgm", "disclaimer"]
+    },
+    {
+      "key": "main_menu_music",
+      "path": "music/bgm/menu/main_menu.mp3",
+      "type": "music",
+      "channel": "music",
+      "baseVolume": 1,
+      "loop": true,
+      "tags": ["bgm", "menu"]
+    },
+    {
+      "key": "battle_music_1",
+      "path": "music/bgm/combat/battle_theme_1.mp3",
+      "type": "music",
+      "channel": "music",
+      "baseVolume": 1,
+      "loop": true,
+      "tags": ["bgm", "combat"]
+    },
+    {
+      "key": "npc_interaction_music",
+      "path": "music/bgm/social/npc_interaction.mp3",
+      "type": "music",
+      "channel": "music",
+      "baseVolume": 1,
+      "loop": true,
+      "tags": ["bgm", "npc"]
+    },
+    {
+      "key": "ui_hover",
+      "path": "sfx/ui/ui_hover.wav",
+      "type": "sfx",
+      "channel": "ui",
+      "baseVolume": 0.5,
+      "loop": false,
+      "tags": ["ui", "hover"]
+    },
+    {
+      "key": "ui_click",
+      "path": "sfx/ui/ui_click.wav",
+      "type": "sfx",
+      "channel": "ui",
+      "baseVolume": 0.8,
+      "loop": false,
+      "tags": ["ui", "click"]
+    },
+    {
+      "key": "ui_panel_open",
+      "path": "sfx/ui/ui_panel_open.wav",
+      "type": "sfx",
+      "channel": "ui",
+      "baseVolume": 0.7,
+      "loop": false,
+      "tags": ["ui", "panel"]
+    },
+    {
+      "key": "ui_panel_close",
+      "path": "sfx/ui/ui_panel_close.wav",
+      "type": "sfx",
+      "channel": "ui",
+      "baseVolume": 0.7,
+      "loop": false,
+      "tags": ["ui", "panel"]
+    },
+    {
+      "key": "ui_confirm",
+      "path": "sfx/ui/ui_confirm.wav",
+      "type": "sfx",
+      "channel": "ui",
+      "baseVolume": 0.75,
+      "loop": false,
+      "tags": ["ui", "confirm"]
+    },
+    {
+      "key": "ui_cancel",
+      "path": "sfx/ui/ui_cancel.wav",
+      "type": "sfx",
+      "channel": "ui",
+      "baseVolume": 0.75,
+      "loop": false,
+      "tags": ["ui", "cancel"]
+    },
+    {
+      "key": "player_step",
+      "path": "sfx/player/player_step.wav",
+      "type": "sfx",
+      "channel": "sfx",
+      "baseVolume": 0.7,
+      "loop": false,
+      "tags": ["player", "movement", "footstep"]
+    },
+    {
+      "key": "card_draw",
+      "path": "sfx/combat/card_draw.wav",
+      "type": "sfx",
+      "channel": "sfx",
+      "baseVolume": 0.75,
+      "loop": false,
+      "tags": ["combat", "cards"]
+    },
+    {
+      "key": "attack_basic",
+      "path": "sfx/combat/attack_basic.wav",
+      "type": "sfx",
+      "channel": "sfx",
+      "baseVolume": 0.9,
+      "loop": false,
+      "tags": ["combat", "attack"]
+    },
+    {
+      "key": "attack_special",
+      "path": "sfx/combat/attack_special.wav",
+      "type": "sfx",
+      "channel": "sfx",
+      "baseVolume": 1,
+      "loop": false,
+      "tags": ["combat", "attack", "special"]
+    },
+    {
+      "key": "combat_start",
+      "path": "sfx/combat/combat_start.wav",
+      "type": "sfx",
+      "channel": "sfx",
+      "baseVolume": 0.85,
+      "loop": false,
+      "tags": ["combat", "transition"]
+    },
+    {
+      "key": "item_use",
+      "path": "sfx/items/item_use.wav",
+      "type": "sfx",
+      "channel": "sfx",
+      "baseVolume": 0.8,
+      "loop": false,
+      "tags": ["item", "consume"]
+    },
+    {
+      "key": "forest_ambient",
+      "path": "sfx/ambient/forest_ambient.wav",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.6,
+      "loop": true,
+      "tags": ["ambient", "forest", "act1"]
+    },
+    {
+      "key": "wind_whispers",
+      "path": "sfx/ambient/wind_whispers.wav",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.55,
+      "loop": true,
+      "tags": ["ambient", "wind"]
+    },
+    {
+      "key": "rain_ambient",
+      "path": "sfx/ambient/rain_ambient.wav",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.55,
+      "loop": true,
+      "tags": ["ambient", "rain", "act2"]
+    },
+    {
+      "key": "act2_ambiance_rain",
+      "path": "sfx/ambient/ambiance_rain1.mp3",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.5,
+      "loop": true,
+      "tags": ["ambient", "rain", "act2", "layer"]
+    },
+    {
+      "key": "act2_ambiance_rain_wind",
+      "path": "sfx/ambient/ambiance_rain_wind1.mp3",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.48,
+      "loop": true,
+      "tags": ["ambient", "rain", "wind", "act2", "layer"]
+    },
+    {
+      "key": "act1_ambiance_scaryforest_1",
+      "path": "sfx/ambient/ambiance_scaryforest1.mp3",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.5,
+      "loop": true,
+      "tags": ["ambient", "forest", "scary", "act1", "layer"]
+    },
+    {
+      "key": "act1_ambiance_scaryforest_2",
+      "path": "sfx/ambient/ambiance_scaryforest2.mp3",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.47,
+      "loop": true,
+      "tags": ["ambient", "forest", "scary", "act1", "layer"]
+    }
+  ]
+}

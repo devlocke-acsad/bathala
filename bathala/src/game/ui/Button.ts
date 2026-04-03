@@ -1,4 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
+import { AudioSystem } from '../../systems/audio/AudioSystem';
 
 export function createButton(
     scene: Scene,
@@ -8,6 +9,7 @@ export function createButton(
     callback: () => void,
     fixedWidth?: number // Optional fixed width parameter
 ): GameObjects.Container {
+  const audioSystem = AudioSystem.getInstance();
     const screenWidth = scene.cameras.main.width;
     const baseButtonWidth = 140;
     const baseButtonHeight = 45;
@@ -53,11 +55,15 @@ export function createButton(
       new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
       Phaser.Geom.Rectangle.Contains
     );
+    // This component already emits its own hover/press audio.
+    button.setData('disableGlobalInteractiveAudio', true);
     
     button.on("pointerdown", () => {
       if ((scene as any).getIsActionProcessing && (scene as any).getIsActionProcessing()) {
         return;
       }
+
+      audioSystem.triggerUIAction(scene, "buttonPress");
       
       scene.tweens.add({
         targets: button,
@@ -77,6 +83,7 @@ export function createButton(
     });
     
     button.on("pointerover", () => {
+      audioSystem.triggerUIAction(scene, "buttonHover", { volume: 0.6 });
       bg.setFillStyle(0x1f1410);
       buttonText.setColor("#e8eced");
       scene.tweens.add({

@@ -1,5 +1,5 @@
 import { Scene, GameObjects } from "phaser";
-import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 
 export class Disclaimer extends Scene {
   private canContinue: boolean = false;

@@ -12,7 +12,8 @@ import { ACT1 } from "../../acts/act1/Act1Definition";
 import { ACT2 } from "../../acts/act2/Act2Definition";
 import { ACT3 } from "../../acts/act3/Act3Definition";
 import { TooltipSystem } from "../../systems/world/TooltipSystem";
-import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
+import { AudioSystem } from "../../systems/audio/AudioSystem";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { getRelicSpriteKey } from "../../utils/RelicSpriteUtils";
 import { FogOfWarSystem } from "../../systems/world/FogOfWarSystem";
@@ -405,14 +406,8 @@ export class Overworld extends Scene {
     const narrative = CHAPTER_NARRATIVES[this.sceneChapter];
     const areaName = narrative?.title || `Chapter ${this.sceneChapter}`;
 
-    // Play a subtle reveal sound if possible
-    try {
-      if (this.sound.get('combat_start')) {
-        this.sound.play('combat_start', { volume: 0.3 });
-      }
-    } catch (e) {
-      // Ignore if sound missing
-    }
+    // Play area reveal interaction sound through semantic audio event routing.
+    AudioSystem.getInstance().triggerInteraction(this, "overworld.area.reveal", { volume: 0.3 });
 
     const popupContainer = this.add.container(screenWidth / 2, screenHeight / 2 - 50); // Slightly higher
     popupContainer.setScrollFactor(0);

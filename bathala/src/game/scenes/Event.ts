@@ -5,7 +5,7 @@ import { Player } from '../../core/types/CombatTypes';
 import { GameEvent, EventChoice, EventContext, EducationalEvent } from '../../data/events/EventTypes';
 import { EventSelectionSystem } from '../../systems/world/EventSelectionSystem';
 import { OverworldGameState } from '../../core/managers/OverworldGameState';
-import { MusicLifecycleSystem } from '../../systems/shared/MusicLifecycleSystem';
+import { MusicLifecycleSystem } from '../../systems/audio/MusicLifecycleSystem';
 import { EducationalEventManager } from '../../core/managers/EducationalEventManager';
 
 /**

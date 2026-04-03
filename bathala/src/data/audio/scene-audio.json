@@ -1,0 +1,18 @@
+{
+  "Boot": { "bgmKey": "placeholder_music", "bgmLayerKeys": ["placeholder_music"], "bgmVolume": 0.4, "fadeIn": false, "ambientLoopKeys": [] },
+  "Disclaimer": { "bgmKey": "main_menu_music", "bgmLayerKeys": ["main_menu_music"], "bgmVolume": 0.4, "fadeIn": false, "ambientLoopKeys": [] },
+  "MainMenu": { "bgmKey": "main_menu_music", "bgmLayerKeys": ["main_menu_music"], "bgmVolume": 0.5, "fadeIn": true, "restartMusicWhenEnteredFromScenes": ["Credits"], "ambientLoopKeys": [] },
+  "Overworld": { "bgmKey": "placeholder_music", "bgmLayerKeys": ["placeholder_music"], "bgmVolume": 0.4, "fadeIn": true, "ambientLoopKeys": ["forest_ambient"] },
+  "Combat": { "bgmKey": "battle_music_1", "bgmLayerKeys": ["battle_music_1"], "bgmVolume": 0.5, "fadeIn": true, "ambientLoopKeys": [] },
+  "Shop": { "bgmKey": "npc_interaction_music", "bgmLayerKeys": ["npc_interaction_music"], "bgmVolume": 0.4, "fadeIn": true, "ambientLoopKeys": [] },
+  "Campfire": { "bgmKey": "npc_interaction_music", "bgmLayerKeys": ["npc_interaction_music"], "bgmVolume": 0.4, "fadeIn": true, "ambientLoopKeys": [] },
+  "EventScene": { "bgmKey": "npc_interaction_music", "bgmLayerKeys": ["npc_interaction_music"], "bgmVolume": 0.4, "fadeIn": true, "ambientLoopKeys": [] },
+  "ChapterTransition": { "bgmKey": "placeholder_music", "bgmLayerKeys": ["placeholder_music"], "bgmVolume": 0.35, "fadeIn": true, "ambientLoopKeys": [] },
+  "ChapterCutscene": { "bgmKey": "placeholder_music", "bgmLayerKeys": ["placeholder_music"], "bgmVolume": 0.4, "fadeIn": true, "ambientLoopKeys": [] },
+  "Treasure": { "bgmKey": "placeholder_music", "bgmLayerKeys": ["placeholder_music"], "bgmVolume": 0.4, "fadeIn": true, "ambientLoopKeys": [] },
+  "GameOver": { "bgmKey": "placeholder_music", "bgmLayerKeys": ["placeholder_music"], "bgmVolume": 0.5, "fadeIn": true, "ambientLoopKeys": [] },
+  "Credits": { "bgmKey": "placeholder_music", "bgmLayerKeys": ["placeholder_music"], "bgmVolume": 0.3, "fadeIn": true, "resumeFromLastPosition": true, "ambientLoopKeys": [] },
+  "Settings": { "bgmKey": "placeholder_music", "bgmLayerKeys": ["placeholder_music"], "bgmVolume": 0.3, "fadeIn": true, "ambientLoopKeys": [] },
+  "Discover": { "bgmKey": "placeholder_music", "bgmLayerKeys": ["placeholder_music"], "bgmVolume": 0.3, "fadeIn": true, "ambientLoopKeys": [] },
+  "Prologue": { "bgmKey": "placeholder_music", "bgmLayerKeys": ["placeholder_music"], "bgmVolume": 0.3, "fadeIn": true, "ambientLoopKeys": [] }
+}

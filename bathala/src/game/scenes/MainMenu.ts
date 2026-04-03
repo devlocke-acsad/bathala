@@ -2,7 +2,7 @@ import { Scene, GameObjects } from "phaser";
 import { GameState } from "../../core/managers/GameState";
 import { OverworldGameState } from "../../core/managers/OverworldGameState";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
-import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 import { createButton } from "../ui/Button";
 
 export class MainMenu extends Scene {

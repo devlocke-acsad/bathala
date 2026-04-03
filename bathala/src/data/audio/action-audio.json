@@ -1,0 +1,7 @@
+{
+  "playerStep": "player_step",
+  "cardDraw": "card_draw",
+  "attackBasic": "attack_basic",
+  "attackSpecial": "attack_special",
+  "itemUse": "item_use"
+}

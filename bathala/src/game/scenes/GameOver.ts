@@ -1,6 +1,7 @@
 import { Scene } from 'phaser';
 import { EnemyRegistry } from '../../core/registries/EnemyRegistry';
 import { bootstrapEnemies } from '../../data/enemies/EnemyBootstrap';
+import { MusicLifecycleSystem } from '../../systems/audio/MusicLifecycleSystem';
 
 interface GameOverData {
     defeatedBy?: string;
@@ -46,6 +47,8 @@ export class GameOver extends Scene
 
     create ()
     {
+        new MusicLifecycleSystem(this).start();
+
         this.camera = this.cameras.main;
         // Dark red-tinted background for death atmosphere
         this.camera.setBackgroundColor(0x2d0f0f);

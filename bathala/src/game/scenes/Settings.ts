@@ -1,8 +1,13 @@
 import { Scene, GameObjects } from "phaser";
-import { MusicManager } from "../../core/managers/MusicManager";
-import { MusicLifecycleSystem } from "../../systems/shared/MusicLifecycleSystem";
-import { SettingsManager } from "../../core/managers/SettingsManager";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
+import { AudioSystem } from "../../systems/audio/AudioSystem";
+import { SettingsManager, type GameSettings } from "../../core/managers/SettingsManager";
 import { createButton } from "../ui/Button";
+
+type SettingsSceneData = {
+  launchedFromPause?: boolean;
+  returnSceneKey?: string;
+};
 
 export class Settings extends Scene {
   background: GameObjects.Image;
@@ -15,10 +20,14 @@ export class Settings extends Scene {
   backButton: GameObjects.Text;
   private musicLifecycle!: MusicLifecycleSystem;
   private settings = SettingsManager.getInstance();
-  private currentView: "root" | "audio" | "video" | "controls" = "root";
+  private launchedFromPause: boolean = false;
 
   constructor() {
     super("Settings");
+  }
+
+  init(data?: SettingsSceneData): void {
+    this.launchedFromPause = !!data?.launchedFromPause;
   }
 
   create() {
@@ -36,6 +45,13 @@ export class Settings extends Scene {
     // Ensure persisted audio settings are applied (music volume/mute).
     this.settings.applyToAudio();
     this.showRoot();
+
+    const esc = this.input.keyboard?.addKey('ESC');
+    esc?.on('down', () => {
+      if (this.launchedFromPause) {
+        this.exitToPauseMenu();
+      }
+    });
   }
 
   /**
@@ -95,13 +111,13 @@ export class Settings extends Scene {
       .setTint(0x77888C);
       
     // Create a more pronounced scanline pattern
-    const graphics = this.make.graphics({ x: 0, y: 0, add: false });
+    const graphics = this.make.graphics({ x: 0, y: 0 });
     graphics.fillStyle(0x000000, 1);
     graphics.fillRect(0, 0, 4, 2); // Thicker lines
     graphics.fillStyle(0xffffff, 1);
     graphics.fillRect(0, 2, 4, 2); // Thicker lines
     
-    const texture = graphics.generateTexture('settings_scanline', 4, 4);
+    graphics.generateTexture('settings_scanline', 4, 4);
     this.scanlines.setTexture('settings_scanline');
     
     // Move background to the back
@@ -150,7 +166,7 @@ export class Settings extends Scene {
       { label: "Audio", action: () => this.showAudioSettings() },
       { label: "Video", action: () => this.showVideoSettings() },
       { label: "Controls", action: () => this.showControls() },
-      { label: "Back", action: () => this.scene.start("MainMenu") },
+      { label: "Back", action: () => this.handleRootBackAction() },
     ];
 
     const startY = centerY - 30;
@@ -183,7 +199,7 @@ export class Settings extends Scene {
   /**
    * Update method for animation effects
    */
-  update(time: number, delta: number): void {
+  update(_time: number, delta: number): void {
     // Animate the scanlines
     if (this.scanlines) {
       this.scanlineTimer += delta;
@@ -210,49 +226,103 @@ export class Settings extends Scene {
     this.createStraightTitle(screenWidth/2, 100, "audio settings");
     
     const current = this.settings.get();
-    const currentMusicVolume = current.musicVolume;
+    const sliderWidth = Math.min(520, screenWidth * 0.45);
+    const sliderStartY = 180;
+    const sliderSpacing = 72;
 
-    // Music Volume Slider (only dynamic slider in UI)
-    this.createVolumeSlider(
-      screenWidth/2,
-      screenHeight/2 - 40,
-      "Music Volume",
-      currentMusicVolume,
-      (volume: number) => {
-        this.settings.set({ musicVolume: volume });
-        this.settings.applyToAudio();
-        // Restart lifecycle music to reflect volume immediately.
-        this.musicLifecycle.start();
-      }
-    );
+    const sliders: Array<{
+      label: string;
+      key: keyof Pick<GameSettings, "masterVolume" | "musicVolume" | "ambientVolume" | "sfxVolume" | "uiVolume" | "voiceVolume">;
+    }> = [
+      { label: "Master Volume", key: "masterVolume" },
+      { label: "Music Volume", key: "musicVolume" },
+      { label: "Ambient Volume", key: "ambientVolume" },
+      { label: "SFX Volume", key: "sfxVolume" },
+      { label: "UI Volume", key: "uiVolume" },
+      { label: "Voice Volume", key: "voiceVolume" },
+    ];
 
-    // MainMenu-style buttons
-    const fixedWidth = 360;
-    const startY = screenHeight / 2 + 70;
+    sliders.forEach((slider, index) => {
+      this.createVolumeSlider(
+        screenWidth / 2,
+        sliderStartY + index * sliderSpacing,
+        slider.label,
+        current[slider.key],
+        (volume: number) => {
+          this.settings.set({ [slider.key]: volume } as Partial<GameSettings>);
+          this.settings.applyToAudio();
+        },
+        sliderWidth,
+      );
+    });
 
-    const muteLabel = () => `Music: ${this.settings.get().muteMusic ? "OFF" : "ON"}`;
+    const muteButtons: Array<{
+      key: keyof Pick<GameSettings, "muteMaster" | "muteMusic" | "muteAmbient" | "muteSfx" | "muteUi" | "muteVoice">;
+      label: string;
+      x: number;
+      y: number;
+    }> = [
+      { key: "muteMaster", label: "Master", x: screenWidth / 2 - 270, y: screenHeight - 305 },
+      { key: "muteMusic", label: "Music", x: screenWidth / 2, y: screenHeight - 305 },
+      { key: "muteAmbient", label: "Ambient", x: screenWidth / 2 + 270, y: screenHeight - 305 },
+      { key: "muteSfx", label: "SFX", x: screenWidth / 2 - 270, y: screenHeight - 235 },
+      { key: "muteUi", label: "UI", x: screenWidth / 2, y: screenHeight - 235 },
+      { key: "muteVoice", label: "Voice", x: screenWidth / 2 + 270, y: screenHeight - 235 },
+    ];
+
+    muteButtons.forEach((button) => {
+      const isMuted = this.settings.get()[button.key];
+      createButton(
+        this,
+        button.x,
+        button.y,
+        `${button.label}: ${isMuted ? "OFF" : "ON"}`,
+        () => {
+          const updatedValue = !this.settings.get()[button.key];
+          this.settings.set({ [button.key]: updatedValue } as Partial<GameSettings>);
+          this.settings.applyToAudio();
+          this.showAudioSettings();
+        },
+        250,
+      );
+    });
 
     createButton(
       this,
-      screenWidth / 2,
-      startY,
-      muteLabel(),
+      screenWidth / 2 - 170,
+      screenHeight - 165,
+      "Play Test SFX",
       () => {
-        const nextMuted = !this.settings.get().muteMusic;
-        this.settings.set({ muteMusic: nextMuted });
+        const audioSystem = AudioSystem.getInstance();
+        audioSystem.triggerUIAction(this, "confirm", { volume: 0.9 });
+      },
+      280,
+    );
+
+    createButton(
+      this,
+      screenWidth / 2 + 170,
+      screenHeight - 165,
+      "Reset Audio",
+      () => {
+        this.settings.set({
+          masterVolume: 1,
+          musicVolume: 0.5,
+          ambientVolume: 0.8,
+          sfxVolume: 0.7,
+          uiVolume: 1,
+          voiceVolume: 1,
+          muteMaster: false,
+          muteMusic: false,
+          muteAmbient: false,
+          muteSfx: false,
+          muteUi: false,
+          muteVoice: false,
+        });
         this.settings.applyToAudio();
-
-        // Stop instantly when muting; resume instantly when unmuting.
-        if (nextMuted) {
-          this.musicLifecycle.stop();
-        } else {
-          this.musicLifecycle.start();
-        }
-
-        // Refresh label to match current state
         this.showAudioSettings();
       },
-      fixedWidth
+      280,
     );
     
     // Add back button
@@ -267,7 +337,8 @@ export class Settings extends Scene {
     y: number,
     label: string,
     initialVolume: number,
-    onChange: (volume: number) => void
+    onChange: (volume: number) => void,
+    sliderWidth: number = 400,
   ): void {
     // Label
     this.add.text(x, y - 30, label, {
@@ -278,7 +349,6 @@ export class Settings extends Scene {
     }).setOrigin(0.5);
     
     // Slider background
-    const sliderWidth = 400;
     const sliderHeight = 20;
     this.add.rectangle(x, y, sliderWidth, sliderHeight, 0x1f1410)
       .setStrokeStyle(2, 0x77888C);
@@ -476,10 +546,24 @@ export class Settings extends Scene {
   }
 
   private showRoot(): void {
-    this.currentView = "root";
     this.clearSettingsUI();
     this.createBackgroundEffects();
     this.createUI();
+  }
+
+  private handleRootBackAction(): void {
+    if (this.launchedFromPause) {
+      this.exitToPauseMenu();
+      return;
+    }
+    this.scene.start("MainMenu");
+  }
+
+  private exitToPauseMenu(): void {
+    this.scene.stop();
+    if (this.scene.isActive('PauseMenu')) {
+      this.scene.bringToTop('PauseMenu');
+    }
   }
 
   /**

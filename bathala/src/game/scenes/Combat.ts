@@ -29,7 +29,7 @@ import { CombatAnimations } from "./combat/CombatAnimations";
 import { CombatDDA } from "./combat/CombatDDA";
 import { RuleBasedDDA } from "../../core/dda/RuleBasedDDA";
 import { DifficultyAdjustment } from "../../core/dda/DDATypes";
-import { MusicManager } from "../../core/managers/MusicManager";
+import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 import { BOSS_NARRATIVES, getEnding } from "../../data/NarrativeData";
 import { StatusEffectManager } from "../../core/managers/StatusEffectManager";
 import { VisualThemeManager } from "../../core/managers/VisualThemeManager";
@@ -139,7 +139,7 @@ export class Combat extends Scene {
   private relicInventory!: Phaser.GameObjects.Container;
   private currentRelicTooltip!: Phaser.GameObjects.Container | null;
   private pokerHandInfoButton!: Phaser.GameObjects.Container;
-  private music?: Phaser.Sound.BaseSound;
+  private musicLifecycle?: MusicLifecycleSystem;
 
   constructor() {
     super({ key: "Combat" });
@@ -321,9 +321,8 @@ export class Combat extends Scene {
     // Initialize combat state
     this.initializeCombat(data.nodeType, data.enemyId);
 
-    // Start music for Combat scene
-    this.startMusic();
-    this.setupMusicLifecycle();
+    this.musicLifecycle = new MusicLifecycleSystem(this);
+    this.musicLifecycle.start();
 
     // Initialize managers
     this.enemyDialogueManager = new EnemyDialogueManager(this);
@@ -5626,108 +5625,8 @@ export class Combat extends Scene {
     this.ui?.updateActionButtons();
   }
 
-  /**
-   * Start music for Combat scene
-   * Uses MusicManager to get the correct music track and plays it using Phaser's sound API
-   */
-  private startMusic(): void {
-    try {
-      console.log(`🎵 ========== MUSIC START: Combat ==========`);
-
-      // Stop any existing music first
-      if (this.music) {
-        console.log(`🎵 Combat: Stopping existing music before starting new track`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-
-      // Get music configuration from MusicManager
-      const musicManager = MusicManager.getInstance();
-      const musicConfig = musicManager.getMusicKeyForScene('Combat');
-
-      if (!musicConfig) {
-        console.warn(`⚠️ Combat: No music configured for Combat scene`);
-        console.log(`🎵 ========== MUSIC START FAILED: Combat (no config) ==========`);
-        return;
-      }
-
-      console.log(`🎵 Combat: Music config found - Key: "${musicConfig.musicKey}", Volume: ${musicConfig.volume}`);
-
-      // Validate that the audio file exists in cache
-      if (!this.cache.audio.exists(musicConfig.musicKey)) {
-        console.error(`❌ Combat: Audio key '${musicConfig.musicKey}' not found in cache - skipping music playback`);
-        console.log(`🎵 ========== MUSIC START FAILED: Combat (not in cache) ==========`);
-        return;
-      }
-
-      // Create and play the music using Phaser's sound API
-      this.music = this.sound.add(musicConfig.musicKey, {
-        volume: musicConfig.volume ?? musicManager.getEffectiveMusicVolume(),
-        loop: true
-      });
-
-      this.music.play();
-      console.log(`✅ Combat: Music '${musicConfig.musicKey}' started successfully`);
-      console.log(`🎵 ========== MUSIC START SUCCESS: Combat ==========`);
-
-    } catch (error) {
-      console.error(`❌ Combat: Error starting music:`, error);
-      console.log(`🎵 ========== MUSIC START ERROR: Combat ==========`);
-      // Continue without music - game should still be playable
-    }
-  }
-
-  /**
-   * Setup music lifecycle listeners
-   * Automatically handles music on scene pause/resume/shutdown
-   */
-  private setupMusicLifecycle(): void {
-    // Stop music when scene is paused (e.g., when another scene is launched on top)
-    this.events.on('pause', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE PAUSE: Combat → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
-
-    // Restart music when scene is resumed (e.g., when launched scene stops and this scene becomes active again)
-    this.events.on('resume', () => {
-      console.log(`🎵 ========== SCENE RESUME: Combat → Restarting music ==========`);
-      this.startMusic();
-    });
-
-    // Stop music when scene is shut down (e.g., when scene.start() replaces it)
-    this.events.on('shutdown', () => {
-      if (this.music) {
-        console.log(`🎵 ========== SCENE SHUTDOWN: Combat → Stopping music ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-    });
-  }
-
-  /**
-   * Shutdown method - called when scene is stopped
-   * Cleans up music and event listeners
-   */
   shutdown(): void {
-    try {
-      // Stop music when scene shuts down
-      if (this.music) {
-        console.log(`🎵 ========== MUSIC STOP: Combat (shutdown) ==========`);
-        this.music.stop();
-        this.music.destroy();
-        this.music = undefined;
-      }
-
-      // No resize listener cleanup needed — Scale.FIT handles zoom uniformly
-
-    } catch (error) {
-      console.error(`❌ Combat: Error in shutdown:`, error);
-    }
+    // Music lifecycle is handled by MusicLifecycleSystem and persists across matching scene tracks.
+    // No resize listener cleanup needed — Scale.FIT handles zoom uniformly.
   }
 }
