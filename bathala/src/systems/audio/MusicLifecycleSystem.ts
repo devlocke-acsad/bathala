@@ -13,6 +13,7 @@ import { GameState } from "../../core/managers/GameState";
 export class MusicLifecycleSystem {
   private static persistentMusic?: Phaser.Sound.BaseSound;
   private static persistentMusicKey?: string;
+  private static persistentMusicInputVolume: number = 1;
   private static persistentAmbientLoops: Map<string, Phaser.Sound.BaseSound> = new Map();
 
   private scene: Scene;
@@ -75,6 +76,7 @@ export class MusicLifecycleSystem {
 
     if (MusicLifecycleSystem.persistentMusic && MusicLifecycleSystem.persistentMusicKey === musicConfig.musicKey) {
       this.music = MusicLifecycleSystem.persistentMusic;
+      MusicLifecycleSystem.persistentMusicInputVolume = configVolume;
       try {
         const soundWithVolume = this.music as Phaser.Sound.BaseSound & {
           setVolume?: (value: number) => void;
@@ -104,6 +106,7 @@ export class MusicLifecycleSystem {
       this.music.play();
       MusicLifecycleSystem.persistentMusic = this.music;
       MusicLifecycleSystem.persistentMusicKey = musicConfig.musicKey;
+      MusicLifecycleSystem.persistentMusicInputVolume = configVolume;
     } catch (error) {
       console.warn(`MusicLifecycle: Failed to play music for ${this.scene.scene.key}:`, error);
     }
@@ -119,6 +122,7 @@ export class MusicLifecycleSystem {
       }
       MusicLifecycleSystem.persistentMusic = undefined;
       MusicLifecycleSystem.persistentMusicKey = undefined;
+      MusicLifecycleSystem.persistentMusicInputVolume = 1;
     }
     this.music = undefined;
   }
@@ -205,5 +209,37 @@ export class MusicLifecycleSystem {
     this.scene.events.on("destroy", () => {
       MusicSystem.getInstance().triggerSceneEvent(this.scene, "exit");
     });
+  }
+
+  static refreshPersistentMix(): void {
+    const audioSystem = MusicSystem.getInstance();
+
+    if (MusicLifecycleSystem.persistentMusic && MusicLifecycleSystem.persistentMusicKey) {
+      const updatedMusicVolume = audioSystem.getEffectiveVolumeForKey(
+        MusicLifecycleSystem.persistentMusicKey,
+        MusicLifecycleSystem.persistentMusicInputVolume,
+      );
+
+      try {
+        const volumeAware = MusicLifecycleSystem.persistentMusic as Phaser.Sound.BaseSound & {
+          setVolume?: (value: number) => void;
+        };
+        volumeAware.setVolume?.(updatedMusicVolume);
+      } catch {
+        // ignore runtime volume update errors
+      }
+    }
+
+    for (const [key, sound] of MusicLifecycleSystem.persistentAmbientLoops.entries()) {
+      const updatedAmbientVolume = audioSystem.getEffectiveVolumeForKey(key, 1);
+      try {
+        const volumeAware = sound as Phaser.Sound.BaseSound & {
+          setVolume?: (value: number) => void;
+        };
+        volumeAware.setVolume?.(updatedAmbientVolume);
+      } catch {
+        // ignore runtime volume update errors
+      }
+    }
   }
 }

@@ -393,6 +393,10 @@ export class AudioSystem {
     return this.channelVolumes[channel];
   }
 
+  isChannelMuted(channel: AudioChannel): boolean {
+    return this.channelMuted[channel];
+  }
+
   muteChannel(channel: AudioChannel): void {
     this.channelMuted[channel] = true;
   }
@@ -521,6 +525,11 @@ export class AudioSystem {
       sfx: this.isSFXMuted,
       master: this.isMasterMuted,
     };
+  }
+
+  getEffectiveVolumeForKey(key: string, inputVolume: number = 1): number {
+    const asset = this.getCatalogAsset(key);
+    return this.computeEffectiveVolume(asset, { volume: inputVolume });
   }
 
   private getCatalogAsset(key: string): AudioCatalogAsset | undefined {
