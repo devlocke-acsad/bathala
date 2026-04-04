@@ -58,6 +58,13 @@ export class Overworld_MazeGenManager {
   private skywardCitadelPathTextures: string[] = [
     'cloud_path1', 'cloud_path2', 'cloud_path3', 'cloud_path4',
   ];
+  private submergedVillageUnderlayTextures: string[] = [
+    'sv_underlay_1',
+    'sv_underlay_2',
+    'sv_underlay_3',
+    'sv_underlay_4',
+    'sv_underlay_5',
+  ];
 
   // Outer tile markers for chunk connections
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
@@ -651,6 +658,18 @@ export class Overworld_MazeGenManager {
 
         if (tileValue !== 0) {
           // Non-walkable tile — pick texture based on tile type
+          if (this.isAct2Chapter()) {
+            const underlayIndex = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageUnderlayTextures.length);
+            const underlayKey = this.submergedVillageUnderlayTextures[underlayIndex];
+            if (this.scene.textures.exists(underlayKey)) {
+              const underlaySprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, underlayKey);
+              underlaySprite.setDisplaySize(this.gridSize, this.gridSize);
+              underlaySprite.setOrigin(0.5);
+              underlaySprite.clearTint();
+              container.add(underlaySprite);
+            }
+          }
+
           const textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y);
           const wallSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, textureKey);
           wallSprite.setDisplaySize(this.gridSize, this.gridSize);
@@ -908,7 +927,7 @@ export class Overworld_MazeGenManager {
 
     // Obstacle tiles (TILE.OBSTACLE = 10) - randomly select from available obstacle sprites
     if (tileValue === 10) {
-      const obstacles = ['sv_obstacle_tree', 'sv_obstacle_medium_tree', 'sv_obstacle_small_tree', 'sv_obstacle_stump'];
+      const obstacles = ['sv_tree_1', 'sv_tree_2', 'sv_tree_3', 'sv_tree_4', 'sv_tree_5'];
       const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, obstacles.length);
       return obstacles[idx];
     }
