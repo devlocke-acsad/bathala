@@ -14,6 +14,26 @@ import { ACT3 } from '../../acts/act3/Act3Definition';
  * Keep false in production to avoid console spam.
  */
 const DEBUG_ENEMY_AI = false;
+const DEBUG_ACT2_PATH_TILES = true;
+const ACT2_PATH_TILE_DEBUG_MAX_SELECTION_LOGS = 80;
+
+const ACT2_DIRECTIONAL_PATH_TILE_ASSETS: Record<string, string> = {
+  sv_path_3way_open_nse: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_NSE.png',
+  sv_path_3way_open_wne: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNE.png',
+  sv_path_3way_open_wns: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNS.png',
+  sv_path_3way_open_wse: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_WSE.png',
+  sv_path_4way: 'assets/background/submergedvillageAssets/Update/pathTiles/path_4way.png',
+  sv_path_corner_open_ne: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_NE.png',
+  sv_path_corner_open_se: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_SE.png',
+  sv_path_corner_open_wn: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_WN.png',
+  sv_path_corner_open_ws: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_WS.png',
+  sv_path_horizontal_center: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_center.png',
+  sv_path_horizontal_end_e: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_E.png',
+  sv_path_horizontal_end_w: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_W.png',
+  sv_path_vertical_center: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_center.png',
+  sv_path_vertical_end_n: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_end_N.png',
+  sv_path_vertical_end_s: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_end_S.png',
+};
 
 /**
  * === DEPTH LAYER CONFIGURATION ===
@@ -69,6 +89,10 @@ export class Overworld_MazeGenManager {
   // Outer tile markers for chunk connections
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
   private devMode: boolean = false;
+  private hasLoggedAct2PathTileAvailability: boolean = false;
+  private hasAttemptedAct2RuntimePathTileLoad: boolean = false;
+  private act2PathTileSelectionLogs: number = 0;
+  private missingAct2PathTextureKeys: Set<string> = new Set();
 
   // Advanced Pathfinding System — enhanced cache tracks enemy start position & waypoint progress
   private enemyPaths: Map<string, {
@@ -649,6 +673,11 @@ export class Overworld_MazeGenManager {
     const chunkSizePixels = chunkSize * this.gridSize;
     const offsetX = chunkX * chunkSizePixels;
     const offsetY = chunkY * chunkSizePixels;
+    const isAct2 = this.isAct2Chapter();
+
+    if (isAct2) {
+      this.logAct2PathTileAvailabilityOnce();
+    }
 
     for (let y = 0; y < maze.length; y++) {
       for (let x = 0; x < maze[0].length; x++) {
@@ -656,9 +685,11 @@ export class Overworld_MazeGenManager {
         const tileY = offsetY + y * this.gridSize;
         const tileValue = maze[y][x];
 
-        if (tileValue !== 0) {
+        const isPathTile = isAct2 ? this.isTraversableTile(tileValue) : tileValue === 0;
+
+        if (!isPathTile) {
           // Non-walkable tile — pick texture based on tile type
-          if (this.isAct2Chapter()) {
+          if (isAct2) {
             const underlayIndex = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageUnderlayTextures.length);
             const underlayKey = this.submergedVillageUnderlayTextures[underlayIndex];
             if (this.scene.textures.exists(underlayKey)) {
@@ -677,9 +708,22 @@ export class Overworld_MazeGenManager {
           wallSprite.clearTint();
           container.add(wallSprite);
         } else {
-          // Path - Use one of the floor assets with deterministic selection
-          const floorIndex = this.getDeterministicIndex(chunkX, chunkY, x, y, this.floorTextures.length);
-          const floorSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, this.floorTextures[floorIndex]);
+          // Path tile rendering.
+          let textureKey = isAct2
+            ? (tileValue === 0
+              ? this.getAct2PathTexture(maze, chunkX, chunkY, x, y)
+              : this.getAct2LandTexture(chunkX, chunkY, x, y))
+            : this.floorTextures[this.getDeterministicIndex(chunkX, chunkY, x, y, this.floorTextures.length)];
+
+          if (isAct2 && !this.scene.textures.exists(textureKey)) {
+            if (!this.missingAct2PathTextureKeys.has(textureKey)) {
+              this.missingAct2PathTextureKeys.add(textureKey);
+              console.error(`[Act2 PathTiles] Missing runtime texture key: ${textureKey} at chunk(${chunkX},${chunkY}) tile(${x},${y})`);
+            }
+            textureKey = this.getAct2LandTexture(chunkX, chunkY, x, y);
+          }
+
+          const floorSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, textureKey);
           floorSprite.setDisplaySize(this.gridSize, this.gridSize);
           floorSprite.setOrigin(0.5);
           floorSprite.clearTint();
@@ -707,6 +751,172 @@ export class Overworld_MazeGenManager {
     const positiveHash = Math.abs(hash);
     // Return index within bounds
     return positiveHash % maxIndex;
+  }
+
+  private getAct2LandTexture(chunkX: number, chunkY: number, x: number, y: number): string {
+    const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageUnderlayTextures.length);
+    return this.submergedVillageUnderlayTextures[idx];
+  }
+
+  private logAct2PathTileAvailabilityOnce(): void {
+    if (this.hasLoggedAct2PathTileAvailability || !DEBUG_ACT2_PATH_TILES) {
+      return;
+    }
+
+    this.hasLoggedAct2PathTileAvailability = true;
+    const requiredPathKeys = [
+      'sv_path_3way_open_nse',
+      'sv_path_3way_open_wne',
+      'sv_path_3way_open_wns',
+      'sv_path_3way_open_wse',
+      'sv_path_4way',
+      'sv_path_corner_open_ne',
+      'sv_path_corner_open_se',
+      'sv_path_corner_open_wn',
+      'sv_path_corner_open_ws',
+      'sv_path_horizontal_center',
+      'sv_path_horizontal_end_e',
+      'sv_path_horizontal_end_w',
+      'sv_path_vertical_center',
+      'sv_path_vertical_end_n',
+      'sv_path_vertical_end_s',
+    ];
+
+    const rows = requiredPathKeys.map((key) => ({ key, loaded: this.scene.textures.exists(key) }));
+    const missing = rows.filter((row) => !row.loaded).map((row) => row.key);
+
+    console.groupCollapsed(`[Act2 PathTiles] Runtime texture availability: ${rows.length - missing.length}/${rows.length}`);
+    console.table(rows);
+    if (missing.length > 0) {
+      console.error('[Act2 PathTiles] Missing path texture keys:', missing);
+      this.ensureAct2DirectionalPathTilesLoaded(missing);
+    } else {
+      console.info('[Act2 PathTiles] All directional path textures are loaded.');
+    }
+    console.groupEnd();
+  }
+
+  private ensureAct2DirectionalPathTilesLoaded(missingKeys: string[]): void {
+    if (this.hasAttemptedAct2RuntimePathTileLoad || missingKeys.length === 0) {
+      return;
+    }
+
+    this.hasAttemptedAct2RuntimePathTileLoad = true;
+
+    const keysToLoad = missingKeys.filter((key) => Boolean(ACT2_DIRECTIONAL_PATH_TILE_ASSETS[key]));
+    if (keysToLoad.length === 0) {
+      console.error('[Act2 PathTiles] Missing keys have no asset map entries:', missingKeys);
+      return;
+    }
+
+    console.warn('[Act2 PathTiles] Attempting runtime load for missing keys:', keysToLoad);
+
+    this.scene.load.on('loaderror', (file: Phaser.Loader.File) => {
+      if (file.key.startsWith('sv_path_')) {
+        console.error(`[Act2 PathTiles] Runtime loaderror key=${file.key} url=${file.url ?? '(unknown)'}`);
+      }
+    });
+
+    this.scene.load.once('complete', () => {
+      const unresolved = keysToLoad.filter((key) => !this.scene.textures.exists(key));
+      if (unresolved.length > 0) {
+        console.error('[Act2 PathTiles] Runtime load complete but keys still missing:', unresolved);
+      } else {
+        console.info('[Act2 PathTiles] Runtime load succeeded. Re-rendering visible chunks.');
+        this.reRenderVisibleChunks();
+      }
+    });
+
+    for (const key of keysToLoad) {
+      if (this.scene.textures.exists(key)) {
+        continue;
+      }
+
+      const assetPath = ACT2_DIRECTIONAL_PATH_TILE_ASSETS[key];
+      this.scene.load.image(key, assetPath);
+    }
+
+    if (!this.scene.load.isLoading()) {
+      this.scene.load.start();
+    }
+  }
+
+  /**
+   * Resolve Act 2 path texture by open directions around an actual PATH tile.
+   * Includes cross-chunk neighbor checks so chunk seams keep correct directionality.
+   */
+  private getAct2PathTexture(maze: number[][], chunkX: number, chunkY: number, x: number, y: number): string {
+    const chunkSize = this.overworldGen.chunkSize;
+
+    const getTileValue = (tx: number, ty: number): number | undefined => {
+      let localX = tx;
+      let localY = ty;
+      let targetChunkX = chunkX;
+      let targetChunkY = chunkY;
+
+      if (localX < 0) {
+        localX = chunkSize - 1;
+        targetChunkX -= 1;
+      } else if (localX >= chunkSize) {
+        localX = 0;
+        targetChunkX += 1;
+      }
+
+      if (localY < 0) {
+        localY = chunkSize - 1;
+        targetChunkY -= 1;
+      } else if (localY >= chunkSize) {
+        localY = 0;
+        targetChunkY += 1;
+      }
+
+      if (targetChunkX === chunkX && targetChunkY === chunkY) {
+        return maze[localY]?.[localX];
+      }
+
+      const neighborChunk = this.overworldGen.getChunk(targetChunkX, targetChunkY, this.gridSize);
+      return neighborChunk?.maze?.[localY]?.[localX];
+    };
+
+    const isPath = (tx: number, ty: number): boolean => getTileValue(tx, ty) === 0;
+
+    const n = isPath(x, y - 1);
+    const s = isPath(x, y + 1);
+    const e = isPath(x + 1, y);
+    const w = isPath(x - 1, y);
+    const openCount = Number(n) + Number(s) + Number(e) + Number(w);
+
+    let selectedKey = 'sv_path_4way';
+
+    if (openCount === 4) {
+      selectedKey = 'sv_path_4way';
+    } else if (openCount === 3) {
+      if (!w) selectedKey = 'sv_path_3way_open_nse';
+      else if (!s) selectedKey = 'sv_path_3way_open_wne';
+      else if (!e) selectedKey = 'sv_path_3way_open_wns';
+      else selectedKey = 'sv_path_3way_open_wse';
+    } else if (openCount === 2) {
+      if (n && s) selectedKey = 'sv_path_vertical_center';
+      else if (e && w) selectedKey = 'sv_path_horizontal_center';
+      else if (n && e) selectedKey = 'sv_path_corner_open_ne';
+      else if (s && e) selectedKey = 'sv_path_corner_open_se';
+      else if (w && n) selectedKey = 'sv_path_corner_open_wn';
+      else selectedKey = 'sv_path_corner_open_ws';
+    } else if (openCount === 1) {
+      if (n) selectedKey = 'sv_path_vertical_end_n';
+      else if (s) selectedKey = 'sv_path_vertical_end_s';
+      else if (e) selectedKey = 'sv_path_horizontal_end_e';
+      else selectedKey = 'sv_path_horizontal_end_w';
+    }
+
+    if (DEBUG_ACT2_PATH_TILES && this.act2PathTileSelectionLogs < ACT2_PATH_TILE_DEBUG_MAX_SELECTION_LOGS) {
+      this.act2PathTileSelectionLogs += 1;
+      console.debug(
+        `[Act2 PathTiles] select=${selectedKey} chunk=(${chunkX},${chunkY}) tile=(${x},${y}) open=[N:${Number(n)} S:${Number(s)} E:${Number(e)} W:${Number(w)}] count=${openCount}`,
+      );
+    }
+
+    return selectedKey;
   }
 
   /**
@@ -792,9 +1002,7 @@ export class Overworld_MazeGenManager {
       }
 
       // Hard visual guard against artifacting when a non-2x2 remnant survives generation.
-      const baseLand = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
-      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, baseLand.length);
-      return baseLand[idx];
+      return this.getAct2LandTexture(chunkX, chunkY, x, y);
     };
 
     if (tileValue === 5) {
@@ -862,9 +1070,7 @@ export class Overworld_MazeGenManager {
 
       // Hard guard: hills must render only as 2x2 bundles.
       if (!isPartOf2x2Hill()) {
-        const baseLand = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
-        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, baseLand.length);
-        return baseLand[idx];
+        return this.getAct2LandTexture(chunkX, chunkY, x, y);
       }
 
       // Outer corners for convex hill edges.
@@ -920,9 +1126,7 @@ export class Overworld_MazeGenManager {
     }
 
     if (isAct2 && tileValue === 1) {
-      const baseLand = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
-      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, baseLand.length);
-      return baseLand[idx];
+      return this.getAct2LandTexture(chunkX, chunkY, x, y);
     }
 
     // Obstacle tiles (TILE.OBSTACLE = 10) - randomly select from available obstacle sprites
@@ -937,16 +1141,12 @@ export class Overworld_MazeGenManager {
       case 3:
       case 4:
         if (isAct2) {
-          const act2Fallback = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
-          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
-          return act2Fallback[idx];
+          return this.getAct2LandTexture(chunkX, chunkY, x, y);
         }
         return tileValue === 2 ? 'wall4' : tileValue === 3 ? 'wall5' : 'wall6';
       default: {
         if (isAct2) {
-          const act2Fallback = ['sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4'];
-          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, act2Fallback.length);
-          return act2Fallback[idx];
+          return this.getAct2LandTexture(chunkX, chunkY, x, y);
         }
         if (isAct3) {
           // Cloud walls for Skyward Citadel
