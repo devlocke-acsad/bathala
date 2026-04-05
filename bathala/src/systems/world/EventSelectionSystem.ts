@@ -1,14 +1,14 @@
 /**
  * EventSelectionSystem - Decoupled event selection by chapter
- * 
+ *
  * Replaces hardcoded CombinedAct1Events import in EventScene with
  * a chapter-aware event provider registry.
- * 
+ *
  * @module systems/world/EventSelectionSystem
  */
 
 import { GameEvent, EducationalEvent } from '../../data/events/EventTypes';
-import { CombinedAct1Events } from '../../data/events';
+import { CombinedAct1Events, CombinedAct2Events, CombinedAct3Events } from '../../data/events';
 import { GameState } from '../../core/managers/GameState';
 import { OverworldGameState } from '../../core/managers/OverworldGameState';
 
@@ -16,12 +16,12 @@ type EventProvider = () => (GameEvent | EducationalEvent)[];
 
 /**
  * Registry mapping chapter numbers to event provider functions.
- * Currently only Act 1 has events; Act 2/3 will be added when data is ready.
+ * Each chapter is restricted to its own event pool.
  */
 const CHAPTER_EVENT_PROVIDERS: Map<number, EventProvider> = new Map([
   [1, () => CombinedAct1Events],
-  // [2, () => CombinedAct2Events],  // Add when Act 2 events exist
-  // [3, () => CombinedAct3Events],  // Add when Act 3 events exist
+  [2, () => CombinedAct2Events],
+  [3, () => CombinedAct3Events],
 ]);
 
 export class EventSelectionSystem {
@@ -34,21 +34,19 @@ export class EventSelectionSystem {
   }
 
   /**
-   * Get all available events for the current chapter
-   * Falls back to Act 1 events if no events exist for the chapter
+   * Get all available events for the current chapter.
+   * Chapters are isolated, so no cross-chapter fallback is allowed.
    */
   static getEventsForChapter(chapter?: number): (GameEvent | EducationalEvent)[] {
     const currentChapter = chapter ?? GameState.getInstance().getCurrentChapter();
     const provider = CHAPTER_EVENT_PROVIDERS.get(currentChapter);
-    
+
     if (provider) {
       return provider();
     }
 
-    // Fallback to Act 1 events if chapter has no events yet
-    console.warn(`⚠️ EventSelectionSystem: No events for chapter ${currentChapter}, falling back to Act 1`);
-    const fallback = CHAPTER_EVENT_PROVIDERS.get(1);
-    return fallback ? fallback() : [];
+    console.warn(`EventSelectionSystem: No events registered for chapter ${currentChapter}.`);
+    return [];
   }
 
   /**
@@ -59,6 +57,7 @@ export class EventSelectionSystem {
     if (events.length === 0) {
       throw new Error('EventSelectionSystem: No events available for selection.');
     }
+
     const isDay = OverworldGameState.getInstance().isDay;
     const overworldState = OverworldGameState.getInstance();
     const unseenEvents = events.filter(e => !overworldState.hasEncounteredEvent(e.id));
@@ -66,7 +65,7 @@ export class EventSelectionSystem {
     const cycleEvents = events.filter(e => e.dayEvent === isDay);
 
     // If a chapter doesn't have any events authored for this cycle yet,
-    // fall back to the full pool to avoid hard failures.
+    // fall back to the full pool inside the same chapter only.
     const pool =
       cycleUnseenEvents.length > 0
         ? cycleUnseenEvents

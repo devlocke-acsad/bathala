@@ -2,7 +2,9 @@ import { GameEvent, EducationalEvent } from './EventTypes';
 import { Act1Events } from './Act1Events';
 import { Act1EducationalEvents } from './Act1EducationalEvents';
 import { Act2Events } from './Act2Events';
+import { Act2EducationalEvents } from './Act2EducationalEvents';
 import { Act3Events } from './Act3Events';
+import { Act3EducationalEvents } from './Act3EducationalEvents';
 
 /**
  * Combined Act 1 Events
@@ -13,6 +15,16 @@ import { Act3Events } from './Act3Events';
 export const CombinedAct1Events: (GameEvent | EducationalEvent)[] = [
   ...Act1Events,
   ...Act1EducationalEvents
+];
+
+export const CombinedAct2Events: (GameEvent | EducationalEvent)[] = [
+  ...Act2Events,
+  ...Act2EducationalEvents
+];
+
+export const CombinedAct3Events: (GameEvent | EducationalEvent)[] = [
+  ...Act3Events,
+  ...Act3EducationalEvents
 ];
 
 /**
@@ -48,4 +60,6 @@ export * from './EventTypes';
 export { Act1Events } from './Act1Events';
 export { Act1EducationalEvents } from './Act1EducationalEvents';
 export { Act2Events } from './Act2Events';
+export { Act2EducationalEvents } from './Act2EducationalEvents';
 export { Act3Events } from './Act3Events';
+export { Act3EducationalEvents } from './Act3EducationalEvents';
