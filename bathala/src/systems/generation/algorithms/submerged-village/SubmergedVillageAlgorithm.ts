@@ -1262,6 +1262,8 @@ export class SubmergedVillageAlgorithm {
 
         // Finalize cliff masses first so later obstacle families honor stable cliff silhouettes.
         const earlyBatchApplied = generationWasmBridge.runKernelBatch(grid, w, h, [
+            (e) => e.removeSmallComponentsInPlace(w, h, TILE.WATER, TILE.FOREST, 10),
+            (e) => e.enforceMinThickness2x2InPlace(w, h, TILE.WATER, TILE.FOREST, 6),
             (e) => e.repairCliffGapsInPlace(w, h, TILE.PATH, TILE.WATER, TILE.CLIFF, 3),
             (e) => e.enforceCliffShellIntegrityInPlace(w, h, TILE.PATH, TILE.WATER, TILE.CLIFF, TILE.HILL, 3),
             (e) => e.removeSmallComponentsInPlace(w, h, TILE.CLIFF, TILE.FOREST, 8),
@@ -1360,39 +1362,115 @@ export class SubmergedVillageAlgorithm {
     }
 
     /**
-     * Stamp simple pond/lake bodies (compact rounded rectangles) to keep water readable.
+     * Stamp water as larger lakes and meandering rivers (not puddles).
      */
     private paintSimpleWaterPonds(grid: IntGrid, count: number): void {
-        const [w, h] = this.levelSize;
-
         for (let i = 0; i < count; i++) {
-            let placed = false;
+            const preferRiver = this.rng() < 0.45;
+            const placed = preferRiver
+                ? this.tryPaintRiverWaterBody(grid) || this.tryPaintLakeWaterBody(grid)
+                : this.tryPaintLakeWaterBody(grid) || this.tryPaintRiverWaterBody(grid);
 
-            for (let attempt = 0; attempt < 24 && !placed; attempt++) {
-                const halfW = this.randomInt(1, 3);
-                const halfH = this.randomInt(1, 2);
-                const cx = this.randomInt(halfW + 2, w - halfW - 3);
-                const cy = this.randomInt(halfH + 2, h - halfH - 3);
+            // Final fallback: try a lake once more before giving up this slot.
+            if (!placed) {
+                this.tryPaintLakeWaterBody(grid);
+            }
+        }
+    }
 
-                const minX = cx - halfW;
-                const maxX = cx + halfW;
-                const minY = cy - halfH;
-                const maxY = cy + halfH;
+    private tryPaintLakeWaterBody(grid: IntGrid): boolean {
+        for (let attempt = 0; attempt < 30; attempt++) {
+            const [w, h] = this.levelSize;
+            const seedX = this.randomInt(3, w - 4);
+            const seedY = this.randomInt(3, h - 4);
+            if (this.isNearPath(grid, seedX, seedY, 1)) continue;
+            if (grid.getTile(seedX, seedY) !== TILE.FOREST) continue;
 
-                if (!this.isRegionForestWithGap(grid, minX, maxX, minY, maxY, this.OBSTACLE_FORMATION_GAP)) continue;
+            // Reuse cliff-like blob growth to produce natural lake shapes.
+            const mask = this.growMaskBlob(grid, seedX, seedY, this.randomInt(12, 28));
+            if (mask.size < 10) continue;
+            if (this.maskTouchesNonForestWithinGap(grid, mask, Math.max(1, this.OBSTACLE_FORMATION_GAP))) continue;
 
-                for (let y = minY; y <= maxY; y++) {
-                    for (let x = minX; x <= maxX; x++) {
-                        // Slight corner trimming for softer pond shapes.
-                        const corner = (x === minX || x === maxX) && (y === minY || y === maxY);
-                        if (corner && this.rng() < 0.55) continue;
-                        grid.setTile(x, y, TILE.WATER);
+            for (const cell of mask) {
+                const [x, y] = cell.split(',').map(Number);
+                grid.setTile(x, y, TILE.WATER);
+            }
+
+            if (mask.size >= 10) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private tryPaintRiverWaterBody(grid: IntGrid): boolean {
+        const [w, h] = this.levelSize;
+        const dirs: Array<[number, number]> = [
+            [1, 0],
+            [-1, 0],
+            [0, 1],
+            [0, -1],
+        ];
+
+        for (let attempt = 0; attempt < 40; attempt++) {
+            let x = this.randomInt(2, w - 3);
+            let y = this.randomInt(2, h - 3);
+            if (grid.getTile(x, y) !== TILE.FOREST || this.isNearPath(grid, x, y, 1)) {
+                continue;
+            }
+
+            let [dx, dy] = dirs[this.randomInt(0, dirs.length - 1)];
+            const length = this.randomInt(7, 14);
+            const brushRadius = this.rng() < 0.20 ? 2 : 1;
+            const cells = new Set<string>();
+            let valid = true;
+
+            for (let step = 0; step < length && valid; step++) {
+                for (let by = -brushRadius; by <= brushRadius && valid; by++) {
+                    for (let bx = -brushRadius; bx <= brushRadius; bx++) {
+                        if ((Math.abs(bx) + Math.abs(by)) > (brushRadius + (brushRadius === 2 ? 1 : 0))) continue;
+
+                        const nx = x + bx;
+                        const ny = y + by;
+                        if (!this.isInBounds(nx, ny) || nx <= 0 || ny <= 0 || nx >= w - 1 || ny >= h - 1) {
+                            valid = false;
+                            break;
+                        }
+                        if (grid.getTile(nx, ny) !== TILE.FOREST) {
+                            valid = false;
+                            break;
+                        }
+                        cells.add(`${nx},${ny}`);
                     }
                 }
 
-                placed = true;
+                if (!valid) break;
+
+                const turnRoll = this.rng();
+                if (turnRoll < 0.30) {
+                    [dx, dy] = turnRoll < 0.15 ? [-dy, dx] : [dy, -dx];
+                }
+
+                x += dx;
+                y += dy;
+                if (x <= 1 || y <= 1 || x >= w - 2 || y >= h - 2) {
+                    valid = false;
+                }
             }
+
+            if (!valid || cells.size < 14) {
+                continue;
+            }
+
+            for (const cell of cells) {
+                const [wx, wy] = cell.split(',').map(Number);
+                grid.setTile(wx, wy, TILE.WATER);
+            }
+            return true;
         }
+
+        return false;
     }
 
     /**

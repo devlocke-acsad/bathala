@@ -223,30 +223,38 @@ export class Preloader extends Scene {
     this.load.image("sv_tree_4", "background/submergedvillageAssets/Update/obstacles/trees/tree4.png");
     this.load.image("sv_tree_5", "background/submergedvillageAssets/Update/obstacles/trees/tree5.png");
 
-    this.load.image("sv_water_middle", "background/submergedvillageAssets/waterboundTiles/water_tile_middle.png");
-    this.load.image("sv_water_shore_n", "background/submergedvillageAssets/waterboundTiles/water_beachshore_N.png");
-    this.load.image("sv_water_shore_s", "background/submergedvillageAssets/waterboundTiles/water_beachshore_S.png");
-    this.load.image("sv_water_shore_e", "background/submergedvillageAssets/waterboundTiles/water_beachshore_E.png");
-    this.load.image("sv_water_shore_w", "background/submergedvillageAssets/waterboundTiles/water_beachshore_W.png");
-    this.load.image("sv_water_shore_ne", "background/submergedvillageAssets/waterboundTiles/water_beachshore_NE.png");
-    this.load.image("sv_water_shore_nw", "background/submergedvillageAssets/waterboundTiles/water_beachshore_NW.png");
-    this.load.image("sv_water_shore_se", "background/submergedvillageAssets/waterboundTiles/water_beachshore_SE.png");
-    this.load.image("sv_water_shore_sw", "background/submergedvillageAssets/waterboundTiles/water_beachshore_SW.png");
-    this.load.image("sv_water_cliff_n", "background/submergedvillageAssets/waterboundTiles/water_cliff_N.png");
-    this.load.image("sv_water_cliff_s", "background/submergedvillageAssets/waterboundTiles/water_cliff_S.png");
-    this.load.image("sv_water_cliff_e", "background/submergedvillageAssets/waterboundTiles/water_cliff_E.png");
-    this.load.image("sv_water_cliff_w", "background/submergedvillageAssets/waterboundTiles/water_cliff_W.png");
-    this.load.image("sv_water_cliff_ne", "background/submergedvillageAssets/waterboundTiles/water_cliff_NE.png");
-    this.load.image("sv_water_cliff_nw", "background/submergedvillageAssets/waterboundTiles/water_cliff_NW.png");
-    this.load.image("sv_water_cliff_se", "background/submergedvillageAssets/waterboundTiles/water_cliff_SE.png");
-    this.load.image("sv_water_cliff_sw", "background/submergedvillageAssets/waterboundTiles/water_cliff_SW.png");
-    this.load.image("sv_water_outer_ne", "background/submergedvillageAssets/waterboundTiles/water_beachshoreOuter_NE.png");
-    this.load.image("sv_water_outer_nw", "background/submergedvillageAssets/waterboundTiles/water_beachshoreOuter_NW.png");
-    this.load.image("sv_water_outer_sw", "background/submergedvillageAssets/waterboundTiles/water_beachshoreOuter_SW.png");
-    this.load.image("sv_water_outer_se", "background/submergedvillageAssets/waterboundTiles/water_beachshoreoOuter_SE.png");
-    this.load.image("sv_water_debris_1", "background/submergedvillageAssets/waterboundTiles/water_debris1.png");
-    this.load.image("sv_water_debris_2", "background/submergedvillageAssets/waterboundTiles/water_debris2.png");
-    this.load.image("sv_water_debris_3", "background/submergedvillageAssets/waterboundTiles/water_debris3.png");
+    // Act 2 water: lakes/rivers use the Update cliff + debris set (no puddle tiles).
+    this.load.image("sv_water_middle", "background/submergedvillageAssets/Update/obstacles/water/water_debris4.png");
+    this.load.image("sv_water_shore_n", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_N.png");
+    this.load.image("sv_water_shore_s", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_S.png");
+    this.load.image("sv_water_shore_e", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_E.png");
+    this.load.image("sv_water_shore_w", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_W.png");
+    this.load.image("sv_water_shore_ne", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NE.png");
+    this.load.image("sv_water_shore_nw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NW.png");
+    this.load.image("sv_water_shore_se", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SE.png");
+    this.load.image("sv_water_shore_sw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SW.png");
+    this.load.image("sv_water_cliff_n", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_N.png");
+    this.load.image("sv_water_cliff_s", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_S.png");
+    this.load.image("sv_water_cliff_e", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_E.png");
+    this.load.image("sv_water_cliff_w", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_W.png");
+    this.load.image("sv_water_cliff_ne", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NE.png");
+    this.load.image("sv_water_cliff_nw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NW.png");
+    this.load.image("sv_water_cliff_se", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SE.png");
+    this.load.image("sv_water_cliff_sw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SW.png");
+    // Concave inner corners for lakes/rivers (fallback aliasing to available cliff corners).
+    this.load.image("sv_water_cliff_inner_ne", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NE.png");
+    this.load.image("sv_water_cliff_inner_nw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NW.png");
+    this.load.image("sv_water_cliff_inner_se", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SE.png");
+    this.load.image("sv_water_cliff_inner_sw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SW.png");
+    // Convex outer corners use dedicated directional outer sprites.
+    this.load.image("sv_water_outer_ne", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_outer_NE.png");
+    this.load.image("sv_water_outer_nw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_outer_NW.png");
+    this.load.image("sv_water_outer_sw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_outer_SW.png");
+    this.load.image("sv_water_outer_se", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_outer_SE.png");
+    this.load.image("sv_water_debris_1", "background/submergedvillageAssets/Update/obstacles/water/water_debris1.png");
+    this.load.image("sv_water_debris_2", "background/submergedvillageAssets/Update/obstacles/water/water_debris2.png");
+    this.load.image("sv_water_debris_3", "background/submergedvillageAssets/Update/obstacles/water/water_debris3.png");
+    this.load.image("sv_water_debris_4", "background/submergedvillageAssets/Update/obstacles/water/water_debris4.png");
 
     // Act 3 overworld tile set - skyward citadel (cloud platforms)
     this.load.image("cloud_blank", "background/skywardcitadelAssets/cloud_blank.png");
