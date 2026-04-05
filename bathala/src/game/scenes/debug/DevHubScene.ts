@@ -5,7 +5,8 @@ import { EnemyRegistry } from '../../../core/registries/EnemyRegistry';
 import { bootstrapEnemies } from '../../../data/enemies/EnemyBootstrap';
 import { OverworldGameState } from '../../../core/managers/OverworldGameState';
 import { RuleBasedDDA } from '../../../core/dda/RuleBasedDDA';
-import { EducationalEvent } from '../../../data/events/EventTypes';
+import { EducationalEvent, GameEvent } from '../../../data/events/EventTypes';
+import { Act1Events } from '../../../data/events/Act1Events';
 import { Act1EducationalEvents } from '../../../data/events/Act1EducationalEvents';
 import { Act2EducationalEvents } from '../../../data/events/Act2EducationalEvents';
 import { Act3EducationalEvents } from '../../../data/events/Act3EducationalEvents';
@@ -31,6 +32,7 @@ const C = {
 type Tab = 'combat' | 'nodes' | 'chapters' | 'events';
 
 interface EnemyEntry { name: string; key: string; tier: 'common' | 'elite' | 'boss'; }
+type DevHubEvent = GameEvent | EducationalEvent;
 
 /**
  * DevHubScene
@@ -62,7 +64,7 @@ export class DevHubScene extends Scene {
 
   // Events tab state
   private eventsAct = 1;
-  private eventsList: EducationalEvent[] = [];
+  private eventsList: DevHubEvent[] = [];
   private selectedEventIndex = 0;
   private eventsListContainer!: Phaser.GameObjects.Container;
   private eventDetailContainer!: Phaser.GameObjects.Container;
@@ -81,9 +83,10 @@ export class DevHubScene extends Scene {
   }
 
   create(): void {
+    const currentChapter = this.gameState.getCurrentChapter();
     bootstrapEnemies();
-    this.buildEnemyList(this.gameState.getCurrentChapter());
-    this.buildEventList(1);
+    this.buildEnemyList(currentChapter);
+    this.buildEventList(currentChapter);
 
     this.buildUI();
     this.setupKeys();
@@ -96,6 +99,13 @@ export class DevHubScene extends Scene {
 
   public show(): void {
     if (!this.container) return;
+    const currentChapter = this.gameState.getCurrentChapter();
+    if (this.activeChapter !== currentChapter) {
+      this.buildEnemyList(currentChapter);
+    }
+    if (this.eventsAct !== currentChapter) {
+      this.buildEventList(currentChapter);
+    }
     this.isVisible = true;
     this.container.setVisible(true);
     if (this.activeTab === 'combat')   this.refreshCombatList();
@@ -200,12 +210,40 @@ export class DevHubScene extends Scene {
   private buildEventList(act: number): void {
     this.eventsAct = act;
     switch (act) {
-      case 1: this.eventsList = Act1EducationalEvents; break;
+      case 1: this.eventsList = this.getAct1AssetBackedEvents(); break;
       case 2: this.eventsList = Act2EducationalEvents; break;
       case 3: this.eventsList = Act3EducationalEvents; break;
       default: this.eventsList = [];
     }
     this.selectedEventIndex = 0;
+  }
+
+  private getAct1AssetBackedEvents(): DevHubEvent[] {
+    const assetBackedAct1Ids = [
+      'ancestral_echo',
+      'anito_shrine_educational',
+      'anito_shrine',
+      'balete_vision',
+      'diwata_gift_educational',
+      'diwata_whisper',
+      'forgotten_altar',
+      'kapre_smoke',
+      'kapre_wisdom_educational',
+      'sacred_grove',
+      'tikbalang_test_educational',
+      'tikbalang_crossroads',
+      'tiyanak_wail',
+      'wind_omen',
+    ];
+
+    const act1EventById = new Map<string, DevHubEvent>();
+    [...Act1Events, ...Act1EducationalEvents].forEach((event) => {
+      act1EventById.set(event.id, event);
+    });
+
+    return assetBackedAct1Ids
+      .map((id) => act1EventById.get(id))
+      .filter((event): event is DevHubEvent => event !== undefined);
   }
 
   // ─── UI Construction ────────────────────────────────────────────────────────
@@ -622,7 +660,7 @@ export class DevHubScene extends Scene {
         this.scene.launch('Shop', { player, returnToDevHub: true });
         break;
       case 'event': {
-        const fallbackEvent = this.eventsList[0] || Act1EducationalEvents[0];
+        const fallbackEvent = this.eventsList[0] || this.getAct1AssetBackedEvents()[0];
         this.scene.launch('EventScene', {
           player,
           event: fallbackEvent,
@@ -888,11 +926,15 @@ export class DevHubScene extends Scene {
 
     // Update enemy list for the new chapter in the combat tab
     this.buildEnemyList(chapter);
+    this.buildEventList(chapter);
 
     // Refresh both affected tabs
     this.refreshChaptersTab();
     if (this.activeTab === 'combat') {
       this.refreshCombatTab();
+    }
+    if (this.activeTab === 'events') {
+      this.refreshEventsList();
     }
 
     // Navigate to Overworld — it will regenerate the map for the active chapter
@@ -909,33 +951,14 @@ export class DevHubScene extends Scene {
     this.container.add(cont);
     this.tabContainers['events'] = cont;
 
-    cont.add(this.add.text(cw / 2, 24, 'Educational Events', {
+    const title = this.add.text(cw / 2, 24, `Chapter ${this.eventsAct} Events`, {
       fontFamily: 'dungeon-mode', fontSize: 24, color: '#a855f7',
+    }).setOrigin(0.5);
+    cont.add(title);
+    cont.add(this.add.text(cw / 2, 58, 'Shows only the event pool for the current chapter', {
+      fontFamily: 'dungeon-mode', fontSize: 14, color: '#77888c',
     }).setOrigin(0.5));
-
-    // Act buttons
-    const acts = ['Act 1', 'Act 2', 'Act 3'];
-    const abtnW = Math.min(160, Math.floor((cw - 24) / 3));
-    const gap = 12;
-    const totalW = acts.length * abtnW + (acts.length - 1) * gap;
-    let ax = cw / 2 - totalW / 2;
-    acts.forEach((label, i) => {
-      const act = i + 1;
-      const btn = this.add.container(ax + abtnW / 2, 60);
-      const bg = this.add.rectangle(0, 0, abtnW, 34, C.bg);
-      bg.setStrokeStyle(1, C.border);
-      const txt = this.add.text(0, 0, label, { fontFamily: 'dungeon-mode', fontSize: 15, color: '#77888c' }).setOrigin(0.5);
-      btn.add([bg, txt]);
-      bg.setInteractive({ useHandCursor: true });
-      bg.on('pointerdown', () => { this.buildEventList(act); this.refreshEventsList(); });
-      bg.on('pointerover', () => { if (this.eventsAct !== act) bg.setFillStyle(C.rowHover); });
-      bg.on('pointerout',  () => { if (this.eventsAct !== act) bg.setFillStyle(C.bg); });
-      (btn as any)._act = act;
-      (btn as any)._bg  = bg;
-      (btn as any)._txt = txt;
-      cont.add(btn);
-      ax += abtnW + gap;
-    });
+    (cont as any)._eventsTitle = title;
 
     // Two-column layout
     const listW = Math.floor(cw * 0.38);
@@ -964,16 +987,11 @@ export class DevHubScene extends Scene {
   }
 
   private refreshEventsList(): void {
-    // Update act button highlights
     const cont = this.tabContainers['events'];
-    cont.list.forEach((obj: any) => {
-      if (obj._act !== undefined) {
-        const isActive = obj._act === this.eventsAct;
-        obj._bg.setFillStyle(isActive ? 0x1a0d2e : C.bg);
-        obj._bg.setStrokeStyle(1, isActive ? 0xa855f7 : C.border);
-        obj._txt.setColor(isActive ? '#a855f7' : '#77888c');
-      }
-    });
+    const title = (cont as any)._eventsTitle as Phaser.GameObjects.Text | undefined;
+    if (title) {
+      title.setText(`Chapter ${this.eventsAct} Events`);
+    }
 
     this.eventsListContainer.removeAll(true);
     this.eventDetailContainer.removeAll(true);

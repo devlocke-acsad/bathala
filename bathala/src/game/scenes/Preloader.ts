@@ -326,6 +326,30 @@ export class Preloader extends Scene {
     this.load.image("relic_tiyanak_tear", "relics/act1relics/Tiyanak Tear.png");
     this.load.image("relic_umalagad_spirit", "relics/act1relics/Umalagad Spirit.png");
 
+    // Act 2 Relic Sprites
+    this.load.image("relic_sirenas_scale", "relics/act2relics/sirena's scale.png");
+    this.load.image("relic_siyokoy_fin", "relics/act2relics/Siyokoy Fin.png");
+    this.load.image("relic_santelmo_ember", "relics/act2relics/Santelmo Ember.png");
+    this.load.image("relic_berberoka_tide", "relics/act2relics/berberoka tide.png");
+    this.load.image("relic_magindara_song", "relics/act2relics/magindara song.png");
+    this.load.image("relic_kataw_crown", "relics/act2relics/kataw crown.png");
+    this.load.image("relic_berbalang_spirit", "relics/act2relics/berbalang spirit.png");
+    this.load.image("relic_bangkilan_veil", "relics/act2relics/bangkilan veil.png");
+    this.load.image("relic_bakunawa_fang", "relics/act2relics/bakunawa's fang.png");
+    this.load.image("relic_elemental_core", "relics/act2relics/elemental core.png");
+
+    // Act 3 Relic Sprites
+    this.load.image("relic_tigmamanukan_feather", "relics/act3relics/tigamamanukan feather.png");
+    this.load.image("relic_diwata_veil", "relics/act3relics/diwata veil.png");
+    this.load.image("relic_sarimanok_plumage", "relics/act3relics/Sarimanok Plumage.png");
+    this.load.image("relic_bulalakaw_spark", "relics/act3relics/bulalakaw spark.png");
+    this.load.image("relic_minokawa_claw", "relics/act3relics/minokawa's claw.png");
+    this.load.image("relic_alan_wing", "relics/act3relics/alan's wing.png");
+    this.load.image("relic_ekek_fang", "relics/act3relics/ekek's fang.png");
+    this.load.image("relic_linti_bolt", "relics/act3relics/linti's bolt.png");
+    this.load.image("relic_apolaki_spear", "relics/act3relics/apolaki's spear.png");
+    this.load.image("relic_coconut_diwa", "relics/act3relics/coconut's diwa.png");
+
     // Enemy sprites for Combat
     this.load.image("amomongo_combat", "sprites/combat/enemy/chapter1/amomongo_battle.png");
     this.load.image("balete_combat", "sprites/combat/enemy/chapter1/balete_battle.png");
@@ -351,28 +375,28 @@ export class Preloader extends Scene {
     this.load.image("tiyanak_almanac", "sprites/discover/chapter1/tiyanak_almanac.png");
 
     // Chapter 2 almanac sprites
-    this.load.image("sirena_almanac", "sprites/discover/chapter2/sirena_almanac.png");
-    this.load.image("siyokoy_almanac", "sprites/discover/chapter2/siyokoy_almanac.png");
-    this.load.image("santelmo_almanac", "sprites/discover/chapter2/santelmo_almanac.png");
-    this.load.image("berberoka_almanac", "sprites/discover/chapter2/berberoka_almanac.png");
-    this.load.image("magindara_almanac", "sprites/discover/chapter2/magindara_almanac.png");
-    this.load.image("kataw_almanac", "sprites/discover/chapter2/kataw_almanac.png");
-    this.load.image("berbalang_almanac", "sprites/discover/chapter2/berbalang_almanac.png");
-    this.load.image("bangkilan_almanac", "sprites/discover/chapter2/bangkilan_almanac.png");
-    this.load.image("apoy_tubig_fury_almanac", "sprites/discover/chapter2/apoy_tubig_almanac.png");
-    this.load.image("bakunawa_almanac", "sprites/discover/chapter2/bakunawa_almanac.png");
+    this.load.image("sirena_almanac", "sprites/discover/chapter2/new/sirena_splash.png");
+    this.load.image("siyokoy_almanac", "sprites/discover/chapter2/new/siyokoy_splash.png");
+    this.load.image("santelmo_almanac", "sprites/discover/chapter2/new/santelmo_splash.png");
+    this.load.image("berberoka_almanac", "sprites/discover/chapter2/new/berberoka_splash.png");
+    this.load.image("magindara_almanac", "sprites/discover/chapter2/new/maginda_swarm_splash.png");
+    this.load.image("kataw_almanac", "sprites/discover/chapter2/new/kataw_splash.png");
+    this.load.image("berbalang_almanac", "sprites/discover/chapter2/new/berbalang_splash.png");
+    this.load.image("bangkilan_almanac", "sprites/discover/chapter2/new/sunken_bangkilan_splash.png");
+    this.load.image("apoy_tubig_fury_almanac", "sprites/discover/chapter2/new/apoy_tubig_splash.png");
+    this.load.image("bakunawa_almanac", "sprites/discover/chapter2/new/bakunawa_splash.png");
 
     // Chapter 3 almanac sprites
-    this.load.image("tigmamanukan_almanac", "sprites/discover/chapter3/tigmanukan_almanac.png");
-    this.load.image("diwata_almanac", "sprites/discover/chapter3/diwata_almanac.png");
-    this.load.image("sarimanok_almanac", "sprites/discover/chapter3/sarimanok_almanac.png");
-    this.load.image("bulalakaw_almanac", "sprites/discover/chapter3/bulalakaw_almanac.png");
-    this.load.image("minokawa_almanac", "sprites/discover/chapter3/minokawa_almanac.png");
-    this.load.image("alan_almanac", "sprites/discover/chapter3/alan_almanac.png");
-    this.load.image("ekek_almanac", "sprites/discover/chapter3/ekek_almanac.png");
-    this.load.image("ribung_linti_almanac", "sprites/discover/chapter3/ribung_linti_almanac.png");
-    this.load.image("apolaki_almanac", "sprites/discover/chapter3/apolaki_almanac.png");
-    this.load.image("false_bathala_almanac", "sprites/discover/chapter3/bathala_almanac.png");
+    this.load.image("tigmamanukan_almanac", "sprites/discover/chapter3/new/tigamamanukan_watcher_splash.png");
+    this.load.image("diwata_almanac", "sprites/discover/chapter3/new/diwata_sentinel_splash.png");
+    this.load.image("sarimanok_almanac", "sprites/discover/chapter3/new/sarimanok_watcher_splash.png");
+    this.load.image("bulalakaw_almanac", "sprites/discover/chapter3/new/bulalakaw_flamekeeper_splash.png");
+    this.load.image("minokawa_almanac", "sprites/discover/chapter3/new/minokawa_harbinger_splash.png");
+    this.load.image("alan_almanac", "sprites/discover/chapter3/new/alan_splash.png");
+    this.load.image("ekek_almanac", "sprites/discover/chapter3/new/ekek_splash.png");
+    this.load.image("ribung_linti_almanac", "sprites/discover/chapter3/new/ribung_linti_splash.png");
+    this.load.image("apolaki_almanac", "sprites/discover/chapter3/new/apolaki_splash.png");
+    this.load.image("false_bathala_almanac", "sprites/discover/chapter3/new/false_bathala_splash.png");
 
     // Legacy enemy sprite keys for backward compatibility
     this.load.image("amomongo", "sprites/combat/enemy/chapter1/amomongo_battle.png");
@@ -399,16 +423,16 @@ export class Preloader extends Scene {
     this.load.image("tiyanak_overworld", "sprites/overworld/enemy/chapter1/tiyanak_overworld.png");
 
     // Chapter 2 enemy sprites (combat + overworld)
-    this.load.image("sirena_combat", "sprites/combat/enemy/chapter2/sirena_battle.png");
-    this.load.image("siyokoy_combat", "sprites/combat/enemy/chapter2/siyokoy_battle.png");
-    this.load.image("santelmo_combat", "sprites/combat/enemy/chapter2/santelmo_battle.png");
-    this.load.image("berberoka_combat", "sprites/combat/enemy/chapter2/berberoka_battle.png");
-    this.load.image("magindara_combat", "sprites/combat/enemy/chapter2/magindara_battle.png");
-    this.load.image("kataw_combat", "sprites/combat/enemy/chapter2/kataw_battle.png");
-    this.load.image("berbalang_combat", "sprites/combat/enemy/chapter2/berbalang_battle.png");
-    this.load.image("sunkenbangkilan_combat", "sprites/combat/enemy/chapter2/bangkilan_battle.png");
-    this.load.image("apoytubig_combat", "sprites/combat/enemy/chapter2/apoy_tubig_battle.png");
-    this.load.image("bakunawa_combat", "sprites/combat/enemy/chapter2/bakunawa_battle.png");
+    this.load.image("sirena_combat", "sprites/combat/enemy/chapter2/new/sirena.png");
+    this.load.image("siyokoy_combat", "sprites/combat/enemy/chapter2/new/siyokoy.png");
+    this.load.image("santelmo_combat", "sprites/combat/enemy/chapter2/new/santelmo.png");
+    this.load.image("berberoka_combat", "sprites/combat/enemy/chapter2/new/berberoka.png");
+    this.load.image("magindara_combat", "sprites/combat/enemy/chapter2/new/maginda swarm.png");
+    this.load.image("kataw_combat", "sprites/combat/enemy/chapter2/new/kataw.png");
+    this.load.image("berbalang_combat", "sprites/combat/enemy/chapter2/new/berbalang.png");
+    this.load.image("sunkenbangkilan_combat", "sprites/combat/enemy/chapter2/new/sunken bangkilang.png");
+    this.load.image("apoytubig_combat", "sprites/combat/enemy/chapter2/new/apoy_tubig.png");
+    this.load.image("bakunawa_combat", "sprites/combat/enemy/chapter2/new/bakunawa.png");
 
     this.load.image("sirena_overworld", "sprites/overworld/enemy/chapter2/sirena_overworld.png");
     this.load.image("siyokoy_overworld", "sprites/overworld/enemy/chapter2/siyokoy_overworld.png");
@@ -422,16 +446,16 @@ export class Preloader extends Scene {
     this.load.image("bakunawa_overworld", "sprites/combat/enemy/chapter2/bakunawa_battle.png");
 
     // Chapter 3 enemy sprites (combat + overworld)
-    this.load.image("tigmamanukan_combat", "sprites/combat/enemy/chapter3/tigmanukan_battle.png");
-    this.load.image("diwata_combat", "sprites/combat/enemy/chapter3/diwata_battle.png");
-    this.load.image("sarimanok_combat", "sprites/combat/enemy/chapter3/sarimanok_battle.png");
-    this.load.image("bulalakaw_combat", "sprites/combat/enemy/chapter3/bulalakaw_battle.png");
-    this.load.image("minokawa_combat", "sprites/combat/enemy/chapter3/minokawa_battle.png");
-    this.load.image("alan_combat", "sprites/combat/enemy/chapter3/alan_battle.png");
-    this.load.image("ekek_combat", "sprites/combat/enemy/chapter3/ekek_battle.png");
-    this.load.image("ribunglinti_combat", "sprites/combat/enemy/chapter3/ribung_linti_battle.png");
-    this.load.image("apolaki_combat", "sprites/combat/enemy/chapter3/apolaki_battle.png");
-    this.load.image("falsebathala_combat", "sprites/combat/enemy/chapter3/false_bathala_battle.png");
+    this.load.image("tigmamanukan_combat", "sprites/combat/enemy/chapter3/new/tigamamanukan_watcher.png");
+    this.load.image("diwata_combat", "sprites/combat/enemy/chapter3/new/diwata_sentinel.png");
+    this.load.image("sarimanok_combat", "sprites/combat/enemy/chapter3/new/sarimanok_keeper.png");
+    this.load.image("bulalakaw_combat", "sprites/combat/enemy/chapter3/new/bulalakaw_flamekeeper.png");
+    this.load.image("minokawa_combat", "sprites/combat/enemy/chapter3/new/minokawa_harbinger.png");
+    this.load.image("alan_combat", "sprites/combat/enemy/chapter3/new/alan.png");
+    this.load.image("ekek_combat", "sprites/combat/enemy/chapter3/new/ekek.png");
+    this.load.image("ribunglinti_combat", "sprites/combat/enemy/chapter3/new/ribung_linti.png");
+    this.load.image("apolaki_combat", "sprites/combat/enemy/chapter3/new/apolaki.png");
+    this.load.image("falsebathala_combat", "sprites/combat/enemy/chapter3/new/false bathala.png");
 
     this.load.image("tigmamanukan_overworld", "sprites/overworld/enemy/chapter3/tigmanukan_overworld.png");
     this.load.image("diwata_overworld", "sprites/overworld/enemy/chapter3/diwata_overworld.png");
@@ -479,7 +503,7 @@ export class Preloader extends Scene {
     this.load.image("event_diwata_gift_educational", "events(act1)/Diwata's Gift.png");
     this.load.image("event_forgotten_altar", "events(act1)/forgotten altar.png");
     this.load.image("event_tikbalang_crossroads", "events(act1)/tikbalangs crossroad.png");
-    this.load.image("event_tikbalang_test_educational", "events(act1)/tikbalangs crossroad.png");
+    this.load.image("event_tikbalang_test_educational", "events(act1)/Tikbalang's Test.png");
     this.load.image("event_ancestral_echo", "events(act1)/ancestral echo.png");
     this.load.image("event_kapre_smoke", "events(act1)/kapre_smoke.png");
     this.load.image("event_kapre_wisdom_educational", "events(act1)/kapres_wisdom.png");
@@ -487,6 +511,20 @@ export class Preloader extends Scene {
     this.load.image("event_tiyanak_wail", "events(act1)/tiyanak_wail.png");
     this.load.image("event_wind_omen", "events(act1)/wind omen.png");
     this.load.image("event_balete_mystery_educational", "events(act1)/balete vision.png");
+
+    // Act 2 Event splash art
+    this.load.image("event_bakunawa_hunger_educational", "events/events(act2)/bakunawa's hunger.png");
+    this.load.image("event_aswang_deception_educational", "events/events(act2)/aswang's deception.png");
+    this.load.image("event_sirena_conservation_educational", "events/events(act2)/sirena's call.png");
+    this.load.image("event_bantay_tubig_educational", "events/events(act2)/Guardian of the Waters.png");
+    this.load.image("event_diwata_dagat_educational", "events/events(act2)/diwata ng dagat.png");
+
+    // Act 3 Event splash art
+    this.load.image("event_maranao_creation_educational", "events/events(act3)/The Floating World.png");
+    this.load.image("event_tboli_dream_weaving", "events/events(act3)/The Dream Weaver.png");
+    this.load.image("event_bagobo_warrior_trial", "events/events(act3)/The Bagani's Trial.png");
+    this.load.image("event_manobo_spirit_guardian", "events/events(act3)/Guardian of Mount Apo.png");
+    this.load.image("event_tausug_sea_legend", "events/events(act3)/The Currents of Sulu.png");
 
     // Treasure node sprites (chest)
     this.load.image("chest_f0", "sprites/overworld/treasure/chest_full_open_anim_f0.png");
