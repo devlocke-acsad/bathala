@@ -85,6 +85,7 @@ export class Overworld_MazeGenManager {
     'sv_underlay_4',
     'sv_underlay_5',
   ];
+  private submergedVillageHouseSetIds: number[] = [1, 2, 3, 4, 6, 7, 8, 9, 10];
 
   // Outer tile markers for chunk connections
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
@@ -179,7 +180,8 @@ export class Overworld_MazeGenManager {
       return tileValue === 0;
     }
 
-    return tileValue === 0 || tileValue === 1 || tileValue === 2 || tileValue === 3 || tileValue === 4;
+    // Act 2 houses (tile 2) are hard obstacles; paths around them stay traversable.
+    return tileValue === 0 || tileValue === 1 || tileValue === 3 || tileValue === 4;
   }
 
   /**
@@ -674,6 +676,7 @@ export class Overworld_MazeGenManager {
     const offsetX = chunkX * chunkSizePixels;
     const offsetY = chunkY * chunkSizePixels;
     const isAct2 = this.isAct2Chapter();
+    const act2HouseVariantMap = isAct2 ? this.buildAct2HouseVariantMap(maze, chunkX, chunkY) : undefined;
 
     if (isAct2) {
       this.logAct2PathTileAvailabilityOnce();
@@ -701,7 +704,7 @@ export class Overworld_MazeGenManager {
             }
           }
 
-          const textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y);
+          const textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y, act2HouseVariantMap);
           const wallSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, textureKey);
           wallSprite.setDisplaySize(this.gridSize, this.gridSize);
           wallSprite.setOrigin(0.5);
@@ -756,6 +759,98 @@ export class Overworld_MazeGenManager {
   private getAct2LandTexture(chunkX: number, chunkY: number, x: number, y: number): string {
     const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageUnderlayTextures.length);
     return this.submergedVillageUnderlayTextures[idx];
+  }
+
+  private buildAct2HouseVariantMap(maze: number[][], chunkX: number, chunkY: number): Map<string, number> {
+    const map = new Map<string, number>();
+    const visited = new Set<string>();
+    const h = maze.length;
+    const w = h > 0 ? maze[0].length : 0;
+    const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (maze[y][x] !== 2) continue;
+        const rootKey = `${x},${y}`;
+        if (visited.has(rootKey)) continue;
+
+        const queue: Array<[number, number]> = [[x, y]];
+        const component: Array<[number, number]> = [];
+        let minX = x;
+        let minY = y;
+
+        visited.add(rootKey);
+
+        while (queue.length > 0) {
+          const [cx, cy] = queue.shift()!;
+          component.push([cx, cy]);
+          minX = Math.min(minX, cx);
+          minY = Math.min(minY, cy);
+
+          for (const [dx, dy] of dirs) {
+            const nx = cx + dx;
+            const ny = cy + dy;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            if (maze[ny][nx] !== 2) continue;
+
+            const key = `${nx},${ny}`;
+            if (visited.has(key)) continue;
+            visited.add(key);
+            queue.push([nx, ny]);
+          }
+        }
+
+        const styleIdx = this.getDeterministicIndex(chunkX, chunkY, minX, minY, this.submergedVillageHouseSetIds.length);
+        const styleId = this.submergedVillageHouseSetIds[styleIdx];
+        for (const [tx, ty] of component) {
+          map.set(`${tx},${ty}`, styleId);
+        }
+      }
+    }
+
+    return map;
+  }
+
+  private getAct2HouseTexture(
+    maze: number[][],
+    chunkX: number,
+    chunkY: number,
+    x: number,
+    y: number,
+    houseVariantMap?: Map<string, number>,
+  ): string {
+    const isHouse = (tx: number, ty: number): boolean => maze[ty]?.[tx] === 2;
+    const n = isHouse(x, y - 1);
+    const s = isHouse(x, y + 1);
+    const e = isHouse(x + 1, y);
+    const w = isHouse(x - 1, y);
+
+    let suffix: 'center' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' = 'center';
+    if (!n && !w) suffix = 'nw';
+    else if (!n && !e) suffix = 'ne';
+    else if (!s && !w) suffix = 'sw';
+    else if (!s && !e) suffix = 'se';
+    else if (!n) suffix = 'n';
+    else if (!s) suffix = 's';
+    else if (!e) suffix = 'e';
+    else if (!w) suffix = 'w';
+
+    const styleId = houseVariantMap?.get(`${x},${y}`)
+      ?? this.submergedVillageHouseSetIds[
+        this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageHouseSetIds.length)
+      ];
+
+    const orientedKey = `sv_house_${styleId}_${suffix}`;
+    if (this.scene.textures.exists(orientedKey)) {
+      return orientedKey;
+    }
+
+    const centerKey = `sv_house_${styleId}_center`;
+    if (this.scene.textures.exists(centerKey)) {
+      return centerKey;
+    }
+
+    return this.getAct2LandTexture(chunkX, chunkY, x, y);
   }
 
   private logAct2PathTileAvailabilityOnce(): void {
@@ -923,7 +1018,15 @@ export class Overworld_MazeGenManager {
    * Map non-path tile values to texture keys.
    * Act 2 favors submerged-village bundles with directional variants.
    */
-  private getWallTexture(tileValue: number, maze: number[][], chunkX: number, chunkY: number, x: number, y: number): string {
+  private getWallTexture(
+    tileValue: number,
+    maze: number[][],
+    chunkX: number,
+    chunkY: number,
+    x: number,
+    y: number,
+    houseVariantMap?: Map<string, number>,
+  ): string {
     const isAct2 = this.isAct2Chapter();
     const isAct3 = this.isAct3Chapter();
     const has = (dx: number, dy: number): boolean => {
@@ -1239,6 +1342,10 @@ export class Overworld_MazeGenManager {
       return this.getAct2LandTexture(chunkX, chunkY, x, y);
     }
 
+    if (isAct2 && tileValue === 2) {
+      return this.getAct2HouseTexture(maze, chunkX, chunkY, x, y, houseVariantMap);
+    }
+
     // Obstacle tiles (TILE.OBSTACLE = 10) - randomly select from available obstacle sprites
     if (tileValue === 10) {
       const obstacles = ['sv_tree_1', 'sv_tree_2', 'sv_tree_3', 'sv_tree_4', 'sv_tree_5'];
@@ -1248,6 +1355,7 @@ export class Overworld_MazeGenManager {
 
     switch (tileValue) {
       case 2:
+        return 'wall4';
       case 3:
       case 4:
         if (isAct2) {

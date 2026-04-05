@@ -351,7 +351,12 @@ export class SubmergedVillageAlgorithm {
         };
 
         const wasmResult = generationWasmBridge.tryGenerateSubmergedVillage(w, h, seed, wasmParams);
-        if (wasmResult) return wasmResult;
+        if (wasmResult) {
+            // Keep every house fully walkable around all sides.
+            this.enforceHousePerimeterPaths(wasmResult, 1);
+            this.ensureGlobalAccessibility(wasmResult);
+            return wasmResult;
+        }
 
         // ─── TypeScript fallback (only if WASM unavailable) ──────────
         console.warn('[SubmergedVillage] WASM pipeline unavailable, falling back to TypeScript');
@@ -431,7 +436,40 @@ export class SubmergedVillageAlgorithm {
         // 17. Scatter obstacles on FOREST tiles (after all terrain features are placed)
         this.scatterObstacles(grid);
 
+        // 18. Final house accessibility guard: every house must be surrounded by path.
+        this.enforceHousePerimeterPaths(grid, 1);
+        this.ensureGlobalAccessibility(grid);
+
         return grid;
+    }
+
+    /**
+     * Force a one-tile path ring around every house footprint so players can always route around buildings.
+     */
+    private enforceHousePerimeterPaths(grid: IntGrid, radius: number): void {
+        const [w, h] = this.levelSize;
+        const toPath = new Set<string>();
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.HOUSE) continue;
+
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (!this.isInBounds(nx, ny)) continue;
+                        if (grid.getTile(nx, ny) === TILE.HOUSE) continue;
+                        toPath.add(`${nx},${ny}`);
+                    }
+                }
+            }
+        }
+
+        for (const key of toPath) {
+            const [x, y] = key.split(',').map(Number);
+            grid.setTile(x, y, TILE.PATH);
+        }
     }
 
     /**

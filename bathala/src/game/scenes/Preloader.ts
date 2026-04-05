@@ -217,6 +217,39 @@ export class Preloader extends Scene {
     this.load.image("sv_underlay_4", "background/submergedvillageAssets/Update/underlay/underlay_obstacle4.png");
     this.load.image("sv_underlay_5", "background/submergedvillageAssets/Update/underlay/underlay_obstacle5.png");
 
+    // Act 2 house autotile set (buildings are multi-tile obstacles over underlays).
+    const act2HouseProfiles: Record<number, string> = {
+      1: "H3xL3",
+      2: "H3xL3",
+      3: "H2xL3",
+      4: "H2xL3",
+      6: "H3xL3",
+      7: "H3xL3",
+      8: "H3xL3",
+      9: "H3xL3",
+      10: "H3xL3",
+    };
+    const act2HouseSuffixes: Array<{ key: string; file: string }> = [
+      { key: "center", file: "Center" },
+      { key: "n", file: "N" },
+      { key: "s", file: "S" },
+      { key: "e", file: "E" },
+      { key: "w", file: "W" },
+      { key: "ne", file: "NE" },
+      { key: "nw", file: "NW" },
+      { key: "se", file: "SE" },
+      { key: "sw", file: "SW" },
+    ];
+    for (const [idText, profile] of Object.entries(act2HouseProfiles)) {
+      const id = Number(idText);
+      for (const suffix of act2HouseSuffixes) {
+        this.load.image(
+          `sv_house_${id}_${suffix.key}`,
+          `background/submergedvillageAssets/Update/obstacles/houses/house${id}_${profile}_${suffix.file}.png`,
+        );
+      }
+    }
+
     this.load.image("sv_tree_1", "background/submergedvillageAssets/Update/obstacles/trees/tree1.png");
     this.load.image("sv_tree_2", "background/submergedvillageAssets/Update/obstacles/trees/tree2.png");
     this.load.image("sv_tree_3", "background/submergedvillageAssets/Update/obstacles/trees/tree3.png");
