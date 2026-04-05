@@ -1,6 +1,6 @@
 import { Scene } from 'phaser';
 import { GameState } from '../../../core/managers/GameState';
-import { Chapter } from '../../../core/types/CombatTypes';
+import { Chapter, Player } from '../../../core/types/CombatTypes';
 import { EnemyRegistry } from '../../../core/registries/EnemyRegistry';
 import { bootstrapEnemies } from '../../../data/enemies/EnemyBootstrap';
 import { OverworldGameState } from '../../../core/managers/OverworldGameState';
@@ -46,6 +46,7 @@ interface EnemyEntry { name: string; key: string; tier: 'common' | 'elite' | 'bo
 export class DevHubScene extends Scene {
   private container!: Phaser.GameObjects.Container;
   private isVisible = false;
+  private pausedSceneKey: string | null = null;
 
   // Tab state
   private activeTab: Tab = 'combat';
@@ -68,11 +69,15 @@ export class DevHubScene extends Scene {
 
   private gameState = GameState.getInstance();
 
-  private readonly W = 1920;
-  private readonly H = 1080;
-
   constructor() {
     super({ key: 'DevHubScene' });
+  }
+
+  private getViewport(): { width: number; height: number } {
+    return {
+      width: this.cameras.main?.width ?? this.scale.width ?? 1920,
+      height: this.cameras.main?.height ?? this.scale.height ?? 1080,
+    };
   }
 
   create(): void {
@@ -98,14 +103,52 @@ export class DevHubScene extends Scene {
     if (this.activeTab === 'chapters') this.refreshChaptersTab();
   }
 
-  public hide(): void {
+  public hide(resumePausedScene = true): void {
     if (!this.container) return;
     this.isVisible = false;
     this.container.setVisible(false);
+    if (resumePausedScene) {
+      this.resumePausedScene();
+    }
   }
 
   public toggle(): void {
     this.isVisible ? this.hide() : this.show();
+  }
+
+  private getUnderlyingSceneKey(): string | null {
+    const sceneKeys = ['Combat', 'Overworld', 'MainMenu'];
+    for (const key of sceneKeys) {
+      if (this.scene.isActive(key)) {
+        return key;
+      }
+    }
+    return null;
+  }
+
+  private pauseUnderlyingSceneForDevHubFlow(): void {
+    if (this.pausedSceneKey) return;
+    const key = this.getUnderlyingSceneKey();
+    if (!key) return;
+
+    this.scene.pause(key);
+    this.pausedSceneKey = key;
+  }
+
+  private resumePausedScene(): void {
+    if (!this.pausedSceneKey) return;
+
+    const key = this.pausedSceneKey;
+    this.pausedSceneKey = null;
+
+    if (this.scene.isPaused(key)) {
+      this.scene.resume(key);
+    }
+
+    const resumedScene = this.scene.manager.getScene(key);
+    if (resumedScene && typeof (resumedScene as any).resume === 'function') {
+      (resumedScene as any).resume();
+    }
   }
 
   // ─── Data builders ──────────────────────────────────────────────────────────
@@ -168,7 +211,13 @@ export class DevHubScene extends Scene {
   // ─── UI Construction ────────────────────────────────────────────────────────
 
   private buildUI(): void {
-    const W = this.W, H = this.H;
+    const { width: W, height: H } = this.getViewport();
+    const panelWidth = Math.round(Phaser.Math.Clamp(W * 0.84, 980, 1600));
+    const panelHeight = Math.round(Phaser.Math.Clamp(H * 0.84, 720, 900));
+    const panelX = (W - panelWidth) / 2;
+    const panelY = (H - panelHeight) / 2;
+    const panelPadding = Math.round(Phaser.Math.Clamp(panelWidth * 0.018, 18, 28));
+    const contentTop = 132;
 
     this.container = this.add.container(0, 0).setDepth(50000);
 
@@ -177,24 +226,21 @@ export class DevHubScene extends Scene {
     this.container.add(dim);
 
     // Main panel (centered, 1600×900)
-    const pw = 1600, ph = 860;
-    const px = (W - pw) / 2, py = (H - ph) / 2;
-
-    const panelBg = this.add.rectangle(W / 2, H / 2, pw, ph, C.panel);
+    const panelBg = this.add.rectangle(W / 2, H / 2, panelWidth, panelHeight, C.panel);
     panelBg.setStrokeStyle(1, C.border);
     this.container.add(panelBg);
 
     // Header bar
-    this.buildHeader(px, py, pw);
+    this.buildHeader(panelX, panelY, panelWidth);
 
     // Tabs
-    this.buildTabBar(px, py + 60, pw);
+    this.buildTabBar(panelX, panelY + 62, panelWidth);
 
     // Tab content area
-    const contentX = px + 20;
-    const contentY = py + 120;
-    const contentW = pw - 40;
-    const contentH = ph - 160;
+    const contentX = panelX + panelPadding;
+    const contentY = panelY + contentTop;
+    const contentW = panelWidth - panelPadding * 2;
+    const contentH = panelHeight - contentTop - panelPadding;
 
     this.buildCombatTab(contentX, contentY, contentW, contentH);
     this.buildNodesTab(contentX, contentY, contentW, contentH);
@@ -205,24 +251,26 @@ export class DevHubScene extends Scene {
   }
 
   private buildHeader(px: number, py: number, pw: number): void {
+    const headerY = py + 26;
+
     // Title
-    const title = this.add.text(px + 20, py + 18, 'DEV HUB', {
-      fontFamily: 'dungeon-mode', fontSize: 28, color: '#ffd93d',
+    const title = this.add.text(px + 24, headerY, 'DEV HUB', {
+      fontFamily: 'dungeon-mode', fontSize: 30, color: '#ffd93d',
     }).setOrigin(0, 0.5);
     this.container.add(title);
 
     // Version badge
-    const ver = this.add.text(px + pw - 20, py + 18, 'v0.5.0 — internal build', {
+    const ver = this.add.text(px + pw - 24, headerY, 'v0.5.0 internal build', {
       fontFamily: 'dungeon-mode', fontSize: 14, color: '#' + C.muted.toString(16).padStart(6, '0'),
     }).setOrigin(1, 0.5);
     this.container.add(ver);
 
     // Close button
-    const closeBtn = this.makeTextButton(px + pw - 20, py + 18 + 28, '[ESC / F2]', '#77888c', '#ffffff', () => this.hide());
+    const closeBtn = this.makeTextButton(px + pw - 24, py + 54, '[ESC / F2] close', '#77888c', '#ffffff', () => this.hide());
     this.container.add(closeBtn);
 
     // Divider
-    const div = this.add.rectangle(px + pw / 2, py + 54, pw, 1, C.border);
+    const div = this.add.rectangle(px + pw / 2, py + 76, pw - 2, 1, C.border);
     this.container.add(div);
   }
 
@@ -234,18 +282,20 @@ export class DevHubScene extends Scene {
       { key: 'events',   label: '✦  EVENTS',    color: '#a855f7' },
     ];
 
-    const tabW = Math.floor(pw / tabs.length);
+    const tabGap = 10;
+    const tabW = Math.floor((pw - tabGap * (tabs.length - 1)) / tabs.length);
 
     tabs.forEach((t, i) => {
-      const tx = px + i * tabW;
+      const tx = px + i * (tabW + tabGap);
       const tabCont = this.add.container(tx, py);
       this.container.add(tabCont);
 
-      const bg = this.add.rectangle(tabW / 2, 28, tabW - 2, 54, C.tabActive);
+      const bg = this.add.rectangle(tabW / 2, 28, tabW, 52, C.tabActive);
+      bg.setStrokeStyle(1, C.border);
       const label = this.add.text(tabW / 2, 28, t.label, {
-        fontFamily: 'dungeon-mode', fontSize: 16, color: '#77888c', align: 'center',
+        fontFamily: 'dungeon-mode', fontSize: 15, color: '#77888c', align: 'center',
       }).setOrigin(0.5);
-      const indicator = this.add.rectangle(tabW / 2, 54, tabW - 2, 2, C.accent, 0);
+      const indicator = this.add.rectangle(tabW / 2, 52, tabW - 18, 3, C.accent, 0);
 
       tabCont.add([bg, label, indicator]);
       bg.setInteractive({ useHandCursor: true });
@@ -300,7 +350,9 @@ export class DevHubScene extends Scene {
       { ch: 2, name: 'Ch 2 · Submerged' },
       { ch: 3, name: 'Ch 3 · Skyward'   },
     ];
-    const btnW = 240, btnH = 40, gap = 20;
+    const gap = 20;
+    const btnW = Math.floor((cw - gap * (chapters.length - 1)) / chapters.length);
+    const btnH = 42;
     const totalW = chapters.length * btnW + (chapters.length - 1) * gap;
     let bx = (cw - totalW) / 2;
 
@@ -312,7 +364,7 @@ export class DevHubScene extends Scene {
 
     // Two-column layout: enemy list left, detail panel right
     const listX = 0;
-    const listW = Math.floor(cw * 0.45);
+    const listW = Math.floor(cw * 0.43);
     const detailX = listW + 20;
     const detailW = cw - listW - 20;
     const bodyY = 72;
@@ -361,6 +413,8 @@ export class DevHubScene extends Scene {
     const txt = this.add.text(0, 0, label, {
       fontFamily: 'dungeon-mode', fontSize: 15,
       color: isActive ? '#2ed573' : '#77888c',
+      align: 'center',
+      wordWrap: { width: w - 24 },
     }).setOrigin(0.5);
     c.add([bg, txt]);
     bg.setInteractive({ useHandCursor: true });
@@ -402,6 +456,10 @@ export class DevHubScene extends Scene {
   private refreshCombatList(): void {
     this.combatListContainer.removeAll(true);
     this.enemyDetailContainer.removeAll(true);
+    const combatCont = this.tabContainers['combat'];
+    const listW = (combatCont as any)?._listW ?? 600;
+    const rowWidth = listW - 16;
+    const rowCenter = rowWidth / 2;
 
     const tierColor: Record<string, string> = { common: '#e8eced', elite: '#ffa500', boss: '#ff4757' };
     const tierBadge: Record<string, string> = { common: '', elite: ' [ELITE]', boss: ' [BOSS]' };
@@ -411,11 +469,12 @@ export class DevHubScene extends Scene {
       const rowH = 38;
       const y = i * rowH;
 
-      const rowBg = this.add.rectangle(300, y + rowH / 2, 598, rowH - 4, isSelected ? 0x1a2e1a : C.rowHover, isSelected ? 1 : 0);
+      const rowBg = this.add.rectangle(rowCenter, y + rowH / 2, rowWidth, rowH - 4, isSelected ? 0x1a2e1a : C.rowHover, isSelected ? 1 : 0);
       rowBg.setStrokeStyle(isSelected ? 1 : 0, C.green);
       const name = this.add.text(16, y + rowH / 2, enemy.name + tierBadge[enemy.tier], {
         fontFamily: 'dungeon-mode', fontSize: 17,
         color: isSelected ? tierColor[enemy.tier] : '#77888c',
+        wordWrap: { width: rowWidth - 44 },
       }).setOrigin(0, 0.5);
       const arrow = this.add.text(0, y + rowH / 2, isSelected ? '▶' : ' ', {
         fontFamily: 'dungeon-mode', fontSize: 14, color: '#2ed573',
@@ -438,6 +497,8 @@ export class DevHubScene extends Scene {
     this.enemyDetailContainer.removeAll(true);
     const enemy = this.enemyList[this.selectedEnemyIndex];
     if (!enemy) return;
+    const combatCont = this.tabContainers['combat'];
+    const detailW = (combatCont as any)?._detailW ?? 700;
 
     const data = EnemyRegistry.resolve(enemy.key) as any;
     const tierColor: Record<string, string> = { common: '#e8eced', elite: '#ffa500', boss: '#ff4757' };
@@ -445,7 +506,12 @@ export class DevHubScene extends Scene {
 
     // Enemy name
     this.enemyDetailContainer.add(
-      this.add.text(0, 0, enemy.name, { fontFamily: 'dungeon-mode', fontSize: 22, color }).setOrigin(0, 0)
+      this.add.text(0, 0, enemy.name, {
+        fontFamily: 'dungeon-mode',
+        fontSize: 22,
+        color,
+        wordWrap: { width: detailW - 32 },
+      }).setOrigin(0, 0)
     );
 
     const tierLabel: Record<string, string> = { common: 'COMMON', elite: 'ELITE', boss: 'BOSS' };
@@ -478,33 +544,87 @@ export class DevHubScene extends Scene {
         this.enemyDetailContainer.add(
           this.add.text(0, 242, data.attackPattern.join(' → '), {
             fontFamily: 'dungeon-mode', fontSize: 13, color: '#5cabf2',
-            wordWrap: { width: 460 },
+            wordWrap: { width: detailW - 40 },
           })
         );
       }
     }
 
-    // Action buttons
+    const tierActionLabel: Record<EnemyEntry['tier'], string> = {
+      common: 'START COMBAT',
+      elite: 'START ELITE',
+      boss: 'START BOSS',
+    };
+    const tierActionColor: Record<EnemyEntry['tier'], { text: string; bg: number }> = {
+      common: { text: '#ff6b35', bg: 0x2a1a12 },
+      elite: { text: '#ffa500', bg: 0x2a1e10 },
+      boss: { text: '#ff4757', bg: 0x2a1018 },
+    };
+
     const btnY = 380;
-    const fightBtn = this.makeSolidButton(0, btnY, 220, 44, 'FIGHT (ENTER)', '#ff6b35', 0x2a1a12, () => {
-      this.startCombat(enemy.key, 'common');
+    const actionTheme = tierActionColor[enemy.tier];
+    const actionBtn = this.makeSolidButton(0, btnY, Math.min(320, detailW - 24), 46, tierActionLabel[enemy.tier], actionTheme.text, actionTheme.bg, () => {
+      this.startCombat(enemy.key, enemy.tier);
     });
-    const eliteBtn = this.makeSolidButton(240, btnY, 200, 44, 'AS ELITE', '#ffa500', 0x2a1e10, () => {
-      this.startCombat(enemy.key, 'elite');
-    });
-    const bossBtn = this.makeSolidButton(460, btnY, 180, 44, 'AS BOSS', '#ff4757', 0x2a1018, () => {
-      this.startCombat(enemy.key, 'boss');
-    });
-    this.enemyDetailContainer.add([fightBtn, eliteBtn, bossBtn]);
+    this.enemyDetailContainer.add(actionBtn);
   }
 
   private startCombat(enemyKey: string, nodeType: string): void {
-    this.hide();
-    const main = this.scene.manager.getScene('MainMenu');
-    const ow   = this.scene.manager.getScene('Overworld');
-    const active = (main?.scene.isActive() ? main : ow?.scene.isActive() ? ow : null);
-    if (active) active.scene.pause();
-    this.scene.start('Combat', { nodeType, enemyId: enemyKey, returnToDevHub: true });
+    this.hide(false);
+    this.pauseUnderlyingSceneForDevHubFlow();
+    this.scene.launch('Combat', { nodeType, enemyId: enemyKey, returnToDevHub: true });
+  }
+
+  private getDevPlayerData(): Player {
+    const playerData = GameState.getInstance().getPlayerData();
+    return playerData || {
+      id: 'player',
+      name: 'Debugger',
+      maxHealth: 120,
+      currentHealth: 120,
+      block: 0,
+      statusEffects: [],
+      hand: [],
+      deck: [],
+      discardPile: [],
+      drawPile: [],
+      playedHand: [],
+      landasScore: 0,
+      ginto: 100,
+      diamante: 0,
+      relics: [],
+      potions: [],
+      discardCharges: 3,
+      maxDiscardCharges: 3,
+    };
+  }
+
+  private openNodeScene(nodeType: 'campfire' | 'treasure' | 'event' | 'shop'): void {
+    this.hide(false);
+    this.pauseUnderlyingSceneForDevHubFlow();
+
+    const player = this.getDevPlayerData();
+
+    switch (nodeType) {
+      case 'campfire':
+        this.scene.launch('Campfire', { player, returnToDevHub: true });
+        break;
+      case 'treasure':
+        this.scene.launch('Treasure', { player, returnToDevHub: true });
+        break;
+      case 'shop':
+        this.scene.launch('Shop', { player, returnToDevHub: true });
+        break;
+      case 'event': {
+        const fallbackEvent = this.eventsList[0] || Act1EducationalEvents[0];
+        this.scene.launch('EventScene', {
+          player,
+          event: fallbackEvent,
+          returnToDevHub: true,
+        });
+        break;
+      }
+    }
   }
 
   // ─── NODES TAB ──────────────────────────────────────────────────────────────
@@ -514,35 +634,33 @@ export class DevHubScene extends Scene {
     this.container.add(cont);
     this.tabContainers['nodes'] = cont;
 
-    cont.add(this.add.text(cw / 2, 40, 'Node Gallery', {
+    cont.add(this.add.text(cw / 2, 24, 'Node Gallery', {
       fontFamily: 'dungeon-mode', fontSize: 26, color: '#5cabf2',
     }).setOrigin(0.5));
-    cont.add(this.add.text(cw / 2, 80, 'Visual reference for all overworld node types and sprites', {
+    cont.add(this.add.text(cw / 2, 54, 'Open the core overworld node scenes directly from DevHub', {
       fontFamily: 'dungeon-mode', fontSize: 16, color: '#77888c',
     }).setOrigin(0.5));
 
-    // Node grid — 4 cols
+    // Responsive node grid
     const nodes = [
-      { type: 'campfire',  label: 'Campfire',  color: '#ff6b35', sprite: 'campfire_overworld', anim: 'campfire_burn',    desc: 'Rest & upgrade cards' },
-      { type: 'treasure',  label: 'Treasure',  color: '#ffd93d', sprite: 'chest_f0',            anim: null,               desc: 'Gain relics' },
-      { type: 'event',     label: 'Event',     color: '#a855f7', sprite: 'event_overworld',     anim: 'event_portal_loop', desc: 'Story & educational choices' },
-      { type: 'shop',      label: 'Shop',      color: '#2ed573', sprite: 'merchant_overworld',  anim: null,               desc: 'Buy items & potions' },
-      { type: 'combat',    label: 'Combat',    color: '#ff4757', sprite: 'tikbalang_overworld', anim: null,               desc: 'Ch1 common enemy sample' },
-      { type: 'elite',     label: 'Elite',     color: '#ffa500', sprite: 'kapre_overworld',     anim: null,               desc: 'Ch1 elite enemy sample' },
-      { type: 'boss',      label: 'Boss',      color: '#c0392b', sprite: 'kapre_overworld',     anim: null,               desc: 'Boss encounter' },
+      { type: 'campfire',  label: 'Campfire',  color: '#ff6b35', sprite: 'campfire_overworld', anim: 'campfire_burn', desc: 'Rest, purify, and upgrade cards', cta: 'OPEN CAMPFIRE' },
+      { type: 'treasure',  label: 'Treasure',  color: '#ffd93d', sprite: 'chest_f0',           anim: null,            desc: 'Claim relic and potion rewards', cta: 'OPEN TREASURE' },
+      { type: 'event',     label: 'Event',     color: '#a855f7', sprite: 'event_overworld',    anim: 'event_portal_loop', desc: 'Launch a story encounter immediately', cta: 'OPEN EVENT' },
+      { type: 'shop',      label: 'Shop',      color: '#2ed573', sprite: 'merchant_overworld', anim: null,            desc: 'Browse relics, items, and potions', cta: 'OPEN SHOP' },
     ];
 
-    const cols = 4;
-    const cardW = Math.floor((cw - 60) / cols) - 10;
-    const cardH = 220;
+    const cols = cw > 1100 ? 4 : 2;
+    const gap = 18;
+    const cardW = Math.floor((cw - 60 - gap * (cols - 1)) / cols);
+    const cardH = 260;
     const startX = 30;
-    const startY = 120;
+    const startY = 98;
 
     nodes.forEach((n, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
-      const nx = startX + col * (cardW + 10) + cardW / 2;
-      const ny = startY + row * (cardH + 16);
+      const nx = startX + col * (cardW + gap) + cardW / 2;
+      const ny = startY + row * (cardH + gap);
 
       const card = this.add.container(nx, ny);
 
@@ -572,23 +690,45 @@ export class DevHubScene extends Scene {
         card.add(ph);
       }
 
-      // Description
-      const desc = this.add.text(0, cardH / 2 - 18, n.desc, {
+      const desc = this.add.text(0, cardH / 2 - 56, n.desc, {
         fontFamily: 'dungeon-mode', fontSize: 12, color: '#77888c', align: 'center',
-        wordWrap: { width: cardW - 16 },
+        wordWrap: { width: cardW - 28 },
       }).setOrigin(0.5, 1);
       card.add(desc);
 
+      const cta = this.add.text(0, cardH / 2 - 26, n.cta, {
+        fontFamily: 'dungeon-mode',
+        fontSize: 13,
+        color: n.color,
+        align: 'center',
+      }).setOrigin(0.5, 1);
+      card.add(cta);
+
       // Hover effect
-      bg.setInteractive({ useHandCursor: false });
-      bg.on('pointerover', () => { bg.setStrokeStyle(1, Phaser.Display.Color.HexStringToColor(n.color).color); });
-      bg.on('pointerout',  () => { bg.setStrokeStyle(1, C.border); });
+      const hoverColor = Phaser.Display.Color.HexStringToColor(n.color).color;
+      bg.setInteractive({ useHandCursor: true });
+      bg.on('pointerover', () => {
+        bg.setStrokeStyle(1, hoverColor);
+        bg.setFillStyle(C.rowHover, 1);
+        cta.setColor('#ffffff');
+      });
+      bg.on('pointerout',  () => {
+        bg.setStrokeStyle(1, C.border);
+        bg.setFillStyle(C.bg, 1);
+        cta.setColor(n.color);
+      });
+      bg.on('pointerdown', () => this.openNodeScene(n.type));
+      label.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.openNodeScene(n.type));
+      desc.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.openNodeScene(n.type));
+      cta.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.openNodeScene(n.type));
 
       cont.add(card);
     });
 
     // Chapter enemy showcase button
-    const showcaseBtn = this.makeSolidButton(cw / 2, startY + 2 * (cardH + 16) + 50, 360, 48, 'OPEN FULL NODE SHOWCASE →', '#5cabf2', 0x0d1a2a, () => {
+    const totalRows = Math.ceil(nodes.length / cols);
+    const showcaseBtnY = startY + totalRows * (cardH + gap) + 26;
+    const showcaseBtn = this.makeSolidButton(cw / 2, showcaseBtnY, Math.min(420, cw - 80), 48, 'OPEN FULL NODE SHOWCASE →', '#5cabf2', 0x0d1a2a, () => {
       this.hide();
       if (!this.scene.isActive('NodeShowcaseScene')) {
         this.scene.launch('NodeShowcaseScene');
@@ -636,12 +776,13 @@ export class DevHubScene extends Scene {
       { ch: 3, name: 'Chapter 3', desc: 'Skyward — Diwata, False Bathala', color: '#a855f7' },
     ];
 
-    const cardW = Math.floor((cw - 80) / 3) - 12;
+    const cardGap = 12;
+    const cardW = Math.floor((cw - 80 - cardGap * 2) / 3);
     const cardH = 160;
     const startX = 40;
 
     chapters.forEach((c, i) => {
-      const nx = startX + i * (cardW + 12) + cardW / 2;
+      const nx = startX + i * (cardW + cardGap) + cardW / 2;
       const isActive = c.ch === currentChapter;
       const card = this.add.container(nx, cardH / 2);
 
@@ -652,7 +793,7 @@ export class DevHubScene extends Scene {
       }).setOrigin(0.5);
       const desc = this.add.text(0, -10, c.desc, {
         fontFamily: 'dungeon-mode', fontSize: 13, color: '#77888c', align: 'center',
-        wordWrap: { width: cardW - 24 },
+        wordWrap: { width: cardW - 28 },
       }).setOrigin(0.5);
       const badge = isActive ? this.add.text(0, 30, '● ACTIVE', { fontFamily: 'dungeon-mode', fontSize: 12, color: c.color }).setOrigin(0.5) : null;
       const jumpBtn = this.makeSolidButton(0, 52, 200, 36, isActive ? '● CURRENT' : '→ LAUNCH CHAPTER', isActive ? '#555555' : c.color, isActive ? 0x1a1a1a : C.bg, () => {
@@ -719,10 +860,16 @@ export class DevHubScene extends Scene {
       },
     ];
 
-    const btnW = 260, btnH = 44, gap = 16;
+    const columns = cw > 1200 ? 4 : 2;
+    const gap = 16;
+    const btnW = Math.floor((cw - 80 - gap * (columns - 1)) / columns);
+    const btnH = 44;
     tools.forEach((t, i) => {
-      const bx = 40 + i * (btnW + gap) + btnW / 2;
-      const btn = this.makeSolidButton(bx, toolY + 44, btnW, btnH, t.label, t.color, C.bg, t.fn);
+      const col = i % columns;
+      const row = Math.floor(i / columns);
+      const bx = 40 + col * (btnW + gap) + btnW / 2;
+      const by = toolY + 44 + row * (btnH + gap);
+      const btn = this.makeSolidButton(bx, by, btnW, btnH, t.label, t.color, C.bg, t.fn);
       dynamicCont.add(btn);
     });
   }
@@ -762,7 +909,8 @@ export class DevHubScene extends Scene {
 
     // Act buttons
     const acts = ['Act 1', 'Act 2', 'Act 3'];
-    const abtnW = 140, gap = 12;
+    const abtnW = Math.min(160, Math.floor((cw - 24) / 3));
+    const gap = 12;
     const totalW = acts.length * abtnW + (acts.length - 1) * gap;
     let ax = cw / 2 - totalW / 2;
     acts.forEach((label, i) => {
@@ -824,15 +972,20 @@ export class DevHubScene extends Scene {
     this.eventsListContainer.removeAll(true);
     this.eventDetailContainer.removeAll(true);
 
-    const rowH = 36;
+    const eventsCont = this.tabContainers['events'];
+    const listW = (eventsCont as any)?._listW ?? 560;
+    const rowWidth = listW - 20;
+    const rowCenter = rowWidth / 2;
+    const rowH = 40;
     this.eventsList.forEach((ev, i) => {
       const isSelected = i === this.selectedEventIndex;
       const y = i * rowH;
 
-      const rowBg = this.add.rectangle(290, y + rowH / 2, 578, rowH - 4, isSelected ? 0x1a0d2e : 0, isSelected ? 1 : 0);
+      const rowBg = this.add.rectangle(rowCenter, y + rowH / 2, rowWidth, rowH - 4, isSelected ? 0x1a0d2e : 0, isSelected ? 1 : 0);
       rowBg.setStrokeStyle(isSelected ? 1 : 0, 0xa855f7);
       const txt = this.add.text(12, y + rowH / 2, ev.name, {
         fontFamily: 'dungeon-mode', fontSize: 15, color: isSelected ? '#a855f7' : '#77888c',
+        wordWrap: { width: rowWidth - 30 },
       }).setOrigin(0, 0.5);
 
       rowBg.setInteractive({ useHandCursor: true });
@@ -887,10 +1040,11 @@ export class DevHubScene extends Scene {
 
     // Launch button
     const bodyH = (this.tabContainers['events'] as any)._bodyH ?? 700;
-    const launchBtn = this.makeSolidButton(0, bodyH - 80, 260, 44, 'LAUNCH EVENT SCENE', '#a855f7', 0x1a0d2e, () => {
-      this.hide();
+    const launchBtn = this.makeSolidButton(0, bodyH - 80, Math.min(300, detailW - 24), 44, 'LAUNCH EVENT SCENE', '#a855f7', 0x1a0d2e, () => {
+      this.hide(false);
+      this.pauseUnderlyingSceneForDevHubFlow();
       const playerData = GameState.getInstance().getPlayerData();
-      this.scene.start('EventScene', {
+      this.scene.launch('EventScene', {
         player: playerData || { name: 'Debugger', health: 100, ginto: 100 },
         event: ev,
         returnToDevHub: true,
@@ -912,6 +1066,8 @@ export class DevHubScene extends Scene {
     bg.setStrokeStyle(1, colorNum);
     const txt = this.add.text(0, 0, label, {
       fontFamily: 'dungeon-mode', fontSize: 15, color: textColor,
+      align: 'center',
+      wordWrap: { width: w - 18 },
     }).setOrigin(0.5);
     c.add([bg, txt]);
     bg.setInteractive({ useHandCursor: true });
@@ -970,9 +1126,10 @@ export class DevHubScene extends Scene {
       } else if (this.activeTab === 'events') {
         const ev = this.eventsList[this.selectedEventIndex];
         if (ev) {
-          this.hide();
+          this.hide(false);
+          this.pauseUnderlyingSceneForDevHubFlow();
           const playerData = GameState.getInstance().getPlayerData();
-          this.scene.start('EventScene', {
+          this.scene.launch('EventScene', {
             player: playerData || { name: 'Debugger', health: 100, ginto: 100 },
             event: ev,
             returnToDevHub: true,
