@@ -447,10 +447,11 @@ export class DDADebugScene extends Scene {
    */
   private createTitle(): void {
     const screenWidth = this.cameras.main.width;
+    const titleY = 26;
     
     this.add.text(
       screenWidth / 2,
-      20,
+      titleY,
       "DDA System Debugger",
       {
         fontFamily: "dungeon-mode-inverted",
@@ -462,7 +463,7 @@ export class DDADebugScene extends Scene {
     
     this.add.text(
       screenWidth / 2,
-      60,
+      titleY + 38,
       "Rule-Based Dynamic Difficulty Adjustment",
       {
         fontFamily: "dungeon-mode",
@@ -474,7 +475,7 @@ export class DDADebugScene extends Scene {
     
     this.add.text(
       screenWidth / 2,
-      80,
+      titleY + 60,
       "Testing Performance-Based DDA: Quality of play over win/loss outcomes",
       {
         fontFamily: "dungeon-mode",
@@ -493,7 +494,7 @@ export class DDADebugScene extends Scene {
     
     this.testingModeIndicator = this.add.text(
       screenWidth / 2,
-      90,
+      96,
       "🧪 ISOLATED TESTING MODE - Gameplay DDA Not Affected",
       {
         fontFamily: "dungeon-mode",
@@ -672,7 +673,7 @@ export class DDADebugScene extends Scene {
    */
   private createTestingPanel(): void {
     const panelWidth = this.layout.contentWidth;
-    const panelHeight = 160;
+    const panelHeight = 240;
     const panelX = this.layout.marginX;
     const panelY = this.layout.marginY + 250 + this.layout.gutterY;
     
@@ -700,41 +701,38 @@ export class DDADebugScene extends Scene {
    * Create test buttons with clear, readable layout
    */
   private createTestButtons(): void {
-    const buttonSpacing = Math.floor((this.layout.contentWidth - 120) / 8);
-    const startX = 60;
-    
-    // Combat simulation buttons (top row)
+    const horizontalPadding = 26;
+    const buttonGap = 16;
+    const rowGap = 16;
+    const columns = this.layout.contentWidth > 1200 ? 5 : 4;
+    const buttonWidth = Math.floor((this.layout.contentWidth - horizontalPadding * 2 - buttonGap * (columns - 1)) / columns);
+    const buttonHeight = 64;
+    const buttonRowsY = [64, 64 + buttonHeight + rowGap, 64 + (buttonHeight + rowGap) * 2];
+    const startX = horizontalPadding + buttonWidth / 2;
+
     const combatButtons = [
       { 
         text: "Excellent", 
         desc: "100% HP, Quick\nGreat hands", 
         color: 0x2ed573, 
-        x: startX + buttonSpacing * 0, 
-        y: 50,
         action: () => this.testPerfectCombat() 
       },
       { 
         text: "Good", 
         desc: "70-89% HP\nEfficient", 
         color: 0x1dd1a1, 
-        x: startX + buttonSpacing * 1, 
-        y: 50,
         action: () => this.testAverageCombat() 
       },
       { 
         text: "Poor", 
         desc: "30-49% HP\nInefficient", 
         color: 0xff6b35, 
-        x: startX + buttonSpacing * 2, 
-        y: 50,
         action: () => this.testDifficultCombat() 
       },
       { 
         text: "Critical", 
         desc: "<30% HP\nVery slow", 
         color: 0xff4757, 
-        x: startX + buttonSpacing * 3, 
-        y: 50,
         action: () => this.testPoorPerformance() 
       },
     ];
@@ -745,32 +743,24 @@ export class DDADebugScene extends Scene {
         text: "Auto Test", 
         desc: "Random combats\nevery 1s", 
         color: 0x5352ed, 
-        x: startX + buttonSpacing * 4, 
-        y: 50,
         action: () => this.toggleAutoTest() 
       },
       { 
         text: "Fresh Start", 
         desc: "New isolated\ntest (PPS 2.5)", 
         color: 0x1dd1a1, 
-        x: startX + buttonSpacing * 5, 
-        y: 50,
         action: () => this.startFreshTest(this.currentConfig) 
       },
       { 
         text: "Reset Data", 
         desc: "Clear graphs\nKeep PPS", 
         color: 0x747d8c, 
-        x: startX + buttonSpacing * 6, 
-        y: 50,
         action: () => this.resetData() 
       },
       { 
         text: "Export CSV", 
         desc: "Download all\ntest data", 
         color: 0xffa502, 
-        x: startX + buttonSpacing * 7, 
-        y: 50,
         action: () => this.exportCSVData() 
       },
     ];
@@ -781,47 +771,42 @@ export class DDADebugScene extends Scene {
         text: "Damage Eff", 
         desc: "Test damage\nefficiency", 
         color: 0xff6348, 
-        x: startX + buttonSpacing * 0, 
-        y: 120,
         action: () => this.testDamageEfficiency() 
       },
       { 
         text: "Clutch Play", 
         desc: "Low HP start\nGood exec", 
         color: 0xffa502, 
-        x: startX + buttonSpacing * 1, 
-        y: 120,
         action: () => this.testClutchPerformance() 
       },
       { 
         text: "Realistic Run", 
         desc: "Simulate typical\ngameplay", 
         color: 0x2ed573, 
-        x: startX + buttonSpacing * 2, 
-        y: 120,
         action: () => this.testRealisticGameplayProgression() 
       },
       { 
         text: "Ground Truth", 
         desc: "Test vs GDD\nspecs", 
         color: 0x00d2d3, 
-        x: startX + buttonSpacing * 3, 
-        y: 120,
         action: () => this.runGroundTruthTests() 
       },
       { 
         text: "Full Suite", 
         desc: "Run all\nvalidation", 
         color: 0x5352ed, 
-        x: startX + buttonSpacing * 4, 
-        y: 120,
         action: () => this.runFullValidationSuite() 
       },
     ];
-    
-    [...combatButtons, ...controlButtons, ...advancedButtons].forEach(btn => {
-      const container = this.createEnhancedButton(btn.x, btn.y, btn.text, btn.desc, btn.color, btn.action);
-      this.simulationPanel.add(container);
+
+    const buttonRows = [combatButtons, controlButtons, advancedButtons];
+    buttonRows.forEach((rowButtons, rowIndex) => {
+      rowButtons.forEach((btn, colIndex) => {
+        const x = startX + colIndex * (buttonWidth + buttonGap);
+        const y = buttonRowsY[rowIndex];
+        const container = this.createEnhancedButton(x, y, btn.text, btn.desc, btn.color, btn.action, buttonWidth, buttonHeight);
+        this.simulationPanel.add(container);
+      });
     });
   }
 
@@ -830,7 +815,7 @@ export class DDADebugScene extends Scene {
    */
   private createConfigPanel(): void {
     const panelWidth = this.layout.contentWidth;
-    const panelHeight = 100;
+    const panelHeight = 122;
     const panelX = this.layout.marginX;
     const panelY = this.layout.marginY + 250 + this.layout.gutterY + 160 + this.layout.gutterY;
     
@@ -851,42 +836,44 @@ export class DDADebugScene extends Scene {
     this.configPanel.add(title);
     
     // Config buttons - responsive spacing
-    const buttonSpacing = Math.floor(this.layout.contentWidth / 4);
+    const leftPadding = 26;
+    const buttonGap = 16;
+    const infoWidth = Math.min(250, Math.floor(panelWidth * 0.25));
+    const buttonAreaWidth = panelWidth - leftPadding * 2 - infoWidth - buttonGap;
+    const buttonWidth = Math.floor((buttonAreaWidth - buttonGap * 2) / 3);
     const configs = [
       { 
         text: "Default", 
         desc: "Standard DDA\nBalanced", 
         color: 0x2ed573, 
-        x: buttonSpacing * 0.75, 
         config: DEFAULT_DDA_CONFIG 
       },
       { 
         text: "Aggressive", 
         desc: "Quick changes\nFaster adapt", 
         color: 0xff4757, 
-        x: buttonSpacing * 1.75, 
         config: AGGRESSIVE_DDA_CONFIG 
       },
       { 
         text: "Conservative", 
         desc: "Slow changes\nStable diff", 
         color: 0x5352ed, 
-        x: buttonSpacing * 2.75, 
         config: CONSERVATIVE_DDA_CONFIG 
       },
     ];
     
-    configs.forEach(cfg => {
-      const button = this.createEnhancedButton(cfg.x, 55, cfg.text, cfg.desc, cfg.color, () => this.setConfig(cfg.config));
+    configs.forEach((cfg, index) => {
+      const x = leftPadding + buttonWidth / 2 + index * (buttonWidth + buttonGap);
+      const button = this.createEnhancedButton(x, 70, cfg.text, cfg.desc, cfg.color, () => this.setConfig(cfg.config), buttonWidth, 64);
       this.configPanel.add(button);
     });
     
-    // Info text - positioned on the right
-    const infoText = this.add.text(buttonSpacing * 3.5, 55, "Select a preset to test\ndifferent DDA behaviors", {
+    const infoText = this.add.text(panelWidth - infoWidth, 54, "Select a preset to compare\nhow quickly the DDA adapts.", {
       fontFamily: "dungeon-mode",
-      fontSize: 11,
+      fontSize: 12,
       color: "#999999",
-      align: "left"
+      align: "left",
+      wordWrap: { width: infoWidth - 10 },
     });
     this.configPanel.add(infoText);
   }
@@ -911,7 +898,7 @@ export class DDADebugScene extends Scene {
     // Title
     const title = this.add.text(panelWidth / 2, 15, "📈 Advanced Analytics - F1 Score & Confusion Matrix", {
       fontFamily: "dungeon-mode-inverted",
-      fontSize: 20,
+      fontSize: 18,
       color: "#ffffff",
     }).setOrigin(0.5);
     this.analyticsPanel.add(title);
@@ -926,18 +913,20 @@ export class DDADebugScene extends Scene {
     text: string,
     description: string,
     color: number,
-    callback: () => void
+    callback: () => void,
+    width = 110,
+    height = 60
   ): Phaser.GameObjects.Container {
     const container = this.add.container(x, y);
     
     // Button background with dark overlay for better contrast
-    const bg = this.add.rectangle(0, 0, 110, 60, color);
+    const bg = this.add.rectangle(0, 0, width, height, color);
     bg.setStrokeStyle(2, 0xffffff, 0.8);
     bg.setInteractive({ useHandCursor: true });
     container.add(bg);
     
     // Dark overlay for text readability
-    const overlay = this.add.rectangle(0, 0, 110, 60, 0x000000, 0.3);
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.3);
     container.add(overlay);
     
     // Button text (main label) - with shadow for contrast
@@ -948,7 +937,8 @@ export class DDADebugScene extends Scene {
       align: "center",
       fontStyle: "bold",
       stroke: "#000000",
-      strokeThickness: 3
+      strokeThickness: 3,
+      wordWrap: { width: width - 18 }
     }).setOrigin(0.5);
     container.add(label);
     
@@ -960,7 +950,8 @@ export class DDADebugScene extends Scene {
       align: "center",
       lineSpacing: 1,
       stroke: "#000000",
-      strokeThickness: 2
+      strokeThickness: 2,
+      wordWrap: { width: width - 18 }
     }).setOrigin(0.5);
     container.add(desc);
     
@@ -993,13 +984,13 @@ export class DDADebugScene extends Scene {
    * Create back button
    */
   private createBackButton(): void {
-    const backBtn = this.add.text(50, this.cameras.main.height - 50, "← Back to Game", {
+    const backBtn = this.add.text(this.cameras.main.width - 34, 28, "← Back to Game", {
       fontFamily: "dungeon-mode",
-      fontSize: 20,
+      fontSize: 18,
       color: "#ffffff",
       backgroundColor: "#ff4757",
-      padding: { x: 20, y: 10 },
-    });
+      padding: { x: 18, y: 10 },
+    }).setOrigin(1, 0);
     
     backBtn.setInteractive();
     backBtn.on("pointerdown", () => {

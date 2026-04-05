@@ -106,6 +106,7 @@ export class Combat extends Scene {
   private isDrawingCards: boolean = false;
   private isActionProcessing: boolean = false;
   private combatEnded: boolean = false;
+  private shouldReturnToDevHub: boolean = false;
   private bossPhaseTriggered: Set<number> = new Set(); // Track which HP% phases have been shown
   private isSorting: boolean = false; // Track if cards are currently being sorted
   private turnCount: number = 0;
@@ -270,6 +271,7 @@ export class Combat extends Scene {
   create(data: {
     nodeType: string;
     enemyId?: string;
+    returnToDevHub?: boolean;
     transitionOverlay?: any;
     bossPreparation?: {
       readiness: number;
@@ -283,6 +285,8 @@ export class Combat extends Scene {
     if (!this.cameras.main) {
       return;
     }
+
+    this.shouldReturnToDevHub = data.returnToDevHub === true;
 
     const gameState = GameState.getInstance();
     const currentChapter = gameState.getCurrentChapter() as Chapter;
@@ -2118,7 +2122,7 @@ export class Combat extends Scene {
         this.input.setDefaultCursor('default');
 
         // Return to DevHub if it launched us (skip GameOver screen)
-        if (this.scene.isActive('DevHubScene')) {
+        if (this.shouldReturnToDevHub) {
           this.input.removeAllListeners();
           this.time.removeAllEvents();
           this.scene.stop();
@@ -3616,7 +3620,7 @@ export class Combat extends Scene {
         console.log("🎉 Boss defeated! Triggering chapter transition...");
 
         // Return to DevHub if it launched us (skip chapter transition)
-        if (this.scene.isActive('DevHubScene')) {
+        if (this.shouldReturnToDevHub) {
           this.input.removeAllListeners();
           this.time.removeAllEvents();
           this.scene.stop();
@@ -3716,7 +3720,7 @@ export class Combat extends Scene {
       }
 
       // Return to DevHub if it launched us
-      if (this.scene.isActive('DevHubScene')) {
+      if (this.shouldReturnToDevHub) {
         this.input.removeAllListeners();
         this.time.removeAllEvents();
         this.scene.stop();

@@ -35,11 +35,15 @@ export class NodeShowcaseScene extends Scene {
   private activeChapter = 1;
   private enemyChapterContainer!: Phaser.GameObjects.Container;
 
-  private readonly W = 1920;
-  private readonly H = 1080;
-
   constructor() {
     super({ key: 'NodeShowcaseScene' });
+  }
+
+  private getViewport(): { width: number; height: number } {
+    return {
+      width: this.cameras.main?.width ?? this.scale.width ?? 1920,
+      height: this.cameras.main?.height ?? this.scale.height ?? 1080,
+    };
   }
 
   create(): void {
@@ -64,7 +68,7 @@ export class NodeShowcaseScene extends Scene {
   }
 
   private buildUI(): void {
-    const W = this.W, H = this.H;
+    const { width: W, height: H } = this.getViewport();
     this.container = this.add.container(0, 0).setDepth(60000);
 
     // Full-screen background
@@ -86,7 +90,7 @@ export class NodeShowcaseScene extends Scene {
   }
 
   private buildHeader(): void {
-    const W = this.W;
+    const { width: W } = this.getViewport();
 
     const headerBg = this.add.rectangle(W / 2, 36, W, 72, PANEL);
     headerBg.setStrokeStyle(1, BORDER);
@@ -111,12 +115,13 @@ export class NodeShowcaseScene extends Scene {
   }
 
   private buildSectionToggle(): void {
-    const W = this.W;
+    const { width: W } = this.getViewport();
     const sections: Array<{ key: 'friendly' | 'enemies'; label: string }> = [
       { key: 'friendly', label: 'FRIENDLY NODES' },
       { key: 'enemies',  label: 'ENEMY NODES'    },
     ];
-    const btnW = 240, gap = 12;
+    const btnW = Math.min(260, Math.floor((W - 120) / 2));
+    const gap = 12;
     const totalW = sections.length * btnW + (sections.length - 1) * gap;
     let sx = W / 2 - totalW / 2;
 
@@ -199,14 +204,24 @@ export class NodeShowcaseScene extends Scene {
       },
     ];
 
-    const cardW = 320, cardH = 420, gap = 40;
-    const totalW = friendlyNodes.length * cardW + (friendlyNodes.length - 1) * gap;
-    const startX = this.W / 2 - totalW / 2;
-    const centerY = (this.H - 118) / 2;
+    const { width: W, height: H } = this.getViewport();
+    const cols = W > 1400 ? 4 : 2;
+    const rows = Math.ceil(friendlyNodes.length / cols);
+    const gapX = 24;
+    const gapY = 24;
+    const cardW = Math.floor((Math.min(W * 0.88, 1500) - gapX * (cols - 1)) / cols);
+    const cardH = Math.max(300, Math.min(420, Math.floor((H - 240 - gapY * (rows - 1)) / rows)));
+    const totalW = cols * cardW + (cols - 1) * gapX;
+    const totalH = rows * cardH + (rows - 1) * gapY;
+    const startX = W / 2 - totalW / 2;
+    const startY = Math.max(150, (H - totalH) / 2);
 
     friendlyNodes.forEach((n, i) => {
-      const nx = startX + i * (cardW + gap) + cardW / 2;
-      const card = this.makeNodeCard(nx, centerY, cardW, cardH, n);
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const nx = startX + col * (cardW + gapX) + cardW / 2;
+      const ny = startY + row * (cardH + gapY) + cardH / 2;
+      const card = this.makeNodeCard(nx, ny, cardW, cardH, n);
       cont.add(card);
     });
   }
@@ -218,7 +233,7 @@ export class NodeShowcaseScene extends Scene {
     (cont as any)._sectionKey = 'enemies';
     this.container.add(cont);
 
-    const W = this.W;
+    const { width: W } = this.getViewport();
 
     // Chapter tabs
     const chaps = [
@@ -327,10 +342,15 @@ export class NodeShowcaseScene extends Scene {
     };
 
     const entries = enemyData[chapter] ?? [];
-    const cols = 5;
-    const cardW = 260, cardH = 300, gapX = 20, gapY = 20;
+    const { width: W } = this.getViewport();
+    const cols = W > 1500 ? 5 : W > 1180 ? 4 : 3;
+    const gapX = 20;
+    const gapY = 20;
+    const usableWidth = Math.min(W * 0.9, 1540);
+    const cardW = Math.floor((usableWidth - gapX * (cols - 1)) / cols);
+    const cardH = Math.max(250, Math.min(320, Math.floor(cardW * 1.08)));
     const totalW = cols * cardW + (cols - 1) * gapX;
-    const startX = this.W / 2 - totalW / 2;
+    const startX = W / 2 - totalW / 2;
     const startY = 10;
 
     entries.forEach((e, i) => {
@@ -370,7 +390,7 @@ export class NodeShowcaseScene extends Scene {
 
     if (this.textures.exists(entry.sprite)) {
       const sprite = this.add.sprite(0, spriteY, entry.sprite);
-      const targetSize = compact ? 60 : 90;
+      const targetSize = compact ? Math.min(72, w * 0.24) : Math.min(96, w * 0.28);
       const scale = targetSize / Math.max(sprite.width, sprite.height);
       sprite.setScale(scale);
       card.add(sprite);
@@ -386,7 +406,7 @@ export class NodeShowcaseScene extends Scene {
     const nameY = -h / 2 + spriteAreaH + 18;
     card.add(this.add.text(0, nameY, entry.name, {
       fontFamily: 'dungeon-mode', fontSize: compact ? 13 : 16, color: entry.color, align: 'center',
-      wordWrap: { width: w - 16 },
+      wordWrap: { width: w - 22 },
     }).setOrigin(0.5, 0));
 
     // Tier badge
@@ -408,6 +428,7 @@ export class NodeShowcaseScene extends Scene {
           : `HP: ${data.maxHealth}   DMG: ${data.damage}\nWeak: ${data.elementalAffinity?.weakness || '—'}\nResists: ${data.elementalAffinity?.resistance || '—'}`;
         card.add(this.add.text(0, statsY, statsText, {
           fontFamily: 'dungeon-mode', fontSize: 12, color: '#77888c', align: 'center',
+          wordWrap: { width: w - 24 },
         }).setOrigin(0.5, 0));
       }
     } else if (entry.desc) {
