@@ -489,7 +489,7 @@ export class Preloader extends Scene {
     this.load.image("event_diwata_gift_educational", "events(act1)/Diwata's Gift.png");
     this.load.image("event_forgotten_altar", "events(act1)/forgotten altar.png");
     this.load.image("event_tikbalang_crossroads", "events(act1)/tikbalangs crossroad.png");
-    this.load.image("event_tikbalang_test_educational", "events(act1)/tikbalangs crossroad.png");
+    this.load.image("event_tikbalang_test_educational", "events(act1)/Tikbalang's Test.png");
     this.load.image("event_ancestral_echo", "events(act1)/ancestral echo.png");
     this.load.image("event_kapre_smoke", "events(act1)/kapre_smoke.png");
     this.load.image("event_kapre_wisdom_educational", "events(act1)/kapres_wisdom.png");
