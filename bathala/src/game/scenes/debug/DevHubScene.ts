@@ -499,6 +499,7 @@ export class DevHubScene extends Scene {
     if (!enemy) return;
     const combatCont = this.tabContainers['combat'];
     const detailW = (combatCont as any)?._detailW ?? 700;
+    const bodyH = (combatCont as any)?._bodyH ?? 620;
 
     const data = EnemyRegistry.resolve(enemy.key) as any;
     const tierColor: Record<string, string> = { common: '#e8eced', elite: '#ffa500', boss: '#ff4757' };
@@ -518,6 +519,8 @@ export class DevHubScene extends Scene {
     this.enemyDetailContainer.add(
       this.add.text(0, 32, tierLabel[enemy.tier], { fontFamily: 'dungeon-mode', fontSize: 13, color: '#77888c' }).setOrigin(0, 0)
     );
+
+    let nextContentY = 220;
 
     if (data) {
       const stats = [
@@ -547,6 +550,7 @@ export class DevHubScene extends Scene {
             wordWrap: { width: detailW - 40 },
           })
         );
+        nextContentY = 300;
       }
     }
 
@@ -561,9 +565,11 @@ export class DevHubScene extends Scene {
       boss: { text: '#ff4757', bg: 0x2a1018 },
     };
 
-    const btnY = 380;
+    const btnY = Math.min(bodyH - 64, nextContentY + 28);
+    const btnWidth = Math.min(260, detailW - 32);
+    const btnX = Math.max(btnWidth / 2 + 12, Math.floor(detailW / 2));
     const actionTheme = tierActionColor[enemy.tier];
-    const actionBtn = this.makeSolidButton(0, btnY, Math.min(320, detailW - 24), 46, tierActionLabel[enemy.tier], actionTheme.text, actionTheme.bg, () => {
+    const actionBtn = this.makeSolidButton(btnX, btnY, btnWidth, 44, tierActionLabel[enemy.tier], actionTheme.text, actionTheme.bg, () => {
       this.startCombat(enemy.key, enemy.tier);
     });
     this.enemyDetailContainer.add(actionBtn);
@@ -652,15 +658,15 @@ export class DevHubScene extends Scene {
     const cols = cw > 1100 ? 4 : 2;
     const gap = 18;
     const cardW = Math.floor((cw - 60 - gap * (cols - 1)) / cols);
-    const cardH = 260;
+    const cardH = 236;
     const startX = 30;
-    const startY = 98;
+    const startY = 116;
 
     nodes.forEach((n, i) => {
       const col = i % cols;
       const row = Math.floor(i / cols);
       const nx = startX + col * (cardW + gap) + cardW / 2;
-      const ny = startY + row * (cardH + gap);
+      const ny = startY + cardH / 2 + row * (cardH + gap);
 
       const card = this.add.container(nx, ny);
 
@@ -690,13 +696,13 @@ export class DevHubScene extends Scene {
         card.add(ph);
       }
 
-      const desc = this.add.text(0, cardH / 2 - 56, n.desc, {
+      const desc = this.add.text(0, cardH / 2 - 52, n.desc, {
         fontFamily: 'dungeon-mode', fontSize: 12, color: '#77888c', align: 'center',
         wordWrap: { width: cardW - 28 },
       }).setOrigin(0.5, 1);
       card.add(desc);
 
-      const cta = this.add.text(0, cardH / 2 - 26, n.cta, {
+      const cta = this.add.text(0, cardH / 2 - 22, n.cta, {
         fontFamily: 'dungeon-mode',
         fontSize: 13,
         color: n.color,
@@ -727,7 +733,7 @@ export class DevHubScene extends Scene {
 
     // Chapter enemy showcase button
     const totalRows = Math.ceil(nodes.length / cols);
-    const showcaseBtnY = startY + totalRows * (cardH + gap) + 26;
+    const showcaseBtnY = startY + totalRows * cardH + Math.max(0, totalRows - 1) * gap + 42;
     const showcaseBtn = this.makeSolidButton(cw / 2, showcaseBtnY, Math.min(420, cw - 80), 48, 'OPEN FULL NODE SHOWCASE →', '#5cabf2', 0x0d1a2a, () => {
       this.hide();
       if (!this.scene.isActive('NodeShowcaseScene')) {
