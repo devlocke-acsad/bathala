@@ -1346,8 +1346,10 @@ export class SubmergedVillageAlgorithm {
         if (obstacleCount > 0) {
             const bigObstacleTarget = obstacleCount >= 160 ? 1 : 0;
             const smallObstacleTarget = obstacleCount >= 100 ? 1 : 0;
+            const puddleSoloObstacleTarget = Math.min(3, Math.max(0, Math.floor(obstacleCount / 220)));
             this.placeRectPropsOnSource(grid, TILE.OBSTACLE, TILE.PUDDLE_PROP, 3, 3, bigObstacleTarget, 90, 0, true);
             this.placeRectPropsOnSource(grid, TILE.OBSTACLE, TILE.PUDDLE_PROP, 2, 1, smallObstacleTarget, 110, 0, true);
+            this.placeSinglesOnSource(grid, TILE.OBSTACLE, TILE.PUDDLE_PROP, puddleSoloObstacleTarget, 120, 0, true, true);
 
             for (let y = 1; y < h - 1; y++) {
                 for (let x = 1; x < w - 1; x++) {
@@ -1355,8 +1357,6 @@ export class SubmergedVillageAlgorithm {
                     const roll = this.rng();
                     if (roll < 0.05) {
                         grid.setTile(x, y, TILE.STONE_PROP);
-                    } else if (roll < 0.075) {
-                        grid.setTile(x, y, TILE.PUDDLE_PROP);
                     }
                 }
             }

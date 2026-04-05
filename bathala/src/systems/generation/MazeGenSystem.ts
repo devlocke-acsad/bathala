@@ -18,21 +18,22 @@ const DEBUG_ACT2_PATH_TILES = false;
 const ACT2_PATH_TILE_DEBUG_MAX_SELECTION_LOGS = 80;
 
 const ACT2_DIRECTIONAL_PATH_TILE_ASSETS: Record<string, string> = {
-  sv_path_3way_open_nse: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_NSE.png',
-  sv_path_3way_open_wne: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNE.png',
-  sv_path_3way_open_wns: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNS.png',
-  sv_path_3way_open_wse: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_WSE.png',
-  sv_path_4way: 'assets/background/submergedvillageAssets/Update/pathTiles/path_4way.png',
-  sv_path_corner_open_ne: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_NE.png',
-  sv_path_corner_open_se: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_SE.png',
-  sv_path_corner_open_wn: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_WN.png',
-  sv_path_corner_open_ws: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_WS.png',
-  sv_path_horizontal_center: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_center.png',
-  sv_path_horizontal_end_e: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_E.png',
-  sv_path_horizontal_end_w: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_W.png',
-  sv_path_vertical_center: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_center.png',
-  sv_path_vertical_end_n: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_end_N.png',
-  sv_path_vertical_end_s: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_end_S.png',
+  sv_path_3way_open_nse: 'assets/background/submergedvillageAssets/pathTiles/path_3way_open_NSE.png',
+  sv_path_3way_open_wne: 'assets/background/submergedvillageAssets/pathTiles/path_3way_open_WNE.png',
+  sv_path_3way_open_wns: 'assets/background/submergedvillageAssets/pathTiles/path_3way_open_WNS.png',
+  sv_path_3way_open_wse: 'assets/background/submergedvillageAssets/pathTiles/path_3way_open_WSE.png',
+  sv_path_4way: 'assets/background/submergedvillageAssets/pathTiles/path_4way.png',
+  sv_path_corner_open_ne: 'assets/background/submergedvillageAssets/pathTiles/path_corner_open_NE.png',
+  sv_path_corner_open_se: 'assets/background/submergedvillageAssets/pathTiles/path_corner_open_SE.png',
+  sv_path_corner_open_wn: 'assets/background/submergedvillageAssets/pathTiles/path_corner_open_WN.png',
+  sv_path_corner_open_ws: 'assets/background/submergedvillageAssets/pathTiles/path_corner_open_WS.png',
+  sv_path_horizontal_center: 'assets/background/submergedvillageAssets/pathTiles/path_horizontal_center.png',
+  // Asset pack end-cap labels are inverted relative to runtime direction flags.
+  sv_path_horizontal_end_e: 'assets/background/submergedvillageAssets/pathTiles/path_horizontal_end_W.png',
+  sv_path_horizontal_end_w: 'assets/background/submergedvillageAssets/pathTiles/path_horizontal_end_E.png',
+  sv_path_vertical_center: 'assets/background/submergedvillageAssets/pathTiles/path_vertical_center.png',
+  sv_path_vertical_end_n: 'assets/background/submergedvillageAssets/pathTiles/path_vertical_end_S.png',
+  sv_path_vertical_end_s: 'assets/background/submergedvillageAssets/pathTiles/path_vertical_end_N.png',
 };
 
 /**
@@ -71,10 +72,6 @@ export class Overworld_MazeGenManager {
 
   // Floor textures for randomization
   private floorTextures: string[] = ['floor1', 'floor2', 'floor3'];
-  private submergedVillagePathTextures: string[] = [
-    'sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4',
-    'sv_path_sand_1', 'sv_path_sand_2', 'sv_path_sand_3', 'sv_path_sand_4',
-  ];
   private skywardCitadelPathTextures: string[] = [
     'cloud_path1', 'cloud_path2', 'cloud_path3', 'cloud_path4',
   ];
@@ -181,10 +178,7 @@ export class Overworld_MazeGenManager {
 
     if (DEBUG_ENEMY_AI) console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize, 'devMode:', devMode);
 
-    // Act 2 uses dedicated submerged village path tiles.
-    if (this.isAct2Chapter()) {
-      this.floorTextures = [...this.submergedVillagePathTextures];
-    }
+    // Act 2 uses dedicated directional path tiles from Update/pathTiles.
     // Act 3 uses cloud platform path tiles.
     if (this.isAct3Chapter()) {
       this.floorTextures = [...this.skywardCitadelPathTextures];
@@ -976,6 +970,14 @@ export class Overworld_MazeGenManager {
           for (const [tx, ty] of component) {
             const localX = tx - minX;
             map.set(`${tx},${ty}`, localX === 0 ? 'sv_puddle_small_w' : 'sv_puddle_small_e');
+          }
+          continue;
+        }
+
+        if (component.length > 1) {
+          // Unsupported puddle clusters look like tiled standalones; downgrade to stones.
+          for (const [tx, ty] of component) {
+            maze[ty][tx] = 12;
           }
           continue;
         }
