@@ -18,22 +18,22 @@ const DEBUG_ACT2_PATH_TILES = false;
 const ACT2_PATH_TILE_DEBUG_MAX_SELECTION_LOGS = 80;
 
 const ACT2_DIRECTIONAL_PATH_TILE_ASSETS: Record<string, string> = {
-  sv_path_3way_open_nse: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_NSE.png',
-  sv_path_3way_open_wne: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNE.png',
-  sv_path_3way_open_wns: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNS.png',
-  sv_path_3way_open_wse: 'assets/background/submergedvillageAssets/Update/pathTiles/path_3way_open_WSE.png',
-  sv_path_4way: 'assets/background/submergedvillageAssets/Update/pathTiles/path_4way.png',
-  sv_path_corner_open_ne: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_NE.png',
-  sv_path_corner_open_se: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_SE.png',
-  sv_path_corner_open_wn: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_WN.png',
-  sv_path_corner_open_ws: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_WS.png',
-  sv_path_horizontal_center: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_center.png',
+  sv_path_3way_open_nse: 'assets/background/submergedvillageAssets/pathTiles/path_3way_open_NSE.png',
+  sv_path_3way_open_wne: 'assets/background/submergedvillageAssets/pathTiles/path_3way_open_WNE.png',
+  sv_path_3way_open_wns: 'assets/background/submergedvillageAssets/pathTiles/path_3way_open_WNS.png',
+  sv_path_3way_open_wse: 'assets/background/submergedvillageAssets/pathTiles/path_3way_open_WSE.png',
+  sv_path_4way: 'assets/background/submergedvillageAssets/pathTiles/path_4way.png',
+  sv_path_corner_open_ne: 'assets/background/submergedvillageAssets/pathTiles/path_corner_open_NE.png',
+  sv_path_corner_open_se: 'assets/background/submergedvillageAssets/pathTiles/path_corner_open_SE.png',
+  sv_path_corner_open_wn: 'assets/background/submergedvillageAssets/pathTiles/path_corner_open_WN.png',
+  sv_path_corner_open_ws: 'assets/background/submergedvillageAssets/pathTiles/path_corner_open_WS.png',
+  sv_path_horizontal_center: 'assets/background/submergedvillageAssets/pathTiles/path_horizontal_center.png',
   // Asset pack end-cap labels are inverted relative to runtime direction flags.
-  sv_path_horizontal_end_e: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_W.png',
-  sv_path_horizontal_end_w: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_E.png',
-  sv_path_vertical_center: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_center.png',
-  sv_path_vertical_end_n: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_end_S.png',
-  sv_path_vertical_end_s: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_end_N.png',
+  sv_path_horizontal_end_e: 'assets/background/submergedvillageAssets/pathTiles/path_horizontal_end_W.png',
+  sv_path_horizontal_end_w: 'assets/background/submergedvillageAssets/pathTiles/path_horizontal_end_E.png',
+  sv_path_vertical_center: 'assets/background/submergedvillageAssets/pathTiles/path_vertical_center.png',
+  sv_path_vertical_end_n: 'assets/background/submergedvillageAssets/pathTiles/path_vertical_end_S.png',
+  sv_path_vertical_end_s: 'assets/background/submergedvillageAssets/pathTiles/path_vertical_end_N.png',
 };
 
 /**

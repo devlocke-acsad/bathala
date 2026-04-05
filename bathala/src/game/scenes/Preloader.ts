@@ -146,83 +146,83 @@ export class Preloader extends Scene {
     this.load.image("chap3_combat_bg", "background/chap3_combat.jpg");
 
     // Act 2 overworld tile set - submerged village
-    this.load.image("sv_path_3way_open_nse", "background/submergedvillageAssets/Update/pathTiles/path_3way_open_NSE.png");
-    this.load.image("sv_path_3way_open_wne", "background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNE.png");
-    this.load.image("sv_path_3way_open_wns", "background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNS.png");
-    this.load.image("sv_path_3way_open_wse", "background/submergedvillageAssets/Update/pathTiles/path_3way_open_WSE.png");
-    this.load.image("sv_path_4way", "background/submergedvillageAssets/Update/pathTiles/path_4way.png");
-    this.load.image("sv_path_corner_open_ne", "background/submergedvillageAssets/Update/pathTiles/path_corner_open_NE.png");
-    this.load.image("sv_path_corner_open_se", "background/submergedvillageAssets/Update/pathTiles/path_corner_open_SE.png");
-    this.load.image("sv_path_corner_open_wn", "background/submergedvillageAssets/Update/pathTiles/path_corner_open_WN.png");
-    this.load.image("sv_path_corner_open_ws", "background/submergedvillageAssets/Update/pathTiles/path_corner_open_WS.png");
-    this.load.image("sv_path_horizontal_center", "background/submergedvillageAssets/Update/pathTiles/path_horizontal_center.png");
-    this.load.image("sv_path_horizontal_end_e", "background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_S.png");
-    this.load.image("sv_path_horizontal_end_w", "background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_E.png");
-    this.load.image("sv_path_vertical_center", "background/submergedvillageAssets/Update/pathTiles/path_vertical_center.png");
-    this.load.image("sv_path_vertical_end_n", "background/submergedvillageAssets/Update/pathTiles/path_vertical_end_S.png");
-    this.load.image("sv_path_vertical_end_s", "background/submergedvillageAssets/Update/pathTiles/path_vertical_end_N.png");
+    this.load.image("sv_path_3way_open_nse", "background/submergedvillageAssets/pathTiles/path_3way_open_NSE.png");
+    this.load.image("sv_path_3way_open_wne", "background/submergedvillageAssets/pathTiles/path_3way_open_WNE.png");
+    this.load.image("sv_path_3way_open_wns", "background/submergedvillageAssets/pathTiles/path_3way_open_WNS.png");
+    this.load.image("sv_path_3way_open_wse", "background/submergedvillageAssets/pathTiles/path_3way_open_WSE.png");
+    this.load.image("sv_path_4way", "background/submergedvillageAssets/pathTiles/path_4way.png");
+    this.load.image("sv_path_corner_open_ne", "background/submergedvillageAssets/pathTiles/path_corner_open_NE.png");
+    this.load.image("sv_path_corner_open_se", "background/submergedvillageAssets/pathTiles/path_corner_open_SE.png");
+    this.load.image("sv_path_corner_open_wn", "background/submergedvillageAssets/pathTiles/path_corner_open_WN.png");
+    this.load.image("sv_path_corner_open_ws", "background/submergedvillageAssets/pathTiles/path_corner_open_WS.png");
+    this.load.image("sv_path_horizontal_center", "background/submergedvillageAssets/pathTiles/path_horizontal_center.png");
+    this.load.image("sv_path_horizontal_end_e", "background/submergedvillageAssets/pathTiles/path_horizontal_end_W.png");
+    this.load.image("sv_path_horizontal_end_w", "background/submergedvillageAssets/pathTiles/path_horizontal_end_E.png");
+    this.load.image("sv_path_vertical_center", "background/submergedvillageAssets/pathTiles/path_vertical_center.png");
+    this.load.image("sv_path_vertical_end_n", "background/submergedvillageAssets/pathTiles/path_vertical_end_S.png");
+    this.load.image("sv_path_vertical_end_s", "background/submergedvillageAssets/pathTiles/path_vertical_end_N.png");
 
-    this.load.image("sv_grass_cliff_n", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_N.png");
-    this.load.image("sv_grass_cliff_s", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_S.png");
-    this.load.image("sv_grass_cliff_e", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_E.png");
-    this.load.image("sv_grass_cliff_w", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_W.png");
-    this.load.image("sv_grass_cliff_ne", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_NE.png");
-    this.load.image("sv_grass_cliff_nw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_NW.png");
-    this.load.image("sv_grass_cliff_se", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_SE.png");
-    this.load.image("sv_grass_cliff_sw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_SW.png");
-    this.load.image("sv_grass_cliff_inner_ne", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_NE.png");
-    this.load.image("sv_grass_cliff_inner_nw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_NW.png");
-    this.load.image("sv_grass_cliff_inner_se", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_SE.png");
-    this.load.image("sv_grass_cliff_inner_sw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_SW.png");
-    this.load.image("sv_grass_cliff_middle", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_Middle.png");
+    this.load.image("sv_grass_cliff_n", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_N.png");
+    this.load.image("sv_grass_cliff_s", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_S.png");
+    this.load.image("sv_grass_cliff_e", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_E.png");
+    this.load.image("sv_grass_cliff_w", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_W.png");
+    this.load.image("sv_grass_cliff_ne", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_NE.png");
+    this.load.image("sv_grass_cliff_nw", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_NW.png");
+    this.load.image("sv_grass_cliff_se", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_SE.png");
+    this.load.image("sv_grass_cliff_sw", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_SW.png");
+    this.load.image("sv_grass_cliff_inner_ne", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_NE.png");
+    this.load.image("sv_grass_cliff_inner_nw", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_NW.png");
+    this.load.image("sv_grass_cliff_inner_se", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_SE.png");
+    this.load.image("sv_grass_cliff_inner_sw", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_SW.png");
+    this.load.image("sv_grass_cliff_middle", "background/submergedvillageAssets/obstacles/terrain/GrassCliff_Middle.png");
 
-    this.load.image("sv_grass_hill_ne", "background/submergedvillageAssets/Update/obstacles/terrain/GrassHill_NE.png");
-    this.load.image("sv_grass_hill_nw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassHill_NW.png");
-    this.load.image("sv_grass_hill_se", "background/submergedvillageAssets/Update/obstacles/terrain/GrassHill_SE.png");
-    this.load.image("sv_grass_hill_sw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassHill_SW.png");
-    this.load.image("sv_grass_hill_inner_ne", "background/submergedvillageAssets/Update/obstacles/terrain/GrassHill_NE.png");
-    this.load.image("sv_grass_hill_inner_nw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassHill_NW.png");
-    this.load.image("sv_grass_hill_inner_se", "background/submergedvillageAssets/Update/obstacles/terrain/GrassHill_SE.png");
-    this.load.image("sv_grass_hill_inner_sw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassHill_SW.png");
+    this.load.image("sv_grass_hill_ne", "background/submergedvillageAssets/obstacles/terrain/GrassHill_NE.png");
+    this.load.image("sv_grass_hill_nw", "background/submergedvillageAssets/obstacles/terrain/GrassHill_NW.png");
+    this.load.image("sv_grass_hill_se", "background/submergedvillageAssets/obstacles/terrain/GrassHill_SE.png");
+    this.load.image("sv_grass_hill_sw", "background/submergedvillageAssets/obstacles/terrain/GrassHill_SW.png");
+    this.load.image("sv_grass_hill_inner_ne", "background/submergedvillageAssets/obstacles/terrain/GrassHill_NE.png");
+    this.load.image("sv_grass_hill_inner_nw", "background/submergedvillageAssets/obstacles/terrain/GrassHill_NW.png");
+    this.load.image("sv_grass_hill_inner_se", "background/submergedvillageAssets/obstacles/terrain/GrassHill_SE.png");
+    this.load.image("sv_grass_hill_inner_sw", "background/submergedvillageAssets/obstacles/terrain/GrassHill_SW.png");
 
-    this.load.image("sv_patch_grass_sand_nw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_NW.png");
-    this.load.image("sv_patch_grass_sand_ne", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_NE.png");
-    this.load.image("sv_patch_grass_sand_sw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_SW.png");
-    this.load.image("sv_patch_grass_sand_se", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_SE.png");
-    this.load.image("sv_patch_grass_sand_inner_nw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_NW.png");
-    this.load.image("sv_patch_grass_sand_inner_ne", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_NE.png");
-    this.load.image("sv_patch_grass_sand_inner_sw", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_SW.png");
-    this.load.image("sv_patch_grass_sand_inner_se", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_SE.png");
-    this.load.image("sv_patch_grass_sand_n", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_N.png");
-    this.load.image("sv_patch_grass_sand_s", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_S.png");
-    this.load.image("sv_patch_grass_sand_e", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_E.png");
-    this.load.image("sv_patch_grass_sand_w", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_W.png");
-    this.load.image("sv_patch_grass_sand_middle", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_Middle.png");
-    this.load.image("sv_patch_sand_grass_nw", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_NW.png");
-    this.load.image("sv_patch_sand_grass_ne", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_NE.png");
-    this.load.image("sv_patch_sand_grass_sw", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_SW.png");
-    this.load.image("sv_patch_sand_grass_se", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_SE.png");
-    this.load.image("sv_patch_sand_grass_inner_nw", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_NW.png");
-    this.load.image("sv_patch_sand_grass_inner_ne", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_NE.png");
-    this.load.image("sv_patch_sand_grass_inner_sw", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_SW.png");
-    this.load.image("sv_patch_sand_grass_inner_se", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_SE.png");
-    this.load.image("sv_patch_sand_grass_middle", "background/submergedvillageAssets/Update/obstacles/terrain/GrassSandPatch_Middle.png");
-    this.load.image("sv_patch_sand_grass_bush_nw", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_NW.png");
-    this.load.image("sv_patch_sand_grass_bush_ne", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_NE.png");
-    this.load.image("sv_patch_sand_grass_bush_sw", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_SW.png");
-    this.load.image("sv_patch_sand_grass_bush_se", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_SE.png");
+    this.load.image("sv_patch_grass_sand_nw", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_NW.png");
+    this.load.image("sv_patch_grass_sand_ne", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_NE.png");
+    this.load.image("sv_patch_grass_sand_sw", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_SW.png");
+    this.load.image("sv_patch_grass_sand_se", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_SE.png");
+    this.load.image("sv_patch_grass_sand_inner_nw", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_NW.png");
+    this.load.image("sv_patch_grass_sand_inner_ne", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_NE.png");
+    this.load.image("sv_patch_grass_sand_inner_sw", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_SW.png");
+    this.load.image("sv_patch_grass_sand_inner_se", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_SE.png");
+    this.load.image("sv_patch_grass_sand_n", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_N.png");
+    this.load.image("sv_patch_grass_sand_s", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_S.png");
+    this.load.image("sv_patch_grass_sand_e", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_E.png");
+    this.load.image("sv_patch_grass_sand_w", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_W.png");
+    this.load.image("sv_patch_grass_sand_middle", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_Middle.png");
+    this.load.image("sv_patch_sand_grass_nw", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_NW.png");
+    this.load.image("sv_patch_sand_grass_ne", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_NE.png");
+    this.load.image("sv_patch_sand_grass_sw", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_SW.png");
+    this.load.image("sv_patch_sand_grass_se", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_SE.png");
+    this.load.image("sv_patch_sand_grass_inner_nw", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_NW.png");
+    this.load.image("sv_patch_sand_grass_inner_ne", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_NE.png");
+    this.load.image("sv_patch_sand_grass_inner_sw", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_SW.png");
+    this.load.image("sv_patch_sand_grass_inner_se", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_SE.png");
+    this.load.image("sv_patch_sand_grass_middle", "background/submergedvillageAssets/obstacles/terrain/GrassSandPatch_Middle.png");
+    this.load.image("sv_patch_sand_grass_bush_nw", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_NW.png");
+    this.load.image("sv_patch_sand_grass_bush_ne", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_NE.png");
+    this.load.image("sv_patch_sand_grass_bush_sw", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_SW.png");
+    this.load.image("sv_patch_sand_grass_bush_se", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_SE.png");
     // Dedicated aliases: use bush art as GrassSand patch inner corners without coupling to actual bush tiles.
-    this.load.image("sv_patch_grass_sand_inner_bush_nw", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_NW.png");
-    this.load.image("sv_patch_grass_sand_inner_bush_ne", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_NE.png");
-    this.load.image("sv_patch_grass_sand_inner_bush_sw", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_SW.png");
-    this.load.image("sv_patch_grass_sand_inner_bush_se", "background/submergedvillageAssets/Update/obstacles/terrain/SandGrass_Bush_SE.png");
+    this.load.image("sv_patch_grass_sand_inner_bush_nw", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_NW.png");
+    this.load.image("sv_patch_grass_sand_inner_bush_ne", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_NE.png");
+    this.load.image("sv_patch_grass_sand_inner_bush_sw", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_SW.png");
+    this.load.image("sv_patch_grass_sand_inner_bush_se", "background/submergedvillageAssets/obstacles/terrain/SandGrass_Bush_SE.png");
 
     // Obstacle underlay + tree variants for layered Act 2 rendering.
-    this.load.image("sv_underlay_1", "background/submergedvillageAssets/Update/underlay/underlay_obstacle1.png");
-    this.load.image("sv_underlay_2", "background/submergedvillageAssets/Update/underlay/underlay_obstacle2.png");
-    this.load.image("sv_underlay_3", "background/submergedvillageAssets/Update/underlay/underlay_obstacle3.png");
-    this.load.image("sv_underlay_4", "background/submergedvillageAssets/Update/underlay/underlay_obstacle4.png");
-    this.load.image("sv_underlay_5", "background/submergedvillageAssets/Update/underlay/underlay_obstacle5.png");
+    this.load.image("sv_underlay_1", "background/submergedvillageAssets/underlay/underlay_obstacle1.png");
+    this.load.image("sv_underlay_2", "background/submergedvillageAssets/underlay/underlay_obstacle2.png");
+    this.load.image("sv_underlay_3", "background/submergedvillageAssets/underlay/underlay_obstacle3.png");
+    this.load.image("sv_underlay_4", "background/submergedvillageAssets/underlay/underlay_obstacle4.png");
+    this.load.image("sv_underlay_5", "background/submergedvillageAssets/underlay/underlay_obstacle5.png");
 
     // Act 2 house autotile set (buildings are multi-tile obstacles over underlays).
     const act2HouseSuffixesAll: Array<{ key: string; file: string }> = [
@@ -261,68 +261,68 @@ export class Preloader extends Scene {
       for (const suffix of suffixes) {
         this.load.image(
           `sv_house_${houseProfile.id}_${suffix.key}`,
-          `background/submergedvillageAssets/Update/obstacles/houses/house${houseProfile.id}_${houseProfile.profile}_${suffix.file}.png`,
+          `background/submergedvillageAssets/obstacles/houses/house${houseProfile.id}_${houseProfile.profile}_${suffix.file}.png`,
         );
       }
     }
 
-    this.load.image("sv_tree_1", "background/submergedvillageAssets/Update/obstacles/trees/tree1.png");
-    this.load.image("sv_tree_2", "background/submergedvillageAssets/Update/obstacles/trees/tree2.png");
-    this.load.image("sv_tree_3", "background/submergedvillageAssets/Update/obstacles/trees/tree3.png");
-    this.load.image("sv_tree_4", "background/submergedvillageAssets/Update/obstacles/trees/tree4.png");
-    this.load.image("sv_tree_5", "background/submergedvillageAssets/Update/obstacles/trees/tree5.png");
+    this.load.image("sv_tree_1", "background/submergedvillageAssets/obstacles/trees/tree1.png");
+    this.load.image("sv_tree_2", "background/submergedvillageAssets/obstacles/trees/tree2.png");
+    this.load.image("sv_tree_3", "background/submergedvillageAssets/obstacles/trees/tree3.png");
+    this.load.image("sv_tree_4", "background/submergedvillageAssets/obstacles/trees/tree4.png");
+    this.load.image("sv_tree_5", "background/submergedvillageAssets/obstacles/trees/tree5.png");
 
-    this.load.image("sv_stone_1", "background/submergedvillageAssets/Update/obstacles/stone/stoneStandalone1.png");
-    this.load.image("sv_stone_2", "background/submergedvillageAssets/Update/obstacles/stone/stoneStandalone2.png");
-    this.load.image("sv_stone_3", "background/submergedvillageAssets/Update/obstacles/stone/stoneStandalone3.png");
-    this.load.image("sv_stone_4", "background/submergedvillageAssets/Update/obstacles/stone/stoneStandalone4.png");
-    this.load.image("sv_stone_5", "background/submergedvillageAssets/Update/obstacles/stone/stoneStandalone5.png");
+    this.load.image("sv_stone_1", "background/submergedvillageAssets/obstacles/stone/stoneStandalone1.png");
+    this.load.image("sv_stone_2", "background/submergedvillageAssets/obstacles/stone/stoneStandalone2.png");
+    this.load.image("sv_stone_3", "background/submergedvillageAssets/obstacles/stone/stoneStandalone3.png");
+    this.load.image("sv_stone_4", "background/submergedvillageAssets/obstacles/stone/stoneStandalone4.png");
+    this.load.image("sv_stone_5", "background/submergedvillageAssets/obstacles/stone/stoneStandalone5.png");
 
-    this.load.image("sv_puddle_standalone_1", "background/submergedvillageAssets/Update/obstacles/water/puddleStandalone1.png");
-    this.load.image("sv_puddle_small_w", "background/submergedvillageAssets/Update/obstacles/water/puddleSmall1_W.png");
-    this.load.image("sv_puddle_small_e", "background/submergedvillageAssets/Update/obstacles/water/puddleSmall1_E.png");
-    this.load.image("sv_puddle_big_nw", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_NW.png");
-    this.load.image("sv_puddle_big_n", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_N.png");
-    this.load.image("sv_puddle_big_ne", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_NE.png");
-    this.load.image("sv_puddle_big_w", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_W.png");
-    this.load.image("sv_puddle_big_middle", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_Middle.png");
-    this.load.image("sv_puddle_big_e", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_E.png");
-    this.load.image("sv_puddle_big_sw", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_SW.png");
-    this.load.image("sv_puddle_big_s", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_S.png");
-    this.load.image("sv_puddle_big_se", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_SE.png");
+    this.load.image("sv_puddle_standalone_1", "background/submergedvillageAssets/obstacles/water/puddleStandalone1.png");
+    this.load.image("sv_puddle_small_w", "background/submergedvillageAssets/obstacles/water/puddleSmall1_W.png");
+    this.load.image("sv_puddle_small_e", "background/submergedvillageAssets/obstacles/water/puddleSmall1_E.png");
+    this.load.image("sv_puddle_big_nw", "background/submergedvillageAssets/obstacles/water/puddleBig1_NW.png");
+    this.load.image("sv_puddle_big_n", "background/submergedvillageAssets/obstacles/water/puddleBig1_N.png");
+    this.load.image("sv_puddle_big_ne", "background/submergedvillageAssets/obstacles/water/puddleBig1_NE.png");
+    this.load.image("sv_puddle_big_w", "background/submergedvillageAssets/obstacles/water/puddleBig1_W.png");
+    this.load.image("sv_puddle_big_middle", "background/submergedvillageAssets/obstacles/water/puddleBig1_Middle.png");
+    this.load.image("sv_puddle_big_e", "background/submergedvillageAssets/obstacles/water/puddleBig1_E.png");
+    this.load.image("sv_puddle_big_sw", "background/submergedvillageAssets/obstacles/water/puddleBig1_SW.png");
+    this.load.image("sv_puddle_big_s", "background/submergedvillageAssets/obstacles/water/puddleBig1_S.png");
+    this.load.image("sv_puddle_big_se", "background/submergedvillageAssets/obstacles/water/puddleBig1_SE.png");
 
     // Act 2 water: lakes/rivers use the Update cliff + debris set.
-    this.load.image("sv_water_middle", "background/submergedvillageAssets/Update/obstacles/water/water_debris4.png");
-    this.load.image("sv_water_shore_n", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_N.png");
-    this.load.image("sv_water_shore_s", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_S.png");
-    this.load.image("sv_water_shore_e", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_E.png");
-    this.load.image("sv_water_shore_w", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_W.png");
-    this.load.image("sv_water_shore_ne", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NE.png");
-    this.load.image("sv_water_shore_nw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NW.png");
-    this.load.image("sv_water_shore_se", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SE.png");
-    this.load.image("sv_water_shore_sw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SW.png");
-    this.load.image("sv_water_cliff_n", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_N.png");
-    this.load.image("sv_water_cliff_s", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_S.png");
-    this.load.image("sv_water_cliff_e", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_E.png");
-    this.load.image("sv_water_cliff_w", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_W.png");
-    this.load.image("sv_water_cliff_ne", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NE.png");
-    this.load.image("sv_water_cliff_nw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NW.png");
-    this.load.image("sv_water_cliff_se", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SE.png");
-    this.load.image("sv_water_cliff_sw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SW.png");
+    this.load.image("sv_water_middle", "background/submergedvillageAssets/obstacles/water/water_debris4.png");
+    this.load.image("sv_water_shore_n", "background/submergedvillageAssets/obstacles/water/water_cliff_N.png");
+    this.load.image("sv_water_shore_s", "background/submergedvillageAssets/obstacles/water/water_cliff_S.png");
+    this.load.image("sv_water_shore_e", "background/submergedvillageAssets/obstacles/water/water_cliff_E.png");
+    this.load.image("sv_water_shore_w", "background/submergedvillageAssets/obstacles/water/water_cliff_W.png");
+    this.load.image("sv_water_shore_ne", "background/submergedvillageAssets/obstacles/water/water_cliff_NE.png");
+    this.load.image("sv_water_shore_nw", "background/submergedvillageAssets/obstacles/water/water_cliff_NW.png");
+    this.load.image("sv_water_shore_se", "background/submergedvillageAssets/obstacles/water/water_cliff_SE.png");
+    this.load.image("sv_water_shore_sw", "background/submergedvillageAssets/obstacles/water/water_cliff_SW.png");
+    this.load.image("sv_water_cliff_n", "background/submergedvillageAssets/obstacles/water/water_cliff_N.png");
+    this.load.image("sv_water_cliff_s", "background/submergedvillageAssets/obstacles/water/water_cliff_S.png");
+    this.load.image("sv_water_cliff_e", "background/submergedvillageAssets/obstacles/water/water_cliff_E.png");
+    this.load.image("sv_water_cliff_w", "background/submergedvillageAssets/obstacles/water/water_cliff_W.png");
+    this.load.image("sv_water_cliff_ne", "background/submergedvillageAssets/obstacles/water/water_cliff_NE.png");
+    this.load.image("sv_water_cliff_nw", "background/submergedvillageAssets/obstacles/water/water_cliff_NW.png");
+    this.load.image("sv_water_cliff_se", "background/submergedvillageAssets/obstacles/water/water_cliff_SE.png");
+    this.load.image("sv_water_cliff_sw", "background/submergedvillageAssets/obstacles/water/water_cliff_SW.png");
     // Concave inner corners for lakes/rivers (fallback aliasing to available cliff corners).
-    this.load.image("sv_water_cliff_inner_ne", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NE.png");
-    this.load.image("sv_water_cliff_inner_nw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_NW.png");
-    this.load.image("sv_water_cliff_inner_se", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SE.png");
-    this.load.image("sv_water_cliff_inner_sw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_SW.png");
+    this.load.image("sv_water_cliff_inner_ne", "background/submergedvillageAssets/obstacles/water/water_cliff_NE.png");
+    this.load.image("sv_water_cliff_inner_nw", "background/submergedvillageAssets/obstacles/water/water_cliff_NW.png");
+    this.load.image("sv_water_cliff_inner_se", "background/submergedvillageAssets/obstacles/water/water_cliff_SE.png");
+    this.load.image("sv_water_cliff_inner_sw", "background/submergedvillageAssets/obstacles/water/water_cliff_SW.png");
     // Convex outer corners use dedicated directional outer sprites.
-    this.load.image("sv_water_outer_ne", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_outer_NE.png");
-    this.load.image("sv_water_outer_nw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_outer_NW.png");
-    this.load.image("sv_water_outer_sw", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_outer_SW.png");
-    this.load.image("sv_water_outer_se", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_outer_SE.png");
-    this.load.image("sv_water_debris_1", "background/submergedvillageAssets/Update/obstacles/water/water_debris1.png");
-    this.load.image("sv_water_debris_2", "background/submergedvillageAssets/Update/obstacles/water/water_debris2.png");
-    this.load.image("sv_water_debris_3", "background/submergedvillageAssets/Update/obstacles/water/water_debris3.png");
-    this.load.image("sv_water_debris_4", "background/submergedvillageAssets/Update/obstacles/water/water_debris4.png");
+    this.load.image("sv_water_outer_ne", "background/submergedvillageAssets/obstacles/water/water_cliff_outer_NE.png");
+    this.load.image("sv_water_outer_nw", "background/submergedvillageAssets/obstacles/water/water_cliff_outer_NW.png");
+    this.load.image("sv_water_outer_sw", "background/submergedvillageAssets/obstacles/water/water_cliff_outer_SW.png");
+    this.load.image("sv_water_outer_se", "background/submergedvillageAssets/obstacles/water/water_cliff_outer_SE.png");
+    this.load.image("sv_water_debris_1", "background/submergedvillageAssets/obstacles/water/water_debris1.png");
+    this.load.image("sv_water_debris_2", "background/submergedvillageAssets/obstacles/water/water_debris2.png");
+    this.load.image("sv_water_debris_3", "background/submergedvillageAssets/obstacles/water/water_debris3.png");
+    this.load.image("sv_water_debris_4", "background/submergedvillageAssets/obstacles/water/water_debris4.png");
 
     // Act 3 overworld tile set - skyward citadel (cloud platforms)
     this.load.image("cloud_blank", "background/skywardcitadelAssets/cloud_blank.png");
