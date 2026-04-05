@@ -72,10 +72,6 @@ export class Overworld_MazeGenManager {
 
   // Floor textures for randomization
   private floorTextures: string[] = ['floor1', 'floor2', 'floor3'];
-  private submergedVillagePathTextures: string[] = [
-    'sv_path_grass_1', 'sv_path_grass_2', 'sv_path_grass_3', 'sv_path_grass_4',
-    'sv_path_sand_1', 'sv_path_sand_2', 'sv_path_sand_3', 'sv_path_sand_4',
-  ];
   private skywardCitadelPathTextures: string[] = [
     'cloud_path1', 'cloud_path2', 'cloud_path3', 'cloud_path4',
   ];
@@ -182,10 +178,7 @@ export class Overworld_MazeGenManager {
 
     if (DEBUG_ENEMY_AI) console.log('🗺️ MazeGenManager initialized with gridSize:', gridSize, 'devMode:', devMode);
 
-    // Act 2 uses dedicated submerged village path tiles.
-    if (this.isAct2Chapter()) {
-      this.floorTextures = [...this.submergedVillagePathTextures];
-    }
+    // Act 2 uses dedicated directional path tiles from Update/pathTiles.
     // Act 3 uses cloud platform path tiles.
     if (this.isAct3Chapter()) {
       this.floorTextures = [...this.skywardCitadelPathTextures];

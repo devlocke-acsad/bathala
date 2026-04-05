@@ -146,14 +146,6 @@ export class Preloader extends Scene {
     this.load.image("chap3_combat_bg", "background/chap3_combat.jpg");
 
     // Act 2 overworld tile set - submerged village
-    this.load.image("sv_path_grass_1", "background/submergedvillageAssets/pathTiles/Path_Grass1.png");
-    this.load.image("sv_path_grass_2", "background/submergedvillageAssets/pathTiles/Path_Grass2.png");
-    this.load.image("sv_path_grass_3", "background/submergedvillageAssets/pathTiles/Path_Grass3.png");
-    this.load.image("sv_path_grass_4", "background/submergedvillageAssets/pathTiles/Path_Grass4.png");
-    this.load.image("sv_path_sand_1", "background/submergedvillageAssets/pathTiles/Path_Sand1.png");
-    this.load.image("sv_path_sand_2", "background/submergedvillageAssets/pathTiles/Path_Sand2.png");
-    this.load.image("sv_path_sand_3", "background/submergedvillageAssets/pathTiles/Path_Sand3.png");
-    this.load.image("sv_path_sand_4", "background/submergedvillageAssets/pathTiles/Path_Sand4.png");
     this.load.image("sv_path_3way_open_nse", "background/submergedvillageAssets/Update/pathTiles/path_3way_open_NSE.png");
     this.load.image("sv_path_3way_open_wne", "background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNE.png");
     this.load.image("sv_path_3way_open_wns", "background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNS.png");
@@ -164,11 +156,11 @@ export class Preloader extends Scene {
     this.load.image("sv_path_corner_open_wn", "background/submergedvillageAssets/Update/pathTiles/path_corner_open_WN.png");
     this.load.image("sv_path_corner_open_ws", "background/submergedvillageAssets/Update/pathTiles/path_corner_open_WS.png");
     this.load.image("sv_path_horizontal_center", "background/submergedvillageAssets/Update/pathTiles/path_horizontal_center.png");
-    this.load.image("sv_path_horizontal_end_e", "background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_E.png");
-    this.load.image("sv_path_horizontal_end_w", "background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_W.png");
+    this.load.image("sv_path_horizontal_end_e", "background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_S.png");
+    this.load.image("sv_path_horizontal_end_w", "background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_E.png");
     this.load.image("sv_path_vertical_center", "background/submergedvillageAssets/Update/pathTiles/path_vertical_center.png");
-    this.load.image("sv_path_vertical_end_n", "background/submergedvillageAssets/Update/pathTiles/path_vertical_end_N.png");
-    this.load.image("sv_path_vertical_end_s", "background/submergedvillageAssets/Update/pathTiles/path_vertical_end_S.png");
+    this.load.image("sv_path_vertical_end_n", "background/submergedvillageAssets/Update/pathTiles/path_vertical_end_S.png");
+    this.load.image("sv_path_vertical_end_s", "background/submergedvillageAssets/Update/pathTiles/path_vertical_end_N.png");
 
     this.load.image("sv_grass_cliff_n", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_N.png");
     this.load.image("sv_grass_cliff_s", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_S.png");
