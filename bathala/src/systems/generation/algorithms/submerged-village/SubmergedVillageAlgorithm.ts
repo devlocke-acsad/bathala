@@ -192,63 +192,6 @@ function rectDoors(w: number, h: number): HouseTemplate['doorCandidates'] {
     ];
 }
 
-const HOUSE_TEMPLATES: HouseTemplate[] = [
-    // 4×4 square hut
-    {
-        name: '4x4',
-        tiles: makeRect(4, 4),
-        w: 4, h: 4,
-        doorCandidates: rectDoors(4, 4),
-    },
-    // 4×6 tall house
-    {
-        name: '4x6',
-        tiles: makeRect(4, 6),
-        w: 4, h: 6,
-        doorCandidates: rectDoors(4, 6),
-    },
-    // 6×4 wide house
-    {
-        name: '6x4',
-        tiles: makeRect(6, 4),
-        w: 6, h: 4,
-        doorCandidates: rectDoors(6, 4),
-    },
-    // L-shape: 4×4 base + 2×3 extension on top-right
-    {
-        name: 'L-shape',
-        tiles: [
-            ...makeRect(4, 4),
-            // Extension: columns 4–5, rows 0–2
-            { dx: 4, dy: 0 }, { dx: 4, dy: 1 }, { dx: 4, dy: 2 },
-            { dx: 5, dy: 0 }, { dx: 5, dy: 1 }, { dx: 5, dy: 2 },
-        ],
-        w: 6, h: 4,
-        doorCandidates: [
-            { dx: 2, dy: -1, facing: 's' },
-            { dx: 2, dy: 4, facing: 'n' },
-            { dx: -1, dy: 2, facing: 'w' },
-            { dx: 6, dy: 1, facing: 'e' },
-        ],
-    },
-    // Reverse L-shape: 4×4 base + 2×3 extension on bottom-left
-    {
-        name: 'L-shape-rev',
-        tiles: [
-            ...makeRect(4, 4),
-            { dx: -2, dy: 0 }, { dx: -2, dy: 1 }, { dx: -2, dy: 2 },
-            { dx: -1, dy: 0 }, { dx: -1, dy: 1 }, { dx: -1, dy: 2 },
-        ],
-        w: 6, h: 4,
-        doorCandidates: [
-            { dx: 2, dy: -1, facing: 's' },
-            { dx: 2, dy: 4, facing: 'n' },
-            { dx: -3, dy: 1, facing: 'w' },
-            { dx: 4, dy: 2, facing: 'e' },
-        ],
-    },
-];
-
 // ── Smaller templates for dense village packing ──────────────────────────
 
 const SMALL_HOUSE_TEMPLATES: HouseTemplate[] = [
@@ -1520,11 +1463,17 @@ export class SubmergedVillageAlgorithm {
     }
 
     private countTileNeighbors(grid: IntGrid, x: number, y: number, tileType: number, includeDiagonals: boolean): number {
-        const neighbors = includeDiagonals ? this.neighbors8([x, y]) : this.neighbors4([x, y]);
         let count = 0;
-        for (const [nx, ny] of neighbors) {
-            if (!this.isInBounds(nx, ny)) continue;
-            if (grid.getTile(nx, ny) === tileType) count++;
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                if (!includeDiagonals && dx !== 0 && dy !== 0) continue;
+
+                const nx = x + dx;
+                const ny = y + dy;
+                if (!this.isInBounds(nx, ny)) continue;
+                if (grid.getTile(nx, ny) === tileType) count++;
+            }
         }
         return count;
     }

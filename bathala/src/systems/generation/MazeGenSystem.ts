@@ -85,6 +85,20 @@ export class Overworld_MazeGenManager {
     'sv_underlay_4',
     'sv_underlay_5',
   ];
+  private submergedVillageTreeTextures: string[] = ['sv_tree_1', 'sv_tree_2', 'sv_tree_3', 'sv_tree_4', 'sv_tree_5'];
+  private submergedVillageWaterDeepTextures: string[] = [
+    'sv_water_debris_1',
+    'sv_water_debris_2',
+    'sv_water_debris_3',
+    'sv_water_debris_4',
+    'sv_water_middle',
+  ];
+  private submergedVillageGrassSandEdgeTextures: string[] = [
+    'sv_patch_grass_sand_n',
+    'sv_patch_grass_sand_s',
+    'sv_patch_grass_sand_e',
+    'sv_patch_grass_sand_w',
+  ];
   private submergedVillageStoneTextures: string[] = ['sv_stone_1', 'sv_stone_2', 'sv_stone_3', 'sv_stone_4', 'sv_stone_5'];
   // House sets grouped by sprite family footprint.
   private submergedVillageHouseSet3x3Ids: number[] = [1, 2, 6, 7, 8, 9, 10];
@@ -788,8 +802,8 @@ export class Overworld_MazeGenManager {
 
         visited.add(rootKey);
 
-        while (queue.length > 0) {
-          const [cx, cy] = queue.shift()!;
+        for (let qHead = 0; qHead < queue.length; qHead++) {
+          const [cx, cy] = queue[qHead];
           component.push([cx, cy]);
           minX = Math.min(minX, cx);
           minY = Math.min(minY, cy);
@@ -909,8 +923,8 @@ export class Overworld_MazeGenManager {
 
         visited.add(rootKey);
 
-        while (queue.length > 0) {
-          const [cx, cy] = queue.shift()!;
+        for (let qHead = 0; qHead < queue.length; qHead++) {
+          const [cx, cy] = queue[qHead];
           component.push([cx, cy]);
           minX = Math.min(minX, cx);
           minY = Math.min(minY, cy);
@@ -1242,9 +1256,8 @@ export class Overworld_MazeGenManager {
         if (s && w && !sw) return 'sv_patch_grass_sand_inner_bush_ne';
         if (s && e && !se) return 'sv_patch_grass_sand_inner_bush_nw';
 
-        const edgeVariants = ['sv_patch_grass_sand_n', 'sv_patch_grass_sand_s', 'sv_patch_grass_sand_e', 'sv_patch_grass_sand_w'];
-        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, edgeVariants.length);
-        return edgeVariants[idx];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageGrassSandEdgeTextures.length);
+        return this.submergedVillageGrassSandEdgeTextures[idx];
       }
 
       return 'sv_patch_grass_sand_middle';
@@ -1446,15 +1459,8 @@ export class Overworld_MazeGenManager {
       if (!e) return 'sv_water_cliff_e';
       if (!w) return 'sv_water_cliff_w';
 
-      const deepVariants = [
-        'sv_water_debris_1',
-        'sv_water_debris_2',
-        'sv_water_debris_3',
-        'sv_water_debris_4',
-        'sv_water_middle',
-      ];
-      const deepIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, deepVariants.length);
-      return deepVariants[deepIdx];
+      const deepIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageWaterDeepTextures.length);
+      return this.submergedVillageWaterDeepTextures[deepIdx];
     }
 
     if (isAct2 && tileValue === 1) {
@@ -1478,9 +1484,8 @@ export class Overworld_MazeGenManager {
 
     // Obstacle tiles (TILE.OBSTACLE = 10) - randomly select from available obstacle sprites
     if (tileValue === 10) {
-      const obstacles = ['sv_tree_1', 'sv_tree_2', 'sv_tree_3', 'sv_tree_4', 'sv_tree_5'];
-      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, obstacles.length);
-      return obstacles[idx];
+      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageTreeTextures.length);
+      return this.submergedVillageTreeTextures[idx];
     }
 
     switch (tileValue) {
