@@ -190,11 +190,11 @@ export class Overworld_MazeGenManager {
    * Act 2 treats all pathTiles-backed land IDs as walkable.
    */
   private isTraversableTile(tileValue: number): boolean {
-    if (!this.isAct2Chapter()) {
+    if (!this.isAct2Chapter() && !this.isAct3Chapter()) {
       return tileValue === 0;
     }
 
-    // Act 2 houses (tile 2) are hard obstacles; paths around them stay traversable.
+    // Act 2/3 houses (tile 2) are hard obstacles; paths around them stay traversable.
     return tileValue === 0 || tileValue === 1 || tileValue === 3 || tileValue === 4;
   }
 
@@ -692,8 +692,10 @@ export class Overworld_MazeGenManager {
     const offsetX = chunkX * chunkSizePixels;
     const offsetY = chunkY * chunkSizePixels;
     const isAct2 = this.isAct2Chapter();
-    const act2HouseVariantMap = isAct2 ? this.buildAct2HouseVariantMap(maze, chunkX, chunkY) : undefined;
-    const act2PuddleTextureMap = isAct2 ? this.buildAct2PuddleTextureMap(maze) : undefined;
+    const isAct3 = this.isAct3Chapter();
+    const isOrganicVillage = isAct2 || isAct3;
+    const act2HouseVariantMap = isOrganicVillage ? this.buildAct2HouseVariantMap(maze, chunkX, chunkY) : undefined;
+    const act2PuddleTextureMap = isOrganicVillage ? this.buildAct2PuddleTextureMap(maze) : undefined;
 
     if (isAct2) {
       this.logAct2PathTileAvailabilityOnce();
@@ -705,13 +707,14 @@ export class Overworld_MazeGenManager {
         const tileY = offsetY + y * this.gridSize;
         const tileValue = maze[y][x];
 
-        const isPathTile = isAct2 ? this.isTraversableTile(tileValue) : tileValue === 0;
+        const isPathTile = isOrganicVillage ? this.isTraversableTile(tileValue) : tileValue === 0;
 
         if (!isPathTile) {
           // Non-walkable tile — pick texture based on tile type
-          if (isAct2) {
+          if (isOrganicVillage) {
             const underlayIndex = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageUnderlayTextures.length);
-            const underlayKey = this.submergedVillageUnderlayTextures[underlayIndex];
+            let underlayKey = this.submergedVillageUnderlayTextures[underlayIndex];
+            if (isAct3 && underlayKey.startsWith('sv_')) underlayKey = 'sc_' + underlayKey.substring(3);
             if (this.scene.textures.exists(underlayKey)) {
               const underlaySprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, underlayKey);
               underlaySprite.setDisplaySize(this.gridSize, this.gridSize);
@@ -721,7 +724,8 @@ export class Overworld_MazeGenManager {
             }
           }
 
-          const textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y, act2HouseVariantMap, act2PuddleTextureMap);
+          let textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y, act2HouseVariantMap, act2PuddleTextureMap);
+          if (isAct3 && textureKey.startsWith('sv_')) textureKey = 'sc_' + textureKey.substring(3);
           const wallSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, textureKey);
           wallSprite.setDisplaySize(this.gridSize, this.gridSize);
           wallSprite.setOrigin(0.5);
@@ -729,18 +733,25 @@ export class Overworld_MazeGenManager {
           container.add(wallSprite);
         } else {
           // Path tile rendering.
-          let textureKey = isAct2
+          let textureKey = isOrganicVillage
             ? (tileValue === 0
               ? this.getAct2PathTexture(maze, chunkX, chunkY, x, y)
               : this.getAct2LandTexture(chunkX, chunkY, x, y))
             : this.floorTextures[this.getDeterministicIndex(chunkX, chunkY, x, y, this.floorTextures.length)];
 
-          if (isAct2 && !this.scene.textures.exists(textureKey)) {
+          if (isAct3 && textureKey && textureKey.startsWith('sv_')) {
+            textureKey = 'sc_' + textureKey.substring(3);
+          }
+
+          if (isOrganicVillage && !this.scene.textures.exists(textureKey)) {
             if (!this.missingAct2PathTextureKeys.has(textureKey)) {
               this.missingAct2PathTextureKeys.add(textureKey);
-              console.warn(`[Act2 PathTiles] Fallback while texture is unavailable: ${textureKey} at chunk(${chunkX},${chunkY}) tile(${x},${y})`);
+              console.warn(`[OrganicVillage PathTiles] Fallback while texture is unavailable: ${textureKey} at chunk(${chunkX},${chunkY}) tile(${x},${y})`);
             }
             textureKey = this.getAct2LandTexture(chunkX, chunkY, x, y);
+            if (isAct3 && textureKey.startsWith('sv_')) {
+              textureKey = 'sc_' + textureKey.substring(3);
+            }
           }
 
           const floorSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, textureKey);
@@ -1469,21 +1480,23 @@ export class Overworld_MazeGenManager {
       return this.submergedVillageWaterDeepTextures[deepIdx];
     }
 
-    if (isAct2 && tileValue === 1) {
+    const isOrganicVillage = isAct2 || isAct3;
+
+    if (isOrganicVillage && tileValue === 1) {
       return this.getAct2LandTexture(chunkX, chunkY, x, y);
     }
 
-    if (isAct2 && tileValue === 2) {
+    if (isOrganicVillage && tileValue === 2) {
       return this.getAct2HouseTexture(maze, chunkX, chunkY, x, y, houseVariantMap);
     }
 
-    // Act 2 puddle props (3x3, 1x2 horizontal, and standalone variants)
-    if (isAct2 && tileValue === 11) {
+    // Act 2/3 puddle props (3x3, 1x2 horizontal, and standalone variants)
+    if (isOrganicVillage && tileValue === 11) {
       return puddleTextureMap?.get(`${x},${y}`) ?? 'sv_puddle_standalone_1';
     }
 
-    // Act 2 stone props (standalone variants)
-    if (isAct2 && tileValue === 12) {
+    // Act 2/3 stone props (standalone variants)
+    if (isOrganicVillage && tileValue === 12) {
       const stoneIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageStoneTextures.length);
       return this.submergedVillageStoneTextures[stoneIdx];
     }
@@ -1499,7 +1512,7 @@ export class Overworld_MazeGenManager {
         return 'wall4';
       case 3:
       case 4:
-        if (isAct2) {
+        if (isOrganicVillage) {
           return this.getAct2LandTexture(chunkX, chunkY, x, y);
         }
         return tileValue === 3 ? 'wall5' : 'wall6';

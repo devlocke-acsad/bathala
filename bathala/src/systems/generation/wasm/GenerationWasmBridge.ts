@@ -89,6 +89,12 @@ type KernelExports = WebAssembly.Exports & {
     height: number,
     seed: number,
   ) => void;
+  sc_getParamsPtr: () => number;
+  generateSkywardCitadel: (
+    width: number,
+    height: number,
+    seed: number,
+  ) => void;
 };
 
 class GenerationWasmBridge {
@@ -651,6 +657,85 @@ class GenerationWasmBridge {
 
     // Run the full algorithm in WASM
     e.generateSubmergedVillage(width, height, seed);
+
+    // Read the grid back
+    const gridPtr = e.getGridPtr() >>> 0;
+    const gridBytesRequired = gridPtr + cells * Int32Array.BYTES_PER_ELEMENT;
+    if (e.memory.buffer.byteLength < gridBytesRequired) return null;
+
+    const wasmGrid = new Int32Array(e.memory.buffer, gridPtr, cells);
+    const result = new IntGrid(width, height);
+    for (let y = 0; y < height; y++) {
+      const rowOffset = y * width;
+      for (let x = 0; x < width; x++) {
+        result.setTile(x, y, wasmGrid[rowOffset + x]);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Run the ENTIRE SkywardCitadel generation pipeline in WASM.
+   * Returns the resulting IntGrid, or null/undefined on failure.
+   * Mirrors tryGenerateSubmergedVillage — separate PARAMS buffer via sc_getParamsPtr.
+   */
+  tryGenerateSkywardCitadel(
+    width: number,
+    height: number,
+    seed: number,
+    params: Record<string, number>,
+  ): IntGrid | null | undefined {
+    const e = this.exports ?? (this.tryInstantiateSyncFromGlobalBytes() ? this.exports : null);
+    if (!e) {
+      this.lastUnavailableReason = 'wasm exports unavailable';
+      return undefined;
+    }
+    if (!e.sc_getParamsPtr || !e.generateSkywardCitadel) {
+      this.lastUnavailableReason = 'skyward-citadel wasm exports not found (rebuild wasm)';
+      return undefined;
+    }
+
+    const cells = width * height;
+    if (cells <= 0) return null;
+    if (e.ensureCapacity(cells) !== 1) return null;
+
+    // Write params to the citadel-specific WASM params buffer
+    const paramsPtr = e.sc_getParamsPtr() >>> 0;
+    const paramsBytesRequired = paramsPtr + 32 * Int32Array.BYTES_PER_ELEMENT;
+    if (e.memory.buffer.byteLength < paramsBytesRequired) return null;
+
+    const wasmParams = new Int32Array(e.memory.buffer, paramsPtr, 32);
+    const S = 1000; // scale for float→int conversion
+    wasmParams[0]  = params.houseCount ?? 6;
+    wasmParams[1]  = params.houseMinSpacing ?? 2;
+    wasmParams[2]  = params.neighborhoodCount ?? 2;
+    wasmParams[3]  = Math.round((params.spreadFactor ?? 0.7) * S);
+    wasmParams[4]  = params.houseClearRadius ?? 2;
+    wasmParams[5]  = Math.round((params.scatterTreeChance ?? 0.08) * S);
+    wasmParams[6]  = params.villageGroundGrowth ?? 3;
+    wasmParams[7]  = Math.round((params.fenceChance ?? 0.3) * S);
+    wasmParams[8]  = Math.round((params.rubbleChance ?? 0.05) * S);
+    wasmParams[9]  = params.centerBiasX != null ? Math.round(params.centerBiasX * S) : 2147483647;
+    wasmParams[10] = params.centerBiasY != null ? Math.round(params.centerBiasY * S) : 2147483647;
+    wasmParams[11] = params.houseSizePreference ?? 1;
+    wasmParams[12] = params.roadNeighborCount ?? 2;
+    wasmParams[13] = params.doorStubLength ?? 2;
+    wasmParams[14] = params.borderJitter ?? 3;
+    wasmParams[15] = params.connectorBend ?? 2;
+    wasmParams[16] = params.edgeConnectionsPerSide ?? 1;
+    wasmParams[17] = params.detourCount ?? 2;
+    wasmParams[18] = params.detourMinDistance ?? 6;
+    wasmParams[19] = params.detourMaxDistance ?? 14;
+    wasmParams[20] = params.fixDoubleWide != null ? (params.fixDoubleWide ? 1 : 0) : 1;
+    wasmParams[21] = params.edgeMargin ?? 1;
+    wasmParams[22] = params.cliffBandCount ?? 2;
+    wasmParams[23] = params.hillClusterCount ?? 3;
+    wasmParams[24] = params.grassPatchCount ?? 4;
+    wasmParams[25] = params.sandPatchCount ?? 2;
+    wasmParams[26] = params.waterPoolCount ?? 1;
+
+    // Run the full algorithm in WASM
+    e.generateSkywardCitadel(width, height, seed);
 
     // Read the grid back
     const gridPtr = e.getGridPtr() >>> 0;

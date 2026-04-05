@@ -31,3 +31,9 @@ export { findRoadPathAStar } from './submerged-village/find-road-astar';
 
 // ── SubmergedVillage full algorithm (runs entire pipeline in WASM) ───────
 export { getParamsPtr, generateSubmergedVillage } from './submerged-village/algorithm';
+
+// ── SkywardCitadel-specific kernels ─────────────────────────────────────
+export { findRoadPathAStar as sc_findRoadPathAStar } from './skyward-citadel/find-road-astar';
+
+// ── SkywardCitadel full algorithm (runs entire pipeline in WASM) ─────────
+export { getParamsPtr as sc_getParamsPtr, generateSkywardCitadel } from './skyward-citadel/algorithm';
