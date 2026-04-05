@@ -14,7 +14,7 @@ import { ACT3 } from '../../acts/act3/Act3Definition';
  * Keep false in production to avoid console spam.
  */
 const DEBUG_ENEMY_AI = false;
-const DEBUG_ACT2_PATH_TILES = true;
+const DEBUG_ACT2_PATH_TILES = false;
 const ACT2_PATH_TILE_DEBUG_MAX_SELECTION_LOGS = 80;
 
 const ACT2_DIRECTIONAL_PATH_TILE_ASSETS: Record<string, string> = {
@@ -594,13 +594,15 @@ export class Overworld_MazeGenManager {
    * @param camera - The main camera
    */
   updateVisibleChunks(camera: Phaser.Cameras.Scene2D.Camera): void {
-    // Determine which chunks are visible based on camera position
     const chunkSizePixels = this.overworldGen.chunkSize * this.gridSize;
+    const worldView = camera.worldView;
+    const padding = chunkSizePixels;
 
-    const startX = Math.floor((camera.scrollX - chunkSizePixels) / chunkSizePixels);
-    const endX = Math.ceil((camera.scrollX + camera.width + chunkSizePixels) / chunkSizePixels);
-    const startY = Math.floor((camera.scrollY - chunkSizePixels) / chunkSizePixels);
-    const endY = Math.ceil((camera.scrollY + camera.height + chunkSizePixels) / chunkSizePixels);
+    // Respect camera zoom so we only render chunks near the actual visible world area.
+    const startX = Math.floor((worldView.x - padding) / chunkSizePixels);
+    const endX = Math.ceil((worldView.right + padding) / chunkSizePixels);
+    const startY = Math.floor((worldView.y - padding) / chunkSizePixels);
+    const endY = Math.ceil((worldView.bottom + padding) / chunkSizePixels);
 
     // Remove chunks that are no longer visible
     for (const [key, chunk] of this.visibleChunks) {
