@@ -264,21 +264,16 @@ const SMALL_HOUSE_TEMPLATES: HouseTemplate[] = [
         w: 2, h: 3,
         doorCandidates: rectDoors(2, 3),
     },
-    // 3×4 small house
-    {
-        name: '3x4',
-        tiles: makeRect(3, 4),
-        w: 3, h: 4,
-        doorCandidates: rectDoors(3, 4),
-    },
 ];
 
 /** Template lookup by size preference. */
 function getTemplates(pref: VillageLayoutParams['houseSizePreference']): HouseTemplate[] {
+    // Act 2 building art currently supports only 3x3 and 2x3 families.
+    // Keep all preferences constrained to supported footprints.
     switch (pref) {
-        case 'small': return [...SMALL_HOUSE_TEMPLATES, HOUSE_TEMPLATES[0]]; // small + 4x4
-        case 'large': return HOUSE_TEMPLATES;
-        case 'all':   return [...SMALL_HOUSE_TEMPLATES, ...HOUSE_TEMPLATES];
+        case 'small': return SMALL_HOUSE_TEMPLATES;
+        case 'large': return SMALL_HOUSE_TEMPLATES;
+        case 'all':   return SMALL_HOUSE_TEMPLATES;
     }
 }
 
@@ -352,6 +347,8 @@ export class SubmergedVillageAlgorithm {
 
         const wasmResult = generationWasmBridge.tryGenerateSubmergedVillage(w, h, seed, wasmParams);
         if (wasmResult) {
+            // Safety pass: split any accidental oversized house blobs into supported chunks.
+            this.normalizeHouseComponentsToSupportedSizes(wasmResult);
             // Keep every house fully walkable around all sides.
             this.enforceHousePerimeterPaths(wasmResult, 1);
             this.ensureGlobalAccessibility(wasmResult);
@@ -436,6 +433,9 @@ export class SubmergedVillageAlgorithm {
         // 17. Scatter obstacles on FOREST tiles (after all terrain features are placed)
         this.scatterObstacles(grid);
 
+        // Safety pass: split any accidental oversized house blobs into supported chunks.
+        this.normalizeHouseComponentsToSupportedSizes(grid);
+
         // 18. Final house accessibility guard: every house must be surrounded by path.
         this.enforceHousePerimeterPaths(grid, 1);
         this.ensureGlobalAccessibility(grid);
@@ -473,6 +473,91 @@ export class SubmergedVillageAlgorithm {
     }
 
     /**
+     * Keep house blobs constrained to art-supported sizes.
+     * Supported visual families are 2x3, 3x2, and 3x3; all other blobs are split or removed.
+     */
+    private normalizeHouseComponentsToSupportedSizes(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        const maxPasses = 3;
+
+        for (let pass = 0; pass < maxPasses; pass++) {
+            let changed = false;
+            const visited = new Set<string>();
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    if (grid.getTile(x, y) !== TILE.HOUSE) continue;
+                    const root = `${x},${y}`;
+                    if (visited.has(root)) continue;
+
+                    const component: Array<[number, number]> = [];
+                    const queue: Array<[number, number]> = [[x, y]];
+                    visited.add(root);
+
+                    let minX = x;
+                    let maxX = x;
+                    let minY = y;
+                    let maxY = y;
+
+                    while (queue.length > 0) {
+                        const [cx, cy] = queue.shift()!;
+                        component.push([cx, cy]);
+                        minX = Math.min(minX, cx);
+                        maxX = Math.max(maxX, cx);
+                        minY = Math.min(minY, cy);
+                        maxY = Math.max(maxY, cy);
+
+                        for (const [nx, ny] of this.neighbors4([cx, cy])) {
+                            if (!this.isInBounds(nx, ny)) continue;
+                            if (grid.getTile(nx, ny) !== TILE.HOUSE) continue;
+                            const key = `${nx},${ny}`;
+                            if (visited.has(key)) continue;
+                            visited.add(key);
+                            queue.push([nx, ny]);
+                        }
+                    }
+
+                    const width = (maxX - minX) + 1;
+                    const height = (maxY - minY) + 1;
+                    const area = width * height;
+                    const tileCount = component.length;
+                    const isSolidRect = tileCount === area;
+                    const isSupportedRect =
+                        (width === 3 && height === 3) ||
+                        (width === 2 && height === 3) ||
+                        (width === 3 && height === 2);
+
+                    if (isSolidRect && isSupportedRect) {
+                        continue;
+                    }
+
+                    if (width > 3 || height > 3) {
+                        // Segment merged footprints: 3 tiles of house then 1 tile of path.
+                        for (const [hx, hy] of component) {
+                            const localX = hx - minX;
+                            const localY = hy - minY;
+                            const keepAsHouse = (localX % 4) < 3 && (localY % 4) < 3;
+                            if (!keepAsHouse) {
+                                grid.setTile(hx, hy, TILE.PATH);
+                                changed = true;
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Remove unsupported small/irregular blobs (e.g., 2x2, 1xN, L-shapes after trims).
+                    for (const [hx, hy] of component) {
+                        grid.setTile(hx, hy, TILE.PATH);
+                    }
+                    changed = true;
+                }
+            }
+
+            if (!changed) break;
+        }
+    }
+
+    /**
      * Restore obvious single-tile path connectors that became visually blocked by biome overlays.
      */
     private repairPathGapsAfterBiome(grid: IntGrid): void {
@@ -482,7 +567,8 @@ export class SubmergedVillageAlgorithm {
         for (let y = 1; y < h - 1; y++) {
             for (let x = 1; x < w - 1; x++) {
                 const tile = grid.getTile(x, y);
-                if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF) continue;
+                // Never rewrite structural tiles during cosmetic path-gap repair.
+                if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF || tile === TILE.HOUSE || tile === TILE.FENCE) continue;
 
                 const north = grid.getTile(x, y - 1) === TILE.PATH;
                 const south = grid.getTile(x, y + 1) === TILE.PATH;

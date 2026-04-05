@@ -100,14 +100,11 @@ let poolSize: i32 = 0;
 
 function buildTemplatePool(pref: i32): void {
   poolSize = 0;
-  if (pref == 0) { // small
-    unchecked((POOL[0] = 0)); unchecked((POOL[1] = 1)); unchecked((POOL[2] = 2)); unchecked((POOL[3] = 3)); poolSize = 4;
-  } else if (pref == 2) { // large
-    unchecked((POOL[0] = 3)); unchecked((POOL[1] = 4)); unchecked((POOL[2] = 5)); unchecked((POOL[3] = 6)); unchecked((POOL[4] = 7)); poolSize = 5;
-  } else { // all
-    for (let i: i32 = 0; i < NUM_TEMPLATES; i++) { unchecked((POOL[i] = i)); }
-    poolSize = NUM_TEMPLATES;
-  }
+  // Art constraints: Act 2 building sprites currently support only 3x3 and 2x3 families.
+  // Keep template pools restricted so generation never emits oversized merged-looking structures.
+  unchecked((POOL[0] = 0)); // 3x3
+  unchecked((POOL[1] = 1)); // 2x3
+  poolSize = 2;
 }
 
 // ── Door picking ─────────────────────────────────────────────────────────

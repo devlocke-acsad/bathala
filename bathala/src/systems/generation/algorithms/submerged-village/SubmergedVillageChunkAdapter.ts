@@ -99,7 +99,7 @@ function densePreset(cfg: typeof ZONE_DEFAULTS): VillageLayoutParams {
     return {
         ...DEFAULT_VILLAGE_PARAMS,
         houseCount: cfg.denseHouseCount,
-        houseMinSpacing: cfg.denseHouseSpacing,
+        houseMinSpacing: Math.max(2, cfg.denseHouseSpacing),
         neighborhoodCount: 1,
         spreadFactor: 0.30,
         houseClearRadius: Math.max(1, cfg.denseClearRadius),
@@ -134,7 +134,7 @@ function transitionPreset(
     return {
         ...DEFAULT_VILLAGE_PARAMS,
         houseCount: cfg.transitionHouseCount,
-        houseMinSpacing: cfg.transitionHouseSpacing,
+        houseMinSpacing: Math.max(2, cfg.transitionHouseSpacing),
         neighborhoodCount: 1,
         spreadFactor: 0.24,
         houseClearRadius: 1,

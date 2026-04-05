@@ -218,18 +218,7 @@ export class Preloader extends Scene {
     this.load.image("sv_underlay_5", "background/submergedvillageAssets/Update/underlay/underlay_obstacle5.png");
 
     // Act 2 house autotile set (buildings are multi-tile obstacles over underlays).
-    const act2HouseProfiles: Record<number, string> = {
-      1: "H3xL3",
-      2: "H3xL3",
-      3: "H2xL3",
-      4: "H2xL3",
-      6: "H3xL3",
-      7: "H3xL3",
-      8: "H3xL3",
-      9: "H3xL3",
-      10: "H3xL3",
-    };
-    const act2HouseSuffixes: Array<{ key: string; file: string }> = [
+    const act2HouseSuffixesAll: Array<{ key: string; file: string }> = [
       { key: "center", file: "Center" },
       { key: "n", file: "N" },
       { key: "s", file: "S" },
@@ -240,12 +229,32 @@ export class Preloader extends Scene {
       { key: "se", file: "SE" },
       { key: "sw", file: "SW" },
     ];
-    for (const [idText, profile] of Object.entries(act2HouseProfiles)) {
-      const id = Number(idText);
-      for (const suffix of act2HouseSuffixes) {
+    const act2HouseSuffixes2x3: Array<{ key: string; file: string }> = [
+      { key: "e", file: "E" },
+      { key: "w", file: "W" },
+      { key: "ne", file: "NE" },
+      { key: "nw", file: "NW" },
+      { key: "se", file: "SE" },
+      { key: "sw", file: "SW" },
+    ];
+    const act2HouseProfiles: Array<{ id: number; profile: string; suffixes?: Array<{ key: string; file: string }> }> = [
+      { id: 1, profile: "H3xL3" },
+      { id: 2, profile: "H3xL3" },
+      { id: 3, profile: "H2xL3" },
+      { id: 4, profile: "H2xL3" },
+      { id: 5, profile: "H3xL2", suffixes: act2HouseSuffixes2x3 },
+      { id: 6, profile: "H3xL3" },
+      { id: 7, profile: "H3xL3" },
+      { id: 8, profile: "H3xL3" },
+      { id: 9, profile: "H3xL3" },
+      { id: 10, profile: "H3xL3" },
+    ];
+    for (const houseProfile of act2HouseProfiles) {
+      const suffixes = houseProfile.suffixes ?? act2HouseSuffixesAll;
+      for (const suffix of suffixes) {
         this.load.image(
-          `sv_house_${id}_${suffix.key}`,
-          `background/submergedvillageAssets/Update/obstacles/houses/house${id}_${profile}_${suffix.file}.png`,
+          `sv_house_${houseProfile.id}_${suffix.key}`,
+          `background/submergedvillageAssets/Update/obstacles/houses/house${houseProfile.id}_${houseProfile.profile}_${suffix.file}.png`,
         );
       }
     }

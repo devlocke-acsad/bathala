@@ -85,7 +85,10 @@ export class Overworld_MazeGenManager {
     'sv_underlay_4',
     'sv_underlay_5',
   ];
-  private submergedVillageHouseSetIds: number[] = [1, 2, 3, 4, 6, 7, 8, 9, 10];
+  // House sets grouped by sprite family footprint.
+  private submergedVillageHouseSet3x3Ids: number[] = [1, 2, 6, 7, 8, 9, 10];
+  private submergedVillageHouseSet3x2Ids: number[] = [3, 4];
+  private submergedVillageHouseSet2x3Ids: number[] = [5];
 
   // Outer tile markers for chunk connections
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
@@ -778,6 +781,8 @@ export class Overworld_MazeGenManager {
         const component: Array<[number, number]> = [];
         let minX = x;
         let minY = y;
+        let maxX = x;
+        let maxY = y;
 
         visited.add(rootKey);
 
@@ -786,6 +791,8 @@ export class Overworld_MazeGenManager {
           component.push([cx, cy]);
           minX = Math.min(minX, cx);
           minY = Math.min(minY, cy);
+          maxX = Math.max(maxX, cx);
+          maxY = Math.max(maxY, cy);
 
           for (const [dx, dy] of dirs) {
             const nx = cx + dx;
@@ -800,8 +807,33 @@ export class Overworld_MazeGenManager {
           }
         }
 
-        const styleIdx = this.getDeterministicIndex(chunkX, chunkY, minX, minY, this.submergedVillageHouseSetIds.length);
-        const styleId = this.submergedVillageHouseSetIds[styleIdx];
+        const componentWidth = (maxX - minX) + 1;
+        const componentHeight = (maxY - minY) + 1;
+        const componentArea = componentWidth * componentHeight;
+        const isSolidRect = component.length === componentArea;
+        const isSupportedRect =
+          (componentWidth === 3 && componentHeight === 3) ||
+          (componentWidth === 2 && componentHeight === 3) ||
+          (componentWidth === 3 && componentHeight === 2);
+
+        if (!isSolidRect || !isSupportedRect) {
+          // Defensive fallback: invalid house blobs should never render as buildings.
+          for (const [tx, ty] of component) {
+            maze[ty][tx] = 0;
+          }
+          continue;
+        }
+
+        // Exact family mapping from filename sizes:
+        // H3xL3 => 3x3, H2xL3 => 3x2, H3xL2 => 2x3.
+        let stylePool = this.submergedVillageHouseSet3x3Ids;
+        if (componentWidth === 2 && componentHeight === 3) {
+          stylePool = this.submergedVillageHouseSet2x3Ids;
+        } else if (componentWidth === 3 && componentHeight === 2) {
+          stylePool = this.submergedVillageHouseSet3x2Ids;
+        }
+        const styleIdx = this.getDeterministicIndex(chunkX, chunkY, minX, minY, stylePool.length);
+        const styleId = stylePool[styleIdx];
         for (const [tx, ty] of component) {
           map.set(`${tx},${ty}`, styleId);
         }
@@ -836,8 +868,8 @@ export class Overworld_MazeGenManager {
     else if (!w) suffix = 'w';
 
     const styleId = houseVariantMap?.get(`${x},${y}`)
-      ?? this.submergedVillageHouseSetIds[
-        this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageHouseSetIds.length)
+      ?? this.submergedVillageHouseSet3x3Ids[
+        this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageHouseSet3x3Ids.length)
       ];
 
     const orientedKey = `sv_house_${styleId}_${suffix}`;
