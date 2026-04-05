@@ -978,6 +978,14 @@ export class Overworld_MazeGenManager {
           continue;
         }
 
+        if (component.length > 1) {
+          // Unsupported puddle clusters look like tiled standalones; downgrade to stones.
+          for (const [tx, ty] of component) {
+            maze[ty][tx] = 12;
+          }
+          continue;
+        }
+
         for (const [tx, ty] of component) {
           map.set(`${tx},${ty}`, 'sv_puddle_standalone_1');
         }

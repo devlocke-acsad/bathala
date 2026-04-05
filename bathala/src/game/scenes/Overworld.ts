@@ -1221,51 +1221,42 @@ export class Overworld extends Scene {
 
     // Static sprite - no animation needed
     console.log("Moving player in direction:", direction);
+    console.log("Position is valid, moving player");
 
-    // Check if the new position is valid (not a wall)
-    if (this.isValidPosition(targetX, targetY)) {
-      console.log("Position is valid, moving player");
+    this.tweens.add({
+      targets: this.player,
+      x: targetX,
+      y: targetY,
+      duration: 64,
+      onComplete: () => {
+        this.isMoving = false;
+        this.checkNodeInteraction();
 
-      // Move player with tween
-      this.tweens.add({
-        targets: this.player,
-        x: targetX,
-        y: targetY,
-        duration: 80, // Slightly faster movement
-        onComplete: () => {
-          this.isMoving = false;
-          this.checkNodeInteraction();
+        // Move nearby enemy nodes toward player during nighttime.
+        // This runs BEFORE recordAction() so that enemies chase based on
+        // the current cycle state, not a just-toggled one.  Otherwise the
+        // day→night toggle would make enemies lunge on the very step the
+        // night begins, which feels like a daytime chase to the player.
+        this.moveEnemiesNighttime();
 
-          // Move nearby enemy nodes toward player during nighttime.
-          // This runs BEFORE recordAction() so that enemies chase based on
-          // the current cycle state, not a just-toggled one.  Otherwise the
-          // day→night toggle would make enemies lunge on the very step the
-          // night begins, which feels like a daytime chase to the player.
-          this.moveEnemiesNighttime();
+        // Record the action for day/night cycle after movement completes
+        this.gameState.recordAction();
 
-          // Record the action for day/night cycle after movement completes
-          this.gameState.recordAction();
+        // Check if boss should appear after recording action
+        this.checkBossEncounter();
 
-          // Check if boss should appear after recording action
-          this.checkBossEncounter();
+        // Update UI to reflect day/night cycle changes
+        this.updateUI();
 
-          // Update UI to reflect day/night cycle changes
-          this.updateUI();
+        // Update visible chunks as player moves
+        this.updateVisibleChunks();
 
-          // Update visible chunks as player moves
-          this.updateVisibleChunks();
-
-          // Update fog of war
-          if (this.fogOfWarManager) {
-            this.fogOfWarManager.update(this.player.x, this.player.y);
-          }
+        // Update fog of war
+        if (this.fogOfWarManager) {
+          this.fogOfWarManager.update(this.player.x, this.player.y);
         }
-      });
-    } else {
-      console.log("Position is invalid (wall or out of bounds)");
-      // Invalid move, just reset the moving flag
-      this.isMoving = false;
-    }
+      }
+    });
   }
 
   handleDayNightTransition(): void {
@@ -2509,24 +2500,32 @@ export class Overworld extends Scene {
         if (this.isValidPosition(targetX, this.player.y)) {
           this.movePlayer(targetX, this.player.y, "left");
           moved = true;
+        } else {
+          console.log("Position is invalid (wall or out of bounds)");
         }
       } else if (this.keyInputManager.isRightPressed()) {
         const targetX = this.player.x + gridSize;
         if (this.isValidPosition(targetX, this.player.y)) {
           this.movePlayer(targetX, this.player.y, "right");
           moved = true;
+        } else {
+          console.log("Position is invalid (wall or out of bounds)");
         }
       } else if (this.keyInputManager.isUpPressed()) {
         const targetY = this.player.y - gridSize;
         if (this.isValidPosition(this.player.x, targetY)) {
           this.movePlayer(this.player.x, targetY, "up");
           moved = true;
+        } else {
+          console.log("Position is invalid (wall or out of bounds)");
         }
       } else if (this.keyInputManager.isDownPressed()) {
         const targetY = this.player.y + gridSize;
         if (this.isValidPosition(this.player.x, targetY)) {
           this.movePlayer(this.player.x, targetY, "down");
           moved = true;
+        } else {
+          console.log("Position is invalid (wall or out of bounds)");
         }
       }
 
@@ -2569,12 +2568,9 @@ export class Overworld extends Scene {
         this.startCombat("elite");
       }
 
-      // Update chunk rendering and day/night cycle if player moved
+      // Update interaction hints immediately when movement starts.
       if (moved) {
-        this.updateVisibleChunks();
         this.checkNodeInteraction();
-        // Update UI to reflect day/night cycle changes
-        this.updateUI();
       }
     }
   }
