@@ -155,19 +155,19 @@ export class Preloader extends Scene {
     this.load.image("sv_path_sand_3", "background/submergedvillageAssets/pathTiles/Path_Sand3.png");
     this.load.image("sv_path_sand_4", "background/submergedvillageAssets/pathTiles/Path_Sand4.png");
 
-    this.load.image("sv_grass_cliff_n", "background/submergedvillageAssets/grassObstacles/GrassCliff_N.png");
-    this.load.image("sv_grass_cliff_s", "background/submergedvillageAssets/grassObstacles/GrassCliff_S.png");
-    this.load.image("sv_grass_cliff_e", "background/submergedvillageAssets/grassObstacles/GrassCliff_E.png");
-    this.load.image("sv_grass_cliff_w", "background/submergedvillageAssets/grassObstacles/GrassCliff_W.png");
-    this.load.image("sv_grass_cliff_ne", "background/submergedvillageAssets/grassObstacles/GrassCliff_NE.png");
-    this.load.image("sv_grass_cliff_nw", "background/submergedvillageAssets/grassObstacles/GrassCliff_NW.png");
-    this.load.image("sv_grass_cliff_se", "background/submergedvillageAssets/grassObstacles/GrassCliff_SE.png");
-    this.load.image("sv_grass_cliff_sw", "background/submergedvillageAssets/grassObstacles/GrassCliff_SW.png");
-    this.load.image("sv_grass_cliff_inner_ne", "background/submergedvillageAssets/grassObstacles/GrassCliff_NE.png");
-    this.load.image("sv_grass_cliff_inner_nw", "background/submergedvillageAssets/grassObstacles/GrassCliff_NW.png");
-    this.load.image("sv_grass_cliff_inner_se", "background/submergedvillageAssets/grassObstacles/GrassCliff_SE.png");
-    this.load.image("sv_grass_cliff_inner_sw", "background/submergedvillageAssets/grassObstacles/GrassCliff_SW.png");
-    this.load.image("sv_grass_cliff_middle", "background/submergedvillageAssets/grassObstacles/GrassCliff_Middle.png");
+    this.load.image("sv_grass_cliff_n", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_N.png");
+    this.load.image("sv_grass_cliff_s", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_S.png");
+    this.load.image("sv_grass_cliff_e", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_E.png");
+    this.load.image("sv_grass_cliff_w", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_W.png");
+    this.load.image("sv_grass_cliff_ne", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_NE.png");
+    this.load.image("sv_grass_cliff_nw", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_NW.png");
+    this.load.image("sv_grass_cliff_se", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_SE.png");
+    this.load.image("sv_grass_cliff_sw", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_SW.png");
+    this.load.image("sv_grass_cliff_inner_ne", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_NE.png");
+    this.load.image("sv_grass_cliff_inner_nw", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_NW.png");
+    this.load.image("sv_grass_cliff_inner_se", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_SE.png");
+    this.load.image("sv_grass_cliff_inner_sw", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_SW.png");
+    this.load.image("sv_grass_cliff_middle", "background/submergedvillageAssets/Update/obstacles/hills/GrassCliff_Middle.png");
 
     this.load.image("sv_grass_hill_ne", "background/submergedvillageAssets/Update/obstacles/hills/GrassHill_NE.png");
     this.load.image("sv_grass_hill_nw", "background/submergedvillageAssets/Update/obstacles/hills/GrassHill_NW.png");
@@ -852,7 +852,7 @@ export class Preloader extends Scene {
     });
   }
 
-  update(time: number, delta: number): void {
+  update(_time: number, delta: number): void {
     // Animate the scanlines
     if (this.scanlines) {
       this.scanlineTimer += delta;

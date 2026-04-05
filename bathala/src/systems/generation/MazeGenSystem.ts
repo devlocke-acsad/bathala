@@ -936,6 +936,54 @@ export class Overworld_MazeGenManager {
         && has(1, -1) && has(-1, -1) && has(1, 1) && has(-1, 1);
     };
 
+    const getStrict2x2Anchor = (isType: (tx: number, ty: number) => boolean): [number, number] | null => {
+      // This tile can belong to one of four possible 2x2 anchors.
+      const anchors: Array<[number, number]> = [
+        [x, y],
+        [x - 1, y],
+        [x, y - 1],
+        [x - 1, y - 1],
+      ];
+
+      for (const [ax, ay] of anchors) {
+        const is2x2 =
+          isType(ax, ay) &&
+          isType(ax + 1, ay) &&
+          isType(ax, ay + 1) &&
+          isType(ax + 1, ay + 1);
+
+        if (!is2x2) {
+          continue;
+        }
+
+        // Enforce isolated 2x2: no extra same-type tiles touching the surrounding 1-tile ring.
+        let contaminated = false;
+        for (let ty = ay - 1; ty <= ay + 2 && !contaminated; ty++) {
+          for (let tx = ax - 1; tx <= ax + 2; tx++) {
+            const inCore = tx >= ax && tx <= ax + 1 && ty >= ay && ty <= ay + 1;
+            if (!inCore && isType(tx, ty)) {
+              contaminated = true;
+              break;
+            }
+          }
+        }
+
+        if (!contaminated) {
+          return [ax, ay];
+        }
+      }
+
+      return null;
+    };
+
+    const getQuadrantKey = (ax: number, ay: number): 'nw' | 'ne' | 'sw' | 'se' | null => {
+      if (x === ax && y === ay) return 'nw';
+      if (x === ax + 1 && y === ay) return 'ne';
+      if (x === ax && y === ay + 1) return 'sw';
+      if (x === ax + 1 && y === ay + 1) return 'se';
+      return null;
+    };
+
     const renderGrassSandPatchTile = (): string => {
       const n = has(0, -1);
       const s = has(0, 1);
@@ -981,24 +1029,15 @@ export class Overworld_MazeGenManager {
     };
 
     const renderSandGrassPatchTile = (): string => {
-      // SandGrass Bush is intentionally strict: only render as 2x2 bundles.
       const isType = (tx: number, ty: number): boolean => maze[ty]?.[tx] === tileValue;
-      const anchors: Array<[number, number]> = [
-        [x, y],
-        [x - 1, y],
-        [x, y - 1],
-        [x - 1, y - 1],
-      ];
-
-      for (const [ax, ay] of anchors) {
-        if (!isType(ax, ay) || !isType(ax + 1, ay) || !isType(ax, ay + 1) || !isType(ax + 1, ay + 1)) {
-          continue;
-        }
-
-        if (x === ax && y === ay) return 'sv_patch_sand_grass_bush_nw';
-        if (x === ax + 1 && y === ay) return 'sv_patch_sand_grass_bush_ne';
-        if (x === ax && y === ay + 1) return 'sv_patch_sand_grass_bush_sw';
-        if (x === ax + 1 && y === ay + 1) return 'sv_patch_sand_grass_bush_se';
+      const anchor = getStrict2x2Anchor(isType);
+      if (anchor) {
+        const [ax, ay] = anchor;
+        const quadrant = getQuadrantKey(ax, ay);
+        if (quadrant === 'nw') return 'sv_patch_sand_grass_bush_nw';
+        if (quadrant === 'ne') return 'sv_patch_sand_grass_bush_ne';
+        if (quadrant === 'sw') return 'sv_patch_sand_grass_bush_sw';
+        if (quadrant === 'se') return 'sv_patch_sand_grass_bush_se';
       }
 
       // Hard visual guard against artifacting when a non-2x2 remnant survives generation.
@@ -1034,13 +1073,7 @@ export class Overworld_MazeGenManager {
       if (!s) return 'sv_grass_cliff_s';
       if (!e) return 'sv_grass_cliff_e';
       if (!w) return 'sv_grass_cliff_w';
-
-      if (!fullyEnclosed()) {
-        const diagonalVariants = ['sv_grass_cliff_n', 'sv_grass_cliff_s', 'sv_grass_cliff_e', 'sv_grass_cliff_w'];
-        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, diagonalVariants.length);
-        return diagonalVariants[idx];
-      }
-
+      // Cardinal enclosure is enough to use the center fill tile.
       return 'sv_grass_cliff_middle';
     }
 
@@ -1057,30 +1090,51 @@ export class Overworld_MazeGenManager {
       const s = has(0, 1);
       const e = has(1, 0);
       const w = has(-1, 0);
+      const ne = has(1, -1);
+      const nw = has(-1, -1);
+      const se = has(1, 1);
+      const sw = has(-1, 1);
+      const orthCount = Number(n) + Number(s) + Number(e) + Number(w);
 
-      const isPartOf2x2Hill = (): boolean => {
-        const isHill = (dx: number, dy: number) => maze[y + dy]?.[x + dx] === 6;
-        return (
-          (isHill(0, 0) && isHill(1, 0) && isHill(0, 1) && isHill(1, 1)) ||
-          (isHill(-1, 0) && isHill(0, 0) && isHill(-1, 1) && isHill(0, 1)) ||
-          (isHill(0, -1) && isHill(1, -1) && isHill(0, 0) && isHill(1, 0)) ||
-          (isHill(-1, -1) && isHill(0, -1) && isHill(-1, 0) && isHill(0, 0))
-        );
-      };
+      const isHillAt = (tx: number, ty: number): boolean => maze[ty]?.[tx] === 6;
+      const strictHillAnchor = getStrict2x2Anchor(isHillAt);
+      if (strictHillAnchor) {
+        const [ax, ay] = strictHillAnchor;
+        const quadrant = getQuadrantKey(ax, ay);
+        // Deterministic 50/50 variant for strict hill clusters: Hill or Bush.
+        const useBushVariant = this.getDeterministicIndex(chunkX, chunkY, ax, ay, 2) === 1;
 
-      // Hard guard: hills must render only as 2x2 bundles.
-      if (!isPartOf2x2Hill()) {
-        return this.getAct2LandTexture(chunkX, chunkY, x, y);
+        if (useBushVariant) {
+          if (quadrant === 'nw') return 'sv_patch_sand_grass_bush_nw';
+          if (quadrant === 'ne') return 'sv_patch_sand_grass_bush_ne';
+          if (quadrant === 'sw') return 'sv_patch_sand_grass_bush_sw';
+          if (quadrant === 'se') return 'sv_patch_sand_grass_bush_se';
+        } else {
+          if (quadrant === 'nw') return 'sv_grass_hill_nw';
+          if (quadrant === 'ne') return 'sv_grass_hill_ne';
+          if (quadrant === 'sw') return 'sv_grass_hill_sw';
+          if (quadrant === 'se') return 'sv_grass_hill_se';
+        }
       }
 
-      // Outer corners for convex hill edges.
-      if (!n && !w) return 'sv_grass_hill_nw';
-      if (!n && !e) return 'sv_grass_hill_ne';
-      if (!s && !w) return 'sv_grass_hill_sw';
-      if (!s && !e) return 'sv_grass_hill_se';
+      // Non-2x2 hill remnants/clusters use cliff autotile family (including middle fill).
+      if (!n && !w) return 'sv_grass_cliff_nw';
+      if (!n && !e) return 'sv_grass_cliff_ne';
+      if (!s && !w) return 'sv_grass_cliff_sw';
+      if (!s && !e) return 'sv_grass_cliff_se';
 
-      // Strict 2x2 hills should resolve to one of the four corners only.
-      return 'sv_grass_hill_nw';
+      if (orthCount >= 3) {
+        if (n && w && !nw) return 'sv_grass_cliff_inner_se';
+        if (n && e && !ne) return 'sv_grass_cliff_inner_sw';
+        if (s && w && !sw) return 'sv_grass_cliff_inner_ne';
+        if (s && e && !se) return 'sv_grass_cliff_inner_nw';
+      }
+
+      if (!n) return 'sv_grass_cliff_n';
+      if (!s) return 'sv_grass_cliff_s';
+      if (!e) return 'sv_grass_cliff_e';
+      if (!w) return 'sv_grass_cliff_w';
+      return 'sv_grass_cliff_middle';
     }
 
     if (tileValue === 9) {
