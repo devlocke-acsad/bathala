@@ -28,11 +28,12 @@ const ACT2_DIRECTIONAL_PATH_TILE_ASSETS: Record<string, string> = {
   sv_path_corner_open_wn: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_WN.png',
   sv_path_corner_open_ws: 'assets/background/submergedvillageAssets/Update/pathTiles/path_corner_open_WS.png',
   sv_path_horizontal_center: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_center.png',
-  sv_path_horizontal_end_e: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_E.png',
-  sv_path_horizontal_end_w: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_W.png',
+  // Asset pack end-cap labels are inverted relative to runtime direction flags.
+  sv_path_horizontal_end_e: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_W.png',
+  sv_path_horizontal_end_w: 'assets/background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_E.png',
   sv_path_vertical_center: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_center.png',
-  sv_path_vertical_end_n: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_end_N.png',
-  sv_path_vertical_end_s: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_end_S.png',
+  sv_path_vertical_end_n: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_end_S.png',
+  sv_path_vertical_end_s: 'assets/background/submergedvillageAssets/Update/pathTiles/path_vertical_end_N.png',
 };
 
 /**
