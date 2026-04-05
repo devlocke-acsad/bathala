@@ -1138,43 +1138,99 @@ export class Overworld_MazeGenManager {
     }
 
     if (tileValue === 9) {
-      const tileAt = (dx: number, dy: number): number => maze[y + dy]?.[x + dx] ?? -1;
       const n = has(0, -1);
       const s = has(0, 1);
       const e = has(1, 0);
       const w = has(-1, 0);
+      const ne = has(1, -1);
+      const nw = has(-1, -1);
+      const se = has(1, 1);
+      const sw = has(-1, 1);
+      const orthCount = Number(n) + Number(s) + Number(e) + Number(w);
 
-      const isCliffNeighbor = (dx: number, dy: number): boolean => {
-        const t = tileAt(dx, dy);
-        return t === 5 || t === 6;
+      type DiagDir = 'ne' | 'nw' | 'se' | 'sw';
+      const orthWaterCountAt = (dx: number, dy: number): number => {
+        if (!has(dx, dy)) return 0;
+        return (
+          Number(has(dx, dy - 1)) +
+          Number(has(dx, dy + 1)) +
+          Number(has(dx + 1, dy)) +
+          Number(has(dx - 1, dy))
+        );
+      };
+      const diagonalState = {
+        ne: { water: ne, deep: ne && orthWaterCountAt(1, -1) >= 3 },
+        nw: { water: nw, deep: nw && orthWaterCountAt(-1, -1) >= 3 },
+        se: { water: se, deep: se && orthWaterCountAt(1, 1) >= 3 },
+        sw: { water: sw, deep: sw && orthWaterCountAt(-1, 1) >= 3 },
+      };
+      const inferInteriorDiagonal = (preferred: DiagDir): DiagDir => {
+        const preferredState = diagonalState[preferred];
+        if (preferredState.deep || preferredState.water) return preferred;
+
+        if (diagonalState.ne.deep) return 'ne';
+        if (diagonalState.nw.deep) return 'nw';
+        if (diagonalState.se.deep) return 'se';
+        if (diagonalState.sw.deep) return 'sw';
+
+        if (diagonalState.ne.water) return 'ne';
+        if (diagonalState.nw.water) return 'nw';
+        if (diagonalState.se.water) return 'se';
+        if (diagonalState.sw.water) return 'sw';
+
+        return preferred;
+      };
+      // Sprite semantics differ by family:
+      // - water_cliff_* corner names indicate where land is (water is opposite).
+      // - water_outer_* corner names indicate where water is.
+      const cliffCornerForInterior = (diag: DiagDir): string => {
+        if (diag === 'ne') return 'sv_water_cliff_sw';
+        if (diag === 'nw') return 'sv_water_cliff_se';
+        if (diag === 'se') return 'sv_water_cliff_nw';
+        return 'sv_water_cliff_ne';
+      };
+      const outerCornerForInterior = (diag: DiagDir): string => {
+        if (diag === 'ne') return 'sv_water_outer_ne';
+        if (diag === 'nw') return 'sv_water_outer_nw';
+        if (diag === 'se') return 'sv_water_outer_se';
+        return 'sv_water_outer_sw';
       };
 
-      const cornerTexture = (
-        shoreKey: string,
-        cliffKey: string,
-        sideACliff: boolean,
-        sideBCliff: boolean,
-      ): string => (sideACliff || sideBCliff ? cliffKey : shoreKey);
-
-      if (!n && !w) {
-        return cornerTexture('sv_water_shore_nw', 'sv_water_cliff_nw', isCliffNeighbor(0, -1), isCliffNeighbor(-1, 0));
-      }
-      if (!n && !e) {
-        return cornerTexture('sv_water_shore_ne', 'sv_water_cliff_ne', isCliffNeighbor(0, -1), isCliffNeighbor(1, 0));
-      }
-      if (!s && !w) {
-        return cornerTexture('sv_water_shore_sw', 'sv_water_cliff_sw', isCliffNeighbor(0, 1), isCliffNeighbor(-1, 0));
-      }
-      if (!s && !e) {
-        return cornerTexture('sv_water_shore_se', 'sv_water_cliff_se', isCliffNeighbor(0, 1), isCliffNeighbor(1, 0));
+      // Single-neighbor water tips should use directional edge tiles,
+      // not corner tiles (prevents "spilled" visual protrusions).
+      if (orthCount === 1) {
+        if (s) return 'sv_water_cliff_n';
+        if (n) return 'sv_water_cliff_s';
+        if (e) return 'sv_water_cliff_w';
+        if (w) return 'sv_water_cliff_e';
       }
 
-      if (!n) return isCliffNeighbor(0, -1) ? 'sv_water_cliff_n' : 'sv_water_shore_n';
-      if (!s) return isCliffNeighbor(0, 1) ? 'sv_water_cliff_s' : 'sv_water_shore_s';
-      if (!e) return isCliffNeighbor(1, 0) ? 'sv_water_cliff_e' : 'sv_water_shore_e';
-      if (!w) return isCliffNeighbor(-1, 0) ? 'sv_water_cliff_w' : 'sv_water_shore_w';
+      // Convex water boundaries: use cliff corner sprites.
+      if (!n && !w) return cliffCornerForInterior(inferInteriorDiagonal('se'));
+      if (!n && !e) return cliffCornerForInterior(inferInteriorDiagonal('sw'));
+      if (!s && !w) return cliffCornerForInterior(inferInteriorDiagonal('ne'));
+      if (!s && !e) return cliffCornerForInterior(inferInteriorDiagonal('nw'));
 
-      const deepVariants = ['sv_water_middle', 'sv_water_middle', 'sv_water_debris_1', 'sv_water_debris_2', 'sv_water_debris_3'];
+      // Concave water corners (land notch intruding into water): use outer corner sprites.
+      if (orthCount >= 3) {
+        if (n && w && !nw) return outerCornerForInterior(inferInteriorDiagonal('se'));
+        if (n && e && !ne) return outerCornerForInterior(inferInteriorDiagonal('sw'));
+        if (s && w && !sw) return outerCornerForInterior(inferInteriorDiagonal('ne'));
+        if (s && e && !se) return outerCornerForInterior(inferInteriorDiagonal('nw'));
+      }
+
+      if (!n) return 'sv_water_cliff_n';
+      if (!s) return 'sv_water_cliff_s';
+      if (!e) return 'sv_water_cliff_e';
+      if (!w) return 'sv_water_cliff_w';
+
+      const deepVariants = [
+        'sv_water_debris_1',
+        'sv_water_debris_2',
+        'sv_water_debris_3',
+        'sv_water_debris_4',
+        'sv_water_middle',
+      ];
       const deepIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, deepVariants.length);
       return deepVariants[deepIdx];
     }

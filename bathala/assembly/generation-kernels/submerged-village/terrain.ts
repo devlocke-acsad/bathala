@@ -28,35 +28,182 @@ export function resetNonPathToForest(w: i32, h: i32): void {
   }
 }
 
-// ── Water ponds ──────────────────────────────────────────────────────────
+// ── Water bodies (lakes + rivers) ───────────────────────────────────────
 function paintWaterPonds(w: i32, h: i32, count: i32): void {
   const margin: i32 = param(P_EDGE_MARGIN) + 1;
+  const cells: i32 = w * h;
+
   for (let i: i32 = 0; i < count; i++) {
-    const cx: i32 = rngInt(margin + 2, w - margin - 3);
-    const cy: i32 = rngInt(margin + 2, h - margin - 3);
-    const rx: i32 = 1 + rngInt(0, 2);
-    const ry: i32 = 1 + rngInt(0, 2);
+    const makeRiver: bool = rng() < 0.45;
 
-    let okForWater: bool = true;
-    for (let dy: i32 = -ry; dy <= ry && okForWater; dy++) {
-      for (let dx: i32 = -rx; dx <= rx && okForWater; dx++) {
-        const nx: i32 = cx + dx, ny: i32 = cy + dy;
-        if (!inBounds(nx, ny, w, h)) { okForWater = false; break; }
-        const tile: i32 = getCell(nx, ny, w);
-        if (tile == TILE_PATH || tile == TILE_HOUSE || tile == TILE_FENCE) okForWater = false;
-      }
-    }
-    if (!okForWater) continue;
+    if (!makeRiver) {
+      // Lake: cliff-style blob growth for natural lake silhouettes.
+      let placedLake: bool = false;
 
-    for (let dy: i32 = -ry; dy <= ry; dy++) {
-      for (let dx: i32 = -rx; dx <= rx; dx++) {
-        const nx: i32 = cx + dx, ny: i32 = cy + dy;
-        const ndx: f64 = f64(absI(dx)) / f64(maxI(1, rx));
-        const ndy: f64 = f64(absI(dy)) / f64(maxI(1, ry));
-        if (ndx * ndx + ndy * ndy <= 1.0 + rng() * 0.3) {
-          setCell(nx, ny, w, TILE_WATER);
+      for (let attempt: i32 = 0; attempt < 24 && !placedLake; attempt++) {
+        const sx: i32 = rngInt(margin + 2, w - margin - 3);
+        const sy: i32 = rngInt(margin + 2, h - margin - 3);
+        if (getCell(sx, sy, w) != TILE_FOREST) continue;
+
+        const targetSize: i32 = 12 + rngInt(0, 16);
+        clearBitmap(BITMAP_A, cells);
+        let qLen: i32 = 0;
+        unchecked((TEMP_X[0] = sx));
+        unchecked((TEMP_Y[0] = sy));
+        qLen = 1;
+        let maskSize: i32 = 0;
+
+        while (qLen > 0 && maskSize < targetSize) {
+          const qi: i32 = rngInt(0, qLen - 1);
+          const qx: i32 = unchecked(TEMP_X[qi]);
+          const qy: i32 = unchecked(TEMP_Y[qi]);
+          qLen--;
+          unchecked((TEMP_X[qi] = unchecked(TEMP_X[qLen])));
+          unchecked((TEMP_Y[qi] = unchecked(TEMP_Y[qLen])));
+
+          if (qx <= 1 || qy <= 1 || qx >= w - 2 || qy >= h - 2) continue;
+          const ci: i32 = qy * w + qx;
+          if (unchecked(BITMAP_A[ci]) != 0) continue;
+          if (getCell(qx, qy, w) != TILE_FOREST) continue;
+
+          unchecked((BITMAP_A[ci] = 1));
+          maskSize++;
+
+          const dx4b: StaticArray<i32> = [0, 0, -1, 1];
+          const dy4b: StaticArray<i32> = [-1, 1, 0, 0];
+          for (let d: i32 = 0; d < 4; d++) {
+            const nx: i32 = qx + unchecked(dx4b[d]);
+            const ny: i32 = qy + unchecked(dy4b[d]);
+            if (inBounds(nx, ny, w, h) && unchecked(BITMAP_A[ny * w + nx]) == 0) {
+              if (rng() < 0.82 && qLen < 500) {
+                unchecked((TEMP_X[qLen] = nx));
+                unchecked((TEMP_Y[qLen] = ny));
+                qLen++;
+              }
+            }
+          }
         }
+
+        if (maskSize < 10) continue;
+
+        let touchesNonForest: bool = false;
+        const dx8: StaticArray<i32> = [-1, 0, 1, -1, 1, -1, 0, 1];
+        const dy8: StaticArray<i32> = [-1, -1, -1, 0, 0, 1, 1, 1];
+        for (let y0: i32 = 0; y0 < h && !touchesNonForest; y0++) {
+          for (let x0: i32 = 0; x0 < w && !touchesNonForest; x0++) {
+            const mi: i32 = y0 * w + x0;
+            if (unchecked(BITMAP_A[mi]) == 0) continue;
+            for (let d: i32 = 0; d < 8; d++) {
+              const nx: i32 = x0 + unchecked(dx8[d]);
+              const ny: i32 = y0 + unchecked(dy8[d]);
+              if (!inBounds(nx, ny, w, h)) {
+                touchesNonForest = true;
+                break;
+              }
+              const ni: i32 = ny * w + nx;
+              if (unchecked(BITMAP_A[ni]) != 0) continue;
+              if (getCell(nx, ny, w) != TILE_FOREST) {
+                touchesNonForest = true;
+                break;
+              }
+            }
+          }
+        }
+        if (touchesNonForest) continue;
+
+        for (let y0: i32 = 0; y0 < h; y0++) {
+          for (let x0: i32 = 0; x0 < w; x0++) {
+            if (unchecked(BITMAP_A[y0 * w + x0]) != 0) {
+              setCell(x0, y0, w, TILE_WATER);
+            }
+          }
+        }
+
+        placedLake = true;
       }
+
+      continue;
+    }
+
+    // River: meandering channel with brush width 1-2.
+    let carvedRiver: bool = false;
+    const dx4: StaticArray<i32> = [1, -1, 0, 0];
+    const dy4: StaticArray<i32> = [0, 0, 1, -1];
+
+    for (let attempt: i32 = 0; attempt < 36 && !carvedRiver; attempt++) {
+      let x: i32 = rngInt(margin + 2, w - margin - 3);
+      let y: i32 = rngInt(margin + 2, h - margin - 3);
+      if (getCell(x, y, w) != TILE_FOREST) continue;
+
+      const brush: i32 = rng() < 0.22 ? 2 : 1;
+      const len: i32 = 7 + rngInt(0, 7); // 7..14
+      let dir: i32 = rngInt(0, 3);
+      let valid: bool = true;
+      let stampCount: i32 = 0;
+
+      clearBitmap(BITMAP_A, cells);
+
+      for (let step: i32 = 0; step < len && valid; step++) {
+        for (let by: i32 = -brush; by <= brush && valid; by++) {
+          for (let bx: i32 = -brush; bx <= brush; bx++) {
+            if (absI(bx) + absI(by) > brush + (brush == 2 ? 1 : 0)) continue;
+
+            const nx: i32 = x + bx;
+            const ny: i32 = y + by;
+            if (!inBounds(nx, ny, w, h) || nx <= 0 || ny <= 0 || nx >= w - 1 || ny >= h - 1) {
+              valid = false;
+              break;
+            }
+
+            const tile: i32 = getCell(nx, ny, w);
+            if (tile != TILE_FOREST) {
+              valid = false;
+              break;
+            }
+
+            const ci: i32 = ny * w + nx;
+            if (unchecked(BITMAP_A[ci]) == 0) {
+              unchecked((BITMAP_A[ci] = 1));
+              unchecked((TEMP_X[stampCount] = nx));
+              unchecked((TEMP_Y[stampCount] = ny));
+              stampCount++;
+            }
+          }
+        }
+
+        if (!valid) break;
+
+        const turn: f64 = rng();
+        if (turn < 0.30) {
+          if (turn < 0.15) {
+            // Left turn
+            if (dir == 0) dir = 2;
+            else if (dir == 1) dir = 3;
+            else if (dir == 2) dir = 1;
+            else dir = 0;
+          } else {
+            // Right turn
+            if (dir == 0) dir = 3;
+            else if (dir == 1) dir = 2;
+            else if (dir == 2) dir = 0;
+            else dir = 1;
+          }
+        }
+
+        x += unchecked(dx4[dir]);
+        y += unchecked(dy4[dir]);
+        if (!inBounds(x, y, w, h) || x <= 1 || y <= 1 || x >= w - 2 || y >= h - 2) valid = false;
+      }
+
+      if (!valid || stampCount < 14) continue;
+
+      for (let si: i32 = 0; si < stampCount; si++) {
+        const sx: i32 = unchecked(TEMP_X[si]);
+        const sy: i32 = unchecked(TEMP_Y[si]);
+        setCell(sx, sy, w, TILE_WATER);
+      }
+
+      carvedRiver = true;
     }
   }
 }
@@ -225,6 +372,8 @@ export function applyBiomeTerrainFeatures(w: i32, h: i32): void {
   resetNonPathToForest(w, h);
 
   paintWaterPonds(w, h, param(P_WATER_POOL));
+  removeSmallComponentsInPlace(w, h, TILE_WATER, TILE_FOREST, 10);
+  enforceMinThickness2x2InPlace(w, h, TILE_WATER, TILE_FOREST, 6);
   paintCliffFormations(w, h, param(P_CLIFF_BAND));
   paintHillClusters(w, h, param(P_HILL_CLUSTER));
 
