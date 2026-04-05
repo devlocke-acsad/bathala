@@ -390,7 +390,8 @@ export function repairPathGapsAfterBiome(w: i32, h: i32): void {
   for (let y: i32 = 1; y < h - 1; y++) {
     for (let x: i32 = 1; x < w - 1; x++) {
       const tile: i32 = getCell(x, y, w);
-      if (tile == TILE_PATH || tile == TILE_WATER || tile == TILE_CLIFF) continue;
+      // Never rewrite structural tiles during cosmetic path-gap repair.
+      if (tile == TILE_PATH || tile == TILE_WATER || tile == TILE_CLIFF || tile == TILE_HOUSE || tile == TILE_FENCE) continue;
       const n: bool = getCell(x, y - 1, w) == TILE_PATH;
       const s: bool = getCell(x, y + 1, w) == TILE_PATH;
       const e: bool = getCell(x + 1, y, w) == TILE_PATH;

@@ -44,6 +44,8 @@ export const TILE = {
     SAND_PATCH: 8,
     WATER: 9,
     OBSTACLE: 10,
+    PUDDLE_PROP: 11,
+    STONE_PROP: 12,
 } as const;
 
 // =========================================================================
@@ -190,63 +192,6 @@ function rectDoors(w: number, h: number): HouseTemplate['doorCandidates'] {
     ];
 }
 
-const HOUSE_TEMPLATES: HouseTemplate[] = [
-    // 4×4 square hut
-    {
-        name: '4x4',
-        tiles: makeRect(4, 4),
-        w: 4, h: 4,
-        doorCandidates: rectDoors(4, 4),
-    },
-    // 4×6 tall house
-    {
-        name: '4x6',
-        tiles: makeRect(4, 6),
-        w: 4, h: 6,
-        doorCandidates: rectDoors(4, 6),
-    },
-    // 6×4 wide house
-    {
-        name: '6x4',
-        tiles: makeRect(6, 4),
-        w: 6, h: 4,
-        doorCandidates: rectDoors(6, 4),
-    },
-    // L-shape: 4×4 base + 2×3 extension on top-right
-    {
-        name: 'L-shape',
-        tiles: [
-            ...makeRect(4, 4),
-            // Extension: columns 4–5, rows 0–2
-            { dx: 4, dy: 0 }, { dx: 4, dy: 1 }, { dx: 4, dy: 2 },
-            { dx: 5, dy: 0 }, { dx: 5, dy: 1 }, { dx: 5, dy: 2 },
-        ],
-        w: 6, h: 4,
-        doorCandidates: [
-            { dx: 2, dy: -1, facing: 's' },
-            { dx: 2, dy: 4, facing: 'n' },
-            { dx: -1, dy: 2, facing: 'w' },
-            { dx: 6, dy: 1, facing: 'e' },
-        ],
-    },
-    // Reverse L-shape: 4×4 base + 2×3 extension on bottom-left
-    {
-        name: 'L-shape-rev',
-        tiles: [
-            ...makeRect(4, 4),
-            { dx: -2, dy: 0 }, { dx: -2, dy: 1 }, { dx: -2, dy: 2 },
-            { dx: -1, dy: 0 }, { dx: -1, dy: 1 }, { dx: -1, dy: 2 },
-        ],
-        w: 6, h: 4,
-        doorCandidates: [
-            { dx: 2, dy: -1, facing: 's' },
-            { dx: 2, dy: 4, facing: 'n' },
-            { dx: -3, dy: 1, facing: 'w' },
-            { dx: 4, dy: 2, facing: 'e' },
-        ],
-    },
-];
-
 // ── Smaller templates for dense village packing ──────────────────────────
 
 const SMALL_HOUSE_TEMPLATES: HouseTemplate[] = [
@@ -264,21 +209,16 @@ const SMALL_HOUSE_TEMPLATES: HouseTemplate[] = [
         w: 2, h: 3,
         doorCandidates: rectDoors(2, 3),
     },
-    // 3×4 small house
-    {
-        name: '3x4',
-        tiles: makeRect(3, 4),
-        w: 3, h: 4,
-        doorCandidates: rectDoors(3, 4),
-    },
 ];
 
 /** Template lookup by size preference. */
 function getTemplates(pref: VillageLayoutParams['houseSizePreference']): HouseTemplate[] {
+    // Act 2 building art currently supports only 3x3 and 2x3 families.
+    // Keep all preferences constrained to supported footprints.
     switch (pref) {
-        case 'small': return [...SMALL_HOUSE_TEMPLATES, HOUSE_TEMPLATES[0]]; // small + 4x4
-        case 'large': return HOUSE_TEMPLATES;
-        case 'all':   return [...SMALL_HOUSE_TEMPLATES, ...HOUSE_TEMPLATES];
+        case 'small': return SMALL_HOUSE_TEMPLATES;
+        case 'large': return SMALL_HOUSE_TEMPLATES;
+        case 'all':   return SMALL_HOUSE_TEMPLATES;
     }
 }
 
@@ -351,7 +291,16 @@ export class SubmergedVillageAlgorithm {
         };
 
         const wasmResult = generationWasmBridge.tryGenerateSubmergedVillage(w, h, seed, wasmParams);
-        if (wasmResult) return wasmResult;
+        if (wasmResult) {
+            // Decor pass: break up oversized open routes with puddles/stones.
+            this.decorateOpenAreasWithProps(wasmResult);
+            // Safety pass: split any accidental oversized house blobs into supported chunks.
+            this.normalizeHouseComponentsToSupportedSizes(wasmResult);
+            // Keep every house fully walkable around all sides.
+            this.enforceHousePerimeterPaths(wasmResult, 1);
+            this.ensureGlobalAccessibility(wasmResult);
+            return wasmResult;
+        }
 
         // ─── TypeScript fallback (only if WASM unavailable) ──────────
         console.warn('[SubmergedVillage] WASM pipeline unavailable, falling back to TypeScript');
@@ -431,7 +380,131 @@ export class SubmergedVillageAlgorithm {
         // 17. Scatter obstacles on FOREST tiles (after all terrain features are placed)
         this.scatterObstacles(grid);
 
+        // 17b. Decor pass: break up oversized open routes with puddles/stones.
+        this.decorateOpenAreasWithProps(grid);
+
+        // Safety pass: split any accidental oversized house blobs into supported chunks.
+        this.normalizeHouseComponentsToSupportedSizes(grid);
+
+        // 18. Final house accessibility guard: every house must be surrounded by path.
+        this.enforceHousePerimeterPaths(grid, 1);
+        this.ensureGlobalAccessibility(grid);
+
         return grid;
+    }
+
+    /**
+     * Force a one-tile path ring around every house footprint so players can always route around buildings.
+     */
+    private enforceHousePerimeterPaths(grid: IntGrid, radius: number): void {
+        const [w, h] = this.levelSize;
+        const toPath = new Set<string>();
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                if (grid.getTile(x, y) !== TILE.HOUSE) continue;
+
+                for (let dy = -radius; dy <= radius; dy++) {
+                    for (let dx = -radius; dx <= radius; dx++) {
+                        const nx = x + dx;
+                        const ny = y + dy;
+                        if (!this.isInBounds(nx, ny)) continue;
+                        if (grid.getTile(nx, ny) === TILE.HOUSE) continue;
+                        toPath.add(`${nx},${ny}`);
+                    }
+                }
+            }
+        }
+
+        for (const key of toPath) {
+            const [x, y] = key.split(',').map(Number);
+            grid.setTile(x, y, TILE.PATH);
+        }
+    }
+
+    /**
+     * Keep house blobs constrained to art-supported sizes.
+     * Supported visual families are 2x3, 3x2, and 3x3; all other blobs are split or removed.
+     */
+    private normalizeHouseComponentsToSupportedSizes(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        const maxPasses = 3;
+
+        for (let pass = 0; pass < maxPasses; pass++) {
+            let changed = false;
+            const visited = new Set<string>();
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    if (grid.getTile(x, y) !== TILE.HOUSE) continue;
+                    const root = `${x},${y}`;
+                    if (visited.has(root)) continue;
+
+                    const component: Array<[number, number]> = [];
+                    const queue: Array<[number, number]> = [[x, y]];
+                    visited.add(root);
+
+                    let minX = x;
+                    let maxX = x;
+                    let minY = y;
+                    let maxY = y;
+
+                    while (queue.length > 0) {
+                        const [cx, cy] = queue.shift()!;
+                        component.push([cx, cy]);
+                        minX = Math.min(minX, cx);
+                        maxX = Math.max(maxX, cx);
+                        minY = Math.min(minY, cy);
+                        maxY = Math.max(maxY, cy);
+
+                        for (const [nx, ny] of this.neighbors4([cx, cy])) {
+                            if (!this.isInBounds(nx, ny)) continue;
+                            if (grid.getTile(nx, ny) !== TILE.HOUSE) continue;
+                            const key = `${nx},${ny}`;
+                            if (visited.has(key)) continue;
+                            visited.add(key);
+                            queue.push([nx, ny]);
+                        }
+                    }
+
+                    const width = (maxX - minX) + 1;
+                    const height = (maxY - minY) + 1;
+                    const area = width * height;
+                    const tileCount = component.length;
+                    const isSolidRect = tileCount === area;
+                    const isSupportedRect =
+                        (width === 3 && height === 3) ||
+                        (width === 2 && height === 3) ||
+                        (width === 3 && height === 2);
+
+                    if (isSolidRect && isSupportedRect) {
+                        continue;
+                    }
+
+                    if (width > 3 || height > 3) {
+                        // Segment merged footprints: 3 tiles of house then 1 tile of path.
+                        for (const [hx, hy] of component) {
+                            const localX = hx - minX;
+                            const localY = hy - minY;
+                            const keepAsHouse = (localX % 4) < 3 && (localY % 4) < 3;
+                            if (!keepAsHouse) {
+                                grid.setTile(hx, hy, TILE.PATH);
+                                changed = true;
+                            }
+                        }
+                        continue;
+                    }
+
+                    // Remove unsupported small/irregular blobs (e.g., 2x2, 1xN, L-shapes after trims).
+                    for (const [hx, hy] of component) {
+                        grid.setTile(hx, hy, TILE.PATH);
+                    }
+                    changed = true;
+                }
+            }
+
+            if (!changed) break;
+        }
     }
 
     /**
@@ -444,7 +517,8 @@ export class SubmergedVillageAlgorithm {
         for (let y = 1; y < h - 1; y++) {
             for (let x = 1; x < w - 1; x++) {
                 const tile = grid.getTile(x, y);
-                if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF) continue;
+                // Never rewrite structural tiles during cosmetic path-gap repair.
+                if (tile === TILE.PATH || tile === TILE.WATER || tile === TILE.CLIFF || tile === TILE.HOUSE || tile === TILE.FENCE) continue;
 
                 const north = grid.getTile(x, y - 1) === TILE.PATH;
                 const south = grid.getTile(x, y + 1) === TILE.PATH;
@@ -1234,6 +1308,186 @@ export class SubmergedVillageAlgorithm {
                 }
             }
         }
+    }
+
+    /**
+     * Place Act 2 decorative blockers to reduce giant empty lanes:
+     * - puddleBig1 as strict 3x3
+     * - puddleSmall1 as strict 1x2 horizontal
+     * - standalone puddles and stones
+     *
+     * Decorations are also allowed to replace some tree-obstacle tiles.
+     */
+    private decorateOpenAreasWithProps(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        let pathCount = 0;
+        let obstacleCount = 0;
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const tile = grid.getTile(x, y);
+                if (tile === TILE.PATH) pathCount++;
+                if (tile === TILE.OBSTACLE) obstacleCount++;
+            }
+        }
+
+        if (pathCount > 0) {
+            const bigPathTarget = Math.min(2, Math.max(0, Math.floor(pathCount / 180)));
+            const smallPathTarget = Math.min(4, Math.max(1, Math.floor(pathCount / 120)));
+            const puddleSoloPathTarget = Math.min(10, Math.max(2, Math.floor(pathCount / 70)));
+            const stonePathTarget = Math.min(12, Math.max(3, Math.floor(pathCount / 55)));
+
+            this.placeRectPropsOnSource(grid, TILE.PATH, TILE.PUDDLE_PROP, 3, 3, bigPathTarget, 80, 5, true);
+            this.placeRectPropsOnSource(grid, TILE.PATH, TILE.PUDDLE_PROP, 2, 1, smallPathTarget, 100, 4, true);
+            this.placeSinglesOnSource(grid, TILE.PATH, TILE.PUDDLE_PROP, puddleSoloPathTarget, 120, 5, true, true);
+            this.placeSinglesOnSource(grid, TILE.PATH, TILE.STONE_PROP, stonePathTarget, 120, 4, true, false);
+        }
+
+        if (obstacleCount > 0) {
+            const bigObstacleTarget = obstacleCount >= 160 ? 1 : 0;
+            const smallObstacleTarget = obstacleCount >= 100 ? 1 : 0;
+            this.placeRectPropsOnSource(grid, TILE.OBSTACLE, TILE.PUDDLE_PROP, 3, 3, bigObstacleTarget, 90, 0, true);
+            this.placeRectPropsOnSource(grid, TILE.OBSTACLE, TILE.PUDDLE_PROP, 2, 1, smallObstacleTarget, 110, 0, true);
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    if (grid.getTile(x, y) !== TILE.OBSTACLE) continue;
+                    const roll = this.rng();
+                    if (roll < 0.05) {
+                        grid.setTile(x, y, TILE.STONE_PROP);
+                    } else if (roll < 0.075) {
+                        grid.setTile(x, y, TILE.PUDDLE_PROP);
+                    }
+                }
+            }
+        }
+    }
+
+    private placeRectPropsOnSource(
+        grid: IntGrid,
+        sourceTile: number,
+        targetTile: number,
+        width: number,
+        height: number,
+        targetCount: number,
+        attemptsPerTarget: number,
+        minPathNeighbors: number,
+        avoidHouseRadiusOne: boolean,
+    ): void {
+        if (targetCount <= 0) return;
+        const [w, h] = this.levelSize;
+        let placed = 0;
+        const maxAttempts = Math.max(1, targetCount * attemptsPerTarget);
+
+        for (let attempt = 0; attempt < maxAttempts && placed < targetCount; attempt++) {
+            const startX = this.randomInt(1, w - width - 1);
+            const startY = this.randomInt(1, h - height - 1);
+            if (!this.canStampRectOnSource(grid, startX, startY, width, height, sourceTile, minPathNeighbors, avoidHouseRadiusOne)) {
+                continue;
+            }
+
+            for (let ry = 0; ry < height; ry++) {
+                for (let rx = 0; rx < width; rx++) {
+                    grid.setTile(startX + rx, startY + ry, targetTile);
+                }
+            }
+            placed++;
+        }
+    }
+
+    private placeSinglesOnSource(
+        grid: IntGrid,
+        sourceTile: number,
+        targetTile: number,
+        targetCount: number,
+        attemptsPerTarget: number,
+        minPathNeighbors: number,
+        avoidHouseRadiusOne: boolean,
+        forceStandalonePuddle: boolean,
+    ): void {
+        if (targetCount <= 0) return;
+        const [w, h] = this.levelSize;
+        let placed = 0;
+        const maxAttempts = Math.max(1, targetCount * attemptsPerTarget);
+
+        for (let attempt = 0; attempt < maxAttempts && placed < targetCount; attempt++) {
+            const x = this.randomInt(1, w - 2);
+            const y = this.randomInt(1, h - 2);
+            if (grid.getTile(x, y) !== sourceTile) continue;
+
+            if (minPathNeighbors > 0 && this.countTileNeighbors(grid, x, y, TILE.PATH, true) < minPathNeighbors) {
+                continue;
+            }
+
+            if (avoidHouseRadiusOne && this.isNearTileType(grid, x, y, TILE.HOUSE, 1)) {
+                continue;
+            }
+
+            if (forceStandalonePuddle && this.countTileNeighbors(grid, x, y, TILE.PUDDLE_PROP, false) > 0) {
+                continue;
+            }
+
+            grid.setTile(x, y, targetTile);
+            placed++;
+        }
+    }
+
+    private canStampRectOnSource(
+        grid: IntGrid,
+        startX: number,
+        startY: number,
+        width: number,
+        height: number,
+        sourceTile: number,
+        minPathNeighbors: number,
+        avoidHouseRadiusOne: boolean,
+    ): boolean {
+        for (let ry = 0; ry < height; ry++) {
+            for (let rx = 0; rx < width; rx++) {
+                const x = startX + rx;
+                const y = startY + ry;
+                if (!this.isInBounds(x, y)) return false;
+                if (grid.getTile(x, y) !== sourceTile) return false;
+
+                if (minPathNeighbors > 0 && this.countTileNeighbors(grid, x, y, TILE.PATH, true) < minPathNeighbors) {
+                    return false;
+                }
+
+                if (avoidHouseRadiusOne && this.isNearTileType(grid, x, y, TILE.HOUSE, 1)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private countTileNeighbors(grid: IntGrid, x: number, y: number, tileType: number, includeDiagonals: boolean): number {
+        let count = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                if (!includeDiagonals && dx !== 0 && dy !== 0) continue;
+
+                const nx = x + dx;
+                const ny = y + dy;
+                if (!this.isInBounds(nx, ny)) continue;
+                if (grid.getTile(nx, ny) === tileType) count++;
+            }
+        }
+        return count;
+    }
+
+    private isNearTileType(grid: IntGrid, x: number, y: number, tileType: number, radius: number): boolean {
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (!this.isInBounds(nx, ny)) continue;
+                if (grid.getTile(nx, ny) === tileType) return true;
+            }
+        }
+        return false;
     }
 
     private applyBiomeTerrainFeatures(grid: IntGrid, params: VillageLayoutParams): void {

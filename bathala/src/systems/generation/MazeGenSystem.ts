@@ -78,6 +78,8 @@ export class Overworld_MazeGenManager {
   private skywardCitadelPathTextures: string[] = [
     'cloud_path1', 'cloud_path2', 'cloud_path3', 'cloud_path4',
   ];
+  private skywardCitadelWallTextures: string[] = ['cloud_wall1', 'cloud_wall2', 'cloud_wall3'];
+  private forestWallTextures: string[] = ['wall1', 'wall1', 'wall2', 'wall2', 'wall3'];
   private submergedVillageUnderlayTextures: string[] = [
     'sv_underlay_1',
     'sv_underlay_2',
@@ -85,6 +87,25 @@ export class Overworld_MazeGenManager {
     'sv_underlay_4',
     'sv_underlay_5',
   ];
+  private submergedVillageTreeTextures: string[] = ['sv_tree_1', 'sv_tree_2', 'sv_tree_3', 'sv_tree_4', 'sv_tree_5'];
+  private submergedVillageWaterDeepTextures: string[] = [
+    'sv_water_debris_1',
+    'sv_water_debris_2',
+    'sv_water_debris_3',
+    'sv_water_debris_4',
+    'sv_water_middle',
+  ];
+  private submergedVillageGrassSandEdgeTextures: string[] = [
+    'sv_patch_grass_sand_n',
+    'sv_patch_grass_sand_s',
+    'sv_patch_grass_sand_e',
+    'sv_patch_grass_sand_w',
+  ];
+  private submergedVillageStoneTextures: string[] = ['sv_stone_1', 'sv_stone_2', 'sv_stone_3', 'sv_stone_4', 'sv_stone_5'];
+  // House sets grouped by sprite family footprint.
+  private submergedVillageHouseSet3x3Ids: number[] = [1, 2, 6, 7, 8, 9, 10];
+  private submergedVillageHouseSet3x2Ids: number[] = [3, 4];
+  private submergedVillageHouseSet2x3Ids: number[] = [5];
 
   // Outer tile markers for chunk connections
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
@@ -179,7 +200,8 @@ export class Overworld_MazeGenManager {
       return tileValue === 0;
     }
 
-    return tileValue === 0 || tileValue === 1 || tileValue === 2 || tileValue === 3 || tileValue === 4;
+    // Act 2 houses (tile 2) are hard obstacles; paths around them stay traversable.
+    return tileValue === 0 || tileValue === 1 || tileValue === 3 || tileValue === 4;
   }
 
   /**
@@ -674,6 +696,8 @@ export class Overworld_MazeGenManager {
     const offsetX = chunkX * chunkSizePixels;
     const offsetY = chunkY * chunkSizePixels;
     const isAct2 = this.isAct2Chapter();
+    const act2HouseVariantMap = isAct2 ? this.buildAct2HouseVariantMap(maze, chunkX, chunkY) : undefined;
+    const act2PuddleTextureMap = isAct2 ? this.buildAct2PuddleTextureMap(maze) : undefined;
 
     if (isAct2) {
       this.logAct2PathTileAvailabilityOnce();
@@ -701,7 +725,7 @@ export class Overworld_MazeGenManager {
             }
           }
 
-          const textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y);
+          const textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y, act2HouseVariantMap, act2PuddleTextureMap);
           const wallSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, textureKey);
           wallSprite.setDisplaySize(this.gridSize, this.gridSize);
           wallSprite.setOrigin(0.5);
@@ -756,6 +780,211 @@ export class Overworld_MazeGenManager {
   private getAct2LandTexture(chunkX: number, chunkY: number, x: number, y: number): string {
     const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageUnderlayTextures.length);
     return this.submergedVillageUnderlayTextures[idx];
+  }
+
+  private buildAct2HouseVariantMap(maze: number[][], chunkX: number, chunkY: number): Map<string, number> {
+    const map = new Map<string, number>();
+    const visited = new Set<string>();
+    const h = maze.length;
+    const w = h > 0 ? maze[0].length : 0;
+    const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (maze[y][x] !== 2) continue;
+        const rootKey = `${x},${y}`;
+        if (visited.has(rootKey)) continue;
+
+        const queue: Array<[number, number]> = [[x, y]];
+        const component: Array<[number, number]> = [];
+        let minX = x;
+        let minY = y;
+        let maxX = x;
+        let maxY = y;
+
+        visited.add(rootKey);
+
+        for (let qHead = 0; qHead < queue.length; qHead++) {
+          const [cx, cy] = queue[qHead];
+          component.push([cx, cy]);
+          minX = Math.min(minX, cx);
+          minY = Math.min(minY, cy);
+          maxX = Math.max(maxX, cx);
+          maxY = Math.max(maxY, cy);
+
+          for (const [dx, dy] of dirs) {
+            const nx = cx + dx;
+            const ny = cy + dy;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            if (maze[ny][nx] !== 2) continue;
+
+            const key = `${nx},${ny}`;
+            if (visited.has(key)) continue;
+            visited.add(key);
+            queue.push([nx, ny]);
+          }
+        }
+
+        const componentWidth = (maxX - minX) + 1;
+        const componentHeight = (maxY - minY) + 1;
+        const componentArea = componentWidth * componentHeight;
+        const isSolidRect = component.length === componentArea;
+        const isSupportedRect =
+          (componentWidth === 3 && componentHeight === 3) ||
+          (componentWidth === 2 && componentHeight === 3) ||
+          (componentWidth === 3 && componentHeight === 2);
+
+        if (!isSolidRect || !isSupportedRect) {
+          // Defensive fallback: invalid house blobs should never render as buildings.
+          for (const [tx, ty] of component) {
+            maze[ty][tx] = 0;
+          }
+          continue;
+        }
+
+        // Exact family mapping from filename sizes:
+        // H3xL3 => 3x3, H2xL3 => 3x2, H3xL2 => 2x3.
+        let stylePool = this.submergedVillageHouseSet3x3Ids;
+        if (componentWidth === 2 && componentHeight === 3) {
+          stylePool = this.submergedVillageHouseSet2x3Ids;
+        } else if (componentWidth === 3 && componentHeight === 2) {
+          stylePool = this.submergedVillageHouseSet3x2Ids;
+        }
+        const styleIdx = this.getDeterministicIndex(chunkX, chunkY, minX, minY, stylePool.length);
+        const styleId = stylePool[styleIdx];
+        for (const [tx, ty] of component) {
+          map.set(`${tx},${ty}`, styleId);
+        }
+      }
+    }
+
+    return map;
+  }
+
+  private getAct2HouseTexture(
+    maze: number[][],
+    chunkX: number,
+    chunkY: number,
+    x: number,
+    y: number,
+    houseVariantMap?: Map<string, number>,
+  ): string {
+    const isHouse = (tx: number, ty: number): boolean => maze[ty]?.[tx] === 2;
+    const n = isHouse(x, y - 1);
+    const s = isHouse(x, y + 1);
+    const e = isHouse(x + 1, y);
+    const w = isHouse(x - 1, y);
+
+    let suffix: 'center' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' = 'center';
+    if (!n && !w) suffix = 'nw';
+    else if (!n && !e) suffix = 'ne';
+    else if (!s && !w) suffix = 'sw';
+    else if (!s && !e) suffix = 'se';
+    else if (!n) suffix = 'n';
+    else if (!s) suffix = 's';
+    else if (!e) suffix = 'e';
+    else if (!w) suffix = 'w';
+
+    const styleId = houseVariantMap?.get(`${x},${y}`)
+      ?? this.submergedVillageHouseSet3x3Ids[
+        this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageHouseSet3x3Ids.length)
+      ];
+
+    const orientedKey = `sv_house_${styleId}_${suffix}`;
+    if (this.scene.textures.exists(orientedKey)) {
+      return orientedKey;
+    }
+
+    const centerKey = `sv_house_${styleId}_center`;
+    if (this.scene.textures.exists(centerKey)) {
+      return centerKey;
+    }
+
+    return this.getAct2LandTexture(chunkX, chunkY, x, y);
+  }
+
+  private buildAct2PuddleTextureMap(maze: number[][]): Map<string, string> {
+    const map = new Map<string, string>();
+    const visited = new Set<string>();
+    const h = maze.length;
+    const w = h > 0 ? maze[0].length : 0;
+    const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (maze[y][x] !== 11) continue;
+        const rootKey = `${x},${y}`;
+        if (visited.has(rootKey)) continue;
+
+        const queue: Array<[number, number]> = [[x, y]];
+        const component: Array<[number, number]> = [];
+        let minX = x;
+        let minY = y;
+        let maxX = x;
+        let maxY = y;
+
+        visited.add(rootKey);
+
+        for (let qHead = 0; qHead < queue.length; qHead++) {
+          const [cx, cy] = queue[qHead];
+          component.push([cx, cy]);
+          minX = Math.min(minX, cx);
+          minY = Math.min(minY, cy);
+          maxX = Math.max(maxX, cx);
+          maxY = Math.max(maxY, cy);
+
+          for (const [dx, dy] of dirs) {
+            const nx = cx + dx;
+            const ny = cy + dy;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            if (maze[ny][nx] !== 11) continue;
+
+            const key = `${nx},${ny}`;
+            if (visited.has(key)) continue;
+            visited.add(key);
+            queue.push([nx, ny]);
+          }
+        }
+
+        const componentWidth = (maxX - minX) + 1;
+        const componentHeight = (maxY - minY) + 1;
+        const componentArea = componentWidth * componentHeight;
+        const isSolidRect = component.length === componentArea;
+
+        if (isSolidRect && componentWidth === 3 && componentHeight === 3) {
+          for (const [tx, ty] of component) {
+            const localX = tx - minX;
+            const localY = ty - minY;
+            let texture = 'sv_puddle_big_middle';
+            if (localX === 0 && localY === 0) texture = 'sv_puddle_big_nw';
+            else if (localX === 1 && localY === 0) texture = 'sv_puddle_big_n';
+            else if (localX === 2 && localY === 0) texture = 'sv_puddle_big_ne';
+            else if (localX === 0 && localY === 1) texture = 'sv_puddle_big_w';
+            else if (localX === 1 && localY === 1) texture = 'sv_puddle_big_middle';
+            else if (localX === 2 && localY === 1) texture = 'sv_puddle_big_e';
+            else if (localX === 0 && localY === 2) texture = 'sv_puddle_big_sw';
+            else if (localX === 1 && localY === 2) texture = 'sv_puddle_big_s';
+            else if (localX === 2 && localY === 2) texture = 'sv_puddle_big_se';
+            map.set(`${tx},${ty}`, texture);
+          }
+          continue;
+        }
+
+        if (isSolidRect && componentWidth === 2 && componentHeight === 1) {
+          for (const [tx, ty] of component) {
+            const localX = tx - minX;
+            map.set(`${tx},${ty}`, localX === 0 ? 'sv_puddle_small_w' : 'sv_puddle_small_e');
+          }
+          continue;
+        }
+
+        for (const [tx, ty] of component) {
+          map.set(`${tx},${ty}`, 'sv_puddle_standalone_1');
+        }
+      }
+    }
+
+    return map;
   }
 
   private logAct2PathTileAvailabilityOnce(): void {
@@ -923,7 +1152,16 @@ export class Overworld_MazeGenManager {
    * Map non-path tile values to texture keys.
    * Act 2 favors submerged-village bundles with directional variants.
    */
-  private getWallTexture(tileValue: number, maze: number[][], chunkX: number, chunkY: number, x: number, y: number): string {
+  private getWallTexture(
+    tileValue: number,
+    maze: number[][],
+    chunkX: number,
+    chunkY: number,
+    x: number,
+    y: number,
+    houseVariantMap?: Map<string, number>,
+    puddleTextureMap?: Map<string, string>,
+  ): string {
     const isAct2 = this.isAct2Chapter();
     const isAct3 = this.isAct3Chapter();
     const has = (dx: number, dy: number): boolean => {
@@ -1020,9 +1258,8 @@ export class Overworld_MazeGenManager {
         if (s && w && !sw) return 'sv_patch_grass_sand_inner_bush_ne';
         if (s && e && !se) return 'sv_patch_grass_sand_inner_bush_nw';
 
-        const edgeVariants = ['sv_patch_grass_sand_n', 'sv_patch_grass_sand_s', 'sv_patch_grass_sand_e', 'sv_patch_grass_sand_w'];
-        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, edgeVariants.length);
-        return edgeVariants[idx];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageGrassSandEdgeTextures.length);
+        return this.submergedVillageGrassSandEdgeTextures[idx];
       }
 
       return 'sv_patch_grass_sand_middle';
@@ -1224,50 +1461,56 @@ export class Overworld_MazeGenManager {
       if (!e) return 'sv_water_cliff_e';
       if (!w) return 'sv_water_cliff_w';
 
-      const deepVariants = [
-        'sv_water_debris_1',
-        'sv_water_debris_2',
-        'sv_water_debris_3',
-        'sv_water_debris_4',
-        'sv_water_middle',
-      ];
-      const deepIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, deepVariants.length);
-      return deepVariants[deepIdx];
+      const deepIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageWaterDeepTextures.length);
+      return this.submergedVillageWaterDeepTextures[deepIdx];
     }
 
     if (isAct2 && tileValue === 1) {
       return this.getAct2LandTexture(chunkX, chunkY, x, y);
     }
 
+    if (isAct2 && tileValue === 2) {
+      return this.getAct2HouseTexture(maze, chunkX, chunkY, x, y, houseVariantMap);
+    }
+
+    // Act 2 puddle props (3x3, 1x2 horizontal, and standalone variants)
+    if (isAct2 && tileValue === 11) {
+      return puddleTextureMap?.get(`${x},${y}`) ?? 'sv_puddle_standalone_1';
+    }
+
+    // Act 2 stone props (standalone variants)
+    if (isAct2 && tileValue === 12) {
+      const stoneIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageStoneTextures.length);
+      return this.submergedVillageStoneTextures[stoneIdx];
+    }
+
     // Obstacle tiles (TILE.OBSTACLE = 10) - randomly select from available obstacle sprites
     if (tileValue === 10) {
-      const obstacles = ['sv_tree_1', 'sv_tree_2', 'sv_tree_3', 'sv_tree_4', 'sv_tree_5'];
-      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, obstacles.length);
-      return obstacles[idx];
+      const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageTreeTextures.length);
+      return this.submergedVillageTreeTextures[idx];
     }
 
     switch (tileValue) {
       case 2:
+        return 'wall4';
       case 3:
       case 4:
         if (isAct2) {
           return this.getAct2LandTexture(chunkX, chunkY, x, y);
         }
-        return tileValue === 2 ? 'wall4' : tileValue === 3 ? 'wall5' : 'wall6';
+        return tileValue === 3 ? 'wall5' : 'wall6';
       default: {
         if (isAct2) {
           return this.getAct2LandTexture(chunkX, chunkY, x, y);
         }
         if (isAct3) {
           // Cloud walls for Skyward Citadel
-          const cloudWalls = ['cloud_wall1', 'cloud_wall2', 'cloud_wall3'];
-          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, cloudWalls.length);
-          return cloudWalls[idx];
+          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.skywardCitadelWallTextures.length);
+          return this.skywardCitadelWallTextures[idx];
         }
         // Forest / generic wall — weighted random from wall1-3
-        const forestTextures = ['wall1', 'wall1', 'wall2', 'wall2', 'wall3'];
-        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, forestTextures.length);
-        return forestTextures[idx];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.forestWallTextures.length);
+        return this.forestWallTextures[idx];
       }
     }
   }

@@ -4551,77 +4551,19 @@
   global.set $assembly/generation-kernels/submerged-village/buffers/totalHouseTiles
   global.get $assembly/generation-kernels/submerged-village/buffers/PARAMS
   i32.load offset=44
-  local.set $5
+  drop
   i32.const 0
   global.set $assembly/generation-kernels/submerged-village/houses/poolSize
-  local.get $5
-  if
-   local.get $5
-   i32.const 2
-   i32.eq
-   if
-    global.get $assembly/generation-kernels/submerged-village/houses/POOL
-    i32.const 0
-    i32.const 3
-    call $~lib/staticarray/StaticArray<i32>#__uset
-    global.get $assembly/generation-kernels/submerged-village/houses/POOL
-    i32.const 1
-    i32.const 4
-    call $~lib/staticarray/StaticArray<i32>#__uset
-    global.get $assembly/generation-kernels/submerged-village/houses/POOL
-    i32.const 2
-    i32.const 5
-    call $~lib/staticarray/StaticArray<i32>#__uset
-    global.get $assembly/generation-kernels/submerged-village/houses/POOL
-    i32.const 3
-    i32.const 6
-    call $~lib/staticarray/StaticArray<i32>#__uset
-    global.get $assembly/generation-kernels/submerged-village/houses/POOL
-    i32.const 4
-    i32.const 7
-    call $~lib/staticarray/StaticArray<i32>#__uset
-    i32.const 5
-    global.set $assembly/generation-kernels/submerged-village/houses/poolSize
-   else
-    loop $for-loop|0
-     local.get $2
-     i32.const 8
-     i32.lt_s
-     if
-      global.get $assembly/generation-kernels/submerged-village/houses/POOL
-      local.get $2
-      local.get $2
-      call $~lib/staticarray/StaticArray<i32>#__uset
-      local.get $2
-      i32.const 1
-      i32.add
-      local.set $2
-      br $for-loop|0
-     end
-    end
-    i32.const 8
-    global.set $assembly/generation-kernels/submerged-village/houses/poolSize
-   end
-  else
-   global.get $assembly/generation-kernels/submerged-village/houses/POOL
-   i32.const 0
-   i32.const 0
-   call $~lib/staticarray/StaticArray<i32>#__uset
-   global.get $assembly/generation-kernels/submerged-village/houses/POOL
-   i32.const 1
-   i32.const 1
-   call $~lib/staticarray/StaticArray<i32>#__uset
-   global.get $assembly/generation-kernels/submerged-village/houses/POOL
-   i32.const 2
-   i32.const 2
-   call $~lib/staticarray/StaticArray<i32>#__uset
-   global.get $assembly/generation-kernels/submerged-village/houses/POOL
-   i32.const 3
-   i32.const 3
-   call $~lib/staticarray/StaticArray<i32>#__uset
-   i32.const 4
-   global.set $assembly/generation-kernels/submerged-village/houses/poolSize
-  end
+  global.get $assembly/generation-kernels/submerged-village/houses/POOL
+  i32.const 0
+  i32.const 0
+  call $~lib/staticarray/StaticArray<i32>#__uset
+  global.get $assembly/generation-kernels/submerged-village/houses/POOL
+  i32.const 1
+  i32.const 1
+  call $~lib/staticarray/StaticArray<i32>#__uset
+  i32.const 2
+  global.set $assembly/generation-kernels/submerged-village/houses/poolSize
   global.get $assembly/generation-kernels/submerged-village/buffers/PARAMS
   i32.load offset=84
   local.set $8
@@ -4689,7 +4631,7 @@
   f64.const 0.2
   f64.mul
   local.set $15
-  loop $for-loop|00
+  loop $for-loop|0
    local.get $11
    i32.const 200
    i32.lt_s
@@ -4841,7 +4783,7 @@
     i32.const 1
     i32.add
     local.set $11
-    br $for-loop|00
+    br $for-loop|0
    end
   end
   local.get $3
@@ -10814,6 +10756,14 @@
       i32.or
       local.get $6
       i32.const 5
+      i32.eq
+      i32.or
+      local.get $6
+      i32.const 2
+      i32.eq
+      i32.or
+      local.get $6
+      i32.const 3
       i32.eq
       i32.or
       i32.eqz
