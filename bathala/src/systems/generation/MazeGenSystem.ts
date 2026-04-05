@@ -78,6 +78,8 @@ export class Overworld_MazeGenManager {
   private skywardCitadelPathTextures: string[] = [
     'cloud_path1', 'cloud_path2', 'cloud_path3', 'cloud_path4',
   ];
+  private skywardCitadelWallTextures: string[] = ['cloud_wall1', 'cloud_wall2', 'cloud_wall3'];
+  private forestWallTextures: string[] = ['wall1', 'wall1', 'wall2', 'wall2', 'wall3'];
   private submergedVillageUnderlayTextures: string[] = [
     'sv_underlay_1',
     'sv_underlay_2',
@@ -1496,21 +1498,19 @@ export class Overworld_MazeGenManager {
         if (isAct2) {
           return this.getAct2LandTexture(chunkX, chunkY, x, y);
         }
-        return tileValue === 2 ? 'wall4' : tileValue === 3 ? 'wall5' : 'wall6';
+        return tileValue === 3 ? 'wall5' : 'wall6';
       default: {
         if (isAct2) {
           return this.getAct2LandTexture(chunkX, chunkY, x, y);
         }
         if (isAct3) {
           // Cloud walls for Skyward Citadel
-          const cloudWalls = ['cloud_wall1', 'cloud_wall2', 'cloud_wall3'];
-          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, cloudWalls.length);
-          return cloudWalls[idx];
+          const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.skywardCitadelWallTextures.length);
+          return this.skywardCitadelWallTextures[idx];
         }
         // Forest / generic wall — weighted random from wall1-3
-        const forestTextures = ['wall1', 'wall1', 'wall2', 'wall2', 'wall3'];
-        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, forestTextures.length);
-        return forestTextures[idx];
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.forestWallTextures.length);
+        return this.forestWallTextures[idx];
       }
     }
   }
