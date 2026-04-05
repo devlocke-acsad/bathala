@@ -44,6 +44,8 @@ export const TILE = {
     SAND_PATCH: 8,
     WATER: 9,
     OBSTACLE: 10,
+    PUDDLE_PROP: 11,
+    STONE_PROP: 12,
 } as const;
 
 // =========================================================================
@@ -347,6 +349,8 @@ export class SubmergedVillageAlgorithm {
 
         const wasmResult = generationWasmBridge.tryGenerateSubmergedVillage(w, h, seed, wasmParams);
         if (wasmResult) {
+            // Decor pass: break up oversized open routes with puddles/stones.
+            this.decorateOpenAreasWithProps(wasmResult);
             // Safety pass: split any accidental oversized house blobs into supported chunks.
             this.normalizeHouseComponentsToSupportedSizes(wasmResult);
             // Keep every house fully walkable around all sides.
@@ -432,6 +436,9 @@ export class SubmergedVillageAlgorithm {
 
         // 17. Scatter obstacles on FOREST tiles (after all terrain features are placed)
         this.scatterObstacles(grid);
+
+        // 17b. Decor pass: break up oversized open routes with puddles/stones.
+        this.decorateOpenAreasWithProps(grid);
 
         // Safety pass: split any accidental oversized house blobs into supported chunks.
         this.normalizeHouseComponentsToSupportedSizes(grid);
@@ -1358,6 +1365,180 @@ export class SubmergedVillageAlgorithm {
                 }
             }
         }
+    }
+
+    /**
+     * Place Act 2 decorative blockers to reduce giant empty lanes:
+     * - puddleBig1 as strict 3x3
+     * - puddleSmall1 as strict 1x2 horizontal
+     * - standalone puddles and stones
+     *
+     * Decorations are also allowed to replace some tree-obstacle tiles.
+     */
+    private decorateOpenAreasWithProps(grid: IntGrid): void {
+        const [w, h] = this.levelSize;
+        let pathCount = 0;
+        let obstacleCount = 0;
+
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const tile = grid.getTile(x, y);
+                if (tile === TILE.PATH) pathCount++;
+                if (tile === TILE.OBSTACLE) obstacleCount++;
+            }
+        }
+
+        if (pathCount > 0) {
+            const bigPathTarget = Math.min(2, Math.max(0, Math.floor(pathCount / 180)));
+            const smallPathTarget = Math.min(4, Math.max(1, Math.floor(pathCount / 120)));
+            const puddleSoloPathTarget = Math.min(10, Math.max(2, Math.floor(pathCount / 70)));
+            const stonePathTarget = Math.min(12, Math.max(3, Math.floor(pathCount / 55)));
+
+            this.placeRectPropsOnSource(grid, TILE.PATH, TILE.PUDDLE_PROP, 3, 3, bigPathTarget, 80, 5, true);
+            this.placeRectPropsOnSource(grid, TILE.PATH, TILE.PUDDLE_PROP, 2, 1, smallPathTarget, 100, 4, true);
+            this.placeSinglesOnSource(grid, TILE.PATH, TILE.PUDDLE_PROP, puddleSoloPathTarget, 120, 5, true, true);
+            this.placeSinglesOnSource(grid, TILE.PATH, TILE.STONE_PROP, stonePathTarget, 120, 4, true, false);
+        }
+
+        if (obstacleCount > 0) {
+            const bigObstacleTarget = obstacleCount >= 160 ? 1 : 0;
+            const smallObstacleTarget = obstacleCount >= 100 ? 1 : 0;
+            this.placeRectPropsOnSource(grid, TILE.OBSTACLE, TILE.PUDDLE_PROP, 3, 3, bigObstacleTarget, 90, 0, true);
+            this.placeRectPropsOnSource(grid, TILE.OBSTACLE, TILE.PUDDLE_PROP, 2, 1, smallObstacleTarget, 110, 0, true);
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    if (grid.getTile(x, y) !== TILE.OBSTACLE) continue;
+                    const roll = this.rng();
+                    if (roll < 0.05) {
+                        grid.setTile(x, y, TILE.STONE_PROP);
+                    } else if (roll < 0.075) {
+                        grid.setTile(x, y, TILE.PUDDLE_PROP);
+                    }
+                }
+            }
+        }
+    }
+
+    private placeRectPropsOnSource(
+        grid: IntGrid,
+        sourceTile: number,
+        targetTile: number,
+        width: number,
+        height: number,
+        targetCount: number,
+        attemptsPerTarget: number,
+        minPathNeighbors: number,
+        avoidHouseRadiusOne: boolean,
+    ): void {
+        if (targetCount <= 0) return;
+        const [w, h] = this.levelSize;
+        let placed = 0;
+        const maxAttempts = Math.max(1, targetCount * attemptsPerTarget);
+
+        for (let attempt = 0; attempt < maxAttempts && placed < targetCount; attempt++) {
+            const startX = this.randomInt(1, w - width - 1);
+            const startY = this.randomInt(1, h - height - 1);
+            if (!this.canStampRectOnSource(grid, startX, startY, width, height, sourceTile, minPathNeighbors, avoidHouseRadiusOne)) {
+                continue;
+            }
+
+            for (let ry = 0; ry < height; ry++) {
+                for (let rx = 0; rx < width; rx++) {
+                    grid.setTile(startX + rx, startY + ry, targetTile);
+                }
+            }
+            placed++;
+        }
+    }
+
+    private placeSinglesOnSource(
+        grid: IntGrid,
+        sourceTile: number,
+        targetTile: number,
+        targetCount: number,
+        attemptsPerTarget: number,
+        minPathNeighbors: number,
+        avoidHouseRadiusOne: boolean,
+        forceStandalonePuddle: boolean,
+    ): void {
+        if (targetCount <= 0) return;
+        const [w, h] = this.levelSize;
+        let placed = 0;
+        const maxAttempts = Math.max(1, targetCount * attemptsPerTarget);
+
+        for (let attempt = 0; attempt < maxAttempts && placed < targetCount; attempt++) {
+            const x = this.randomInt(1, w - 2);
+            const y = this.randomInt(1, h - 2);
+            if (grid.getTile(x, y) !== sourceTile) continue;
+
+            if (minPathNeighbors > 0 && this.countTileNeighbors(grid, x, y, TILE.PATH, true) < minPathNeighbors) {
+                continue;
+            }
+
+            if (avoidHouseRadiusOne && this.isNearTileType(grid, x, y, TILE.HOUSE, 1)) {
+                continue;
+            }
+
+            if (forceStandalonePuddle && this.countTileNeighbors(grid, x, y, TILE.PUDDLE_PROP, false) > 0) {
+                continue;
+            }
+
+            grid.setTile(x, y, targetTile);
+            placed++;
+        }
+    }
+
+    private canStampRectOnSource(
+        grid: IntGrid,
+        startX: number,
+        startY: number,
+        width: number,
+        height: number,
+        sourceTile: number,
+        minPathNeighbors: number,
+        avoidHouseRadiusOne: boolean,
+    ): boolean {
+        for (let ry = 0; ry < height; ry++) {
+            for (let rx = 0; rx < width; rx++) {
+                const x = startX + rx;
+                const y = startY + ry;
+                if (!this.isInBounds(x, y)) return false;
+                if (grid.getTile(x, y) !== sourceTile) return false;
+
+                if (minPathNeighbors > 0 && this.countTileNeighbors(grid, x, y, TILE.PATH, true) < minPathNeighbors) {
+                    return false;
+                }
+
+                if (avoidHouseRadiusOne && this.isNearTileType(grid, x, y, TILE.HOUSE, 1)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private countTileNeighbors(grid: IntGrid, x: number, y: number, tileType: number, includeDiagonals: boolean): number {
+        const neighbors = includeDiagonals ? this.neighbors8([x, y]) : this.neighbors4([x, y]);
+        let count = 0;
+        for (const [nx, ny] of neighbors) {
+            if (!this.isInBounds(nx, ny)) continue;
+            if (grid.getTile(nx, ny) === tileType) count++;
+        }
+        return count;
+    }
+
+    private isNearTileType(grid: IntGrid, x: number, y: number, tileType: number, radius: number): boolean {
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const nx = x + dx;
+                const ny = y + dy;
+                if (!this.isInBounds(nx, ny)) continue;
+                if (grid.getTile(nx, ny) === tileType) return true;
+            }
+        }
+        return false;
     }
 
     private applyBiomeTerrainFeatures(grid: IntGrid, params: VillageLayoutParams): void {

@@ -85,6 +85,7 @@ export class Overworld_MazeGenManager {
     'sv_underlay_4',
     'sv_underlay_5',
   ];
+  private submergedVillageStoneTextures: string[] = ['sv_stone_1', 'sv_stone_2', 'sv_stone_3', 'sv_stone_4', 'sv_stone_5'];
   // House sets grouped by sprite family footprint.
   private submergedVillageHouseSet3x3Ids: number[] = [1, 2, 6, 7, 8, 9, 10];
   private submergedVillageHouseSet3x2Ids: number[] = [3, 4];
@@ -680,6 +681,7 @@ export class Overworld_MazeGenManager {
     const offsetY = chunkY * chunkSizePixels;
     const isAct2 = this.isAct2Chapter();
     const act2HouseVariantMap = isAct2 ? this.buildAct2HouseVariantMap(maze, chunkX, chunkY) : undefined;
+    const act2PuddleTextureMap = isAct2 ? this.buildAct2PuddleTextureMap(maze) : undefined;
 
     if (isAct2) {
       this.logAct2PathTileAvailabilityOnce();
@@ -707,7 +709,7 @@ export class Overworld_MazeGenManager {
             }
           }
 
-          const textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y, act2HouseVariantMap);
+          const textureKey = this.getWallTexture(tileValue, maze, chunkX, chunkY, x, y, act2HouseVariantMap, act2PuddleTextureMap);
           const wallSprite = this.scene.add.image(tileX + this.gridSize / 2, tileY + this.gridSize / 2, textureKey);
           wallSprite.setDisplaySize(this.gridSize, this.gridSize);
           wallSprite.setOrigin(0.5);
@@ -885,6 +887,90 @@ export class Overworld_MazeGenManager {
     return this.getAct2LandTexture(chunkX, chunkY, x, y);
   }
 
+  private buildAct2PuddleTextureMap(maze: number[][]): Map<string, string> {
+    const map = new Map<string, string>();
+    const visited = new Set<string>();
+    const h = maze.length;
+    const w = h > 0 ? maze[0].length : 0;
+    const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (maze[y][x] !== 11) continue;
+        const rootKey = `${x},${y}`;
+        if (visited.has(rootKey)) continue;
+
+        const queue: Array<[number, number]> = [[x, y]];
+        const component: Array<[number, number]> = [];
+        let minX = x;
+        let minY = y;
+        let maxX = x;
+        let maxY = y;
+
+        visited.add(rootKey);
+
+        while (queue.length > 0) {
+          const [cx, cy] = queue.shift()!;
+          component.push([cx, cy]);
+          minX = Math.min(minX, cx);
+          minY = Math.min(minY, cy);
+          maxX = Math.max(maxX, cx);
+          maxY = Math.max(maxY, cy);
+
+          for (const [dx, dy] of dirs) {
+            const nx = cx + dx;
+            const ny = cy + dy;
+            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+            if (maze[ny][nx] !== 11) continue;
+
+            const key = `${nx},${ny}`;
+            if (visited.has(key)) continue;
+            visited.add(key);
+            queue.push([nx, ny]);
+          }
+        }
+
+        const componentWidth = (maxX - minX) + 1;
+        const componentHeight = (maxY - minY) + 1;
+        const componentArea = componentWidth * componentHeight;
+        const isSolidRect = component.length === componentArea;
+
+        if (isSolidRect && componentWidth === 3 && componentHeight === 3) {
+          for (const [tx, ty] of component) {
+            const localX = tx - minX;
+            const localY = ty - minY;
+            let texture = 'sv_puddle_big_middle';
+            if (localX === 0 && localY === 0) texture = 'sv_puddle_big_nw';
+            else if (localX === 1 && localY === 0) texture = 'sv_puddle_big_n';
+            else if (localX === 2 && localY === 0) texture = 'sv_puddle_big_ne';
+            else if (localX === 0 && localY === 1) texture = 'sv_puddle_big_w';
+            else if (localX === 1 && localY === 1) texture = 'sv_puddle_big_middle';
+            else if (localX === 2 && localY === 1) texture = 'sv_puddle_big_e';
+            else if (localX === 0 && localY === 2) texture = 'sv_puddle_big_sw';
+            else if (localX === 1 && localY === 2) texture = 'sv_puddle_big_s';
+            else if (localX === 2 && localY === 2) texture = 'sv_puddle_big_se';
+            map.set(`${tx},${ty}`, texture);
+          }
+          continue;
+        }
+
+        if (isSolidRect && componentWidth === 2 && componentHeight === 1) {
+          for (const [tx, ty] of component) {
+            const localX = tx - minX;
+            map.set(`${tx},${ty}`, localX === 0 ? 'sv_puddle_small_w' : 'sv_puddle_small_e');
+          }
+          continue;
+        }
+
+        for (const [tx, ty] of component) {
+          map.set(`${tx},${ty}`, 'sv_puddle_standalone_1');
+        }
+      }
+    }
+
+    return map;
+  }
+
   private logAct2PathTileAvailabilityOnce(): void {
     if (this.hasLoggedAct2PathTileAvailability || !DEBUG_ACT2_PATH_TILES) {
       return;
@@ -1058,6 +1144,7 @@ export class Overworld_MazeGenManager {
     x: number,
     y: number,
     houseVariantMap?: Map<string, number>,
+    puddleTextureMap?: Map<string, string>,
   ): string {
     const isAct2 = this.isAct2Chapter();
     const isAct3 = this.isAct3Chapter();
@@ -1376,6 +1463,17 @@ export class Overworld_MazeGenManager {
 
     if (isAct2 && tileValue === 2) {
       return this.getAct2HouseTexture(maze, chunkX, chunkY, x, y, houseVariantMap);
+    }
+
+    // Act 2 puddle props (3x3, 1x2 horizontal, and standalone variants)
+    if (isAct2 && tileValue === 11) {
+      return puddleTextureMap?.get(`${x},${y}`) ?? 'sv_puddle_standalone_1';
+    }
+
+    // Act 2 stone props (standalone variants)
+    if (isAct2 && tileValue === 12) {
+      const stoneIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageStoneTextures.length);
+      return this.submergedVillageStoneTextures[stoneIdx];
     }
 
     // Obstacle tiles (TILE.OBSTACLE = 10) - randomly select from available obstacle sprites

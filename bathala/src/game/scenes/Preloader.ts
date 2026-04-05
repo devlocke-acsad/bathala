@@ -265,7 +265,26 @@ export class Preloader extends Scene {
     this.load.image("sv_tree_4", "background/submergedvillageAssets/Update/obstacles/trees/tree4.png");
     this.load.image("sv_tree_5", "background/submergedvillageAssets/Update/obstacles/trees/tree5.png");
 
-    // Act 2 water: lakes/rivers use the Update cliff + debris set (no puddle tiles).
+    this.load.image("sv_stone_1", "background/submergedvillageAssets/Update/obstacles/stone/stoneStandalone1.png");
+    this.load.image("sv_stone_2", "background/submergedvillageAssets/Update/obstacles/stone/stoneStandalone2.png");
+    this.load.image("sv_stone_3", "background/submergedvillageAssets/Update/obstacles/stone/stoneStandalone3.png");
+    this.load.image("sv_stone_4", "background/submergedvillageAssets/Update/obstacles/stone/stoneStandalone4.png");
+    this.load.image("sv_stone_5", "background/submergedvillageAssets/Update/obstacles/stone/stoneStandalone5.png");
+
+    this.load.image("sv_puddle_standalone_1", "background/submergedvillageAssets/Update/obstacles/water/puddleStandalone1.png");
+    this.load.image("sv_puddle_small_w", "background/submergedvillageAssets/Update/obstacles/water/puddleSmall1_W.png");
+    this.load.image("sv_puddle_small_e", "background/submergedvillageAssets/Update/obstacles/water/puddleSmall1_E.png");
+    this.load.image("sv_puddle_big_nw", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_NW.png");
+    this.load.image("sv_puddle_big_n", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_N.png");
+    this.load.image("sv_puddle_big_ne", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_NE.png");
+    this.load.image("sv_puddle_big_w", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_W.png");
+    this.load.image("sv_puddle_big_middle", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_Middle.png");
+    this.load.image("sv_puddle_big_e", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_E.png");
+    this.load.image("sv_puddle_big_sw", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_SW.png");
+    this.load.image("sv_puddle_big_s", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_S.png");
+    this.load.image("sv_puddle_big_se", "background/submergedvillageAssets/Update/obstacles/water/puddleBig1_SE.png");
+
+    // Act 2 water: lakes/rivers use the Update cliff + debris set.
     this.load.image("sv_water_middle", "background/submergedvillageAssets/Update/obstacles/water/water_debris4.png");
     this.load.image("sv_water_shore_n", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_N.png");
     this.load.image("sv_water_shore_s", "background/submergedvillageAssets/Update/obstacles/water/water_cliff_S.png");
