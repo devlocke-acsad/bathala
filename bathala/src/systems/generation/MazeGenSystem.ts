@@ -718,7 +718,7 @@ export class Overworld_MazeGenManager {
           if (isAct2 && !this.scene.textures.exists(textureKey)) {
             if (!this.missingAct2PathTextureKeys.has(textureKey)) {
               this.missingAct2PathTextureKeys.add(textureKey);
-              console.error(`[Act2 PathTiles] Missing runtime texture key: ${textureKey} at chunk(${chunkX},${chunkY}) tile(${x},${y})`);
+              console.warn(`[Act2 PathTiles] Fallback while texture is unavailable: ${textureKey} at chunk(${chunkX},${chunkY}) tile(${x},${y})`);
             }
             textureKey = this.getAct2LandTexture(chunkX, chunkY, x, y);
           }
@@ -788,7 +788,7 @@ export class Overworld_MazeGenManager {
     console.groupCollapsed(`[Act2 PathTiles] Runtime texture availability: ${rows.length - missing.length}/${rows.length}`);
     console.table(rows);
     if (missing.length > 0) {
-      console.error('[Act2 PathTiles] Missing path texture keys:', missing);
+      console.warn('[Act2 PathTiles] Missing path texture keys at first render pass:', missing);
       this.ensureAct2DirectionalPathTilesLoaded(missing);
     } else {
       console.info('[Act2 PathTiles] All directional path textures are loaded.');
