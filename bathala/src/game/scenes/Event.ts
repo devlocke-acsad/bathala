@@ -8,6 +8,52 @@ import { OverworldGameState } from '../../core/managers/OverworldGameState';
 import { MusicLifecycleSystem } from '../../systems/audio/MusicLifecycleSystem';
 import { EducationalEventManager } from '../../core/managers/EducationalEventManager';
 
+const EVENT_TEXTURE_KEY_ALIASES: Record<string, string> = {
+  anito_shrine: 'event_anito_shrine',
+  anito_shrine_educational: 'event_anito_shrine_educational',
+  balete_vision: 'event_balete_vision',
+  balete_tree_mystery: 'event_balete_mystery_educational',
+  balete_mystery_educational: 'event_balete_mystery_educational',
+  diwata_whisper: 'event_diwata_whisper',
+  diwatas_gift: 'event_diwata_gift_educational',
+  diwata_gift_educational: 'event_diwata_gift_educational',
+  forgotten_altar: 'event_forgotten_altar',
+  tikbalang_crossroads: 'event_tikbalang_crossroads',
+  tikbalangs_test: 'event_tikbalang_test_educational',
+  tikbalang_test_educational: 'event_tikbalang_test_educational',
+  ancestral_echo: 'event_ancestral_echo',
+  kapres_smoke: 'event_kapre_smoke',
+  kapre_smoke: 'event_kapre_smoke',
+  kapres_wisdom: 'event_kapre_wisdom_educational',
+  kapre_wisdom_educational: 'event_kapre_wisdom_educational',
+  sacred_grove: 'event_sacred_grove',
+  tiyanak_wail: 'event_tiyanak_wail',
+  wind_omen: 'event_wind_omen',
+  bakunawas_hunger: 'event_bakunawa_hunger_educational',
+  aswangs_deception: 'event_aswang_deception_educational',
+  sirenas_lament: 'event_sirena_conservation_educational',
+  guardian_of_the_waters: 'event_bantay_tubig_educational',
+  diwata_ng_dagat: 'event_diwata_dagat_educational',
+  the_floating_world: 'event_maranao_creation_educational',
+  the_dream_weaver: 'event_tboli_dream_weaving',
+  the_baganis_trial: 'event_bagobo_warrior_trial',
+  guardian_of_mount_apo: 'event_manobo_spirit_guardian',
+  the_currents_of_sulu: 'event_tausug_sea_legend',
+};
+
+const EVENT_TEXTURE_ASSET_PATHS: Record<string, string> = {
+  event_bakunawa_hunger_educational: "assets/events/events(act2)/bakunawa's hunger.png",
+  event_aswang_deception_educational: "assets/events/events(act2)/aswang's deception.png",
+  event_sirena_conservation_educational: "assets/events/events(act2)/sirena's call.png",
+  event_bantay_tubig_educational: "assets/events/events(act2)/Guardian of the Waters.png",
+  event_diwata_dagat_educational: "assets/events/events(act2)/diwata ng dagat.png",
+  event_maranao_creation_educational: "assets/events/events(act3)/The Floating World.png",
+  event_tboli_dream_weaving: "assets/events/events(act3)/The Dream Weaver.png",
+  event_bagobo_warrior_trial: "assets/events/events(act3)/The Bagani's Trial.png",
+  event_manobo_spirit_guardian: "assets/events/events(act3)/Guardian of Mount Apo.png",
+  event_tausug_sea_legend: "assets/events/events(act3)/The Currents of Sulu.png",
+};
+
 /**
  * EventScene — Persona 3 Reload-Inspired Encounter UI
  *
@@ -80,13 +126,14 @@ export class EventScene extends Scene {
     // Build layers
     this.createAtmosphericBackground();
     this.playEntranceTransition();
+    this.ensureCurrentEventTextureLoaded(() => {
+      // Build UI (hidden initially, revealed by transition)
+      this.buildIllustrationPanel();
+      this.buildDialoguePanel();
 
-    // Build UI (hidden initially, revealed by transition)
-    this.buildIllustrationPanel();
-    this.buildDialoguePanel();
-
-    // Start event flow after entrance animation
-    this.time.delayedCall(900, () => this.showNextDescription());
+      // Start event flow after entrance animation
+      this.time.delayedCall(900, () => this.showNextDescription());
+    });
   }
 
   // ─────────────────────────────────────────────
@@ -135,13 +182,15 @@ export class EventScene extends Scene {
     this.bgLayer.add(wash);
 
     // Scanline texture overlay
-    const scanGfx = this.make.graphics({});
-    scanGfx.fillStyle(0x000000, 1);
-    scanGfx.fillRect(0, 0, 4, 2);
-    scanGfx.fillStyle(0xffffff, 1);
-    scanGfx.fillRect(0, 2, 4, 2);
-    scanGfx.generateTexture('event_scanline', 4, 4);
-    scanGfx.destroy();
+    if (!this.textures.exists('event_scanline')) {
+      const scanGfx = this.make.graphics({});
+      scanGfx.fillStyle(0x000000, 1);
+      scanGfx.fillRect(0, 0, 4, 2);
+      scanGfx.fillStyle(0xffffff, 1);
+      scanGfx.fillRect(0, 2, 4, 2);
+      scanGfx.generateTexture('event_scanline', 4, 4);
+      scanGfx.destroy();
+    }
 
     if (this.textures.exists('event_scanline')) {
       const scanlines = this.add.tileSprite(0, 0, this.W, this.H, 'event_scanline')
@@ -164,7 +213,7 @@ export class EventScene extends Scene {
   }
 
   private createFloatingParticles(): void {
-    const count = 30;
+    const count = this.scale.width <= 1280 ? 10 : 18;
     for (let i = 0; i < count; i++) {
       const x = Phaser.Math.Between(0, this.W);
       const y = Phaser.Math.Between(0, this.H);
@@ -415,9 +464,65 @@ export class EventScene extends Scene {
    * Returns null if no matching texture exists.
    */
   private getEventTextureKey(): string | null {
-    const id = this.currentEvent.id;
-    const key = `event_${id}`;
-    return key;
+    for (const candidate of this.getEventTextureCandidates()) {
+      if (this.textures.exists(candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  private getEventTextureCandidates(): string[] {
+    const candidates = new Set<string>();
+    const eventId = this.currentEvent.id;
+    const normalizedId = this.normalizeEventTextureToken(eventId);
+    const normalizedName = this.normalizeEventTextureToken(this.currentEvent.name);
+
+    if (eventId) {
+      candidates.add(`event_${eventId}`);
+    }
+    if (normalizedId) {
+      candidates.add(`event_${normalizedId}`);
+      if (EVENT_TEXTURE_KEY_ALIASES[normalizedId]) {
+        candidates.add(EVENT_TEXTURE_KEY_ALIASES[normalizedId]);
+      }
+    }
+    if (normalizedName) {
+      candidates.add(`event_${normalizedName}`);
+      if (EVENT_TEXTURE_KEY_ALIASES[normalizedName]) {
+        candidates.add(EVENT_TEXTURE_KEY_ALIASES[normalizedName]);
+      }
+    }
+
+    return Array.from(candidates);
+  }
+
+  private ensureCurrentEventTextureLoaded(onReady: () => void): void {
+    const missingCandidate = this.getEventTextureCandidates().find(
+      (candidate) => !this.textures.exists(candidate) && Boolean(EVENT_TEXTURE_ASSET_PATHS[candidate]),
+    );
+
+    if (!missingCandidate) {
+      onReady();
+      return;
+    }
+
+    this.load.once(Phaser.Loader.Events.COMPLETE, onReady);
+    this.load.image(missingCandidate, EVENT_TEXTURE_ASSET_PATHS[missingCandidate]);
+
+    if (!this.load.isLoading()) {
+      this.load.start();
+    }
+  }
+
+  private normalizeEventTextureToken(value?: string): string {
+    if (!value) return '';
+    return value
+      .toLowerCase()
+      .replace(/['’]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
   }
 
   private getEventGlyph(): string {
