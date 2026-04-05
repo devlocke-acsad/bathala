@@ -15,6 +15,7 @@ import { OverworldGameState } from "../../core/managers/OverworldGameState";
 
 export class Shop extends Scene {
   private player!: Player;
+  private shouldReturnToDevHub: boolean = false;
   private shopItems: ShopItem[] = [];
   private relicButtons: Phaser.GameObjects.Container[] = [];
   private gintoText!: Phaser.GameObjects.Text;
@@ -110,8 +111,9 @@ export class Shop extends Scene {
     super({ key: "Shop" });
   }
 
-  init(data: { player: Player }) {
+  init(data: { player: Player; returnToDevHub?: boolean }) {
     this.player = data.player;
+    this.shouldReturnToDevHub = data.returnToDevHub === true;
     
     // Get current chapter to determine which shop items to show
     const gameState = GameState.getInstance();
@@ -1214,7 +1216,7 @@ export class Shop extends Scene {
       gameState.completeCurrentNode(true);
 
       // Return to DevHub if it launched us
-      if (this.scene.isActive('DevHubScene')) {
+      if (this.shouldReturnToDevHub) {
         this.scene.stop();
         const hub = this.scene.get('DevHubScene') as any;
         if (hub?.show) hub.show();

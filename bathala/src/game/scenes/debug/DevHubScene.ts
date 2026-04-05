@@ -504,7 +504,7 @@ export class DevHubScene extends Scene {
     const ow   = this.scene.manager.getScene('Overworld');
     const active = (main?.scene.isActive() ? main : ow?.scene.isActive() ? ow : null);
     if (active) active.scene.pause();
-    this.scene.start('Combat', { nodeType, enemyId: enemyKey });
+    this.scene.start('Combat', { nodeType, enemyId: enemyKey, returnToDevHub: true });
   }
 
   // ─── NODES TAB ──────────────────────────────────────────────────────────────
@@ -893,6 +893,7 @@ export class DevHubScene extends Scene {
       this.scene.start('EventScene', {
         player: playerData || { name: 'Debugger', health: 100, ginto: 100 },
         event: ev,
+        returnToDevHub: true,
       });
     });
     this.eventDetailContainer.add(launchBtn);
@@ -974,6 +975,7 @@ export class DevHubScene extends Scene {
           this.scene.start('EventScene', {
             player: playerData || { name: 'Debugger', health: 100, ginto: 100 },
             event: ev,
+            returnToDevHub: true,
           });
         }
       }

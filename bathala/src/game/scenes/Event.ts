@@ -19,6 +19,7 @@ export class EventScene extends Scene {
   private player!: Player;
   private currentEvent!: GameEvent | EducationalEvent;
   private isDayCycle!: boolean;
+  private shouldReturnToDevHub = false;
 
   // Layout constants (1920×1080)
   private readonly W = 1920;
@@ -56,10 +57,11 @@ export class EventScene extends Scene {
     super({ key: 'EventScene' });
   }
 
-  init(data: { player: Player; event?: GameEvent | EducationalEvent }) {
+  init(data: { player: Player; event?: GameEvent | EducationalEvent; returnToDevHub?: boolean }) {
     this.player = data.player;
     this.currentEvent = data.event ?? EventSelectionSystem.getRandomEvent();
     this.isDayCycle = OverworldGameState.getInstance().isDay;
+    this.shouldReturnToDevHub = data.returnToDevHub === true;
     OverworldGameState.getInstance().markEventEncountered(this.currentEvent.id);
     this.currentDescriptionIndex = 0;
     this.choiceButtons = [];
@@ -1136,7 +1138,7 @@ export class EventScene extends Scene {
 
   /** Stop this scene and re-show DevHub if it launched us. Returns true if handled. */
   private returnToDevHub(): boolean {
-    if (!this.scene.isActive('DevHubScene')) return false;
+    if (!this.shouldReturnToDevHub) return false;
     this.scene.stop('EventScene');
     const hub = this.scene.get('DevHubScene') as any;
     if (hub?.show) hub.show();
