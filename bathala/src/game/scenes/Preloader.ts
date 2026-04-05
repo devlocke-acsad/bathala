@@ -154,6 +154,21 @@ export class Preloader extends Scene {
     this.load.image("sv_path_sand_2", "background/submergedvillageAssets/pathTiles/Path_Sand2.png");
     this.load.image("sv_path_sand_3", "background/submergedvillageAssets/pathTiles/Path_Sand3.png");
     this.load.image("sv_path_sand_4", "background/submergedvillageAssets/pathTiles/Path_Sand4.png");
+    this.load.image("sv_path_3way_open_nse", "background/submergedvillageAssets/Update/pathTiles/path_3way_open_NSE.png");
+    this.load.image("sv_path_3way_open_wne", "background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNE.png");
+    this.load.image("sv_path_3way_open_wns", "background/submergedvillageAssets/Update/pathTiles/path_3way_open_WNS.png");
+    this.load.image("sv_path_3way_open_wse", "background/submergedvillageAssets/Update/pathTiles/path_3way_open_WSE.png");
+    this.load.image("sv_path_4way", "background/submergedvillageAssets/Update/pathTiles/path_4way.png");
+    this.load.image("sv_path_corner_open_ne", "background/submergedvillageAssets/Update/pathTiles/path_corner_open_NE.png");
+    this.load.image("sv_path_corner_open_se", "background/submergedvillageAssets/Update/pathTiles/path_corner_open_SE.png");
+    this.load.image("sv_path_corner_open_wn", "background/submergedvillageAssets/Update/pathTiles/path_corner_open_WN.png");
+    this.load.image("sv_path_corner_open_ws", "background/submergedvillageAssets/Update/pathTiles/path_corner_open_WS.png");
+    this.load.image("sv_path_horizontal_center", "background/submergedvillageAssets/Update/pathTiles/path_horizontal_center.png");
+    this.load.image("sv_path_horizontal_end_e", "background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_E.png");
+    this.load.image("sv_path_horizontal_end_w", "background/submergedvillageAssets/Update/pathTiles/path_horizontal_end_W.png");
+    this.load.image("sv_path_vertical_center", "background/submergedvillageAssets/Update/pathTiles/path_vertical_center.png");
+    this.load.image("sv_path_vertical_end_n", "background/submergedvillageAssets/Update/pathTiles/path_vertical_end_N.png");
+    this.load.image("sv_path_vertical_end_s", "background/submergedvillageAssets/Update/pathTiles/path_vertical_end_S.png");
 
     this.load.image("sv_grass_cliff_n", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_N.png");
     this.load.image("sv_grass_cliff_s", "background/submergedvillageAssets/Update/obstacles/terrain/GrassCliff_S.png");
@@ -435,29 +450,9 @@ export class Preloader extends Scene {
     this.load.image("tikbalang_almanac", "sprites/discover/chapter1/tikbalang_almanac.png");
     this.load.image("tiyanak_almanac", "sprites/discover/chapter1/tiyanak_almanac.png");
 
-    // Chapter 2 almanac sprites
-    this.load.image("sirena_almanac", "sprites/discover/chapter2/new/sirena_splash.png");
-    this.load.image("siyokoy_almanac", "sprites/discover/chapter2/new/siyokoy_splash.png");
-    this.load.image("santelmo_almanac", "sprites/discover/chapter2/new/santelmo_splash.png");
-    this.load.image("berberoka_almanac", "sprites/discover/chapter2/new/berberoka_splash.png");
-    this.load.image("magindara_almanac", "sprites/discover/chapter2/new/maginda_swarm_splash.png");
-    this.load.image("kataw_almanac", "sprites/discover/chapter2/new/kataw_splash.png");
-    this.load.image("berbalang_almanac", "sprites/discover/chapter2/new/berbalang_splash.png");
-    this.load.image("bangkilan_almanac", "sprites/discover/chapter2/new/sunken_bangkilan_splash.png");
-    this.load.image("apoy_tubig_fury_almanac", "sprites/discover/chapter2/new/apoy_tubig_splash.png");
-    this.load.image("bakunawa_almanac", "sprites/discover/chapter2/new/bakunawa_splash.png");
-
-    // Chapter 3 almanac sprites
-    this.load.image("tigmamanukan_almanac", "sprites/discover/chapter3/new/tigamamanukan_watcher_splash.png");
-    this.load.image("diwata_almanac", "sprites/discover/chapter3/new/diwata_sentinel_splash.png");
-    this.load.image("sarimanok_almanac", "sprites/discover/chapter3/new/sarimanok_watcher_splash.png");
-    this.load.image("bulalakaw_almanac", "sprites/discover/chapter3/new/bulalakaw_flamekeeper_splash.png");
-    this.load.image("minokawa_almanac", "sprites/discover/chapter3/new/minokawa_harbinger_splash.png");
-    this.load.image("alan_almanac", "sprites/discover/chapter3/new/alan_splash.png");
-    this.load.image("ekek_almanac", "sprites/discover/chapter3/new/ekek_splash.png");
-    this.load.image("ribung_linti_almanac", "sprites/discover/chapter3/new/ribung_linti_splash.png");
-    this.load.image("apolaki_almanac", "sprites/discover/chapter3/new/apolaki_splash.png");
-    this.load.image("false_bathala_almanac", "sprites/discover/chapter3/new/false_bathala_splash.png");
+    // Chapter 2-3 almanac portraits are loaded lazily in Discover.
+    // They are large and not required for normal gameplay because combat/tooltips
+    // already fall back to lighter portrait sources when these textures are absent.
 
     // Legacy enemy sprite keys for backward compatibility
     this.load.image("amomongo", "sprites/combat/enemy/chapter1/amomongo_battle.png");
@@ -573,19 +568,8 @@ export class Preloader extends Scene {
     this.load.image("event_wind_omen", "events/events(act1)/wind omen.png");
     this.load.image("event_balete_mystery_educational", "events/events(act1)/balete vision.png");
 
-    // Act 2 Event splash art
-    this.load.image("event_bakunawa_hunger_educational", "events/events(act2)/bakunawa's hunger.png");
-    this.load.image("event_aswang_deception_educational", "events/events(act2)/aswang's deception.png");
-    this.load.image("event_sirena_conservation_educational", "events/events(act2)/sirena's call.png");
-    this.load.image("event_bantay_tubig_educational", "events/events(act2)/Guardian of the Waters.png");
-    this.load.image("event_diwata_dagat_educational", "events/events(act2)/diwata ng dagat.png");
-
-    // Act 3 Event splash art
-    this.load.image("event_maranao_creation_educational", "events/events(act3)/The Floating World.png");
-    this.load.image("event_tboli_dream_weaving", "events/events(act3)/The Dream Weaver.png");
-    this.load.image("event_bagobo_warrior_trial", "events/events(act3)/The Bagani's Trial.png");
-    this.load.image("event_manobo_spirit_guardian", "events/events(act3)/Guardian of Mount Apo.png");
-    this.load.image("event_tausug_sea_legend", "events/events(act3)/The Currents of Sulu.png");
+    // Act 2-3 event splash art is loaded lazily in EventScene to keep
+    // chapter transitions and overworld entry responsive.
 
     // Treasure node sprites (chest)
     this.load.image("chest_f0", "sprites/overworld/treasure/chest_full_open_anim_f0.png");

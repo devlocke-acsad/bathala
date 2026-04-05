@@ -41,6 +41,19 @@ const EVENT_TEXTURE_KEY_ALIASES: Record<string, string> = {
   the_currents_of_sulu: 'event_tausug_sea_legend',
 };
 
+const EVENT_TEXTURE_ASSET_PATHS: Record<string, string> = {
+  event_bakunawa_hunger_educational: "assets/events/events(act2)/bakunawa's hunger.png",
+  event_aswang_deception_educational: "assets/events/events(act2)/aswang's deception.png",
+  event_sirena_conservation_educational: "assets/events/events(act2)/sirena's call.png",
+  event_bantay_tubig_educational: "assets/events/events(act2)/Guardian of the Waters.png",
+  event_diwata_dagat_educational: "assets/events/events(act2)/diwata ng dagat.png",
+  event_maranao_creation_educational: "assets/events/events(act3)/The Floating World.png",
+  event_tboli_dream_weaving: "assets/events/events(act3)/The Dream Weaver.png",
+  event_bagobo_warrior_trial: "assets/events/events(act3)/The Bagani's Trial.png",
+  event_manobo_spirit_guardian: "assets/events/events(act3)/Guardian of Mount Apo.png",
+  event_tausug_sea_legend: "assets/events/events(act3)/The Currents of Sulu.png",
+};
+
 /**
  * EventScene — Persona 3 Reload-Inspired Encounter UI
  *
@@ -113,13 +126,14 @@ export class EventScene extends Scene {
     // Build layers
     this.createAtmosphericBackground();
     this.playEntranceTransition();
+    this.ensureCurrentEventTextureLoaded(() => {
+      // Build UI (hidden initially, revealed by transition)
+      this.buildIllustrationPanel();
+      this.buildDialoguePanel();
 
-    // Build UI (hidden initially, revealed by transition)
-    this.buildIllustrationPanel();
-    this.buildDialoguePanel();
-
-    // Start event flow after entrance animation
-    this.time.delayedCall(900, () => this.showNextDescription());
+      // Start event flow after entrance animation
+      this.time.delayedCall(900, () => this.showNextDescription());
+    });
   }
 
   // ─────────────────────────────────────────────
@@ -450,6 +464,16 @@ export class EventScene extends Scene {
    * Returns null if no matching texture exists.
    */
   private getEventTextureKey(): string | null {
+    for (const candidate of this.getEventTextureCandidates()) {
+      if (this.textures.exists(candidate)) {
+        return candidate;
+      }
+    }
+
+    return null;
+  }
+
+  private getEventTextureCandidates(): string[] {
     const candidates = new Set<string>();
     const eventId = this.currentEvent.id;
     const normalizedId = this.normalizeEventTextureToken(eventId);
@@ -471,13 +495,25 @@ export class EventScene extends Scene {
       }
     }
 
-    for (const candidate of candidates) {
-      if (this.textures.exists(candidate)) {
-        return candidate;
-      }
+    return Array.from(candidates);
+  }
+
+  private ensureCurrentEventTextureLoaded(onReady: () => void): void {
+    const missingCandidate = this.getEventTextureCandidates().find(
+      (candidate) => !this.textures.exists(candidate) && Boolean(EVENT_TEXTURE_ASSET_PATHS[candidate]),
+    );
+
+    if (!missingCandidate) {
+      onReady();
+      return;
     }
 
-    return null;
+    this.load.once(Phaser.Loader.Events.COMPLETE, onReady);
+    this.load.image(missingCandidate, EVENT_TEXTURE_ASSET_PATHS[missingCandidate]);
+
+    if (!this.load.isLoading()) {
+      this.load.start();
+    }
   }
 
   private normalizeEventTextureToken(value?: string): string {

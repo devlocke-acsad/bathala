@@ -3,6 +3,33 @@ import { EnemyRegistry } from "../../core/registries/EnemyRegistry";
 import { bootstrapEnemies } from "../../data/enemies/EnemyBootstrap";
 import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 
+const DISCOVER_PORTRAIT_ASSETS: Record<number, Array<{ key: string; path: string }>> = {
+  2: [
+    { key: "sirena_almanac", path: "assets/sprites/discover/chapter2/new/sirena_splash.png" },
+    { key: "siyokoy_almanac", path: "assets/sprites/discover/chapter2/new/siyokoy_splash.png" },
+    { key: "santelmo_almanac", path: "assets/sprites/discover/chapter2/new/santelmo_splash.png" },
+    { key: "berberoka_almanac", path: "assets/sprites/discover/chapter2/new/berberoka_splash.png" },
+    { key: "magindara_almanac", path: "assets/sprites/discover/chapter2/new/maginda_swarm_splash.png" },
+    { key: "kataw_almanac", path: "assets/sprites/discover/chapter2/new/kataw_splash.png" },
+    { key: "berbalang_almanac", path: "assets/sprites/discover/chapter2/new/berbalang_splash.png" },
+    { key: "bangkilan_almanac", path: "assets/sprites/discover/chapter2/new/sunken_bangkilan_splash.png" },
+    { key: "apoy_tubig_fury_almanac", path: "assets/sprites/discover/chapter2/new/apoy_tubig_splash.png" },
+    { key: "bakunawa_almanac", path: "assets/sprites/discover/chapter2/new/bakunawa_splash.png" },
+  ],
+  3: [
+    { key: "tigmamanukan_almanac", path: "assets/sprites/discover/chapter3/new/tigamamanukan_watcher_splash.png" },
+    { key: "diwata_almanac", path: "assets/sprites/discover/chapter3/new/diwata_sentinel_splash.png" },
+    { key: "sarimanok_almanac", path: "assets/sprites/discover/chapter3/new/sarimanok_watcher_splash.png" },
+    { key: "bulalakaw_almanac", path: "assets/sprites/discover/chapter3/new/bulalakaw_flamekeeper_splash.png" },
+    { key: "minokawa_almanac", path: "assets/sprites/discover/chapter3/new/minokawa_harbinger_splash.png" },
+    { key: "alan_almanac", path: "assets/sprites/discover/chapter3/new/alan_splash.png" },
+    { key: "ekek_almanac", path: "assets/sprites/discover/chapter3/new/ekek_splash.png" },
+    { key: "ribung_linti_almanac", path: "assets/sprites/discover/chapter3/new/ribung_linti_splash.png" },
+    { key: "apolaki_almanac", path: "assets/sprites/discover/chapter3/new/apolaki_splash.png" },
+    { key: "false_bathala_almanac", path: "assets/sprites/discover/chapter3/new/false_bathala_splash.png" },
+  ],
+};
+
 export class Discover extends Scene {
   private title: GameObjects.Text;
   private backButton: GameObjects.Text;
@@ -24,6 +51,8 @@ export class Discover extends Scene {
   // Chapter selection
   private currentChapter: number = 1;
   private chapterButtons: GameObjects.Text[] = [];
+  private chapterPortraitsLoading: Set<number> = new Set();
+  private portraitLoadingText?: GameObjects.Text;
   
   // Compendium data
   private compendiumEntries: any[] = [];
@@ -94,6 +123,7 @@ export class Discover extends Scene {
 
     // Create character cards
     this.createCharacterCards();
+    this.ensureChapterPortraitsLoaded(this.currentChapter);
 
     // Create detail view (hidden by default)
     this.createDetailView();
@@ -270,21 +300,76 @@ export class Discover extends Scene {
       button.setColor(btnChapter === chapter ? "#06d6a0" : "#77888C");
     });
     
-    // Reset scroll completely
+    this.refreshCharacterCards();
+    this.ensureChapterPortraitsLoaded(chapter);
+  }
+
+  private refreshCharacterCards(): void {
     this.scrollY = 0;
     this.targetScrollY = 0;
     this.scrollVelocity = 0;
-    
-    // Destroy old container
+
     if (this.cardsContainer) {
       this.cardsContainer.destroy();
     }
-    
-    // Create new cards for this chapter
+
     this.createCharacterCards();
-    
-    // Reapply mask to prevent seeing other chapter content
     this.createScrollMask();
+  }
+
+  private ensureChapterPortraitsLoaded(chapter: number): void {
+    const assets = DISCOVER_PORTRAIT_ASSETS[chapter];
+    if (!assets || this.chapterPortraitsLoading.has(chapter)) {
+      return;
+    }
+
+    const missingAssets = assets.filter(({ key }) => !this.textures.exists(key));
+    if (missingAssets.length === 0) {
+      return;
+    }
+
+    this.chapterPortraitsLoading.add(chapter);
+    this.showPortraitLoadingText(true);
+
+    this.load.once(Phaser.Loader.Events.COMPLETE, () => {
+      this.chapterPortraitsLoading.delete(chapter);
+
+      if (this.chapterPortraitsLoading.size === 0) {
+        this.showPortraitLoadingText(false);
+      }
+
+      if (this.currentChapter === chapter) {
+        this.refreshCharacterCards();
+      }
+    });
+
+    for (const { key, path } of missingAssets) {
+      this.load.image(key, path);
+    }
+
+    if (!this.load.isLoading()) {
+      this.load.start();
+    }
+  }
+
+  private showPortraitLoadingText(visible: boolean): void {
+    if (!visible) {
+      this.portraitLoadingText?.destroy();
+      this.portraitLoadingText = undefined;
+      return;
+    }
+
+    if (this.portraitLoadingText) {
+      return;
+    }
+
+    const screenWidth = this.cameras.main.width;
+    this.portraitLoadingText = this.add.text(screenWidth / 2, 145, "Loading chapter portraits...", {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: "#9fb2b8",
+      align: "center",
+    }).setOrigin(0.5);
   }
   
   /**

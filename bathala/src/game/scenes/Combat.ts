@@ -36,6 +36,7 @@ import { VisualThemeManager } from "../../core/managers/VisualThemeManager";
 import { RewardSystem } from "../../systems/combat/RewardSystem";
 import { ActContentProvider } from "../../systems/combat/ActContentProvider";
 import type { Chapter } from "../../core/types/CombatTypes";
+import { ensureEnemyDiscoverPortraitLoaded, getEnemyDiscoverPortraitKey } from "../../utils/EnemyPortraitUtils";
 
 /**
  * Combat Scene - Main card-based combat with Slay the Spire style UI
@@ -2669,6 +2670,13 @@ export class Combat extends Scene {
     landasChange: number,
     scaledGold: number
   ): void {
+    const portraitLoad = ensureEnemyDiscoverPortraitLoaded(this, this.combatState.enemy, () => {
+      this.showRewardsScreen(choice, dialogue, reward, landasChange, scaledGold);
+    });
+    if (portraitLoad.status === "queued") {
+      return;
+    }
+
     const isSpare = choice === "spare";
     const themeColor = isSpare ? "#2ed573" : "#ff4757";
     const themeHex = isSpare ? 0x2ed573 : 0xff4757;
@@ -2742,48 +2750,8 @@ export class Combat extends Scene {
     createPanel(leftPanelX, leftPanelW);
     createPanel(rightPanelX, rightPanelW);
 
-    // Use the same portrait family as Overworld tooltip + Discover.
-    const enemyKey = this.combatState.enemy.name
-      .toLowerCase()
-      .replace(/-/g, "_")
-      .replace(/\s+/g, "_");
-    const discoverPortraitMap: Record<string, string> = {
-      // Chapter 1
-      "tikbalang_scout": "tikbalang_almanac",
-      "balete_wraith": "balete_almanac",
-      "sigbin_charger": "sigbin_almanac",
-      "duwende_trickster": "duwende_almanac",
-      "tiyanak_ambusher": "tiyanak_almanac",
-      "amomongo": "amomongo_almanac",
-      "bungisngis": "bungisngis_almanac",
-      "kapre_shade": "kapre_almanac",
-      "tawong_lipod": "tawonglipod_almanac",
-      "mangangaway": "mangangaway_almanac",
-      // Chapter 2
-      "sirena_illusionist": "sirena_almanac",
-      "siyokoy_raider": "siyokoy_almanac",
-      "santelmo_flicker": "santelmo_almanac",
-      "berberoka_lurker": "berberoka_almanac",
-      "magindara_swarm": "magindara_almanac",
-      "kataw": "kataw_almanac",
-      "berbalang": "berbalang_almanac",
-      "sunken_bangkilan": "bangkilan_almanac",
-      "apoy_tubig_fury": "apoy_tubig_fury_almanac",
-      "bakunawa": "bakunawa_almanac",
-      // Chapter 3
-      "tigmamanukan_watcher": "tigmamanukan_almanac",
-      "diwata_sentinel": "diwata_almanac",
-      "sarimanok_keeper": "sarimanok_almanac",
-      "bulalakaw_flamewings": "bulalakaw_almanac",
-      "minokawa_harbinger": "minokawa_almanac",
-      "alan": "alan_almanac",
-      "ekek": "ekek_almanac",
-      "ribung_linti_duo": "ribung_linti_almanac",
-      "apolaki_godling": "apolaki_almanac",
-      "false_bathala": "false_bathala_almanac",
-    };
     const enemyAny = this.combatState.enemy as any;
-    const discoverPortrait = discoverPortraitMap[enemyKey];
+    const discoverPortrait = getEnemyDiscoverPortraitKey(this.combatState.enemy);
     const preferredPortraitKey = discoverPortrait && this.textures.exists(discoverPortrait)
       ? discoverPortrait
       : (typeof enemyAny.overworldSpriteKey === "string" && this.textures.exists(enemyAny.overworldSpriteKey))
