@@ -8,6 +8,7 @@ import { OverworldGameState } from "../../core/managers/OverworldGameState";
 
 export class Campfire extends Scene {
   private player!: Player;
+  private shouldReturnToDevHub: boolean = false;
   private restButton!: Phaser.GameObjects.Container;
   private purifyButton!: Phaser.GameObjects.Container;
   private upgradeButton!: Phaser.GameObjects.Container;
@@ -29,9 +30,10 @@ export class Campfire extends Scene {
     super({ key: "Campfire" });
   }
 
-  init(data: { player: Player }) {
+  init(data: { player: Player; returnToDevHub?: boolean }) {
     this.player = data.player;
     this.isDayCycle = OverworldGameState.getInstance().isDay;
+    this.shouldReturnToDevHub = data.returnToDevHub === true;
   }
 
   create(): void {
@@ -608,7 +610,7 @@ export class Campfire extends Scene {
       gameState.completeCurrentNode(true);
 
       // Return to DevHub if it launched us, otherwise resume Overworld
-      if (this.scene.isActive('DevHubScene')) {
+      if (this.shouldReturnToDevHub) {
         this.scene.stop();
         const hub = this.scene.get('DevHubScene') as any;
         if (hub?.show) hub.show();

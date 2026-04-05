@@ -33,6 +33,7 @@ export class Treasure extends Scene {
   private readonly DUPLICATE_RELIC_GINTO = 60;
   private readonly DUPLICATE_RELIC_HEAL = 40;
   private player!: Player;
+  private shouldReturnToDevHub: boolean = false;
   private treasureChest!: Phaser.GameObjects.Sprite;
   private rewardOptions: TreasureReward[] = [];
   private rewardButtons: Phaser.GameObjects.Container[] = [];
@@ -43,10 +44,11 @@ export class Treasure extends Scene {
     super({ key: "Treasure" });
   }
 
-  init(data: { player: Player }) {
+  init(data: { player: Player; returnToDevHub?: boolean }) {
     // Get the most up-to-date player data from GameState
     const gameState = GameState.getInstance();
     const savedPlayerData = gameState.getPlayerData();
+    this.shouldReturnToDevHub = data.returnToDevHub === true;
 
     // If we have saved player data with relics, merge it with the passed player data
     if (savedPlayerData && savedPlayerData.relics) {
@@ -1301,7 +1303,7 @@ export class Treasure extends Scene {
    */
   private exitToOverworld(): void {
     // Return to DevHub if it launched us
-    if (this.scene.isActive('DevHubScene')) {
+    if (this.shouldReturnToDevHub) {
       this.scene.stop();
       const hub = this.scene.get('DevHubScene') as any;
       if (hub?.show) hub.show();
