@@ -496,21 +496,21 @@ export class Preloader extends Scene {
     });
 
     // Act 1 Event splash art
-    this.load.image("event_anito_shrine", "events(act1)/anito shrine.png");
-    this.load.image("event_anito_shrine_educational", "events(act1)/Anito Shrine (Edu).png");
-    this.load.image("event_balete_vision", "events(act1)/balete vision.png");
-    this.load.image("event_diwata_whisper", "events(act1)/diwatas whisper.png");
-    this.load.image("event_diwata_gift_educational", "events(act1)/Diwata's Gift.png");
-    this.load.image("event_forgotten_altar", "events(act1)/forgotten altar.png");
-    this.load.image("event_tikbalang_crossroads", "events(act1)/tikbalangs crossroad.png");
-    this.load.image("event_tikbalang_test_educational", "events(act1)/Tikbalang's Test.png");
-    this.load.image("event_ancestral_echo", "events(act1)/ancestral echo.png");
-    this.load.image("event_kapre_smoke", "events(act1)/kapre_smoke.png");
-    this.load.image("event_kapre_wisdom_educational", "events(act1)/kapres_wisdom.png");
-    this.load.image("event_sacred_grove", "events(act1)/sacred groove.png");
-    this.load.image("event_tiyanak_wail", "events(act1)/tiyanak_wail.png");
-    this.load.image("event_wind_omen", "events(act1)/wind omen.png");
-    this.load.image("event_balete_mystery_educational", "events(act1)/balete vision.png");
+    this.load.image("event_anito_shrine", "events/events(act1)/anito shrine.png");
+    this.load.image("event_anito_shrine_educational", "events/events(act1)/Anito Shrine (Edu).png");
+    this.load.image("event_balete_vision", "events/events(act1)/balete vision.png");
+    this.load.image("event_diwata_whisper", "events/events(act1)/diwatas whisper.png");
+    this.load.image("event_diwata_gift_educational", "events/events(act1)/Diwata's Gift.png");
+    this.load.image("event_forgotten_altar", "events/events(act1)/forgotten altar.png");
+    this.load.image("event_tikbalang_crossroads", "events/events(act1)/tikbalangs crossroad.png");
+    this.load.image("event_tikbalang_test_educational", "events/events(act1)/Tikbalang's Test.png");
+    this.load.image("event_ancestral_echo", "events/events(act1)/ancestral echo.png");
+    this.load.image("event_kapre_smoke", "events/events(act1)/kapre_smoke.png");
+    this.load.image("event_kapre_wisdom_educational", "events/events(act1)/kapres_wisdom.png");
+    this.load.image("event_sacred_grove", "events/events(act1)/sacred groove.png");
+    this.load.image("event_tiyanak_wail", "events/events(act1)/tiyanak_wail.png");
+    this.load.image("event_wind_omen", "events/events(act1)/wind omen.png");
+    this.load.image("event_balete_mystery_educational", "events/events(act1)/balete vision.png");
 
     // Act 2 Event splash art
     this.load.image("event_bakunawa_hunger_educational", "events/events(act2)/bakunawa's hunger.png");
