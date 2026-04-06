@@ -61,21 +61,21 @@ export interface SkywardCitadelConfig {
     readonly transitionRadius?: number;
 
     // ── Dense Citadel Chunks ─────────────────────────────────────────
-    /** Houses per dense chunk (8–16 typical). Default 12 */
+    /** Houses per dense chunk (8–16 typical). Default 14 */
     readonly denseHouseCount?: number;
     /** Tiles between houses in dense (0 = wall-to-wall, 1 = narrow alleys). Default 1 */
     readonly denseHouseSpacing?: number;
-    /** Clear forest within N tiles of each house to create open ground. Default 1 */
+    /** Clear forest within N tiles of each house to create open ground. Default 2 */
     readonly denseClearRadius?: number;
 
     // ── Transition Chunks ────────────────────────────────────────────
-    /** Houses per transition chunk (2–6 typical). Default 4 */
+    /** Houses per transition chunk (2–6 typical). Default 6 */
     readonly transitionHouseCount?: number;
     /** Tiles between houses in transition. Default 1 */
     readonly transitionHouseSpacing?: number;
 
     // ── Forest Chunks ────────────────────────────────────────────────
-    /** Houses per forest chunk (0 = empty forest). Default 0 */
+    /** Houses per forest chunk (0 = empty forest). Default 1 */
     readonly forestHouseCount?: number;
 }
 
@@ -86,12 +86,12 @@ const ZONE_DEFAULTS = {
     villageSpacing: 4,
     denseRadius: 0,
     transitionRadius: 1,
-    denseHouseCount: 12,
+    denseHouseCount: 14,
     denseHouseSpacing: 1,
-    denseClearRadius: 1,
-    transitionHouseCount: 4,
+    denseClearRadius: 2,
+    transitionHouseCount: 6,
     transitionHouseSpacing: 1,
-    forestHouseCount: 0,
+    forestHouseCount: 1,
 };
 
 // ── Per-chunk-type layout presets ────────────────────────────────────────
@@ -100,12 +100,12 @@ function densePreset(cfg: typeof ZONE_DEFAULTS): CitadelLayoutParams {
     return {
         ...DEFAULT_CITADEL_PARAMS,
         houseCount: cfg.denseHouseCount,
-        houseMinSpacing: Math.max(2, cfg.denseHouseSpacing),
+        houseMinSpacing: Math.max(1, cfg.denseHouseSpacing),
         neighborhoodCount: 1,
         spreadFactor: 0.30,
         houseClearRadius: Math.max(1, cfg.denseClearRadius),
-        scatterTreeChance: 0.08,
-        villageGroundGrowth: 1,
+        scatterTreeChance: 0.03,
+        villageGroundGrowth: 2,
         fenceChance: 0,
         rubbleChance: 0,
         centerBias: null,
@@ -135,12 +135,12 @@ function transitionPreset(
     return {
         ...DEFAULT_CITADEL_PARAMS,
         houseCount: cfg.transitionHouseCount,
-        houseMinSpacing: Math.max(2, cfg.transitionHouseSpacing),
+        houseMinSpacing: Math.max(1, cfg.transitionHouseSpacing),
         neighborhoodCount: 1,
         spreadFactor: 0.24,
-        houseClearRadius: 1,
-        scatterTreeChance: 0.05,
-        villageGroundGrowth: 1,
+        houseClearRadius: 2,
+        scatterTreeChance: 0.02,
+        villageGroundGrowth: 2,
         fenceChance: 0,
         rubbleChance: 0,
         centerBias: bias,
@@ -170,9 +170,9 @@ function forestPreset(cfg: typeof ZONE_DEFAULTS): CitadelLayoutParams {
         houseMinSpacing: 2,
         neighborhoodCount: 1,
         spreadFactor: 0.20,
-        houseClearRadius: 1,
+        houseClearRadius: 2,
         scatterTreeChance: 0,
-        villageGroundGrowth: 0,
+        villageGroundGrowth: 1,
         fenceChance: 0,
         rubbleChance: 0,
         centerBias: null,

@@ -126,15 +126,15 @@ export class Act3Definition extends ActDefinition {
       villageSpacing: 4,
       denseRadius: 0,
       transitionRadius: 1,
-      // ── Dense citadel ──
-      denseHouseCount: 12,
+      // ── Dense citadel (structure-first) ──
+      denseHouseCount: 14,
       denseHouseSpacing: 1,
-      denseClearRadius: 1,
+      denseClearRadius: 2,
       // ── Transition ──
-      transitionHouseCount: 4,
+      transitionHouseCount: 6,
       transitionHouseSpacing: 1,
-      // ── Forest ──
-      forestHouseCount: 0,
+      // ── Forest (still inhabited; occasional structures) ──
+      forestHouseCount: 1,
     });
   }
 }
