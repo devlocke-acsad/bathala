@@ -223,6 +223,24 @@
       "baseVolume": 0.47,
       "loop": true,
       "tags": ["ambient", "forest", "scary", "act1", "layer"]
+    },
+    {
+      "key": "act3_ambiance_sky_1",
+      "path": "sfx/ambient/ambiance_sky1.mp3",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.46,
+      "loop": true,
+      "tags": ["ambient", "sky", "act3", "layer"]
+    },
+    {
+      "key": "act3_ambiance_sky_3",
+      "path": "sfx/ambient/ambiance_sky3.mp3",
+      "type": "sfx",
+      "channel": "ambient",
+      "baseVolume": 0.45,
+      "loop": true,
+      "tags": ["ambient", "sky", "act3", "layer"]
     }
   ]
 }

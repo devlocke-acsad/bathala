@@ -273,10 +273,6 @@ function normalizeStringArrayMap(raw: unknown): Record<string, string[]> {
     }
 
     const normalized = value.filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
-    if (normalized.length === 0) {
-      continue;
-    }
-
     output[key] = normalized;
   }
 
