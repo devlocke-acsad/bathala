@@ -29,13 +29,11 @@
  (global $assembly/generation-kernels/submerged-village/houses/DOOR_DX (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/submerged-village/buffers/TEMP_Y (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/submerged-village/buffers/TEMP_X (mut i32) (i32.const 0))
- (global $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_A (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/buffers/houseCount (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/submerged-village/buffers/houseCount (mut i32) (i32.const 0))
- (global $assembly/generation-kernels/skyward-citadel/buffers/TEMP_Y (mut i32) (i32.const 0))
- (global $assembly/generation-kernels/skyward-citadel/buffers/TEMP_X (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/common/grid/PATH_BUF (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/common/grid/LABELS (mut i32) (i32.const 0))
+ (global $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_A (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/common/grid/G_COST (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/common/grid/OPEN_IDX (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/common/grid/OPEN_F (mut i32) (i32.const 0))
@@ -56,6 +54,8 @@
  (global $assembly/generation-kernels/submerged-village/houses/TMPL_Y (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/submerged-village/houses/TMPL_X (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/common/grid/CAME_FROM (mut i32) (i32.const 0))
+ (global $assembly/generation-kernels/skyward-citadel/buffers/TEMP_Y (mut i32) (i32.const 0))
+ (global $assembly/generation-kernels/skyward-citadel/buffers/TEMP_X (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/roads/EDGE_D (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/buffers/HTILES_Y (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/buffers/HTILES_X (mut i32) (i32.const 0))
@@ -65,12 +65,12 @@
  (global $assembly/generation-kernels/common/grid/CLOSED (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/roads/compTotalTiles (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/roads/COMP_SIZE (mut i32) (i32.const 0))
+ (global $assembly/generation-kernels/skyward-citadel/houses/CTR_Y (mut i32) (i32.const 0))
+ (global $assembly/generation-kernels/skyward-citadel/houses/CTR_X (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/buffers/rngState (mut i32) (i32.const 1))
  (global $assembly/generation-kernels/submerged-village/roads/compTotalTiles (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/submerged-village/roads/COMP_SIZE (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/submerged-village/buffers/rngState (mut i32) (i32.const 1))
- (global $assembly/generation-kernels/skyward-citadel/houses/CTR_Y (mut i32) (i32.const 0))
- (global $assembly/generation-kernels/skyward-citadel/houses/CTR_X (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/houses/doorCount (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_B (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/buffers/totalHouseTiles (mut i32) (i32.const 0))
@@ -176,25 +176,11 @@
  (data $30.2 (i32.const 2584) "\ff\ff\ff\ff\01")
  (data $31 (i32.const 2604) ",")
  (data $31.1 (i32.const 2616) "\04\00\00\00\10\00\00\00\ff\ff\ff\ff\01")
- (data $32 (i32.const 2652) "<")
- (data $32.1 (i32.const 2664) "\04\00\00\00 \00\00\00\ff\ff\ff\ff\00\00\00\00\01\00\00\00\ff\ff\ff\ff\01\00\00\00\ff\ff\ff\ff\00\00\00\00\01")
- (data $33 (i32.const 2716) "<")
- (data $33.1 (i32.const 2728) "\04\00\00\00 \00\00\00\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\ff\00\00\00\00\00\00\00\00\01\00\00\00\01\00\00\00\01")
- (data $34 (i32.const 2780) ",")
- (data $34.1 (i32.const 2792) "\04\00\00\00\10\00\00\00\01\00\00\00\ff\ff\ff\ff")
- (data $35 (i32.const 2828) ",")
- (data $35.1 (i32.const 2840) "\04\00\00\00\10")
- (data $35.2 (i32.const 2856) "\01\00\00\00\ff\ff\ff\ff")
- (data $36 (i32.const 2876) ",")
- (data $36.1 (i32.const 2888) "\04\00\00\00\10")
- (data $36.2 (i32.const 2904) "\ff\ff\ff\ff\01")
- (data $37 (i32.const 2924) ",")
- (data $37.1 (i32.const 2936) "\04\00\00\00\10\00\00\00\ff\ff\ff\ff\01")
- (data $38 (i32.const 2972) ",")
- (data $38.1 (i32.const 2984) "\04\00\00\00\10")
- (data $38.2 (i32.const 3000) "\ff\ff\ff\ff\01")
- (data $39 (i32.const 3020) ",")
- (data $39.1 (i32.const 3032) "\04\00\00\00\10\00\00\00\ff\ff\ff\ff\01")
+ (data $32 (i32.const 2652) ",")
+ (data $32.1 (i32.const 2664) "\04\00\00\00\10")
+ (data $32.2 (i32.const 2680) "\ff\ff\ff\ff\01")
+ (data $33 (i32.const 2700) ",")
+ (data $33.1 (i32.const 2712) "\04\00\00\00\10\00\00\00\ff\ff\ff\ff\01")
  (export "ensureCapacity" (func $assembly/generation-kernels/common/grid/ensureCapacity))
  (export "getGridPtr" (func $assembly/generation-kernels/common/grid/getGridPtr))
  (export "getPathPtr" (func $assembly/generation-kernels/common/grid/getPathPtr))
@@ -12166,7 +12152,7 @@
   local.set $12
   loop $for-loop|0
    local.get $13
-   i32.const 80
+   i32.const 220
    i32.lt_s
    if
     global.get $assembly/generation-kernels/skyward-citadel/houses/POOL
@@ -12493,8 +12479,8 @@
   (local $6 i32)
   (local $7 i32)
   (local $8 i32)
-  (local $9 f64)
-  (local $10 i32)
+  (local $9 i32)
+  (local $10 f64)
   (local $11 i32)
   (local $12 i32)
   (local $13 i32)
@@ -12525,7 +12511,7 @@
   local.set $8
   global.get $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
   i32.load
-  local.set $10
+  local.set $9
   global.get $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
   i32.load offset=8
   local.set $12
@@ -12538,14 +12524,14 @@
   f64.convert_i32_s
   f64.const 0.5
   f64.mul
-  local.set $9
+  local.set $10
   global.get $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
   i32.load offset=36
   local.tee $2
   i32.const 2147483647
   i32.ne
   if
-   local.get $9
+   local.get $10
    global.get $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
    i32.load offset=40
    f64.convert_i32_s
@@ -12557,7 +12543,7 @@
    f64.const 0.25
    f64.mul
    f64.add
-   local.set $9
+   local.set $10
    local.get $4
    local.get $2
    f64.convert_i32_s
@@ -12579,17 +12565,17 @@
   select
   f64.convert_i32_s
   local.tee $15
-  f64.const 0.35
+  f64.const 0.18
   f64.mul
   i32.trunc_sat_f64_s
   local.set $13
   local.get $15
-  f64.const 0.2
+  f64.const 0.48
   f64.mul
   local.set $15
   loop $for-loop|0
    local.get $11
-   i32.const 200
+   i32.const 500
    i32.lt_s
    local.get $3
    local.get $12
@@ -12606,7 +12592,7 @@
     f64.floor
     i32.trunc_sat_f64_s
     local.set $5
-    local.get $9
+    local.get $10
     call $assembly/generation-kernels/skyward-citadel/buffers/rng
     f64.const -0.5
     f64.add
@@ -12789,7 +12775,7 @@
     i32.const 2
     i32.add
     local.tee $2
-    local.get $9
+    local.get $10
     f64.floor
     i32.trunc_sat_f64_s
     local.tee $5
@@ -12812,7 +12798,7 @@
   end
   i32.const 1
   local.get $3
-  local.get $10
+  local.get $9
   i32.add
   i32.const 1
   i32.sub
@@ -12835,7 +12821,7 @@
     local.set $6
     loop $for-loop|3
      global.get $assembly/generation-kernels/skyward-citadel/buffers/houseCount
-     local.get $10
+     local.get $9
      i32.lt_s
      local.get $5
      local.get $6
@@ -12868,6 +12854,50 @@
     i32.add
     local.set $2
     br $for-loop|2
+   end
+  end
+  i32.const 300
+  local.get $9
+  i32.const 60
+  i32.mul
+  local.tee $2
+  local.get $2
+  i32.const 300
+  i32.lt_s
+  select
+  local.set $6
+  loop $while-continue|4
+   global.get $assembly/generation-kernels/skyward-citadel/buffers/houseCount
+   local.get $9
+   i32.lt_s
+   local.get $6
+   i32.const 0
+   i32.gt_s
+   i32.and
+   if
+    local.get $6
+    i32.const 1
+    i32.sub
+    local.set $6
+    local.get $0
+    local.get $1
+    i32.const 0
+    local.get $3
+    i32.const 1
+    i32.sub
+    call $assembly/generation-kernels/skyward-citadel/buffers/rngInt
+    i32.const 2
+    i32.shl
+    local.tee $2
+    global.get $assembly/generation-kernels/skyward-citadel/houses/CTR_X
+    i32.add
+    i32.load
+    global.get $assembly/generation-kernels/skyward-citadel/houses/CTR_Y
+    local.get $2
+    i32.add
+    i32.load
+    call $assembly/generation-kernels/skyward-citadel/houses/tryPlaceHouseNear
+    br $while-continue|4
    end
   end
  )
@@ -16480,871 +16510,6 @@
    end
   end
  )
- (func $assembly/generation-kernels/skyward-citadel/terrain/paintWaterPonds (param $0 i32) (param $1 i32)
-  (local $2 i32)
-  (local $3 i32)
-  (local $4 i32)
-  (local $5 i32)
-  (local $6 i32)
-  (local $7 i32)
-  (local $8 i32)
-  (local $9 i32)
-  (local $10 i32)
-  (local $11 i32)
-  (local $12 i32)
-  (local $13 i32)
-  (local $14 i32)
-  (local $15 f64)
-  (local $16 i32)
-  (local $17 i32)
-  (local $18 i32)
-  (local $19 i32)
-  (local $20 i32)
-  (local $21 i32)
-  (local $22 i32)
-  global.get $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
-  i32.load offset=84
-  i32.const 1
-  i32.add
-  local.set $11
-  local.get $0
-  local.get $1
-  i32.mul
-  local.set $13
-  loop $for-loop|0
-   local.get $14
-   i32.const 0
-   i32.lt_s
-   if
-    block $for-continue|0
-     call $assembly/generation-kernels/skyward-citadel/buffers/rng
-     f64.const 0.45
-     f64.lt
-     i32.eqz
-     if
-      i32.const 0
-      local.set $12
-      i32.const 0
-      local.set $8
-      loop $for-loop|1
-       local.get $12
-       i32.eqz
-       local.get $8
-       i32.const 24
-       i32.lt_s
-       i32.and
-       if
-        block $for-continue|1
-         local.get $11
-         i32.const 2
-         i32.add
-         local.tee $2
-         local.get $0
-         local.get $11
-         i32.sub
-         i32.const 3
-         i32.sub
-         call $assembly/generation-kernels/skyward-citadel/buffers/rngInt
-         local.tee $3
-         local.get $2
-         local.get $1
-         local.get $11
-         i32.sub
-         i32.const 3
-         i32.sub
-         call $assembly/generation-kernels/skyward-citadel/buffers/rngInt
-         local.tee $2
-         local.get $0
-         i32.mul
-         i32.add
-         i32.const 2
-         i32.shl
-         global.get $assembly/generation-kernels/common/grid/GRID
-         i32.add
-         i32.load
-         i32.const 1
-         i32.ne
-         br_if $for-continue|1
-         i32.const 0
-         i32.const 16
-         call $assembly/generation-kernels/skyward-citadel/buffers/rngInt
-         i32.const 12
-         i32.add
-         local.set $4
-         global.get $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_A
-         local.get $13
-         call $assembly/generation-kernels/submerged-village/buffers/clearBitmap
-         global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_X
-         i32.const 0
-         local.get $3
-         call $~lib/staticarray/StaticArray<i32>#__uset
-         global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_Y
-         i32.const 0
-         local.get $2
-         call $~lib/staticarray/StaticArray<i32>#__uset
-         i32.const 1
-         local.set $2
-         i32.const 0
-         local.set $7
-         loop $while-continue|2
-          local.get $4
-          local.get $7
-          i32.gt_s
-          local.get $2
-          i32.const 0
-          i32.gt_s
-          i32.and
-          if
-           i32.const 0
-           local.get $2
-           i32.const 1
-           i32.sub
-           local.tee $2
-           call $assembly/generation-kernels/skyward-citadel/buffers/rngInt
-           local.tee $3
-           i32.const 2
-           i32.shl
-           local.tee $5
-           global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_X
-           i32.add
-           i32.load
-           local.set $6
-           global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_Y
-           local.get $5
-           i32.add
-           i32.load
-           local.set $9
-           global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_X
-           local.get $3
-           local.get $2
-           i32.const 2
-           i32.shl
-           local.tee $5
-           global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_X
-           i32.add
-           i32.load
-           call $~lib/staticarray/StaticArray<i32>#__uset
-           global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_Y
-           local.get $3
-           global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_Y
-           local.get $5
-           i32.add
-           i32.load
-           call $~lib/staticarray/StaticArray<i32>#__uset
-           local.get $9
-           i32.const 1
-           i32.le_s
-           local.get $6
-           i32.const 1
-           i32.le_s
-           i32.or
-           local.get $6
-           local.get $0
-           i32.const 2
-           i32.sub
-           i32.ge_s
-           i32.or
-           local.get $9
-           local.get $1
-           i32.const 2
-           i32.sub
-           i32.ge_s
-           i32.or
-           br_if $while-continue|2
-           local.get $0
-           local.get $9
-           i32.mul
-           local.get $6
-           i32.add
-           local.tee $3
-           global.get $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_A
-           i32.add
-           local.tee $5
-           i32.load8_u
-           br_if $while-continue|2
-           global.get $assembly/generation-kernels/common/grid/GRID
-           local.get $3
-           i32.const 2
-           i32.shl
-           i32.add
-           i32.load
-           i32.const 1
-           i32.ne
-           br_if $while-continue|2
-           local.get $5
-           i32.const 1
-           i32.store8
-           local.get $7
-           i32.const 1
-           i32.add
-           local.set $7
-           i32.const 16
-           i32.const 2576
-           call $~lib/rt/__newBuffer
-           local.set $3
-           i32.const 16
-           i32.const 2624
-           call $~lib/rt/__newBuffer
-           local.set $10
-           i32.const 0
-           local.set $5
-           loop $for-loop|3
-            local.get $5
-            i32.const 4
-            i32.lt_s
-            if
-             local.get $6
-             local.get $3
-             local.get $5
-             i32.const 2
-             i32.shl
-             local.tee $16
-             i32.add
-             i32.load
-             i32.add
-             local.tee $17
-             local.get $0
-             i32.lt_s
-             local.get $17
-             i32.const 0
-             i32.ge_s
-             i32.and
-             local.get $9
-             local.get $10
-             local.get $16
-             i32.add
-             i32.load
-             i32.add
-             local.tee $16
-             i32.const 0
-             i32.ge_s
-             i32.and
-             local.get $1
-             local.get $16
-             i32.gt_s
-             i32.and
-             if (result i32)
-              global.get $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_A
-              local.get $0
-              local.get $16
-              i32.mul
-              local.get $17
-              i32.add
-              i32.add
-              i32.load8_u
-             else
-              i32.const 1
-             end
-             i32.eqz
-             if
-              local.get $2
-              i32.const 500
-              i32.lt_s
-              call $assembly/generation-kernels/skyward-citadel/buffers/rng
-              f64.const 0.82
-              f64.lt
-              i32.and
-              if
-               global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_X
-               local.get $2
-               local.get $17
-               call $~lib/staticarray/StaticArray<i32>#__uset
-               global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_Y
-               local.get $2
-               local.get $16
-               call $~lib/staticarray/StaticArray<i32>#__uset
-               local.get $2
-               i32.const 1
-               i32.add
-               local.set $2
-              end
-             end
-             local.get $5
-             i32.const 1
-             i32.add
-             local.set $5
-             br $for-loop|3
-            end
-           end
-           br $while-continue|2
-          end
-         end
-         local.get $7
-         i32.const 10
-         i32.lt_s
-         br_if $for-continue|1
-         i32.const 0
-         local.set $2
-         i32.const 32
-         i32.const 2672
-         call $~lib/rt/__newBuffer
-         local.set $3
-         i32.const 32
-         i32.const 2736
-         call $~lib/rt/__newBuffer
-         local.set $7
-         i32.const 0
-         local.set $4
-         loop $for-loop|4
-          local.get $2
-          i32.eqz
-          local.get $1
-          local.get $4
-          i32.gt_s
-          i32.and
-          if
-           i32.const 0
-           local.set $6
-           loop $for-loop|5
-            local.get $2
-            i32.eqz
-            local.get $0
-            local.get $6
-            i32.gt_s
-            i32.and
-            if
-             global.get $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_A
-             local.get $0
-             local.get $4
-             i32.mul
-             local.get $6
-             i32.add
-             i32.add
-             i32.load8_u
-             if
-              i32.const 0
-              local.set $5
-              loop $for-loop|6 (result i32)
-               local.get $5
-               i32.const 8
-               i32.lt_s
-               if (result i32)
-                block $for-break6
-                 local.get $6
-                 local.get $3
-                 local.get $5
-                 i32.const 2
-                 i32.shl
-                 local.tee $9
-                 i32.add
-                 i32.load
-                 i32.add
-                 local.tee $10
-                 local.get $0
-                 i32.lt_s
-                 local.get $10
-                 i32.const 0
-                 i32.ge_s
-                 i32.and
-                 local.get $4
-                 local.get $7
-                 local.get $9
-                 i32.add
-                 i32.load
-                 i32.add
-                 local.tee $9
-                 i32.const 0
-                 i32.ge_s
-                 i32.and
-                 local.get $1
-                 local.get $9
-                 i32.gt_s
-                 i32.and
-                 i32.eqz
-                 br_if $for-break6
-                 local.get $0
-                 local.get $9
-                 i32.mul
-                 local.get $10
-                 i32.add
-                 local.tee $9
-                 global.get $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_A
-                 i32.add
-                 i32.load8_u
-                 i32.eqz
-                 if
-                  global.get $assembly/generation-kernels/common/grid/GRID
-                  local.get $9
-                  i32.const 2
-                  i32.shl
-                  i32.add
-                  i32.load
-                  i32.const 1
-                  i32.ne
-                  br_if $for-break6
-                 end
-                 local.get $5
-                 i32.const 1
-                 i32.add
-                 local.set $5
-                 br $for-loop|6
-                end
-                i32.const 1
-               else
-                local.get $2
-               end
-              end
-              local.set $2
-             end
-             local.get $6
-             i32.const 1
-             i32.add
-             local.set $6
-             br $for-loop|5
-            end
-           end
-           local.get $4
-           i32.const 1
-           i32.add
-           local.set $4
-           br $for-loop|4
-          end
-         end
-         local.get $2
-         br_if $for-continue|1
-         i32.const 0
-         local.set $2
-         loop $for-loop|7
-          local.get $1
-          local.get $2
-          i32.gt_s
-          if
-           i32.const 0
-           local.set $4
-           loop $for-loop|8
-            local.get $0
-            local.get $4
-            i32.gt_s
-            if
-             local.get $0
-             local.get $2
-             i32.mul
-             local.get $4
-             i32.add
-             local.tee $3
-             global.get $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_A
-             i32.add
-             i32.load8_u
-             if
-              global.get $assembly/generation-kernels/common/grid/GRID
-              local.get $3
-              i32.const 9
-              call $~lib/staticarray/StaticArray<i32>#__uset
-             end
-             local.get $4
-             i32.const 1
-             i32.add
-             local.set $4
-             br $for-loop|8
-            end
-           end
-           local.get $2
-           i32.const 1
-           i32.add
-           local.set $2
-           br $for-loop|7
-          end
-         end
-         i32.const 1
-         local.set $12
-        end
-        local.get $8
-        i32.const 1
-        i32.add
-        local.set $8
-        br $for-loop|1
-       end
-      end
-      br $for-continue|0
-     end
-     i32.const 0
-     local.set $12
-     i32.const 16
-     i32.const 2800
-     call $~lib/rt/__newBuffer
-     local.set $20
-     i32.const 16
-     i32.const 2848
-     call $~lib/rt/__newBuffer
-     local.set $16
-     i32.const 0
-     local.set $9
-     loop $for-loop|9
-      local.get $12
-      i32.eqz
-      local.get $9
-      i32.const 36
-      i32.lt_s
-      i32.and
-      if
-       block $for-continue|9
-        local.get $11
-        i32.const 2
-        i32.add
-        local.tee $2
-        local.get $0
-        local.get $11
-        i32.sub
-        i32.const 3
-        i32.sub
-        call $assembly/generation-kernels/skyward-citadel/buffers/rngInt
-        local.tee $7
-        local.get $2
-        local.get $1
-        local.get $11
-        i32.sub
-        i32.const 3
-        i32.sub
-        call $assembly/generation-kernels/skyward-citadel/buffers/rngInt
-        local.tee $8
-        local.get $0
-        i32.mul
-        i32.add
-        i32.const 2
-        i32.shl
-        global.get $assembly/generation-kernels/common/grid/GRID
-        i32.add
-        i32.load
-        i32.const 1
-        i32.ne
-        br_if $for-continue|9
-        i32.const 2
-        i32.const 1
-        call $assembly/generation-kernels/skyward-citadel/buffers/rng
-        f64.const 0.22
-        f64.lt
-        select
-        local.set $21
-        i32.const 0
-        i32.const 7
-        call $assembly/generation-kernels/skyward-citadel/buffers/rngInt
-        i32.const 7
-        i32.add
-        local.set $17
-        i32.const 0
-        i32.const 3
-        call $assembly/generation-kernels/skyward-citadel/buffers/rngInt
-        local.set $2
-        i32.const 1
-        local.set $4
-        i32.const 0
-        local.set $3
-        global.get $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_A
-        local.get $13
-        call $assembly/generation-kernels/submerged-village/buffers/clearBitmap
-        i32.const 0
-        local.set $10
-        loop $for-loop|10
-         local.get $4
-         local.get $10
-         local.get $17
-         i32.lt_s
-         i32.and
-         if
-          block $for-break10
-           i32.const 0
-           local.get $21
-           i32.sub
-           local.set $6
-           loop $for-loop|11
-            local.get $4
-            local.get $6
-            local.get $21
-            i32.le_s
-            i32.and
-            if
-             i32.const 0
-             local.get $21
-             i32.sub
-             local.set $5
-             loop $for-loop|12 (result i32)
-              local.get $5
-              local.get $21
-              i32.le_s
-              if (result i32)
-               block $for-break12
-                i32.const 0
-                local.get $5
-                i32.sub
-                local.get $5
-                local.get $5
-                i32.const 0
-                i32.lt_s
-                select
-                i32.const 0
-                local.get $6
-                i32.sub
-                local.get $6
-                local.get $6
-                i32.const 0
-                i32.lt_s
-                select
-                i32.add
-                local.get $21
-                local.get $21
-                i32.const 2
-                i32.eq
-                i32.add
-                i32.le_s
-                if
-                 local.get $5
-                 local.get $7
-                 i32.add
-                 local.tee $18
-                 local.get $0
-                 i32.lt_s
-                 local.get $18
-                 i32.const 0
-                 i32.ge_s
-                 i32.and
-                 local.get $6
-                 local.get $8
-                 i32.add
-                 local.tee $19
-                 i32.const 0
-                 i32.ge_s
-                 i32.and
-                 local.get $1
-                 local.get $19
-                 i32.gt_s
-                 i32.and
-                 i32.eqz
-                 local.get $18
-                 i32.const 0
-                 i32.le_s
-                 i32.or
-                 local.get $19
-                 i32.const 0
-                 i32.le_s
-                 i32.or
-                 local.get $18
-                 local.get $0
-                 i32.const 1
-                 i32.sub
-                 i32.ge_s
-                 i32.or
-                 local.get $19
-                 local.get $1
-                 i32.const 1
-                 i32.sub
-                 i32.ge_s
-                 i32.or
-                 br_if $for-break12
-                 global.get $assembly/generation-kernels/common/grid/GRID
-                 local.get $0
-                 local.get $19
-                 i32.mul
-                 local.get $18
-                 i32.add
-                 local.tee $22
-                 i32.const 2
-                 i32.shl
-                 i32.add
-                 i32.load
-                 i32.const 1
-                 i32.ne
-                 br_if $for-break12
-                 local.get $22
-                 global.get $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_A
-                 i32.add
-                 local.tee $22
-                 i32.load8_u
-                 i32.eqz
-                 if
-                  local.get $22
-                  i32.const 1
-                  i32.store8
-                  global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_X
-                  local.get $3
-                  local.get $18
-                  call $~lib/staticarray/StaticArray<i32>#__uset
-                  global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_Y
-                  local.get $3
-                  local.get $19
-                  call $~lib/staticarray/StaticArray<i32>#__uset
-                  local.get $3
-                  i32.const 1
-                  i32.add
-                  local.set $3
-                 end
-                end
-                local.get $5
-                i32.const 1
-                i32.add
-                local.set $5
-                br $for-loop|12
-               end
-               i32.const 0
-              else
-               local.get $4
-              end
-             end
-             local.set $4
-             local.get $6
-             i32.const 1
-             i32.add
-             local.set $6
-             br $for-loop|11
-            end
-           end
-           local.get $4
-           i32.eqz
-           br_if $for-break10
-           call $assembly/generation-kernels/skyward-citadel/buffers/rng
-           local.tee $15
-           f64.const 0.3
-           f64.lt
-           if
-            local.get $15
-            f64.const 0.15
-            f64.lt
-            if (result i32)
-             i32.const 3
-             local.get $2
-             i32.const 2
-             i32.eq
-             local.get $2
-             i32.const 1
-             i32.eq
-             select
-             i32.const 2
-             local.get $2
-             select
-            else
-             i32.const 2
-             local.get $2
-             i32.const 2
-             i32.ne
-             local.get $2
-             i32.const 1
-             i32.eq
-             select
-             i32.const 3
-             local.get $2
-             select
-            end
-            local.set $2
-           end
-           i32.const 0
-           local.get $4
-           local.get $7
-           local.get $20
-           local.get $2
-           i32.const 2
-           i32.shl
-           local.tee $4
-           i32.add
-           i32.load
-           i32.add
-           local.tee $7
-           local.get $0
-           i32.lt_s
-           local.get $7
-           i32.const 0
-           i32.ge_s
-           i32.and
-           local.get $8
-           local.get $4
-           local.get $16
-           i32.add
-           i32.load
-           i32.add
-           local.tee $8
-           i32.const 0
-           i32.ge_s
-           i32.and
-           local.get $1
-           local.get $8
-           i32.gt_s
-           i32.and
-           i32.eqz
-           local.get $7
-           i32.const 1
-           i32.le_s
-           i32.or
-           local.get $8
-           i32.const 1
-           i32.le_s
-           i32.or
-           local.get $7
-           local.get $0
-           i32.const 2
-           i32.sub
-           i32.ge_s
-           i32.or
-           local.get $8
-           local.get $1
-           i32.const 2
-           i32.sub
-           i32.ge_s
-           i32.or
-           select
-           local.set $4
-           local.get $10
-           i32.const 1
-           i32.add
-           local.set $10
-           br $for-loop|10
-          end
-         end
-        end
-        local.get $4
-        i32.eqz
-        local.get $3
-        i32.const 14
-        i32.lt_s
-        i32.or
-        br_if $for-continue|9
-        i32.const 0
-        local.set $2
-        loop $for-loop|13
-         local.get $2
-         local.get $3
-         i32.lt_s
-         if
-          global.get $assembly/generation-kernels/common/grid/GRID
-          local.get $2
-          i32.const 2
-          i32.shl
-          local.tee $4
-          global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_X
-          i32.add
-          i32.load
-          global.get $assembly/generation-kernels/skyward-citadel/buffers/TEMP_Y
-          local.get $4
-          i32.add
-          i32.load
-          local.get $0
-          i32.mul
-          i32.add
-          i32.const 9
-          call $~lib/staticarray/StaticArray<i32>#__uset
-          local.get $2
-          i32.const 1
-          i32.add
-          local.set $2
-          br $for-loop|13
-         end
-        end
-        i32.const 1
-        local.set $12
-       end
-       local.get $9
-       i32.const 1
-       i32.add
-       local.set $9
-       br $for-loop|9
-      end
-     end
-    end
-    local.get $14
-    i32.const 1
-    i32.add
-    local.set $14
-    br $for-loop|0
-   end
-  end
- )
  (func $assembly/generation-kernels/skyward-citadel/terrain/paintHillClusters (param $0 i32) (param $1 i32) (param $2 i32)
   (local $3 i32)
   (local $4 i32)
@@ -17952,9 +17117,6 @@
   end
   local.get $0
   local.get $1
-  call $assembly/generation-kernels/skyward-citadel/terrain/paintWaterPonds
-  local.get $0
-  local.get $1
   global.get $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
   i32.load offset=92
   call $assembly/generation-kernels/skyward-citadel/terrain/paintHillClusters
@@ -18044,7 +17206,7 @@
   call $assembly/generation-kernels/skyward-citadel/roads/ensureGlobalAccessibility
  )
  (func $~start
-  i32.const 3068
+  i32.const 2748
   global.set $~lib/rt/stub/offset
   i32.const 16384
   call $~lib/staticarray/StaticArray<i32>#constructor
@@ -18159,31 +17321,31 @@
   i32.const 32
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_OX
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_OY
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_DOOR_X
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_DOOR_Y
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_SHAPE
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_TILE_START
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_TILE_COUNT
-  i32.const 720
+  i32.const 1440
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HTILES_X
-  i32.const 720
+  i32.const 1440
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HTILES_Y
   call $~lib/staticarray/StaticArray<u8>#constructor
@@ -18211,10 +17373,10 @@
   i32.const 8
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/houses/POOL
-  i32.const 8
+  i32.const 12
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/houses/CTR_X
-  i32.const 8
+  i32.const 12
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/houses/CTR_Y
   i32.const 128
