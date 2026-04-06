@@ -899,18 +899,18 @@ export class CombatUI {
     this.handEvaluationText = this.scene.add
       .text(0, -128, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 22,
-        color: "#fff2d8",
+        fontSize: 18,
+        color: "#edf1f3",
         align: "center",
-        backgroundColor: "#10070b",
-        stroke: "#3d1620",
+        backgroundColor: "#171b1f",
+        stroke: "#0b0d0f",
         strokeThickness: 2,
-        lineSpacing: 6,
-        padding: { left: 22, right: 22, top: 12, bottom: 10 },
-        fixedWidth: 300,
+        lineSpacing: 4,
+        padding: { left: 18, right: 18, top: 8, bottom: 7 },
+        fixedWidth: 240,
       })
       .setOrigin(0.5)
-      .setAngle(-2)
+      .setAngle(0)
       .setDepth(844)
       .setVisible(false);
       
@@ -2637,12 +2637,13 @@ export class CombatUI {
       this.handContainer.setVisible(false);
       this.playedHandContainer.setVisible(true);
       this.selectionCounterText.setVisible(false);
-      this.handEvaluationText.setVisible(false);
       
       const playedHand = combatState.player.playedHand;
       const dominantSuit = this.scene.getDominantSuit(combatState.player.playedHand);
       const attackEvaluation = HandEvaluator.evaluateHand(playedHand, "attack", combatState.player);
       const defendEvaluation = HandEvaluator.evaluateHand(playedHand, "defend", combatState.player);
+      this.handEvaluationText.setText(this.getHandTypeDisplayText(attackEvaluation.type).toUpperCase());
+      this.handEvaluationText.setVisible(true);
       const specialReady = this.scene.canUseSpecialActionNow();
       const actionButtonWidth = Math.round(228 * scaleFactor);
       const actionGap = Math.round(26 * scaleFactor);
@@ -3225,9 +3226,9 @@ export class CombatUI {
       this.playedCardSprites.push(cardSprite);
     });
 
-    // Show hand evaluation
-    this.handEvaluationText.setText("");
-    this.handEvaluationText.setVisible(false);
+    const handEvaluation = HandEvaluator.evaluateHand(playedHand, "attack", combatState.player);
+    this.handEvaluationText.setText(this.getHandTypeDisplayText(handEvaluation.type).toUpperCase());
+    this.handEvaluationText.setVisible(combatState.phase === "action_selection");
     
     // Ensure played hand container is visible during action phase
     if (combatState.phase === "action_selection") {
