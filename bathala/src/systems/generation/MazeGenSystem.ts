@@ -99,6 +99,18 @@ export class Overworld_MazeGenManager {
     'sv_patch_grass_sand_w',
   ];
   private submergedVillageStoneTextures: string[] = ['sv_stone_1', 'sv_stone_2', 'sv_stone_3', 'sv_stone_4', 'sv_stone_5'];
+  private skywardCitadelStoneTextures: string[] = [
+    'sc_stone_1',
+    'sc_stone_2',
+    'sc_stone_3',
+    'sc_stone_4',
+    'sc_stone_5',
+    'sc_stone_6',
+    'sc_stone_7',
+    'sc_stone_8',
+    'sc_stone_9',
+    'sc_stone_10',
+  ];
   // House sets grouped by sprite family footprint.
   private submergedVillageHouseSet3x3Ids: number[] = [1, 2, 6, 7, 8, 9, 10];
   private submergedVillageHouseSet3x2Ids: number[] = [3, 4];
@@ -1518,8 +1530,9 @@ export class Overworld_MazeGenManager {
 
     // Act 2/3 stone props (standalone variants)
     if (isOrganicVillage && tileValue === 12) {
-      const stoneIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageStoneTextures.length);
-      return this.submergedVillageStoneTextures[stoneIdx];
+      const stoneTextures = isAct3 ? this.skywardCitadelStoneTextures : this.submergedVillageStoneTextures;
+      const stoneIdx = this.getDeterministicIndex(chunkX, chunkY, x, y, stoneTextures.length);
+      return stoneTextures[stoneIdx];
     }
 
     // Obstacle tiles (TILE.OBSTACLE = 10) - randomly select from available obstacle sprites

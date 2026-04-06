@@ -429,6 +429,11 @@ export class Preloader extends Scene {
     this.load.image("sc_stone_3", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone3.png");
     this.load.image("sc_stone_4", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone4.png");
     this.load.image("sc_stone_5", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone5.png");
+    this.load.image("sc_stone_6", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone6.png");
+    this.load.image("sc_stone_7", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone7.png");
+    this.load.image("sc_stone_8", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone8.png");
+    this.load.image("sc_stone_9", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone9.png");
+    this.load.image("sc_stone_10", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone10.png");
 
     this.load.image("sc_puddle_standalone_1", "background/skywardcitadelAssets/obstacles/water/puddleStandalone1.png");
     this.load.image("sc_puddle_small_w", "background/skywardcitadelAssets/obstacles/water/puddleSmall1_W.png");
