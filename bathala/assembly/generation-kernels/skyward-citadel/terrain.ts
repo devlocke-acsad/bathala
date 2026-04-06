@@ -378,7 +378,9 @@ export function applyBiomeTerrainFeatures(w: i32, h: i32): void {
   enforceExact2x2BundlesInPlace(w, h, TILE_HILL, TILE_FOREST, 1, TILE_CLIFF, TILE_FOREST);
   removeSmallComponentsInPlace(w, h, TILE_HILL, TILE_FOREST, 4);
 
-  paintGrassPatches(w, h, param(P_GRASS_PATCH));
+    // Skyward Citadel should not generate GrassSandPatch terrain.
+    // Keep the function available for compatibility but skip invocation.
+    // paintGrassPatches(w, h, param(P_GRASS_PATCH));
   paintSandPatches(w, h, param(P_SAND_PATCH));
 
   enforceMinThickness2x2InPlace(w, h, TILE_GRASS, TILE_FOREST, 3);

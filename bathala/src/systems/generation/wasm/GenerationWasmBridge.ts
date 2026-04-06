@@ -731,7 +731,8 @@ class GenerationWasmBridge {
     // Skyward Citadel intentionally excludes cliff terrain bands.
     wasmParams[22] = 0;
     wasmParams[23] = params.hillClusterCount ?? 3;
-    wasmParams[24] = params.grassPatchCount ?? 4;
+    // Skyward Citadel intentionally excludes grass-sand patch terrain.
+    wasmParams[24] = 0;
     wasmParams[25] = params.sandPatchCount ?? 2;
     // Skyward Citadel intentionally excludes lake/water pools.
     wasmParams[26] = 0;

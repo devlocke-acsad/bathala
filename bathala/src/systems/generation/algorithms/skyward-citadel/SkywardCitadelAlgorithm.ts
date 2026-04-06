@@ -100,7 +100,7 @@ export interface CitadelLayoutParams {
     cliffBandCount: number;
     /** Number of hill clusters to place */
     hillClusterCount: number;
-    /** Number of non-traversable grass patch clusters */
+    /** Reserved legacy knob. Skyward Citadel keeps this disabled (always 0). */
     grassPatchCount: number;
     /** Number of non-traversable sand patch clusters */
     sandPatchCount: number;
@@ -133,7 +133,7 @@ export const DEFAULT_CITADEL_PARAMS: CitadelLayoutParams = {
     edgeMargin: 2,
     cliffBandCount: 0,
     hillClusterCount: 3,
-    grassPatchCount: 3,
+    grassPatchCount: 0,
     sandPatchCount: 2,
     waterPoolCount: 0,
 };
@@ -258,8 +258,9 @@ export class SkywardCitadelAlgorithm {
         const p: CitadelLayoutParams = {
             ...DEFAULT_CITADEL_PARAMS,
             ...params,
-            // Act 3 intentionally excludes cliff and lake terrain families.
+            // Act 3 intentionally excludes cliff, lake, and GrassSand patch terrain families.
             cliffBandCount: 0,
+            grassPatchCount: 0,
             waterPoolCount: 0,
         };
         const [w, h] = this.levelSize;
@@ -1534,7 +1535,7 @@ export class SkywardCitadelAlgorithm {
             throw new Error('SkywardCitadel requires generation-kernels.wasm for terrain post-processing (early batch)');
         }
 
-        const grassTotal = Math.max(1, params.grassPatchCount);
+        const grassTotal = Math.max(0, params.grassPatchCount);
         this.paintGrassPatchesSequentially(grid, grassTotal);
 
         const sandTotal = Math.max(1, params.sandPatchCount);
@@ -1549,8 +1550,6 @@ export class SkywardCitadelAlgorithm {
             (e) => e.removeSmallComponentsInPlace(w, h, TILE.CLIFF, TILE.FOREST, 8),
             (e) => e.enforceExact2x2BundlesInPlace(w, h, TILE.HILL, TILE.FOREST, 1, TILE.CLIFF, TILE.PATH),
             (e) => e.enforceExact2x2BundlesInPlace(w, h, TILE.SAND_PATCH, TILE.FOREST, 0, TILE.CLIFF, TILE.PATH),
-            (e) => e.enforceMinThickness2x2InPlace(w, h, TILE.GRASS_PATCH, TILE.FOREST, 3),
-            (e) => e.filterComponentsBySizeAndFootprintInPlace(w, h, TILE.GRASS_PATCH, TILE.FOREST, 9, 3, 3),
         ]);
         if (!finalBatchApplied) {
             throw new Error('SkywardCitadel requires generation-kernels.wasm for terrain post-processing (final batch)');

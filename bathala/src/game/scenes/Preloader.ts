@@ -351,19 +351,6 @@ export class Preloader extends Scene {
     this.load.image("sc_grass_hill_inner_se", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_SE.png");
     this.load.image("sc_grass_hill_inner_sw", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_SW.png");
 
-    this.load.image("sc_patch_grass_sand_nw", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_NW.png");
-    this.load.image("sc_patch_grass_sand_ne", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_NE.png");
-    this.load.image("sc_patch_grass_sand_sw", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_SW.png");
-    this.load.image("sc_patch_grass_sand_se", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_SE.png");
-    this.load.image("sc_patch_grass_sand_inner_nw", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_NW.png");
-    this.load.image("sc_patch_grass_sand_inner_ne", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_NE.png");
-    this.load.image("sc_patch_grass_sand_inner_sw", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_SW.png");
-    this.load.image("sc_patch_grass_sand_inner_se", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_SE.png");
-    this.load.image("sc_patch_grass_sand_n", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_N.png");
-    this.load.image("sc_patch_grass_sand_s", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_S.png");
-    this.load.image("sc_patch_grass_sand_e", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_E.png");
-    this.load.image("sc_patch_grass_sand_w", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_W.png");
-    this.load.image("sc_patch_grass_sand_middle", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_Middle.png");
     this.load.image("sc_patch_sand_grass_nw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NW.png");
     this.load.image("sc_patch_sand_grass_ne", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NE.png");
     this.load.image("sc_patch_sand_grass_sw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SW.png");
@@ -372,7 +359,6 @@ export class Preloader extends Scene {
     this.load.image("sc_patch_sand_grass_inner_ne", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NE.png");
     this.load.image("sc_patch_sand_grass_inner_sw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SW.png");
     this.load.image("sc_patch_sand_grass_inner_se", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SE.png");
-    this.load.image("sc_patch_sand_grass_middle", "background/skywardcitadelAssets/obstacles/terrain/GrassSandPatch_Middle.png");
     this.load.image("sc_patch_sand_grass_bush_nw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NW.png");
     this.load.image("sc_patch_sand_grass_bush_ne", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NE.png");
     this.load.image("sc_patch_sand_grass_bush_sw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SW.png");

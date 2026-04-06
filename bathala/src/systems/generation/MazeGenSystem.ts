@@ -1335,6 +1335,11 @@ export class Overworld_MazeGenManager {
     }
 
     if (tileValue === 7) {
+      if (isAct3) {
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.skywardCitadelWallTextures.length);
+        return this.skywardCitadelWallTextures[idx];
+      }
+
       return renderGrassSandPatchTile();
     }
 

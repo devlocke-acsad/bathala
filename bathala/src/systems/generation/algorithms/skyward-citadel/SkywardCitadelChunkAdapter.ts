@@ -122,7 +122,7 @@ function densePreset(cfg: typeof ZONE_DEFAULTS): CitadelLayoutParams {
         edgeMargin: 1,
         cliffBandCount: 0,
         hillClusterCount: 2,
-        grassPatchCount: 8,
+        grassPatchCount: 0,
         sandPatchCount: 6,
         waterPoolCount: 0,
     };
@@ -157,7 +157,7 @@ function transitionPreset(
         edgeMargin: 2,
         cliffBandCount: 0,
         hillClusterCount: 3,
-        grassPatchCount: 7,
+        grassPatchCount: 0,
         sandPatchCount: 6,
         waterPoolCount: 0,
     };
@@ -189,7 +189,7 @@ function forestPreset(cfg: typeof ZONE_DEFAULTS): CitadelLayoutParams {
         edgeMargin: 2,
         cliffBandCount: 0,
         hillClusterCount: 4,
-        grassPatchCount: 5,
+        grassPatchCount: 0,
         sandPatchCount: 5,
         waterPoolCount: 0,
     };
