@@ -50,6 +50,11 @@ import { getRelicSpriteKey } from "../../../utils/RelicSpriteUtils";
  */
 export class CombatUI {
   private scene: Combat;
+  private readonly PLAYER_HUD_WIDTH = 248;
+  private readonly PLAYER_HUD_HEIGHT = 108;
+  private readonly ENEMY_HUD_WIDTH = 248;
+  private readonly ENEMY_HUD_HEIGHT = 124;
+  private readonly HUD_EDGE_PADDING = 16;
   
   // Player UI Elements
   public playerHealthText!: Phaser.GameObjects.Text;
@@ -309,8 +314,8 @@ export class CombatUI {
       "#edf1f3",
     );
 
-    const playerHudWidth = 248;
-    const playerHudHeight = 108;
+    const playerHudWidth = this.PLAYER_HUD_WIDTH;
+    const playerHudHeight = this.PLAYER_HUD_HEIGHT;
     const playerHudPosition = this.getPlayerHudPosition(playerX, playerY, this.playerSprite, playerHudWidth);
     this.playerInfoContainer = this.scene.add.container(playerHudPosition.x, playerHudPosition.y).setDepth(820);
     const playerHudChrome = this.createStatusHudChrome(playerHudWidth, playerHudHeight, 0x8d949c, "left");
@@ -440,7 +445,7 @@ export class CombatUI {
       "#edf1f3",
     );
 
-    const enemyHudWidth = 248;
+    const enemyHudWidth = this.ENEMY_HUD_WIDTH;
     const enemyHudPosition = this.getEnemyHudPosition(enemyX, enemyY, sprite, enemyHudWidth, combatState.enemy.tier);
     const panelX = enemyHudPosition.x;
     const panelY = enemyHudPosition.y;
@@ -512,7 +517,7 @@ export class CombatUI {
     this.createElementalAffinityIndicators(this.enemyInfoContainer, affinityRowY);
     const enemyStatusLabelY = 28;
     const enemyStatusRowY = 48;
-    const enemyHudHeight = 124;
+    const enemyHudHeight = this.ENEMY_HUD_HEIGHT;
     const enemyHudChrome = this.createStatusHudChrome(enemyHudWidth, enemyHudHeight, 0x8d949c, "right");
 
     const enemyStatusLabel = this.scene.add.text(-this.HEALTH_BAR_WIDTH / 2, enemyStatusLabelY, "STATUS EFFECTS", {
@@ -625,7 +630,14 @@ export class CombatUI {
     textColor: string,
   ): Phaser.GameObjects.Container {
     const container = this.scene.add.container(x, y).setDepth(824);
-    const width = Math.max(138, Math.min(230, 84 + label.length * 10));
+    const maxWidth = Phaser.Math.Clamp(Math.round(this.scene.cameras.main.width * 0.32), 180, 360);
+    const text = this.scene.add.text(0, 0, label.toUpperCase(), {
+      fontFamily: "dungeon-mode",
+      fontSize: 20,
+      color: textColor,
+      align: "center",
+    }).setOrigin(0.5);
+    const width = Phaser.Math.Clamp(Math.ceil(text.width + 52), 160, maxWidth);
     const height = 36;
     const shadow = this.scene.add.rectangle(2, 2, width, height, 0x000000, 0.2).setOrigin(0.5);
     const outer = this.scene.add.rectangle(0, 0, width, height, fillColor, 0.98)
@@ -643,14 +655,8 @@ export class CombatUI {
       accentColor,
       0.95,
     ).setOrigin(0.5);
-    const text = this.scene.add.text(0, 0, label.toUpperCase(), {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: textColor,
-      align: "center",
-    }).setOrigin(0.5);
-
     container.add([shadow, outer, inner, headerBand, accent, text]);
+    (container as any).plateWidth = width;
     return container;
   }
 
@@ -1601,6 +1607,106 @@ export class CombatUI {
     };
   }
 
+  private getCombatHudScale(): number {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+    const widthRatio = screenWidth / 1366;
+    const heightRatio = screenHeight / 768;
+    return Phaser.Math.Clamp(Math.min(widthRatio, heightRatio), 0.8, 1);
+  }
+
+  private getNameplateWidth(label: string): number {
+    const screenWidth = this.scene.cameras.main.width;
+    return Phaser.Math.Clamp(
+      Math.round(label.length * 13 + 72),
+      160,
+      Math.round(screenWidth * 0.32),
+    );
+  }
+
+  private clampHorizontalCenter(
+    x: number,
+    width: number,
+    scale = 1,
+    padding = this.HUD_EDGE_PADDING,
+  ): number {
+    const screenWidth = this.scene.cameras.main.width;
+    const halfWidth = (width * scale) / 2;
+    const minX = padding + halfWidth;
+    const maxX = screenWidth - padding - halfWidth;
+
+    if (minX > maxX) {
+      return screenWidth / 2;
+    }
+
+    return Phaser.Math.Clamp(x, minX, maxX);
+  }
+
+  private getDamagePreviewResponsiveWidth(text: string): number {
+    const screenWidth = this.scene.cameras.main.width;
+    const normalizedText = text.trim();
+    const digitCount = Math.max(2, normalizedText.length);
+    const isNumericPreview = /^\d+$/.test(normalizedText);
+    const fontSize = screenWidth < 900 ? 52 : screenWidth < 1200 ? 58 : 64;
+    const horizontalPadding = screenWidth < 900 ? 24 : 34;
+    const charWidthFactor = isNumericPreview ? 0.98 : 0.8;
+    const strokeAllowance = isNumericPreview ? 28 : 18;
+    const calculatedWidth = Math.round(digitCount * fontSize * charWidthFactor + horizontalPadding * 2 + strokeAllowance);
+    const minWidth = screenWidth < 900 ? 182 : 232;
+    const maxWidth = Phaser.Math.Clamp(Math.round(screenWidth * 0.28), 240, 360);
+
+    return Phaser.Math.Clamp(calculatedWidth, minWidth, maxWidth);
+  }
+
+  private updateResponsiveOverlayStyles(): void {
+    const screenWidth = this.scene.cameras.main.width;
+
+    if (this.damagePreviewText) {
+      const fontSize = screenWidth < 900 ? 52 : screenWidth < 1200 ? 58 : 64;
+      const horizontalPadding = screenWidth < 900 ? 24 : 34;
+      const verticalPadding = screenWidth < 900 ? 14 : 18;
+      const fixedWidth = this.getDamagePreviewResponsiveWidth(this.damagePreviewText.text || "00");
+      this.damagePreviewText.setStyle({
+        fontSize,
+        fixedWidth,
+        padding: {
+          left: horizontalPadding,
+          right: horizontalPadding,
+          top: verticalPadding,
+          bottom: Math.max(12, verticalPadding - 4),
+        },
+      });
+      this.damagePreviewText.setAngle(screenWidth < 900 ? -1.5 : -2);
+    }
+
+    if (this.enemyAttackPreviewText) {
+      const fixedWidth = Phaser.Math.Clamp(Math.round(screenWidth * 0.24), 190, 260);
+      this.enemyAttackPreviewText.setStyle({
+        fontSize: screenWidth < 900 ? 12 : 13,
+        fixedWidth,
+        padding: {
+          left: screenWidth < 900 ? 10 : 12,
+          right: screenWidth < 900 ? 10 : 12,
+          top: 8,
+          bottom: 7,
+        },
+      });
+    }
+
+    if (this.actionResultText) {
+      const fixedWidth = Phaser.Math.Clamp(Math.round(screenWidth * 0.28), 220, 320);
+      this.actionResultText.setStyle({
+        fontSize: screenWidth < 900 ? 16 : 18,
+        fixedWidth,
+      });
+    }
+  }
+
+  public refreshResponsiveLayout(): void {
+    this.updateResponsiveOverlayStyles();
+    this.layoutBattleOverlay();
+  }
+
   private getDamagePreviewPosition(): { x: number; y: number } {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
@@ -1621,6 +1727,9 @@ export class CombatUI {
   public layoutBattleOverlay(): void {
     const { x: intentX, y: intentY } = this.getEnemyIntentPosition();
     const { x: previewX, y: previewY } = this.getDamagePreviewPosition();
+    const hudScale = this.getCombatHudScale();
+    const nameplateScale = Phaser.Math.Clamp(hudScale + 0.04, 0.84, 1);
+    this.updateResponsiveOverlayStyles();
 
     if (this.turnText) {
       this.turnText.setPosition(30, 28);
@@ -1631,43 +1740,63 @@ export class CombatUI {
     }
 
     if (this.playerInfoContainer && this.playerSprite) {
+      this.playerInfoContainer.setScale(hudScale);
       const hudPosition = this.getPlayerHudPosition(
         this.playerSprite.x,
         this.playerSprite.y,
         this.playerSprite,
-        248,
+        this.PLAYER_HUD_WIDTH,
       );
       this.playerInfoContainer.setPosition(
-        Math.round(hudPosition.x),
+        Math.round(this.clampHorizontalCenter(hudPosition.x, this.PLAYER_HUD_WIDTH, hudScale)),
         Math.round(hudPosition.y),
       );
     }
 
     if (this.playerNameplateContainer && this.playerSprite) {
+      this.playerNameplateContainer.setScale(nameplateScale);
+      const playerPlateWidth = (this.playerNameplateContainer as any).plateWidth
+        ?? this.getNameplateWidth(this.scene.getCombatState().player.name);
       this.playerNameplateContainer.setPosition(
-        Math.round(this.playerSprite.x - 10),
+        Math.round(
+          this.clampHorizontalCenter(
+            this.playerSprite.x - 10,
+            playerPlateWidth,
+            nameplateScale,
+          ),
+        ),
         Math.round(this.playerSprite.y - this.playerSprite.displayHeight / 2 - 27),
       );
     }
 
     if (this.enemyInfoContainer && this.enemySprite) {
+      this.enemyInfoContainer.setScale(hudScale);
       const combatState = this.scene.getCombatState();
       const hudPosition = this.getEnemyHudPosition(
         this.enemySprite.x,
         this.enemySprite.y,
         this.enemySprite,
-        248,
+        this.ENEMY_HUD_WIDTH,
         combatState.enemy.tier,
       );
       this.enemyInfoContainer.setPosition(
-        Math.round(hudPosition.x),
+        Math.round(this.clampHorizontalCenter(hudPosition.x, this.ENEMY_HUD_WIDTH, hudScale)),
         Math.round(hudPosition.y),
       );
     }
 
     if (this.enemyNameplateContainer && this.enemySprite) {
+      this.enemyNameplateContainer.setScale(nameplateScale);
+      const enemyPlateWidth = (this.enemyNameplateContainer as any).plateWidth
+        ?? this.getNameplateWidth(this.scene.getCombatState().enemy.name);
       this.enemyNameplateContainer.setPosition(
-        Math.round(this.enemySprite.x + 12),
+        Math.round(
+          this.clampHorizontalCenter(
+            this.enemySprite.x + 12,
+            enemyPlateWidth,
+            nameplateScale,
+          ),
+        ),
         Math.round(this.enemySprite.y - this.enemySprite.displayHeight / 2 - 27),
       );
     }
@@ -1775,14 +1904,20 @@ export class CombatUI {
   }
 
   private pulseHealthHud(container: Phaser.GameObjects.Container, isDamage: boolean): void {
+    const baseScaleX = container.scaleX;
+    const baseScaleY = container.scaleY;
+    const pulseMultiplier = isDamage ? 1.035 : 1.02;
     this.scene.tweens.killTweensOf(container);
     this.scene.tweens.add({
       targets: container,
-      scaleX: isDamage ? 1.035 : 1.02,
-      scaleY: isDamage ? 1.035 : 1.02,
+      scaleX: baseScaleX * pulseMultiplier,
+      scaleY: baseScaleY * pulseMultiplier,
       yoyo: true,
       duration: isDamage ? 110 : 160,
       ease: "Sine.Out",
+      onComplete: () => {
+        container.setScale(baseScaleX, baseScaleY);
+      },
     });
   }
 
