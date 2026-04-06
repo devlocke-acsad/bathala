@@ -4857,10 +4857,9 @@ export class Combat extends Scene {
    */
   private createActionResultUI(): void {
     const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
 
     this.actionResultText = this.add
-      .text(screenWidth / 2, Math.round(screenHeight * 0.16), "", {
+      .text(screenWidth / 2, this.getActionResultAnchorY(), "", {
         fontFamily: "dungeon-mode",
         fontSize: 18,
         color: "#eaf6ff",
@@ -4868,9 +4867,9 @@ export class Combat extends Scene {
         backgroundColor: "#10141b",
         stroke: "#07090d",
         strokeThickness: 3,
-        lineSpacing: 0,
-        padding: { left: 18, right: 18, top: 10, bottom: 9 },
-        fixedWidth: 280,
+        lineSpacing: 2,
+        padding: { left: 22, right: 22, top: 10, bottom: 10 },
+        fixedWidth: 460,
       })
       .setOrigin(0.5)
       .setAngle(0)
@@ -4881,6 +4880,28 @@ export class Combat extends Scene {
     this.layoutActionResultText("");
   }
 
+  private getActionResultAnchorY(): number {
+    const screenHeight = this.cameras.main.height;
+    const fallbackY = Math.round(Math.max(178, screenHeight * 0.24));
+
+    if (!this.itemInventoryContainer) {
+      return fallbackY;
+    }
+
+    const inventoryBounds = this.itemInventoryContainer.getBounds();
+    if (!inventoryBounds || !Number.isFinite(inventoryBounds.bottom)) {
+      return fallbackY;
+    }
+
+    return Math.round(
+      Phaser.Math.Clamp(
+        inventoryBounds.bottom + 22,
+        170,
+        Math.max(188, screenHeight * 0.34),
+      ),
+    );
+  }
+
   private getActionResultMetrics(message: string): {
     x: number;
     y: number;
@@ -4889,21 +4910,20 @@ export class Combat extends Scene {
     padding: { left: number; right: number; top: number; bottom: number };
   } {
     const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
     const compactWidth = screenWidth < 900;
-    const fontSize = compactWidth ? 14 : 16;
-    const horizontalPadding = compactWidth ? 14 : 18;
-    const verticalPadding = compactWidth ? 8 : 10;
+    const fontSize = compactWidth ? 12 : 14;
+    const horizontalPadding = compactWidth ? 18 : 24;
+    const verticalPadding = compactWidth ? 10 : 11;
     const safeMessage = message.trim().length > 0 ? message : " ";
-    const longestLineLength = Math.max(...safeMessage.split("\n").map(line => line.trim().length), 8);
-    const estimatedWidth = Math.round(longestLineLength * fontSize * 0.58 + horizontalPadding * 2);
+    const longestLineLength = Math.max(...safeMessage.split("\n").map(line => line.trim().length), 10);
+    const estimatedWidth = Math.round(longestLineLength * fontSize * 0.78 + horizontalPadding * 2);
     const width = Phaser.Math.Clamp(
       estimatedWidth,
-      compactWidth ? 220 : 280,
-      Math.round(screenWidth * (compactWidth ? 0.82 : 0.62)),
+      compactWidth ? 300 : 460,
+      Math.round(screenWidth * (compactWidth ? 0.92 : 0.82)),
     );
     const x = Math.round(screenWidth / 2);
-    const y = Math.round(Math.max(116, screenHeight * 0.18));
+    const y = this.getActionResultAnchorY();
 
     return {
       x,
@@ -4930,6 +4950,7 @@ export class Combat extends Scene {
       fontSize: metrics.fontSize,
       fixedWidth: metrics.width,
       padding: metrics.padding,
+      align: "center",
     });
   }
 
@@ -4939,7 +4960,8 @@ export class Combat extends Scene {
     effectDetail: string,
     color: string = "#f7fbff",
   ): void {
-    const message = `${enemyName} • ${actionLabel.toUpperCase()} • ${effectDetail}`;
+    const normalizedEffect = effectDetail.replace(/\s+/g, " ").trim();
+    const message = `${enemyName.toUpperCase()}\n${actionLabel.toUpperCase()} • ${normalizedEffect}`;
     this.showEnhancedActionResult(message, color);
   }
 
