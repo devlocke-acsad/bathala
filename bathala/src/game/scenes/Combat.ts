@@ -118,6 +118,7 @@ export class Combat extends Scene {
   private shopKey!: Phaser.Input.Keyboard.Key;
   private bestHandAchieved: HandType = "high_card";
   private battleStartDialogueContainer!: Phaser.GameObjects.Container | null;
+  private enemyInspectContainer: Phaser.GameObjects.Container | null = null;
 
   // Performance optimization flags
   private uiUpdatePending: boolean = false;
@@ -256,6 +257,389 @@ export class Combat extends Scene {
 
   public getBestHandAchieved(): HandType {
     return this.bestHandAchieved;
+  }
+
+  public showEnemyInspectPanel(): void {
+    if (this.enemyInspectContainer?.active) {
+      return;
+    }
+
+    const enemyAny = this.combatState.enemy as any;
+    const lore = enemyAny.lore ?? {};
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const scaleFactor = Math.max(0.84, Math.min(1.08, Math.min(screenWidth / 1280, screenHeight / 720)));
+    const panelWidth = Math.min(screenWidth * 0.9, 1040 * scaleFactor);
+    const panelHeight = Math.min(screenHeight * 0.84, 600 * scaleFactor);
+    const leftWidth = panelWidth * 0.38;
+    const rightWidth = panelWidth - leftWidth;
+    const root = this.add.container(0, 0).setDepth(9800);
+    this.enemyInspectContainer = root;
+
+    const dismiss = () => this.hideEnemyInspectPanel();
+
+    const overlay = this.add
+      .rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x040507, 0.82)
+      .setAlpha(0)
+      .setInteractive({ useHandCursor: true });
+    overlay.on("pointerdown", dismiss);
+
+    const panel = this.add.container(screenWidth / 2 + 26 * scaleFactor, screenHeight / 2 + 10 * scaleFactor)
+      .setAlpha(0)
+      .setScale(0.98);
+    const panelShadow = this.add.rectangle(5, 8, panelWidth, panelHeight, 0x000000, 0.34).setOrigin(0.5);
+    const panelOuter = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x11151a, 0.98)
+      .setOrigin(0.5)
+      .setStrokeStyle(1.5, 0x6f5d47, 0.8);
+    const panelInner = this.add.rectangle(0, 0, panelWidth - 12, panelHeight - 12, 0x181d22, 0.97)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x2b3137, 0.9);
+    const leftPanel = this.add.rectangle(
+      -panelWidth / 2 + leftWidth / 2 + 10,
+      0,
+      leftWidth - 20,
+      panelHeight - 22,
+      0x14191d,
+      0.92,
+    ).setOrigin(0.5);
+    const leftTopBand = this.add.rectangle(
+      -panelWidth / 2 + leftWidth / 2 + 10,
+      -panelHeight / 2 + 28,
+      leftWidth - 20,
+      34,
+      0x202831,
+      0.92,
+    ).setOrigin(0.5);
+    const divider = this.add.rectangle(-panelWidth / 2 + leftWidth + 4, 0, 1, panelHeight - 34, 0x4b4032, 0.55)
+      .setOrigin(0.5);
+    const artPlate = this.add.rectangle(
+      panelWidth / 2 - rightWidth / 2,
+      0,
+      rightWidth - 32,
+      panelHeight - 34,
+      0x0e1318,
+      0.94,
+    ).setOrigin(0.5).setStrokeStyle(1, 0x2c333a, 0.9);
+    const artTopBand = this.add.rectangle(
+      panelWidth / 2 - rightWidth / 2,
+      -panelHeight / 2 + 28,
+      rightWidth - 32,
+      34,
+      0x1b232b,
+      0.9,
+    ).setOrigin(0.5);
+    const artGlow = this.add.rectangle(
+      panelWidth / 2 - rightWidth / 2 + 20,
+      6,
+      rightWidth - 92,
+      panelHeight - 110,
+      0x8e7757,
+      0.08,
+    ).setOrigin(0.5);
+    const panelHitZone = this.add.zone(0, 0, panelWidth, panelHeight);
+    panelHitZone.setInteractive(
+      new Phaser.Geom.Rectangle(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    panelHitZone.on("pointerdown", (_pointer, _lx, _ly, event) => {
+      event.stopPropagation();
+      dismiss();
+    });
+
+    panel.add([
+      panelHitZone,
+      panelShadow,
+      panelOuter,
+      panelInner,
+      leftPanel,
+      leftTopBand,
+      divider,
+      artPlate,
+      artTopBand,
+      artGlow,
+    ]);
+
+    const headerLabel = this.add.text(
+      -panelWidth / 2 + 28,
+      -panelHeight / 2 + 28,
+      "ENEMY RECORD",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(15 * scaleFactor)}px`,
+        color: "#d5c0a2",
+      },
+    ).setOrigin(0, 0.5);
+    const artLabel = this.add.text(
+      panelWidth / 2 - rightWidth + 28,
+      -panelHeight / 2 + 28,
+      "DISCOVERY",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(15 * scaleFactor)}px`,
+        color: "#c4b7a0",
+      },
+    ).setOrigin(0, 0.5);
+    const leftTextX = -panelWidth / 2 + 32;
+    const leftContentWidth = leftWidth - 58;
+    const enemyName = this.add.text(
+      leftTextX,
+      -panelHeight / 2 + 76,
+      this.combatState.enemy.name.toUpperCase(),
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(28 * scaleFactor)}px`,
+        color: "#f3eee4",
+        lineSpacing: 4,
+        wordWrap: { width: leftContentWidth - 2 },
+      },
+    ).setOrigin(0, 0);
+    const enemyMeta = this.add.text(
+      leftTextX,
+      enemyName.getBounds().bottom + 8,
+      `${String(enemyAny.tier ?? "common").toUpperCase()} FOE`,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(11 * scaleFactor)}px`,
+        color: "#bda88d",
+      },
+    ).setOrigin(0, 0);
+    const topDivider = this.add.rectangle(
+      leftTextX + leftContentWidth / 2,
+      enemyMeta.getBounds().bottom + 12,
+      leftContentWidth,
+      1,
+      0x4b4032,
+      0.42,
+    ).setOrigin(0.5, 0);
+
+    const backgroundLabel = this.add.text(
+      leftTextX,
+      topDivider.getBounds().bottom + 14,
+      "BACKGROUND",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(16 * scaleFactor)}px`,
+        color: "#d7c29d",
+      },
+    ).setOrigin(0, 0);
+    const backgroundText = this.add.text(
+      leftTextX,
+      backgroundLabel.getBounds().bottom + 12,
+      lore.description || "A spirit encountered in battle. Little is known yet.",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(12 * scaleFactor)}px`,
+        color: "#d8dde2",
+        lineSpacing: 5,
+        wordWrap: { width: leftContentWidth },
+      },
+    ).setOrigin(0, 0);
+    const notesDivider = this.add.rectangle(
+      leftTextX + leftContentWidth / 2,
+      backgroundText.getBounds().bottom + 14,
+      leftContentWidth,
+      1,
+      0x4b4032,
+      0.38,
+    ).setOrigin(0.5, 0);
+
+    const loreNotesLabel = this.add.text(
+      leftTextX,
+      notesDivider.getBounds().bottom + 14,
+      "FIELD NOTES",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(16 * scaleFactor)}px`,
+        color: "#d7c29d",
+      },
+    ).setOrigin(0, 0);
+    const weaknessLine = enemyAny.elementalAffinity?.weakness
+      ? `Weak Against: ${this.formatEnemyInspectElement(enemyAny.elementalAffinity.weakness)}`
+      : "Weak Against: Unknown";
+    const resistanceLine = enemyAny.elementalAffinity?.resistance
+      ? `Resists: ${this.formatEnemyInspectElement(enemyAny.elementalAffinity.resistance)}`
+      : "Resists: None";
+    const tactics = [...new Set((enemyAny.attackPattern ?? []) as string[])]
+      .map((action) => this.formatEnemyInspectAction(action))
+      .join(" • ");
+    const loreNotesText = this.add.text(
+      leftTextX,
+      loreNotesLabel.getBounds().bottom + 12,
+      [
+        weaknessLine,
+        resistanceLine,
+        tactics ? `Tactics: ${tactics}` : "",
+        lore.origin ? `Origin: ${lore.origin}` : "",
+        lore.reference ? `Reference: ${lore.reference}` : "",
+      ].filter(Boolean).join("\n"),
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(12 * scaleFactor)}px`,
+        color: "#c9d1d8",
+        lineSpacing: 5,
+        wordWrap: { width: leftContentWidth },
+      },
+    ).setOrigin(0, 0);
+
+    const promptText = this.add.text(
+      panelWidth / 2 - 28,
+      panelHeight / 2 - 28,
+      "TAP ANYWHERE TO CLOSE",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(11 * scaleFactor)}px`,
+        color: "#9ca8b0",
+      },
+    ).setOrigin(1, 1);
+
+    const closePlate = this.add.rectangle(panelWidth / 2 - 38, -panelHeight / 2 + 30, 56, 24, 0x21171a, 0.95)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x6f5d47, 0.8)
+      .setInteractive({ useHandCursor: true });
+    closePlate.on("pointerdown", (_pointer, _lx, _ly, event) => {
+      event.stopPropagation();
+      dismiss();
+    });
+    const closeText = this.add.text(panelWidth / 2 - 38, -panelHeight / 2 + 30, "CLOSE", {
+      fontFamily: "dungeon-mode",
+      fontSize: `${Math.floor(11 * scaleFactor)}px`,
+      color: "#f0ebe0",
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeText.on("pointerdown", (_pointer, _lx, _ly, event) => {
+      event.stopPropagation();
+      dismiss();
+    });
+
+    const portraitContainer = this.add.container(panelWidth / 2 - rightWidth / 2 + 18, 26).setAlpha(0).setScale(0.96);
+    const portraitFrame = this.add.rectangle(0, 0, rightWidth - 92, panelHeight - 110, 0x12181d, 0.82)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x6f5d47, 0.65);
+    const portraitFrameInner = this.add.rectangle(0, 0, rightWidth - 106, panelHeight - 124, 0x0d1217, 0.82)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x2a3238, 0.55);
+    portraitContainer.add([portraitFrame, portraitFrameInner]);
+
+    const mountPortrait = (textureKey: string) => {
+      if (!this.enemyInspectContainer?.active || !portraitContainer.active || !this.textures.exists(textureKey)) {
+        return;
+      }
+
+      const existingPortrait = portraitContainer.getByName("enemyInspectPortrait");
+      if (existingPortrait) {
+        existingPortrait.destroy();
+      }
+
+      const portrait = this.add.image(0, 0, textureKey);
+      portrait.setName("enemyInspectPortrait");
+      portrait.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+      const maxWidth = rightWidth - 136;
+      const maxHeight = panelHeight - 166;
+      const portraitScale = Math.min(maxWidth / portrait.width, maxHeight / portrait.height);
+      portrait.setScale(portraitScale);
+      portraitContainer.add(portrait);
+      portraitContainer.setAlpha(0).setScale(0.96);
+      this.tweens.add({
+        targets: portraitContainer,
+        alpha: 1,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 360,
+        ease: "Cubic.easeOut",
+      });
+    };
+
+    const discoverLoad = ensureEnemyDiscoverPortraitLoaded(this, this.combatState.enemy, mountPortrait);
+    const fallbackPortraitKey =
+      (discoverLoad.portraitKey && this.textures.exists(discoverLoad.portraitKey))
+        ? discoverLoad.portraitKey
+        : (typeof enemyAny.combatSpriteKey === "string" && this.textures.exists(enemyAny.combatSpriteKey))
+          ? enemyAny.combatSpriteKey
+          : "tikbalang_combat";
+    mountPortrait(fallbackPortraitKey);
+
+    panel.add([
+      headerLabel,
+      artLabel,
+      enemyName,
+      enemyMeta,
+      topDivider,
+      backgroundLabel,
+      backgroundText,
+      notesDivider,
+      loreNotesLabel,
+      loreNotesText,
+      promptText,
+      portraitContainer,
+      closePlate,
+      closeText,
+    ]);
+    root.add([overlay, panel]);
+
+    this.tweens.add({ targets: overlay, alpha: 1, duration: 220, ease: "Quad.easeOut" });
+    this.tweens.add({
+      targets: panel,
+      x: screenWidth / 2,
+      y: screenHeight / 2,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 280,
+      ease: "Cubic.easeOut",
+    });
+  }
+
+  private hideEnemyInspectPanel(): void {
+    if (!this.enemyInspectContainer) {
+      return;
+    }
+
+    const inspectContainer = this.enemyInspectContainer;
+    this.enemyInspectContainer = null;
+    this.tweens.killTweensOf(inspectContainer);
+    this.tweens.add({
+      targets: inspectContainer,
+      alpha: 0,
+      y: 14,
+      duration: 180,
+      ease: "Quad.easeIn",
+      onComplete: () => inspectContainer.destroy(),
+    });
+  }
+
+  private formatEnemyInspectAction(action: string): string {
+    const actionMap: Record<string, string> = {
+      attack: "Heavy Strike",
+      defend: "Guard Stance",
+      strengthen: "Strengthen",
+      weaken: "Inflict Weak",
+      poison: "Apply Poison",
+      stun: "Stun",
+      charm: "Charm",
+      confuse: "Confuse",
+      disrupt_draw: "Disrupt Draw",
+      fear: "Invoke Fear",
+      charge: "Charge Up",
+      wait: "Linger",
+      curse_card: "Hex Cards",
+      hex_reversal: "Hex Reversal",
+    };
+
+    return actionMap[action] ?? action.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  private formatEnemyInspectElement(element?: string): string {
+    const elementMap: Record<string, string> = {
+      fire: "Apoy",
+      water: "Tubig",
+      earth: "Lupa",
+      air: "Hangin",
+    };
+
+    if (!element) {
+      return "Unknown";
+    }
+
+    return elementMap[element] ?? element.charAt(0).toUpperCase() + element.slice(1);
   }
 
   private getCombatBackgroundKeyForChapter(chapter: Chapter): string {
@@ -1913,12 +2297,9 @@ export class Combat extends Scene {
 
       if (this.actionsText.text !== actionsText) {
         this.actionsText.setText(actionsText);
-
-        // Color code the special status within the text - only when text changes
-        const newColor = remainingSpecialCharges > 0 ? "#c9ebff" : "#b5a8ba";
-        if (this.actionsText.style.color !== newColor) {
-          this.actionsText.setColor(newColor);
-        }
+      }
+      if (this.actionsText.style.color !== "#f1f4f7") {
+        this.actionsText.setColor("#f1f4f7");
       }
 
       // Only update hand indicator if needed (this can be expensive)

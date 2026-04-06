@@ -448,6 +448,11 @@ export class CombatUI {
 
     const scale = Math.min(targetWidth / sprite.width, targetHeight / sprite.height);
     sprite.setScale(scale);
+    sprite.setInteractive({ useHandCursor: true });
+    sprite.on("pointerdown", (_pointer, _localX, _localY, event) => {
+      event.stopPropagation();
+      this.scene.showEnemyInspectPanel();
+    });
     
     // Calculate dynamic Y offset based on sprite's scaled height - match player UI spacing
     const spriteScaledHeight = sprite.height * scale;
@@ -465,8 +470,9 @@ export class CombatUI {
     );
 
     const enemyHudWidth = 248;
-    const panelY = enemyY + sprite.displayHeight * 0.5 + 44;
-    this.enemyInfoContainer = this.scene.add.container(enemyX, panelY).setDepth(820);
+    const panelX = enemyX + sprite.displayWidth * 0.5 + enemyHudWidth * 0.5 - 18;
+    const panelY = enemyY + sprite.displayHeight * 0.08;
+    this.enemyInfoContainer = this.scene.add.container(panelX, panelY).setDepth(820);
     const enemyHealthBarShadow = this.scene.add.rectangle(
       -enemyHudWidth / 2 + 2,
       -11,
@@ -647,24 +653,32 @@ export class CombatUI {
     textColor: string,
   ): Phaser.GameObjects.Container {
     const container = this.scene.add.container(x, y).setDepth(824);
-    const width = Math.max(176, Math.min(246, 100 + label.length * 10));
-    const height = 44;
-    const shadow = this.scene.add.rectangle(3, 3, width, height, 0x000000, 0.2).setOrigin(0.5);
+    const width = Math.max(138, Math.min(230, 84 + label.length * 10));
+    const height = 36;
+    const shadow = this.scene.add.rectangle(2, 2, width, height, 0x000000, 0.2).setOrigin(0.5);
     const outer = this.scene.add.rectangle(0, 0, width, height, fillColor, 0.98)
       .setOrigin(0.5)
-      .setStrokeStyle(1, accentColor, 0.95);
-    const inner = this.scene.add.rectangle(0, 0, width - 8, height - 8, 0x20252a, 0.96)
+      .setStrokeStyle(1, 0x58616b, 0.95);
+    const inner = this.scene.add.rectangle(0, 0, width - 6, height - 6, 0x20252a, 0.96)
       .setOrigin(0.5);
-    const headerBand = this.scene.add.rectangle(0, -height / 2 + 9, width - 10, 12, 0x2a3036, 0.9)
+    const headerBand = this.scene.add.rectangle(0, -height / 2 + 7, width - 8, 9, 0x2a3036, 0.82)
       .setOrigin(0.5);
+    const accent = this.scene.add.rectangle(
+      side === "left" ? -width / 2 + 9 : width / 2 - 9,
+      0,
+      4,
+      height - 10,
+      accentColor,
+      0.95,
+    ).setOrigin(0.5);
     const text = this.scene.add.text(0, 0, label.toUpperCase(), {
       fontFamily: "dungeon-mode",
-      fontSize: 24,
+      fontSize: 20,
       color: textColor,
       align: "center",
     }).setOrigin(0.5);
 
-    container.add([shadow, outer, inner, headerBand, text]);
+    container.add([shadow, outer, inner, headerBand, accent, text]);
     return container;
   }
 
@@ -1165,7 +1179,6 @@ export class CombatUI {
     const leftCap = this.scene.add.circle(-width / 2 + height / 2, 0, height / 2, 0x21171a, 1);
     const rightCap = this.scene.add.circle(width / 2 - height / 2, 0, height / 2, 0x21171a, 1);
     const centerBody = this.scene.add.rectangle(0, 0, width - height, height, 0x21171a, 1);
-    const accentDot = this.scene.add.circle(-width / 2 + 18, 0, 3, 0x7d6040, 0.75);
     const text = this.scene.add.text(0, 0, label, {
       fontFamily: "dungeon-mode",
       fontSize: 14,
@@ -1173,9 +1186,9 @@ export class CombatUI {
       align: "center",
     }).setOrigin(0.5);
 
-    tab.add([shadowLeft, shadowRight, shadowBody, leftCap, rightCap, centerBody, accentDot, text]);
+    tab.add([shadowLeft, shadowRight, shadowBody, leftCap, rightCap, centerBody, text]);
     tab.setData("panel", panel);
-    tab.setData("fills", { leftCap, rightCap, centerBody, accentDot, text, shadowLeft, shadowRight, shadowBody });
+    tab.setData("fills", { leftCap, rightCap, centerBody, text, shadowLeft, shadowRight, shadowBody });
     tab.setInteractive(
       new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
       Phaser.Geom.Rectangle.Contains,
@@ -1289,13 +1302,11 @@ export class CombatUI {
     const isActive = this.activeInventoryPanel === panel;
     const visuals = tab.getData("fills") as Record<string, Phaser.GameObjects.Shape | Phaser.GameObjects.Text>;
     const fillColor = isActive ? 0x735132 : 0x21171a;
-    const accentColor = isActive ? 0xf0c789 : 0x7d6040;
     const textColor = isActive ? "#fff4df" : "#cfbea7";
 
     (visuals.leftCap as Phaser.GameObjects.Arc).setFillStyle(fillColor, 1);
     (visuals.rightCap as Phaser.GameObjects.Arc).setFillStyle(fillColor, 1);
     (visuals.centerBody as Phaser.GameObjects.Rectangle).setFillStyle(fillColor, 1);
-    (visuals.accentDot as Phaser.GameObjects.Arc).setFillStyle(accentColor, isActive ? 1 : 0.75);
     (visuals.text as Phaser.GameObjects.Text).setColor(textColor);
     (visuals.shadowLeft as Phaser.GameObjects.Arc).setAlpha(isActive ? 0.3 : 0.18);
     (visuals.shadowRight as Phaser.GameObjects.Arc).setAlpha(isActive ? 0.3 : 0.18);
@@ -2967,7 +2978,7 @@ export class CombatUI {
     
     // FIXED SPACING - Cards always use the same spacing regardless of hand size
     // This ensures 8 cards on turn 1 have the same spacing as 8 cards on turn 2+
-    const CARD_SPACING = 96; // Fixed: never changes
+    const CARD_SPACING = 100; // Slightly wider to fit the larger card size
     const CARD_ARC_HEIGHT = 30; // Fixed: never changes
     const CARD_MAX_ROTATION = 8; // Fixed: never changes
     
@@ -3050,7 +3061,7 @@ export class CombatUI {
     // This is used during drawing animations, selection state should be preserved
     
     // FIXED SPACING - Cards always use the same spacing regardless of hand size
-    const CARD_SPACING = 96;
+    const CARD_SPACING = 100;
     const CARD_ARC_HEIGHT = 30;
     const CARD_MAX_ROTATION = 8;
     
@@ -3108,8 +3119,8 @@ export class CombatUI {
     const cardContainer = this.scene.add.container(x, y);
 
     // Use fixed card dimensions for consistency
-    const cardWidth = 80;
-    const cardHeight = 112;
+    const cardWidth = 84;
+    const cardHeight = 118;
 
     const rankMap: Record<string, string> = {
       "1": "1", "2": "2", "3": "3", "4": "4", "5": "5",
@@ -3166,6 +3177,33 @@ export class CombatUI {
       
       // BUGFIX: Remove any previous listeners before adding new one
       cardContainer.removeAllListeners();
+      cardContainer.on("pointerover", () => {
+        this.scene.tweens.killTweensOf(cardContainer);
+        const baseY = typeof (card as any).baseY === "number" ? (card as any).baseY : y;
+        const restY = card.selected ? baseY - 40 : baseY;
+        const hoverY = restY - (card.selected ? 10 : 14);
+        this.scene.tweens.add({
+          targets: cardContainer,
+          y: hoverY,
+          scaleX: 1.04,
+          scaleY: 1.04,
+          duration: 110,
+          ease: "Quad.easeOut",
+        });
+      });
+      cardContainer.on("pointerout", () => {
+        this.scene.tweens.killTweensOf(cardContainer);
+        const baseY = typeof (card as any).baseY === "number" ? (card as any).baseY : y;
+        const restY = card.selected ? baseY - 40 : baseY;
+        this.scene.tweens.add({
+          targets: cardContainer,
+          y: restY,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 120,
+          ease: "Quad.easeOut",
+        });
+      });
       cardContainer.on("pointerdown", () => {
         // Only allow selection if card is still in hand
         const combatState = this.scene.getCombatState();
@@ -5540,7 +5578,4 @@ export class CombatUI {
   public clearCombatUI(): void {
     // Clear all UI elements for post-combat
     this.actionButtons.setVisible(false);
-    this.handContainer.setVisible(false);
-    this.playedHandContainer.setVisible(false);
-  }
-}
+    this.handContainer
