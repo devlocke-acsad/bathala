@@ -42,16 +42,16 @@ const EVENT_TEXTURE_KEY_ALIASES: Record<string, string> = {
 };
 
 const EVENT_TEXTURE_ASSET_PATHS: Record<string, string> = {
-  event_bakunawa_hunger_educational: "assets/events/events(act2)/bakunawa's hunger.png",
-  event_aswang_deception_educational: "assets/events/events(act2)/aswang's deception.png",
-  event_sirena_conservation_educational: "assets/events/events(act2)/sirena's call.png",
-  event_bantay_tubig_educational: "assets/events/events(act2)/Guardian of the Waters.png",
-  event_diwata_dagat_educational: "assets/events/events(act2)/diwata ng dagat.png",
-  event_maranao_creation_educational: "assets/events/events(act3)/The Floating World.png",
-  event_tboli_dream_weaving: "assets/events/events(act3)/The Dream Weaver.png",
-  event_bagobo_warrior_trial: "assets/events/events(act3)/The Bagani's Trial.png",
-  event_manobo_spirit_guardian: "assets/events/events(act3)/Guardian of Mount Apo.png",
-  event_tausug_sea_legend: "assets/events/events(act3)/The Currents of Sulu.png",
+  event_bakunawa_hunger_educational: "assets/events/events(act2)/bakunawa's hunger.webp",
+  event_aswang_deception_educational: "assets/events/events(act2)/aswang's deception.webp",
+  event_sirena_conservation_educational: "assets/events/events(act2)/sirena's call.webp",
+  event_bantay_tubig_educational: "assets/events/events(act2)/Guardian of the Waters.webp",
+  event_diwata_dagat_educational: "assets/events/events(act2)/diwata ng dagat.webp",
+  event_maranao_creation_educational: "assets/events/events(act3)/The Floating World.webp",
+  event_tboli_dream_weaving: "assets/events/events(act3)/The Dream Weaver.webp",
+  event_bagobo_warrior_trial: "assets/events/events(act3)/The Bagani's Trial.webp",
+  event_manobo_spirit_guardian: "assets/events/events(act3)/Guardian of Mount Apo.webp",
+  event_tausug_sea_legend: "assets/events/events(act3)/The Currents of Sulu.webp",
 };
 
 /**

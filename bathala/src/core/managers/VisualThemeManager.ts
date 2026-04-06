@@ -31,11 +31,11 @@ export class VisualThemeManager {
     },
     2: {
       overlayColor: 0x4A90E2, // Blue/teal for underwater
-      overlayAlpha: 0.20,
+      overlayAlpha: 0.11,
     },
     3: {
       overlayColor: 0xFFD700, // Gold for celestial realm
-      overlayAlpha: 0.18,
+      overlayAlpha: 0.10,
     },
   };
 
