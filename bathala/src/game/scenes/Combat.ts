@@ -118,6 +118,7 @@ export class Combat extends Scene {
   private shopKey!: Phaser.Input.Keyboard.Key;
   private bestHandAchieved: HandType = "high_card";
   private battleStartDialogueContainer!: Phaser.GameObjects.Container | null;
+  private enemyInspectContainer: Phaser.GameObjects.Container | null = null;
 
   // Performance optimization flags
   private uiUpdatePending: boolean = false;
@@ -221,6 +222,10 @@ export class Combat extends Scene {
     return this.isActionProcessing;
   }
 
+  public canUseSpecialActionNow(): boolean {
+    return this.canUseSpecialAction();
+  }
+
   // Getter/setter methods for CombatAnimations
   public getCardSprites(): Phaser.GameObjects.Container[] {
     return this.ui.cardSprites;
@@ -252,6 +257,389 @@ export class Combat extends Scene {
 
   public getBestHandAchieved(): HandType {
     return this.bestHandAchieved;
+  }
+
+  public showEnemyInspectPanel(): void {
+    if (this.enemyInspectContainer?.active) {
+      return;
+    }
+
+    const enemyAny = this.combatState.enemy as any;
+    const lore = enemyAny.lore ?? {};
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const scaleFactor = Math.max(0.84, Math.min(1.08, Math.min(screenWidth / 1280, screenHeight / 720)));
+    const panelWidth = Math.min(screenWidth * 0.9, 1040 * scaleFactor);
+    const panelHeight = Math.min(screenHeight * 0.84, 600 * scaleFactor);
+    const leftWidth = panelWidth * 0.38;
+    const rightWidth = panelWidth - leftWidth;
+    const root = this.add.container(0, 0).setDepth(9800);
+    this.enemyInspectContainer = root;
+
+    const dismiss = () => this.hideEnemyInspectPanel();
+
+    const overlay = this.add
+      .rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x040507, 0.82)
+      .setAlpha(0)
+      .setInteractive({ useHandCursor: true });
+    overlay.on("pointerdown", dismiss);
+
+    const panel = this.add.container(screenWidth / 2 + 26 * scaleFactor, screenHeight / 2 + 10 * scaleFactor)
+      .setAlpha(0)
+      .setScale(0.98);
+    const panelShadow = this.add.rectangle(5, 8, panelWidth, panelHeight, 0x000000, 0.34).setOrigin(0.5);
+    const panelOuter = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x11151a, 0.98)
+      .setOrigin(0.5)
+      .setStrokeStyle(1.5, 0x6f5d47, 0.8);
+    const panelInner = this.add.rectangle(0, 0, panelWidth - 12, panelHeight - 12, 0x181d22, 0.97)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x2b3137, 0.9);
+    const leftPanel = this.add.rectangle(
+      -panelWidth / 2 + leftWidth / 2 + 10,
+      0,
+      leftWidth - 20,
+      panelHeight - 22,
+      0x14191d,
+      0.92,
+    ).setOrigin(0.5);
+    const leftTopBand = this.add.rectangle(
+      -panelWidth / 2 + leftWidth / 2 + 10,
+      -panelHeight / 2 + 28,
+      leftWidth - 20,
+      34,
+      0x202831,
+      0.92,
+    ).setOrigin(0.5);
+    const divider = this.add.rectangle(-panelWidth / 2 + leftWidth + 4, 0, 1, panelHeight - 34, 0x4b4032, 0.55)
+      .setOrigin(0.5);
+    const artPlate = this.add.rectangle(
+      panelWidth / 2 - rightWidth / 2,
+      0,
+      rightWidth - 32,
+      panelHeight - 34,
+      0x0e1318,
+      0.94,
+    ).setOrigin(0.5).setStrokeStyle(1, 0x2c333a, 0.9);
+    const artTopBand = this.add.rectangle(
+      panelWidth / 2 - rightWidth / 2,
+      -panelHeight / 2 + 28,
+      rightWidth - 32,
+      34,
+      0x1b232b,
+      0.9,
+    ).setOrigin(0.5);
+    const artGlow = this.add.rectangle(
+      panelWidth / 2 - rightWidth / 2 + 20,
+      6,
+      rightWidth - 92,
+      panelHeight - 110,
+      0x8e7757,
+      0.08,
+    ).setOrigin(0.5);
+    const panelHitZone = this.add.zone(0, 0, panelWidth, panelHeight);
+    panelHitZone.setInteractive(
+      new Phaser.Geom.Rectangle(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    panelHitZone.on("pointerdown", (_pointer, _lx, _ly, event) => {
+      event.stopPropagation();
+      dismiss();
+    });
+
+    panel.add([
+      panelHitZone,
+      panelShadow,
+      panelOuter,
+      panelInner,
+      leftPanel,
+      leftTopBand,
+      divider,
+      artPlate,
+      artTopBand,
+      artGlow,
+    ]);
+
+    const headerLabel = this.add.text(
+      -panelWidth / 2 + 28,
+      -panelHeight / 2 + 28,
+      "ENEMY RECORD",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(15 * scaleFactor)}px`,
+        color: "#d5c0a2",
+      },
+    ).setOrigin(0, 0.5);
+    const artLabel = this.add.text(
+      panelWidth / 2 - rightWidth + 28,
+      -panelHeight / 2 + 28,
+      "DISCOVERY",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(15 * scaleFactor)}px`,
+        color: "#c4b7a0",
+      },
+    ).setOrigin(0, 0.5);
+    const leftTextX = -panelWidth / 2 + 32;
+    const leftContentWidth = leftWidth - 58;
+    const enemyName = this.add.text(
+      leftTextX,
+      -panelHeight / 2 + 76,
+      this.combatState.enemy.name.toUpperCase(),
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(28 * scaleFactor)}px`,
+        color: "#f3eee4",
+        lineSpacing: 4,
+        wordWrap: { width: leftContentWidth - 2 },
+      },
+    ).setOrigin(0, 0);
+    const enemyMeta = this.add.text(
+      leftTextX,
+      enemyName.getBounds().bottom + 8,
+      `${String(enemyAny.tier ?? "common").toUpperCase()} FOE`,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(11 * scaleFactor)}px`,
+        color: "#bda88d",
+      },
+    ).setOrigin(0, 0);
+    const topDivider = this.add.rectangle(
+      leftTextX + leftContentWidth / 2,
+      enemyMeta.getBounds().bottom + 12,
+      leftContentWidth,
+      1,
+      0x4b4032,
+      0.42,
+    ).setOrigin(0.5, 0);
+
+    const backgroundLabel = this.add.text(
+      leftTextX,
+      topDivider.getBounds().bottom + 14,
+      "BACKGROUND",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(16 * scaleFactor)}px`,
+        color: "#d7c29d",
+      },
+    ).setOrigin(0, 0);
+    const backgroundText = this.add.text(
+      leftTextX,
+      backgroundLabel.getBounds().bottom + 12,
+      lore.description || "A spirit encountered in battle. Little is known yet.",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(12 * scaleFactor)}px`,
+        color: "#d8dde2",
+        lineSpacing: 5,
+        wordWrap: { width: leftContentWidth },
+      },
+    ).setOrigin(0, 0);
+    const notesDivider = this.add.rectangle(
+      leftTextX + leftContentWidth / 2,
+      backgroundText.getBounds().bottom + 14,
+      leftContentWidth,
+      1,
+      0x4b4032,
+      0.38,
+    ).setOrigin(0.5, 0);
+
+    const loreNotesLabel = this.add.text(
+      leftTextX,
+      notesDivider.getBounds().bottom + 14,
+      "FIELD NOTES",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(16 * scaleFactor)}px`,
+        color: "#d7c29d",
+      },
+    ).setOrigin(0, 0);
+    const weaknessLine = enemyAny.elementalAffinity?.weakness
+      ? `Weak Against: ${this.formatEnemyInspectElement(enemyAny.elementalAffinity.weakness)}`
+      : "Weak Against: Unknown";
+    const resistanceLine = enemyAny.elementalAffinity?.resistance
+      ? `Resists: ${this.formatEnemyInspectElement(enemyAny.elementalAffinity.resistance)}`
+      : "Resists: None";
+    const tactics = [...new Set((enemyAny.attackPattern ?? []) as string[])]
+      .map((action) => this.formatEnemyInspectAction(action))
+      .join(" • ");
+    const loreNotesText = this.add.text(
+      leftTextX,
+      loreNotesLabel.getBounds().bottom + 12,
+      [
+        weaknessLine,
+        resistanceLine,
+        tactics ? `Tactics: ${tactics}` : "",
+        lore.origin ? `Origin: ${lore.origin}` : "",
+        lore.reference ? `Reference: ${lore.reference}` : "",
+      ].filter(Boolean).join("\n"),
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(12 * scaleFactor)}px`,
+        color: "#c9d1d8",
+        lineSpacing: 5,
+        wordWrap: { width: leftContentWidth },
+      },
+    ).setOrigin(0, 0);
+
+    const promptText = this.add.text(
+      panelWidth / 2 - 28,
+      panelHeight / 2 - 28,
+      "TAP ANYWHERE TO CLOSE",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(11 * scaleFactor)}px`,
+        color: "#9ca8b0",
+      },
+    ).setOrigin(1, 1);
+
+    const closePlate = this.add.rectangle(panelWidth / 2 - 38, -panelHeight / 2 + 30, 56, 24, 0x21171a, 0.95)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x6f5d47, 0.8)
+      .setInteractive({ useHandCursor: true });
+    closePlate.on("pointerdown", (_pointer, _lx, _ly, event) => {
+      event.stopPropagation();
+      dismiss();
+    });
+    const closeText = this.add.text(panelWidth / 2 - 38, -panelHeight / 2 + 30, "CLOSE", {
+      fontFamily: "dungeon-mode",
+      fontSize: `${Math.floor(11 * scaleFactor)}px`,
+      color: "#f0ebe0",
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeText.on("pointerdown", (_pointer, _lx, _ly, event) => {
+      event.stopPropagation();
+      dismiss();
+    });
+
+    const portraitContainer = this.add.container(panelWidth / 2 - rightWidth / 2 + 18, 26).setAlpha(0).setScale(0.96);
+    const portraitFrame = this.add.rectangle(0, 0, rightWidth - 92, panelHeight - 110, 0x12181d, 0.82)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x6f5d47, 0.65);
+    const portraitFrameInner = this.add.rectangle(0, 0, rightWidth - 106, panelHeight - 124, 0x0d1217, 0.82)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x2a3238, 0.55);
+    portraitContainer.add([portraitFrame, portraitFrameInner]);
+
+    const mountPortrait = (textureKey: string) => {
+      if (!this.enemyInspectContainer?.active || !portraitContainer.active || !this.textures.exists(textureKey)) {
+        return;
+      }
+
+      const existingPortrait = portraitContainer.getByName("enemyInspectPortrait");
+      if (existingPortrait) {
+        existingPortrait.destroy();
+      }
+
+      const portrait = this.add.image(0, 0, textureKey);
+      portrait.setName("enemyInspectPortrait");
+      portrait.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+      const maxWidth = rightWidth - 136;
+      const maxHeight = panelHeight - 166;
+      const portraitScale = Math.min(maxWidth / portrait.width, maxHeight / portrait.height);
+      portrait.setScale(portraitScale);
+      portraitContainer.add(portrait);
+      portraitContainer.setAlpha(0).setScale(0.96);
+      this.tweens.add({
+        targets: portraitContainer,
+        alpha: 1,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 360,
+        ease: "Cubic.easeOut",
+      });
+    };
+
+    const discoverLoad = ensureEnemyDiscoverPortraitLoaded(this, this.combatState.enemy, mountPortrait);
+    const fallbackPortraitKey =
+      (discoverLoad.portraitKey && this.textures.exists(discoverLoad.portraitKey))
+        ? discoverLoad.portraitKey
+        : (typeof enemyAny.combatSpriteKey === "string" && this.textures.exists(enemyAny.combatSpriteKey))
+          ? enemyAny.combatSpriteKey
+          : "tikbalang_combat";
+    mountPortrait(fallbackPortraitKey);
+
+    panel.add([
+      headerLabel,
+      artLabel,
+      enemyName,
+      enemyMeta,
+      topDivider,
+      backgroundLabel,
+      backgroundText,
+      notesDivider,
+      loreNotesLabel,
+      loreNotesText,
+      promptText,
+      portraitContainer,
+      closePlate,
+      closeText,
+    ]);
+    root.add([overlay, panel]);
+
+    this.tweens.add({ targets: overlay, alpha: 1, duration: 220, ease: "Quad.easeOut" });
+    this.tweens.add({
+      targets: panel,
+      x: screenWidth / 2,
+      y: screenHeight / 2,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 280,
+      ease: "Cubic.easeOut",
+    });
+  }
+
+  private hideEnemyInspectPanel(): void {
+    if (!this.enemyInspectContainer) {
+      return;
+    }
+
+    const inspectContainer = this.enemyInspectContainer;
+    this.enemyInspectContainer = null;
+    this.tweens.killTweensOf(inspectContainer);
+    this.tweens.add({
+      targets: inspectContainer,
+      alpha: 0,
+      y: 14,
+      duration: 180,
+      ease: "Quad.easeIn",
+      onComplete: () => inspectContainer.destroy(),
+    });
+  }
+
+  private formatEnemyInspectAction(action: string): string {
+    const actionMap: Record<string, string> = {
+      attack: "Heavy Strike",
+      defend: "Guard Stance",
+      strengthen: "Strengthen",
+      weaken: "Inflict Weak",
+      poison: "Apply Poison",
+      stun: "Stun",
+      charm: "Charm",
+      confuse: "Confuse",
+      disrupt_draw: "Disrupt Draw",
+      fear: "Invoke Fear",
+      charge: "Charge Up",
+      wait: "Linger",
+      curse_card: "Hex Cards",
+      hex_reversal: "Hex Reversal",
+    };
+
+    return actionMap[action] ?? action.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  private formatEnemyInspectElement(element?: string): string {
+    const elementMap: Record<string, string> = {
+      fire: "Apoy",
+      water: "Tubig",
+      earth: "Lupa",
+      air: "Hangin",
+    };
+
+    if (!element) {
+      return "Unknown";
+    }
+
+    return elementMap[element] ?? element.charAt(0).toUpperCase() + element.slice(1);
   }
 
   private getCombatBackgroundKeyForChapter(chapter: Chapter): string {
@@ -362,6 +750,7 @@ export class Combat extends Scene {
     // IMPORTANT: Call handleResize() immediately after UI initialization
     // to ensure containers are properly positioned BEFORE drawing cards
     this.handleResize();
+    this.scale.on("resize", this.handleResize, this);
 
     // Relic inventory is now created by CombatUI.initialize()
     // (no longer needed here - removed to prevent duplicate UI)
@@ -1060,6 +1449,7 @@ export class Combat extends Scene {
     this.updateSelectionCounter();
     this.updateCardVisuals(card);
     this.ui.updateHandIndicator();
+    this.ui.updateActionButtons();
     // Show damage preview only during action selection phase
     this.updateDamagePreview(false);
   }
@@ -1393,9 +1783,6 @@ export class Combat extends Scene {
     // Execute enemy action based on attack pattern
     const currentAction = enemy.attackPattern[enemy.currentPatternIndex];
 
-    // PRIORITY 6: Show what enemy is doing NOW
-    this.showCurrentEnemyAction(currentAction);
-
     if (currentAction === "attack") {
       // Calculate damage with Weak modifier
       let damage = enemy.damage || enemy.intent.value || 12;
@@ -1403,73 +1790,85 @@ export class Combat extends Scene {
 
       console.log(`Enemy attacking for ${damage} damage`);
       this.animations.animateEnemyAttack();
-      this.damagePlayer(damage);
+      const result = this.damagePlayer(damage);
+      const blockedText = result.blockedDamage > 0 ? ` • ${result.blockedDamage} blocked` : "";
+      const reducedText = result.relicReduction > 0 ? ` • ${result.relicReduction} reduced` : "";
+      const effectDetail = result.dodged
+        ? "You dodged the hit."
+        : result.actualDamage > 0
+          ? `Dealt ${result.actualDamage} damage to you${blockedText}${reducedText}.`
+          : result.blockedDamage > 0
+            ? `Your block absorbed ${result.blockedDamage} damage${reducedText}.`
+            : "No damage got through.";
+      this.showEnemyActionPopup(enemy.name, "Attack", effectDetail, "#ffb3ba");
     } else if (currentAction === "defend") {
       // Enemy gains block
       const blockGained = Math.floor(5 * this.getEnemyFrailMultiplier(enemy));
       enemy.block += blockGained;
-      this.showActionResult(`${enemy.name} gains ${blockGained} block!`);
+      this.showEnemyActionPopup(enemy.name, "Defend", `Gained ${blockGained} Block.`, "#8fdcff");
       this.ui.updateEnemyUI();
     } else if (currentAction === "strengthen") {
       // Enemy applies 2 stacks of Strength to itself
       StatusEffectManager.applyStatusEffect(enemy, 'strength', 2);
-      this.showActionResult(`${enemy.name} gains 2 Strength!`);
+      this.showEnemyActionPopup(enemy.name, "Buff", "Gained 2 Strength.", "#ffd36e");
       this.ui.showStatusEffectApplicationFeedback(enemy, 'strength', 2);
       this.ui.updateEnemyUI();
     } else if (currentAction === "poison") {
       // Enemy applies 2 stacks of Poison to player
       StatusEffectManager.applyStatusEffect(this.combatState.player, 'poison', 2);
-      this.showActionResult(`${enemy.name} poisons you for 2 stacks!`);
+      this.showEnemyActionPopup(enemy.name, "Poison", "Applied 2 Poison stacks to you.", "#dba6ff");
       this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'poison', 2);
       this.ui.updatePlayerUI();
     } else if (currentAction === "weaken") {
       // Enemy applies 1 stack of Weak to player
       StatusEffectManager.applyStatusEffect(this.combatState.player, 'weak', 1);
-      this.showActionResult(`${enemy.name} weakens you!`);
+      this.showEnemyActionPopup(enemy.name, "Debuff", "Applied Weak to you.", "#f7c77f");
       this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'weak', 1);
       this.ui.updatePlayerUI();
     } else if (currentAction === "disrupt_draw" || currentAction === "fear") {
       // Apply discard/steal-style pressure unless negated by Minokawa Claw.
+      let disruptionDetail = "Disrupted your hand.";
       if (this.tryNegateDiscardEffectWithMinokawa()) {
-        this.showActionResult("Minokawa Claw blocked hand disruption!");
+        disruptionDetail = "Minokawa Claw blocked the discard effect";
       } else {
         const discarded = this.discardRandomPlayerCards(1);
         if (discarded > 0) {
-          this.showActionResult(`${enemy.name} disrupted your hand!`);
+          disruptionDetail = `Discarded ${discarded} card from your hand`;
         }
       }
 
       StatusEffectManager.applyStatusEffect(this.combatState.player, 'stunned', 1);
+      this.showEnemyActionPopup(enemy.name, "Disrupt", `${disruptionDetail} and stunned you.`, "#ff9ed1");
       this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'stunned', 1);
       this.ui.updatePlayerUI();
     } else if (currentAction === "confuse") {
       // SIMPLIFIED: All crowd control = Stunned (skip next turn)
       StatusEffectManager.applyStatusEffect(this.combatState.player, 'stunned', 1);
-      this.showActionResult(`${enemy.name} stuns you! (Turn skipped)`);
+      this.showEnemyActionPopup(enemy.name, "Stun", "You will skip your next turn.", "#ff9ed1");
       this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'stunned', 1);
       this.ui.updatePlayerUI();
     } else if (currentAction === "curse_card" || currentAction === "hex_reversal") {
       // Remove a random player buff unless Coconut Diwa blocks it.
       if (this.tryNegateBuffRemovalWithCoconutDiwa()) {
-        this.showActionResult("Coconut Diwa protected your blessings!");
+        this.showEnemyActionPopup(enemy.name, "Nullify", "Coconut Diwa protected your buffs.", "#9be9a8");
       } else {
         const removed = this.removeRandomPlayerBuffs(1);
         if (removed > 0) {
-          this.showActionResult(`${enemy.name} removed one of your buffs!`);
+          this.showEnemyActionPopup(enemy.name, "Nullify", `Removed ${removed} buff from you.`, "#ffb3ba");
         } else {
-          this.showActionResult(`${enemy.name} tried to nullify your buffs.`);
+          this.showEnemyActionPopup(enemy.name, "Nullify", "Tried to remove your buffs.", "#f3d3a0");
         }
       }
     } else if (currentAction === "charge" || currentAction === "wait") {
       // Enemy prepares or waits (gains block)
       const blockGained = 3;
       enemy.block += blockGained;
-      this.showActionResult(`${enemy.name} prepares...`);
+      this.showEnemyActionPopup(enemy.name, "Prepare", `Braced and gained ${blockGained} Block.`, "#8fdcff");
       this.ui.updateEnemyUI();
     } else if (currentAction === "stun") {
       // SIMPLIFIED: All crowd control = Stunned (skip next turn)
       StatusEffectManager.applyStatusEffect(this.combatState.player, 'stunned', 1);
-      this.showActionResult(`${enemy.name} stuns you! (Turn skipped)`);
+      this.showEnemyActionPopup(enemy.name, "Stun", "You will skip your next turn.", "#ff9ed1");
       this.ui.showStatusEffectApplicationFeedback(this.combatState.player, 'stunned', 1);
       this.ui.updatePlayerUI();
     } else {
@@ -1478,7 +1877,17 @@ export class Combat extends Scene {
       let damage = enemy.damage || 10;
       damage = Math.floor(damage * this.getEnemyWeakMultiplier(enemy));
       this.animations.animateEnemyAttack();
-      this.damagePlayer(damage);
+      const result = this.damagePlayer(damage);
+      const blockedText = result.blockedDamage > 0 ? ` • ${result.blockedDamage} blocked` : "";
+      const reducedText = result.relicReduction > 0 ? ` • ${result.relicReduction} reduced` : "";
+      const effectDetail = result.dodged
+        ? "You dodged the hit."
+        : result.actualDamage > 0
+          ? `Dealt ${result.actualDamage} damage to you${blockedText}${reducedText}.`
+          : result.blockedDamage > 0
+            ? `Your block absorbed ${result.blockedDamage} damage${reducedText}.`
+            : "No damage got through.";
+      this.showEnemyActionPopup(enemy.name, "Attack", effectDetail, "#ffb3ba");
     }
 
     // ORDER 5: Process end-of-turn status effects for enemy
@@ -1711,15 +2120,26 @@ export class Combat extends Scene {
   /**
    * Apply damage to player
    */
-  private damagePlayer(damage: number): void {
+  private damagePlayer(damage: number): {
+    actualDamage: number;
+    blockedDamage: number;
+    finalDamage: number;
+    dodged: boolean;
+    relicReduction: number;
+  } {
     console.log(`Applying ${damage} damage to player`);
 
     // Check for dodge chance from "Tikbalang's Hoof"
     const dodgeChance = RelicManager.calculateDodgeChance(this.combatState.player);
     if (Math.random() < dodgeChance) {
       console.log("Player dodged the attack!");
-      this.showActionResult("Tikbalang's Dodge!");
-      return; // Player dodged, take no damage
+      return {
+        actualDamage: 0,
+        blockedDamage: 0,
+        finalDamage: 0,
+        dodged: true,
+        relicReduction: 0,
+      };
     }
 
     // Apply Vulnerable multiplier using DamageCalculator
@@ -1731,12 +2151,13 @@ export class Combat extends Scene {
     // Apply damage reduction from relics (Bakunawa Scale, etc.)
     const originalDamage = finalDamage;
     finalDamage = RelicManager.calculateDamageReduction(finalDamage, this.combatState.player);
+    const relicReduction = Math.max(0, originalDamage - finalDamage);
     if (finalDamage < originalDamage) {
       console.log(`Damage reduced from ${originalDamage} to ${finalDamage} by relic effects`);
-      this.showActionResult(`Scale Protection!`);
     }
 
     const actualDamage = Math.max(0, finalDamage - this.combatState.player.block);
+    const blockedDamage = Math.min(finalDamage, this.combatState.player.block);
     console.log(`Player has ${this.combatState.player.block} block, taking ${actualDamage} actual damage`);
 
     // Apply damage and clamp health to valid range
@@ -1756,6 +2177,13 @@ export class Combat extends Scene {
 
     // PRIORITY 1: Use centralized combat end check
     this.checkCombatEnd();
+    return {
+      actualDamage,
+      blockedDamage,
+      finalDamage,
+      dodged: false,
+      relicReduction,
+    };
   }
 
   /**
@@ -1890,12 +2318,16 @@ export class Combat extends Scene {
 
     try {
       // Cache text values to avoid unnecessary setText calls
-      const turnText = `Turn: ${this.combatState.turn}`;
+      const turnText = `TURN ${String(this.combatState.turn).padStart(2, "0")}`;
       const maxSpecialCharges = this.combatState.player.relics.some(r => r.id === "sarimanok_plumage") ? 2 : 1;
       const usedSpecialCharges = (this.specialUsedThisCombat ? 1 : 0) + (this.bonusSpecialUsedThisCombat ? 1 : 0);
       const remainingSpecialCharges = Math.max(0, maxSpecialCharges - usedSpecialCharges);
-      const specialStatus = remainingSpecialCharges > 0 ? `${remainingSpecialCharges} LEFT` : "USED";
-      const actionsText = `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`;
+      const specialStatus = remainingSpecialCharges > 1
+        ? `${remainingSpecialCharges} READY`
+        : remainingSpecialCharges === 1
+          ? "READY"
+          : "SPENT";
+      const actionsText = `DISCARD ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn}\nSPECIAL ${specialStatus}`;
 
       // Only update if text has actually changed
       if (this.turnText.text !== turnText) {
@@ -1904,12 +2336,9 @@ export class Combat extends Scene {
 
       if (this.actionsText.text !== actionsText) {
         this.actionsText.setText(actionsText);
-
-        // Color code the special status within the text - only when text changes
-        const newColor = remainingSpecialCharges > 0 ? "#ffd93d" : "#cccccc";
-        if (this.actionsText.style.color !== newColor) {
-          this.actionsText.setColor(newColor);
-        }
+      }
+      if (this.actionsText.style.color !== "#f1f4f7") {
+        this.actionsText.setColor("#f1f4f7");
       }
 
       // Only update hand indicator if needed (this can be expensive)
@@ -2024,11 +2453,13 @@ export class Combat extends Scene {
     if (count > 0) {
       const evaluation = HandEvaluator.evaluateHand(this.selectedCards, "attack");
       const handTypeText = this.getHandTypeDisplayText(evaluation.type);
-      this.selectionCounterText.setText(`${count}/5 - ${handTypeText}`);
-      this.selectionCounterText.setColor("#ffdd44"); // Yellow when cards selected
+      this.selectionCounterText.setText(`${count} / 5\n${handTypeText.toUpperCase()}`);
+      this.selectionCounterText.setColor("#f6d79e");
+      this.selectionCounterText.setBackgroundColor("#1a0b11");
     } else {
-      this.selectionCounterText.setText("Selected: 0/5");
-      this.selectionCounterText.setColor("#77888C"); // Gray when no selection
+      this.selectionCounterText.setText("0 / 5\nCHOOSE");
+      this.selectionCounterText.setColor("#b9bec8");
+      this.selectionCounterText.setBackgroundColor("#11070c");
     }
   }
 
@@ -4203,53 +4634,6 @@ export class Combat extends Scene {
     });
   }
 
-  /**
-   * PRIORITY 6: Show current enemy action during enemy turn
-   * This displays what the enemy is doing NOW (not next turn)
-   */
-  private showCurrentEnemyAction(action: string): void {
-    let actionText = "";
-    const enemyName = this.combatState.enemy.name;
-
-    switch (action) {
-      case "attack":
-        actionText = `${enemyName} attacks!`;
-        break;
-      case "defend":
-        actionText = `${enemyName} defends!`;
-        break;
-      case "strengthen":
-        actionText = `${enemyName} grows stronger!`;
-        break;
-      case "poison":
-        actionText = `${enemyName} poisons you!`;
-        break;
-      case "weaken":
-        actionText = `${enemyName} weakens you!`;
-        break;
-      case "stun":
-      case "charm":
-      case "confuse":
-      case "disrupt_draw":
-      case "fear":
-        // SIMPLIFIED: All CC actions displayed as stun
-        actionText = `${enemyName} stuns you!`;
-        break;
-      case "heal":
-        actionText = `${enemyName} heals!`;
-        break;
-      case "charge":
-      case "wait":
-        actionText = `${enemyName} prepares...`;
-        break;
-      default:
-        actionText = `${enemyName} acts!`;
-        break;
-    }
-
-    this.showActionResult(actionText);
-  }
-
   /** Process enemy turn - extracted for reuse */
   private processEnemyTurn(): void {
     console.log("Processing enemy turn");
@@ -4473,20 +4857,112 @@ export class Combat extends Scene {
    */
   private createActionResultUI(): void {
     const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-    const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
 
     this.actionResultText = this.add
-      .text(screenWidth / 2, screenHeight * 0.75, "", { // Position lower to avoid overlap with calculation displays
+      .text(screenWidth / 2, this.getActionResultAnchorY(), "", {
         fontFamily: "dungeon-mode",
-        fontSize: Math.floor(20 * scaleFactor),
-        color: "#2ed573",
+        fontSize: 18,
+        color: "#eaf6ff",
         align: "center",
-        stroke: "#000000",
-        strokeThickness: 1
+        backgroundColor: "#10141b",
+        stroke: "#07090d",
+        strokeThickness: 3,
+        lineSpacing: 2,
+        padding: { left: 22, right: 22, top: 10, bottom: 10 },
+        fixedWidth: 460,
       })
       .setOrigin(0.5)
-      .setVisible(false);
+      .setAngle(0)
+      .setDepth(1000)
+      .setVisible(false)
+      .setShadow(3, 3, "#000000", 0.4, false, true);
+
+    this.layoutActionResultText("");
+  }
+
+  private getActionResultAnchorY(): number {
+    const screenHeight = this.cameras.main.height;
+    const fallbackY = Math.round(Math.max(178, screenHeight * 0.24));
+
+    if (!this.itemInventoryContainer) {
+      return fallbackY;
+    }
+
+    const inventoryBounds = this.itemInventoryContainer.getBounds();
+    if (!inventoryBounds || !Number.isFinite(inventoryBounds.bottom)) {
+      return fallbackY;
+    }
+
+    return Math.round(
+      Phaser.Math.Clamp(
+        inventoryBounds.bottom + 22,
+        170,
+        Math.max(188, screenHeight * 0.34),
+      ),
+    );
+  }
+
+  private getActionResultMetrics(message: string): {
+    x: number;
+    y: number;
+    width: number;
+    fontSize: number;
+    padding: { left: number; right: number; top: number; bottom: number };
+  } {
+    const screenWidth = this.cameras.main.width;
+    const compactWidth = screenWidth < 900;
+    const fontSize = compactWidth ? 12 : 14;
+    const horizontalPadding = compactWidth ? 18 : 24;
+    const verticalPadding = compactWidth ? 10 : 11;
+    const safeMessage = message.trim().length > 0 ? message : " ";
+    const longestLineLength = Math.max(...safeMessage.split("\n").map(line => line.trim().length), 10);
+    const estimatedWidth = Math.round(longestLineLength * fontSize * 0.78 + horizontalPadding * 2);
+    const width = Phaser.Math.Clamp(
+      estimatedWidth,
+      compactWidth ? 300 : 460,
+      Math.round(screenWidth * (compactWidth ? 0.92 : 0.82)),
+    );
+    const x = Math.round(screenWidth / 2);
+    const y = this.getActionResultAnchorY();
+
+    return {
+      x,
+      y,
+      width,
+      fontSize,
+      padding: {
+        left: horizontalPadding,
+        right: horizontalPadding,
+        top: verticalPadding,
+        bottom: Math.max(7, verticalPadding - 1),
+      },
+    };
+  }
+
+  private layoutActionResultText(message: string): void {
+    if (!this.actionResultText) {
+      return;
+    }
+
+    const metrics = this.getActionResultMetrics(message);
+    this.actionResultText.setPosition(metrics.x, metrics.y);
+    this.actionResultText.setStyle({
+      fontSize: metrics.fontSize,
+      fixedWidth: metrics.width,
+      padding: metrics.padding,
+      align: "center",
+    });
+  }
+
+  private showEnemyActionPopup(
+    enemyName: string,
+    actionLabel: string,
+    effectDetail: string,
+    color: string = "#f7fbff",
+  ): void {
+    const normalizedEffect = effectDetail.replace(/\s+/g, " ").trim();
+    const message = `${enemyName.toUpperCase()}\n${actionLabel.toUpperCase()} • ${normalizedEffect}`;
+    this.showEnhancedActionResult(message, color);
   }
 
   /**
@@ -4646,22 +5122,21 @@ export class Combat extends Scene {
       return;
     }
 
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-
-    // Update position to center of screen
-    this.actionResultText.setPosition(screenWidth / 2, screenHeight / 2);
+    this.tweens.killTweensOf(this.actionResultText);
+    this.layoutActionResultText(message);
     this.actionResultText.setText(message);
+    this.actionResultText.setColor("#eaf6ff");
     this.actionResultText.setVisible(true);
 
-    // Fade out after 2 seconds
     this.tweens.add({
       targets: this.actionResultText,
       alpha: 0,
-      duration: 2000,
+      y: this.actionResultText.y - 18,
+      duration: 1200,
       onComplete: () => {
         this.actionResultText.setVisible(false);
         this.actionResultText.setAlpha(1); // Reset alpha for next use
+        this.actionResultText.y += 18;
       },
     });
   }
@@ -4672,6 +5147,9 @@ export class Combat extends Scene {
   private displayHandType(handType: HandType): void {
     const screenWidth = this.cameras.main.width;
     const screenHeight = this.cameras.main.height;
+    const handTypeY = this.playedHandContainer
+      ? Math.round(this.playedHandContainer.y - 220)
+      : Math.round(screenHeight * 0.18);
 
     // Get hand type display text and color
     const handTypeText = this.getHandTypeDisplayText(handType);
@@ -4680,11 +5158,11 @@ export class Combat extends Scene {
     // Create the hand type display text
     const handDisplay = this.add.text(
       screenWidth / 2,
-      screenHeight * 0.15, // Position at top of screen
+      handTypeY,
       handTypeText.toUpperCase(),
       {
         fontFamily: "dungeon-mode",
-        fontSize: 36,
+        fontSize: screenWidth < 900 ? 28 : 34,
         color: handColor,
         align: "center"
       }
@@ -4699,7 +5177,7 @@ export class Combat extends Scene {
       ease: 'Back.Out',
       onComplete: () => {
         // Hold for a moment then fade out
-        this.time.delayedCall(1200, () => {
+        this.time.delayedCall(700, () => {
           this.tweens.add({
             targets: handDisplay,
             alpha: 0,
@@ -4720,7 +5198,7 @@ export class Combat extends Scene {
       // Create a subtle glow background
       const glow = this.add.rectangle(
         screenWidth / 2,
-        screenHeight * 0.15,
+        handTypeY,
         handDisplay.width + 40,
         handDisplay.height + 20,
         0xffffff
@@ -4762,23 +5240,21 @@ export class Combat extends Scene {
    * Enhanced action result display with relic effect indicators
    */
   private showEnhancedActionResult(message: string, color: string = "#2ed573"): void {
-    const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
-
-    // Update position to lower area to avoid overlap with calculation displays
-    this.actionResultText.setPosition(screenWidth / 2, screenHeight * 0.75);
+    this.tweens.killTweensOf(this.actionResultText);
+    this.layoutActionResultText(message);
     this.actionResultText.setText(message);
     this.actionResultText.setColor(color);
     this.actionResultText.setVisible(true);
 
-    // Fade out after 2 seconds
     this.tweens.add({
       targets: this.actionResultText,
       alpha: 0,
-      duration: 2000,
+      y: this.actionResultText.y - 18,
+      duration: 1200,
       onComplete: () => {
         this.actionResultText.setVisible(false);
         this.actionResultText.setAlpha(1); // Reset alpha for next use
+        this.actionResultText.y += 18;
       },
     });
   }
@@ -4787,25 +5263,51 @@ export class Combat extends Scene {
   private showFloatingDamage(damage: number): void {
     if (!this.enemySprite) return;
 
-    // Create damage text at enemy position
+    const clampedDamage = Math.max(0, Math.floor(damage));
+    const fontSize = Phaser.Math.Clamp(42 + Math.floor(clampedDamage / 8), 42, 72);
+    const damageColor = clampedDamage >= 30 ? '#ffe38f' : clampedDamage >= 15 ? '#fff2d0' : '#fff8f4';
+    const strokeColor = clampedDamage >= 30 ? '#d11f3f' : '#63111d';
+    const damageTilt = Phaser.Math.Between(-8, 6);
+
     const damageText = this.add.text(
       this.enemySprite.x,
-      this.enemySprite.y,
-      damage.toString(),
+      this.enemySprite.y - 20,
+      clampedDamage.toString(),
       {
         fontFamily: 'dungeon-mode',
-        fontSize: 48,
-        color: '#ff6b6b'
+        fontSize,
+        color: damageColor,
+        stroke: strokeColor,
+        strokeThickness: 8,
+        shadow: {
+          offsetX: 4,
+          offsetY: 4,
+          color: '#000000',
+          blur: 0,
+          stroke: false,
+          fill: true
+        }
       }
-    ).setOrigin(0.5);
+    )
+      .setOrigin(0.5)
+      .setDepth(2500)
+      .setScale(0.68)
+      .setAngle(damageTilt);
 
-    // Animate damage text upward and fade out
     this.tweens.add({
       targets: damageText,
-      y: this.enemySprite.y - 100,
+      scaleX: 1.14,
+      scaleY: 1.14,
+      duration: 130,
+      ease: 'Back.Out'
+    });
+
+    this.tweens.add({
+      targets: damageText,
+      y: this.enemySprite.y - 128,
       alpha: 0,
-      duration: 1000,
-      ease: 'Power1',
+      duration: 640,
+      ease: 'Cubic.Out',
       onComplete: () => {
         damageText.destroy();
       }
@@ -4827,9 +5329,12 @@ export class Combat extends Scene {
   private updateDamagePreview(isActionSelectionPhase: boolean): void {
     // This method is kept for its calculation logic and styling approach
     // but no longer displays UI since the preview container was removed
-    if (!isActionSelectionPhase) {
+    if (!isActionSelectionPhase || this.combatState.player.playedHand.length === 0) {
       if (this.damagePreviewText) {
         this.damagePreviewText.setVisible(false);
+      }
+      if (this.enemyAttackPreviewText) {
+        this.enemyAttackPreviewText.setVisible(false);
       }
       return;
     }
@@ -4885,10 +5390,52 @@ export class Combat extends Scene {
     }
     damageText += ` = ${Math.floor(damage)}`;
 
+    const handLabel = evaluation.type.replace(/_/g, " ").toUpperCase();
+    const flatBonusTotal = evaluation.handBonus
+      + evaluation.elementalBonus
+      + sigbinBonus
+      + vulnerableBonus
+      + bakunawaBonus;
+    const bonusParts: string[] = [];
+    if (evaluation.handBonus > 0) {
+      bonusParts.push(`HAND +${evaluation.handBonus}`);
+    }
+    if (evaluation.elementalBonus > 0) {
+      bonusParts.push(`ELEMENT +${evaluation.elementalBonus}`);
+    }
+    if (evaluation.handMultiplier > 1) {
+      bonusParts.push(`x${evaluation.handMultiplier}`);
+    }
+    if (sigbinBonus > 0) {
+      bonusParts.push(`SIGBIN +${sigbinBonus}`);
+    }
+    if (vulnerableBonus > 0) {
+      bonusParts.push(`VULN +${Math.floor(vulnerableBonus)}`);
+    }
+    if (bakunawaBonus > 0) {
+      bonusParts.push(`BAKUNAWA +${bakunawaBonus}`);
+    }
+
+    const detailLine = bonusParts.length > 0
+      ? bonusParts.join("  •  ")
+      : "NO ACTIVE BONUS";
+    damageText = `POTENTIAL DMG\n${Math.floor(damage)} TOTAL\n${handLabel}\n${detailLine}`;
+
     // Display the damage preview
     if (this.damagePreviewText) {
       this.damagePreviewText.setText(damageText);
+      const previewMetaText = bonusParts.length > 0
+        ? `${handLabel}  •  ${bonusParts.join("  •  ")}`
+        : handLabel;
+      void previewMetaText;
+      this.damagePreviewText.setText(`${Math.floor(damage)}`);
+      this.damagePreviewText.setColor("#fff7e8");
+      this.damagePreviewText.setStyle({ strokeThickness: 0 });
+      this.ui?.refreshResponsiveLayout();
       this.damagePreviewText.setVisible(true);
+      if (this.enemyAttackPreviewText) {
+        this.enemyAttackPreviewText.setVisible(false);
+      }
     }
   }
 
@@ -5115,22 +5662,29 @@ export class Combat extends Scene {
           // Check if this container has input (it's an interactive button)
           if (child.input) {
             child.input.enabled = enabled;
-            // Visually indicate disabled state
-            const bg = child.getAt(0) as Phaser.GameObjects.Rectangle;
+            const bg = (child.getAll().find((entry) => entry.name === "button-bg") as Phaser.GameObjects.Rectangle | undefined)
+              || (child.getAt(0) as Phaser.GameObjects.Rectangle | null);
             if (bg) {
-              bg.setFillStyle(enabled ? 0x2f3542 : 0x1a1d26);
+              const enabledFill = (child.getData("enabledFill") as number | undefined) ?? 0x2f3542;
+              const disabledFill = (child.getData("disabledFill") as number | undefined) ?? 0x1a1d26;
+              bg.setFillStyle(enabled ? enabledFill : disabledFill);
             }
+            child.setAlpha(enabled ? 1 : 0.58);
           }
           // For grouped containers (like sort buttons), recursively enable/disable children
           else {
             child.getAll().forEach((subChild) => {
               if (subChild instanceof Phaser.GameObjects.Container && (subChild as any).input) {
                 (subChild as any).input.enabled = enabled;
-                // Update visual state for Prologue-style buttons
-                const bg = subChild.getAt(2) as Phaser.GameObjects.Rectangle; // Index 2 is the background
+                const bg = (subChild.getAll().find((entry) => entry.name === "button-bg") as Phaser.GameObjects.Rectangle | undefined)
+                  || (subChild.getAt(0) as Phaser.GameObjects.Rectangle | null)
+                  || (subChild.getAt(2) as Phaser.GameObjects.Rectangle | null);
                 if (bg) {
-                  bg.setFillStyle(enabled ? 0x150E10 : 0x0a0806);
+                  const enabledFill = ((subChild as any).getData?.("enabledFill") as number | undefined) ?? 0x150E10;
+                  const disabledFill = ((subChild as any).getData?.("disabledFill") as number | undefined) ?? 0x0a0806;
+                  bg.setFillStyle(enabled ? enabledFill : disabledFill);
                 }
+                subChild.setAlpha(enabled ? 1 : 0.58);
               }
             });
           }
@@ -5167,32 +5721,23 @@ export class Combat extends Scene {
 
     // Update containers if they exist
     if (this.handContainer) {
-      this.handContainer.setPosition(screenWidth / 2, screenHeight - 280);
+      this.handContainer.setPosition(screenWidth / 2, screenHeight - 292);
     }
 
     if (this.playedHandContainer) {
-      this.playedHandContainer.setPosition(screenWidth / 2, screenHeight - 450);
+      this.playedHandContainer.setPosition(screenWidth / 2, screenHeight - 458);
     }
 
     if (this.actionButtons) {
-      this.actionButtons.setPosition(screenWidth / 2, screenHeight - 60);
+      this.actionButtons.setPosition(screenWidth / 2, screenHeight - 92);
     }
 
-    if (this.relicInventory) {
-      this.relicInventory.setPosition(screenWidth / 2, 80);
-    }
-
-    // Update text positions
-    if (this.turnText) {
-      this.turnText.setPosition(screenWidth - 200, 50);
-    }
-
-    if (this.actionsText) {
-      this.actionsText.setPosition(screenWidth - 200, 80);
+    if (this.ui?.itemInventoryContainer) {
+      this.ui.itemInventoryContainer.setPosition(screenWidth / 2, 86);
     }
 
     if (this.actionResultText) {
-      this.actionResultText.setPosition(screenWidth / 2, screenHeight / 2);
+      this.layoutActionResultText(this.actionResultText.text || "");
     }
 
     // Update poker hand info button position
@@ -5207,6 +5752,10 @@ export class Combat extends Scene {
 
     if (this.enemySprite) {
       this.enemySprite.setPosition(screenWidth * 0.75, screenHeight * 0.4);
+    }
+
+    if (this.ui) {
+      this.ui.layoutBattleOverlay();
     }
 
     // Redraw UI elements
@@ -5598,6 +6147,7 @@ export class Combat extends Scene {
   }
 
   shutdown(): void {
+    this.scale.off("resize", this.handleResize, this);
     // Music lifecycle is handled by MusicLifecycleSystem and persists across matching scene tracks.
     // No resize listener cleanup needed — Scale.FIT handles zoom uniformly.
   }

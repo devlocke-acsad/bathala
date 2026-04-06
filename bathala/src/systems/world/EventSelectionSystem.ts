@@ -8,7 +8,11 @@
  */
 
 import { GameEvent, EducationalEvent } from '../../data/events/EventTypes';
-import { CombinedAct1Events, CombinedAct2Events, CombinedAct3Events } from '../../data/events';
+import {
+  CombinedAct1Events,
+  Act2EducationalEvents,
+  Act3EducationalEvents,
+} from '../../data/events';
 import { GameState } from '../../core/managers/GameState';
 import { OverworldGameState } from '../../core/managers/OverworldGameState';
 
@@ -20,8 +24,10 @@ type EventProvider = () => (GameEvent | EducationalEvent)[];
  */
 const CHAPTER_EVENT_PROVIDERS: Map<number, EventProvider> = new Map([
   [1, () => CombinedAct1Events],
-  [2, () => CombinedAct2Events],
-  [3, () => CombinedAct3Events],
+  // Chapters 2 and 3 should only use the curated educational event pools
+  // shown in the chapter event debug screens.
+  [2, () => Act2EducationalEvents],
+  [3, () => Act3EducationalEvents],
 ]);
 
 export class EventSelectionSystem {

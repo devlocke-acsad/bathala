@@ -596,7 +596,7 @@ export class CombatAnimations {
     const ui = (this.scene as any).ui;
     
     // FIXED SPACING - Must match CombatUI constants
-    const CARD_SPACING = 96;
+    const CARD_SPACING = 100;
     const CARD_ARC_HEIGHT = 30;
     const CARD_MAX_ROTATION = 8;
     
@@ -610,7 +610,7 @@ export class CombatAnimations {
     const startX = -totalSpread / 2;
     
     // Get hand container position for calculating relative start position
-    const handContainerY = screenHeight - 280;
+    const handContainerY = handContainer.y;
     
     // Create cards through CombatUI at deck position first
     hand.forEach((card, index) => {
@@ -668,6 +668,9 @@ export class CombatAnimations {
             if (ui && ui.updateDeckDisplay) {
               ui.updateDeckDisplay();
             }
+            if (ui && ui.updateHandDisplay) {
+              ui.updateHandDisplay();
+            }
           }
         }
       });
@@ -703,11 +706,11 @@ export class CombatAnimations {
     const hand = this.scene.getCombatState().player.hand;
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
-    const handContainerY = screenHeight - 280; // Hand container Y position
+    const handContainerY = this.scene.getHandContainer().y;
     const deckPosition = (this.scene as any).deckPosition;
     
     // FIXED SPACING - Must match card layout
-    const CARD_SPACING = 96;
+    const CARD_SPACING = 100;
     const CARD_ARC_HEIGHT = 30;
     const CARD_MAX_ROTATION = 8;
     
@@ -754,6 +757,9 @@ export class CombatAnimations {
             
             if (relativeIndex === newCards.length - 1) {
               (this.scene as any).isDrawingCards = false;
+              if (ui && ui.updateHandDisplay) {
+                ui.updateHandDisplay();
+              }
             }
           }
         });

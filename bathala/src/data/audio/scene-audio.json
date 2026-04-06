@@ -3,7 +3,7 @@
   "Disclaimer": { "bgmKey": "main_menu_music", "bgmLayerKeys": ["main_menu_music"], "bgmVolume": 0.4, "fadeIn": false, "ambientLoopKeys": [] },
   "MainMenu": { "bgmKey": "main_menu_music", "bgmLayerKeys": ["main_menu_music"], "bgmVolume": 0.5, "fadeIn": true, "restartMusicWhenEnteredFromScenes": ["Credits"], "ambientLoopKeys": [] },
   "Overworld": { "bgmKey": "placeholder_music", "bgmLayerKeys": ["placeholder_music"], "bgmVolume": 0.4, "fadeIn": true, "ambientLoopKeys": ["forest_ambient"] },
-  "Combat": { "bgmKey": "battle_music_1", "bgmLayerKeys": ["battle_music_1"], "bgmVolume": 0.5, "fadeIn": true, "ambientLoopKeys": [] },
+  "Combat": { "bgmKey": "battle_music_1", "bgmLayerKeys": ["battle_music_1"], "bgmVolume": 0.5, "fadeIn": true, "resumeFromLastPosition": false, "ambientLoopKeys": [] },
   "Shop": { "bgmKey": "npc_interaction_music", "bgmLayerKeys": ["npc_interaction_music"], "bgmVolume": 0.4, "fadeIn": true, "ambientLoopKeys": [] },
   "Campfire": { "bgmKey": "npc_interaction_music", "bgmLayerKeys": ["npc_interaction_music"], "bgmVolume": 0.4, "fadeIn": true, "ambientLoopKeys": [] },
   "EventScene": { "bgmKey": "npc_interaction_music", "bgmLayerKeys": ["npc_interaction_music"], "bgmVolume": 0.4, "fadeIn": true, "ambientLoopKeys": [] },

@@ -164,7 +164,17 @@ export class Overworld_TooltipManager {
       console.warn("⚠️ TooltipManager: Cannot show tooltip - missing node or tooltip not initialized");
       return;
     }
-    
+    this.ensureEnemyRegistryReady();
+    this.lastHoveredNodeId = node.id;
+    const enemy = node.enemyId ? EnemyRegistry.resolve(node.enemyId) : null;
+    if (enemy) {
+      ensureEnemyDiscoverPortraitLoaded(this.scene, enemy, () => {
+        if (this.isTooltipVisible && this.lastHoveredNodeId === node.id) {
+          this.showEnemyTooltip(node, mouseX, mouseY);
+        }
+      });
+    }
+
     const enemyInfo = this.getEnemyInfoForNodeType(node.type, node.enemyId);
     if (!enemyInfo) {
       console.warn("⚠️ TooltipManager: Cannot show tooltip - no enemy info for type", node.type);
@@ -528,12 +538,11 @@ export class Overworld_TooltipManager {
       return null;
     }
 
-    // Use Discover/Compendium portraits when available, otherwise fallback to overworld sprites.
-    ensureEnemyDiscoverPortraitLoaded(this.scene, enemy);
     const discoverSpriteKey = getEnemyDiscoverPortraitKey(enemy);
+    const hasDiscoverPortrait = !!discoverSpriteKey;
     const spriteKey = discoverSpriteKey && this.scene.textures.exists(discoverSpriteKey)
       ? discoverSpriteKey
-      : EnemyRegistry.getOverworldSprite(enemy.id);
+      : (hasDiscoverPortrait ? null : EnemyRegistry.getOverworldSprite(enemy.id));
     const abilities = enemy.intent.description || enemy.attackPattern.join(" • ");
     const origin = enemy.lore.origin;
     const description = `${enemy.lore.description}\n\n${enemy.dialogue.intro}`;
