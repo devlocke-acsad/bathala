@@ -1654,8 +1654,96 @@ export class CombatUI {
     return Phaser.Math.Clamp(calculatedWidth, minWidth, maxWidth);
   }
 
+  private getResponsiveHandBannerMetrics(
+    text: string,
+    variant: "selection" | "evaluation",
+  ): {
+    fontSize: number;
+    fixedWidth: number;
+    lineSpacing: number;
+    padding: { left: number; right: number; top: number; bottom: number };
+  } {
+    const screenWidth = this.scene.cameras.main.width;
+    const lines = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+    const longestLineLength = Math.max(6, ...lines.map((line) => line.length));
+
+    if (variant === "selection") {
+      const baseFontSize = screenWidth < 900 ? 16 : screenWidth < 1200 ? 18 : 20;
+      const fontSizeReduction = Math.max(0, Math.ceil((longestLineLength - 10) / 4));
+      const fontSize = Phaser.Math.Clamp(baseFontSize - fontSizeReduction, 14, baseFontSize);
+      const horizontalPadding = screenWidth < 900 ? 16 : 20;
+      const calculatedWidth = Math.round(longestLineLength * fontSize * 0.72 + horizontalPadding * 2);
+      const minWidth = screenWidth < 900 ? 188 : 220;
+      const maxWidth = Phaser.Math.Clamp(Math.round(screenWidth * 0.32), 240, 320);
+
+      return {
+        fontSize,
+        fixedWidth: Phaser.Math.Clamp(calculatedWidth, minWidth, maxWidth),
+        lineSpacing: screenWidth < 900 ? 4 : 5,
+        padding: {
+          left: horizontalPadding,
+          right: horizontalPadding,
+          top: screenWidth < 900 ? 10 : 12,
+          bottom: screenWidth < 900 ? 10 : 11,
+        },
+      };
+    }
+
+    const baseFontSize = screenWidth < 900 ? 15 : screenWidth < 1200 ? 17 : 18;
+    const fontSizeReduction = Math.max(0, Math.ceil((longestLineLength - 12) / 4));
+    const fontSize = Phaser.Math.Clamp(baseFontSize - fontSizeReduction, 13, baseFontSize);
+    const horizontalPadding = screenWidth < 900 ? 14 : 18;
+    const calculatedWidth = Math.round(longestLineLength * fontSize * 0.7 + horizontalPadding * 2);
+    const minWidth = screenWidth < 900 ? 182 : 220;
+    const maxWidth = Phaser.Math.Clamp(Math.round(screenWidth * 0.3), 220, 320);
+
+    return {
+      fontSize,
+      fixedWidth: Phaser.Math.Clamp(calculatedWidth, minWidth, maxWidth),
+      lineSpacing: 4,
+      padding: {
+        left: horizontalPadding,
+        right: horizontalPadding,
+        top: screenWidth < 900 ? 7 : 8,
+        bottom: screenWidth < 900 ? 7 : 8,
+      },
+    };
+  }
+
+  private updateResponsiveHandBannerStyles(): void {
+    const screenWidth = this.scene.cameras.main.width;
+
+    if (this.selectionCounterText) {
+      const metrics = this.getResponsiveHandBannerMetrics(this.selectionCounterText.text || "0 / 5\nCHOOSE", "selection");
+      this.selectionCounterText.setStyle({
+        fontSize: metrics.fontSize,
+        fixedWidth: metrics.fixedWidth,
+        lineSpacing: metrics.lineSpacing,
+        padding: metrics.padding,
+      });
+      this.selectionCounterText.setAngle(screenWidth < 900 ? -1 : -2);
+      this.selectionCounterText.setPosition(0, screenWidth < 900 ? -176 : -170);
+    }
+
+    if (this.handEvaluationText) {
+      const metrics = this.getResponsiveHandBannerMetrics(this.handEvaluationText.text || "HIGH CARD", "evaluation");
+      this.handEvaluationText.setStyle({
+        fontSize: metrics.fontSize,
+        fixedWidth: metrics.fixedWidth,
+        lineSpacing: metrics.lineSpacing,
+        padding: metrics.padding,
+      });
+      this.handEvaluationText.setPosition(0, screenWidth < 900 ? -132 : -128);
+    }
+  }
+
   private updateResponsiveOverlayStyles(): void {
     const screenWidth = this.scene.cameras.main.width;
+
+    this.updateResponsiveHandBannerStyles();
 
     if (this.damagePreviewText) {
       const fontSize = screenWidth < 900 ? 44 : screenWidth < 1200 ? 50 : 56;
@@ -2419,6 +2507,8 @@ export class CombatUI {
       this.selectionCounterText.setColor("#b9bec8");
       this.selectionCounterText.setBackgroundColor("#11070c");
     }
+
+    this.updateResponsiveHandBannerStyles();
   }
   
   /**
@@ -2805,6 +2895,7 @@ export class CombatUI {
       const attackEvaluation = HandEvaluator.evaluateHand(playedHand, "attack", combatState.player);
       const defendEvaluation = HandEvaluator.evaluateHand(playedHand, "defend", combatState.player);
       this.handEvaluationText.setText(this.getHandTypeDisplayText(attackEvaluation.type).toUpperCase());
+      this.updateResponsiveHandBannerStyles();
       this.handEvaluationText.setVisible(true);
       const specialReady = this.scene.canUseSpecialActionNow();
       const actionButtonWidth = Math.round(228 * scaleFactor);
@@ -3393,6 +3484,7 @@ export class CombatUI {
 
     const handEvaluation = HandEvaluator.evaluateHand(playedHand, "attack", combatState.player);
     this.handEvaluationText.setText(this.getHandTypeDisplayText(handEvaluation.type).toUpperCase());
+    this.updateResponsiveHandBannerStyles();
     this.handEvaluationText.setVisible(combatState.phase === "action_selection");
     
     // Ensure played hand container is visible during action phase
