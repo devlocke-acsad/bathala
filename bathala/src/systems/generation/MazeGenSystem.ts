@@ -115,6 +115,9 @@ export class Overworld_MazeGenManager {
   private submergedVillageHouseSet3x3Ids: number[] = [1, 2, 6, 7, 8, 9, 10];
   private submergedVillageHouseSet3x2Ids: number[] = [3, 4];
   private submergedVillageHouseSet2x3Ids: number[] = [5];
+  private skywardCitadelHouseSet3x3Ids: number[] = [1, 2, 6, 7, 8, 9, 10, 15];
+  private skywardCitadelHouseSet3x2Ids: number[] = [3, 4];
+  private skywardCitadelHouseSet2x3Ids: number[] = [5, 11, 12, 13, 14];
 
   // Outer tile markers for chunk connections
   private outerTileMarkers: Phaser.GameObjects.Graphics[] = [];
@@ -801,8 +804,25 @@ export class Overworld_MazeGenManager {
     return this.submergedVillageUnderlayTextures[idx];
   }
 
+  private getHouseStylePoolsForCurrentChapter(): { set3x3: number[]; set3x2: number[]; set2x3: number[] } {
+    if (this.isAct3Chapter()) {
+      return {
+        set3x3: this.skywardCitadelHouseSet3x3Ids,
+        set3x2: this.skywardCitadelHouseSet3x2Ids,
+        set2x3: this.skywardCitadelHouseSet2x3Ids,
+      };
+    }
+
+    return {
+      set3x3: this.submergedVillageHouseSet3x3Ids,
+      set3x2: this.submergedVillageHouseSet3x2Ids,
+      set2x3: this.submergedVillageHouseSet2x3Ids,
+    };
+  }
+
   private buildAct2HouseVariantMap(maze: number[][], chunkX: number, chunkY: number): Map<string, number> {
     const map = new Map<string, number>();
+    const houseStylePools = this.getHouseStylePoolsForCurrentChapter();
     const visited = new Set<string>();
     const h = maze.length;
     const w = h > 0 ? maze[0].length : 0;
@@ -863,11 +883,11 @@ export class Overworld_MazeGenManager {
 
         // Exact family mapping from filename sizes:
         // H3xL3 => 3x3, H2xL3 => 3x2, H3xL2 => 2x3.
-        let stylePool = this.submergedVillageHouseSet3x3Ids;
+        let stylePool = houseStylePools.set3x3;
         if (componentWidth === 2 && componentHeight === 3) {
-          stylePool = this.submergedVillageHouseSet2x3Ids;
+          stylePool = houseStylePools.set2x3;
         } else if (componentWidth === 3 && componentHeight === 2) {
-          stylePool = this.submergedVillageHouseSet3x2Ids;
+          stylePool = houseStylePools.set3x2;
         }
         const styleIdx = this.getDeterministicIndex(chunkX, chunkY, minX, minY, stylePool.length);
         const styleId = stylePool[styleIdx];
@@ -888,6 +908,7 @@ export class Overworld_MazeGenManager {
     y: number,
     houseVariantMap?: Map<string, number>,
   ): string {
+    const houseStylePools = this.getHouseStylePoolsForCurrentChapter();
     const isHouse = (tx: number, ty: number): boolean => maze[ty]?.[tx] === 2;
     const n = isHouse(x, y - 1);
     const s = isHouse(x, y + 1);
@@ -905,18 +926,32 @@ export class Overworld_MazeGenManager {
     else if (!w) suffix = 'w';
 
     const styleId = houseVariantMap?.get(`${x},${y}`)
-      ?? this.submergedVillageHouseSet3x3Ids[
-        this.getDeterministicIndex(chunkX, chunkY, x, y, this.submergedVillageHouseSet3x3Ids.length)
+      ?? houseStylePools.set3x3[
+        this.getDeterministicIndex(chunkX, chunkY, x, y, houseStylePools.set3x3.length)
       ];
 
-    const orientedKey = `sv_house_${styleId}_${suffix}`;
-    if (this.scene.textures.exists(orientedKey)) {
-      return orientedKey;
+    const preferredPrefix = this.isAct3Chapter() ? 'sc' : 'sv';
+    const fallbackPrefix = preferredPrefix === 'sc' ? 'sv' : 'sc';
+
+    const preferredOrientedKey = `${preferredPrefix}_house_${styleId}_${suffix}`;
+    if (this.scene.textures.exists(preferredOrientedKey)) {
+      return preferredOrientedKey;
     }
 
-    const centerKey = `sv_house_${styleId}_center`;
-    if (this.scene.textures.exists(centerKey)) {
-      return centerKey;
+    const preferredCenterKey = `${preferredPrefix}_house_${styleId}_center`;
+    if (this.scene.textures.exists(preferredCenterKey)) {
+      return preferredCenterKey;
+    }
+
+    // Compatibility fallback when one chapter's atlas is partially missing.
+    const fallbackOrientedKey = `${fallbackPrefix}_house_${styleId}_${suffix}`;
+    if (this.scene.textures.exists(fallbackOrientedKey)) {
+      return fallbackOrientedKey;
+    }
+
+    const fallbackCenterKey = `${fallbackPrefix}_house_${styleId}_center`;
+    if (this.scene.textures.exists(fallbackCenterKey)) {
+      return fallbackCenterKey;
     }
 
     return this.getAct2LandTexture(chunkX, chunkY, x, y);
