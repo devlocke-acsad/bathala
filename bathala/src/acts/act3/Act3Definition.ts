@@ -122,19 +122,20 @@ export class Act3Definition extends ActDefinition {
   createGenerator(): IChunkGenerator {
     return new SkywardCitadelChunkAdapter({
       chunkSize: 20,
-      // ── Zone layout ──
-      villageSpacing: 4,
-      denseRadius: 0,
+      // ── Zone layout: city covers most of the overworld ──
+      villageSpacing: 1,
+      denseRadius: 2,
       transitionRadius: 1,
-      // ── Dense citadel ──
-      denseHouseCount: 12,
+      // ── Dense citadel: near-maximum buildings for 20×20 chunk ──
+      // Physical limit: 18×18 usable ÷ (3+1)×(3+1) footprint ≈ 20 buildings
+      denseHouseCount: 20,
       denseHouseSpacing: 1,
-      denseClearRadius: 1,
-      // ── Transition ──
-      transitionHouseCount: 4,
+      denseClearRadius: 0,
+      // ── Transition: still heavily built ──
+      transitionHouseCount: 16,
       transitionHouseSpacing: 1,
-      // ── Forest ──
-      forestHouseCount: 0,
+      // ── Forest (city outskirts): clusters but with some breathing room ──
+      forestHouseCount: 12,
     });
   }
 }

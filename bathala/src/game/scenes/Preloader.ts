@@ -435,19 +435,6 @@ export class Preloader extends Scene {
     this.load.image("sc_stone_9", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone9.png");
     this.load.image("sc_stone_10", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone10.png");
 
-    this.load.image("sc_puddle_standalone_1", "background/skywardcitadelAssets/obstacles/water/puddleStandalone1.png");
-    this.load.image("sc_puddle_small_w", "background/skywardcitadelAssets/obstacles/water/puddleSmall1_W.png");
-    this.load.image("sc_puddle_small_e", "background/skywardcitadelAssets/obstacles/water/puddleSmall1_E.png");
-    this.load.image("sc_puddle_big_nw", "background/skywardcitadelAssets/obstacles/water/puddleBig1_NW.png");
-    this.load.image("sc_puddle_big_n", "background/skywardcitadelAssets/obstacles/water/puddleBig1_N.png");
-    this.load.image("sc_puddle_big_ne", "background/skywardcitadelAssets/obstacles/water/puddleBig1_NE.png");
-    this.load.image("sc_puddle_big_w", "background/skywardcitadelAssets/obstacles/water/puddleBig1_W.png");
-    this.load.image("sc_puddle_big_middle", "background/skywardcitadelAssets/obstacles/water/puddleBig1_Middle.png");
-    this.load.image("sc_puddle_big_e", "background/skywardcitadelAssets/obstacles/water/puddleBig1_E.png");
-    this.load.image("sc_puddle_big_sw", "background/skywardcitadelAssets/obstacles/water/puddleBig1_SW.png");
-    this.load.image("sc_puddle_big_s", "background/skywardcitadelAssets/obstacles/water/puddleBig1_S.png");
-    this.load.image("sc_puddle_big_se", "background/skywardcitadelAssets/obstacles/water/puddleBig1_SE.png");
-
     // Act 3 overworld tile set - skyward citadel (cloud platforms)
     this.load.image("cloud_blank", "background/skywardcitadelAssets/cloud_blank.png");
     this.load.image("cloud_edge_n1", "background/skywardcitadelAssets/cloud_edge_N1.png");
