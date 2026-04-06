@@ -341,8 +341,8 @@ export class CombatUI {
 
     const playerHudWidth = 248;
     const playerHudHeight = 108;
-    const panelY = playerY + this.playerSprite.displayHeight * 0.48 + 46;
-    this.playerInfoContainer = this.scene.add.container(playerX, panelY).setDepth(820);
+    const playerHudPosition = this.getPlayerHudPosition(playerX, playerY, this.playerSprite, playerHudWidth);
+    this.playerInfoContainer = this.scene.add.container(playerHudPosition.x, playerHudPosition.y).setDepth(820);
     const playerHudChrome = this.createStatusHudChrome(playerHudWidth, playerHudHeight, 0x8d949c, "left");
     const playerHealthBarShadow = this.scene.add.rectangle(
       -playerHudWidth / 2 + 2,
@@ -444,6 +444,7 @@ export class CombatUI {
     const { targetWidth, targetHeight } = this.getEnemySpriteTargetSize(
       combatState.enemy.tier,
       enemyName,
+      combatState.enemy.chapter,
     );
 
     const scale = Math.min(targetWidth / sprite.width, targetHeight / sprite.height);
@@ -470,8 +471,9 @@ export class CombatUI {
     );
 
     const enemyHudWidth = 248;
-    const panelX = enemyX + sprite.displayWidth * 0.5 + enemyHudWidth * 0.5 - 18;
-    const panelY = enemyY + sprite.displayHeight * 0.08;
+    const enemyHudPosition = this.getEnemyHudPosition(enemyX, enemyY, sprite, enemyHudWidth, combatState.enemy.tier);
+    const panelX = enemyHudPosition.x;
+    const panelY = enemyHudPosition.y;
     this.enemyInfoContainer = this.scene.add.container(panelX, panelY).setDepth(820);
     const enemyHealthBarShadow = this.scene.add.rectangle(
       -enemyHudWidth / 2 + 2,
@@ -720,17 +722,26 @@ export class CombatUI {
   private getEnemySpriteTargetSize(
     tier: EnemyTier,
     enemyName: string,
+    chapter?: number | string,
   ): { targetWidth: number; targetHeight: number } {
     const normalizedName = enemyName.toLowerCase();
     const playerReferenceHeight = this.playerSprite?.displayHeight || 250;
 
     const tierSizeMultiplier: Record<EnemyTier, number> = {
-      common: 0.95,
-      elite: 1.3,
+      common: 1.02,
+      elite: 1.38,
       boss: 1.65,
     };
 
     let multiplier = tierSizeMultiplier[tier];
+
+    if (chapter === 2 || chapter === "Chapter 2") {
+      if (tier === "boss") {
+        multiplier *= 1.1;
+      }
+    } else if (chapter === 3 || chapter === "Chapter 3") {
+      multiplier *= 1.08;
+    }
 
     if (normalizedName.includes("tiyanak") || normalizedName.includes("duwende")) {
       multiplier = 0.65;
@@ -741,6 +752,31 @@ export class CombatUI {
     return {
       targetWidth: targetSize,
       targetHeight: targetSize,
+    };
+  }
+
+  private getEnemyHudPosition(
+    enemyX: number,
+    enemyY: number,
+    sprite: Phaser.GameObjects.Sprite,
+    enemyHudWidth: number,
+    _tier: EnemyTier,
+  ): { x: number; y: number } {
+    return {
+      x: enemyX + sprite.displayWidth * 0.5 + enemyHudWidth * 0.5 - 18,
+      y: enemyY + sprite.displayHeight * 0.08,
+    };
+  }
+
+  private getPlayerHudPosition(
+    playerX: number,
+    playerY: number,
+    sprite: Phaser.GameObjects.Sprite,
+    playerHudWidth: number,
+  ): { x: number; y: number } {
+    return {
+      x: playerX - sprite.displayWidth * 0.5 - playerHudWidth * 0.5 + 18,
+      y: playerY + sprite.displayHeight * 0.08,
     };
   }
   
@@ -1112,7 +1148,7 @@ export class CombatUI {
     const screenWidth = this.scene.cameras.main.width;
     this.itemInventoryContainer = this.scene.add.container(screenWidth / 2, 86);
 
-    const shellWidth = 752;
+    const shellWidth = 658;
     const shellHeight = 154;
     const shellShadow = this.scene.add.rectangle(8, 10, shellWidth + 14, shellHeight + 14, 0x040203, 0.34);
     const shellBase = this.scene.add.rectangle(0, 0, shellWidth, shellHeight, 0x120d11, 0.98);
@@ -1120,9 +1156,9 @@ export class CombatUI {
     shellBorder.setStrokeStyle(2, 0xa88454, 0.36);
     const shellSpine = this.scene.add.rectangle(-shellWidth / 2 + 48, 0, 82, shellHeight, 0x24181a, 0.96);
     const spineHighlight = this.scene.add.rectangle(-shellWidth / 2 + 78, 0, 6, shellHeight - 18, 0x4d3526, 0.55);
-    const shellHeader = this.scene.add.rectangle(42, -shellHeight / 2 + 30, shellWidth - 154, 38, 0x191216, 0.9);
-    const contentWell = this.scene.add.rectangle(42, 18, shellWidth - 150, 92, 0x171116, 0.9);
-    const contentInset = this.scene.add.rectangle(42, 18, shellWidth - 186, 74, 0x1d1519, 0.86);
+    const shellHeader = this.scene.add.rectangle(28, -shellHeight / 2 + 30, shellWidth - 132, 38, 0x191216, 0.9);
+    const contentWell = this.scene.add.rectangle(28, 18, shellWidth - 128, 92, 0x171116, 0.9);
+    const contentInset = this.scene.add.rectangle(28, 18, shellWidth - 164, 74, 0x1d1519, 0.86);
     const shellTitle = this.scene.add.text(-shellWidth / 2 + 46, -shellHeight / 2 + 30, "INVENTORY", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
@@ -1155,8 +1191,8 @@ export class CombatUI {
     this.itemInventoryContainer.sendToBack(shellShadow);
 
     this.inventoryTabButtons = {
-      relics: this.createInventoryTabButton(-24, -shellHeight / 2 + 30, "RELICS", "relics"),
-      potions: this.createInventoryTabButton(106, -shellHeight / 2 + 30, "POTIONS", "potions"),
+      relics: this.createInventoryTabButton(-34, -shellHeight / 2 + 30, "RELICS", "relics"),
+      potions: this.createInventoryTabButton(90, -shellHeight / 2 + 30, "POTIONS", "potions"),
     };
     this.itemInventoryContainer.add([
       this.inventoryTabButtons.relics,
@@ -1625,9 +1661,15 @@ export class CombatUI {
     }
 
     if (this.playerInfoContainer && this.playerSprite) {
+      const hudPosition = this.getPlayerHudPosition(
+        this.playerSprite.x,
+        this.playerSprite.y,
+        this.playerSprite,
+        248,
+      );
       this.playerInfoContainer.setPosition(
-        Math.round(this.playerSprite.x),
-        Math.round(this.playerSprite.y + this.playerSprite.displayHeight * 0.48 + 46),
+        Math.round(hudPosition.x),
+        Math.round(hudPosition.y),
       );
     }
 
@@ -1639,9 +1681,17 @@ export class CombatUI {
     }
 
     if (this.enemyInfoContainer && this.enemySprite) {
+      const combatState = this.scene.getCombatState();
+      const hudPosition = this.getEnemyHudPosition(
+        this.enemySprite.x,
+        this.enemySprite.y,
+        this.enemySprite,
+        248,
+        combatState.enemy.tier,
+      );
       this.enemyInfoContainer.setPosition(
-        Math.round(this.enemySprite.x),
-        Math.round(this.enemySprite.y + this.enemySprite.displayHeight * 0.5 + 44),
+        Math.round(hudPosition.x),
+        Math.round(hudPosition.y),
       );
     }
 
@@ -5578,4 +5628,7 @@ export class CombatUI {
   public clearCombatUI(): void {
     // Clear all UI elements for post-combat
     this.actionButtons.setVisible(false);
-    this.handContainer
+    this.handContainer.setVisible(false);
+    this.playedHandContainer.setVisible(false);
+  }
+}
