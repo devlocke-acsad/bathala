@@ -407,6 +407,11 @@ export class Preloader extends Scene {
       { id: 8, profile: "H3xL3" },
       { id: 9, profile: "H3xL3" },
       { id: 10, profile: "H3xL3" },
+      { id: 11, profile: "H3xL2", suffixes: act3HouseSuffixes2x3 },
+      { id: 12, profile: "H3xL2", suffixes: act3HouseSuffixes2x3 },
+      { id: 13, profile: "H3xL2", suffixes: act3HouseSuffixes2x3 },
+      { id: 14, profile: "H3xL2", suffixes: act3HouseSuffixes2x3 },
+      { id: 15, profile: "H3xL3" },
     ];
     for (const houseProfile of act3HouseProfiles) {
       const suffixes = houseProfile.suffixes ?? act3HouseSuffixesAll;
