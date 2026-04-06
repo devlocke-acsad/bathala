@@ -2988,6 +2988,9 @@ export class CombatUI {
     }
 
     if (this.scene.getIsDrawingCards()) {
+      if (combatState.player.hand.length > 0 && this.cardSprites.length === 0) {
+        this.updateHandDisplayQuiet();
+      }
       return;
     }
     
