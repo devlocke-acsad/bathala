@@ -5286,7 +5286,7 @@ export class Combat extends Scene {
     }
 
     if (this.ui?.itemInventoryContainer) {
-      this.ui.itemInventoryContainer.setPosition(screenWidth / 2, 90);
+      this.ui.itemInventoryContainer.setPosition(screenWidth / 2, 86);
     }
 
     // Update poker hand info button position

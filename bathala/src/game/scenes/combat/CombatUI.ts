@@ -144,6 +144,7 @@ export class CombatUI {
   public currentPotionTooltip!: Phaser.GameObjects.Container | null;
   private inventoryTabButtons!: Record<"relics" | "potions", Phaser.GameObjects.Container>;
   private activeInventoryPanel: "relics" | "potions" = "relics";
+  private itemInventorySwitchSlash!: Phaser.GameObjects.Rectangle;
   
   // Modal/Overlay Elements
   public landasChoiceContainer!: Phaser.GameObjects.Container;
@@ -947,12 +948,11 @@ export class CombatUI {
     this.relicInventory.setVisible(true);
     this.currentRelicTooltip = null;
 
-    // Keep slot fit intact while modernizing the tray around it.
     const relicSlotSize = 60;
     const relicsPerRow = 6;
-    const padding = 28;
+    const padding = 24;
     const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
-    const gridStartY = 14;
+    const gridStartY = 18;
     
     for (let i = 0; i < relicsPerRow; i++) {
       const col = i;
@@ -961,15 +961,14 @@ export class CombatUI {
       
       const slotContainer = this.scene.add.container(slotX, slotY);
       
-      const outerSlotBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 10, relicSlotSize + 10, undefined, 0);
-      outerSlotBorder.setStrokeStyle(2, 0x7a5b38, 0.92);
-      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x181116);
-      const innerGlow = this.scene.add.rectangle(0, 0, relicSlotSize - 8, relicSlotSize - 8, 0x23171c, 0.98);
+      const outerSlotBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 8, relicSlotSize + 8, undefined, 0);
+      outerSlotBorder.setStrokeStyle(2, 0x7c6040, 0.82);
+      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x191216, 0.98);
+      const innerGlow = this.scene.add.rectangle(0, 0, relicSlotSize - 10, relicSlotSize - 10, 0x24181d, 0.92);
       const slotFrame = this.scene.add.rectangle(0, 0, relicSlotSize - 18, relicSlotSize - 18, undefined, 0);
-      slotFrame.setStrokeStyle(1, 0xaf8351, 0.45);
-      const slotCap = this.scene.add.rectangle(0, -relicSlotSize / 2 - 8, 22, 3, 0xe0b66a, 0.7);
+      slotFrame.setStrokeStyle(1, 0xc39b63, 0.28);
       
-      slotContainer.add([bg, outerSlotBorder, innerGlow, slotFrame, slotCap]);
+      slotContainer.add([bg, outerSlotBorder, innerGlow, slotFrame]);
       (slotContainer as any).isRelicSlot = true;
       (slotContainer as any).slotIndex = i;
       
@@ -988,26 +987,24 @@ export class CombatUI {
     this.potionInventory.setVisible(false);
     this.currentPotionTooltip = null;
 
-    // Reflow potions horizontally inside the shared inventory tray.
     const potionSlotSize = 70;
     const maxPotions = 3;
-    const padding = 34;
+    const padding = 26;
     const gridStartX = -(maxPotions - 1) * (potionSlotSize + padding) / 2;
-    const slotY = 14;
+    const slotY = 18;
     
     for (let i = 0; i < maxPotions; i++) {
       const slotX = gridStartX + i * (potionSlotSize + padding);
       const slotContainer = this.scene.add.container(slotX, slotY);
 
       const outerBorder = this.scene.add.rectangle(0, 0, potionSlotSize + 8, potionSlotSize + 8, undefined, 0);
-      outerBorder.setStrokeStyle(2, 0x3c728a, 0.95);
-      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x101921);
-      const innerGlow = this.scene.add.rectangle(0, 0, potionSlotSize - 8, potionSlotSize - 8, 0x152631, 0.98);
+      outerBorder.setStrokeStyle(2, 0x4b8199, 0.82);
+      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x111a22, 0.98);
+      const innerGlow = this.scene.add.rectangle(0, 0, potionSlotSize - 10, potionSlotSize - 10, 0x182834, 0.92);
       const slotFrame = this.scene.add.rectangle(0, 0, potionSlotSize - 22, potionSlotSize - 22, undefined, 0);
-      slotFrame.setStrokeStyle(1, 0x74b8d6, 0.5);
-      const slotCap = this.scene.add.rectangle(0, -potionSlotSize / 2 - 10, 24, 3, 0x82d9ff, 0.7);
+      slotFrame.setStrokeStyle(1, 0x89c7e1, 0.28);
       
-      slotContainer.add([bg, outerBorder, innerGlow, slotFrame, slotCap]);
+      slotContainer.add([bg, outerBorder, innerGlow, slotFrame]);
       (slotContainer as any).isPotionSlot = true;
       (slotContainer as any).slotIndex = i;
       
@@ -1022,60 +1019,53 @@ export class CombatUI {
 
   private createItemInventoryShell(): void {
     const screenWidth = this.scene.cameras.main.width;
-    this.itemInventoryContainer = this.scene.add.container(screenWidth / 2, 90);
+    this.itemInventoryContainer = this.scene.add.container(screenWidth / 2, 86);
 
-    const shellWidth = 768;
-    const shellHeight = 176;
-    const shellShadow = this.scene.add.rectangle(8, 10, shellWidth + 20, shellHeight + 18, 0x040203, 0.42);
-    const shellOuter = this.scene.add.rectangle(0, 0, shellWidth + 8, shellHeight + 8, undefined, 0);
-    shellOuter.setStrokeStyle(3, 0xb98b4b, 0.7);
-    const shellInner = this.scene.add.rectangle(0, 0, shellWidth, shellHeight, undefined, 0);
-    shellInner.setStrokeStyle(1, 0x6b4a2d, 0.95);
-    const shellBase = this.scene.add.rectangle(0, 0, shellWidth, shellHeight, 0x120c10, 0.96);
-    const leftLeaf = this.scene.add.rectangle(-187, 10, 332, 124, 0x25181a, 0.96);
-    const rightLeaf = this.scene.add.rectangle(187, 10, 332, 124, 0x25181a, 0.96);
-    const leftLeafInner = this.scene.add.rectangle(-187, 10, 298, 98, 0x1b1215, 0.82);
-    const rightLeafInner = this.scene.add.rectangle(187, 10, 298, 98, 0x1b1215, 0.82);
-    const spine = this.scene.add.rectangle(0, 8, 44, 130, 0x2d1a16, 0.95);
-    const spineLine = this.scene.add.rectangle(0, 8, 4, 126, 0xb98b4b, 0.52);
-    const topRule = this.scene.add.rectangle(0, -shellHeight / 2 + 16, shellWidth - 42, 2, 0xe0b66a, 0.88);
-    const bottomRule = this.scene.add.rectangle(0, shellHeight / 2 - 14, shellWidth - 56, 2, 0x6f4e30, 0.55);
-    const shellTitle = this.scene.add.text(-shellWidth / 2 + 48, -shellHeight / 2 + 30, "INVENTORY", {
+    const shellWidth = 752;
+    const shellHeight = 154;
+    const shellShadow = this.scene.add.rectangle(8, 10, shellWidth + 14, shellHeight + 14, 0x040203, 0.34);
+    const shellBase = this.scene.add.rectangle(0, 0, shellWidth, shellHeight, 0x120d11, 0.98);
+    const shellBorder = this.scene.add.rectangle(0, 0, shellWidth + 4, shellHeight + 4, undefined, 0);
+    shellBorder.setStrokeStyle(2, 0xa88454, 0.36);
+    const shellSpine = this.scene.add.rectangle(-shellWidth / 2 + 48, 0, 82, shellHeight, 0x24181a, 0.96);
+    const spineHighlight = this.scene.add.rectangle(-shellWidth / 2 + 78, 0, 6, shellHeight - 18, 0x4d3526, 0.55);
+    const shellHeader = this.scene.add.rectangle(42, -shellHeight / 2 + 30, shellWidth - 154, 38, 0x191216, 0.9);
+    const contentWell = this.scene.add.rectangle(42, 18, shellWidth - 150, 92, 0x171116, 0.9);
+    const contentInset = this.scene.add.rectangle(42, 18, shellWidth - 186, 74, 0x1d1519, 0.86);
+    const shellTitle = this.scene.add.text(-shellWidth / 2 + 46, -shellHeight / 2 + 30, "INVENTORY", {
       fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#f2e3cf",
+      fontSize: 16,
+      color: "#efe0ca",
       align: "left",
     }).setOrigin(0, 0.5);
+    this.itemInventorySwitchSlash = this.scene.add.rectangle(0, 18, 96, 126, 0xe0b66a, 0)
+      .setAngle(-14)
+      .setVisible(false);
 
     this.itemInventoryContainer.add([
       shellShadow,
       shellBase,
-      leftLeaf,
-      rightLeaf,
-      leftLeafInner,
-      rightLeafInner,
-      spine,
-      spineLine,
-      shellInner,
-      shellOuter,
-      topRule,
-      bottomRule,
+      shellSpine,
+      spineHighlight,
+      shellHeader,
+      contentWell,
+      contentInset,
+      shellBorder,
       shellTitle,
+      this.itemInventorySwitchSlash,
     ]);
     this.itemInventoryContainer.sendToBack(shellBase);
-    this.itemInventoryContainer.sendToBack(leftLeaf);
-    this.itemInventoryContainer.sendToBack(rightLeaf);
-    this.itemInventoryContainer.sendToBack(leftLeafInner);
-    this.itemInventoryContainer.sendToBack(rightLeafInner);
-    this.itemInventoryContainer.sendToBack(spine);
-    this.itemInventoryContainer.sendToBack(spineLine);
-    this.itemInventoryContainer.sendToBack(shellInner);
-    this.itemInventoryContainer.sendToBack(shellOuter);
+    this.itemInventoryContainer.sendToBack(shellSpine);
+    this.itemInventoryContainer.sendToBack(spineHighlight);
+    this.itemInventoryContainer.sendToBack(shellHeader);
+    this.itemInventoryContainer.sendToBack(contentWell);
+    this.itemInventoryContainer.sendToBack(contentInset);
+    this.itemInventoryContainer.sendToBack(shellBorder);
     this.itemInventoryContainer.sendToBack(shellShadow);
 
     this.inventoryTabButtons = {
-      relics: this.createInventoryTabButton(-86, -shellHeight / 2 + 30, "RELICS", "relics"),
-      potions: this.createInventoryTabButton(86, -shellHeight / 2 + 30, "POTIONS", "potions"),
+      relics: this.createInventoryTabButton(-24, -shellHeight / 2 + 30, "RELICS", "relics"),
+      potions: this.createInventoryTabButton(106, -shellHeight / 2 + 30, "POTIONS", "potions"),
     };
     this.itemInventoryContainer.add([
       this.inventoryTabButtons.relics,
@@ -1090,27 +1080,25 @@ export class CombatUI {
     panel: "relics" | "potions",
   ): Phaser.GameObjects.Container {
     const tab = this.scene.add.container(x, y);
-    const width = 132;
-    const height = 34;
-    const leftCap = this.scene.add.circle(-width / 2 + height / 2, 0, height / 2, 0x1d1417, 1);
-    const rightCap = this.scene.add.circle(width / 2 - height / 2, 0, height / 2, 0x1d1417, 1);
-    const centerBody = this.scene.add.rectangle(0, 0, width - height, height, 0x1d1417, 1);
-    const borderLeft = this.scene.add.circle(-width / 2 + height / 2, 0, height / 2 + 2, undefined, 0);
-    borderLeft.setStrokeStyle(2, 0x7f5e3b, 0.85);
-    const borderRight = this.scene.add.circle(width / 2 - height / 2, 0, height / 2 + 2, undefined, 0);
-    borderRight.setStrokeStyle(2, 0x7f5e3b, 0.85);
-    const borderCenter = this.scene.add.rectangle(0, 0, width - height + 4, height + 4, undefined, 0);
-    borderCenter.setStrokeStyle(2, 0x7f5e3b, 0.85);
+    const width = 116;
+    const height = 30;
+    const shadowLeft = this.scene.add.circle(-width / 2 + height / 2 + 2, 3, height / 2, 0x040203, 0.18);
+    const shadowRight = this.scene.add.circle(width / 2 - height / 2 + 2, 3, height / 2, 0x040203, 0.18);
+    const shadowBody = this.scene.add.rectangle(2, 3, width - height, height, 0x040203, 0.18);
+    const leftCap = this.scene.add.circle(-width / 2 + height / 2, 0, height / 2, 0x21171a, 1);
+    const rightCap = this.scene.add.circle(width / 2 - height / 2, 0, height / 2, 0x21171a, 1);
+    const centerBody = this.scene.add.rectangle(0, 0, width - height, height, 0x21171a, 1);
+    const accentDot = this.scene.add.circle(-width / 2 + 18, 0, 3, 0x7d6040, 0.75);
     const text = this.scene.add.text(0, 0, label, {
       fontFamily: "dungeon-mode",
-      fontSize: 15,
-      color: "#d5c2a7",
+      fontSize: 14,
+      color: "#cfbea7",
       align: "center",
     }).setOrigin(0.5);
 
-    tab.add([leftCap, rightCap, centerBody, borderLeft, borderRight, borderCenter, text]);
+    tab.add([shadowLeft, shadowRight, shadowBody, leftCap, rightCap, centerBody, accentDot, text]);
     tab.setData("panel", panel);
-    tab.setData("fills", { leftCap, rightCap, centerBody, borderLeft, borderRight, borderCenter, text });
+    tab.setData("fills", { leftCap, rightCap, centerBody, accentDot, text, shadowLeft, shadowRight, shadowBody });
     tab.setInteractive(
       new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
       Phaser.Geom.Rectangle.Contains,
@@ -1121,26 +1109,92 @@ export class CombatUI {
         return;
       }
       const visuals = tab.getData("fills") as Record<string, Phaser.GameObjects.Shape | Phaser.GameObjects.Text>;
-      (visuals.leftCap as Phaser.GameObjects.Arc).setFillStyle(0x271b1f, 1);
-      (visuals.rightCap as Phaser.GameObjects.Arc).setFillStyle(0x271b1f, 1);
-      (visuals.centerBody as Phaser.GameObjects.Rectangle).setFillStyle(0x271b1f, 1);
+      (visuals.leftCap as Phaser.GameObjects.Arc).setFillStyle(0x2c1e21, 1);
+      (visuals.rightCap as Phaser.GameObjects.Arc).setFillStyle(0x2c1e21, 1);
+      (visuals.centerBody as Phaser.GameObjects.Rectangle).setFillStyle(0x2c1e21, 1);
       (visuals.text as Phaser.GameObjects.Text).setColor("#f1e2ca");
+      tab.setScale(1.02);
     });
-    tab.on("pointerout", () => this.refreshInventoryTabButton(panel));
+    tab.on("pointerout", () => {
+      tab.setScale(1);
+      this.refreshInventoryTabButton(panel);
+    });
 
     return tab;
   }
 
   private setActiveInventoryPanel(panel: "relics" | "potions"): void {
+    const currentPanel = this.activeInventoryPanel === "relics" ? this.relicInventory : this.potionInventory;
+    const nextPanel = panel === "relics" ? this.relicInventory : this.potionInventory;
+
+    if (!nextPanel || panel === this.activeInventoryPanel) {
+      this.activeInventoryPanel = panel;
+      if (this.relicInventory) {
+        this.relicInventory.setVisible(panel === "relics").setAlpha(panel === "relics" ? 1 : 0).setX(0).setScale(1);
+      }
+      if (this.potionInventory) {
+        this.potionInventory.setVisible(panel === "potions").setAlpha(panel === "potions" ? 1 : 0).setX(0).setScale(1);
+      }
+      this.refreshInventoryTabButton("relics");
+      this.refreshInventoryTabButton("potions");
+      return;
+    }
+
+    const direction = panel === "potions" ? 1 : -1;
     this.activeInventoryPanel = panel;
-    if (this.relicInventory) {
-      this.relicInventory.setVisible(panel === "relics");
-    }
-    if (this.potionInventory) {
-      this.potionInventory.setVisible(panel === "potions");
-    }
     this.hideRelicTooltip();
     this.hidePotionTooltip();
+    this.scene.tweens.killTweensOf(currentPanel);
+    this.scene.tweens.killTweensOf(nextPanel);
+    this.scene.tweens.killTweensOf(this.itemInventorySwitchSlash);
+
+    nextPanel.setVisible(true).setAlpha(0).setX(52 * direction).setScale(0.96);
+    currentPanel?.setVisible(true).setAlpha(1).setX(0).setScale(1);
+    this.itemInventorySwitchSlash
+      .setVisible(true)
+      .setAlpha(0.2)
+      .setX(-330 * direction)
+      .setAngle(-14 * direction)
+      .setFillStyle(panel === "potions" ? 0x82d9ff : 0xe0b66a, 1);
+    this.itemInventoryContainer.bringToTop(this.itemInventorySwitchSlash);
+
+    if (currentPanel) {
+      this.scene.tweens.add({
+        targets: currentPanel,
+        x: -42 * direction,
+        alpha: 0,
+        scaleX: 0.975,
+        scaleY: 0.975,
+        duration: 170,
+        ease: "Cubic.In",
+        onComplete: () => {
+          currentPanel.setVisible(false).setX(0).setScale(1).setAlpha(1);
+        },
+      });
+    }
+
+    this.scene.tweens.add({
+      targets: nextPanel,
+      x: 0,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      delay: 46,
+      duration: 230,
+      ease: "Back.Out",
+    });
+
+    this.scene.tweens.add({
+      targets: this.itemInventorySwitchSlash,
+      x: 330 * direction,
+      alpha: 0,
+      duration: 250,
+      ease: "Cubic.Out",
+      onComplete: () => {
+        this.itemInventorySwitchSlash.setVisible(false);
+      },
+    });
+
     this.refreshInventoryTabButton("relics");
     this.refreshInventoryTabButton("potions");
   }
@@ -1157,17 +1211,19 @@ export class CombatUI {
 
     const isActive = this.activeInventoryPanel === panel;
     const visuals = tab.getData("fills") as Record<string, Phaser.GameObjects.Shape | Phaser.GameObjects.Text>;
-    const fillColor = isActive ? 0x3b261f : 0x1d1417;
-    const borderColor = isActive ? 0xe0b66a : 0x7f5e3b;
-    const textColor = isActive ? "#fff2de" : "#d5c2a7";
+    const fillColor = isActive ? 0x735132 : 0x21171a;
+    const accentColor = isActive ? 0xf0c789 : 0x7d6040;
+    const textColor = isActive ? "#fff4df" : "#cfbea7";
 
     (visuals.leftCap as Phaser.GameObjects.Arc).setFillStyle(fillColor, 1);
     (visuals.rightCap as Phaser.GameObjects.Arc).setFillStyle(fillColor, 1);
     (visuals.centerBody as Phaser.GameObjects.Rectangle).setFillStyle(fillColor, 1);
-    (visuals.borderLeft as Phaser.GameObjects.Arc).setStrokeStyle(2, borderColor, isActive ? 1 : 0.85);
-    (visuals.borderRight as Phaser.GameObjects.Arc).setStrokeStyle(2, borderColor, isActive ? 1 : 0.85);
-    (visuals.borderCenter as Phaser.GameObjects.Rectangle).setStrokeStyle(2, borderColor, isActive ? 1 : 0.85);
+    (visuals.accentDot as Phaser.GameObjects.Arc).setFillStyle(accentColor, isActive ? 1 : 0.75);
     (visuals.text as Phaser.GameObjects.Text).setColor(textColor);
+    (visuals.shadowLeft as Phaser.GameObjects.Arc).setAlpha(isActive ? 0.3 : 0.18);
+    (visuals.shadowRight as Phaser.GameObjects.Arc).setAlpha(isActive ? 0.3 : 0.18);
+    (visuals.shadowBody as Phaser.GameObjects.Rectangle).setAlpha(isActive ? 0.3 : 0.18);
+    tab.setScale(1);
   }
   
 
@@ -1499,7 +1555,7 @@ export class CombatUI {
     }
 
     if (this.itemInventoryContainer) {
-      this.itemInventoryContainer.setPosition(Math.round(this.scene.cameras.main.width * 0.5), 90);
+      this.itemInventoryContainer.setPosition(Math.round(this.scene.cameras.main.width * 0.5), 86);
     }
   }
   
