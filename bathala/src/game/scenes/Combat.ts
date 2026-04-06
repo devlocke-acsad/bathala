@@ -221,6 +221,10 @@ export class Combat extends Scene {
     return this.isActionProcessing;
   }
 
+  public canUseSpecialActionNow(): boolean {
+    return this.canUseSpecialAction();
+  }
+
   // Getter/setter methods for CombatAnimations
   public getCardSprites(): Phaser.GameObjects.Container[] {
     return this.ui.cardSprites;
@@ -1060,6 +1064,7 @@ export class Combat extends Scene {
     this.updateSelectionCounter();
     this.updateCardVisuals(card);
     this.ui.updateHandIndicator();
+    this.ui.updateActionButtons();
     // Show damage preview only during action selection phase
     this.updateDamagePreview(false);
   }
@@ -1890,12 +1895,16 @@ export class Combat extends Scene {
 
     try {
       // Cache text values to avoid unnecessary setText calls
-      const turnText = `Turn: ${this.combatState.turn}`;
+      const turnText = `TURN ${String(this.combatState.turn).padStart(2, "0")}`;
       const maxSpecialCharges = this.combatState.player.relics.some(r => r.id === "sarimanok_plumage") ? 2 : 1;
       const usedSpecialCharges = (this.specialUsedThisCombat ? 1 : 0) + (this.bonusSpecialUsedThisCombat ? 1 : 0);
       const remainingSpecialCharges = Math.max(0, maxSpecialCharges - usedSpecialCharges);
-      const specialStatus = remainingSpecialCharges > 0 ? `${remainingSpecialCharges} LEFT` : "USED";
-      const actionsText = `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`;
+      const specialStatus = remainingSpecialCharges > 1
+        ? `${remainingSpecialCharges} READY`
+        : remainingSpecialCharges === 1
+          ? "READY"
+          : "SPENT";
+      const actionsText = `TOSS ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn}\nRITE ${specialStatus}`;
 
       // Only update if text has actually changed
       if (this.turnText.text !== turnText) {
@@ -1906,7 +1915,7 @@ export class Combat extends Scene {
         this.actionsText.setText(actionsText);
 
         // Color code the special status within the text - only when text changes
-        const newColor = remainingSpecialCharges > 0 ? "#ffd93d" : "#cccccc";
+        const newColor = remainingSpecialCharges > 0 ? "#c9ebff" : "#b5a8ba";
         if (this.actionsText.style.color !== newColor) {
           this.actionsText.setColor(newColor);
         }
@@ -2024,11 +2033,13 @@ export class Combat extends Scene {
     if (count > 0) {
       const evaluation = HandEvaluator.evaluateHand(this.selectedCards, "attack");
       const handTypeText = this.getHandTypeDisplayText(evaluation.type);
-      this.selectionCounterText.setText(`${count}/5 - ${handTypeText}`);
-      this.selectionCounterText.setColor("#ffdd44"); // Yellow when cards selected
+      this.selectionCounterText.setText(`${count} / 5\n${handTypeText.toUpperCase()}`);
+      this.selectionCounterText.setColor("#f6d79e");
+      this.selectionCounterText.setBackgroundColor("#1a0b11");
     } else {
-      this.selectionCounterText.setText("Selected: 0/5");
-      this.selectionCounterText.setColor("#77888C"); // Gray when no selection
+      this.selectionCounterText.setText("0 / 5\nCHOOSE");
+      this.selectionCounterText.setColor("#b9bec8");
+      this.selectionCounterText.setBackgroundColor("#11070c");
     }
   }
 
@@ -4647,21 +4658,21 @@ export class Combat extends Scene {
     }
 
     const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
 
-    // Update position to center of screen
-    this.actionResultText.setPosition(screenWidth / 2, screenHeight / 2);
+    this.tweens.killTweensOf(this.actionResultText);
+    this.actionResultText.setPosition(Math.round(screenWidth * 0.72), 126);
     this.actionResultText.setText(message);
     this.actionResultText.setVisible(true);
 
-    // Fade out after 2 seconds
     this.tweens.add({
       targets: this.actionResultText,
       alpha: 0,
-      duration: 2000,
+      y: this.actionResultText.y - 18,
+      duration: 1200,
       onComplete: () => {
         this.actionResultText.setVisible(false);
         this.actionResultText.setAlpha(1); // Reset alpha for next use
+        this.actionResultText.y += 18;
       },
     });
   }
@@ -4763,22 +4774,22 @@ export class Combat extends Scene {
    */
   private showEnhancedActionResult(message: string, color: string = "#2ed573"): void {
     const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
 
-    // Update position to lower area to avoid overlap with calculation displays
-    this.actionResultText.setPosition(screenWidth / 2, screenHeight * 0.75);
+    this.tweens.killTweensOf(this.actionResultText);
+    this.actionResultText.setPosition(Math.round(screenWidth * 0.72), 126);
     this.actionResultText.setText(message);
     this.actionResultText.setColor(color);
     this.actionResultText.setVisible(true);
 
-    // Fade out after 2 seconds
     this.tweens.add({
       targets: this.actionResultText,
       alpha: 0,
-      duration: 2000,
+      y: this.actionResultText.y - 18,
+      duration: 1200,
       onComplete: () => {
         this.actionResultText.setVisible(false);
         this.actionResultText.setAlpha(1); // Reset alpha for next use
+        this.actionResultText.y += 18;
       },
     });
   }
@@ -4787,25 +4798,51 @@ export class Combat extends Scene {
   private showFloatingDamage(damage: number): void {
     if (!this.enemySprite) return;
 
-    // Create damage text at enemy position
+    const clampedDamage = Math.max(0, Math.floor(damage));
+    const fontSize = Phaser.Math.Clamp(42 + Math.floor(clampedDamage / 8), 42, 72);
+    const damageColor = clampedDamage >= 30 ? '#ffe38f' : clampedDamage >= 15 ? '#fff2d0' : '#fff8f4';
+    const strokeColor = clampedDamage >= 30 ? '#d11f3f' : '#63111d';
+    const damageTilt = Phaser.Math.Between(-8, 6);
+
     const damageText = this.add.text(
       this.enemySprite.x,
-      this.enemySprite.y,
-      damage.toString(),
+      this.enemySprite.y - 20,
+      clampedDamage.toString(),
       {
         fontFamily: 'dungeon-mode',
-        fontSize: 48,
-        color: '#ff6b6b'
+        fontSize,
+        color: damageColor,
+        stroke: strokeColor,
+        strokeThickness: 8,
+        shadow: {
+          offsetX: 4,
+          offsetY: 4,
+          color: '#000000',
+          blur: 0,
+          stroke: false,
+          fill: true
+        }
       }
-    ).setOrigin(0.5);
+    )
+      .setOrigin(0.5)
+      .setDepth(2500)
+      .setScale(0.68)
+      .setAngle(damageTilt);
 
-    // Animate damage text upward and fade out
     this.tweens.add({
       targets: damageText,
-      y: this.enemySprite.y - 100,
+      scaleX: 1.14,
+      scaleY: 1.14,
+      duration: 130,
+      ease: 'Back.Out'
+    });
+
+    this.tweens.add({
+      targets: damageText,
+      y: this.enemySprite.y - 128,
       alpha: 0,
-      duration: 1000,
-      ease: 'Power1',
+      duration: 640,
+      ease: 'Cubic.Out',
       onComplete: () => {
         damageText.destroy();
       }
@@ -4827,9 +4864,12 @@ export class Combat extends Scene {
   private updateDamagePreview(isActionSelectionPhase: boolean): void {
     // This method is kept for its calculation logic and styling approach
     // but no longer displays UI since the preview container was removed
-    if (!isActionSelectionPhase) {
+    if (!isActionSelectionPhase || this.combatState.player.playedHand.length === 0) {
       if (this.damagePreviewText) {
         this.damagePreviewText.setVisible(false);
+      }
+      if (this.enemyAttackPreviewText) {
+        this.enemyAttackPreviewText.setVisible(false);
       }
       return;
     }
@@ -4885,10 +4925,70 @@ export class Combat extends Scene {
     }
     damageText += ` = ${Math.floor(damage)}`;
 
+    const handLabel = evaluation.type.replace(/_/g, " ").toUpperCase();
+    const flatBonusTotal = evaluation.handBonus
+      + evaluation.elementalBonus
+      + sigbinBonus
+      + vulnerableBonus
+      + bakunawaBonus;
+    const bonusParts: string[] = [];
+    if (evaluation.handBonus > 0) {
+      bonusParts.push(`HAND +${evaluation.handBonus}`);
+    }
+    if (evaluation.elementalBonus > 0) {
+      bonusParts.push(`ELEMENT +${evaluation.elementalBonus}`);
+    }
+    if (evaluation.handMultiplier > 1) {
+      bonusParts.push(`x${evaluation.handMultiplier}`);
+    }
+    if (sigbinBonus > 0) {
+      bonusParts.push(`SIGBIN +${sigbinBonus}`);
+    }
+    if (vulnerableBonus > 0) {
+      bonusParts.push(`VULN +${Math.floor(vulnerableBonus)}`);
+    }
+    if (bakunawaBonus > 0) {
+      bonusParts.push(`BAKUNAWA +${bakunawaBonus}`);
+    }
+
+    const detailLine = bonusParts.length > 0
+      ? bonusParts.join("  •  ")
+      : "NO ACTIVE BONUS";
+    damageText = `POTENTIAL DMG\n${Math.floor(damage)} TOTAL\n${handLabel}\n${detailLine}`;
+
     // Display the damage preview
     if (this.damagePreviewText) {
       this.damagePreviewText.setText(damageText);
+      const handColorMap: Record<string, string> = {
+        high_card: "#c7ced6",
+        pair: "#7ef0a7",
+        two_pair: "#8fd2ff",
+        three_of_a_kind: "#b89cff",
+        straight: "#73e6ff",
+        flush: "#53b8ff",
+        full_house: "#ffcb73",
+        four_of_a_kind: "#ff8f8f",
+        straight_flush: "#ffab66",
+        royal_flush: "#ffe88c",
+        five_of_a_kind: "#ff8dff",
+      };
+      const previewMetaText = bonusParts.length > 0
+        ? `${handLabel}  •  ${bonusParts.join("  •  ")}`
+        : handLabel;
+      const compactPreviewMetaText = [
+        handLabel,
+        flatBonusTotal > 0 ? `+${Math.floor(flatBonusTotal)}` : "",
+        evaluation.handMultiplier > 1 ? `x${evaluation.handMultiplier}` : "",
+      ].filter(Boolean).join("  /  ");
+      void previewMetaText;
+      this.damagePreviewText.setText(`${Math.floor(damage)}`);
+      this.damagePreviewText.setColor("#fff7e8");
+      this.damagePreviewText.setBackgroundColor("#120a10");
+      this.damagePreviewText.setStyle({ stroke: handColorMap[evaluation.type] || "#ff4f6d", strokeThickness: 6 });
       this.damagePreviewText.setVisible(true);
+      if (this.enemyAttackPreviewText) {
+        this.enemyAttackPreviewText.setVisible(false);
+      }
     }
   }
 
@@ -5115,22 +5215,29 @@ export class Combat extends Scene {
           // Check if this container has input (it's an interactive button)
           if (child.input) {
             child.input.enabled = enabled;
-            // Visually indicate disabled state
-            const bg = child.getAt(0) as Phaser.GameObjects.Rectangle;
+            const bg = (child.getAll().find((entry) => entry.name === "button-bg") as Phaser.GameObjects.Rectangle | undefined)
+              || (child.getAt(0) as Phaser.GameObjects.Rectangle | null);
             if (bg) {
-              bg.setFillStyle(enabled ? 0x2f3542 : 0x1a1d26);
+              const enabledFill = (child.getData("enabledFill") as number | undefined) ?? 0x2f3542;
+              const disabledFill = (child.getData("disabledFill") as number | undefined) ?? 0x1a1d26;
+              bg.setFillStyle(enabled ? enabledFill : disabledFill);
             }
+            child.setAlpha(enabled ? 1 : 0.58);
           }
           // For grouped containers (like sort buttons), recursively enable/disable children
           else {
             child.getAll().forEach((subChild) => {
               if (subChild instanceof Phaser.GameObjects.Container && (subChild as any).input) {
                 (subChild as any).input.enabled = enabled;
-                // Update visual state for Prologue-style buttons
-                const bg = subChild.getAt(2) as Phaser.GameObjects.Rectangle; // Index 2 is the background
+                const bg = (subChild.getAll().find((entry) => entry.name === "button-bg") as Phaser.GameObjects.Rectangle | undefined)
+                  || (subChild.getAt(0) as Phaser.GameObjects.Rectangle | null)
+                  || (subChild.getAt(2) as Phaser.GameObjects.Rectangle | null);
                 if (bg) {
-                  bg.setFillStyle(enabled ? 0x150E10 : 0x0a0806);
+                  const enabledFill = ((subChild as any).getData?.("enabledFill") as number | undefined) ?? 0x150E10;
+                  const disabledFill = ((subChild as any).getData?.("disabledFill") as number | undefined) ?? 0x0a0806;
+                  bg.setFillStyle(enabled ? enabledFill : disabledFill);
                 }
+                subChild.setAlpha(enabled ? 1 : 0.58);
               }
             });
           }
@@ -5167,32 +5274,23 @@ export class Combat extends Scene {
 
     // Update containers if they exist
     if (this.handContainer) {
-      this.handContainer.setPosition(screenWidth / 2, screenHeight - 280);
+      this.handContainer.setPosition(screenWidth / 2, screenHeight - 292);
     }
 
     if (this.playedHandContainer) {
-      this.playedHandContainer.setPosition(screenWidth / 2, screenHeight - 450);
+      this.playedHandContainer.setPosition(screenWidth / 2, screenHeight - 458);
     }
 
     if (this.actionButtons) {
-      this.actionButtons.setPosition(screenWidth / 2, screenHeight - 60);
+      this.actionButtons.setPosition(screenWidth / 2, screenHeight - 92);
     }
 
     if (this.relicInventory) {
-      this.relicInventory.setPosition(screenWidth / 2, 80);
+      this.relicInventory.setPosition(screenWidth / 2, 84);
     }
 
-    // Update text positions
-    if (this.turnText) {
-      this.turnText.setPosition(screenWidth - 200, 50);
-    }
-
-    if (this.actionsText) {
-      this.actionsText.setPosition(screenWidth - 200, 80);
-    }
-
-    if (this.actionResultText) {
-      this.actionResultText.setPosition(screenWidth / 2, screenHeight / 2);
+    if (this.ui?.potionInventory) {
+      this.ui.potionInventory.setPosition(114, screenHeight * 0.72);
     }
 
     // Update poker hand info button position
@@ -5207,6 +5305,10 @@ export class Combat extends Scene {
 
     if (this.enemySprite) {
       this.enemySprite.setPosition(screenWidth * 0.75, screenHeight * 0.4);
+    }
+
+    if (this.ui) {
+      this.ui.layoutBattleOverlay();
     }
 
     // Redraw UI elements

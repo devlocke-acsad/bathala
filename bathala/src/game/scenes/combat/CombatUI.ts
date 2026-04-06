@@ -11,7 +11,6 @@ import { DeckManager } from "../../../utils/DeckManager";
 import { DamageCalculator } from "../../../utils/DamageCalculator";
 import { HandEvaluator } from "../../../utils/HandEvaluator";
 import { Combat } from "../Combat";
-import { createButton } from "../../ui/Button";
 import { StatusEffectManager, StatusEffectTriggerResult } from "../../../core/managers/StatusEffectManager";
 import { ElementalAffinitySystem } from "../../../core/managers/ElementalAffinitySystem";
 import { EnemyRegistry } from "../../../core/registries/EnemyRegistry";
@@ -290,6 +289,9 @@ export class CombatUI {
 
     // Action result display
     this.createActionResultUI();
+
+    // Align floating HUD elements after all combat actors are created.
+    this.layoutBattleOverlay();
   }
   
   /**
@@ -528,31 +530,31 @@ export class CombatUI {
     this.enemyStatusContainer = this.scene.add.container(0, enemyStatusRowY);
     this.enemyInfoContainer.add([enemyStatusLabel, this.enemyStatusContainer]);
 
-    // Intent display - now below side panel
+    const { x: intentX, y: intentY } = this.getEnemyIntentPosition();
+
+    // Intent display is intentionally hidden for the current combat pass.
     this.enemyIntentText = this.scene.add
-      .text(panelX, panelY + this.SIDE_PANEL_HEIGHT / 2 + 32, "", {
-        fontFamily: "dungeon-mode",
-        fontSize: 15,
-        color: "#feca57",
-        align: "center",
-        wordWrap: { width: 280 }
+      .text(intentX, intentY, "", {
+        fontFamily: "HeinzHeinrich",
+        fontSize: 17,
+        color: "#fff7e8",
+        backgroundColor: "#161017",
+        stroke: "#070509",
+        strokeThickness: 4,
+        align: "left",
+        fixedWidth: 292,
+        lineSpacing: 5,
+        padding: { left: 16, right: 16, top: 12, bottom: 10 }
       })
-      .setOrigin(0.5)
-      .setVisible(true)
-      .setInteractive({ useHandCursor: true });
+      .setOrigin(1, 0)
+      .setAngle(0)
+      .setDepth(835)
+      .setVisible(false)
+      .setShadow(4, 4, "#000000", 0.45, false, true);
     
     // Initialize intent tooltip as null
     this.enemyIntentTooltip = null;
     
-    // Add hover events for intent tooltip
-    this.enemyIntentText.on('pointerover', () => {
-      this.showEnemyIntentTooltip();
-    });
-    
-    this.enemyIntentText.on('pointerout', () => {
-      this.hideEnemyIntentTooltip();
-    });
-
     // Information button for enemy lore
     const infoButtonY = enemyY - (spriteScaledHeight / 2) - 44;
     this.createEnemyInfoButton(enemyX, infoButtonY);
@@ -780,15 +782,21 @@ export class CombatUI {
     const screenHeight = this.scene.cameras.main.height;
     
     // Position hand container higher up to avoid overlap with buttons
-    this.handContainer = this.scene.add.container(screenWidth/2, screenHeight - 280);
+    this.handContainer = this.scene.add.container(screenWidth/2, screenHeight - 292);
     
-    // Create selection counter text (Balatro style) - positioned well above the cards
-    this.selectionCounterText = this.scene.add.text(0, -150, "Selected: 0/5", {
+    // Create selection counter text - condensed command strip above the hand
+    this.selectionCounterText = this.scene.add.text(0, -170, "0 / 5", {
       fontFamily: "dungeon-mode",
-      fontSize: 22,
-      color: "#ffdd44",
-      align: "center"
-    }).setOrigin(0.5);
+      fontSize: 20,
+      color: "#f3ede3",
+      align: "center",
+      backgroundColor: "#11070c",
+      stroke: "#321219",
+      strokeThickness: 2,
+      lineSpacing: 6,
+      padding: { left: 22, right: 22, top: 12, bottom: 10 },
+      fixedWidth: 240,
+    }).setOrigin(0.5).setAngle(-2).setDepth(844).setShadow(3, 3, "#000000", 0.28, false, true);
     
     this.handContainer.add(this.selectionCounterText);
   }
@@ -801,17 +809,25 @@ export class CombatUI {
     const screenHeight = this.scene.cameras.main.height;
     
     // Position it higher up since it will be the main focus during action phase
-    this.playedHandContainer = this.scene.add.container(screenWidth/2, screenHeight - 450);
+    this.playedHandContainer = this.scene.add.container(screenWidth/2, screenHeight - 458);
     
-    // Initialize hand evaluation text - positioned above the played cards
+    // Hand evaluation banner - acts as the title card for the played hand moment
     this.handEvaluationText = this.scene.add
-      .text(0, -100, "", {
+      .text(0, -128, "", {
         fontFamily: "dungeon-mode",
         fontSize: 22,
-        color: "#ffd93d",
-        align: "center"
+        color: "#fff2d8",
+        align: "center",
+        backgroundColor: "#10070b",
+        stroke: "#3d1620",
+        strokeThickness: 2,
+        lineSpacing: 6,
+        padding: { left: 22, right: 22, top: 12, bottom: 10 },
+        fixedWidth: 300,
       })
       .setOrigin(0.5)
+      .setAngle(-2)
+      .setDepth(844)
       .setVisible(false);
       
     this.playedHandContainer.add(this.handEvaluationText);
@@ -824,32 +840,45 @@ export class CombatUI {
     const screenWidth = this.scene.cameras.main.width;
     const screenHeight = this.scene.cameras.main.height;
     
-    // Position buttons lower to avoid overlap with cards
-    this.actionButtons = this.scene.add.container(screenWidth/2, screenHeight - 60);
+    // Position buttons as a deliberate command bar, slightly above the bottom edge
+    this.actionButtons = this.scene.add.container(screenWidth/2, screenHeight - 92);
   }
   
   /**
    * Create turn UI elements
    */
   private createTurnUI(): void {
-    const screenWidth = this.scene.cameras.main.width;
-    const screenHeight = this.scene.cameras.main.height;
-    
-    // Move turn text to center below inventory (inventory is at y=60, height=90)
-    this.turnText = this.scene.add.text(screenWidth / 2, 165, "", {
+    this.turnText = this.scene.add.text(30, 28, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 18,
-      color: "#e8eced",
-      align: "center"
-    }).setOrigin(0.5);
+      fontSize: 22,
+      color: "#f1ede7",
+      backgroundColor: "#0e060a",
+      stroke: "#321219",
+      strokeThickness: 2,
+      lineSpacing: 5,
+      padding: { left: 18, right: 18, top: 12, bottom: 10 },
+      fixedWidth: 180,
+    })
+      .setOrigin(0, 0)
+      .setDepth(840)
+      .setAngle(-2)
+      .setVisible(true);
 
-    // Move discard counter higher above action buttons to avoid overlap with sort buttons
-    this.actionsText = this.scene.add.text(screenWidth / 2, screenHeight - 140, "", {
+    this.actionsText = this.scene.add.text(30, 118, "", {
       fontFamily: "dungeon-mode",
       fontSize: 16,
-      color: "#ffd93d",
-      align: "center"
-    }).setOrigin(0.5);
+      color: "#d8e9f2",
+      backgroundColor: "#091018",
+      stroke: "#183041",
+      strokeThickness: 2,
+      lineSpacing: 4,
+      padding: { left: 18, right: 18, top: 12, bottom: 10 },
+      fixedWidth: 180,
+    })
+      .setOrigin(0, 0)
+      .setDepth(839)
+      .setAngle(-2)
+      .setVisible(true);
 
     this.createPokerHandInfoButton();
     this.updateTurnUI();
@@ -909,38 +938,41 @@ export class CombatUI {
    */
   public createRelicInventory(): void {
     const screenWidth = this.scene.cameras.main.width;
-    this.relicInventory = this.scene.add.container(screenWidth / 2, 70); // Moved slightly higher
+    this.relicInventory = this.scene.add.container(screenWidth / 2, 84);
     this.relicInventory.setVisible(true);
     this.currentRelicTooltip = null;
     
-    console.log("Creating relic inventory container at:", screenWidth / 2, 70);
+    console.log("Creating relic inventory container at:", screenWidth / 2, 84);
     
-    const inventoryWidth = 580; // Slightly narrower for cleaner look
-    const inventoryHeight = 100; // More compact
+    const inventoryWidth = 724;
+    const inventoryHeight = 148;
     
     // Enhanced Prologue-style double border design
+    const shadowPlate = this.scene.add.rectangle(6, 8, inventoryWidth + 10, inventoryHeight + 10, 0x060305, 0.5);
     const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
-    outerBorder.setStrokeStyle(3, 0x77888C, 0.9);
+    outerBorder.setStrokeStyle(3, 0xc6974a, 0.95);
     
     const innerBorder = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, undefined, 0);
-    innerBorder.setStrokeStyle(2, 0x77888C, 0.8);
-    
-    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x120C0E);
+    innerBorder.setStrokeStyle(2, 0x6b4d30, 0.95);
+
+    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x0c070a);
+    const headerBand = this.scene.add.rectangle(0, -inventoryHeight / 2 + 22, inventoryWidth - 24, 34, 0x211117, 0.96);
+    const lowerBand = this.scene.add.rectangle(0, inventoryHeight / 2 - 18, inventoryWidth - 28, 24, 0x140d11, 0.92);
     
     // Title text
-    const relicsTitle = this.scene.add.text(-inventoryWidth/2 + 15, -inventoryHeight/2 + 15, "RELICS", {
+    const relicsTitle = this.scene.add.text(0, -inventoryHeight/2 + 20, "RELICS", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#77888C",
-      align: "left"
-    }).setOrigin(0, 0.5);
+      fontSize: 20,
+      color: "#f1dcc0",
+      align: "center"
+    }).setOrigin(0.5, 0.5);
     
     // Grid layout parameters - compact spacing for cleaner look
     const relicSlotSize = 60; // Slightly smaller slots
     const relicsPerRow = 6;
-    const padding = 10;
+    const padding = 22;
     const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
-    const gridStartY = 5;
+    const gridStartY = 28;
     
     // Create 6 relic slots in a single row
     for (let i = 0; i < relicsPerRow; i++) {
@@ -952,13 +984,14 @@ export class CombatUI {
       const slotContainer = this.scene.add.container(slotX, slotY);
       
       // Outer border (subtle glow effect)
-      const outerSlotBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 4, relicSlotSize + 4, undefined, 0);
-      outerSlotBorder.setStrokeStyle(2, 0x444444, 0.8);
+      const outerSlotBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 8, relicSlotSize + 8, undefined, 0);
+      outerSlotBorder.setStrokeStyle(2, 0x715335, 0.95);
+      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x171015);
+      const innerGlow = this.scene.add.rectangle(0, 0, relicSlotSize - 8, relicSlotSize - 8, 0x24161d, 0.98);
+      const slotFrame = this.scene.add.rectangle(0, 0, relicSlotSize - 20, relicSlotSize - 20, undefined, 0);
+      slotFrame.setStrokeStyle(1, 0xa27345, 0.55);
       
-      // Inner background (darker for contrast)
-      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x1a1a1a);
-      
-      slotContainer.add([bg, outerSlotBorder]);
+      slotContainer.add([bg, outerSlotBorder, innerGlow, slotFrame]);
       (slotContainer as any).isRelicSlot = true;
       (slotContainer as any).slotIndex = i;
       
@@ -966,10 +999,11 @@ export class CombatUI {
     }
     
     // Add all elements to container
-    this.relicInventory.add([mainBg, innerBorder, outerBorder, relicsTitle]);
+    this.relicInventory.add([shadowPlate, mainBg, innerBorder, outerBorder, headerBand, lowerBand, relicsTitle]);
     this.relicInventory.sendToBack(mainBg);
     this.relicInventory.sendToBack(innerBorder);
     this.relicInventory.sendToBack(outerBorder);
+    this.relicInventory.sendToBack(shadowPlate);
   }
   
   /**
@@ -979,37 +1013,40 @@ export class CombatUI {
     const screenHeight = this.scene.cameras.main.height;
     
     // Position on the left side, lower to avoid crowding the side status panel
-    this.potionInventory = this.scene.add.container(80, screenHeight * 0.74);
+    this.potionInventory = this.scene.add.container(114, screenHeight * 0.72);
     this.potionInventory.setVisible(true);
     this.currentPotionTooltip = null;
     
-    console.log("Creating potion inventory container at:", 80, this.scene.cameras.main.height * 0.74);
+    console.log("Creating potion inventory container at:", 114, this.scene.cameras.main.height * 0.72);
     
-    const inventoryWidth = 120;
-    const inventoryHeight = 310;
+    const inventoryWidth = 176;
+    const inventoryHeight = 400;
     
     // Enhanced Prologue-style double border design (matching relic inventory)
+    const shadowPlate = this.scene.add.rectangle(6, 8, inventoryWidth + 10, inventoryHeight + 10, 0x04090d, 0.48);
     const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
-    outerBorder.setStrokeStyle(3, 0x77888C, 0.9);
+    outerBorder.setStrokeStyle(3, 0x6fcaf0, 0.95);
     
     const innerBorder = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, undefined, 0);
-    innerBorder.setStrokeStyle(2, 0x77888C, 0.8);
-    
-    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x120C0E);
+    innerBorder.setStrokeStyle(2, 0x3a6e86, 0.92);
+
+    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x091118);
+    const headerBand = this.scene.add.rectangle(0, -inventoryHeight / 2 + 22, inventoryWidth - 18, 34, 0x132330, 0.96);
+    const lowerBand = this.scene.add.rectangle(0, inventoryHeight / 2 - 18, inventoryWidth - 24, 24, 0x0d1922, 0.92);
     
     // Title text
-    const potionsTitle = this.scene.add.text(0, -inventoryHeight/2 + 15, "POTIONS", {
+    const potionsTitle = this.scene.add.text(0, -inventoryHeight/2 + 20, "POTIONS", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#77888C",
+      fontSize: 20,
+      color: "#d7f2ff",
       align: "center"
     }).setOrigin(0.5, 0.5);
     
     // Grid layout parameters - 3 slots vertically (matching relic slot style)
     const potionSlotSize = 70;
     const maxPotions = 3;
-    const padding = 12;
-    const gridStartY = -60;
+    const padding = 18;
+    const gridStartY = -84;
     
     // Create 3 potion slots vertically
     for (let i = 0; i < maxPotions; i++) {
@@ -1019,13 +1056,14 @@ export class CombatUI {
       const slotContainer = this.scene.add.container(0, slotY);
       
       // Outer border (subtle glow effect - matching relic style)
-      const outerBorder = this.scene.add.rectangle(0, 0, potionSlotSize + 4, potionSlotSize + 4, undefined, 0);
-      outerBorder.setStrokeStyle(2, 0x444444, 0.8);
+      const outerBorder = this.scene.add.rectangle(0, 0, potionSlotSize + 8, potionSlotSize + 8, undefined, 0);
+      outerBorder.setStrokeStyle(2, 0x3c728a, 0.95);
+      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x101921);
+      const innerGlow = this.scene.add.rectangle(0, 0, potionSlotSize - 8, potionSlotSize - 8, 0x152631, 0.98);
+      const slotFrame = this.scene.add.rectangle(0, 0, potionSlotSize - 22, potionSlotSize - 22, undefined, 0);
+      slotFrame.setStrokeStyle(1, 0x74b8d6, 0.5);
       
-      // Inner background (darker for contrast - matching relic style)
-      const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x1a1a1a);
-      
-      slotContainer.add([bg, outerBorder]);
+      slotContainer.add([bg, outerBorder, innerGlow, slotFrame]);
       (slotContainer as any).isPotionSlot = true;
       (slotContainer as any).slotIndex = i;
       
@@ -1033,10 +1071,11 @@ export class CombatUI {
     }
     
     // Add all elements to container
-    this.potionInventory.add([mainBg, innerBorder, outerBorder, potionsTitle]);
+    this.potionInventory.add([shadowPlate, mainBg, innerBorder, outerBorder, headerBand, lowerBand, potionsTitle]);
     this.potionInventory.sendToBack(mainBg);
     this.potionInventory.sendToBack(innerBorder);
     this.potionInventory.sendToBack(outerBorder);
+    this.potionInventory.sendToBack(shadowPlate);
     
     // Update potion display immediately
     this.updatePotionInventory();
@@ -1268,21 +1307,115 @@ export class CombatUI {
    * Create damage preview UI
    */
   private createDamagePreview(): void {
-    const screenWidth = this.scene.cameras.main.width;
-    const screenHeight = this.scene.cameras.main.height;
+    const { x: previewX, y: previewY } = this.getDamagePreviewPosition();
     
-    // Placeholder for damage preview
     this.damagePreviewText = this.scene.add.text(
-      screenWidth / 2,
-      screenHeight / 2 - 100,
+      previewX,
+      previewY,
       "",
       {
         fontFamily: "dungeon-mode",
-        fontSize: 24,
-        color: "#ff6b6b",
-        align: "center"
+        fontSize: 64,
+        color: "#fff7e8",
+        backgroundColor: "#10070c",
+        stroke: "#3d1620",
+        strokeThickness: 4,
+        align: "center",
+        padding: { left: 28, right: 28, top: 18, bottom: 14 },
+        fixedWidth: 180,
       }
-    ).setOrigin(0.5).setVisible(false);
+    )
+      .setOrigin(0.5)
+      .setAngle(-3)
+      .setDepth(860)
+      .setVisible(false)
+      .setShadow(5, 5, "#000000", 0.42, false, true);
+
+    this.enemyAttackPreviewText = this.scene.add.text(
+      previewX,
+      previewY + 74,
+      "",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: 13,
+        color: "#fff7e8",
+        backgroundColor: "#2a141c",
+        stroke: "#15070c",
+        strokeThickness: 2,
+        align: "center",
+        lineSpacing: 3,
+        padding: { left: 12, right: 12, top: 8, bottom: 7 },
+        fixedWidth: 230,
+      }
+    )
+      .setOrigin(0.5)
+      .setAngle(0)
+      .setDepth(859)
+      .setVisible(false)
+      .setShadow(3, 3, "#000000", 0.4, false, true);
+  }
+
+  private getEnemyIntentPosition(): { x: number; y: number } {
+    return {
+      x: this.scene.cameras.main.width - 42,
+      y: 42,
+    };
+  }
+
+  private getDamagePreviewPosition(): { x: number; y: number } {
+    const screenWidth = this.scene.cameras.main.width;
+    const screenHeight = this.scene.cameras.main.height;
+
+    if (this.playedHandContainer) {
+      return {
+        x: Math.round(screenWidth * 0.5),
+        y: Math.round(this.playedHandContainer.y + 168),
+      };
+    }
+
+    return {
+      x: Math.round(screenWidth * 0.5),
+      y: Math.round(screenHeight * 0.58),
+    };
+  }
+
+  public layoutBattleOverlay(): void {
+    const { x: intentX, y: intentY } = this.getEnemyIntentPosition();
+    const { x: previewX, y: previewY } = this.getDamagePreviewPosition();
+
+    if (this.turnText) {
+      this.turnText.setPosition(30, 28);
+    }
+
+    if (this.actionsText) {
+      this.actionsText.setPosition(30, 118);
+    }
+
+    if (this.enemyIntentText) {
+      this.enemyIntentText.setPosition(intentX, intentY);
+      this.enemyIntentText.setVisible(false);
+    }
+
+    if (this.damagePreviewText) {
+      this.damagePreviewText.setPosition(previewX, previewY);
+    }
+
+    if (this.enemyAttackPreviewText) {
+      this.enemyAttackPreviewText.setPosition(previewX, previewY + 74);
+      this.enemyAttackPreviewText.setVisible(false);
+    }
+
+    if (this.actionResultText) {
+      this.actionResultText.setPosition(Math.round(this.scene.cameras.main.width * 0.72), 126);
+    }
+
+    if (this.relicInventory) {
+      this.relicInventory.setPosition(Math.round(this.scene.cameras.main.width * 0.5), 84);
+    }
+
+    if (this.potionInventory) {
+      this.potionInventory.setPosition(114, Math.round(this.scene.cameras.main.height * 0.72));
+    }
   }
   
   /**
@@ -1290,19 +1423,23 @@ export class CombatUI {
    */
   private createActionResultUI(): void {
     const screenWidth = this.scene.cameras.main.width;
-    const screenHeight = this.scene.cameras.main.height;
     
     this.actionResultText = this.scene.add.text(
-      screenWidth / 2,
-      screenHeight / 2,
+      Math.round(screenWidth * 0.72),
+      126,
       "",
       {
         fontFamily: "dungeon-mode",
-        fontSize: 28,
-        color: "#ffd93d",
-        align: "center"
+        fontSize: 18,
+        color: "#eaf6ff",
+        backgroundColor: "#10141b",
+        stroke: "#07090d",
+        strokeThickness: 3,
+        align: "center",
+        padding: { left: 12, right: 14, top: 7, bottom: 7 },
+        fixedWidth: 320,
       }
-    ).setOrigin(0.5).setVisible(false).setDepth(1000);
+    ).setOrigin(0.5).setAngle(-3).setVisible(false).setDepth(1000).setShadow(3, 3, "#000000", 0.4, false, true);
   }
   
   /**
@@ -1374,32 +1511,9 @@ export class CombatUI {
     this.updateHealthBar(this.enemyHealthBarFill, currentHealth, maxHealth);
     this.enemyBlockText.setText(enemy.block > 0 ? `⛨ ${enemy.block}` : "");
     
-    // PRIORITY 6: Display intent with "Next Turn:" prefix for clarity
-    let intentDescription = `${enemy.intent.icon} ${enemy.intent.description}`;
-    
-    // Add status effect stack count if it's a buff or debuff
-    if ((enemy.intent.type === "buff" || enemy.intent.type === "debuff") && enemy.intent.value > 0) {
-      intentDescription = `${enemy.intent.icon} ${enemy.intent.description}`;
-    }
-    
-    // Add "Next Turn:" prefix to make it clear this is future action
-    const intentText = `Next Turn: ${intentDescription}`;
-    
-    this.enemyIntentText.setText(intentText);
-    
-    // Update intent text color based on type
-    if (enemy.intent.type === "attack") {
-      this.enemyIntentText.setColor("#ff6b6b"); // Red for attacks
-    } else if (enemy.intent.type === "defend") {
-      this.enemyIntentText.setColor("#4ecdc4"); // Cyan for defense
-    } else if (enemy.intent.type === "buff") {
-      this.enemyIntentText.setColor("#2ed573"); // Green for buffs
-    } else if (enemy.intent.type === "debuff") {
-      this.enemyIntentText.setColor("#feca57"); // Yellow for debuffs
-    } else {
-      this.enemyIntentText.setColor("#feca57"); // Default yellow
-    }
-    
+    this.enemyIntentText.setVisible(false);
+    this.hideEnemyIntentTooltip();
+
     // Update status effect display
     this.updateStatusEffectDisplay(enemy, this.enemyStatusContainer);
   }
@@ -1451,9 +1565,7 @@ export class CombatUI {
       tooltipDescription = intent.description;
     }
     
-    // Get intent text position
-    const intentX = this.enemyIntentText.x;
-    const intentY = this.enemyIntentText.y;
+    const intentBounds = this.enemyIntentText.getBounds();
     
     // Create tooltip container with dynamic height so text never overflows
     const tooltipWidth = 280;
@@ -1473,8 +1585,16 @@ export class CombatUI {
     const basePadding = 72; // extra room for title + spacing
     const tooltipHeight = descHeight + basePadding;
 
-    const tooltipX = intentX;
-    const tooltipY = intentY - 62; // Position above the intent text to avoid card-area overlap
+    const padding = 20;
+    const tooltipX = Phaser.Math.Clamp(
+      intentBounds.centerX,
+      tooltipWidth / 2 + padding,
+      this.scene.cameras.main.width - tooltipWidth / 2 - padding
+    );
+    let tooltipY = intentBounds.bottom + tooltipHeight / 2 + 18;
+    if (tooltipY + tooltipHeight / 2 > this.scene.cameras.main.height - padding) {
+      tooltipY = intentBounds.top - tooltipHeight / 2 - 18;
+    }
     
     this.enemyIntentTooltip = this.scene.add.container(tooltipX, tooltipY);
     
@@ -1732,9 +1852,9 @@ export class CombatUI {
     }
     
     try {
-      this.turnText.setText(`Turn: ${combatState.turn}`);
+      this.turnText.setText(`TURN ${String(combatState.turn).padStart(2, "0")}`);
       this.actionsText.setText(
-        `Discards: ${this.scene.getDiscardsUsedThisTurn()}/${this.scene.getMaxDiscardsPerTurn()}`
+        `TOSS ${this.scene.getDiscardsUsedThisTurn()}/${this.scene.getMaxDiscardsPerTurn()}`
       );
       // Hand indicator removed - now using selection counter above cards
     } catch (error) {
@@ -1761,11 +1881,13 @@ export class CombatUI {
     if (count > 0) {
       const evaluation = HandEvaluator.evaluateHand(selectedCards, "attack");
       const handTypeText = this.getHandTypeDisplayText(evaluation.type);
-      this.selectionCounterText.setText(`${count}/5 - ${handTypeText}`);
-      this.selectionCounterText.setColor("#ffdd44");
+      this.selectionCounterText.setText(`${count} / 5\n${handTypeText.toUpperCase()}`);
+      this.selectionCounterText.setColor("#f6d79e");
+      this.selectionCounterText.setBackgroundColor("#1a0b11");
     } else {
-      this.selectionCounterText.setText("Selected: 0/5");
-      this.selectionCounterText.setColor("#77888C");
+      this.selectionCounterText.setText("0 / 5\nCHOOSE");
+      this.selectionCounterText.setColor("#b9bec8");
+      this.selectionCounterText.setBackgroundColor("#11070c");
     }
   }
   
@@ -1814,8 +1936,8 @@ export class CombatUI {
       const outerBorder = slotChildren[1];
 
       if (bg && outerBorder) {
-        bg.setFillStyle(0x1a1a1a); // Default background
-        outerBorder.setStrokeStyle(2, 0x444444, 0.8); // Default border
+        bg.setFillStyle(0x171015);
+        outerBorder.setStrokeStyle(2, 0x715335, 0.95);
       }
     });
     
@@ -1870,8 +1992,8 @@ export class CombatUI {
         const outerBorder = slotChildren[1]; // Border
         
         slot.on("pointerover", () => {
-          bg.setFillStyle(0x2a2a2a); // Subtle brighten
-          outerBorder.setStrokeStyle(2, 0xfbbf24, 1.0); // Gold highlight
+          bg.setFillStyle(0x24171d);
+          outerBorder.setStrokeStyle(2, 0xf2c572, 1.0);
           
           // Kill any existing tweens on this icon to prevent conflicts
           this.scene.tweens.killTweensOf(relicIcon);
@@ -1895,8 +2017,8 @@ export class CombatUI {
         });
         
         slot.on("pointerout", () => {
-          bg.setFillStyle(0x1a1a1a); // Reset background
-          outerBorder.setStrokeStyle(2, 0x444444, 0.8); // Reset border
+          bg.setFillStyle(0x171015);
+          outerBorder.setStrokeStyle(2, 0x715335, 0.95);
           
           // Kill any existing tweens on this icon to prevent conflicts
           this.scene.tweens.killTweensOf(relicIcon);
@@ -1979,8 +2101,8 @@ export class CombatUI {
       const outerBorder = slotChildren[1];
 
       if (bg && outerBorder) {
-        bg.setFillStyle(0x1a1a1a); // Default background
-        outerBorder.setStrokeStyle(2, 0x444444, 0.8); // Default border
+        bg.setFillStyle(0x101921);
+        outerBorder.setStrokeStyle(2, 0x3c728a, 0.95);
       }
     });
     
@@ -2012,8 +2134,8 @@ export class CombatUI {
         const outerBorder = slotChildren[1]; // Border
         
         slot.on("pointerover", () => {
-          bg.setFillStyle(0x2a2a2a); // Brighten background (matching relic style)
-          outerBorder.setStrokeStyle(2, 0x666666, 0.8); // Brighten border
+          bg.setFillStyle(0x172833);
+          outerBorder.setStrokeStyle(2, 0x82d9ff, 0.98);
           
           // Kill any existing tweens on this icon to prevent conflicts
           this.scene.tweens.killTweensOf(potionIcon);
@@ -2035,8 +2157,8 @@ export class CombatUI {
         });
         
         slot.on("pointerout", () => {
-          bg.setFillStyle(0x1a1a1a); // Reset background (matching relic style)
-          outerBorder.setStrokeStyle(2, 0x444444, 0.8); // Reset border
+          bg.setFillStyle(0x101921);
+          outerBorder.setStrokeStyle(2, 0x3c728a, 0.95);
           
           // Kill any existing tweens on this icon to prevent conflicts
           this.scene.tweens.killTweensOf(potionIcon);
@@ -2079,210 +2201,234 @@ export class CombatUI {
     this.actionButtons.removeAll(true);
 
     const screenWidth = this.scene.cameras.main.width;
-    const baseSpacing = 280; // Increased spacing to prevent overlap
     const scaleFactor = Math.max(0.8, Math.min(1.2, screenWidth / 1024));
-    const adjustedSpacing = baseSpacing * scaleFactor;
+    const actionBarY = this.actionButtons.y;
 
     if (combatState.phase === "player_turn") {
-      // Card selection phase - Balatro-style layout with better spacing
-      
-      // Show hand container and hide played hand
       this.handContainer.setVisible(true);
       this.playedHandContainer.setVisible(false);
       this.selectionCounterText.setVisible(true);
       this.handEvaluationText.setVisible(false);
-      
-      const playButton = createButton(this.scene, -adjustedSpacing * 1.2, 0, "Play Hand", () => {
-        this.scene.playSelectedCards();
-      });
+      const selectedCount = this.scene.getSelectedCards().length;
+      const buttonWidth = Math.round(198 * scaleFactor);
+      const buttonGap = Math.round(32 * scaleFactor);
+      const playerButtons = [
+        this.createBattleCommandButton(
+          -(buttonWidth * 1.5 + buttonGap * 1.5),
+          0,
+          "PLAY HAND",
+          selectedCount > 0 ? `${selectedCount} READY` : "CHOOSE CARDS",
+          0x2a1016,
+          0x3a141d,
+          0xff5678,
+          () => this.scene.playSelectedCards(),
+          selectedCount === 0,
+          buttonWidth,
+        ),
+        this.createBattleCommandButton(
+          -(buttonWidth * 0.5 + buttonGap * 0.5),
+          0,
+          "SORT RANK",
+          "RANK",
+          0x15131a,
+          0x211d28,
+          0xaab7ff,
+          () => this.scene.sortHand("rank"),
+          this.scene.getIsSorting(),
+          buttonWidth,
+        ),
+        this.createBattleCommandButton(
+          buttonWidth * 0.5 + buttonGap * 0.5,
+          0,
+          "SORT SUIT",
+          "SUIT",
+          0x11161b,
+          0x1a232b,
+          0x6ee7ff,
+          () => this.scene.sortHand("suit"),
+          this.scene.getIsSorting(),
+          buttonWidth,
+        ),
+        this.createBattleCommandButton(
+          buttonWidth * 1.5 + buttonGap * 1.5,
+          0,
+          "CARD CULL",
+          selectedCount > 0 ? `${selectedCount} TO REDRAW` : "TRADE FOR NEW DRAW",
+          0x241511,
+          0x331d17,
+          0xffb35c,
+          () => this.scene.discardSelectedCards(),
+          selectedCount === 0,
+          buttonWidth,
+        ),
+      ];
 
-      // Sort Hand grouped container - positioned in the center
-      const sortContainer = this.scene.add.container(0, 0);
-      
-      const sortGroupWidth = 280 * scaleFactor; // Reduced width to fit better
-      const sortGroupHeight = 60;
-      
-      const sortOuterBorder = this.scene.add.rectangle(0, 0, sortGroupWidth + 8, sortGroupHeight + 8, undefined, 0)
-        .setStrokeStyle(3, 0x77888C);
-      const sortInnerBorder = this.scene.add.rectangle(0, 0, sortGroupWidth, sortGroupHeight, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-      const sortBg = this.scene.add.rectangle(0, 0, sortGroupWidth, sortGroupHeight, 0x150E10);
-      
-      const sortLabel = this.scene.add.text(0, -sortGroupHeight/2 - 20, "SORT", {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(12 * scaleFactor),
-        color: "#77888C",
-        align: "center"
-      }).setOrigin(0.5);
-      
-      const buttonWidth = 90 * scaleFactor; // Reduced button width
-      const buttonHeight = 32;
-      const buttonGap = 15 * scaleFactor; // Reduced gap
-      const buttonSpacing = buttonWidth/2 + buttonGap/2;
-      
-      // Rank button
-      const rankButtonContainer = this.scene.add.container(-buttonSpacing, 0);
-      const rankOuterBorder = this.scene.add.rectangle(0, 0, buttonWidth + 6, buttonHeight + 6, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-      const rankInnerBorder = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-      const rankButtonBg = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
-      const rankButtonText = this.scene.add.text(0, 0, "Rank", {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(14 * scaleFactor),
-        color: "#77888C",
-        align: "center"
-      }).setOrigin(0.5);
-      
-      rankButtonContainer.add([rankOuterBorder, rankInnerBorder, rankButtonBg, rankButtonText]);
-      rankButtonContainer.setInteractive(
-        new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
-        Phaser.Geom.Rectangle.Contains
-      );
-      
-      // Suit button
-      const suitButtonContainer = this.scene.add.container(buttonSpacing, 0);
-      const suitOuterBorder = this.scene.add.rectangle(0, 0, buttonWidth + 6, buttonHeight + 6, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-      const suitInnerBorder = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-      const suitButtonBg = this.scene.add.rectangle(0, 0, buttonWidth, buttonHeight, 0x150E10);
-      const suitButtonText = this.scene.add.text(0, 0, "Suit", {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(14 * scaleFactor),
-        color: "#77888C",
-        align: "center"
-      }).setOrigin(0.5);
-      
-      suitButtonContainer.add([suitOuterBorder, suitInnerBorder, suitButtonBg, suitButtonText]);
-      suitButtonContainer.setInteractive(
-        new Phaser.Geom.Rectangle(-buttonWidth/2, -buttonHeight/2, buttonWidth, buttonHeight),
-        Phaser.Geom.Rectangle.Contains
-      );
-      
-      // Hover effects
-      rankButtonContainer.on("pointerover", () => {
-        // Only show hover if not currently sorting
-        if (!this.scene.getIsSorting()) {
-          rankButtonBg.setFillStyle(0x1f1410);
-          rankButtonText.setColor("#e8eced");
-        }
-      });
-      rankButtonContainer.on("pointerout", () => {
-        rankButtonBg.setFillStyle(0x150E10);
-        rankButtonText.setColor("#77888C");
-      });
-      rankButtonContainer.on("pointerdown", () => {
-        // BUGFIX: Only sort if not already sorting
-        if (!this.scene.getIsSorting()) {
-          this.scene.sortHand("rank");
-        }
-      });
-      
-      suitButtonContainer.on("pointerover", () => {
-        // Only show hover if not currently sorting
-        if (!this.scene.getIsSorting()) {
-          suitButtonBg.setFillStyle(0x1f1410);
-          suitButtonText.setColor("#e8eced");
-        }
-      });
-      suitButtonContainer.on("pointerout", () => {
-        suitButtonBg.setFillStyle(0x150E10);
-        suitButtonText.setColor("#77888C");
-      });
-      suitButtonContainer.on("pointerdown", () => {
-        // BUGFIX: Only sort if not already sorting
-        if (!this.scene.getIsSorting()) {
-          this.scene.sortHand("suit");
-        }
-      });
-      
-      sortContainer.add([
-        sortOuterBorder, 
-        sortInnerBorder, 
-        sortBg, 
-        sortLabel,
-        rankButtonContainer,
-        suitButtonContainer
-      ]);
-
-      const discardButton = createButton(this.scene, adjustedSpacing * 1.2, 0, "Discard", () => {
-        this.scene.discardSelectedCards();
-      });
-
-      this.actionButtons.add([playButton, sortContainer, discardButton]);
+      this.actionButtons.add(playerButtons);
       
     } else if (combatState.phase === "action_selection") {
-      // Action selection phase - hide hand, show only played cards
       this.handContainer.setVisible(false);
       this.playedHandContainer.setVisible(true);
       this.selectionCounterText.setVisible(false);
+      this.handEvaluationText.setVisible(true);
       
+      const playedHand = combatState.player.playedHand;
       const dominantSuit = this.scene.getDominantSuit(combatState.player.playedHand);
+      const attackEvaluation = HandEvaluator.evaluateHand(playedHand, "attack", combatState.player);
+      const defendEvaluation = HandEvaluator.evaluateHand(playedHand, "defend", combatState.player);
+      const specialReady = this.scene.canUseSpecialActionNow();
+      const actionButtonWidth = Math.round(252 * scaleFactor);
+      const actionGap = Math.round(34 * scaleFactor);
+      const actionButtons = [
+        this.createBattleCommandButton(
+          -(actionButtonWidth + actionGap),
+          0,
+          "ATTACK",
+          `${Math.floor(attackEvaluation.totalValue)} DMG`,
+          0x301017,
+          0x461821,
+          0xff4e6d,
+          () => this.scene.executeAction("attack"),
+          false,
+          actionButtonWidth,
+          84,
+        ),
+        this.createBattleCommandButton(
+          0,
+          0,
+          "BLOCK",
+          `${Math.floor(defendEvaluation.totalValue)} BLOCK`,
+          0x101821,
+          0x182634,
+          0x74d5ff,
+          () => this.scene.executeAction("defend"),
+          false,
+          actionButtonWidth,
+          84,
+        ),
+        this.createBattleCommandButton(
+          actionButtonWidth + actionGap,
+          0,
+          "SPIRIT RITE",
+          specialReady ? `CAST ${this.scene.getSpecialActionName(dominantSuit)}` : "RITE SPENT",
+          0x1b111f,
+          0x29162f,
+          0xff7ef3,
+          () => this.scene.executeAction("special"),
+          !specialReady,
+          actionButtonWidth,
+          84,
+        ),
+      ];
 
-      // Reduce spacing to bring buttons closer together
-      const buttonSpacing = adjustedSpacing * 0.6; // Make buttons closer
-      const attackButton = createButton(this.scene, -buttonSpacing, 0, "Attack", () => {
-        this.scene.executeAction("attack");
+      this.actionButtons.add(actionButtons);
+    }
+
+    this.scene.tweens.killTweensOf(this.actionButtons);
+    if (combatState.phase === "action_selection") {
+      this.actionButtons.setAlpha(0);
+      this.actionButtons.setY(actionBarY + 18);
+      this.scene.tweens.add({
+        targets: this.actionButtons,
+        alpha: 1,
+        y: actionBarY,
+        duration: 220,
+        ease: "Cubic.Out",
       });
-
-      const defendButton = createButton(this.scene, 0, 0, "Defend", () => {
-        this.scene.executeAction("defend");
-      });
-
-      const specialButton = createButton(this.scene, buttonSpacing, 0, "Special", () => {
-        this.scene.executeAction("special");
-      });
-
-      // Special action tooltip
-      const specialTooltipContainer = this.scene.add.container(buttonSpacing, 30);
-      const tooltipText = this.scene.getSpecialActionName(dominantSuit);
-      const tooltipWidth = Math.min(tooltipText.length * 8 + 20, 200);
-      const tooltipHeight = 40;
-      
-      const outerBorder = this.scene.add.rectangle(0, 0, tooltipWidth + 8, tooltipHeight + 8, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-      const innerBorder = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, undefined, 0)
-        .setStrokeStyle(2, 0x77888C);
-      const bg = this.scene.add.rectangle(0, 0, tooltipWidth, tooltipHeight, 0x150E10);
-      
-      const specialTooltip = this.scene.add.text(0, 0, tooltipText, {
-        fontFamily: "dungeon-mode",
-        fontSize: Math.floor(14 * scaleFactor),
-        color: "#77888C",
-        align: "center",
-        wordWrap: { width: tooltipWidth - 10 }
-      }).setOrigin(0.5);
-      
-      specialTooltipContainer.add([outerBorder, innerBorder, bg, specialTooltip]);
-      specialTooltipContainer.setVisible(false).setAlpha(0);
-
-      specialButton.on("pointerover", () => {
-        specialTooltipContainer.setVisible(true);
-        this.scene.tweens.add({
-          targets: specialTooltipContainer,
-          alpha: 1,
-          duration: 200,
-          ease: 'Power2.easeOut'
-        });
-      });
-
-      specialButton.on("pointerout", () => {
-        this.scene.tweens.add({
-          targets: specialTooltipContainer,
-          alpha: 0,
-          duration: 200,
-          ease: 'Power2.easeOut',
-          onComplete: () => {
-            specialTooltipContainer.setVisible(false);
-          }
-        });
-      });
-
-      this.actionButtons.add([attackButton, defendButton, specialButton, specialTooltipContainer]);
+    } else {
+      this.actionButtons.setAlpha(1);
+      this.actionButtons.setY(actionBarY);
     }
     
     this.updateDamagePreview(combatState.phase === "action_selection");
+  }
+
+  private createBattleCommandButton(
+    x: number,
+    y: number,
+    title: string,
+    subtitle: string,
+    fillColor: number,
+    hoverColor: number,
+    accentColor: number,
+    callback: () => void,
+    disabled: boolean = false,
+    width: number = 190,
+    height: number = 82,
+  ): Phaser.GameObjects.Container {
+    const button = this.scene.add.container(x, y);
+    const shadowPlate = this.scene.add.rectangle(6, 8, width + 8, height + 8, 0x050306, disabled ? 0.2 : 0.42).setOrigin(0.5);
+    shadowPlate.setName("button-shadow");
+    const background = this.scene.add.rectangle(0, 0, width, height, disabled ? 0x0d0b11 : fillColor).setOrigin(0.5);
+    background.setName("button-bg");
+    const border = this.scene.add.rectangle(0, 0, width + 8, height + 8, undefined, 0)
+      .setStrokeStyle(3, accentColor, disabled ? 0.22 : 0.86);
+    const innerBorder = this.scene.add.rectangle(0, 0, width - 14, height - 14, undefined, 0)
+      .setStrokeStyle(1, disabled ? 0x5c4f57 : 0xf6e7d0, disabled ? 0.14 : 0.2);
+    const accentBar = this.scene.add.rectangle(-width / 2 + 14, 0, 10, height - 20, accentColor, disabled ? 0.22 : 1).setOrigin(0.5);
+    const titleText = this.scene.add.text(-width / 2 + 34, -13, title, {
+      fontFamily: "dungeon-mode",
+      fontSize: 22,
+      color: disabled ? "#756a71" : "#fff4ea",
+      align: "left",
+    }).setOrigin(0, 0.5).setShadow(2, 2, "#000000", 0.24, false, true);
+    const subtitleText = this.scene.add.text(-width / 2 + 34, 18, subtitle.toUpperCase(), {
+      fontFamily: "dungeon-mode",
+      fontSize: 12,
+      color: disabled ? "#635a63" : "#d8dfeb",
+      align: "left",
+      wordWrap: { width: width - 72 },
+    }).setOrigin(0, 0.5);
+
+    button.add([background, shadowPlate, border, innerBorder, accentBar, titleText, subtitleText]);
+    button.sendToBack(shadowPlate);
+    button.setData("enabledFill", fillColor);
+    button.setData("hoverFill", hoverColor);
+    button.setData("disabledFill", 0x0d0b11);
+    button.setAngle(-1);
+
+    button.setInteractive(
+      new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
+      Phaser.Geom.Rectangle.Contains,
+    );
+
+    if (disabled) {
+      button.setAlpha(0.62);
+      return button;
+    }
+
+    button.on("pointerover", () => {
+      if (this.scene.getIsActionProcessing()) {
+        return;
+      }
+      background.setFillStyle(hoverColor);
+      button.setScale(1.03);
+      shadowPlate.setAlpha(0.56);
+    });
+
+    button.on("pointerout", () => {
+      background.setFillStyle(fillColor);
+      button.setScale(1);
+      shadowPlate.setAlpha(0.42);
+    });
+
+    button.on("pointerdown", () => {
+      if (this.scene.getIsActionProcessing()) {
+        return;
+      }
+
+      this.scene.tweens.add({
+        targets: button,
+        scaleX: 0.965,
+        scaleY: 0.965,
+        duration: 70,
+        ease: "Power2",
+        yoyo: true,
+      });
+
+      callback();
+    });
+
+    return button;
   }
   
   /**
@@ -2392,6 +2538,9 @@ export class CombatUI {
   public updateDamagePreview(show: boolean): void {
     if (!show) {
       this.damagePreviewText.setVisible(false);
+      if (this.enemyAttackPreviewText) {
+        this.enemyAttackPreviewText.setVisible(false);
+      }
       return;
     }
     
@@ -2711,8 +2860,8 @@ export class CombatUI {
     // Show hand evaluation
     const evaluation = HandEvaluator.evaluateHand(playedHand, "attack");
     const handTypeText = this.getHandTypeDisplayText(evaluation.type);
-    this.handEvaluationText.setText(`${handTypeText} (+${evaluation.totalValue})`);
-    this.handEvaluationText.setVisible(true);
+    this.handEvaluationText.setText(handTypeText.toUpperCase());
+    this.handEvaluationText.setVisible(combatState.phase === "action_selection");
     
     // Ensure played hand container is visible during action phase
     if (combatState.phase === "action_selection") {
@@ -2753,6 +2902,8 @@ export class CombatUI {
    * Show action result message
    */
   public showActionResult(message: string, color: string = "#ffd93d"): void {
+    this.scene.tweens.killTweensOf(this.actionResultText);
+    this.actionResultText.setPosition(Math.round(this.scene.cameras.main.width * 0.72), 126);
     this.actionResultText.setText(message);
     this.actionResultText.setColor(color);
     this.actionResultText.setVisible(true);
@@ -2760,13 +2911,13 @@ export class CombatUI {
     this.scene.tweens.add({
       targets: this.actionResultText,
       alpha: 0,
-      y: this.actionResultText.y - 50,
-      duration: 1500,
+      y: this.actionResultText.y - 18,
+      duration: 1200,
       ease: 'Power2',
       onComplete: () => {
         this.actionResultText.setVisible(false);
         this.actionResultText.setAlpha(1);
-        this.actionResultText.y += 50;
+        this.actionResultText.y += 18;
       }
     });
   }
