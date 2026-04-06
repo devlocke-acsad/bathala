@@ -854,7 +854,7 @@ export class Overworld_MazeGenManager {
           (componentWidth === 3 && componentHeight === 2);
 
         if (!isSolidRect || !isSupportedRect) {
-          // Defensive fallback: invalid house blobs should never render as buildings.
+          // Defensive fallback: unsupported merged blobs should not masquerade as buildings.
           for (const [tx, ty] of component) {
             maze[ty][tx] = 0;
           }

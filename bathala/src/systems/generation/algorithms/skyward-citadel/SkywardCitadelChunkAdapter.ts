@@ -53,29 +53,29 @@ export interface SkywardCitadelConfig {
     readonly chunkSize?: number;
 
     // ── Zone Layout (how citadel clusters tile across the world) ──────
-    /** Chunks between citadel centers. 3 = frequent, 6 = sparse. Default 4 */
+    /** Chunks between citadel centers. 2 = citylike continuity, 6 = sparse. Default 1 */
     readonly villageSpacing?: number;
     /** Dense zone Chebyshev radius in chunks. 0 = center chunk only, 1 = 3×3 core. Default 0 */
     readonly denseRadius?: number;
-    /** Transition zone radius (on top of dense). Default 1 */
+    /** Transition zone radius (on top of dense). Default 0 */
     readonly transitionRadius?: number;
 
     // ── Dense Citadel Chunks ─────────────────────────────────────────
-    /** Houses per dense chunk (8–16 typical). Default 14 */
+    /** Houses per dense chunk (12–24 typical). Default 22 */
     readonly denseHouseCount?: number;
-    /** Tiles between houses in dense (0 = wall-to-wall, 1 = narrow alleys). Default 1 */
+    /** Tiles between houses in dense (0 = touching, 1 = tight but valid). Default 1 */
     readonly denseHouseSpacing?: number;
-    /** Clear forest within N tiles of each house to create open ground. Default 2 */
+    /** Clear forest within N tiles of each house to create open ground. Default 0 */
     readonly denseClearRadius?: number;
 
     // ── Transition Chunks ────────────────────────────────────────────
-    /** Houses per transition chunk (2–6 typical). Default 6 */
+    /** Houses per transition chunk (4–24 typical). Default 18 */
     readonly transitionHouseCount?: number;
     /** Tiles between houses in transition. Default 1 */
     readonly transitionHouseSpacing?: number;
 
     // ── Forest Chunks ────────────────────────────────────────────────
-    /** Houses per forest chunk (0 = empty forest). Default 1 */
+    /** Houses per forest chunk (0 = empty forest). Default 14 */
     readonly forestHouseCount?: number;
 }
 
@@ -83,15 +83,15 @@ export interface SkywardCitadelConfig {
 
 const ZONE_DEFAULTS = {
     chunkSize: 20,
-    villageSpacing: 4,
+    villageSpacing: 1,
     denseRadius: 0,
-    transitionRadius: 1,
-    denseHouseCount: 14,
+    transitionRadius: 0,
+    denseHouseCount: 22,
     denseHouseSpacing: 1,
-    denseClearRadius: 2,
-    transitionHouseCount: 6,
+    denseClearRadius: 0,
+    transitionHouseCount: 18,
     transitionHouseSpacing: 1,
-    forestHouseCount: 1,
+    forestHouseCount: 14,
 };
 
 // ── Per-chunk-type layout presets ────────────────────────────────────────
@@ -100,30 +100,35 @@ function densePreset(cfg: typeof ZONE_DEFAULTS): CitadelLayoutParams {
     return {
         ...DEFAULT_CITADEL_PARAMS,
         houseCount: cfg.denseHouseCount,
-        houseMinSpacing: Math.max(1, cfg.denseHouseSpacing),
-        neighborhoodCount: 1,
-        spreadFactor: 0.30,
-        houseClearRadius: Math.max(1, cfg.denseClearRadius),
-        scatterTreeChance: 0.03,
-        villageGroundGrowth: 2,
+        // spacing=1 keeps each building footprint distinct so the normalizer doesn't destroy them
+        houseMinSpacing: 1,
+        // 4 city-block zones spread across the whole chunk
+        neighborhoodCount: 4,
+        // Wide spread so each zone fans out 8 tiles — fills the chunk with buildings
+        spreadFactor: 0.40,
+        // NO clearing — buildings+roads fill the space; clearing creates empty voids
+        houseClearRadius: 0,
+        scatterTreeChance: 0,
+        villageGroundGrowth: 0,
         fenceChance: 0,
         rubbleChance: 0,
         centerBias: null,
         houseSizePreference: 'small',
         roadNeighborCount: 2,
-        doorStubLength: 2,
-        borderJitter: 6,
-        connectorBend: 5,
+        doorStubLength: 1,
+        borderJitter: 2,
+        connectorBend: 1,
         edgeConnectionsPerSide: 2,
-        detourCount: 4,
+        detourCount: 0,
         detourMinDistance: 5,
         detourMaxDistance: 14,
         fixDoubleWide: true,
         edgeMargin: 1,
         cliffBandCount: 0,
-        hillClusterCount: 2,
+        // Zero terrain clutter — buildings fill every available tile
+        hillClusterCount: 0,
         grassPatchCount: 0,
-        sandPatchCount: 6,
+        sandPatchCount: 0,
         waterPoolCount: 0,
     };
 }
@@ -135,30 +140,30 @@ function transitionPreset(
     return {
         ...DEFAULT_CITADEL_PARAMS,
         houseCount: cfg.transitionHouseCount,
-        houseMinSpacing: Math.max(1, cfg.transitionHouseSpacing),
-        neighborhoodCount: 1,
-        spreadFactor: 0.24,
-        houseClearRadius: 2,
-        scatterTreeChance: 0.02,
-        villageGroundGrowth: 2,
+        houseMinSpacing: 1,
+        neighborhoodCount: 3,
+        spreadFactor: 0.35,
+        houseClearRadius: 0,
+        scatterTreeChance: 0,
+        villageGroundGrowth: 0,
         fenceChance: 0,
         rubbleChance: 0,
         centerBias: bias,
-        houseSizePreference: 'all',
+        houseSizePreference: 'small',
         roadNeighborCount: 2,
         doorStubLength: 1,
-        borderJitter: 5,
-        connectorBend: 4,
-        edgeConnectionsPerSide: 2,
-        detourCount: 3,
+        borderJitter: 2,
+        connectorBend: 1,
+        edgeConnectionsPerSide: 1,
+        detourCount: 0,
         detourMinDistance: 4,
         detourMaxDistance: 12,
         fixDoubleWide: true,
-        edgeMargin: 2,
+        edgeMargin: 1,
         cliffBandCount: 0,
-        hillClusterCount: 3,
+        hillClusterCount: 0,
         grassPatchCount: 0,
-        sandPatchCount: 6,
+        sandPatchCount: 0,
         waterPoolCount: 0,
     };
 }
@@ -167,30 +172,31 @@ function forestPreset(cfg: typeof ZONE_DEFAULTS): CitadelLayoutParams {
     return {
         ...DEFAULT_CITADEL_PARAMS,
         houseCount: cfg.forestHouseCount,
-        houseMinSpacing: 2,
-        neighborhoodCount: 1,
-        spreadFactor: 0.20,
-        houseClearRadius: 2,
+        houseMinSpacing: 1,
+        neighborhoodCount: 3,
+        // City outskirts: still has building clusters, slightly wider spread
+        spreadFactor: 0.30,
+        houseClearRadius: 0,
         scatterTreeChance: 0,
-        villageGroundGrowth: 1,
+        villageGroundGrowth: 0,
         fenceChance: 0,
         rubbleChance: 0,
         centerBias: null,
-        houseSizePreference: 'large',
+        houseSizePreference: 'small',
         roadNeighborCount: 1,
         doorStubLength: 1,
-        borderJitter: 3,
-        connectorBend: 4,
-        edgeConnectionsPerSide: 2,
-        detourCount: 2,
+        borderJitter: 2,
+        connectorBend: 1,
+        edgeConnectionsPerSide: 1,
+        detourCount: 0,
         detourMinDistance: 6,
         detourMaxDistance: 16,
         fixDoubleWide: true,
-        edgeMargin: 2,
+        edgeMargin: 1,
         cliffBandCount: 0,
-        hillClusterCount: 4,
+        hillClusterCount: 1,
         grassPatchCount: 0,
-        sandPatchCount: 5,
+        sandPatchCount: 1,
         waterPoolCount: 0,
     };
 }

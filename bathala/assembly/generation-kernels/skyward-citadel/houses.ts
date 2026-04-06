@@ -135,7 +135,7 @@ function tryPlaceHouseNear(w: i32, h: i32, centerX: i32, centerY: i32): bool {
   const spacing: i32 = param(P_HOUSE_MIN_SPACING);
   const spreadRadius: f64 = f64(minI(w, h)) * paramF(P_SPREAD_FACTOR);
 
-  for (let attempt: i32 = 0; attempt < 80; attempt++) {
+  for (let attempt: i32 = 0; attempt < 220; attempt++) {
     const tid: i32 = unchecked(POOL[rngInt(0, poolSize - 1)]);
     loadTemplate(tid);
     const ox: i32 = centerX + i32(Math.floor((rng() - 0.5) * spreadRadius));
@@ -192,9 +192,9 @@ function tryPlaceHouseNear(w: i32, h: i32, centerX: i32, centerY: i32): bool {
   return false;
 }
 
-// Neighborhood center temp buffer
-const CTR_X = new StaticArray<i32>(8);
-const CTR_Y = new StaticArray<i32>(8);
+// Neighborhood center temp buffer (up to 12 neighborhoods supported)
+const CTR_X = new StaticArray<i32>(12);
+const CTR_Y = new StaticArray<i32>(12);
 
 export function placeAllHouses(w: i32, h: i32): void {
   resetHouses();
@@ -212,11 +212,13 @@ export function placeAllHouses(w: i32, h: i32): void {
     baseCyF += (f64(param(P_CENTER_BIAS_Y)) / 1000.0) * f64(h) * 0.25;
   }
 
-  // Generate neighborhood centers via rejection sampling
+  // Generate neighborhood centers via rejection sampling.
+  // City layout: centers spread across the full chunk (spread=0.48) but each block
+  // must be at least 0.18 * size apart so they form distinct city-block zones.
   let centerCount: i32 = 0;
-  const minCenterDist: i32 = i32(f64(minI(w, h)) * 0.35);
-  const spread: f64 = f64(minI(w, h)) * 0.2;
-  for (let attempt: i32 = 0; attempt < 200 && centerCount < nhoods; attempt++) {
+  const minCenterDist: i32 = i32(f64(minI(w, h)) * 0.18);
+  const spread: f64 = f64(minI(w, h)) * 0.48;
+  for (let attempt: i32 = 0; attempt < 500 && centerCount < nhoods; attempt++) {
     let cx: i32 = i32(Math.floor(baseCxF + (rng() - 0.5) * spread));
     let cy: i32 = i32(Math.floor(baseCyF + (rng() - 0.5) * spread));
     cx = clampI(cx, margin + 2, w - margin - 2);
@@ -243,6 +245,14 @@ export function placeAllHouses(w: i32, h: i32): void {
     for (let i: i32 = 0; i < perCenter && houseCount < maxHouses; i++) {
       tryPlaceHouseNear(w, h, unchecked(CTR_X[c]), unchecked(CTR_Y[c]));
     }
+  }
+
+  // Refill pass: city is dense — push many extra attempts so house count targets are met.
+  let refillAttempts: i32 = maxI(300, maxHouses * 60);
+  while (houseCount < maxHouses && refillAttempts > 0) {
+    refillAttempts--;
+    const ci: i32 = rngInt(0, centerCount - 1);
+    tryPlaceHouseNear(w, h, unchecked(CTR_X[ci]), unchecked(CTR_Y[ci]));
   }
 }
 

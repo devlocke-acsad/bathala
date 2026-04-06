@@ -565,9 +565,9 @@ export class SkywardCitadelAlgorithm {
 
         // Generate neighborhood centers via rejection sampling
         const centers: Array<{ x: number; y: number }> = [];
-        const minCenterDist = Math.min(w, h) * 0.35;
-        for (let attempt = 0; attempt < 200 && centers.length < p.neighborhoodCount; attempt++) {
-            const spread = Math.min(w, h) * 0.2;
+        const minCenterDist = Math.min(w, h) * 0.22;
+        for (let attempt = 0; attempt < 320 && centers.length < p.neighborhoodCount; attempt++) {
+            const spread = Math.min(w, h) * 0.26;
             const cx = Math.floor(baseCx + (this.rng() - 0.5) * spread);
             const cy = Math.floor(baseCy + (this.rng() - 0.5) * spread);
             const clampedCx = Math.max(margin + 2, Math.min(w - margin - 2, cx));
@@ -595,6 +595,15 @@ export class SkywardCitadelAlgorithm {
             }
         }
 
+        // Refill pass: with tighter spacing rules, initial per-center distribution can underfill.
+        let refillAttempts = Math.max(140, p.houseCount * 40);
+        while (houses.length < p.houseCount && refillAttempts > 0) {
+            refillAttempts--;
+            const center = centers[Math.floor(this.rng() * centers.length)];
+            const placed = this.tryPlaceHouseNear(grid, center, houses, p, templates);
+            if (placed) houses.push(placed);
+        }
+
         return houses;
     }
 
@@ -612,7 +621,7 @@ export class SkywardCitadelAlgorithm {
         const [w, h] = this.levelSize;
         const margin = p.edgeMargin;
 
-        for (let attempt = 0; attempt < 80; attempt++) {
+        for (let attempt = 0; attempt < 220; attempt++) {
             // Pick random template from the provided set
             const templateIdx = Math.floor(this.rng() * templates.length);
             const template = templates[templateIdx];

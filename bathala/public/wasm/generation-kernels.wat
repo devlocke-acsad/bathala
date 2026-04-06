@@ -65,12 +65,12 @@
  (global $assembly/generation-kernels/common/grid/CLOSED (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/roads/compTotalTiles (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/roads/COMP_SIZE (mut i32) (i32.const 0))
+ (global $assembly/generation-kernels/skyward-citadel/houses/CTR_Y (mut i32) (i32.const 0))
+ (global $assembly/generation-kernels/skyward-citadel/houses/CTR_X (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/buffers/rngState (mut i32) (i32.const 1))
  (global $assembly/generation-kernels/submerged-village/roads/compTotalTiles (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/submerged-village/roads/COMP_SIZE (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/submerged-village/buffers/rngState (mut i32) (i32.const 1))
- (global $assembly/generation-kernels/skyward-citadel/houses/CTR_Y (mut i32) (i32.const 0))
- (global $assembly/generation-kernels/skyward-citadel/houses/CTR_X (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/houses/doorCount (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/buffers/BITMAP_B (mut i32) (i32.const 0))
  (global $assembly/generation-kernels/skyward-citadel/buffers/totalHouseTiles (mut i32) (i32.const 0))
@@ -12152,7 +12152,7 @@
   local.set $12
   loop $for-loop|0
    local.get $13
-   i32.const 80
+   i32.const 220
    i32.lt_s
    if
     global.get $assembly/generation-kernels/skyward-citadel/houses/POOL
@@ -12479,8 +12479,8 @@
   (local $6 i32)
   (local $7 i32)
   (local $8 i32)
-  (local $9 f64)
-  (local $10 i32)
+  (local $9 i32)
+  (local $10 f64)
   (local $11 i32)
   (local $12 i32)
   (local $13 i32)
@@ -12511,7 +12511,7 @@
   local.set $8
   global.get $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
   i32.load
-  local.set $10
+  local.set $9
   global.get $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
   i32.load offset=8
   local.set $12
@@ -12524,14 +12524,14 @@
   f64.convert_i32_s
   f64.const 0.5
   f64.mul
-  local.set $9
+  local.set $10
   global.get $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
   i32.load offset=36
   local.tee $2
   i32.const 2147483647
   i32.ne
   if
-   local.get $9
+   local.get $10
    global.get $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
    i32.load offset=40
    f64.convert_i32_s
@@ -12543,7 +12543,7 @@
    f64.const 0.25
    f64.mul
    f64.add
-   local.set $9
+   local.set $10
    local.get $4
    local.get $2
    f64.convert_i32_s
@@ -12565,17 +12565,17 @@
   select
   f64.convert_i32_s
   local.tee $15
-  f64.const 0.35
+  f64.const 0.18
   f64.mul
   i32.trunc_sat_f64_s
   local.set $13
   local.get $15
-  f64.const 0.2
+  f64.const 0.48
   f64.mul
   local.set $15
   loop $for-loop|0
    local.get $11
-   i32.const 200
+   i32.const 500
    i32.lt_s
    local.get $3
    local.get $12
@@ -12592,7 +12592,7 @@
     f64.floor
     i32.trunc_sat_f64_s
     local.set $5
-    local.get $9
+    local.get $10
     call $assembly/generation-kernels/skyward-citadel/buffers/rng
     f64.const -0.5
     f64.add
@@ -12775,7 +12775,7 @@
     i32.const 2
     i32.add
     local.tee $2
-    local.get $9
+    local.get $10
     f64.floor
     i32.trunc_sat_f64_s
     local.tee $5
@@ -12798,7 +12798,7 @@
   end
   i32.const 1
   local.get $3
-  local.get $10
+  local.get $9
   i32.add
   i32.const 1
   i32.sub
@@ -12821,7 +12821,7 @@
     local.set $6
     loop $for-loop|3
      global.get $assembly/generation-kernels/skyward-citadel/buffers/houseCount
-     local.get $10
+     local.get $9
      i32.lt_s
      local.get $5
      local.get $6
@@ -12854,6 +12854,50 @@
     i32.add
     local.set $2
     br $for-loop|2
+   end
+  end
+  i32.const 300
+  local.get $9
+  i32.const 60
+  i32.mul
+  local.tee $2
+  local.get $2
+  i32.const 300
+  i32.lt_s
+  select
+  local.set $6
+  loop $while-continue|4
+   global.get $assembly/generation-kernels/skyward-citadel/buffers/houseCount
+   local.get $9
+   i32.lt_s
+   local.get $6
+   i32.const 0
+   i32.gt_s
+   i32.and
+   if
+    local.get $6
+    i32.const 1
+    i32.sub
+    local.set $6
+    local.get $0
+    local.get $1
+    i32.const 0
+    local.get $3
+    i32.const 1
+    i32.sub
+    call $assembly/generation-kernels/skyward-citadel/buffers/rngInt
+    i32.const 2
+    i32.shl
+    local.tee $2
+    global.get $assembly/generation-kernels/skyward-citadel/houses/CTR_X
+    i32.add
+    i32.load
+    global.get $assembly/generation-kernels/skyward-citadel/houses/CTR_Y
+    local.get $2
+    i32.add
+    i32.load
+    call $assembly/generation-kernels/skyward-citadel/houses/tryPlaceHouseNear
+    br $while-continue|4
    end
   end
  )
@@ -17277,31 +17321,31 @@
   i32.const 32
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/PARAMS
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_OX
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_OY
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_DOOR_X
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_DOOR_Y
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_SHAPE
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_TILE_START
-  i32.const 24
+  i32.const 48
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HOUSE_TILE_COUNT
-  i32.const 720
+  i32.const 1440
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HTILES_X
-  i32.const 720
+  i32.const 1440
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/buffers/HTILES_Y
   call $~lib/staticarray/StaticArray<u8>#constructor
@@ -17329,10 +17373,10 @@
   i32.const 8
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/houses/POOL
-  i32.const 8
+  i32.const 12
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/houses/CTR_X
-  i32.const 8
+  i32.const 12
   call $~lib/staticarray/StaticArray<i32>#constructor
   global.set $assembly/generation-kernels/skyward-citadel/houses/CTR_Y
   i32.const 128

@@ -83,8 +83,8 @@ export function rngInt(min: i32, max: i32): i32 {
 }
 
 // ── Village buffers ──────────────────────────────────────────────────────
-export const MAX_HOUSES: i32 = 24;
-export const MAX_HOUSE_TILES: i32 = 720; // 24 houses × 30 tiles max
+export const MAX_HOUSES: i32 = 48;
+export const MAX_HOUSE_TILES: i32 = 1440; // 48 houses × 30 tiles max
 
 export const HOUSE_OX = new StaticArray<i32>(MAX_HOUSES);
 export const HOUSE_OY = new StaticArray<i32>(MAX_HOUSES);
