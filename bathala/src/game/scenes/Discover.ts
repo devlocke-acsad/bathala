@@ -5,28 +5,28 @@ import { MusicLifecycleSystem } from "../../systems/audio/MusicLifecycleSystem";
 
 const DISCOVER_PORTRAIT_ASSETS: Record<number, Array<{ key: string; path: string }>> = {
   2: [
-    { key: "sirena_almanac", path: "assets/sprites/discover/chapter2/new/sirena_splash.png" },
-    { key: "siyokoy_almanac", path: "assets/sprites/discover/chapter2/new/siyokoy_splash.png" },
-    { key: "santelmo_almanac", path: "assets/sprites/discover/chapter2/new/santelmo_splash.png" },
-    { key: "berberoka_almanac", path: "assets/sprites/discover/chapter2/new/berberoka_splash.png" },
-    { key: "magindara_almanac", path: "assets/sprites/discover/chapter2/new/maginda_swarm_splash.png" },
-    { key: "kataw_almanac", path: "assets/sprites/discover/chapter2/new/kataw_splash.png" },
-    { key: "berbalang_almanac", path: "assets/sprites/discover/chapter2/new/berbalang_splash.png" },
-    { key: "bangkilan_almanac", path: "assets/sprites/discover/chapter2/new/sunken_bangkilan_splash.png" },
-    { key: "apoy_tubig_fury_almanac", path: "assets/sprites/discover/chapter2/new/apoy_tubig_splash.png" },
-    { key: "bakunawa_almanac", path: "assets/sprites/discover/chapter2/new/bakunawa_splash.png" },
+    { key: "sirena_almanac", path: "assets/sprites/discover/chapter2/new/sirena_splash.webp" },
+    { key: "siyokoy_almanac", path: "assets/sprites/discover/chapter2/new/siyokoy_splash.webp" },
+    { key: "santelmo_almanac", path: "assets/sprites/discover/chapter2/new/santelmo_splash.webp" },
+    { key: "berberoka_almanac", path: "assets/sprites/discover/chapter2/new/berberoka_splash.webp" },
+    { key: "magindara_almanac", path: "assets/sprites/discover/chapter2/new/maginda_swarm_splash.webp" },
+    { key: "kataw_almanac", path: "assets/sprites/discover/chapter2/new/kataw_splash.webp" },
+    { key: "berbalang_almanac", path: "assets/sprites/discover/chapter2/new/berbalang_splash.webp" },
+    { key: "bangkilan_almanac", path: "assets/sprites/discover/chapter2/new/sunken_bangkilan_splash.webp" },
+    { key: "apoy_tubig_fury_almanac", path: "assets/sprites/discover/chapter2/new/apoy_tubig_splash.webp" },
+    { key: "bakunawa_almanac", path: "assets/sprites/discover/chapter2/new/bakunawa_splash.webp" },
   ],
   3: [
-    { key: "tigmamanukan_almanac", path: "assets/sprites/discover/chapter3/new/tigamamanukan_watcher_splash.png" },
-    { key: "diwata_almanac", path: "assets/sprites/discover/chapter3/new/diwata_sentinel_splash.png" },
-    { key: "sarimanok_almanac", path: "assets/sprites/discover/chapter3/new/sarimanok_watcher_splash.png" },
-    { key: "bulalakaw_almanac", path: "assets/sprites/discover/chapter3/new/bulalakaw_flamekeeper_splash.png" },
-    { key: "minokawa_almanac", path: "assets/sprites/discover/chapter3/new/minokawa_harbinger_splash.png" },
-    { key: "alan_almanac", path: "assets/sprites/discover/chapter3/new/alan_splash.png" },
-    { key: "ekek_almanac", path: "assets/sprites/discover/chapter3/new/ekek_splash.png" },
-    { key: "ribung_linti_almanac", path: "assets/sprites/discover/chapter3/new/ribung_linti_splash.png" },
-    { key: "apolaki_almanac", path: "assets/sprites/discover/chapter3/new/apolaki_splash.png" },
-    { key: "false_bathala_almanac", path: "assets/sprites/discover/chapter3/new/false_bathala_splash.png" },
+    { key: "tigmamanukan_almanac", path: "assets/sprites/discover/chapter3/new/tigamamanukan_watcher_splash.webp" },
+    { key: "diwata_almanac", path: "assets/sprites/discover/chapter3/new/diwata_sentinel_splash.webp" },
+    { key: "sarimanok_almanac", path: "assets/sprites/discover/chapter3/new/sarimanok_watcher_splash.webp" },
+    { key: "bulalakaw_almanac", path: "assets/sprites/discover/chapter3/new/bulalakaw_flamekeeper_splash.webp" },
+    { key: "minokawa_almanac", path: "assets/sprites/discover/chapter3/new/minokawa_harbinger_splash.webp" },
+    { key: "alan_almanac", path: "assets/sprites/discover/chapter3/new/alan_splash.webp" },
+    { key: "ekek_almanac", path: "assets/sprites/discover/chapter3/new/ekek_splash.webp" },
+    { key: "ribung_linti_almanac", path: "assets/sprites/discover/chapter3/new/ribung_linti_splash.webp" },
+    { key: "apolaki_almanac", path: "assets/sprites/discover/chapter3/new/apolaki_splash.webp" },
+    { key: "false_bathala_almanac", path: "assets/sprites/discover/chapter3/new/false_bathala_splash.webp" },
   ],
 };
 
@@ -122,15 +122,12 @@ export class Discover extends Scene {
     this.loadCompendiumData();
 
     // Create character cards
-    this.createCharacterCards();
+    this.refreshCharacterCards();
     this.ensureChapterPortraitsLoaded(this.currentChapter);
 
     // Create detail view (hidden by default)
     this.createDetailView();
 
-    // Create scroll mask
-    this.createScrollMask();
-    
     // Add input listeners for scrolling
     this.input.on('pointerdown', this.startDrag, this);
     this.input.on('pointermove', this.drag, this);
@@ -299,7 +296,13 @@ export class Discover extends Scene {
       // Tweening numeric colors here was unreliable, causing only Chapter 1 to appear selected.
       button.setColor(btnChapter === chapter ? "#06d6a0" : "#77888C");
     });
-    
+
+    if (this.areChapterPortraitsReady(chapter)) {
+      this.showPortraitLoadingText(false);
+      this.refreshCharacterCards();
+      return;
+    }
+
     this.refreshCharacterCards();
     this.ensureChapterPortraitsLoaded(chapter);
   }
@@ -313,8 +316,22 @@ export class Discover extends Scene {
       this.cardsContainer.destroy();
     }
 
+    if (!this.areChapterPortraitsReady(this.currentChapter)) {
+      this.cardsContainer = this.add.container(0, 0);
+      return;
+    }
+
     this.createCharacterCards();
     this.createScrollMask();
+  }
+
+  private areChapterPortraitsReady(chapter: number): boolean {
+    const assets = DISCOVER_PORTRAIT_ASSETS[chapter];
+    if (!assets || assets.length === 0) {
+      return true;
+    }
+
+    return assets.every(({ key }) => this.textures.exists(key));
   }
 
   private ensureChapterPortraitsLoaded(chapter: number): void {
@@ -865,13 +882,8 @@ export class Discover extends Scene {
       
       characterVisual = sprite;
     } else {
-      // Fallback to emoji if sprite not found
-      const symbol = this.getCharacterSymbol(entry.id);
-      characterVisual = this.add.text(width/2, 200, symbol, {
-        fontFamily: "dungeon-mode",
-        fontSize: 100,
-        color: typeColorHex
-      }).setOrigin(0.5);
+      // Keep the card layout stable while portraits are loading.
+      characterVisual = this.add.rectangle(width / 2, 200, 220, 220, 0x000000, 0);
     }
     
     // --- Dynamic bottom layout (prevents name overflow into stats) ---
@@ -1193,7 +1205,7 @@ export class Discover extends Scene {
       fontFamily: "dungeon-mode",
       fontSize: 90,
       color: "#e8eced"
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setVisible(false);
     
     // Stats section with enhanced design
     this.detailStatsTitle = this.add.text(screenWidth/2 - 200, 310, "COMBAT STATS", {
@@ -1372,7 +1384,7 @@ export class Discover extends Scene {
     this.detailTopAccent.setFillStyle(typeColor);
     this.detailOuterGlow.setFillStyle(typeColor);
     
-    // Try to use sprite first, fallback to emoji
+    // Try to use sprite first. If it is still loading, leave the portrait area empty.
     const spriteKey = this.getCharacterSpriteKey(entry.id);
     const screenWidth = this.cameras.main.width;
     
@@ -1409,11 +1421,10 @@ export class Discover extends Scene {
         this.detailSpriteImage.destroy();
         this.detailSpriteImage = null;
       }
-      
-      // Show and update emoji text as fallback
-      this.detailSymbolText.setVisible(true);
-      this.detailSymbolText.setText(this.getCharacterSymbol(entry.id));
-      this.detailSymbolText.setColor(typeColorHex);
+
+      // Hide the text fallback so there is no emoji flash before portrait load completes.
+      this.detailSymbolText.setVisible(false);
+      this.detailSymbolText.setText("");
     }
     
     this.detailStatsText.setText("Health: " + entry.health + "\nAttack: " + entry.attack);

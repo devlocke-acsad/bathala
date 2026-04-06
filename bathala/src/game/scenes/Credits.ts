@@ -107,10 +107,6 @@ export class Credits extends Scene {
         "CHESTER B. MAGTAJAS", 
         "DAVID CHRISTIAN C. OLIMBERIO"
       ] },
-      { header: "ART", names: [
-        "KEVIN REI ODI", 
-        "SEBASTIAN BALUYUT"
-      ] },
       { header: "ADVISERS", names: [
         "Prof. MARY ELLAINE R. CERVANTES, MIS, MTE",
         "Course Adviser",
@@ -128,6 +124,8 @@ export class Credits extends Scene {
         "Panel Member"
       ]},
       { header: "SPECIAL THANKS", names: [
+        "KEVIN REI ODI",
+        "SEBASTIAN BALUYUT",
         "Nitten 'Big N' Nair - CEO, Creator of Mythlok",
         "Aylmer 'Sir A' Velez - Creator of Y Realm Studios",
         "Apyongs", 
