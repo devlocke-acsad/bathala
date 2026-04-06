@@ -89,6 +89,7 @@ export class CombatUI {
   public playerSprite!: Phaser.GameObjects.Sprite;
   public playerShadow!: Phaser.GameObjects.Graphics;
   private playerHealthBarFill!: Phaser.GameObjects.Rectangle;
+  private playerHealthLagFill!: Phaser.GameObjects.Rectangle;
   
   // Enemy UI Elements
   public enemyHealthText!: Phaser.GameObjects.Text;
@@ -102,11 +103,14 @@ export class CombatUI {
   public enemyAffinityContainer!: Phaser.GameObjects.Container;
   public currentAffinityTooltip!: Phaser.GameObjects.Container | null;
   private enemyHealthBarFill!: Phaser.GameObjects.Rectangle;
+  private enemyHealthLagFill!: Phaser.GameObjects.Rectangle;
   
   private readonly SIDE_PANEL_WIDTH = 270;
   private readonly SIDE_PANEL_HEIGHT = 190;
   private readonly HEALTH_BAR_WIDTH = 220;
   private readonly SIDE_PANEL_MARGIN = 34;
+  private lastPlayerHealthValue: number | null = null;
+  private lastEnemyHealthValue: number | null = null;
   
   // Card UI Elements
   public handContainer!: Phaser.GameObjects.Container;
@@ -317,12 +321,6 @@ export class CombatUI {
     // Disable texture smoothing for pixel-perfect rendering
     this.playerSprite.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
     
-    const panelMinX = this.SIDE_PANEL_WIDTH / 2 + 12;
-    const panelMaxX = screenWidth / 2 - this.SIDE_PANEL_WIDTH / 2 - 24;
-    const desiredPanelX = playerX - (this.playerSprite.displayWidth / 2 + this.SIDE_PANEL_WIDTH / 2 + this.SIDE_PANEL_MARGIN);
-    const panelX = Phaser.Math.Clamp(desiredPanelX, panelMinX, panelMaxX);
-    const panelY = playerY + this.playerSprite.displayHeight * 0.2;
-
     // Calculate dynamic Y offset based on player sprite's scaled height
     const playerScale = 1;
     const playerSpriteScaledHeight = this.playerSprite.height * playerScale;
@@ -338,70 +336,75 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    // Side UI panel to match dungeon-style combat UI
-    this.playerInfoContainer = this.scene.add.container(panelX, panelY);
-    const playerOuterBorder = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH + 8, this.SIDE_PANEL_HEIGHT + 8, undefined, 0)
-      .setStrokeStyle(2, 0x77888C, 0.95);
-    const playerInnerBorder = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH, this.SIDE_PANEL_HEIGHT, undefined, 0)
-      .setStrokeStyle(2, 0x556065, 0.8);
-    const playerPanelBg = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH, this.SIDE_PANEL_HEIGHT, 0x150E10, 0.95);
-    const playerHeader = this.scene.add.text(0, -72, "HERO STATUS", {
-      fontFamily: "dungeon-mode",
-      fontSize: 16,
-      color: "#77888C",
-      align: "center",
-    }).setOrigin(0.5);
-
+    const playerHudWidth = 228;
+    const panelY = playerY + this.playerSprite.displayHeight * 0.48 + 34;
+    this.playerInfoContainer = this.scene.add.container(playerX, panelY).setDepth(820);
+    const playerAccent = this.scene.add.rectangle(-playerHudWidth / 2 + 8, -20, 34, 3, 0xe0b66a, 0.8).setOrigin(0, 0.5);
+    const playerHealthBarShadow = this.scene.add.rectangle(
+      -playerHudWidth / 2 + 2,
+      1,
+      this.HEALTH_BAR_WIDTH,
+      14,
+      0x040203,
+      0.24,
+    ).setOrigin(0, 0.5);
     const playerHealthBarBg = this.scene.add.rectangle(
       -this.HEALTH_BAR_WIDTH / 2,
-      -40,
+      0,
       this.HEALTH_BAR_WIDTH,
-      16,
-      0x1b2327,
-      0.95
+      12,
+      0x191418,
+      0.96
     )
       .setOrigin(0, 0.5)
-      .setStrokeStyle(1, 0x77888C, 0.7);
+      .setStrokeStyle(1, 0x5a4735, 0.42);
+    this.playerHealthLagFill = this.scene.add.rectangle(
+      -this.HEALTH_BAR_WIDTH / 2,
+      0,
+      this.HEALTH_BAR_WIDTH,
+      12,
+      0xc95c5c,
+      0.78
+    ).setOrigin(0, 0.5);
     this.playerHealthBarFill = this.scene.add.rectangle(
       -this.HEALTH_BAR_WIDTH / 2,
-      -40,
+      0,
       this.HEALTH_BAR_WIDTH,
-      16,
+      12,
       0x2ed573,
       1
     ).setOrigin(0, 0.5);
 
     this.playerHealthText = this.scene.add
-      .text(0, -58, "", {
+      .text(-this.HEALTH_BAR_WIDTH / 2, -16, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#e8eced",
-        align: "center"
+        fontSize: 17,
+        color: "#f3ede4",
+        align: "left"
       })
-      .setOrigin(0.5);
+      .setOrigin(0, 0.5);
 
     this.playerBlockText = this.scene.add
-      .text(0, -12, "", {
+      .text(this.HEALTH_BAR_WIDTH / 2, -16, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#4ecdc4",
-        align: "center"
+        fontSize: 14,
+        color: "#9de8f2",
+        align: "right"
       })
-      .setOrigin(0.5);
+      .setOrigin(1, 0.5);
 
-    const playerStatusLabel = this.scene.add.text(0, 22, "Effects", {
+    const playerStatusLabel = this.scene.add.text(-this.HEALTH_BAR_WIDTH / 2, 24, "ACTIVE", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#77888C",
-      align: "center",
-    }).setOrigin(0.5);
-    this.playerStatusContainer = this.scene.add.container(0, 58);
+      fontSize: 11,
+      color: "#b89b74",
+      align: "left",
+    }).setOrigin(0, 0.5);
+    this.playerStatusContainer = this.scene.add.container(0, 50);
     this.playerInfoContainer.add([
-      playerOuterBorder,
-      playerInnerBorder,
-      playerPanelBg,
-      playerHeader,
+      playerAccent,
+      playerHealthBarShadow,
       playerHealthBarBg,
+      this.playerHealthLagFill,
       this.playerHealthBarFill,
       this.playerHealthText,
       this.playerBlockText,
@@ -442,12 +445,6 @@ export class CombatUI {
     const scale = Math.min(targetWidth / sprite.width, targetHeight / sprite.height);
     sprite.setScale(scale);
     
-    const panelMinX = screenWidth / 2 + this.SIDE_PANEL_WIDTH / 2 + 24;
-    const panelMaxX = screenWidth - (this.SIDE_PANEL_WIDTH / 2 + 12);
-    const desiredPanelX = enemyX + (sprite.displayWidth / 2 + this.SIDE_PANEL_WIDTH / 2 + this.SIDE_PANEL_MARGIN);
-    const panelX = Phaser.Math.Clamp(desiredPanelX, panelMinX, panelMaxX);
-    const panelY = enemyY + sprite.displayHeight * 0.18;
-
     // Calculate dynamic Y offset based on sprite's scaled height - match player UI spacing
     const spriteScaledHeight = sprite.height * scale;
     const nameYOffset = enemyY - (spriteScaledHeight / 2) - 25; // Match player 25px
@@ -462,78 +459,85 @@ export class CombatUI {
       })
       .setOrigin(0.5);
 
-    this.enemyInfoContainer = this.scene.add.container(panelX, panelY);
-    const enemyOuterBorder = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH + 8, this.SIDE_PANEL_HEIGHT + 8, undefined, 0)
-      .setStrokeStyle(2, 0x77888C, 0.95);
-    const enemyInnerBorder = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH, this.SIDE_PANEL_HEIGHT, undefined, 0)
-      .setStrokeStyle(2, 0x556065, 0.8);
-    const enemyPanelBg = this.scene.add.rectangle(0, 0, this.SIDE_PANEL_WIDTH, this.SIDE_PANEL_HEIGHT, 0x150E10, 0.95);
-    const enemyHeader = this.scene.add.text(0, -72, "ENEMY STATUS", {
-      fontFamily: "dungeon-mode",
-      fontSize: 16,
-      color: "#77888C",
-      align: "center",
-    }).setOrigin(0.5);
+    const enemyHudWidth = 228;
+    const panelY = enemyY + sprite.displayHeight * 0.5 + 32;
+    this.enemyInfoContainer = this.scene.add.container(enemyX, panelY).setDepth(820);
+    const enemyAccent = this.scene.add.rectangle(-enemyHudWidth / 2 + 8, -20, 34, 3, 0x82d9ff, 0.8).setOrigin(0, 0.5);
+    const enemyHealthBarShadow = this.scene.add.rectangle(
+      -enemyHudWidth / 2 + 2,
+      1,
+      this.HEALTH_BAR_WIDTH,
+      14,
+      0x040203,
+      0.24,
+    ).setOrigin(0, 0.5);
     const enemyHealthBarBg = this.scene.add.rectangle(
       -this.HEALTH_BAR_WIDTH / 2,
-      -40,
+      0,
       this.HEALTH_BAR_WIDTH,
-      16,
-      0x1b2327,
-      0.95
+      12,
+      0x191418,
+      0.96
     )
       .setOrigin(0, 0.5)
-      .setStrokeStyle(1, 0x77888C, 0.7);
+      .setStrokeStyle(1, 0x5a4735, 0.42);
+    this.enemyHealthLagFill = this.scene.add.rectangle(
+      -this.HEALTH_BAR_WIDTH / 2,
+      0,
+      this.HEALTH_BAR_WIDTH,
+      12,
+      0xc95c5c,
+      0.78
+    ).setOrigin(0, 0.5);
     this.enemyHealthBarFill = this.scene.add.rectangle(
       -this.HEALTH_BAR_WIDTH / 2,
-      -40,
+      0,
       this.HEALTH_BAR_WIDTH,
-      16,
+      12,
       0x2ed573,
       1
     ).setOrigin(0, 0.5);
 
     this.enemyHealthText = this.scene.add
-      .text(0, -58, "", {
+      .text(-this.HEALTH_BAR_WIDTH / 2, -16, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#e8eced",
-        align: "center"
+        fontSize: 17,
+        color: "#f3ede4",
+        align: "left"
       })
-      .setOrigin(0.5);
+      .setOrigin(0, 0.5);
 
     this.enemyBlockText = this.scene.add
-      .text(0, -12, "", {
+      .text(this.HEALTH_BAR_WIDTH / 2, -16, "", {
         fontFamily: "dungeon-mode",
-        fontSize: 16,
-        color: "#4ecdc4",
-        align: "center"
+        fontSize: 14,
+        color: "#9de8f2",
+        align: "right"
       })
-      .setOrigin(0.5);
+      .setOrigin(1, 0.5);
 
     this.enemyInfoContainer.add([
-      enemyOuterBorder,
-      enemyInnerBorder,
-      enemyPanelBg,
-      enemyHeader,
+      enemyAccent,
+      enemyHealthBarShadow,
       enemyHealthBarBg,
+      this.enemyHealthLagFill,
       this.enemyHealthBarFill,
       this.enemyHealthText,
       this.enemyBlockText,
     ]);
 
     // Build affinity row first, then place effects UI below it.
-    const affinityRowY = 6;
+    const affinityRowY = 28;
     const affinityRowHeight = this.createElementalAffinityIndicators(this.enemyInfoContainer, affinityRowY);
-    const enemyStatusLabelY = affinityRowY + affinityRowHeight / 2 + 18;
-    const enemyStatusRowY = enemyStatusLabelY + 32;
+    const enemyStatusLabelY = affinityRowY + (affinityRowHeight > 0 ? affinityRowHeight / 2 + 18 : 18);
+    const enemyStatusRowY = enemyStatusLabelY + 24;
 
-    const enemyStatusLabel = this.scene.add.text(0, enemyStatusLabelY, "Effects", {
+    const enemyStatusLabel = this.scene.add.text(-this.HEALTH_BAR_WIDTH / 2, enemyStatusLabelY, "ACTIVE", {
       fontFamily: "dungeon-mode",
-      fontSize: 14,
-      color: "#77888C",
-      align: "center",
-    }).setOrigin(0.5);
+      fontSize: 11,
+      color: "#b89b74",
+      align: "left",
+    }).setOrigin(0, 0.5);
     this.enemyStatusContainer = this.scene.add.container(0, enemyStatusRowY);
     this.enemyInfoContainer.add([enemyStatusLabel, this.enemyStatusContainer]);
 
@@ -1536,6 +1540,20 @@ export class CombatUI {
       this.actionsText.setPosition(30, 118);
     }
 
+    if (this.playerInfoContainer && this.playerSprite) {
+      this.playerInfoContainer.setPosition(
+        Math.round(this.playerSprite.x),
+        Math.round(this.playerSprite.y + this.playerSprite.displayHeight * 0.48 + 34),
+      );
+    }
+
+    if (this.enemyInfoContainer && this.enemySprite) {
+      this.enemyInfoContainer.setPosition(
+        Math.round(this.enemySprite.x),
+        Math.round(this.enemySprite.y + this.enemySprite.displayHeight * 0.5 + 32),
+      );
+    }
+
     if (this.enemyIntentText) {
       this.enemyIntentText.setPosition(intentX, intentY);
       this.enemyIntentText.setVisible(false);
@@ -1601,21 +1619,127 @@ export class CombatUI {
     this.statusEffectUpdateThrottle.clear();
   }
   
+  private getHealthBarColor(healthPercent: number): number {
+    if (healthPercent < 0.25) {
+      return 0xff5a6e;
+    }
+    if (healthPercent < 0.5) {
+      return 0xffb24f;
+    }
+    return 0x33d17a;
+  }
+
+  private animateHealthText(
+    textObject: Phaser.GameObjects.Text,
+    fromHealth: number,
+    toHealth: number,
+    maxHealth: number,
+  ): void {
+    this.scene.tweens.killTweensOf(textObject);
+
+    if (fromHealth === toHealth) {
+      textObject.setText(`HP ${toHealth}/${maxHealth}`);
+      return;
+    }
+
+    this.scene.tweens.addCounter({
+      from: fromHealth,
+      to: toHealth,
+      duration: Math.min(420, 140 + Math.abs(toHealth - fromHealth) * 12),
+      ease: toHealth < fromHealth ? "Cubic.Out" : "Sine.Out",
+      onUpdate: (tween) => {
+        textObject.setText(`HP ${Math.round(tween.getValue())}/${maxHealth}`);
+      },
+      onComplete: () => {
+        textObject.setText(`HP ${toHealth}/${maxHealth}`);
+      },
+    });
+  }
+
+  private pulseHealthHud(container: Phaser.GameObjects.Container, isDamage: boolean): void {
+    this.scene.tweens.killTweensOf(container);
+    this.scene.tweens.add({
+      targets: container,
+      scaleX: isDamage ? 1.035 : 1.02,
+      scaleY: isDamage ? 1.035 : 1.02,
+      yoyo: true,
+      duration: isDamage ? 110 : 160,
+      ease: "Sine.Out",
+    });
+  }
+
   private updateHealthBar(
     healthBarFill: Phaser.GameObjects.Rectangle,
+    healthBarLagFill: Phaser.GameObjects.Rectangle,
+    healthText: Phaser.GameObjects.Text,
+    hudContainer: Phaser.GameObjects.Container,
     currentHealth: number,
-    maxHealth: number
+    maxHealth: number,
+    previousHealth: number | null,
   ): void {
     const healthPercent = Phaser.Math.Clamp(currentHealth / maxHealth, 0, 1);
-    healthBarFill.width = this.HEALTH_BAR_WIDTH * healthPercent;
-    
-    if (healthPercent < 0.25) {
-      healthBarFill.setFillStyle(0xff4757, 1);
-    } else if (healthPercent < 0.5) {
-      healthBarFill.setFillStyle(0xff9f43, 1);
-    } else {
-      healthBarFill.setFillStyle(0x2ed573, 1);
+    const targetWidth = this.HEALTH_BAR_WIDTH * healthPercent;
+    const nextColor = this.getHealthBarColor(healthPercent);
+
+    this.scene.tweens.killTweensOf(healthBarFill);
+    this.scene.tweens.killTweensOf(healthBarLagFill);
+    healthBarFill.setFillStyle(nextColor, 1);
+
+    if (previousHealth === null) {
+      healthBarFill.width = targetWidth;
+      healthBarLagFill.width = targetWidth;
+      healthText.setText(`HP ${currentHealth}/${maxHealth}`);
+      return;
     }
+
+    const previousPercent = Phaser.Math.Clamp(previousHealth / maxHealth, 0, 1);
+    const previousWidth = this.HEALTH_BAR_WIDTH * previousPercent;
+
+    this.animateHealthText(healthText, previousHealth, currentHealth, maxHealth);
+
+    if (currentHealth < previousHealth) {
+      healthBarFill.width = previousWidth;
+      healthBarLagFill.width = previousWidth;
+      healthBarLagFill.setFillStyle(0xc95c5c, 0.78);
+
+      this.scene.tweens.add({
+        targets: healthBarFill,
+        width: targetWidth,
+        duration: 170,
+        ease: "Cubic.Out",
+      });
+      this.scene.tweens.add({
+        targets: healthBarLagFill,
+        width: targetWidth,
+        delay: 120,
+        duration: 380,
+        ease: "Cubic.Out",
+      });
+      this.pulseHealthHud(hudContainer, true);
+      return;
+    }
+
+    if (currentHealth > previousHealth) {
+      healthBarFill.width = previousWidth;
+      healthBarLagFill.width = previousWidth;
+      healthBarLagFill.setFillStyle(0x79d6ff, 0.34);
+
+      this.scene.tweens.add({
+        targets: [healthBarFill, healthBarLagFill],
+        width: targetWidth,
+        duration: 260,
+        ease: "Sine.Out",
+        onComplete: () => {
+          healthBarLagFill.setFillStyle(0xc95c5c, 0.78);
+        },
+      });
+      this.pulseHealthHud(hudContainer, false);
+      return;
+    }
+
+    healthBarFill.width = targetWidth;
+    healthBarLagFill.width = targetWidth;
+    healthText.setText(`HP ${currentHealth}/${maxHealth}`);
   }
   
   /**
@@ -1629,8 +1753,16 @@ export class CombatUI {
     const currentHealth = Math.max(0, Math.floor(player.currentHealth));
     const maxHealth = Math.max(1, Math.floor(player.maxHealth));
     
-    this.playerHealthText.setText(`HP ${currentHealth}/${maxHealth}`);
-    this.updateHealthBar(this.playerHealthBarFill, currentHealth, maxHealth);
+    this.updateHealthBar(
+      this.playerHealthBarFill,
+      this.playerHealthLagFill,
+      this.playerHealthText,
+      this.playerInfoContainer,
+      currentHealth,
+      maxHealth,
+      this.lastPlayerHealthValue,
+    );
+    this.lastPlayerHealthValue = currentHealth;
     this.playerBlockText.setText(player.block > 0 ? `⛨ ${player.block}` : "");
     
     // Update status effect display
@@ -1648,8 +1780,16 @@ export class CombatUI {
     const enemy = combatState.enemy;
     const currentHealth = Math.max(0, Math.floor(enemy.currentHealth));
     const maxHealth = Math.max(1, Math.floor(enemy.maxHealth));
-    this.enemyHealthText.setText(`HP ${currentHealth}/${maxHealth}`);
-    this.updateHealthBar(this.enemyHealthBarFill, currentHealth, maxHealth);
+    this.updateHealthBar(
+      this.enemyHealthBarFill,
+      this.enemyHealthLagFill,
+      this.enemyHealthText,
+      this.enemyInfoContainer,
+      currentHealth,
+      maxHealth,
+      this.lastEnemyHealthValue,
+    );
+    this.lastEnemyHealthValue = currentHealth;
     this.enemyBlockText.setText(enemy.block > 0 ? `⛨ ${enemy.block}` : "");
     
     this.enemyIntentText.setVisible(false);
@@ -1844,10 +1984,10 @@ export class CombatUI {
       return 0;
     });
     
-    // Display each status effect as panel chips instead of circles
-    const spacing = 72;
-    const chipWidth = 64;
-    const chipHeight = 34;
+    // Display each status effect as compact floating chips
+    const spacing = 62;
+    const chipWidth = 56;
+    const chipHeight = 28;
     const startX = -(sortedEffects.length - 1) * spacing / 2;
     
     sortedEffects.forEach((effect, index) => {
@@ -1861,30 +2001,38 @@ export class CombatUI {
         0,
         chipWidth,
         chipHeight,
-        effect.type === 'buff' ? 0x1c2b21 : 0x2b1c1c,
+        effect.type === 'buff' ? 0x1b2b22 : 0x2b1b20,
         0.95
-      ).setStrokeStyle(2, effect.type === 'buff' ? 0x2ed573 : 0xff6b6b, 0.9);
+      ).setStrokeStyle(1, effect.type === 'buff' ? 0x53d38e : 0xff7a86, 0.75);
+      const chipInner = this.scene.add.rectangle(
+        0,
+        0,
+        chipWidth - 10,
+        chipHeight - 10,
+        effect.type === 'buff' ? 0x25352b : 0x35242a,
+        0.85,
+      );
       
       const tint = effect.type === 'buff' ? 0xf0c040 : 0xe05030;
-      const icon = this.scene.add.image(-12, 0, effect.icon ?? 'icon_unknown')
-        .setDisplaySize(16, 16)
+      const icon = this.scene.add.image(-10, 0, effect.icon ?? 'icon_unknown')
+        .setDisplaySize(14, 14)
         .setTint(tint)
         .setOrigin(0.5);
 
-      const stackText = this.scene.add.text(16, 0, `x${effect.value}`, {
+      const stackText = this.scene.add.text(13, 0, `x${effect.value}`, {
         fontFamily: "dungeon-mode",
-        fontSize: 12,
+        fontSize: 11,
         color: "#ffffff",
         stroke: "#000000",
         strokeThickness: 2,
       }).setOrigin(0.5);
 
-      effectContainer.add([chipBg, icon, stackText]);
+      effectContainer.add([chipBg, chipInner, icon, stackText]);
       
       // Show source relic icon below if available - better aligned
       if (effect.source && effect.source.type === 'relic') {
         // Source label container
-        const sourceContainer = this.scene.add.container(0, 28);
+        const sourceContainer = this.scene.add.container(0, 24);
         
         const sourceBg = this.scene.add.rectangle(0, 0, 30, 18, 0x1a1a1a, 0.85)
           .setStrokeStyle(1, 0x77888C);
@@ -1897,7 +2045,7 @@ export class CombatUI {
         effectContainer.add(sourceContainer);
       }
       // Use a forgiving rectangular hit area that covers the full badge
-      effectContainer.setSize(chipWidth + 10, chipHeight + 20);
+      effectContainer.setSize(chipWidth + 8, chipHeight + 16);
       effectContainer.setInteractive({ useHandCursor: true });
       
       // Add tooltip on hover
