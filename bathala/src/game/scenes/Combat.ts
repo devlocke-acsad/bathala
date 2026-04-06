@@ -118,6 +118,7 @@ export class Combat extends Scene {
   private shopKey!: Phaser.Input.Keyboard.Key;
   private bestHandAchieved: HandType = "high_card";
   private battleStartDialogueContainer!: Phaser.GameObjects.Container | null;
+  private enemyInspectContainer: Phaser.GameObjects.Container | null = null;
 
   // Performance optimization flags
   private uiUpdatePending: boolean = false;
@@ -221,6 +222,10 @@ export class Combat extends Scene {
     return this.isActionProcessing;
   }
 
+  public canUseSpecialActionNow(): boolean {
+    return this.canUseSpecialAction();
+  }
+
   // Getter/setter methods for CombatAnimations
   public getCardSprites(): Phaser.GameObjects.Container[] {
     return this.ui.cardSprites;
@@ -252,6 +257,389 @@ export class Combat extends Scene {
 
   public getBestHandAchieved(): HandType {
     return this.bestHandAchieved;
+  }
+
+  public showEnemyInspectPanel(): void {
+    if (this.enemyInspectContainer?.active) {
+      return;
+    }
+
+    const enemyAny = this.combatState.enemy as any;
+    const lore = enemyAny.lore ?? {};
+    const screenWidth = this.cameras.main.width;
+    const screenHeight = this.cameras.main.height;
+    const scaleFactor = Math.max(0.84, Math.min(1.08, Math.min(screenWidth / 1280, screenHeight / 720)));
+    const panelWidth = Math.min(screenWidth * 0.9, 1040 * scaleFactor);
+    const panelHeight = Math.min(screenHeight * 0.84, 600 * scaleFactor);
+    const leftWidth = panelWidth * 0.38;
+    const rightWidth = panelWidth - leftWidth;
+    const root = this.add.container(0, 0).setDepth(9800);
+    this.enemyInspectContainer = root;
+
+    const dismiss = () => this.hideEnemyInspectPanel();
+
+    const overlay = this.add
+      .rectangle(screenWidth / 2, screenHeight / 2, screenWidth, screenHeight, 0x040507, 0.82)
+      .setAlpha(0)
+      .setInteractive({ useHandCursor: true });
+    overlay.on("pointerdown", dismiss);
+
+    const panel = this.add.container(screenWidth / 2 + 26 * scaleFactor, screenHeight / 2 + 10 * scaleFactor)
+      .setAlpha(0)
+      .setScale(0.98);
+    const panelShadow = this.add.rectangle(5, 8, panelWidth, panelHeight, 0x000000, 0.34).setOrigin(0.5);
+    const panelOuter = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x11151a, 0.98)
+      .setOrigin(0.5)
+      .setStrokeStyle(1.5, 0x6f5d47, 0.8);
+    const panelInner = this.add.rectangle(0, 0, panelWidth - 12, panelHeight - 12, 0x181d22, 0.97)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x2b3137, 0.9);
+    const leftPanel = this.add.rectangle(
+      -panelWidth / 2 + leftWidth / 2 + 10,
+      0,
+      leftWidth - 20,
+      panelHeight - 22,
+      0x14191d,
+      0.92,
+    ).setOrigin(0.5);
+    const leftTopBand = this.add.rectangle(
+      -panelWidth / 2 + leftWidth / 2 + 10,
+      -panelHeight / 2 + 28,
+      leftWidth - 20,
+      34,
+      0x202831,
+      0.92,
+    ).setOrigin(0.5);
+    const divider = this.add.rectangle(-panelWidth / 2 + leftWidth + 4, 0, 1, panelHeight - 34, 0x4b4032, 0.55)
+      .setOrigin(0.5);
+    const artPlate = this.add.rectangle(
+      panelWidth / 2 - rightWidth / 2,
+      0,
+      rightWidth - 32,
+      panelHeight - 34,
+      0x0e1318,
+      0.94,
+    ).setOrigin(0.5).setStrokeStyle(1, 0x2c333a, 0.9);
+    const artTopBand = this.add.rectangle(
+      panelWidth / 2 - rightWidth / 2,
+      -panelHeight / 2 + 28,
+      rightWidth - 32,
+      34,
+      0x1b232b,
+      0.9,
+    ).setOrigin(0.5);
+    const artGlow = this.add.rectangle(
+      panelWidth / 2 - rightWidth / 2 + 20,
+      6,
+      rightWidth - 92,
+      panelHeight - 110,
+      0x8e7757,
+      0.08,
+    ).setOrigin(0.5);
+    const panelHitZone = this.add.zone(0, 0, panelWidth, panelHeight);
+    panelHitZone.setInteractive(
+      new Phaser.Geom.Rectangle(-panelWidth / 2, -panelHeight / 2, panelWidth, panelHeight),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    panelHitZone.on("pointerdown", (_pointer, _lx, _ly, event) => {
+      event.stopPropagation();
+      dismiss();
+    });
+
+    panel.add([
+      panelHitZone,
+      panelShadow,
+      panelOuter,
+      panelInner,
+      leftPanel,
+      leftTopBand,
+      divider,
+      artPlate,
+      artTopBand,
+      artGlow,
+    ]);
+
+    const headerLabel = this.add.text(
+      -panelWidth / 2 + 28,
+      -panelHeight / 2 + 28,
+      "ENEMY RECORD",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(15 * scaleFactor)}px`,
+        color: "#d5c0a2",
+      },
+    ).setOrigin(0, 0.5);
+    const artLabel = this.add.text(
+      panelWidth / 2 - rightWidth + 28,
+      -panelHeight / 2 + 28,
+      "DISCOVERY",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(15 * scaleFactor)}px`,
+        color: "#c4b7a0",
+      },
+    ).setOrigin(0, 0.5);
+    const leftTextX = -panelWidth / 2 + 32;
+    const leftContentWidth = leftWidth - 58;
+    const enemyName = this.add.text(
+      leftTextX,
+      -panelHeight / 2 + 76,
+      this.combatState.enemy.name.toUpperCase(),
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(28 * scaleFactor)}px`,
+        color: "#f3eee4",
+        lineSpacing: 4,
+        wordWrap: { width: leftContentWidth - 2 },
+      },
+    ).setOrigin(0, 0);
+    const enemyMeta = this.add.text(
+      leftTextX,
+      enemyName.getBounds().bottom + 8,
+      `${String(enemyAny.tier ?? "common").toUpperCase()} FOE`,
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(11 * scaleFactor)}px`,
+        color: "#bda88d",
+      },
+    ).setOrigin(0, 0);
+    const topDivider = this.add.rectangle(
+      leftTextX + leftContentWidth / 2,
+      enemyMeta.getBounds().bottom + 12,
+      leftContentWidth,
+      1,
+      0x4b4032,
+      0.42,
+    ).setOrigin(0.5, 0);
+
+    const backgroundLabel = this.add.text(
+      leftTextX,
+      topDivider.getBounds().bottom + 14,
+      "BACKGROUND",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(16 * scaleFactor)}px`,
+        color: "#d7c29d",
+      },
+    ).setOrigin(0, 0);
+    const backgroundText = this.add.text(
+      leftTextX,
+      backgroundLabel.getBounds().bottom + 12,
+      lore.description || "A spirit encountered in battle. Little is known yet.",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(12 * scaleFactor)}px`,
+        color: "#d8dde2",
+        lineSpacing: 5,
+        wordWrap: { width: leftContentWidth },
+      },
+    ).setOrigin(0, 0);
+    const notesDivider = this.add.rectangle(
+      leftTextX + leftContentWidth / 2,
+      backgroundText.getBounds().bottom + 14,
+      leftContentWidth,
+      1,
+      0x4b4032,
+      0.38,
+    ).setOrigin(0.5, 0);
+
+    const loreNotesLabel = this.add.text(
+      leftTextX,
+      notesDivider.getBounds().bottom + 14,
+      "FIELD NOTES",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(16 * scaleFactor)}px`,
+        color: "#d7c29d",
+      },
+    ).setOrigin(0, 0);
+    const weaknessLine = enemyAny.elementalAffinity?.weakness
+      ? `Weak Against: ${this.formatEnemyInspectElement(enemyAny.elementalAffinity.weakness)}`
+      : "Weak Against: Unknown";
+    const resistanceLine = enemyAny.elementalAffinity?.resistance
+      ? `Resists: ${this.formatEnemyInspectElement(enemyAny.elementalAffinity.resistance)}`
+      : "Resists: None";
+    const tactics = [...new Set((enemyAny.attackPattern ?? []) as string[])]
+      .map((action) => this.formatEnemyInspectAction(action))
+      .join(" • ");
+    const loreNotesText = this.add.text(
+      leftTextX,
+      loreNotesLabel.getBounds().bottom + 12,
+      [
+        weaknessLine,
+        resistanceLine,
+        tactics ? `Tactics: ${tactics}` : "",
+        lore.origin ? `Origin: ${lore.origin}` : "",
+        lore.reference ? `Reference: ${lore.reference}` : "",
+      ].filter(Boolean).join("\n"),
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(12 * scaleFactor)}px`,
+        color: "#c9d1d8",
+        lineSpacing: 5,
+        wordWrap: { width: leftContentWidth },
+      },
+    ).setOrigin(0, 0);
+
+    const promptText = this.add.text(
+      panelWidth / 2 - 28,
+      panelHeight / 2 - 28,
+      "TAP ANYWHERE TO CLOSE",
+      {
+        fontFamily: "dungeon-mode",
+        fontSize: `${Math.floor(11 * scaleFactor)}px`,
+        color: "#9ca8b0",
+      },
+    ).setOrigin(1, 1);
+
+    const closePlate = this.add.rectangle(panelWidth / 2 - 38, -panelHeight / 2 + 30, 56, 24, 0x21171a, 0.95)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x6f5d47, 0.8)
+      .setInteractive({ useHandCursor: true });
+    closePlate.on("pointerdown", (_pointer, _lx, _ly, event) => {
+      event.stopPropagation();
+      dismiss();
+    });
+    const closeText = this.add.text(panelWidth / 2 - 38, -panelHeight / 2 + 30, "CLOSE", {
+      fontFamily: "dungeon-mode",
+      fontSize: `${Math.floor(11 * scaleFactor)}px`,
+      color: "#f0ebe0",
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    closeText.on("pointerdown", (_pointer, _lx, _ly, event) => {
+      event.stopPropagation();
+      dismiss();
+    });
+
+    const portraitContainer = this.add.container(panelWidth / 2 - rightWidth / 2 + 18, 26).setAlpha(0).setScale(0.96);
+    const portraitFrame = this.add.rectangle(0, 0, rightWidth - 92, panelHeight - 110, 0x12181d, 0.82)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x6f5d47, 0.65);
+    const portraitFrameInner = this.add.rectangle(0, 0, rightWidth - 106, panelHeight - 124, 0x0d1217, 0.82)
+      .setOrigin(0.5)
+      .setStrokeStyle(1, 0x2a3238, 0.55);
+    portraitContainer.add([portraitFrame, portraitFrameInner]);
+
+    const mountPortrait = (textureKey: string) => {
+      if (!this.enemyInspectContainer?.active || !portraitContainer.active || !this.textures.exists(textureKey)) {
+        return;
+      }
+
+      const existingPortrait = portraitContainer.getByName("enemyInspectPortrait");
+      if (existingPortrait) {
+        existingPortrait.destroy();
+      }
+
+      const portrait = this.add.image(0, 0, textureKey);
+      portrait.setName("enemyInspectPortrait");
+      portrait.texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
+      const maxWidth = rightWidth - 136;
+      const maxHeight = panelHeight - 166;
+      const portraitScale = Math.min(maxWidth / portrait.width, maxHeight / portrait.height);
+      portrait.setScale(portraitScale);
+      portraitContainer.add(portrait);
+      portraitContainer.setAlpha(0).setScale(0.96);
+      this.tweens.add({
+        targets: portraitContainer,
+        alpha: 1,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 360,
+        ease: "Cubic.easeOut",
+      });
+    };
+
+    const discoverLoad = ensureEnemyDiscoverPortraitLoaded(this, this.combatState.enemy, mountPortrait);
+    const fallbackPortraitKey =
+      (discoverLoad.portraitKey && this.textures.exists(discoverLoad.portraitKey))
+        ? discoverLoad.portraitKey
+        : (typeof enemyAny.combatSpriteKey === "string" && this.textures.exists(enemyAny.combatSpriteKey))
+          ? enemyAny.combatSpriteKey
+          : "tikbalang_combat";
+    mountPortrait(fallbackPortraitKey);
+
+    panel.add([
+      headerLabel,
+      artLabel,
+      enemyName,
+      enemyMeta,
+      topDivider,
+      backgroundLabel,
+      backgroundText,
+      notesDivider,
+      loreNotesLabel,
+      loreNotesText,
+      promptText,
+      portraitContainer,
+      closePlate,
+      closeText,
+    ]);
+    root.add([overlay, panel]);
+
+    this.tweens.add({ targets: overlay, alpha: 1, duration: 220, ease: "Quad.easeOut" });
+    this.tweens.add({
+      targets: panel,
+      x: screenWidth / 2,
+      y: screenHeight / 2,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 280,
+      ease: "Cubic.easeOut",
+    });
+  }
+
+  private hideEnemyInspectPanel(): void {
+    if (!this.enemyInspectContainer) {
+      return;
+    }
+
+    const inspectContainer = this.enemyInspectContainer;
+    this.enemyInspectContainer = null;
+    this.tweens.killTweensOf(inspectContainer);
+    this.tweens.add({
+      targets: inspectContainer,
+      alpha: 0,
+      y: 14,
+      duration: 180,
+      ease: "Quad.easeIn",
+      onComplete: () => inspectContainer.destroy(),
+    });
+  }
+
+  private formatEnemyInspectAction(action: string): string {
+    const actionMap: Record<string, string> = {
+      attack: "Heavy Strike",
+      defend: "Guard Stance",
+      strengthen: "Strengthen",
+      weaken: "Inflict Weak",
+      poison: "Apply Poison",
+      stun: "Stun",
+      charm: "Charm",
+      confuse: "Confuse",
+      disrupt_draw: "Disrupt Draw",
+      fear: "Invoke Fear",
+      charge: "Charge Up",
+      wait: "Linger",
+      curse_card: "Hex Cards",
+      hex_reversal: "Hex Reversal",
+    };
+
+    return actionMap[action] ?? action.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  private formatEnemyInspectElement(element?: string): string {
+    const elementMap: Record<string, string> = {
+      fire: "Apoy",
+      water: "Tubig",
+      earth: "Lupa",
+      air: "Hangin",
+    };
+
+    if (!element) {
+      return "Unknown";
+    }
+
+    return elementMap[element] ?? element.charAt(0).toUpperCase() + element.slice(1);
   }
 
   private getCombatBackgroundKeyForChapter(chapter: Chapter): string {
@@ -1060,6 +1448,7 @@ export class Combat extends Scene {
     this.updateSelectionCounter();
     this.updateCardVisuals(card);
     this.ui.updateHandIndicator();
+    this.ui.updateActionButtons();
     // Show damage preview only during action selection phase
     this.updateDamagePreview(false);
   }
@@ -1890,12 +2279,16 @@ export class Combat extends Scene {
 
     try {
       // Cache text values to avoid unnecessary setText calls
-      const turnText = `Turn: ${this.combatState.turn}`;
+      const turnText = `TURN ${String(this.combatState.turn).padStart(2, "0")}`;
       const maxSpecialCharges = this.combatState.player.relics.some(r => r.id === "sarimanok_plumage") ? 2 : 1;
       const usedSpecialCharges = (this.specialUsedThisCombat ? 1 : 0) + (this.bonusSpecialUsedThisCombat ? 1 : 0);
       const remainingSpecialCharges = Math.max(0, maxSpecialCharges - usedSpecialCharges);
-      const specialStatus = remainingSpecialCharges > 0 ? `${remainingSpecialCharges} LEFT` : "USED";
-      const actionsText = `Discards: ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn} | Special: ${specialStatus}`;
+      const specialStatus = remainingSpecialCharges > 1
+        ? `${remainingSpecialCharges} READY`
+        : remainingSpecialCharges === 1
+          ? "READY"
+          : "SPENT";
+      const actionsText = `DISCARD ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn}\nSPECIAL ${specialStatus}`;
 
       // Only update if text has actually changed
       if (this.turnText.text !== turnText) {
@@ -1904,12 +2297,9 @@ export class Combat extends Scene {
 
       if (this.actionsText.text !== actionsText) {
         this.actionsText.setText(actionsText);
-
-        // Color code the special status within the text - only when text changes
-        const newColor = remainingSpecialCharges > 0 ? "#ffd93d" : "#cccccc";
-        if (this.actionsText.style.color !== newColor) {
-          this.actionsText.setColor(newColor);
-        }
+      }
+      if (this.actionsText.style.color !== "#f1f4f7") {
+        this.actionsText.setColor("#f1f4f7");
       }
 
       // Only update hand indicator if needed (this can be expensive)
@@ -2024,11 +2414,13 @@ export class Combat extends Scene {
     if (count > 0) {
       const evaluation = HandEvaluator.evaluateHand(this.selectedCards, "attack");
       const handTypeText = this.getHandTypeDisplayText(evaluation.type);
-      this.selectionCounterText.setText(`${count}/5 - ${handTypeText}`);
-      this.selectionCounterText.setColor("#ffdd44"); // Yellow when cards selected
+      this.selectionCounterText.setText(`${count} / 5\n${handTypeText.toUpperCase()}`);
+      this.selectionCounterText.setColor("#f6d79e");
+      this.selectionCounterText.setBackgroundColor("#1a0b11");
     } else {
-      this.selectionCounterText.setText("Selected: 0/5");
-      this.selectionCounterText.setColor("#77888C"); // Gray when no selection
+      this.selectionCounterText.setText("0 / 5\nCHOOSE");
+      this.selectionCounterText.setColor("#b9bec8");
+      this.selectionCounterText.setBackgroundColor("#11070c");
     }
   }
 
@@ -4647,21 +5039,21 @@ export class Combat extends Scene {
     }
 
     const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
 
-    // Update position to center of screen
-    this.actionResultText.setPosition(screenWidth / 2, screenHeight / 2);
+    this.tweens.killTweensOf(this.actionResultText);
+    this.actionResultText.setPosition(Math.round(screenWidth * 0.72), 126);
     this.actionResultText.setText(message);
     this.actionResultText.setVisible(true);
 
-    // Fade out after 2 seconds
     this.tweens.add({
       targets: this.actionResultText,
       alpha: 0,
-      duration: 2000,
+      y: this.actionResultText.y - 18,
+      duration: 1200,
       onComplete: () => {
         this.actionResultText.setVisible(false);
         this.actionResultText.setAlpha(1); // Reset alpha for next use
+        this.actionResultText.y += 18;
       },
     });
   }
@@ -4763,22 +5155,22 @@ export class Combat extends Scene {
    */
   private showEnhancedActionResult(message: string, color: string = "#2ed573"): void {
     const screenWidth = this.cameras.main.width;
-    const screenHeight = this.cameras.main.height;
 
-    // Update position to lower area to avoid overlap with calculation displays
-    this.actionResultText.setPosition(screenWidth / 2, screenHeight * 0.75);
+    this.tweens.killTweensOf(this.actionResultText);
+    this.actionResultText.setPosition(Math.round(screenWidth * 0.72), 126);
     this.actionResultText.setText(message);
     this.actionResultText.setColor(color);
     this.actionResultText.setVisible(true);
 
-    // Fade out after 2 seconds
     this.tweens.add({
       targets: this.actionResultText,
       alpha: 0,
-      duration: 2000,
+      y: this.actionResultText.y - 18,
+      duration: 1200,
       onComplete: () => {
         this.actionResultText.setVisible(false);
         this.actionResultText.setAlpha(1); // Reset alpha for next use
+        this.actionResultText.y += 18;
       },
     });
   }
@@ -4787,25 +5179,51 @@ export class Combat extends Scene {
   private showFloatingDamage(damage: number): void {
     if (!this.enemySprite) return;
 
-    // Create damage text at enemy position
+    const clampedDamage = Math.max(0, Math.floor(damage));
+    const fontSize = Phaser.Math.Clamp(42 + Math.floor(clampedDamage / 8), 42, 72);
+    const damageColor = clampedDamage >= 30 ? '#ffe38f' : clampedDamage >= 15 ? '#fff2d0' : '#fff8f4';
+    const strokeColor = clampedDamage >= 30 ? '#d11f3f' : '#63111d';
+    const damageTilt = Phaser.Math.Between(-8, 6);
+
     const damageText = this.add.text(
       this.enemySprite.x,
-      this.enemySprite.y,
-      damage.toString(),
+      this.enemySprite.y - 20,
+      clampedDamage.toString(),
       {
         fontFamily: 'dungeon-mode',
-        fontSize: 48,
-        color: '#ff6b6b'
+        fontSize,
+        color: damageColor,
+        stroke: strokeColor,
+        strokeThickness: 8,
+        shadow: {
+          offsetX: 4,
+          offsetY: 4,
+          color: '#000000',
+          blur: 0,
+          stroke: false,
+          fill: true
+        }
       }
-    ).setOrigin(0.5);
+    )
+      .setOrigin(0.5)
+      .setDepth(2500)
+      .setScale(0.68)
+      .setAngle(damageTilt);
 
-    // Animate damage text upward and fade out
     this.tweens.add({
       targets: damageText,
-      y: this.enemySprite.y - 100,
+      scaleX: 1.14,
+      scaleY: 1.14,
+      duration: 130,
+      ease: 'Back.Out'
+    });
+
+    this.tweens.add({
+      targets: damageText,
+      y: this.enemySprite.y - 128,
       alpha: 0,
-      duration: 1000,
-      ease: 'Power1',
+      duration: 640,
+      ease: 'Cubic.Out',
       onComplete: () => {
         damageText.destroy();
       }
@@ -4827,9 +5245,12 @@ export class Combat extends Scene {
   private updateDamagePreview(isActionSelectionPhase: boolean): void {
     // This method is kept for its calculation logic and styling approach
     // but no longer displays UI since the preview container was removed
-    if (!isActionSelectionPhase) {
+    if (!isActionSelectionPhase || this.combatState.player.playedHand.length === 0) {
       if (this.damagePreviewText) {
         this.damagePreviewText.setVisible(false);
+      }
+      if (this.enemyAttackPreviewText) {
+        this.enemyAttackPreviewText.setVisible(false);
       }
       return;
     }
@@ -4885,10 +5306,70 @@ export class Combat extends Scene {
     }
     damageText += ` = ${Math.floor(damage)}`;
 
+    const handLabel = evaluation.type.replace(/_/g, " ").toUpperCase();
+    const flatBonusTotal = evaluation.handBonus
+      + evaluation.elementalBonus
+      + sigbinBonus
+      + vulnerableBonus
+      + bakunawaBonus;
+    const bonusParts: string[] = [];
+    if (evaluation.handBonus > 0) {
+      bonusParts.push(`HAND +${evaluation.handBonus}`);
+    }
+    if (evaluation.elementalBonus > 0) {
+      bonusParts.push(`ELEMENT +${evaluation.elementalBonus}`);
+    }
+    if (evaluation.handMultiplier > 1) {
+      bonusParts.push(`x${evaluation.handMultiplier}`);
+    }
+    if (sigbinBonus > 0) {
+      bonusParts.push(`SIGBIN +${sigbinBonus}`);
+    }
+    if (vulnerableBonus > 0) {
+      bonusParts.push(`VULN +${Math.floor(vulnerableBonus)}`);
+    }
+    if (bakunawaBonus > 0) {
+      bonusParts.push(`BAKUNAWA +${bakunawaBonus}`);
+    }
+
+    const detailLine = bonusParts.length > 0
+      ? bonusParts.join("  •  ")
+      : "NO ACTIVE BONUS";
+    damageText = `POTENTIAL DMG\n${Math.floor(damage)} TOTAL\n${handLabel}\n${detailLine}`;
+
     // Display the damage preview
     if (this.damagePreviewText) {
       this.damagePreviewText.setText(damageText);
+      const handColorMap: Record<string, string> = {
+        high_card: "#c7ced6",
+        pair: "#7ef0a7",
+        two_pair: "#8fd2ff",
+        three_of_a_kind: "#b89cff",
+        straight: "#73e6ff",
+        flush: "#53b8ff",
+        full_house: "#ffcb73",
+        four_of_a_kind: "#ff8f8f",
+        straight_flush: "#ffab66",
+        royal_flush: "#ffe88c",
+        five_of_a_kind: "#ff8dff",
+      };
+      const previewMetaText = bonusParts.length > 0
+        ? `${handLabel}  •  ${bonusParts.join("  •  ")}`
+        : handLabel;
+      const compactPreviewMetaText = [
+        handLabel,
+        flatBonusTotal > 0 ? `+${Math.floor(flatBonusTotal)}` : "",
+        evaluation.handMultiplier > 1 ? `x${evaluation.handMultiplier}` : "",
+      ].filter(Boolean).join("  /  ");
+      void previewMetaText;
+      this.damagePreviewText.setText(`${Math.floor(damage)}`);
+      this.damagePreviewText.setColor("#fff7e8");
+      this.damagePreviewText.setBackgroundColor("#120a10");
+      this.damagePreviewText.setStyle({ stroke: handColorMap[evaluation.type] || "#ff4f6d", strokeThickness: 6 });
       this.damagePreviewText.setVisible(true);
+      if (this.enemyAttackPreviewText) {
+        this.enemyAttackPreviewText.setVisible(false);
+      }
     }
   }
 
@@ -5115,22 +5596,29 @@ export class Combat extends Scene {
           // Check if this container has input (it's an interactive button)
           if (child.input) {
             child.input.enabled = enabled;
-            // Visually indicate disabled state
-            const bg = child.getAt(0) as Phaser.GameObjects.Rectangle;
+            const bg = (child.getAll().find((entry) => entry.name === "button-bg") as Phaser.GameObjects.Rectangle | undefined)
+              || (child.getAt(0) as Phaser.GameObjects.Rectangle | null);
             if (bg) {
-              bg.setFillStyle(enabled ? 0x2f3542 : 0x1a1d26);
+              const enabledFill = (child.getData("enabledFill") as number | undefined) ?? 0x2f3542;
+              const disabledFill = (child.getData("disabledFill") as number | undefined) ?? 0x1a1d26;
+              bg.setFillStyle(enabled ? enabledFill : disabledFill);
             }
+            child.setAlpha(enabled ? 1 : 0.58);
           }
           // For grouped containers (like sort buttons), recursively enable/disable children
           else {
             child.getAll().forEach((subChild) => {
               if (subChild instanceof Phaser.GameObjects.Container && (subChild as any).input) {
                 (subChild as any).input.enabled = enabled;
-                // Update visual state for Prologue-style buttons
-                const bg = subChild.getAt(2) as Phaser.GameObjects.Rectangle; // Index 2 is the background
+                const bg = (subChild.getAll().find((entry) => entry.name === "button-bg") as Phaser.GameObjects.Rectangle | undefined)
+                  || (subChild.getAt(0) as Phaser.GameObjects.Rectangle | null)
+                  || (subChild.getAt(2) as Phaser.GameObjects.Rectangle | null);
                 if (bg) {
-                  bg.setFillStyle(enabled ? 0x150E10 : 0x0a0806);
+                  const enabledFill = ((subChild as any).getData?.("enabledFill") as number | undefined) ?? 0x150E10;
+                  const disabledFill = ((subChild as any).getData?.("disabledFill") as number | undefined) ?? 0x0a0806;
+                  bg.setFillStyle(enabled ? enabledFill : disabledFill);
                 }
+                subChild.setAlpha(enabled ? 1 : 0.58);
               }
             });
           }
@@ -5167,32 +5655,19 @@ export class Combat extends Scene {
 
     // Update containers if they exist
     if (this.handContainer) {
-      this.handContainer.setPosition(screenWidth / 2, screenHeight - 280);
+      this.handContainer.setPosition(screenWidth / 2, screenHeight - 292);
     }
 
     if (this.playedHandContainer) {
-      this.playedHandContainer.setPosition(screenWidth / 2, screenHeight - 450);
+      this.playedHandContainer.setPosition(screenWidth / 2, screenHeight - 458);
     }
 
     if (this.actionButtons) {
-      this.actionButtons.setPosition(screenWidth / 2, screenHeight - 60);
+      this.actionButtons.setPosition(screenWidth / 2, screenHeight - 92);
     }
 
-    if (this.relicInventory) {
-      this.relicInventory.setPosition(screenWidth / 2, 80);
-    }
-
-    // Update text positions
-    if (this.turnText) {
-      this.turnText.setPosition(screenWidth - 200, 50);
-    }
-
-    if (this.actionsText) {
-      this.actionsText.setPosition(screenWidth - 200, 80);
-    }
-
-    if (this.actionResultText) {
-      this.actionResultText.setPosition(screenWidth / 2, screenHeight / 2);
+    if (this.ui?.itemInventoryContainer) {
+      this.ui.itemInventoryContainer.setPosition(screenWidth / 2, 86);
     }
 
     // Update poker hand info button position
@@ -5207,6 +5682,10 @@ export class Combat extends Scene {
 
     if (this.enemySprite) {
       this.enemySprite.setPosition(screenWidth * 0.75, screenHeight * 0.4);
+    }
+
+    if (this.ui) {
+      this.ui.layoutBattleOverlay();
     }
 
     // Redraw UI elements
