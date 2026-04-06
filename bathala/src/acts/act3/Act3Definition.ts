@@ -8,7 +8,7 @@
 import { Suit } from '../../core/types/CombatTypes';
 import { IChunkGenerator, EnemyPoolEntry, NodeDistributionConfig, DEFAULT_NODE_DISTRIBUTION } from '../../core/types/GenerationTypes';
 import { ActDefinition, ActTheme, ActAssets, ActProgression } from '../../core/acts/ActDefinition';
-import { DelaunayMazeChunkAdapter } from '../../systems/generation/algorithms/delaunay-maze/DelaunayMazeChunkAdapter';
+import { SkywardCitadelChunkAdapter } from '../../systems/generation/algorithms/skyward-citadel/SkywardCitadelChunkAdapter';
 
 // Creature configs — single source of truth for names / sprites
 import {
@@ -119,13 +119,22 @@ export class Act3Definition extends ActDefinition {
     };
   }
 
-  // === Generator factory ===
   createGenerator(): IChunkGenerator {
-    // Reuse Chapter 1's Delaunay Maze algorithm with cloud tileset visuals
-    return new DelaunayMazeChunkAdapter({
+    return new SkywardCitadelChunkAdapter({
       chunkSize: 20,
-      regionCountMultiplier: 2,
-      minRegionDistance: 3,
+      // ── Zone layout ──
+      villageSpacing: 4,
+      denseRadius: 0,
+      transitionRadius: 1,
+      // ── Dense citadel ──
+      denseHouseCount: 12,
+      denseHouseSpacing: 1,
+      denseClearRadius: 1,
+      // ── Transition ──
+      transitionHouseCount: 4,
+      transitionHouseSpacing: 1,
+      // ── Forest ──
+      forestHouseCount: 0,
     });
   }
 }

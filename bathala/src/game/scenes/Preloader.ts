@@ -324,6 +324,130 @@ export class Preloader extends Scene {
     this.load.image("sv_water_debris_3", "background/submergedvillageAssets/obstacles/water/water_debris3.png");
     this.load.image("sv_water_debris_4", "background/submergedvillageAssets/obstacles/water/water_debris4.png");
 
+
+// Act 3 overworld tile set - skyward citadel
+    this.load.image("sc_path_3way_open_nse", "background/skywardcitadelAssets/pathTiles/path_3way_open_NSE.png");
+    this.load.image("sc_path_3way_open_wne", "background/skywardcitadelAssets/pathTiles/path_3way_open_WNE.png");
+    this.load.image("sc_path_3way_open_wns", "background/skywardcitadelAssets/pathTiles/path_3way_open_WNS.png");
+    this.load.image("sc_path_3way_open_wse", "background/skywardcitadelAssets/pathTiles/path_3way_open_WSE.png");
+    this.load.image("sc_path_4way", "background/skywardcitadelAssets/pathTiles/path_4way.png");
+    this.load.image("sc_path_corner_open_ne", "background/skywardcitadelAssets/pathTiles/path_corner_open_NE.png");
+    this.load.image("sc_path_corner_open_se", "background/skywardcitadelAssets/pathTiles/path_corner_open_SE.png");
+    this.load.image("sc_path_corner_open_wn", "background/skywardcitadelAssets/pathTiles/path_corner_open_WN.png");
+    this.load.image("sc_path_corner_open_ws", "background/skywardcitadelAssets/pathTiles/path_corner_open_WS.png");
+    this.load.image("sc_path_horizontal_center", "background/skywardcitadelAssets/pathTiles/path_horizontal_center.png");
+    this.load.image("sc_path_horizontal_end_e", "background/skywardcitadelAssets/pathTiles/path_horizontal_end_W.png");
+    this.load.image("sc_path_horizontal_end_w", "background/skywardcitadelAssets/pathTiles/path_horizontal_end_E.png");
+    this.load.image("sc_path_vertical_center", "background/skywardcitadelAssets/pathTiles/path_vertical_center.png");
+    this.load.image("sc_path_vertical_end_n", "background/skywardcitadelAssets/pathTiles/path_vertical_end_S.png");
+    this.load.image("sc_path_vertical_end_s", "background/skywardcitadelAssets/pathTiles/path_vertical_end_N.png");
+
+    this.load.image("sc_grass_hill_ne", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_NE.png");
+    this.load.image("sc_grass_hill_nw", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_NW.png");
+    this.load.image("sc_grass_hill_se", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_SE.png");
+    this.load.image("sc_grass_hill_sw", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_SW.png");
+    this.load.image("sc_grass_hill_inner_ne", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_NE.png");
+    this.load.image("sc_grass_hill_inner_nw", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_NW.png");
+    this.load.image("sc_grass_hill_inner_se", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_SE.png");
+    this.load.image("sc_grass_hill_inner_sw", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_SW.png");
+
+    this.load.image("sc_patch_sand_grass_nw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NW.png");
+    this.load.image("sc_patch_sand_grass_ne", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NE.png");
+    this.load.image("sc_patch_sand_grass_sw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SW.png");
+    this.load.image("sc_patch_sand_grass_se", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SE.png");
+    this.load.image("sc_patch_sand_grass_inner_nw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NW.png");
+    this.load.image("sc_patch_sand_grass_inner_ne", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NE.png");
+    this.load.image("sc_patch_sand_grass_inner_sw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SW.png");
+    this.load.image("sc_patch_sand_grass_inner_se", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SE.png");
+    this.load.image("sc_patch_sand_grass_bush_nw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NW.png");
+    this.load.image("sc_patch_sand_grass_bush_ne", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NE.png");
+    this.load.image("sc_patch_sand_grass_bush_sw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SW.png");
+    this.load.image("sc_patch_sand_grass_bush_se", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SE.png");
+    // Dedicated aliases: use bush art as GrassSand patch inner corners without coupling to actual bush tiles.
+    this.load.image("sc_patch_grass_sand_inner_bush_nw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NW.png");
+    this.load.image("sc_patch_grass_sand_inner_bush_ne", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NE.png");
+    this.load.image("sc_patch_grass_sand_inner_bush_sw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SW.png");
+    this.load.image("sc_patch_grass_sand_inner_bush_se", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SE.png");
+
+    // Obstacle underlay + tree variants for layered Act 3 rendering.
+    this.load.image("sc_underlay_1", "background/skywardcitadelAssets/underlay/underlay_obstacle1.png");
+    this.load.image("sc_underlay_2", "background/skywardcitadelAssets/underlay/underlay_obstacle2.png");
+    this.load.image("sc_underlay_3", "background/skywardcitadelAssets/underlay/underlay_obstacle3.png");
+    this.load.image("sc_underlay_4", "background/skywardcitadelAssets/underlay/underlay_obstacle4.png");
+    this.load.image("sc_underlay_5", "background/skywardcitadelAssets/underlay/underlay_obstacle5.png");
+
+    // Act 3 house autotile set (buildings are multi-tile obstacles over underlays).
+    const act3HouseSuffixesAll: Array<{ key: string; file: string }> = [
+      { key: "center", file: "Center" },
+      { key: "n", file: "N" },
+      { key: "s", file: "S" },
+      { key: "e", file: "E" },
+      { key: "w", file: "W" },
+      { key: "ne", file: "NE" },
+      { key: "nw", file: "NW" },
+      { key: "se", file: "SE" },
+      { key: "sw", file: "SW" },
+    ];
+    const act3HouseSuffixes2x3: Array<{ key: string; file: string }> = [
+      { key: "e", file: "E" },
+      { key: "w", file: "W" },
+      { key: "ne", file: "NE" },
+      { key: "nw", file: "NW" },
+      { key: "se", file: "SE" },
+      { key: "sw", file: "SW" },
+    ];
+    const act3HouseProfiles: Array<{ id: number; profile: string; suffixes?: Array<{ key: string; file: string }> }> = [
+      { id: 1, profile: "H3xL3" },
+      { id: 2, profile: "H3xL3" },
+      { id: 3, profile: "H2xL3" },
+      { id: 4, profile: "H2xL3" },
+      { id: 5, profile: "H3xL2", suffixes: act3HouseSuffixes2x3 },
+      { id: 6, profile: "H3xL3" },
+      { id: 7, profile: "H3xL3" },
+      { id: 8, profile: "H3xL3" },
+      { id: 9, profile: "H3xL3" },
+      { id: 10, profile: "H3xL3" },
+    ];
+    for (const houseProfile of act3HouseProfiles) {
+      const suffixes = houseProfile.suffixes ?? act3HouseSuffixesAll;
+      for (const suffix of suffixes) {
+        this.load.image(
+          `sc_house_${houseProfile.id}_${suffix.key}`,
+          `background/skywardcitadelAssets/obstacles/houses/house${houseProfile.id}_${houseProfile.profile}_${suffix.file}.png`,
+        );
+      }
+    }
+
+    this.load.image("sc_tree_1", "background/skywardcitadelAssets/obstacles/trees/tree1.png");
+    this.load.image("sc_tree_2", "background/skywardcitadelAssets/obstacles/trees/tree2.png");
+    this.load.image("sc_tree_3", "background/skywardcitadelAssets/obstacles/trees/tree3.png");
+    this.load.image("sc_tree_4", "background/skywardcitadelAssets/obstacles/trees/tree4.png");
+    this.load.image("sc_tree_5", "background/skywardcitadelAssets/obstacles/trees/tree5.png");
+
+    this.load.image("sc_stone_1", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone1.png");
+    this.load.image("sc_stone_2", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone2.png");
+    this.load.image("sc_stone_3", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone3.png");
+    this.load.image("sc_stone_4", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone4.png");
+    this.load.image("sc_stone_5", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone5.png");
+    this.load.image("sc_stone_6", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone6.png");
+    this.load.image("sc_stone_7", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone7.png");
+    this.load.image("sc_stone_8", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone8.png");
+    this.load.image("sc_stone_9", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone9.png");
+    this.load.image("sc_stone_10", "background/skywardcitadelAssets/obstacles/stone/stoneStandalone10.png");
+
+    this.load.image("sc_puddle_standalone_1", "background/skywardcitadelAssets/obstacles/water/puddleStandalone1.png");
+    this.load.image("sc_puddle_small_w", "background/skywardcitadelAssets/obstacles/water/puddleSmall1_W.png");
+    this.load.image("sc_puddle_small_e", "background/skywardcitadelAssets/obstacles/water/puddleSmall1_E.png");
+    this.load.image("sc_puddle_big_nw", "background/skywardcitadelAssets/obstacles/water/puddleBig1_NW.png");
+    this.load.image("sc_puddle_big_n", "background/skywardcitadelAssets/obstacles/water/puddleBig1_N.png");
+    this.load.image("sc_puddle_big_ne", "background/skywardcitadelAssets/obstacles/water/puddleBig1_NE.png");
+    this.load.image("sc_puddle_big_w", "background/skywardcitadelAssets/obstacles/water/puddleBig1_W.png");
+    this.load.image("sc_puddle_big_middle", "background/skywardcitadelAssets/obstacles/water/puddleBig1_Middle.png");
+    this.load.image("sc_puddle_big_e", "background/skywardcitadelAssets/obstacles/water/puddleBig1_E.png");
+    this.load.image("sc_puddle_big_sw", "background/skywardcitadelAssets/obstacles/water/puddleBig1_SW.png");
+    this.load.image("sc_puddle_big_s", "background/skywardcitadelAssets/obstacles/water/puddleBig1_S.png");
+    this.load.image("sc_puddle_big_se", "background/skywardcitadelAssets/obstacles/water/puddleBig1_SE.png");
+
     // Act 3 overworld tile set - skyward citadel (cloud platforms)
     this.load.image("cloud_blank", "background/skywardcitadelAssets/cloud_blank.png");
     this.load.image("cloud_edge_n1", "background/skywardcitadelAssets/cloud_edge_N1.png");

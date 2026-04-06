@@ -10,6 +10,11 @@ The Skyward Citadel algorithm generates a sky-themed overworld with:
 - Void spaces (empty sky) for vertical feel
 - Decorative edge tiles for visual variety
 
+### Terrain Constraints
+
+- No cliff formations in Act 3 generation
+- No lake/water pool generation in Act 3 generation
+
 ## Architecture
 
 ### Files
