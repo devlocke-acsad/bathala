@@ -866,14 +866,14 @@ export class CombatUI {
 
     this.actionsText = this.scene.add.text(30, 118, "", {
       fontFamily: "dungeon-mode",
-      fontSize: 16,
+      fontSize: 15,
       color: "#d8e9f2",
       backgroundColor: "#091018",
       stroke: "#183041",
       strokeThickness: 2,
       lineSpacing: 4,
-      padding: { left: 18, right: 18, top: 12, bottom: 10 },
-      fixedWidth: 180,
+      padding: { left: 16, right: 16, top: 11, bottom: 9 },
+      fixedWidth: 252,
     })
       .setOrigin(0, 0)
       .setDepth(839)
@@ -1854,7 +1854,7 @@ export class CombatUI {
     try {
       this.turnText.setText(`TURN ${String(combatState.turn).padStart(2, "0")}`);
       this.actionsText.setText(
-        `TOSS ${this.scene.getDiscardsUsedThisTurn()}/${this.scene.getMaxDiscardsPerTurn()}`
+        `DISCARD ${this.scene.getDiscardsUsedThisTurn()}/${this.scene.getMaxDiscardsPerTurn()}`
       );
       // Hand indicator removed - now using selection counter above cards
     } catch (error) {
@@ -2210,8 +2210,8 @@ export class CombatUI {
       this.selectionCounterText.setVisible(true);
       this.handEvaluationText.setVisible(false);
       const selectedCount = this.scene.getSelectedCards().length;
-      const buttonWidth = Math.round(198 * scaleFactor);
-      const buttonGap = Math.round(32 * scaleFactor);
+      const buttonWidth = Math.round(186 * scaleFactor);
+      const buttonGap = Math.round(26 * scaleFactor);
       const playerButtons = [
         this.createBattleCommandButton(
           -(buttonWidth * 1.5 + buttonGap * 1.5),
@@ -2252,8 +2252,8 @@ export class CombatUI {
         this.createBattleCommandButton(
           buttonWidth * 1.5 + buttonGap * 1.5,
           0,
-          "CARD CULL",
-          selectedCount > 0 ? `${selectedCount} TO REDRAW` : "TRADE FOR NEW DRAW",
+          "DISCARD",
+          selectedCount > 0 ? `${selectedCount} TO REDRAW` : "REDRAW SELECTED CARDS",
           0x241511,
           0x331d17,
           0xffb35c,
@@ -2269,15 +2269,15 @@ export class CombatUI {
       this.handContainer.setVisible(false);
       this.playedHandContainer.setVisible(true);
       this.selectionCounterText.setVisible(false);
-      this.handEvaluationText.setVisible(true);
+      this.handEvaluationText.setVisible(false);
       
       const playedHand = combatState.player.playedHand;
       const dominantSuit = this.scene.getDominantSuit(combatState.player.playedHand);
       const attackEvaluation = HandEvaluator.evaluateHand(playedHand, "attack", combatState.player);
       const defendEvaluation = HandEvaluator.evaluateHand(playedHand, "defend", combatState.player);
       const specialReady = this.scene.canUseSpecialActionNow();
-      const actionButtonWidth = Math.round(252 * scaleFactor);
-      const actionGap = Math.round(34 * scaleFactor);
+      const actionButtonWidth = Math.round(228 * scaleFactor);
+      const actionGap = Math.round(26 * scaleFactor);
       const actionButtons = [
         this.createBattleCommandButton(
           -(actionButtonWidth + actionGap),
@@ -2290,7 +2290,7 @@ export class CombatUI {
           () => this.scene.executeAction("attack"),
           false,
           actionButtonWidth,
-          84,
+          80,
         ),
         this.createBattleCommandButton(
           0,
@@ -2303,20 +2303,20 @@ export class CombatUI {
           () => this.scene.executeAction("defend"),
           false,
           actionButtonWidth,
-          84,
+          80,
         ),
         this.createBattleCommandButton(
           actionButtonWidth + actionGap,
           0,
-          "SPIRIT RITE",
-          specialReady ? `CAST ${this.scene.getSpecialActionName(dominantSuit)}` : "RITE SPENT",
+          "SPECIAL",
+          specialReady ? this.scene.getSpecialActionName(dominantSuit).toUpperCase() : "SPECIAL SPENT",
           0x1b111f,
           0x29162f,
           0xff7ef3,
           () => this.scene.executeAction("special"),
           !specialReady,
           actionButtonWidth,
-          84,
+          80,
         ),
       ];
 
@@ -2353,7 +2353,7 @@ export class CombatUI {
     callback: () => void,
     disabled: boolean = false,
     width: number = 190,
-    height: number = 82,
+    height: number = 80,
   ): Phaser.GameObjects.Container {
     const button = this.scene.add.container(x, y);
     const shadowPlate = this.scene.add.rectangle(6, 8, width + 8, height + 8, 0x050306, disabled ? 0.2 : 0.42).setOrigin(0.5);
@@ -2365,18 +2365,18 @@ export class CombatUI {
     const innerBorder = this.scene.add.rectangle(0, 0, width - 14, height - 14, undefined, 0)
       .setStrokeStyle(1, disabled ? 0x5c4f57 : 0xf6e7d0, disabled ? 0.14 : 0.2);
     const accentBar = this.scene.add.rectangle(-width / 2 + 14, 0, 10, height - 20, accentColor, disabled ? 0.22 : 1).setOrigin(0.5);
-    const titleText = this.scene.add.text(-width / 2 + 34, -13, title, {
+    const titleText = this.scene.add.text(-width / 2 + 30, -11, title, {
       fontFamily: "dungeon-mode",
-      fontSize: 22,
+      fontSize: 21,
       color: disabled ? "#756a71" : "#fff4ea",
       align: "left",
     }).setOrigin(0, 0.5).setShadow(2, 2, "#000000", 0.24, false, true);
-    const subtitleText = this.scene.add.text(-width / 2 + 34, 18, subtitle.toUpperCase(), {
+    const subtitleText = this.scene.add.text(-width / 2 + 30, 16, subtitle.toUpperCase(), {
       fontFamily: "dungeon-mode",
-      fontSize: 12,
+      fontSize: 11,
       color: disabled ? "#635a63" : "#d8dfeb",
       align: "left",
-      wordWrap: { width: width - 72 },
+      wordWrap: { width: width - 64 },
     }).setOrigin(0, 0.5);
 
     button.add([background, shadowPlate, border, innerBorder, accentBar, titleText, subtitleText]);
@@ -2858,10 +2858,8 @@ export class CombatUI {
     });
 
     // Show hand evaluation
-    const evaluation = HandEvaluator.evaluateHand(playedHand, "attack");
-    const handTypeText = this.getHandTypeDisplayText(evaluation.type);
-    this.handEvaluationText.setText(handTypeText.toUpperCase());
-    this.handEvaluationText.setVisible(combatState.phase === "action_selection");
+    this.handEvaluationText.setText("");
+    this.handEvaluationText.setVisible(false);
     
     // Ensure played hand container is visible during action phase
     if (combatState.phase === "action_selection") {

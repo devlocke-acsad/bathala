@@ -1904,7 +1904,7 @@ export class Combat extends Scene {
         : remainingSpecialCharges === 1
           ? "READY"
           : "SPENT";
-      const actionsText = `TOSS ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn}\nRITE ${specialStatus}`;
+      const actionsText = `DISCARD ${this.discardsUsedThisTurn}/${this.maxDiscardsPerTurn}\nSPECIAL ${specialStatus}`;
 
       // Only update if text has actually changed
       if (this.turnText.text !== turnText) {
