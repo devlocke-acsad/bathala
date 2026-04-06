@@ -728,11 +728,13 @@ class GenerationWasmBridge {
     wasmParams[19] = params.detourMaxDistance ?? 14;
     wasmParams[20] = params.fixDoubleWide != null ? (params.fixDoubleWide ? 1 : 0) : 1;
     wasmParams[21] = params.edgeMargin ?? 1;
-    wasmParams[22] = params.cliffBandCount ?? 2;
+    // Skyward Citadel intentionally excludes cliff terrain bands.
+    wasmParams[22] = 0;
     wasmParams[23] = params.hillClusterCount ?? 3;
     wasmParams[24] = params.grassPatchCount ?? 4;
     wasmParams[25] = params.sandPatchCount ?? 2;
-    wasmParams[26] = params.waterPoolCount ?? 1;
+    // Skyward Citadel intentionally excludes lake/water pools.
+    wasmParams[26] = 0;
 
     // Run the full algorithm in WASM
     e.generateSkywardCitadel(width, height, seed);

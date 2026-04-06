@@ -96,7 +96,7 @@ export interface CitadelLayoutParams {
     fixDoubleWide: boolean;
     /** Edge margin for house placement (tiles from chunk border) */
     edgeMargin: number;
-    /** Number of long cliff ranges stamped across non-path terrain */
+    /** Reserved legacy knob. Skyward Citadel keeps this disabled (always 0). */
     cliffBandCount: number;
     /** Number of hill clusters to place */
     hillClusterCount: number;
@@ -104,7 +104,7 @@ export interface CitadelLayoutParams {
     grassPatchCount: number;
     /** Number of non-traversable sand patch clusters */
     sandPatchCount: number;
-    /** Number of water pools used to form island silhouettes */
+    /** Reserved legacy knob. Skyward Citadel keeps this disabled (always 0). */
     waterPoolCount: number;
 }
 
@@ -131,11 +131,11 @@ export const DEFAULT_CITADEL_PARAMS: CitadelLayoutParams = {
     detourMaxDistance: 13,
     fixDoubleWide: true,
     edgeMargin: 2,
-    cliffBandCount: 2,
+    cliffBandCount: 0,
     hillClusterCount: 3,
     grassPatchCount: 3,
     sandPatchCount: 2,
-    waterPoolCount: 2,
+    waterPoolCount: 0,
 };
 
 // =========================================================================
@@ -255,7 +255,13 @@ export class SkywardCitadelAlgorithm {
      */
     generateLayout(rng?: () => number, params?: Partial<CitadelLayoutParams>): IntGrid {
         if (rng) this.rng = rng;
-        const p: CitadelLayoutParams = { ...DEFAULT_CITADEL_PARAMS, ...params };
+        const p: CitadelLayoutParams = {
+            ...DEFAULT_CITADEL_PARAMS,
+            ...params,
+            // Act 3 intentionally excludes cliff and lake terrain families.
+            cliffBandCount: 0,
+            waterPoolCount: 0,
+        };
         const [w, h] = this.levelSize;
 
         // ─── WASM fast path: run entire pipeline in AssemblyScript ────
@@ -373,7 +379,7 @@ export class SkywardCitadelAlgorithm {
         this.reduceDeadEnds(grid, houses);
         this.ensureGlobalAccessibility(grid);
 
-        // 16. Convert non-path terrain into Chapter 2 feature tiles (cliffs, hills, patches, water islands).
+        // 16. Convert non-path terrain into Act 3 terrain families (hills + patch variants only).
         this.applyBiomeTerrainFeatures(grid, p);
         this.repairPathGapsAfterBiome(grid);
 
@@ -1502,10 +1508,11 @@ export class SkywardCitadelAlgorithm {
             }
         }
 
-        this.paintSimpleWaterPonds(grid, params.waterPoolCount);
-        const totalCliffGroups = Math.max(1, params.cliffBandCount);
-        const irregularCliffCount = Math.max(2, Math.ceil(totalCliffGroups * 0.7));
-        const simpleCliffCount = Math.max(1, totalCliffGroups - irregularCliffCount);
+        // Act 3 uses cloud/citadel ground only: no lakes and no cliff bands.
+        this.paintSimpleWaterPonds(grid, 0);
+        const totalCliffGroups = 0;
+        const irregularCliffCount = totalCliffGroups > 0 ? Math.max(2, Math.ceil(totalCliffGroups * 0.7)) : 0;
+        const simpleCliffCount = totalCliffGroups > 0 ? Math.max(1, totalCliffGroups - irregularCliffCount) : 0;
         // Paint irregular first so natural shapes claim space before simple fallback rings.
         this.paintIrregularCliffHillFormations(grid, irregularCliffCount);
         this.paintSimpleCliffHillFormations(grid, simpleCliffCount);

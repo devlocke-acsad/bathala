@@ -1297,6 +1297,11 @@ export class Overworld_MazeGenManager {
     };
 
     if (tileValue === 5) {
+      if (isAct3) {
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.skywardCitadelWallTextures.length);
+        return this.skywardCitadelWallTextures[idx];
+      }
+
       const n = has(0, -1);
       const s = has(0, 1);
       const e = has(1, 0);
@@ -1369,6 +1374,12 @@ export class Overworld_MazeGenManager {
         }
       }
 
+      if (isAct3) {
+        // Act 3 keeps hills as strict 2x2 only; irregular hill remnants degrade to cloud wall.
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.skywardCitadelWallTextures.length);
+        return this.skywardCitadelWallTextures[idx];
+      }
+
       // Non-2x2 hill remnants/clusters use cliff autotile family (including middle fill).
       if (!n && !w) return 'sv_grass_cliff_nw';
       if (!n && !e) return 'sv_grass_cliff_ne';
@@ -1390,6 +1401,11 @@ export class Overworld_MazeGenManager {
     }
 
     if (tileValue === 9) {
+      if (isAct3) {
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.skywardCitadelWallTextures.length);
+        return this.skywardCitadelWallTextures[idx];
+      }
+
       const n = has(0, -1);
       const s = has(0, 1);
       const e = has(1, 0);

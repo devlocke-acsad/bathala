@@ -1,19 +1,17 @@
 // @ts-nocheck
 /**
- * Biome terrain painting — cliffs, hills, water, grass, sand.
+ * Biome terrain painting — hills, grass, sand (Act 3 excludes cliffs and lakes).
  */
 import { getCell, setCell, inBounds } from '../common/grid';
 import { removeSmallComponentsInPlace } from '../shared/remove-small-components';
 import { enforceExact2x2BundlesInPlace } from '../shared/enforce-exact-bundles';
-import { repairCliffGapsInPlace } from '../shared/repair-cliff-gaps';
-import { enforceCliffShellIntegrityInPlace } from '../shared/cliff-shell-integrity';
 import { enforceMinThickness2x2InPlace } from '../shared/enforce-min-thickness';
 import {
   TILE_PATH, TILE_FOREST, TILE_HOUSE, TILE_FENCE, TILE_CLIFF, TILE_HILL,
   TILE_GRASS, TILE_SAND, TILE_WATER, TILE_OBSTACLE, TILE_RUBBLE,
   rng, rngInt, clampI, absI, minI, maxI, param,
   BITMAP_A, clearBitmap, TEMP_X, TEMP_Y,
-  P_CLIFF_BAND, P_HILL_CLUSTER, P_GRASS_PATCH, P_SAND_PATCH, P_WATER_POOL, P_EDGE_MARGIN,
+  P_HILL_CLUSTER, P_GRASS_PATCH, P_SAND_PATCH, P_EDGE_MARGIN,
 } from './buffers';
 
 // ── Reset non-path tiles to FOREST ───────────────────────────────────────
@@ -371,16 +369,12 @@ function enforceCliffClearance(w: i32, h: i32): void {
 export function applyBiomeTerrainFeatures(w: i32, h: i32): void {
   resetNonPathToForest(w, h);
 
-  paintWaterPonds(w, h, param(P_WATER_POOL));
-  removeSmallComponentsInPlace(w, h, TILE_WATER, TILE_FOREST, 10);
-  enforceMinThickness2x2InPlace(w, h, TILE_WATER, TILE_FOREST, 6);
-  paintCliffFormations(w, h, param(P_CLIFF_BAND));
+  // Act 3 rule: Skyward Citadel does not generate lakes or cliff walls.
+  paintWaterPonds(w, h, 0);
+  paintCliffFormations(w, h, 0);
   paintHillClusters(w, h, param(P_HILL_CLUSTER));
 
   // Apply shared cleanup kernels
-  repairCliffGapsInPlace(w, h, TILE_PATH, TILE_WATER, TILE_CLIFF, 5);
-  enforceCliffShellIntegrityInPlace(w, h, TILE_PATH, TILE_WATER, TILE_CLIFF, TILE_HILL, 5);
-  removeSmallComponentsInPlace(w, h, TILE_CLIFF, TILE_FOREST, 3);
   enforceExact2x2BundlesInPlace(w, h, TILE_HILL, TILE_FOREST, 1, TILE_CLIFF, TILE_FOREST);
   removeSmallComponentsInPlace(w, h, TILE_HILL, TILE_FOREST, 4);
 
@@ -390,5 +384,4 @@ export function applyBiomeTerrainFeatures(w: i32, h: i32): void {
   enforceMinThickness2x2InPlace(w, h, TILE_GRASS, TILE_FOREST, 3);
   enforceMinThickness2x2InPlace(w, h, TILE_SAND, TILE_FOREST, 3);
 
-  enforceCliffClearance(w, h);
 }

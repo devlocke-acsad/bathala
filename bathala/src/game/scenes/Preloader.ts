@@ -342,20 +342,6 @@ export class Preloader extends Scene {
     this.load.image("sc_path_vertical_end_n", "background/skywardcitadelAssets/pathTiles/path_vertical_end_S.png");
     this.load.image("sc_path_vertical_end_s", "background/skywardcitadelAssets/pathTiles/path_vertical_end_N.png");
 
-    this.load.image("sc_grass_cliff_n", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_N.png");
-    this.load.image("sc_grass_cliff_s", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_S.png");
-    this.load.image("sc_grass_cliff_e", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_E.png");
-    this.load.image("sc_grass_cliff_w", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_W.png");
-    this.load.image("sc_grass_cliff_ne", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_NE.png");
-    this.load.image("sc_grass_cliff_nw", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_NW.png");
-    this.load.image("sc_grass_cliff_se", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_SE.png");
-    this.load.image("sc_grass_cliff_sw", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_SW.png");
-    this.load.image("sc_grass_cliff_inner_ne", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_NE.png");
-    this.load.image("sc_grass_cliff_inner_nw", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_NW.png");
-    this.load.image("sc_grass_cliff_inner_se", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_SE.png");
-    this.load.image("sc_grass_cliff_inner_sw", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_SW.png");
-    this.load.image("sc_grass_cliff_middle", "background/skywardcitadelAssets/obstacles/terrain/GrassCliff_Middle.png");
-
     this.load.image("sc_grass_hill_ne", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_NE.png");
     this.load.image("sc_grass_hill_nw", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_NW.png");
     this.load.image("sc_grass_hill_se", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_SE.png");
@@ -470,39 +456,6 @@ export class Preloader extends Scene {
     this.load.image("sc_puddle_big_sw", "background/skywardcitadelAssets/obstacles/water/puddleBig1_SW.png");
     this.load.image("sc_puddle_big_s", "background/skywardcitadelAssets/obstacles/water/puddleBig1_S.png");
     this.load.image("sc_puddle_big_se", "background/skywardcitadelAssets/obstacles/water/puddleBig1_SE.png");
-
-    // Act 3 water: lakes/rivers use the Update cliff + debris set.
-    this.load.image("sc_water_middle", "background/skywardcitadelAssets/obstacles/water/water_debris4.png");
-    this.load.image("sc_water_shore_n", "background/skywardcitadelAssets/obstacles/water/water_cliff_N.png");
-    this.load.image("sc_water_shore_s", "background/skywardcitadelAssets/obstacles/water/water_cliff_S.png");
-    this.load.image("sc_water_shore_e", "background/skywardcitadelAssets/obstacles/water/water_cliff_E.png");
-    this.load.image("sc_water_shore_w", "background/skywardcitadelAssets/obstacles/water/water_cliff_W.png");
-    this.load.image("sc_water_shore_ne", "background/skywardcitadelAssets/obstacles/water/water_cliff_NE.png");
-    this.load.image("sc_water_shore_nw", "background/skywardcitadelAssets/obstacles/water/water_cliff_NW.png");
-    this.load.image("sc_water_shore_se", "background/skywardcitadelAssets/obstacles/water/water_cliff_SE.png");
-    this.load.image("sc_water_shore_sw", "background/skywardcitadelAssets/obstacles/water/water_cliff_SW.png");
-    this.load.image("sc_water_cliff_n", "background/skywardcitadelAssets/obstacles/water/water_cliff_N.png");
-    this.load.image("sc_water_cliff_s", "background/skywardcitadelAssets/obstacles/water/water_cliff_S.png");
-    this.load.image("sc_water_cliff_e", "background/skywardcitadelAssets/obstacles/water/water_cliff_E.png");
-    this.load.image("sc_water_cliff_w", "background/skywardcitadelAssets/obstacles/water/water_cliff_W.png");
-    this.load.image("sc_water_cliff_ne", "background/skywardcitadelAssets/obstacles/water/water_cliff_NE.png");
-    this.load.image("sc_water_cliff_nw", "background/skywardcitadelAssets/obstacles/water/water_cliff_NW.png");
-    this.load.image("sc_water_cliff_se", "background/skywardcitadelAssets/obstacles/water/water_cliff_SE.png");
-    this.load.image("sc_water_cliff_sw", "background/skywardcitadelAssets/obstacles/water/water_cliff_SW.png");
-    // Concave inner corners for lakes/rivers (fallback aliasing to available cliff corners).
-    this.load.image("sc_water_cliff_inner_ne", "background/skywardcitadelAssets/obstacles/water/water_cliff_NE.png");
-    this.load.image("sc_water_cliff_inner_nw", "background/skywardcitadelAssets/obstacles/water/water_cliff_NW.png");
-    this.load.image("sc_water_cliff_inner_se", "background/skywardcitadelAssets/obstacles/water/water_cliff_SE.png");
-    this.load.image("sc_water_cliff_inner_sw", "background/skywardcitadelAssets/obstacles/water/water_cliff_SW.png");
-    // Convex outer corners use dedicated directional outer sprites.
-    this.load.image("sc_water_outer_ne", "background/skywardcitadelAssets/obstacles/water/water_cliff_outer_NE.png");
-    this.load.image("sc_water_outer_nw", "background/skywardcitadelAssets/obstacles/water/water_cliff_outer_NW.png");
-    this.load.image("sc_water_outer_sw", "background/skywardcitadelAssets/obstacles/water/water_cliff_outer_SW.png");
-    this.load.image("sc_water_outer_se", "background/skywardcitadelAssets/obstacles/water/water_cliff_outer_SE.png");
-    this.load.image("sc_water_debris_1", "background/skywardcitadelAssets/obstacles/water/water_debris1.png");
-    this.load.image("sc_water_debris_2", "background/skywardcitadelAssets/obstacles/water/water_debris2.png");
-    this.load.image("sc_water_debris_3", "background/skywardcitadelAssets/obstacles/water/water_debris3.png");
-    this.load.image("sc_water_debris_4", "background/skywardcitadelAssets/obstacles/water/water_debris4.png");
 
     // Act 3 overworld tile set - skyward citadel (cloud platforms)
     this.load.image("cloud_blank", "background/skywardcitadelAssets/cloud_blank.png");

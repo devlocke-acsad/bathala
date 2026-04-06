@@ -120,11 +120,11 @@ function densePreset(cfg: typeof ZONE_DEFAULTS): CitadelLayoutParams {
         detourMaxDistance: 14,
         fixDoubleWide: true,
         edgeMargin: 1,
-        cliffBandCount: 3,
+        cliffBandCount: 0,
         hillClusterCount: 2,
         grassPatchCount: 8,
         sandPatchCount: 6,
-        waterPoolCount: 1,
+        waterPoolCount: 0,
     };
 }
 
@@ -155,11 +155,11 @@ function transitionPreset(
         detourMaxDistance: 12,
         fixDoubleWide: true,
         edgeMargin: 2,
-        cliffBandCount: 3,
+        cliffBandCount: 0,
         hillClusterCount: 3,
         grassPatchCount: 7,
         sandPatchCount: 6,
-        waterPoolCount: 2,
+        waterPoolCount: 0,
     };
 }
 
@@ -187,11 +187,11 @@ function forestPreset(cfg: typeof ZONE_DEFAULTS): CitadelLayoutParams {
         detourMaxDistance: 16,
         fixDoubleWide: true,
         edgeMargin: 2,
-        cliffBandCount: 2,
+        cliffBandCount: 0,
         hillClusterCount: 4,
         grassPatchCount: 5,
         sandPatchCount: 5,
-        waterPoolCount: 3,
+        waterPoolCount: 0,
     };
 }
 
