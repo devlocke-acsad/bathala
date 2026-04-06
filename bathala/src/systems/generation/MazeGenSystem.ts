@@ -707,7 +707,7 @@ export class Overworld_MazeGenManager {
     const isAct3 = this.isAct3Chapter();
     const isOrganicVillage = isAct2 || isAct3;
     const act2HouseVariantMap = isOrganicVillage ? this.buildAct2HouseVariantMap(maze, chunkX, chunkY) : undefined;
-    const act2PuddleTextureMap = isOrganicVillage ? this.buildAct2PuddleTextureMap(maze) : undefined;
+    const act2PuddleTextureMap = isAct2 ? this.buildAct2PuddleTextureMap(maze) : undefined;
 
     if (isAct2) {
       this.logAct2PathTileAvailabilityOnce();
@@ -1523,8 +1523,13 @@ export class Overworld_MazeGenManager {
       return this.getAct2HouseTexture(maze, chunkX, chunkY, x, y, houseVariantMap);
     }
 
-    // Act 2/3 puddle props (3x3, 1x2 horizontal, and standalone variants)
+    // Act 2 puddle props (3x3, 1x2 horizontal, and standalone variants)
     if (isOrganicVillage && tileValue === 11) {
+      if (isAct3) {
+        const idx = this.getDeterministicIndex(chunkX, chunkY, x, y, this.skywardCitadelWallTextures.length);
+        return this.skywardCitadelWallTextures[idx];
+      }
+
       return puddleTextureMap?.get(`${x},${y}`) ?? 'sv_puddle_standalone_1';
     }
 

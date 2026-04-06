@@ -299,7 +299,7 @@ export class SkywardCitadelAlgorithm {
 
         const wasmResult = generationWasmBridge.tryGenerateSkywardCitadel(w, h, seed, wasmParams);
         if (wasmResult) {
-            // Decor pass: break up oversized open routes with puddles/stones.
+            // Decor pass: break up oversized open routes with stone props only.
             this.decorateOpenAreasWithProps(wasmResult);
             // Safety pass: split any accidental oversized house blobs into supported chunks.
             this.normalizeHouseComponentsToSupportedSizes(wasmResult);
@@ -387,7 +387,7 @@ export class SkywardCitadelAlgorithm {
         // 17. Scatter obstacles on FOREST tiles (after all terrain features are placed)
         this.scatterObstacles(grid);
 
-        // 17b. Decor pass: break up oversized open routes with puddles/stones.
+        // 17b. Decor pass: break up oversized open routes with stone props only.
         this.decorateOpenAreasWithProps(grid);
 
         // Safety pass: split any accidental oversized house blobs into supported chunks.
@@ -1318,11 +1318,7 @@ export class SkywardCitadelAlgorithm {
     }
 
     /**
-     * Place Act 2 decorative blockers to reduce giant empty lanes:
-     * - puddleBig1 as strict 3x3
-     * - puddleSmall1 as strict 1x2 horizontal
-     * - standalone puddles and stones
-     *
+     * Place decorative stone blockers to reduce giant empty lanes.
      * Decorations are also allowed to replace some tree-obstacle tiles.
      */
     private decorateOpenAreasWithProps(grid: IntGrid): void {
@@ -1339,25 +1335,11 @@ export class SkywardCitadelAlgorithm {
         }
 
         if (pathCount > 0) {
-            const bigPathTarget = Math.min(2, Math.max(0, Math.floor(pathCount / 180)));
-            const smallPathTarget = Math.min(4, Math.max(1, Math.floor(pathCount / 120)));
-            const puddleSoloPathTarget = Math.min(10, Math.max(2, Math.floor(pathCount / 70)));
             const stonePathTarget = Math.min(12, Math.max(3, Math.floor(pathCount / 55)));
-
-            this.placeRectPropsOnSource(grid, TILE.PATH, TILE.PUDDLE_PROP, 3, 3, bigPathTarget, 80, 5, true);
-            this.placeRectPropsOnSource(grid, TILE.PATH, TILE.PUDDLE_PROP, 2, 1, smallPathTarget, 100, 4, true);
-            this.placeSinglesOnSource(grid, TILE.PATH, TILE.PUDDLE_PROP, puddleSoloPathTarget, 120, 5, true, true);
             this.placeSinglesOnSource(grid, TILE.PATH, TILE.STONE_PROP, stonePathTarget, 120, 4, true, false);
         }
 
         if (obstacleCount > 0) {
-            const bigObstacleTarget = obstacleCount >= 160 ? 1 : 0;
-            const smallObstacleTarget = obstacleCount >= 100 ? 1 : 0;
-            const puddleSoloObstacleTarget = Math.min(3, Math.max(0, Math.floor(obstacleCount / 220)));
-            this.placeRectPropsOnSource(grid, TILE.OBSTACLE, TILE.PUDDLE_PROP, 3, 3, bigObstacleTarget, 90, 0, true);
-            this.placeRectPropsOnSource(grid, TILE.OBSTACLE, TILE.PUDDLE_PROP, 2, 1, smallObstacleTarget, 110, 0, true);
-            this.placeSinglesOnSource(grid, TILE.OBSTACLE, TILE.PUDDLE_PROP, puddleSoloObstacleTarget, 120, 0, true, true);
-
             for (let y = 1; y < h - 1; y++) {
                 for (let x = 1; x < w - 1; x++) {
                     if (grid.getTile(x, y) !== TILE.OBSTACLE) continue;
@@ -1524,10 +1506,6 @@ export class SkywardCitadelAlgorithm {
 
         // Finalize cliff masses first so later obstacle families honor stable cliff silhouettes.
         const earlyBatchApplied = generationWasmBridge.runKernelBatch(grid, w, h, [
-            (e) => e.removeSmallComponentsInPlace(w, h, TILE.WATER, TILE.FOREST, 10),
-            (e) => e.enforceMinThickness2x2InPlace(w, h, TILE.WATER, TILE.FOREST, 6),
-            (e) => e.repairCliffGapsInPlace(w, h, TILE.PATH, TILE.WATER, TILE.CLIFF, 3),
-            (e) => e.enforceCliffShellIntegrityInPlace(w, h, TILE.PATH, TILE.WATER, TILE.CLIFF, TILE.HILL, 3),
             (e) => e.removeSmallComponentsInPlace(w, h, TILE.CLIFF, TILE.FOREST, 8),
             (e) => e.enforceExact2x2BundlesInPlace(w, h, TILE.HILL, TILE.FOREST, 1, TILE.CLIFF, TILE.PATH),
         ]);

@@ -370,7 +370,8 @@ export function applyBiomeTerrainFeatures(w: i32, h: i32): void {
   resetNonPathToForest(w, h);
 
   // Act 3 rule: Skyward Citadel does not generate lakes or cliff walls.
-  paintWaterPonds(w, h, 0);
+  // Keep function available for compatibility but skip invocation.
+  // paintWaterPonds(w, h, param(P_WATER_POOL));
   paintCliffFormations(w, h, 0);
   paintHillClusters(w, h, param(P_HILL_CLUSTER));
 
@@ -378,9 +379,9 @@ export function applyBiomeTerrainFeatures(w: i32, h: i32): void {
   enforceExact2x2BundlesInPlace(w, h, TILE_HILL, TILE_FOREST, 1, TILE_CLIFF, TILE_FOREST);
   removeSmallComponentsInPlace(w, h, TILE_HILL, TILE_FOREST, 4);
 
-    // Skyward Citadel should not generate GrassSandPatch terrain.
-    // Keep the function available for compatibility but skip invocation.
-    // paintGrassPatches(w, h, param(P_GRASS_PATCH));
+  // Skyward Citadel should not generate GrassSandPatch terrain.
+  // Keep the function available for compatibility but skip invocation.
+  // paintGrassPatches(w, h, param(P_GRASS_PATCH));
   paintSandPatches(w, h, param(P_SAND_PATCH));
 
   enforceMinThickness2x2InPlace(w, h, TILE_GRASS, TILE_FOREST, 3);
