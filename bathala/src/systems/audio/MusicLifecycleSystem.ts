@@ -101,6 +101,14 @@ export class MusicLifecycleSystem {
     const musicLayers = musicSystem.getMusicLayersForScene(this.scene.scene.key, currentChapter);
 
     if (musicLayers.length === 0) {
+      for (const [key, state] of MusicLifecycleSystem.persistentMusicLayers.entries()) {
+        if (allowResumeFromLastPosition) {
+          this.parkMusicLayer(state);
+        } else {
+          this.destroySound(state.sound);
+          MusicLifecycleSystem.persistentMusicLayers.delete(key);
+        }
+      }
       this.music = undefined;
       return;
     }

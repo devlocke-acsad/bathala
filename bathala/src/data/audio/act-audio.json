@@ -11,6 +11,11 @@
       "ChapterCutscene": "placeholder_music",
       "Prologue": "main_menu_music"
     },
+    "sceneBgmLayerOverrides": {
+      "Overworld": [],
+      "ChapterTransition": [],
+      "ChapterCutscene": []
+    },
     "sceneBgmVolumeOverrides": {
       "ChapterTransition": 0.35,
       "ChapterCutscene": 0.45,
@@ -36,6 +41,11 @@
       "ChapterTransition": "placeholder_music",
       "ChapterCutscene": "placeholder_music"
     },
+    "sceneBgmLayerOverrides": {
+      "Overworld": [],
+      "ChapterTransition": [],
+      "ChapterCutscene": []
+    },
     "sceneBgmVolumeOverrides": {
       "ChapterTransition": 0.35,
       "ChapterCutscene": 0.45,
@@ -54,13 +64,18 @@
     "actId": 3,
     "overworldBgmKey": "placeholder_music",
     "combatBgmKey": "battle_music_1",
-    "ambientLoopKeys": ["wind_whispers"],
+    "ambientLoopKeys": ["act3_ambiance_sky_1", "act3_ambiance_sky_3"],
     "sceneBgmOverrides": {
       "Overworld": "placeholder_music",
       "Combat": "battle_music_1",
       "ChapterTransition": "placeholder_music",
       "ChapterCutscene": "placeholder_music",
       "Credits": "battle_music_1"
+    },
+    "sceneBgmLayerOverrides": {
+      "Overworld": [],
+      "ChapterTransition": [],
+      "ChapterCutscene": []
     },
     "sceneBgmVolumeOverrides": {
       "ChapterTransition": 0.35,
@@ -69,7 +84,7 @@
       "Combat": 0.5
     },
     "sceneAmbientOverrides": {
-      "Overworld": ["wind_whispers"],
+      "Overworld": ["act3_ambiance_sky_1", "act3_ambiance_sky_3"],
       "ChapterCutscene": ["wind_whispers"],
       "ChapterTransition": [],
       "Combat": []

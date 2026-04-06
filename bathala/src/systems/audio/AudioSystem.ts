@@ -741,8 +741,11 @@ export class AudioSystem {
     const actProfile = typeof resolvedActId === "number" ? ACT_AUDIO_PROFILES[resolvedActId] : undefined;
 
     if (actProfile) {
-      const layerOverride = actProfile.sceneBgmLayerOverrides?.[sceneKey];
-      if (Array.isArray(layerOverride) && layerOverride.length > 0) {
+      if (
+        actProfile.sceneBgmLayerOverrides &&
+        Object.prototype.hasOwnProperty.call(actProfile.sceneBgmLayerOverrides, sceneKey)
+      ) {
+        const layerOverride = actProfile.sceneBgmLayerOverrides[sceneKey] ?? [];
         musicKeys = this.uniqueNonEmpty(layerOverride);
       } else {
         let primaryKey = musicKeys[0] ?? profile.bgmKey;

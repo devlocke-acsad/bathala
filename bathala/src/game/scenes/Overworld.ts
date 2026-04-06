@@ -331,9 +331,12 @@ export class Overworld extends Scene {
     // Check if we're returning from another scene
     const savedPosition = gameState.getPlayerPosition();
 
+    const hasDirectionalPlayer = this.textures.exists("player_overworld_down");
+    const initialPlayerTexture = hasDirectionalPlayer ? "player_overworld_down" : "player_overworld";
+
     if (savedPosition) {
       // Restore player at saved position
-      this.player = this.add.sprite(savedPosition.x, savedPosition.y, "player_overworld");
+      this.player = this.add.sprite(savedPosition.x, savedPosition.y, initialPlayerTexture, 0);
       // Clear the saved position so it's not used again
       gameState.clearPlayerPosition();
     } else {
@@ -342,10 +345,14 @@ export class Overworld extends Scene {
 
       // Calculate player start position using manager
       const startPos = this.mazeGenManager.calculatePlayerStartPosition();
-      this.player = this.add.sprite(startPos.x, startPos.y, "player_overworld");
+      this.player = this.add.sprite(startPos.x, startPos.y, initialPlayerTexture, 0);
     }
 
     this.player.setOrigin(0.5); // Center the sprite
+    if (hasDirectionalPlayer) {
+      // 16x16 directional sprites are scaled to keep the previous on-map character footprint.
+      this.player.setScale(2);
+    }
     this.player.setDepth(1000); // Ensure player is above everything
 
     // Initialize keyboard input manager
@@ -1219,7 +1226,26 @@ export class Overworld extends Scene {
     // Set moving flag to prevent input during movement
     this.isMoving = true;
 
-    // Static sprite - no animation needed
+    const directionToTexture: Record<string, string> = {
+      down: "player_overworld_down",
+      up: "player_overworld_up",
+      left: "player_overworld_left",
+      right: "player_overworld_right",
+    };
+    const directionToAnimation: Record<string, string> = {
+      down: "player_walk_down",
+      up: "player_walk_up",
+      left: "player_walk_left",
+      right: "player_walk_right",
+    };
+    const targetTexture = directionToTexture[direction];
+    const walkAnimation = directionToAnimation[direction];
+    const hasDirectionalAnimation = !!walkAnimation && this.anims.exists(walkAnimation) && this.textures.exists(targetTexture);
+
+    if (hasDirectionalAnimation) {
+      this.player.play(walkAnimation, true);
+    }
+
     console.log("Moving player in direction:", direction);
     console.log("Position is valid, moving player");
 
@@ -1229,6 +1255,11 @@ export class Overworld extends Scene {
       y: targetY,
       duration: 64,
       onComplete: () => {
+        if (hasDirectionalAnimation) {
+          this.player.stop();
+          this.player.setTexture(targetTexture, 0);
+        }
+
         this.isMoving = false;
         this.checkNodeInteraction();
 

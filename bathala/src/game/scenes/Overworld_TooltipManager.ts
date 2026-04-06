@@ -202,7 +202,50 @@ export class Overworld_TooltipManager {
       console.warn("⚠️ TooltipManager: Cannot show tooltip - missing node or tooltip not initialized");
       return;
     }
-    
+    this.lastHoveredNodeId = node.id;
+    if (node.enemyId) {
+      const tooltipEnemy = [
+        TIKBALANG_SCOUT,
+        BALETE_WRAITH,
+        SIGBIN_CHARGER,
+        DUWENDE_TRICKSTER,
+        TIYANAK_AMBUSHER,
+        AMOMONGO,
+        BUNGISNGIS,
+        KAPRE_SHADE,
+        TAWONG_LIPOD,
+        MANGANGAWAY,
+        SIRENA_ILLUSIONIST,
+        SIYOKOY_RAIDER,
+        SANTELMO_FLICKER,
+        BERBEROKA_LURKER,
+        MAGINDARA_SWARM,
+        KATAW,
+        BERBALANG,
+        SUNKEN_BANGKILAN,
+        APOY_TUBIG_FURY,
+        BAKUNAWA,
+        TIGMAMANUKAN_WATCHER,
+        DIWATA_SENTINEL,
+        SARIMANOK_KEEPER,
+        BULALAKAW_FLAMEWINGS,
+        MINOKAWA_HARBINGER,
+        ALAN,
+        EKEK,
+        RIBUNG_LINTI_DUO,
+        APOLAKI_GODLING,
+        FALSE_BATHALA,
+      ].find((enemy) => enemy.id === node.enemyId || enemy.name === node.enemyId);
+
+      if (tooltipEnemy) {
+        ensureEnemyDiscoverPortraitLoaded(this.scene, tooltipEnemy, () => {
+          if (this.isTooltipVisible && this.lastHoveredNodeId === node.id) {
+            this.showEnemyTooltip(node, mouseX, mouseY);
+          }
+        });
+      }
+    }
+
     const enemyInfo = this.getEnemyInfoForNodeType(node.type, node.enemyId);
     if (!enemyInfo) {
       console.warn("⚠️ TooltipManager: Cannot show tooltip - no enemy info for type", node.type);
@@ -739,14 +782,14 @@ export class Overworld_TooltipManager {
 
     // Prefer Discover (almanac/compendium) portraits for hover info box.
     // Match Discover scene mapping by enemy config id.
-    ensureEnemyDiscoverPortraitLoaded(this.scene, enemy);
     const discoverSpriteKey = getEnemyDiscoverPortraitKey(enemy);
+    const hasDiscoverPortrait = !!discoverSpriteKey;
     let spriteKey = discoverSpriteKey && this.scene.textures.exists(discoverSpriteKey)
       ? discoverSpriteKey
-      : enemy.overworldSpriteKey;
+      : (hasDiscoverPortrait ? null : enemy.overworldSpriteKey);
 
     // Last-resort fallback for any malformed/missing sprite key.
-    if (!spriteKey || !this.scene.textures.exists(spriteKey)) {
+    if ((!spriteKey || !this.scene.textures.exists(spriteKey)) && !hasDiscoverPortrait) {
       let spriteKeyBase = enemy.name.toLowerCase().split(" ")[0];
       if (spriteKeyBase === "tawong") spriteKeyBase = "tawonglipod";
       if (enemy.name.toLowerCase().includes("tawong")) spriteKeyBase = "tawonglipod";

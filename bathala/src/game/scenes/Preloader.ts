@@ -468,8 +468,25 @@ export class Preloader extends Scene {
 
     // Slash attack animation - now loaded as spritesheets above (action_slash etc.)
 
-    // Player sprite for Overworld - static image
+    // Player sprite for Overworld (legacy static fallback)
     this.load.image("player_overworld", "sprites/overworld/player/mc_overworld.png");
+    // Directional 16x16 overworld spritesheets
+    this.load.spritesheet("player_overworld_down", "sprites/overworld/player/old/mc_down.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
+    this.load.spritesheet("player_overworld_up", "sprites/overworld/player/old/mc_up.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
+    this.load.spritesheet("player_overworld_left", "sprites/overworld/player/old/mc_left.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
+    this.load.spritesheet("player_overworld_right", "sprites/overworld/player/old/mc_right.png", {
+      frameWidth: 16,
+      frameHeight: 16,
+    });
 
     // Mysterious Merchant sprite frames for Shop - 7 individual frames
     this.load.image("merchant_f01", "sprites/merchant/merchant_f01.png");
@@ -553,9 +570,29 @@ export class Preloader extends Scene {
     this.load.image("tikbalang_almanac", "sprites/discover/chapter1/tikbalang_almanac.png");
     this.load.image("tiyanak_almanac", "sprites/discover/chapter1/tiyanak_almanac.png");
 
-    // Chapter 2-3 almanac portraits are loaded lazily in Discover.
-    // They are large and not required for normal gameplay because combat/tooltips
-    // already fall back to lighter portrait sources when these textures are absent.
+    // Chapter 2 enemy almanac sprites
+    this.load.image("sirena_almanac", "sprites/discover/chapter2/new/sirena_splash.webp");
+    this.load.image("siyokoy_almanac", "sprites/discover/chapter2/new/siyokoy_splash.webp");
+    this.load.image("santelmo_almanac", "sprites/discover/chapter2/new/santelmo_splash.webp");
+    this.load.image("berberoka_almanac", "sprites/discover/chapter2/new/berberoka_splash.webp");
+    this.load.image("magindara_almanac", "sprites/discover/chapter2/new/maginda_swarm_splash.webp");
+    this.load.image("kataw_almanac", "sprites/discover/chapter2/new/kataw_splash.webp");
+    this.load.image("berbalang_almanac", "sprites/discover/chapter2/new/berbalang_splash.webp");
+    this.load.image("bangkilan_almanac", "sprites/discover/chapter2/new/sunken_bangkilan_splash.webp");
+    this.load.image("apoy_tubig_fury_almanac", "sprites/discover/chapter2/new/apoy_tubig_splash.webp");
+    this.load.image("bakunawa_almanac", "sprites/discover/chapter2/new/bakunawa_splash.webp");
+
+    // Chapter 3 enemy almanac sprites
+    this.load.image("tigmamanukan_almanac", "sprites/discover/chapter3/new/tigamamanukan_watcher_splash.webp");
+    this.load.image("diwata_almanac", "sprites/discover/chapter3/new/diwata_sentinel_splash.webp");
+    this.load.image("sarimanok_almanac", "sprites/discover/chapter3/new/sarimanok_watcher_splash.webp");
+    this.load.image("bulalakaw_almanac", "sprites/discover/chapter3/new/bulalakaw_flamekeeper_splash.webp");
+    this.load.image("minokawa_almanac", "sprites/discover/chapter3/new/minokawa_harbinger_splash.webp");
+    this.load.image("alan_almanac", "sprites/discover/chapter3/new/alan_splash.webp");
+    this.load.image("ekek_almanac", "sprites/discover/chapter3/new/ekek_splash.webp");
+    this.load.image("ribung_linti_almanac", "sprites/discover/chapter3/new/ribung_linti_splash.webp");
+    this.load.image("apolaki_almanac", "sprites/discover/chapter3/new/apolaki_splash.webp");
+    this.load.image("false_bathala_almanac", "sprites/discover/chapter3/new/false_bathala_splash.webp");
 
     // Legacy enemy sprite keys for backward compatibility
     this.load.image("amomongo", "sprites/combat/enemy/chapter1/amomongo_battle.png");
@@ -758,6 +795,11 @@ export class Preloader extends Scene {
     if (this.textures.exists("player_overworld")) {
       this.textures.get("player_overworld").setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
+    for (const key of ["player_overworld_down", "player_overworld_up", "player_overworld_left", "player_overworld_right"]) {
+      if (this.textures.exists(key)) {
+        this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+      }
+    }
 
     // Apply NEAREST filtering to action spritesheets for crisp pixel art at large scales
     for (const key of [
@@ -874,10 +916,44 @@ export class Preloader extends Scene {
 
   /**
    * Create avatar animations for Overworld
-   * Note: Using static sprite, no animations needed
    */
   private createAvatarAnimations(): void {
-    console.log("Using static overworld sprite - no animations");
+    const directionalKeys = [
+      "player_overworld_down",
+      "player_overworld_up",
+      "player_overworld_left",
+      "player_overworld_right",
+    ];
+    const hasAllDirectionalSheets = directionalKeys.every((key) => this.textures.exists(key));
+
+    if (!hasAllDirectionalSheets) {
+      console.log("Using static overworld sprite - directional sheets missing");
+      return;
+    }
+
+    const createWalkAnimation = (animKey: string, textureKey: string) => {
+      const tex = this.textures.get(textureKey);
+      const source = tex.getSourceImage() as HTMLImageElement;
+      const frameCount = Math.max(1, Math.floor(source.width / 16));
+
+      if (this.anims.exists(animKey)) {
+        this.anims.remove(animKey);
+      }
+
+      this.anims.create({
+        key: animKey,
+        frames: this.anims.generateFrameNumbers(textureKey, { start: 0, end: frameCount - 1 }),
+        frameRate: frameCount >= 3 ? 8 : 6,
+        repeat: -1,
+      });
+    };
+
+    createWalkAnimation("player_walk_down", "player_overworld_down");
+    createWalkAnimation("player_walk_up", "player_overworld_up");
+    createWalkAnimation("player_walk_left", "player_overworld_left");
+    createWalkAnimation("player_walk_right", "player_overworld_right");
+
+    console.log("Created directional overworld player animations (16x16)");
   }
 
 
