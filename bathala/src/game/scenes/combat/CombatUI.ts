@@ -1560,14 +1560,11 @@ export class CombatUI {
       "",
       {
         fontFamily: "dungeon-mode",
-        fontSize: 64,
+        fontSize: 56,
         color: "#fff7e8",
-        backgroundColor: "#10070c",
-        stroke: "#3d1620",
-        strokeThickness: 4,
         align: "center",
-        padding: { left: 28, right: 28, top: 18, bottom: 14 },
-        fixedWidth: 180,
+        padding: { left: 14, right: 14, top: 8, bottom: 6 },
+        fixedWidth: 150,
       }
     )
       .setOrigin(0.5)
@@ -1647,13 +1644,12 @@ export class CombatUI {
     const normalizedText = text.trim();
     const digitCount = Math.max(2, normalizedText.length);
     const isNumericPreview = /^\d+$/.test(normalizedText);
-    const fontSize = screenWidth < 900 ? 52 : screenWidth < 1200 ? 58 : 64;
-    const horizontalPadding = screenWidth < 900 ? 24 : 34;
+    const fontSize = screenWidth < 900 ? 44 : screenWidth < 1200 ? 50 : 56;
+    const horizontalPadding = screenWidth < 900 ? 12 : 14;
     const charWidthFactor = isNumericPreview ? 0.98 : 0.8;
-    const strokeAllowance = isNumericPreview ? 28 : 18;
-    const calculatedWidth = Math.round(digitCount * fontSize * charWidthFactor + horizontalPadding * 2 + strokeAllowance);
-    const minWidth = screenWidth < 900 ? 182 : 232;
-    const maxWidth = Phaser.Math.Clamp(Math.round(screenWidth * 0.28), 240, 360);
+    const calculatedWidth = Math.round(digitCount * fontSize * charWidthFactor + horizontalPadding * 2);
+    const minWidth = screenWidth < 900 ? 120 : 140;
+    const maxWidth = Phaser.Math.Clamp(Math.round(screenWidth * 0.2), 150, 260);
 
     return Phaser.Math.Clamp(calculatedWidth, minWidth, maxWidth);
   }
@@ -1662,9 +1658,9 @@ export class CombatUI {
     const screenWidth = this.scene.cameras.main.width;
 
     if (this.damagePreviewText) {
-      const fontSize = screenWidth < 900 ? 52 : screenWidth < 1200 ? 58 : 64;
-      const horizontalPadding = screenWidth < 900 ? 24 : 34;
-      const verticalPadding = screenWidth < 900 ? 14 : 18;
+      const fontSize = screenWidth < 900 ? 44 : screenWidth < 1200 ? 50 : 56;
+      const horizontalPadding = screenWidth < 900 ? 12 : 14;
+      const verticalPadding = screenWidth < 900 ? 8 : 10;
       const fixedWidth = this.getDamagePreviewResponsiveWidth(this.damagePreviewText.text || "00");
       this.damagePreviewText.setStyle({
         fontSize,
@@ -1673,7 +1669,7 @@ export class CombatUI {
           left: horizontalPadding,
           right: horizontalPadding,
           top: verticalPadding,
-          bottom: Math.max(12, verticalPadding - 4),
+          bottom: Math.max(6, verticalPadding - 2),
         },
       });
       this.damagePreviewText.setAngle(screenWidth < 900 ? -1.5 : -2);
@@ -3333,35 +3329,8 @@ export class CombatUI {
         Phaser.Geom.Rectangle.Contains
       );
       
-      // BUGFIX: Remove any previous listeners before adding new one
+      // Keep cards clickable, but do not animate them on hover.
       cardContainer.removeAllListeners();
-      cardContainer.on("pointerover", () => {
-        this.scene.tweens.killTweensOf(cardContainer);
-        const baseY = typeof (card as any).baseY === "number" ? (card as any).baseY : y;
-        const restY = card.selected ? baseY - 40 : baseY;
-        const hoverY = restY - (card.selected ? 10 : 14);
-        this.scene.tweens.add({
-          targets: cardContainer,
-          y: hoverY,
-          scaleX: 1.04,
-          scaleY: 1.04,
-          duration: 110,
-          ease: "Quad.easeOut",
-        });
-      });
-      cardContainer.on("pointerout", () => {
-        this.scene.tweens.killTweensOf(cardContainer);
-        const baseY = typeof (card as any).baseY === "number" ? (card as any).baseY : y;
-        const restY = card.selected ? baseY - 40 : baseY;
-        this.scene.tweens.add({
-          targets: cardContainer,
-          y: restY,
-          scaleX: 1,
-          scaleY: 1,
-          duration: 120,
-          ease: "Quad.easeOut",
-        });
-      });
       cardContainer.on("pointerdown", () => {
         // Only allow selection if card is still in hand
         const combatState = this.scene.getCombatState();

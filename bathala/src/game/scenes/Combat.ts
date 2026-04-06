@@ -5424,32 +5424,13 @@ export class Combat extends Scene {
     // Display the damage preview
     if (this.damagePreviewText) {
       this.damagePreviewText.setText(damageText);
-      const handColorMap: Record<string, string> = {
-        high_card: "#c7ced6",
-        pair: "#7ef0a7",
-        two_pair: "#8fd2ff",
-        three_of_a_kind: "#b89cff",
-        straight: "#73e6ff",
-        flush: "#53b8ff",
-        full_house: "#ffcb73",
-        four_of_a_kind: "#ff8f8f",
-        straight_flush: "#ffab66",
-        royal_flush: "#ffe88c",
-        five_of_a_kind: "#ff8dff",
-      };
       const previewMetaText = bonusParts.length > 0
         ? `${handLabel}  •  ${bonusParts.join("  •  ")}`
         : handLabel;
-      const compactPreviewMetaText = [
-        handLabel,
-        flatBonusTotal > 0 ? `+${Math.floor(flatBonusTotal)}` : "",
-        evaluation.handMultiplier > 1 ? `x${evaluation.handMultiplier}` : "",
-      ].filter(Boolean).join("  /  ");
       void previewMetaText;
       this.damagePreviewText.setText(`${Math.floor(damage)}`);
       this.damagePreviewText.setColor("#fff7e8");
-      this.damagePreviewText.setBackgroundColor("#120a10");
-      this.damagePreviewText.setStyle({ stroke: handColorMap[evaluation.type] || "#ff4f6d", strokeThickness: 6 });
+      this.damagePreviewText.setStyle({ strokeThickness: 0 });
       this.ui?.refreshResponsiveLayout();
       this.damagePreviewText.setVisible(true);
       if (this.enemyAttackPreviewText) {
