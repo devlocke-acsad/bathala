@@ -342,32 +342,32 @@ export class Preloader extends Scene {
     this.load.image("sc_path_vertical_end_n", "background/skywardcitadelAssets/pathTiles/path_vertical_end_S.png");
     this.load.image("sc_path_vertical_end_s", "background/skywardcitadelAssets/pathTiles/path_vertical_end_N.png");
 
-    this.load.image("sc_grass_hill_ne", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_NE.png");
-    this.load.image("sc_grass_hill_nw", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_NW.png");
-    this.load.image("sc_grass_hill_se", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_SE.png");
-    this.load.image("sc_grass_hill_sw", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_SW.png");
-    this.load.image("sc_grass_hill_inner_ne", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_NE.png");
-    this.load.image("sc_grass_hill_inner_nw", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_NW.png");
-    this.load.image("sc_grass_hill_inner_se", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_SE.png");
-    this.load.image("sc_grass_hill_inner_sw", "background/skywardcitadelAssets/obstacles/terrain/GrassHill_SW.png");
+    this.load.image("sc_grass_hill_ne", "background/skywardcitadelAssets/obstacles/terrain/fountain1_NE.png");
+    this.load.image("sc_grass_hill_nw", "background/skywardcitadelAssets/obstacles/terrain/fountain1_NW.png");
+    this.load.image("sc_grass_hill_se", "background/skywardcitadelAssets/obstacles/terrain/fountain1_SE.png");
+    this.load.image("sc_grass_hill_sw", "background/skywardcitadelAssets/obstacles/terrain/fountain1_SW.png");
+    this.load.image("sc_grass_hill_inner_ne", "background/skywardcitadelAssets/obstacles/terrain/fountain1_NE.png");
+    this.load.image("sc_grass_hill_inner_nw", "background/skywardcitadelAssets/obstacles/terrain/fountain1_NW.png");
+    this.load.image("sc_grass_hill_inner_se", "background/skywardcitadelAssets/obstacles/terrain/fountain1_SE.png");
+    this.load.image("sc_grass_hill_inner_sw", "background/skywardcitadelAssets/obstacles/terrain/fountain1_SW.png");
 
-    this.load.image("sc_patch_sand_grass_nw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NW.png");
-    this.load.image("sc_patch_sand_grass_ne", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NE.png");
-    this.load.image("sc_patch_sand_grass_sw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SW.png");
-    this.load.image("sc_patch_sand_grass_se", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SE.png");
-    this.load.image("sc_patch_sand_grass_inner_nw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NW.png");
-    this.load.image("sc_patch_sand_grass_inner_ne", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NE.png");
-    this.load.image("sc_patch_sand_grass_inner_sw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SW.png");
-    this.load.image("sc_patch_sand_grass_inner_se", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SE.png");
-    this.load.image("sc_patch_sand_grass_bush_nw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NW.png");
-    this.load.image("sc_patch_sand_grass_bush_ne", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NE.png");
-    this.load.image("sc_patch_sand_grass_bush_sw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SW.png");
-    this.load.image("sc_patch_sand_grass_bush_se", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SE.png");
+    this.load.image("sc_patch_sand_grass_nw", "background/skywardcitadelAssets/obstacles/terrain/structure1_NW.png");
+    this.load.image("sc_patch_sand_grass_ne", "background/skywardcitadelAssets/obstacles/terrain/structure1_NE.png");
+    this.load.image("sc_patch_sand_grass_sw", "background/skywardcitadelAssets/obstacles/terrain/structure1_SW.png");
+    this.load.image("sc_patch_sand_grass_se", "background/skywardcitadelAssets/obstacles/terrain/structure1_SE.png");
+    this.load.image("sc_patch_sand_grass_inner_nw", "background/skywardcitadelAssets/obstacles/terrain/structure1_NW.png");
+    this.load.image("sc_patch_sand_grass_inner_ne", "background/skywardcitadelAssets/obstacles/terrain/structure1_NE.png");
+    this.load.image("sc_patch_sand_grass_inner_sw", "background/skywardcitadelAssets/obstacles/terrain/structure1_SW.png");
+    this.load.image("sc_patch_sand_grass_inner_se", "background/skywardcitadelAssets/obstacles/terrain/structure1_SE.png");
+    this.load.image("sc_patch_sand_grass_bush_nw", "background/skywardcitadelAssets/obstacles/terrain/structure1_NW.png");
+    this.load.image("sc_patch_sand_grass_bush_ne", "background/skywardcitadelAssets/obstacles/terrain/structure1_NE.png");
+    this.load.image("sc_patch_sand_grass_bush_sw", "background/skywardcitadelAssets/obstacles/terrain/structure1_SW.png");
+    this.load.image("sc_patch_sand_grass_bush_se", "background/skywardcitadelAssets/obstacles/terrain/structure1_SE.png");
     // Dedicated aliases: use bush art as GrassSand patch inner corners without coupling to actual bush tiles.
-    this.load.image("sc_patch_grass_sand_inner_bush_nw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NW.png");
-    this.load.image("sc_patch_grass_sand_inner_bush_ne", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_NE.png");
-    this.load.image("sc_patch_grass_sand_inner_bush_sw", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SW.png");
-    this.load.image("sc_patch_grass_sand_inner_bush_se", "background/skywardcitadelAssets/obstacles/terrain/SandGrass_Bush_SE.png");
+    this.load.image("sc_patch_grass_sand_inner_bush_nw", "background/skywardcitadelAssets/obstacles/terrain/structure1_NW.png");
+    this.load.image("sc_patch_grass_sand_inner_bush_ne", "background/skywardcitadelAssets/obstacles/terrain/structure1_NE.png");
+    this.load.image("sc_patch_grass_sand_inner_bush_sw", "background/skywardcitadelAssets/obstacles/terrain/structure1_SW.png");
+    this.load.image("sc_patch_grass_sand_inner_bush_se", "background/skywardcitadelAssets/obstacles/terrain/structure1_SE.png");
 
     // Obstacle underlay + tree variants for layered Act 3 rendering.
     this.load.image("sc_underlay_1", "background/skywardcitadelAssets/underlay/underlay_obstacle1.png");
