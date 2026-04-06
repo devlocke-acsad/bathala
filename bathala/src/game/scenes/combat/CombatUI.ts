@@ -133,6 +133,7 @@ export class CombatUI {
   
   // Relic UI Elements
   public relicsContainer!: Phaser.GameObjects.Container;
+  public itemInventoryContainer!: Phaser.GameObjects.Container;
   public relicInventory!: Phaser.GameObjects.Container;
   public currentRelicTooltip!: Phaser.GameObjects.Container | null;
   private relicUpdatePending: boolean = false;
@@ -141,6 +142,8 @@ export class CombatUI {
   // Potion UI Elements
   public potionInventory!: Phaser.GameObjects.Container;
   public currentPotionTooltip!: Phaser.GameObjects.Container | null;
+  private inventoryTabButtons!: Record<"relics" | "potions", Phaser.GameObjects.Container>;
+  private activeInventoryPanel: "relics" | "potions" = "relics";
   
   // Modal/Overlay Elements
   public landasChoiceContainer!: Phaser.GameObjects.Container;
@@ -176,6 +179,7 @@ export class CombatUI {
    */
   public initialize(): void {
     this.createCombatUI();
+    this.createItemInventoryShell();
     this.createRelicInventory();
     this.createPotionInventory();
     // Deck sprite is created in Combat.ts, not here
@@ -245,6 +249,8 @@ export class CombatUI {
     this.scene.damagePreviewText = this.damagePreviewText;
     // @ts-ignore
     this.scene.relicsContainer = this.relicsContainer;
+    // @ts-ignore
+    this.scene.itemInventoryContainer = this.itemInventoryContainer;
     // @ts-ignore
     this.scene.relicInventory = this.relicInventory;
     // @ts-ignore
@@ -937,148 +943,231 @@ export class CombatUI {
    * Create relic inventory in top center (grid layout like Overworld - 6 relics per row)
    */
   public createRelicInventory(): void {
-    const screenWidth = this.scene.cameras.main.width;
-    this.relicInventory = this.scene.add.container(screenWidth / 2, 84);
+    this.relicInventory = this.scene.add.container(0, 8);
     this.relicInventory.setVisible(true);
     this.currentRelicTooltip = null;
-    
-    console.log("Creating relic inventory container at:", screenWidth / 2, 84);
-    
-    const inventoryWidth = 724;
-    const inventoryHeight = 148;
-    
-    // Enhanced Prologue-style double border design
-    const shadowPlate = this.scene.add.rectangle(6, 8, inventoryWidth + 10, inventoryHeight + 10, 0x060305, 0.5);
-    const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
-    outerBorder.setStrokeStyle(3, 0xc6974a, 0.95);
-    
-    const innerBorder = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, undefined, 0);
-    innerBorder.setStrokeStyle(2, 0x6b4d30, 0.95);
 
-    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x0c070a);
-    const headerBand = this.scene.add.rectangle(0, -inventoryHeight / 2 + 22, inventoryWidth - 24, 34, 0x211117, 0.96);
-    const lowerBand = this.scene.add.rectangle(0, inventoryHeight / 2 - 18, inventoryWidth - 28, 24, 0x140d11, 0.92);
-    
-    // Title text
-    const relicsTitle = this.scene.add.text(0, -inventoryHeight/2 + 20, "RELICS", {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#f1dcc0",
-      align: "center"
-    }).setOrigin(0.5, 0.5);
-    
-    // Grid layout parameters - compact spacing for cleaner look
-    const relicSlotSize = 60; // Slightly smaller slots
+    // Keep slot fit intact while modernizing the tray around it.
+    const relicSlotSize = 60;
     const relicsPerRow = 6;
-    const padding = 22;
+    const padding = 28;
     const gridStartX = -(relicsPerRow - 1) * (relicSlotSize + padding) / 2;
-    const gridStartY = 28;
+    const gridStartY = 14;
     
-    // Create 6 relic slots in a single row
     for (let i = 0; i < relicsPerRow; i++) {
       const col = i;
       const slotX = gridStartX + col * (relicSlotSize + padding);
       const slotY = gridStartY;
       
-      // Create slot container
       const slotContainer = this.scene.add.container(slotX, slotY);
       
-      // Outer border (subtle glow effect)
-      const outerSlotBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 8, relicSlotSize + 8, undefined, 0);
-      outerSlotBorder.setStrokeStyle(2, 0x715335, 0.95);
-      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x171015);
-      const innerGlow = this.scene.add.rectangle(0, 0, relicSlotSize - 8, relicSlotSize - 8, 0x24161d, 0.98);
-      const slotFrame = this.scene.add.rectangle(0, 0, relicSlotSize - 20, relicSlotSize - 20, undefined, 0);
-      slotFrame.setStrokeStyle(1, 0xa27345, 0.55);
+      const outerSlotBorder = this.scene.add.rectangle(0, 0, relicSlotSize + 10, relicSlotSize + 10, undefined, 0);
+      outerSlotBorder.setStrokeStyle(2, 0x7a5b38, 0.92);
+      const bg = this.scene.add.rectangle(0, 0, relicSlotSize, relicSlotSize, 0x181116);
+      const innerGlow = this.scene.add.rectangle(0, 0, relicSlotSize - 8, relicSlotSize - 8, 0x23171c, 0.98);
+      const slotFrame = this.scene.add.rectangle(0, 0, relicSlotSize - 18, relicSlotSize - 18, undefined, 0);
+      slotFrame.setStrokeStyle(1, 0xaf8351, 0.45);
+      const slotCap = this.scene.add.rectangle(0, -relicSlotSize / 2 - 8, 22, 3, 0xe0b66a, 0.7);
       
-      slotContainer.add([bg, outerSlotBorder, innerGlow, slotFrame]);
+      slotContainer.add([bg, outerSlotBorder, innerGlow, slotFrame, slotCap]);
       (slotContainer as any).isRelicSlot = true;
       (slotContainer as any).slotIndex = i;
       
       this.relicInventory.add(slotContainer);
     }
-    
-    // Add all elements to container
-    this.relicInventory.add([shadowPlate, mainBg, innerBorder, outerBorder, headerBand, lowerBand, relicsTitle]);
-    this.relicInventory.sendToBack(mainBg);
-    this.relicInventory.sendToBack(innerBorder);
-    this.relicInventory.sendToBack(outerBorder);
-    this.relicInventory.sendToBack(shadowPlate);
+
+    this.itemInventoryContainer.add(this.relicInventory);
+    this.setActiveInventoryPanel("relics");
   }
   
   /**
    * Create potion inventory on the left side (3-slot vertical grid, matching relic design)
    */
   public createPotionInventory(): void {
-    const screenHeight = this.scene.cameras.main.height;
-    
-    // Position on the left side, lower to avoid crowding the side status panel
-    this.potionInventory = this.scene.add.container(114, screenHeight * 0.72);
-    this.potionInventory.setVisible(true);
+    this.potionInventory = this.scene.add.container(0, 8);
+    this.potionInventory.setVisible(false);
     this.currentPotionTooltip = null;
-    
-    console.log("Creating potion inventory container at:", 114, this.scene.cameras.main.height * 0.72);
-    
-    const inventoryWidth = 176;
-    const inventoryHeight = 400;
-    
-    // Enhanced Prologue-style double border design (matching relic inventory)
-    const shadowPlate = this.scene.add.rectangle(6, 8, inventoryWidth + 10, inventoryHeight + 10, 0x04090d, 0.48);
-    const outerBorder = this.scene.add.rectangle(0, 0, inventoryWidth + 8, inventoryHeight + 8, undefined, 0);
-    outerBorder.setStrokeStyle(3, 0x6fcaf0, 0.95);
-    
-    const innerBorder = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, undefined, 0);
-    innerBorder.setStrokeStyle(2, 0x3a6e86, 0.92);
 
-    const mainBg = this.scene.add.rectangle(0, 0, inventoryWidth, inventoryHeight, 0x091118);
-    const headerBand = this.scene.add.rectangle(0, -inventoryHeight / 2 + 22, inventoryWidth - 18, 34, 0x132330, 0.96);
-    const lowerBand = this.scene.add.rectangle(0, inventoryHeight / 2 - 18, inventoryWidth - 24, 24, 0x0d1922, 0.92);
-    
-    // Title text
-    const potionsTitle = this.scene.add.text(0, -inventoryHeight/2 + 20, "POTIONS", {
-      fontFamily: "dungeon-mode",
-      fontSize: 20,
-      color: "#d7f2ff",
-      align: "center"
-    }).setOrigin(0.5, 0.5);
-    
-    // Grid layout parameters - 3 slots vertically (matching relic slot style)
+    // Reflow potions horizontally inside the shared inventory tray.
     const potionSlotSize = 70;
     const maxPotions = 3;
-    const padding = 18;
-    const gridStartY = -84;
+    const padding = 34;
+    const gridStartX = -(maxPotions - 1) * (potionSlotSize + padding) / 2;
+    const slotY = 14;
     
-    // Create 3 potion slots vertically
     for (let i = 0; i < maxPotions; i++) {
-      const slotY = gridStartY + i * (potionSlotSize + padding);
-      
-      // Create slot container
-      const slotContainer = this.scene.add.container(0, slotY);
-      
-      // Outer border (subtle glow effect - matching relic style)
+      const slotX = gridStartX + i * (potionSlotSize + padding);
+      const slotContainer = this.scene.add.container(slotX, slotY);
+
       const outerBorder = this.scene.add.rectangle(0, 0, potionSlotSize + 8, potionSlotSize + 8, undefined, 0);
       outerBorder.setStrokeStyle(2, 0x3c728a, 0.95);
       const bg = this.scene.add.rectangle(0, 0, potionSlotSize, potionSlotSize, 0x101921);
       const innerGlow = this.scene.add.rectangle(0, 0, potionSlotSize - 8, potionSlotSize - 8, 0x152631, 0.98);
       const slotFrame = this.scene.add.rectangle(0, 0, potionSlotSize - 22, potionSlotSize - 22, undefined, 0);
       slotFrame.setStrokeStyle(1, 0x74b8d6, 0.5);
+      const slotCap = this.scene.add.rectangle(0, -potionSlotSize / 2 - 10, 24, 3, 0x82d9ff, 0.7);
       
-      slotContainer.add([bg, outerBorder, innerGlow, slotFrame]);
+      slotContainer.add([bg, outerBorder, innerGlow, slotFrame, slotCap]);
       (slotContainer as any).isPotionSlot = true;
       (slotContainer as any).slotIndex = i;
       
       this.potionInventory.add(slotContainer);
     }
-    
-    // Add all elements to container
-    this.potionInventory.add([shadowPlate, mainBg, innerBorder, outerBorder, headerBand, lowerBand, potionsTitle]);
-    this.potionInventory.sendToBack(mainBg);
-    this.potionInventory.sendToBack(innerBorder);
-    this.potionInventory.sendToBack(outerBorder);
-    this.potionInventory.sendToBack(shadowPlate);
+
+    this.itemInventoryContainer.add(this.potionInventory);
     
     // Update potion display immediately
     this.updatePotionInventory();
+  }
+
+  private createItemInventoryShell(): void {
+    const screenWidth = this.scene.cameras.main.width;
+    this.itemInventoryContainer = this.scene.add.container(screenWidth / 2, 90);
+
+    const shellWidth = 768;
+    const shellHeight = 176;
+    const shellShadow = this.scene.add.rectangle(8, 10, shellWidth + 20, shellHeight + 18, 0x040203, 0.42);
+    const shellOuter = this.scene.add.rectangle(0, 0, shellWidth + 8, shellHeight + 8, undefined, 0);
+    shellOuter.setStrokeStyle(3, 0xb98b4b, 0.7);
+    const shellInner = this.scene.add.rectangle(0, 0, shellWidth, shellHeight, undefined, 0);
+    shellInner.setStrokeStyle(1, 0x6b4a2d, 0.95);
+    const shellBase = this.scene.add.rectangle(0, 0, shellWidth, shellHeight, 0x120c10, 0.96);
+    const leftLeaf = this.scene.add.rectangle(-187, 10, 332, 124, 0x25181a, 0.96);
+    const rightLeaf = this.scene.add.rectangle(187, 10, 332, 124, 0x25181a, 0.96);
+    const leftLeafInner = this.scene.add.rectangle(-187, 10, 298, 98, 0x1b1215, 0.82);
+    const rightLeafInner = this.scene.add.rectangle(187, 10, 298, 98, 0x1b1215, 0.82);
+    const spine = this.scene.add.rectangle(0, 8, 44, 130, 0x2d1a16, 0.95);
+    const spineLine = this.scene.add.rectangle(0, 8, 4, 126, 0xb98b4b, 0.52);
+    const topRule = this.scene.add.rectangle(0, -shellHeight / 2 + 16, shellWidth - 42, 2, 0xe0b66a, 0.88);
+    const bottomRule = this.scene.add.rectangle(0, shellHeight / 2 - 14, shellWidth - 56, 2, 0x6f4e30, 0.55);
+    const shellTitle = this.scene.add.text(-shellWidth / 2 + 48, -shellHeight / 2 + 30, "INVENTORY", {
+      fontFamily: "dungeon-mode",
+      fontSize: 18,
+      color: "#f2e3cf",
+      align: "left",
+    }).setOrigin(0, 0.5);
+
+    this.itemInventoryContainer.add([
+      shellShadow,
+      shellBase,
+      leftLeaf,
+      rightLeaf,
+      leftLeafInner,
+      rightLeafInner,
+      spine,
+      spineLine,
+      shellInner,
+      shellOuter,
+      topRule,
+      bottomRule,
+      shellTitle,
+    ]);
+    this.itemInventoryContainer.sendToBack(shellBase);
+    this.itemInventoryContainer.sendToBack(leftLeaf);
+    this.itemInventoryContainer.sendToBack(rightLeaf);
+    this.itemInventoryContainer.sendToBack(leftLeafInner);
+    this.itemInventoryContainer.sendToBack(rightLeafInner);
+    this.itemInventoryContainer.sendToBack(spine);
+    this.itemInventoryContainer.sendToBack(spineLine);
+    this.itemInventoryContainer.sendToBack(shellInner);
+    this.itemInventoryContainer.sendToBack(shellOuter);
+    this.itemInventoryContainer.sendToBack(shellShadow);
+
+    this.inventoryTabButtons = {
+      relics: this.createInventoryTabButton(-86, -shellHeight / 2 + 30, "RELICS", "relics"),
+      potions: this.createInventoryTabButton(86, -shellHeight / 2 + 30, "POTIONS", "potions"),
+    };
+    this.itemInventoryContainer.add([
+      this.inventoryTabButtons.relics,
+      this.inventoryTabButtons.potions,
+    ]);
+  }
+
+  private createInventoryTabButton(
+    x: number,
+    y: number,
+    label: string,
+    panel: "relics" | "potions",
+  ): Phaser.GameObjects.Container {
+    const tab = this.scene.add.container(x, y);
+    const width = 132;
+    const height = 34;
+    const leftCap = this.scene.add.circle(-width / 2 + height / 2, 0, height / 2, 0x1d1417, 1);
+    const rightCap = this.scene.add.circle(width / 2 - height / 2, 0, height / 2, 0x1d1417, 1);
+    const centerBody = this.scene.add.rectangle(0, 0, width - height, height, 0x1d1417, 1);
+    const borderLeft = this.scene.add.circle(-width / 2 + height / 2, 0, height / 2 + 2, undefined, 0);
+    borderLeft.setStrokeStyle(2, 0x7f5e3b, 0.85);
+    const borderRight = this.scene.add.circle(width / 2 - height / 2, 0, height / 2 + 2, undefined, 0);
+    borderRight.setStrokeStyle(2, 0x7f5e3b, 0.85);
+    const borderCenter = this.scene.add.rectangle(0, 0, width - height + 4, height + 4, undefined, 0);
+    borderCenter.setStrokeStyle(2, 0x7f5e3b, 0.85);
+    const text = this.scene.add.text(0, 0, label, {
+      fontFamily: "dungeon-mode",
+      fontSize: 15,
+      color: "#d5c2a7",
+      align: "center",
+    }).setOrigin(0.5);
+
+    tab.add([leftCap, rightCap, centerBody, borderLeft, borderRight, borderCenter, text]);
+    tab.setData("panel", panel);
+    tab.setData("fills", { leftCap, rightCap, centerBody, borderLeft, borderRight, borderCenter, text });
+    tab.setInteractive(
+      new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height),
+      Phaser.Geom.Rectangle.Contains,
+    );
+    tab.on("pointerdown", () => this.setActiveInventoryPanel(panel));
+    tab.on("pointerover", () => {
+      if (this.activeInventoryPanel === panel) {
+        return;
+      }
+      const visuals = tab.getData("fills") as Record<string, Phaser.GameObjects.Shape | Phaser.GameObjects.Text>;
+      (visuals.leftCap as Phaser.GameObjects.Arc).setFillStyle(0x271b1f, 1);
+      (visuals.rightCap as Phaser.GameObjects.Arc).setFillStyle(0x271b1f, 1);
+      (visuals.centerBody as Phaser.GameObjects.Rectangle).setFillStyle(0x271b1f, 1);
+      (visuals.text as Phaser.GameObjects.Text).setColor("#f1e2ca");
+    });
+    tab.on("pointerout", () => this.refreshInventoryTabButton(panel));
+
+    return tab;
+  }
+
+  private setActiveInventoryPanel(panel: "relics" | "potions"): void {
+    this.activeInventoryPanel = panel;
+    if (this.relicInventory) {
+      this.relicInventory.setVisible(panel === "relics");
+    }
+    if (this.potionInventory) {
+      this.potionInventory.setVisible(panel === "potions");
+    }
+    this.hideRelicTooltip();
+    this.hidePotionTooltip();
+    this.refreshInventoryTabButton("relics");
+    this.refreshInventoryTabButton("potions");
+  }
+
+  private refreshInventoryTabButton(panel: "relics" | "potions"): void {
+    if (!this.inventoryTabButtons) {
+      return;
+    }
+
+    const tab = this.inventoryTabButtons[panel];
+    if (!tab) {
+      return;
+    }
+
+    const isActive = this.activeInventoryPanel === panel;
+    const visuals = tab.getData("fills") as Record<string, Phaser.GameObjects.Shape | Phaser.GameObjects.Text>;
+    const fillColor = isActive ? 0x3b261f : 0x1d1417;
+    const borderColor = isActive ? 0xe0b66a : 0x7f5e3b;
+    const textColor = isActive ? "#fff2de" : "#d5c2a7";
+
+    (visuals.leftCap as Phaser.GameObjects.Arc).setFillStyle(fillColor, 1);
+    (visuals.rightCap as Phaser.GameObjects.Arc).setFillStyle(fillColor, 1);
+    (visuals.centerBody as Phaser.GameObjects.Rectangle).setFillStyle(fillColor, 1);
+    (visuals.borderLeft as Phaser.GameObjects.Arc).setStrokeStyle(2, borderColor, isActive ? 1 : 0.85);
+    (visuals.borderRight as Phaser.GameObjects.Arc).setStrokeStyle(2, borderColor, isActive ? 1 : 0.85);
+    (visuals.borderCenter as Phaser.GameObjects.Rectangle).setStrokeStyle(2, borderColor, isActive ? 1 : 0.85);
+    (visuals.text as Phaser.GameObjects.Text).setColor(textColor);
   }
   
 
@@ -1409,12 +1498,8 @@ export class CombatUI {
       this.actionResultText.setPosition(Math.round(this.scene.cameras.main.width * 0.72), 126);
     }
 
-    if (this.relicInventory) {
-      this.relicInventory.setPosition(Math.round(this.scene.cameras.main.width * 0.5), 84);
-    }
-
-    if (this.potionInventory) {
-      this.potionInventory.setPosition(114, Math.round(this.scene.cameras.main.height * 0.72));
+    if (this.itemInventoryContainer) {
+      this.itemInventoryContainer.setPosition(Math.round(this.scene.cameras.main.width * 0.5), 90);
     }
   }
   
@@ -1936,8 +2021,8 @@ export class CombatUI {
       const outerBorder = slotChildren[1];
 
       if (bg && outerBorder) {
-        bg.setFillStyle(0x171015);
-        outerBorder.setStrokeStyle(2, 0x715335, 0.95);
+        bg.setFillStyle(0x181116);
+        outerBorder.setStrokeStyle(2, 0x7a5b38, 0.92);
       }
     });
     
@@ -1992,7 +2077,7 @@ export class CombatUI {
         const outerBorder = slotChildren[1]; // Border
         
         slot.on("pointerover", () => {
-          bg.setFillStyle(0x24171d);
+          bg.setFillStyle(0x2a191d);
           outerBorder.setStrokeStyle(2, 0xf2c572, 1.0);
           
           // Kill any existing tweens on this icon to prevent conflicts
@@ -2017,8 +2102,8 @@ export class CombatUI {
         });
         
         slot.on("pointerout", () => {
-          bg.setFillStyle(0x171015);
-          outerBorder.setStrokeStyle(2, 0x715335, 0.95);
+          bg.setFillStyle(0x181116);
+          outerBorder.setStrokeStyle(2, 0x7a5b38, 0.92);
           
           // Kill any existing tweens on this icon to prevent conflicts
           this.scene.tweens.killTweensOf(relicIcon);
