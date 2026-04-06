@@ -570,9 +570,29 @@ export class Preloader extends Scene {
     this.load.image("tikbalang_almanac", "sprites/discover/chapter1/tikbalang_almanac.png");
     this.load.image("tiyanak_almanac", "sprites/discover/chapter1/tiyanak_almanac.png");
 
-    // Chapter 2-3 almanac portraits are loaded lazily in Discover.
-    // They are large and not required for normal gameplay because combat/tooltips
-    // already fall back to lighter portrait sources when these textures are absent.
+    // Chapter 2 enemy almanac sprites
+    this.load.image("sirena_almanac", "sprites/discover/chapter2/new/sirena_splash.webp");
+    this.load.image("siyokoy_almanac", "sprites/discover/chapter2/new/siyokoy_splash.webp");
+    this.load.image("santelmo_almanac", "sprites/discover/chapter2/new/santelmo_splash.webp");
+    this.load.image("berberoka_almanac", "sprites/discover/chapter2/new/berberoka_splash.webp");
+    this.load.image("magindara_almanac", "sprites/discover/chapter2/new/maginda_swarm_splash.webp");
+    this.load.image("kataw_almanac", "sprites/discover/chapter2/new/kataw_splash.webp");
+    this.load.image("berbalang_almanac", "sprites/discover/chapter2/new/berbalang_splash.webp");
+    this.load.image("bangkilan_almanac", "sprites/discover/chapter2/new/sunken_bangkilan_splash.webp");
+    this.load.image("apoy_tubig_fury_almanac", "sprites/discover/chapter2/new/apoy_tubig_splash.webp");
+    this.load.image("bakunawa_almanac", "sprites/discover/chapter2/new/bakunawa_splash.webp");
+
+    // Chapter 3 enemy almanac sprites
+    this.load.image("tigmamanukan_almanac", "sprites/discover/chapter3/new/tigamamanukan_watcher_splash.webp");
+    this.load.image("diwata_almanac", "sprites/discover/chapter3/new/diwata_sentinel_splash.webp");
+    this.load.image("sarimanok_almanac", "sprites/discover/chapter3/new/sarimanok_watcher_splash.webp");
+    this.load.image("bulalakaw_almanac", "sprites/discover/chapter3/new/bulalakaw_flamekeeper_splash.webp");
+    this.load.image("minokawa_almanac", "sprites/discover/chapter3/new/minokawa_harbinger_splash.webp");
+    this.load.image("alan_almanac", "sprites/discover/chapter3/new/alan_splash.webp");
+    this.load.image("ekek_almanac", "sprites/discover/chapter3/new/ekek_splash.webp");
+    this.load.image("ribung_linti_almanac", "sprites/discover/chapter3/new/ribung_linti_splash.webp");
+    this.load.image("apolaki_almanac", "sprites/discover/chapter3/new/apolaki_splash.webp");
+    this.load.image("false_bathala_almanac", "sprites/discover/chapter3/new/false_bathala_splash.webp");
 
     // Legacy enemy sprite keys for backward compatibility
     this.load.image("amomongo", "sprites/combat/enemy/chapter1/amomongo_battle.png");
